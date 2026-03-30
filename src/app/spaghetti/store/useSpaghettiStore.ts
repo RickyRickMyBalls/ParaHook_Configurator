@@ -82,7 +82,22 @@ import { DEFAULT_BUILD_EXECUTION_INTENT } from '../../../shared/buildTypes'
 import { appendConsoleEntry } from '../../console/useConsoleStore'
 import { artifactToPartKeyStr } from '../../parts/partKeyResolver'
 import {
+  createDefaultEditorWorkspaceSurfaceState,
+  defaultEditorSurfacePosition,
+  defaultEditorSurfaceSize,
+  defaultEditorSurfaceSplitRatio,
+  resolveWorkspacePresentationMode,
+  type EditorSurfaceRestoreFromCollapsed,
+  type EditorSurfaceRestoreFromSplit,
+  type EditorSurfaceWindowMode,
+  type EditorWorkspaceSurfaceState,
+} from '../../workspace/workspaceShellTypes'
+import { useWorkspaceStore } from '../../workspace/useWorkspaceStore'
+import {
   defaultWorkspaceSplitDirection,
+  resolveDefaultWorkspaceSplitDockSide,
+  resolveWorkspaceSplitDirectionForDockSide,
+  type WorkspaceSplitDockSide,
   defaultWorkspaceSplitPriority,
   type WorkspaceSplitDirection,
   type WorkspaceSplitPriority,
@@ -600,6 +615,10 @@ export type SpaghettiStoreState = {
     editorViewportId: string,
     splitDirection: WorkspaceSplitDirection,
   ) => void
+  setEditorViewportSplitDockSide: (
+    editorViewportId: string,
+    splitDockSide: WorkspaceSplitDockSide,
+  ) => void
   setEditorViewportSplitPriority: (
     editorViewportId: string,
     splitPriority: WorkspaceSplitPriority,
@@ -706,9 +725,9 @@ const defaultYStep = 200
 const defaultNodeRowMode: NodeRowMode = 'essentials'
 const defaultEditorViewportId = 'editor-viewport-1'
 // Spawn new floating editors just to the right of the left dock/title-status stack.
-export const defaultViewportPosition: EditorViewportPosition = { x: 344, y: 16 }
-export const defaultViewportSize: EditorViewportSize = { width: 980, height: 760 }
-export const defaultViewportSplitRatio = 0.5
+export const defaultViewportPosition: EditorViewportPosition = defaultEditorSurfacePosition
+export const defaultViewportSize: EditorViewportSize = defaultEditorSurfaceSize
+export const defaultViewportSplitRatio = defaultEditorSurfaceSplitRatio
 const minViewportSplitRatio = 0.25
 const maxViewportSplitRatio = 0.75
 const EMPTY_PART_ARTIFACTS: PartArtifact[] = []
@@ -2091,6 +2110,7 @@ const createEditorViewport = (
   size: options?.size ?? defaultViewportSize,
   splitRatio: defaultViewportSplitRatio,
   splitDirection: defaultWorkspaceSplitDirection,
+  splitDockSide: resolveDefaultWorkspaceSplitDockSide(defaultWorkspaceSplitDirection),
   splitPriority: defaultWorkspaceSplitPriority,
   restoreFromCollapsed: null,
   restoreFromSplit: null,
@@ -2103,6 +2123,9 @@ const clampViewportSplitRatio = (splitRatio: number): number =>
 const withViewportSplitDefaults = (viewport: EditorViewport): EditorViewport => ({
   ...viewport,
   splitDirection: viewport.splitDirection ?? defaultWorkspaceSplitDirection,
+  splitDockSide:
+    viewport.splitDockSide ??
+    resolveDefaultWorkspaceSplitDockSide(viewport.splitDirection ?? defaultWorkspaceSplitDirection),
   splitPriority: viewport.splitPriority ?? defaultWorkspaceSplitPriority,
 })
 
@@ -2138,6 +2161,116 @@ const snapshotCollapsedRestoreState = (
     size: viewport.size,
   }
 }
+
+const cloneEditorSurfaceRestoreFromCollapsed = (
+  restore: EditorSurfaceRestoreFromCollapsed | null,
+): EditorViewportRestoreFromCollapsed | null =>
+  restore === null
+    ? null
+    : {
+        windowMode: restore.windowMode,
+        position: restore.position === undefined ? undefined : { ...restore.position },
+        size: restore.size === undefined ? undefined : { ...restore.size },
+        splitRatio: restore.splitRatio,
+      }
+
+const cloneEditorSurfaceRestoreFromSplit = (
+  restore: EditorSurfaceRestoreFromSplit | null,
+): EditorViewportRestoreFromSplit | null =>
+  restore === null
+    ? null
+    : {
+        windowMode: restore.windowMode,
+        position: restore.position === undefined ? undefined : { ...restore.position },
+        size: restore.size === undefined ? undefined : { ...restore.size },
+      }
+
+const createEditorWorkspaceSurfaceStateFromViewport = (
+  viewport: EditorViewport,
+): EditorWorkspaceSurfaceState => ({
+  ...createDefaultEditorWorkspaceSurfaceState(viewport.editorViewportId),
+  surfaceInstanceId: viewport.editorViewportId,
+  windowMode: viewport.windowMode as EditorSurfaceWindowMode,
+  presentationMode: resolveWorkspacePresentationMode(viewport.windowMode as EditorSurfaceWindowMode),
+  position: {
+    x: viewport.position.x,
+    y: viewport.position.y,
+  },
+  size: {
+    width: viewport.size.width,
+    height: viewport.size.height,
+  },
+  splitRatio: viewport.splitRatio,
+  splitDirection: viewport.splitDirection ?? defaultWorkspaceSplitDirection,
+  splitDockSide:
+    viewport.splitDockSide ??
+    resolveDefaultWorkspaceSplitDockSide(viewport.splitDirection ?? defaultWorkspaceSplitDirection),
+  splitPriority: viewport.splitPriority ?? defaultWorkspaceSplitPriority,
+  restoreFromCollapsed: viewport.restoreFromCollapsed
+    ? {
+        windowMode: viewport.restoreFromCollapsed.windowMode,
+        position:
+          viewport.restoreFromCollapsed.position === undefined
+            ? undefined
+            : {
+                ...viewport.restoreFromCollapsed.position,
+              },
+        size:
+          viewport.restoreFromCollapsed.size === undefined
+            ? undefined
+            : {
+                ...viewport.restoreFromCollapsed.size,
+              },
+        splitRatio: viewport.restoreFromCollapsed.splitRatio,
+      }
+    : null,
+  restoreFromSplit: viewport.restoreFromSplit
+    ? {
+        windowMode: viewport.restoreFromSplit.windowMode,
+        position:
+          viewport.restoreFromSplit.position === undefined
+            ? undefined
+            : {
+                ...viewport.restoreFromSplit.position,
+              },
+        size:
+          viewport.restoreFromSplit.size === undefined
+            ? undefined
+            : {
+                ...viewport.restoreFromSplit.size,
+              },
+      }
+    : null,
+})
+
+const readEditorWorkspaceSurfaceState = (
+  viewport: EditorViewport,
+): EditorWorkspaceSurfaceState =>
+  useWorkspaceStore.getState().editorSurfacePlacementById[viewport.editorViewportId] ??
+  createEditorWorkspaceSurfaceStateFromViewport(viewport)
+
+const applyEditorWorkspaceSurfaceStateToViewport = (
+  viewport: EditorViewport,
+  surface: EditorWorkspaceSurfaceState,
+): EditorViewport =>
+  withViewportSplitDefaults({
+    ...viewport,
+    windowMode: surface.windowMode,
+    position: {
+      x: surface.position.x,
+      y: surface.position.y,
+    },
+    size: {
+      width: surface.size.width,
+      height: surface.size.height,
+    },
+    splitRatio: surface.splitRatio,
+    splitDirection: surface.splitDirection,
+    splitDockSide: surface.splitDockSide,
+    splitPriority: surface.splitPriority,
+    restoreFromCollapsed: cloneEditorSurfaceRestoreFromCollapsed(surface.restoreFromCollapsed),
+    restoreFromSplit: cloneEditorSurfaceRestoreFromSplit(surface.restoreFromSplit),
+  })
 
 const addGraphDocumentIdToSharedViewerComposition = (
   composition: SharedViewerCompositionState | null,
@@ -3104,6 +3237,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   startSketchPlanePick: (nodeId) => {
     let didStart = false
+    let collapsedViewportForWorkspace: EditorViewport | null = null
     set((state) => {
       const node = state.graph.nodes.find((candidate) => candidate.nodeId === nodeId)
       if (node === undefined || !isGeometrySketchNode(node)) {
@@ -3125,6 +3259,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 windowMode: 'collapsed',
                 restoreFromCollapsed: snapshotCollapsedRestoreState(activeViewport),
               }
+              collapsedViewportForWorkspace = collapsedViewport
               return {
                 ...state.editorViewportsById,
                 [activeViewport.editorViewportId]: collapsedViewport,
@@ -3157,6 +3292,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
     })
     if (didStart) {
+      if (collapsedViewportForWorkspace !== null) {
+        const collapsedViewport = collapsedViewportForWorkspace as EditorViewport
+        useWorkspaceStore
+          .getState()
+          .setEditorSurfacePlacement(
+            collapsedViewport.editorViewportId,
+            createEditorWorkspaceSurfaceStateFromViewport(collapsedViewport),
+          )
+      }
       appendConsoleEntry({
         layer: 'Commands',
         text: `Sketch plane pick started: ${nodeId}`,
@@ -4087,6 +4231,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   startGeometrySketchSession: (nodeId, mode) => {
     const nextPromptRef: { current: GeometrySketchConsolePrompt | null } = { current: null }
+    let collapsedViewportForWorkspace: EditorViewport | null = null
     set((state) => {
       const node = state.graph.nodes.find((candidate) => candidate.nodeId === nodeId)
       if (node === undefined || !isGeometrySketchNode(node)) {
@@ -4118,6 +4263,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 windowMode: 'collapsed',
                 restoreFromCollapsed: snapshotCollapsedRestoreState(activeViewport),
               }
+              collapsedViewportForWorkspace = collapsedViewport
               return {
                 ...state.editorViewportsById,
                 [activeViewport.editorViewportId]: collapsedViewport,
@@ -4163,6 +4309,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         sketchPlanePickSession: null,
       }
     })
+    if (collapsedViewportForWorkspace !== null) {
+      const collapsedViewport = collapsedViewportForWorkspace as EditorViewport
+      useWorkspaceStore
+        .getState()
+        .setEditorSurfacePlacement(
+          collapsedViewport.editorViewportId,
+          createEditorWorkspaceSurfaceStateFromViewport(collapsedViewport),
+        )
+    }
     if (nextPromptRef.current !== null) {
       appendGeometrySketchConsolePrompt(
         nextPromptRef.current.tool,
@@ -5500,6 +5655,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         activeEditorViewportId: nextViewportState.editorViewportId,
       })
     })
+    const nextViewport = nextViewportState.editorViewportsById[nextViewportState.editorViewportId]
+    if (nextViewport !== undefined) {
+      useWorkspaceStore
+        .getState()
+        .setEditorSurfacePlacement(
+          nextViewport.editorViewportId,
+          createEditorWorkspaceSurfaceStateFromViewport(nextViewport),
+        )
+    }
     return nextViewportState.editorViewportId
   },
   openGraphDocumentInNewViewport: (graphDocumentId) => {
@@ -5515,6 +5679,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         activeEditorViewportId: nextViewportState.editorViewportId,
       }),
     )
+    const nextViewport = nextViewportState.editorViewportsById[nextViewportState.editorViewportId]
+    if (nextViewport !== undefined) {
+      useWorkspaceStore
+        .getState()
+        .setEditorSurfacePlacement(
+          nextViewport.editorViewportId,
+          createEditorWorkspaceSurfaceStateFromViewport(nextViewport),
+        )
+    }
     return nextViewportState.editorViewportId
   },
   bindEditorViewportToGraphDocument: (editorViewportId, graphDocumentId) => {
@@ -5626,6 +5799,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         activeEditorViewportId: fallbackViewportId,
       })
     })
+    useWorkspaceStore.getState().removeEditorSurfacePlacement(editorViewportId)
   },
   setActiveEditorViewportId: (editorViewportId) => {
     set((state) => {
@@ -5697,157 +5871,206 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     return graphDocumentId
   },
   setEditorViewportWindowMode: (editorViewportId, windowMode) => {
+    let nextPlacementsByViewportId: Record<string, EditorWorkspaceSurfaceState> | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
-      if (viewport === undefined || viewport.windowMode === windowMode) {
-        if (viewport?.windowMode !== 'collapsed' && viewport?.windowMode !== 'maximized' && viewport?.windowMode !== 'split view') {
+      const currentSurface = viewport === undefined ? null : readEditorWorkspaceSurfaceState(viewport)
+      if (viewport === undefined || currentSurface?.windowMode === windowMode) {
+        if (
+          currentSurface?.windowMode !== 'collapsed' &&
+          currentSurface?.windowMode !== 'maximized' &&
+          currentSurface?.windowMode !== 'split view'
+        ) {
           return state
         }
       }
 
-      const resolveRestoreFromCollapsed = (): EditorViewport => {
-        const restore = viewport.restoreFromCollapsed
+      const resolveRestoreFromCollapsed = (): EditorWorkspaceSurfaceState => {
+        const restore = currentSurface?.restoreFromCollapsed ?? null
         if (restore === null) {
-          return withViewportSplitDefaults({
-            ...viewport,
+          return {
+            ...currentSurface!,
             windowMode: 'expanded',
             position: defaultViewportPosition,
             size: defaultViewportSize,
+            presentationMode: 'windowed',
             restoreFromCollapsed: null,
-          })
+          }
         }
-        return withViewportSplitDefaults({
-          ...viewport,
+        return {
+          ...currentSurface!,
           windowMode: restore.windowMode,
-          position: restore.position ?? viewport.position,
-          size: restore.size ?? viewport.size,
-          splitRatio: restore.splitRatio ?? viewport.splitRatio,
+          position: restore.position ?? currentSurface!.position,
+          size: restore.size ?? currentSurface!.size,
+          splitRatio: restore.splitRatio ?? currentSurface!.splitRatio,
+          presentationMode: resolveWorkspacePresentationMode(restore.windowMode),
           restoreFromCollapsed: null,
-        })
+        }
       }
 
-      const resolveRestoreFromSplit = (): EditorViewport => {
-        const restore = viewport.restoreFromSplit
+      const resolveRestoreFromSplit = (): EditorWorkspaceSurfaceState => {
+        const restore = currentSurface?.restoreFromSplit ?? null
         if (restore === null) {
-          return withViewportSplitDefaults({
-            ...viewport,
+          return {
+            ...currentSurface!,
             windowMode: 'expanded',
             position: defaultViewportPosition,
             size: defaultViewportSize,
+            presentationMode: 'windowed',
             restoreFromSplit: null,
-          })
+          }
         }
-        return withViewportSplitDefaults({
-          ...viewport,
+        return {
+          ...currentSurface!,
           windowMode: restore.windowMode,
-          position: restore.position ?? viewport.position,
-          size: restore.size ?? viewport.size,
+          position: restore.position ?? currentSurface!.position,
+          size: restore.size ?? currentSurface!.size,
+          presentationMode: resolveWorkspacePresentationMode(restore.windowMode),
           restoreFromSplit: null,
-        })
+        }
       }
 
-      let nextViewport: EditorViewport
+      let nextSurface: EditorWorkspaceSurfaceState
 
       if (windowMode === 'collapsed') {
-        nextViewport =
-          viewport.windowMode === 'collapsed'
+        nextSurface =
+          currentSurface!.windowMode === 'collapsed'
             ? resolveRestoreFromCollapsed()
             : {
-                ...viewport,
+                ...currentSurface!,
                 windowMode: 'collapsed',
+                presentationMode: 'windowed',
                 restoreFromCollapsed: snapshotCollapsedRestoreState(viewport),
               }
       } else if (windowMode === 'maximized') {
-        nextViewport =
-          viewport.windowMode === 'maximized'
+        nextSurface =
+          currentSurface!.windowMode === 'maximized'
             ? {
-                ...viewport,
+                ...currentSurface!,
                 windowMode: 'expanded',
                 position: defaultViewportPosition,
                 size: defaultViewportSize,
+                presentationMode: 'windowed',
                 restoreFromCollapsed: null,
                 restoreFromSplit: null,
               }
             : {
-                ...viewport,
+                ...currentSurface!,
                 windowMode: 'maximized',
+                presentationMode: 'windowed',
                 restoreFromCollapsed: null,
                 restoreFromSplit: null,
               }
       } else if (windowMode === 'split view') {
-        if (viewport.windowMode === 'split view') {
-          nextViewport = resolveRestoreFromSplit()
-        } else if (viewport.windowMode === 'collapsed') {
-          nextViewport = {
-            ...viewport,
+        if (currentSurface!.windowMode === 'split view') {
+          nextSurface = resolveRestoreFromSplit()
+        } else if (currentSurface!.windowMode === 'collapsed') {
+          nextSurface = {
+            ...currentSurface!,
             windowMode: 'split view',
             splitRatio: defaultViewportSplitRatio,
+            presentationMode: 'tiled',
             restoreFromCollapsed: null,
             restoreFromSplit:
-              viewport.restoreFromSplit ??
-              (viewport.restoreFromCollapsed !== null &&
-              viewport.restoreFromCollapsed.windowMode !== 'split view'
+              currentSurface!.restoreFromSplit ??
+              (currentSurface!.restoreFromCollapsed !== null &&
+              currentSurface!.restoreFromCollapsed.windowMode !== 'split view'
                 ? {
-                    windowMode: viewport.restoreFromCollapsed.windowMode,
-                    position: viewport.restoreFromCollapsed.position,
-                    size: viewport.restoreFromCollapsed.size,
+                    windowMode: currentSurface!.restoreFromCollapsed.windowMode,
+                    position: currentSurface!.restoreFromCollapsed.position,
+                    size: currentSurface!.restoreFromCollapsed.size,
                   }
                 : snapshotExpandedRestoreState(viewport)),
           }
         } else {
-          nextViewport = {
-            ...viewport,
+          nextSurface = {
+            ...currentSurface!,
             windowMode: 'split view',
             splitRatio: defaultViewportSplitRatio,
+            presentationMode: 'tiled',
             restoreFromCollapsed: null,
             restoreFromSplit:
-              viewport.windowMode === 'maximized'
+              currentSurface!.windowMode === 'maximized'
                 ? {
                     windowMode: 'maximized',
-                    position: viewport.position,
-                    size: viewport.size,
+                    position: currentSurface!.position,
+                    size: currentSurface!.size,
                   }
                 : snapshotExpandedRestoreState(viewport),
           }
         }
       } else if (windowMode === 'meatball editor view') {
-        nextViewport = {
-          ...viewport,
+        nextSurface = {
+          ...currentSurface!,
           windowMode: 'meatball editor view',
+          presentationMode: 'windowed',
           restoreFromCollapsed: null,
           restoreFromSplit: null,
         }
       } else {
-        nextViewport = {
-          ...viewport,
+        nextSurface = {
+          ...currentSurface!,
           windowMode,
+          presentationMode: resolveWorkspacePresentationMode(windowMode),
         }
       }
 
-      nextViewport = withViewportSplitDefaults(nextViewport)
+      nextSurface = {
+        ...nextSurface,
+        splitDirection: nextSurface.splitDirection ?? defaultWorkspaceSplitDirection,
+        splitDockSide:
+          nextSurface.splitDockSide ??
+          resolveDefaultWorkspaceSplitDockSide(
+            nextSurface.splitDirection ?? defaultWorkspaceSplitDirection,
+          ),
+        splitPriority: nextSurface.splitPriority ?? defaultWorkspaceSplitPriority,
+      }
 
+      const nextPlacements: Record<string, EditorWorkspaceSurfaceState> = {}
       const nextViewportsById: Record<string, EditorViewport> = {}
       for (const [currentViewportId, currentViewport] of Object.entries(state.editorViewportsById)) {
         if (
           currentViewportId !== editorViewportId &&
-          nextViewport.windowMode === 'meatball editor view' &&
-          currentViewport.windowMode === 'meatball editor view'
+          nextSurface.windowMode === 'meatball editor view' &&
+          readEditorWorkspaceSurfaceState(currentViewport).windowMode === 'meatball editor view'
         ) {
-          nextViewportsById[currentViewportId] = {
-            ...currentViewport,
+          const expandedSurface: EditorWorkspaceSurfaceState = {
+            ...readEditorWorkspaceSurfaceState(currentViewport),
             windowMode: 'expanded',
+            presentationMode: 'windowed',
             restoreFromCollapsed: null,
             restoreFromSplit: null,
           }
+          nextPlacements[currentViewportId] = expandedSurface
+          nextViewportsById[currentViewportId] = applyEditorWorkspaceSurfaceStateToViewport(
+            currentViewport,
+            expandedSurface,
+          )
           continue
         }
-        nextViewportsById[currentViewportId] =
-          currentViewportId === editorViewportId ? nextViewport : currentViewport
+        if (currentViewportId === editorViewportId) {
+          nextPlacements[currentViewportId] = nextSurface
+          nextViewportsById[currentViewportId] = applyEditorWorkspaceSurfaceStateToViewport(
+            currentViewport,
+            nextSurface,
+          )
+          continue
+        }
+        nextViewportsById[currentViewportId] = currentViewport
       }
+      nextPlacementsByViewportId = nextPlacements
       return withBrowserViewportState(state, {
         editorViewportsById: nextViewportsById,
       })
     })
+    if (nextPlacementsByViewportId !== null) {
+      const workspaceState = useWorkspaceStore.getState()
+      for (const [currentViewportId, placement] of Object.entries(
+        nextPlacementsByViewportId as Record<string, EditorWorkspaceSurfaceState>,
+      )) {
+        workspaceState.setEditorSurfacePlacement(currentViewportId, placement)
+      }
+    }
   },
   setEditorViewportHeaderCollapsed: (editorViewportId, collapsed) => {
     set((state) => {
@@ -5906,107 +6129,179 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     get().setEditorViewportCanvasToolbarVisible(editorViewportId, true)
   },
   setEditorViewportSplitRatio: (editorViewportId, splitRatio) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined) {
         return state
       }
       const nextSplitRatio = clampViewportSplitRatio(splitRatio)
-      if (viewport.splitRatio === nextSplitRatio) {
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      if (currentSurface.splitRatio === nextSplitRatio) {
         return state
+      }
+      nextPlacement = {
+        ...currentSurface,
+        splitRatio: nextSplitRatio,
       }
       return {
         editorViewportsById: {
           ...state.editorViewportsById,
-          [editorViewportId]: {
-            ...withViewportSplitDefaults(viewport),
-            splitRatio: nextSplitRatio,
-          },
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
         },
       }
     })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
+    }
   },
   setEditorViewportSplitDirection: (editorViewportId, splitDirection) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined) {
         return state
       }
-      const currentSplitDirection = viewport.splitDirection ?? defaultWorkspaceSplitDirection
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      const currentSplitDirection = currentSurface.splitDirection ?? defaultWorkspaceSplitDirection
       if (currentSplitDirection === splitDirection) {
         return state
       }
+      nextPlacement = {
+        ...currentSurface,
+        splitDirection,
+        splitDockSide:
+          splitDirection === 'vertical'
+            ? currentSurface.splitDockSide === 'left' || currentSurface.splitDockSide === 'right'
+              ? currentSurface.splitDockSide
+              : resolveDefaultWorkspaceSplitDockSide(splitDirection)
+            : currentSurface.splitDockSide === 'top' || currentSurface.splitDockSide === 'bottom'
+              ? currentSurface.splitDockSide
+              : resolveDefaultWorkspaceSplitDockSide(splitDirection),
+      }
       return {
         editorViewportsById: {
           ...state.editorViewportsById,
-          [editorViewportId]: {
-            ...withViewportSplitDefaults(viewport),
-            splitDirection,
-          },
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
         },
       }
     })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
+    }
   },
-  setEditorViewportSplitPriority: (editorViewportId, splitPriority) => {
+  setEditorViewportSplitDockSide: (editorViewportId, splitDockSide) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined) {
         return state
       }
-      const currentSplitPriority = viewport.splitPriority ?? defaultWorkspaceSplitPriority
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      const nextSplitDirection = resolveWorkspaceSplitDirectionForDockSide(splitDockSide)
+      const currentSplitDockSide =
+        currentSurface.splitDockSide ??
+        resolveDefaultWorkspaceSplitDockSide(currentSurface.splitDirection ?? defaultWorkspaceSplitDirection)
+      if (
+        currentSplitDockSide === splitDockSide &&
+        currentSurface.splitDirection === nextSplitDirection
+      ) {
+        return state
+      }
+      nextPlacement = {
+        ...currentSurface,
+        splitDirection: nextSplitDirection,
+        splitDockSide,
+      }
+      return {
+        editorViewportsById: {
+          ...state.editorViewportsById,
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
+        },
+      }
+    })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
+    }
+  },
+  setEditorViewportSplitPriority: (editorViewportId, splitPriority) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
+    set((state) => {
+      const viewport = state.editorViewportsById[editorViewportId]
+      if (viewport === undefined) {
+        return state
+      }
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      const currentSplitPriority = currentSurface.splitPriority ?? defaultWorkspaceSplitPriority
       if (currentSplitPriority === splitPriority) {
         return state
       }
+      nextPlacement = {
+        ...currentSurface,
+        splitPriority,
+      }
       return {
         editorViewportsById: {
           ...state.editorViewportsById,
-          [editorViewportId]: {
-            ...withViewportSplitDefaults(viewport),
-            splitPriority,
-          },
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
         },
       }
     })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
+    }
   },
   setEditorViewportPosition: (editorViewportId, position) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined) {
         return state
       }
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      nextPlacement = {
+        ...currentSurface,
+        position: {
+          x: Math.round(position.x),
+          y: Math.round(position.y),
+        },
+      }
       return {
         editorViewportsById: {
           ...state.editorViewportsById,
-          [editorViewportId]: {
-            ...viewport,
-            position: {
-              x: Math.round(position.x),
-              y: Math.round(position.y),
-            },
-          },
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
         },
       }
     })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
+    }
   },
   setEditorViewportSize: (editorViewportId, size) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined) {
         return state
       }
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      nextPlacement = {
+        ...currentSurface,
+        size: {
+          width: Math.round(size.width),
+          height: Math.round(size.height),
+        },
+      }
       return {
         editorViewportsById: {
           ...state.editorViewportsById,
-          [editorViewportId]: {
-            ...viewport,
-            size: {
-              width: Math.round(size.width),
-              height: Math.round(size.height),
-            },
-          },
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
         },
       }
     })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
+    }
   },
   addSketchFeature: (nodeId) => {
     set((state) => {
@@ -6376,3 +6671,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   validate: () => compileSpaghettiGraph(selectActiveGraph(get())),
 }))
+
+for (const viewport of Object.values(useSpaghettiStore.getState().editorViewportsById)) {
+  useWorkspaceStore
+    .getState()
+    .setEditorSurfacePlacement(
+      viewport.editorViewportId,
+      createEditorWorkspaceSurfaceStateFromViewport(viewport),
+    )
+}

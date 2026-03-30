@@ -131,6 +131,31 @@ export type ActiveContentObjectTransformSession = {
   entryOrigin: ReferenceTransformOverride | null
 }
 
+export type ViewerTransformTarget =
+  | {
+      kind: 'reference'
+      referenceId: string
+    }
+  | {
+      kind: 'content-object'
+      objectId: string
+    }
+
+export type ActiveViewerTransformSession = {
+  targetKind: ViewerTransformTarget['kind']
+  targetId: string
+  sessionId: string
+  sessionOrdinal: number
+  mode: ReferenceTransformMode
+  space: ReferenceTransformSpace
+  shellActive: boolean
+  entryActive: boolean
+  activeHandle: ActiveReferenceTransformHandle | null
+  historyScrubIndex?: number
+  draftTransform: ReferenceTransformOverride
+  entryOrigin: ReferenceTransformOverride | null
+}
+
 export type ImportedReferenceRecord = {
   referenceId: string
   sourceKind: ReferenceSourceKind
@@ -594,6 +619,7 @@ export type ConsoleWorkspaceContextTarget =
       kind: 'assembly'
       assemblyId: string
       label: string
+      contentBreadcrumbLabels?: string[]
       fallbackGraphDocumentId: null
       canDelete: boolean
       canLoadAll?: boolean
@@ -606,6 +632,7 @@ export type ConsoleWorkspaceContextTarget =
       kind: 'component'
       componentId: string
       label: string
+      contentBreadcrumbLabels?: string[]
       fallbackGraphDocumentId: string | null
       canRename: boolean
       canDelete: boolean
@@ -616,6 +643,7 @@ export type ConsoleWorkspaceContextTarget =
       kind: 'object'
       objectId: string
       label: string
+      contentBreadcrumbLabels?: string[]
       fallbackGraphDocumentId: string | null
       referenceId?: string
       canLoadModel?: boolean
@@ -834,6 +862,47 @@ export type AppState = {
   toggleContentObjectTransformHistoryLock: (objectId: string, entryId: string) => void
   mergeContentObjectTransformHistory: (objectId: string) => void
   cancelActiveContentObjectTransformEntry: () => void
+  beginViewerTransformShell: (target: ViewerTransformTarget) => void
+  exitActiveViewerTransformShell: () => void
+  beginActiveViewerTransformEntry: (mode: ReferenceTransformMode) => void
+  commitActiveViewerTransformEntry: () => void
+  setActiveViewerTransformMode: (mode: ReferenceTransformMode) => void
+  setActiveViewerTransformSpace: (space: ReferenceTransformSpace) => void
+  setActiveViewerTransformHandle: (handle: ActiveReferenceTransformHandle | null) => void
+  setActiveViewerTransformDraft: (transformOverride: ReferenceTransformOverride | null) => void
+  setActiveViewerTransformHistoryScrubIndex: (scrubIndex: number) => void
+  cancelActiveViewerTransformEntry: () => void
+  resetViewerTransform: (target: ViewerTransformTarget) => void
+  setViewerTransformHistoryEntryDeltaValue: (
+    target: ViewerTransformTarget,
+    entryId: string,
+    axis: 'x' | 'y' | 'z',
+    value: number,
+  ) => void
+  deleteViewerTransformHistoryEntry: (target: ViewerTransformTarget, entryId: string) => void
+  toggleViewerTransformHistoryLock: (target: ViewerTransformTarget, entryId: string) => void
+  mergeViewerTransformHistory: (target: ViewerTransformTarget) => void
+  setViewerTransformSnapEnabled: (
+    target: ViewerTransformTarget,
+    mode: ReferenceTransformSnapMode,
+    enabled: boolean,
+  ) => void
+  setViewerTransformSnapValue: (
+    target: ViewerTransformTarget,
+    mode: ReferenceTransformSnapMode,
+    value: number,
+  ) => void
+  setViewerTransformSnapAxisValue: (
+    target: ViewerTransformTarget,
+    mode: ReferenceTransformSnapMode,
+    axis: ReferenceTransformSnapAxis,
+    value: number,
+  ) => void
+  setViewerTransformSnapLocked: (
+    target: ViewerTransformTarget,
+    mode: ReferenceTransformSnapMode,
+    locked: boolean,
+  ) => void
   setReferenceChannelClampRange: (
     referenceId: string,
     channel: ReferenceTimelineChannelKey,
@@ -1158,6 +1227,13 @@ const resolveProjectComponentRecord = (
     ? null
     : buildReferenceCategoryComponentRecord(state, referenceCategoryId)
 }
+
+const resolveParentAssemblyIdByChildRowId = (
+  projectContent: Pick<ProjectContentState, 'assembliesById'>,
+  rowId: string,
+): string | null =>
+  Object.values(projectContent.assembliesById).find((assembly) => assembly.childRowIds.includes(rowId))
+    ?.assemblyId ?? null
 
 const resolveReferenceRuntimeTraitsFromWorkspace = (
   referenceWorkspace: ReferenceWorkspaceRuntimeTraitSource,
@@ -2361,6 +2437,127 @@ const cloneActiveReferenceTransformSession = (
           buildDefaultReferenceTransformOverride(),
         entryOrigin: cloneReferenceTransformOverride(value.entryOrigin),
       }
+
+const cloneActiveContentObjectTransformSession = (
+  value: ActiveContentObjectTransformSession | null,
+): ActiveContentObjectTransformSession | null =>
+  value === null
+    ? null
+    : {
+        objectId: value.objectId,
+        sessionId: value.sessionId,
+        sessionOrdinal: value.sessionOrdinal,
+        mode: value.mode,
+        space: value.space,
+        shellActive: value.shellActive,
+        entryActive: value.entryActive,
+        activeHandle: value.activeHandle === null ? null : { ...value.activeHandle },
+        historyScrubIndex: value.historyScrubIndex,
+        draftTransform:
+          cloneReferenceTransformOverride(value.draftTransform) ??
+          buildDefaultReferenceTransformOverride(),
+        entryOrigin: cloneReferenceTransformOverride(value.entryOrigin),
+      }
+
+export const selectActiveViewerTransformTarget = (
+  referenceWorkspace: Pick<
+    ReferenceWorkspaceState,
+    'activeReferenceTransformSession' | 'activeContentObjectTransformSession'
+  >,
+): ViewerTransformTarget | null => {
+  if (referenceWorkspace.activeContentObjectTransformSession !== null) {
+    return {
+      kind: 'content-object',
+      objectId: referenceWorkspace.activeContentObjectTransformSession.objectId,
+    }
+  }
+  if (referenceWorkspace.activeReferenceTransformSession !== null) {
+    return {
+      kind: 'reference',
+      referenceId: referenceWorkspace.activeReferenceTransformSession.referenceId,
+    }
+  }
+  return null
+}
+
+export const selectActiveViewerTransformSession = (
+  referenceWorkspace: Pick<
+    ReferenceWorkspaceState,
+    'activeReferenceTransformSession' | 'activeContentObjectTransformSession'
+  >,
+): ActiveViewerTransformSession | null => {
+  const activeContentObjectSession = cloneActiveContentObjectTransformSession(
+    referenceWorkspace.activeContentObjectTransformSession,
+  )
+  if (activeContentObjectSession !== null) {
+    return {
+      targetKind: 'content-object',
+      targetId: activeContentObjectSession.objectId,
+      sessionId: activeContentObjectSession.sessionId,
+      sessionOrdinal: activeContentObjectSession.sessionOrdinal,
+      mode: activeContentObjectSession.mode,
+      space: activeContentObjectSession.space,
+      shellActive: activeContentObjectSession.shellActive,
+      entryActive: activeContentObjectSession.entryActive,
+      activeHandle: activeContentObjectSession.activeHandle,
+      historyScrubIndex: activeContentObjectSession.historyScrubIndex,
+      draftTransform: activeContentObjectSession.draftTransform,
+      entryOrigin: activeContentObjectSession.entryOrigin,
+    }
+  }
+  const activeReferenceSession = cloneActiveReferenceTransformSession(
+    referenceWorkspace.activeReferenceTransformSession,
+  )
+  if (activeReferenceSession !== null) {
+    return {
+      targetKind: 'reference',
+      targetId: activeReferenceSession.referenceId,
+      sessionId: activeReferenceSession.sessionId,
+      sessionOrdinal: activeReferenceSession.sessionOrdinal,
+      mode: activeReferenceSession.mode,
+      space: activeReferenceSession.space,
+      shellActive: activeReferenceSession.shellActive,
+      entryActive: activeReferenceSession.entryActive,
+      activeHandle: activeReferenceSession.activeHandle,
+      historyScrubIndex: activeReferenceSession.historyScrubIndex,
+      draftTransform: activeReferenceSession.draftTransform,
+      entryOrigin: activeReferenceSession.entryOrigin,
+    }
+  }
+  return null
+}
+
+export const selectActiveViewerTransformHistoryEntries = (
+  referenceWorkspace: Pick<
+    ReferenceWorkspaceState,
+    'activeReferenceTransformSession' | 'activeContentObjectTransformSession' | 'transformHistoryByReferenceId' | 'transformHistoryByObjectId'
+  >,
+): ReferenceTransformHistoryEntry[] => {
+  const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
+  if (activeTarget === null) {
+    return []
+  }
+  return activeTarget.kind === 'reference'
+    ? referenceWorkspace.transformHistoryByReferenceId[activeTarget.referenceId] ?? []
+    : referenceWorkspace.transformHistoryByObjectId[activeTarget.objectId] ?? []
+}
+
+export const selectActiveViewerTransformSnapState = (
+  referenceWorkspace: Pick<
+    ReferenceWorkspaceState,
+    'activeReferenceTransformSession' | 'activeContentObjectTransformSession' | 'transformSnapByReferenceId' | 'transformSnapByObjectId'
+  >,
+): ReferenceTransformSnapState => {
+  const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
+  if (activeTarget === null) {
+    return DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+  }
+  return activeTarget.kind === 'reference'
+    ? referenceWorkspace.transformSnapByReferenceId[activeTarget.referenceId] ??
+        DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+    : referenceWorkspace.transformSnapByObjectId[activeTarget.objectId] ??
+        DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+}
 
 const areReferenceTransformOverridesEqual = (
   left: ReferenceTransformOverride | null,
@@ -5867,6 +6064,194 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  beginViewerTransformShell: (target) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.beginReferenceTransformShell(target.referenceId)
+      return
+    }
+    state.beginContentObjectTransformShell(target.objectId)
+  },
+  exitActiveViewerTransformShell: () => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.exitReferenceTransformShell()
+      return
+    }
+    state.exitContentObjectTransformShell()
+  },
+  beginActiveViewerTransformEntry: (mode) => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.beginReferenceTransformEntry(mode)
+      return
+    }
+    state.beginContentObjectTransformEntry(mode)
+  },
+  commitActiveViewerTransformEntry: () => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.commitActiveReferenceTransformEntry()
+      return
+    }
+    state.commitActiveContentObjectTransformEntry()
+  },
+  setActiveViewerTransformMode: (mode) => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.setActiveReferenceTransformMode(mode)
+      return
+    }
+    state.setActiveContentObjectTransformMode(mode)
+  },
+  setActiveViewerTransformSpace: (space) => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.setActiveReferenceTransformSpace(space)
+      return
+    }
+    state.setActiveContentObjectTransformSpace(space)
+  },
+  setActiveViewerTransformHandle: (handle) => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.setActiveReferenceTransformHandle(handle)
+      return
+    }
+    state.setActiveContentObjectTransformHandle(handle)
+  },
+  setActiveViewerTransformDraft: (transformOverride) => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.setActiveReferenceTransformDraft(transformOverride)
+      return
+    }
+    state.setActiveContentObjectTransformDraft(transformOverride)
+  },
+  setActiveViewerTransformHistoryScrubIndex: (scrubIndex) => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.setActiveReferenceTransformHistoryScrubIndex(scrubIndex)
+      return
+    }
+    state.setActiveContentObjectTransformHistoryScrubIndex(scrubIndex)
+  },
+  cancelActiveViewerTransformEntry: () => {
+    const state = get()
+    const activeTarget = selectActiveViewerTransformTarget(state.referenceWorkspace)
+    if (activeTarget === null) {
+      return
+    }
+    if (activeTarget.kind === 'reference') {
+      state.cancelActiveReferenceTransformEntry()
+      return
+    }
+    state.cancelActiveContentObjectTransformEntry()
+  },
+  resetViewerTransform: (target) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.resetReferenceTransform(target.referenceId)
+      return
+    }
+    state.resetContentObjectTransform(target.objectId)
+  },
+  setViewerTransformHistoryEntryDeltaValue: (target, entryId, axis, value) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.setReferenceTransformHistoryEntryDeltaValue(target.referenceId, entryId, axis, value)
+      return
+    }
+    state.setContentObjectTransformHistoryEntryDeltaValue(target.objectId, entryId, axis, value)
+  },
+  deleteViewerTransformHistoryEntry: (target, entryId) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.deleteReferenceTransformHistoryEntry(target.referenceId, entryId)
+      return
+    }
+    state.deleteContentObjectTransformHistoryEntry(target.objectId, entryId)
+  },
+  toggleViewerTransformHistoryLock: (target, entryId) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.toggleReferenceTransformHistoryLock(target.referenceId, entryId)
+      return
+    }
+    state.toggleContentObjectTransformHistoryLock(target.objectId, entryId)
+  },
+  mergeViewerTransformHistory: (target) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.mergeReferenceTransformHistory(target.referenceId)
+      return
+    }
+    state.mergeContentObjectTransformHistory(target.objectId)
+  },
+  setViewerTransformSnapEnabled: (target, mode, enabled) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.setReferenceTransformSnapEnabled(target.referenceId, mode, enabled)
+      return
+    }
+    state.setContentObjectTransformSnapEnabled(target.objectId, mode, enabled)
+  },
+  setViewerTransformSnapValue: (target, mode, value) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.setReferenceTransformSnapValue(target.referenceId, mode, value)
+      return
+    }
+    state.setContentObjectTransformSnapValue(target.objectId, mode, value)
+  },
+  setViewerTransformSnapAxisValue: (target, mode, axis, value) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.setReferenceTransformSnapAxisValue(target.referenceId, mode, axis, value)
+      return
+    }
+    state.setContentObjectTransformSnapAxisValue(target.objectId, mode, axis, value)
+  },
+  setViewerTransformSnapLocked: (target, mode, locked) => {
+    const state = get()
+    if (target.kind === 'reference') {
+      state.setReferenceTransformSnapLocked(target.referenceId, mode, locked)
+      return
+    }
+    state.setContentObjectTransformSnapLocked(target.objectId, mode, locked)
+  },
   setReferenceChannelClampRange: (referenceId, channel, range) => {
     set((state) => ({
       referenceWorkspace: {
@@ -7362,6 +7747,98 @@ const resolveConsoleSelectedTargetLabel = (
   }
 }
 
+const resolveConsoleContentBreadcrumbLabels = (
+  state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
+  target: WorkspaceSelectedTarget,
+): string[] | null => {
+  if (target.kind === 'assembly') {
+    const assembly = resolveProjectAssemblyRecord(state, target.assemblyId)
+    if (assembly === null) {
+      return null
+    }
+    if (assembly.parentAssemblyId == null) {
+      return [assembly.label]
+    }
+    return [
+      ...(resolveConsoleContentBreadcrumbLabels(state, {
+        kind: 'assembly',
+        assemblyId: assembly.parentAssemblyId,
+      }) ?? [assembly.parentAssemblyId]),
+      assembly.label,
+    ]
+  }
+
+  if (target.kind === 'component') {
+    const component = resolveProjectComponentRecord(state, target.componentId)
+    if (component === null) {
+      return null
+    }
+    const parentAssemblyId =
+      component.parentAssemblyId ?? resolveParentAssemblyIdByChildRowId(state.projectContent, target.componentId)
+    if (parentAssemblyId == null) {
+      return [component.label]
+    }
+    return [
+      ...(resolveConsoleContentBreadcrumbLabels(state, {
+        kind: 'assembly',
+        assemblyId: parentAssemblyId,
+      }) ?? [parentAssemblyId]),
+      component.label,
+    ]
+  }
+
+  if (target.kind !== 'object') {
+    return null
+  }
+
+  const objectRow = state.projectContent.objectsById[target.objectId]
+  if (objectRow !== undefined) {
+    if (objectRow.parentComponentId != null) {
+      return [
+        ...(resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'component',
+          componentId: objectRow.parentComponentId,
+        }) ?? [objectRow.parentComponentId]),
+        objectRow.label,
+      ]
+    }
+    if (objectRow.parentAssemblyId != null) {
+      return [
+        ...(resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'assembly',
+          assemblyId: objectRow.parentAssemblyId,
+        }) ?? [objectRow.parentAssemblyId]),
+        objectRow.label,
+      ]
+    }
+    return [objectRow.label]
+  }
+
+  const importedReference = resolveImportedReferenceRecordByObjectRowId(state, target.objectId)
+  if (importedReference === null) {
+    return null
+  }
+  if (importedReference.parentComponentId != null) {
+    return [
+      ...(resolveConsoleContentBreadcrumbLabels(state, {
+        kind: 'component',
+        componentId: importedReference.parentComponentId,
+      }) ?? [importedReference.parentComponentId]),
+      importedReference.label,
+    ]
+  }
+  if (importedReference.parentAssemblyId != null) {
+    return [
+      ...(resolveConsoleContentBreadcrumbLabels(state, {
+        kind: 'assembly',
+        assemblyId: importedReference.parentAssemblyId,
+      }) ?? [importedReference.parentAssemblyId]),
+      importedReference.label,
+    ]
+  }
+  return [importedReference.label]
+}
+
 export const selectConsoleWorkspaceContextTarget = (
   state: Pick<AppState, 'workspaceSelection' | 'projectContent' | 'referenceWorkspace'>,
 ): ConsoleWorkspaceContextTarget | null => {
@@ -7447,6 +7924,11 @@ export const selectConsoleWorkspaceContextTarget = (
       kind: 'assembly',
       assemblyId: selectedContentOwnerTarget.ownerId,
       label: selectedContentOwnerTarget.ownerLabel,
+      contentBreadcrumbLabels:
+        resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'assembly',
+          assemblyId: selectedContentOwnerTarget.ownerId,
+        }) ?? [selectedContentOwnerTarget.ownerLabel],
       fallbackGraphDocumentId: null,
       canDelete: selectedContentOwnerTarget.supportsDelete,
       canLoadAll: isReferenceRootAssembly
@@ -7477,6 +7959,11 @@ export const selectConsoleWorkspaceContextTarget = (
       kind: 'component',
       componentId: selectedContentOwnerTarget.ownerId,
       label: selectedContentOwnerTarget.ownerLabel,
+      contentBreadcrumbLabels:
+        resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'component',
+          componentId: selectedContentOwnerTarget.ownerId,
+        }) ?? [selectedContentOwnerTarget.ownerLabel],
       fallbackGraphDocumentId: selectedContentOwnerTarget.fallbackGraphDocumentId,
       canRename: selectedContentOwnerTarget.supportsRename,
       canDelete: selectedContentOwnerTarget.supportsDelete,
@@ -7506,6 +7993,11 @@ export const selectConsoleWorkspaceContextTarget = (
       kind: 'object',
       objectId: selectedContentOwnerTarget.ownerId,
       label: selectedContentOwnerTarget.ownerLabel,
+      contentBreadcrumbLabels:
+        resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'object',
+          objectId: selectedContentOwnerTarget.ownerId,
+        }) ?? [selectedContentOwnerTarget.ownerLabel],
       fallbackGraphDocumentId: selectedContentOwnerTarget.fallbackGraphDocumentId,
       referenceId: importedReference?.referenceId,
       canLoadModel:
@@ -7534,6 +8026,11 @@ export const selectConsoleWorkspaceContextTarget = (
     kind: 'object',
     objectId: buildImportedReferenceRowId(referenceItem.referenceId),
     label: referenceItem.label,
+    contentBreadcrumbLabels:
+      resolveConsoleContentBreadcrumbLabels(state, {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(referenceItem.referenceId),
+      }) ?? [referenceItem.label],
     fallbackGraphDocumentId: null,
     referenceId: referenceItem.referenceId,
     canLoadModel: !referenceItem.isVisible && referenceItem.loadState !== 'error',

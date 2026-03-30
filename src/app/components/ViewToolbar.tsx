@@ -32,6 +32,7 @@ import {
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
   resolveRightDockWidth,
 } from './viewToolbarLayout'
+import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 
 const cameraPresets: CameraPreset[] = ['iso', 'top', 'front', 'left', 'right']
 const lightTypes: LightType[] = ['directional', 'point', 'spot', 'hemisphere', 'ambient']
@@ -125,7 +126,12 @@ const lightTypeLabel = (type: LightType): string => {
   return 'Ambient'
 }
 
-export function ViewToolbar() {
+type ViewToolbarProps = {
+  viewportId?: WorkspaceViewportId
+}
+
+export function ViewToolbar(props: ViewToolbarProps = {}) {
+  const { viewportId } = props
   const viewerTargetParts = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const parts = viewerTargetParts
@@ -203,7 +209,11 @@ export function ViewToolbar() {
   const rightDockWidth = resolveRightDockWidth(resolvedAxisWidgetSize)
 
   return (
-    <aside className={`RightDock ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`} style={{ width: `${rightDockWidth}px`, minWidth: `${rightDockWidth}px`, maxWidth: `${rightDockWidth}px` }}>
+    <aside
+      className={`RightDock ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`}
+      data-workspace-viewport-id={viewportId}
+      style={{ width: `${rightDockWidth}px`, minWidth: `${rightDockWidth}px`, maxWidth: `${rightDockWidth}px` }}
+    >
       <div className="RightPanelStack">
         <details className="V15Panel ViewToolbarRoot" open={viewToolbarOpen}>
           <summary

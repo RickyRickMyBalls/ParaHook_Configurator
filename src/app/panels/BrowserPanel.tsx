@@ -16,6 +16,8 @@ type BrowserPanelProps = {
   isCollapsed?: boolean
   onToggleCollapsed?: () => void
   isFloating?: boolean
+  isPoppedOut?: boolean
+  popoutButtonMode?: 'popout' | 'dock'
   onTogglePopout?: () => void
   onTitleBarPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   newEditorSpawnPosition?: { x: number; y: number }
@@ -25,6 +27,8 @@ export function BrowserPanel({
   isCollapsed: controlledIsCollapsed,
   onToggleCollapsed,
   isFloating = false,
+  isPoppedOut = false,
+  popoutButtonMode = isFloating || isPoppedOut ? 'dock' : 'popout',
   onTogglePopout,
   onTitleBarPointerDown,
   newEditorSpawnPosition = defaultViewportPosition,
@@ -64,6 +68,8 @@ export function BrowserPanel({
   return (
     <section
       className={`V15Panel BrowserPanelRoot ${isFloating ? 'isFloating' : ''} ${
+        isPoppedOut ? 'isPoppedOut' : ''
+      } ${
         isBrowserCollapsed ? 'isCollapsed' : ''
       }`}
       onPointerDownCapture={bodyHandlers.onActivateBrowserSurface}
@@ -92,8 +98,8 @@ export function BrowserPanel({
           className="BrowserPanelChromeButton BrowserPanelPopoutButton"
           onPointerDown={stopTitleBarPointer}
           onClick={handlePopoutBrowser}
-          aria-label={isFloating ? 'Dock browser' : 'Pop out browser'}
-          title={isFloating ? 'Dock browser' : 'Pop out browser'}
+          aria-label={popoutButtonMode === 'dock' ? 'Dock browser' : 'Pop out browser'}
+          title={popoutButtonMode === 'dock' ? 'Dock browser' : 'Pop out browser'}
         >
           []
         </button>

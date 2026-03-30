@@ -319,6 +319,11 @@ const buildOwnerLaneOptions = (args: {
   if (hoveredRow === undefined) {
     return []
   }
+  const hoveredParentRowId = findVisibleParentRowIdForContentRow(contentRows, hoveredRowIndex)
+  const hoveredParentRowIndex =
+    hoveredParentRowId === null
+      ? -1
+      : contentRows.findIndex((row) => row.rowId === hoveredParentRowId)
 
   const hoveredTarget = resolveRowTarget(hoveredRow.rowId)
   const lanesByKey = new Map<string, BrowserContentOwnerLane>()
@@ -338,6 +343,34 @@ const buildOwnerLaneOptions = (args: {
           previewIntent: candidatePosition,
         }),
       })
+    }
+  }
+
+  if (
+    (candidatePosition === 'before' || candidatePosition === 'after') &&
+    hoveredParentRowId !== null &&
+    hoveredParentRowIndex >= 0
+  ) {
+    const hoveredParentTarget = resolveRowTarget(hoveredParentRowId)
+    if (hoveredParentTarget !== null) {
+      const parentIntoDropTarget = {
+        ...hoveredParentTarget,
+        position: 'into',
+      } as ProjectContentOwnerDropTarget
+      if (resolveDrop(draggedTarget, parentIntoDropTarget).valid) {
+        lanesByKey.set(
+          `${createDropTargetKey(parentIntoDropTarget)}:${candidatePosition}:${hoveredRow.rowId}`,
+          {
+            dropTarget: parentIntoDropTarget,
+            ...buildLanePlacement({
+              contentRows,
+              anchorIndex: hoveredRowIndex,
+              ownerIndex: hoveredParentRowIndex,
+              previewIntent: candidatePosition,
+            }),
+          },
+        )
+      }
     }
   }
 
@@ -403,7 +436,9 @@ export const resolveBrowserContentDragPreviewState = (args: {
     const shouldShowIntoAsLandingSlot = activeLane.previewIntent === 'into'
     const displayIntent = shouldShowIntoAsLandingSlot ? 'after' : activeLane.previewIntent
     const ownerSupportRowId =
-      activeLane.previewIntent === 'into' && displayIntent !== 'into'
+      activeLane.dropTarget.position === 'into' &&
+      activeLane.previewParentRowId !== null &&
+      (activeLane.previewIntent !== 'into' || displayIntent !== 'into')
         ? activeLane.previewParentRowId
         : null
     return {

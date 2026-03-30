@@ -239,6 +239,8 @@ describe('stagedNavigation', () => {
       'MOVE',
       'ROTATE',
       'SCALE',
+      'SNAP',
+      'SETTINGS',
       'BACK',
     ])
 
@@ -591,6 +593,7 @@ describe('stagedNavigation', () => {
         'shoe:shoe-1': {
           activeSessionId: 'reference-transform-session-1',
           activeSessionCommittedEntryCount: 1,
+          totalCommittedEntryCount: 1,
         },
       },
     )

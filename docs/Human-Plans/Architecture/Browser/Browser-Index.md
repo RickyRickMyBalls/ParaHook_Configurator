@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+128. 2026-03-29 14:32: Widened `Browser-12.1 - Real STEP Import Row Progress` from STEP-only wording to all imported object rows handled by the same loader path, so the next Browser progress phase now covers the whole imported-object loader family instead of one file-label-specific subset
+127. 2026-03-29 14:26: Added `Browser-12.1 - Real STEP Import Row Progress` as the next small Browser enrichment after shipped `Browser-12`, locking that imported STEP object rows should show true per-file loading progress in Browser through real loader/state plumbing instead of fake smoothing or aggregate-only cues
+126. 2026-03-29 10:17: Marked `Browser-12 - Part Row Surface Cleanup And Usability Polish` shipped after Browser part rows were moved onto the slim content-row surface treatment, the extra outer box around part labels was removed, and the Browser family index now points at the canonical shipped phase record instead of the duplicate future copy
+125. 2026-03-29 10:12: Added `Browser-12 - Part Row Surface Cleanup And Usability Polish` as the next Browser follow-on after the shipped Browser-11 ladder, locking a narrower Browser-local cleanup pass around making imported-object `Part` rows cleaner and easier to read without widening that work into full part-target promotion
+124. 2026-03-29 10:06: Marked `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` shipped after Browser child-slot hover can now commit first cross-parent moves directly beside the visible anchor row, refreshed the Browser-11 ladder to point at the canonical shipped phase record, and removed the duplicate future copy from the family docs
 123. 2026-03-29 09:47: Tightened `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` into an implementation-ready Browser follow-on by grounding it in the live drag preview-versus-commit mismatch, the shared same-parent-only reorder rule in `resolveProjectContentOwnerDrop(...)`, and the focused BrowserPanel regression that already proves cross-parent landing slots still commit as plain owner `into`
 122. 2026-03-29 09:47: Added `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` as the next Browser follow-on after shipped `11.4`, locking the narrower drag-polish direction that first cross-parent drops into a target owner like `Assembly 1` should support direct intended child-slot ordering instead of requiring a separate owner-row `into` drop before later reorder
 121. 2026-03-29 09:34: Marked `Browser-11.4 - Adapted Container Seam Retirement` shipped after the Browser panel/controller/menu stopped depending on adapted root/category container branches for live owner behavior, the last Browser-facing `referenceContainerKind` and `references-root` / `reference-category` interaction seams were retired for surviving rows, and the Browser-11 ladder now reads as fully shipped first-pass container parity
@@ -2316,8 +2321,8 @@ Decision:
     the live Browser now keeps the locked surviving structure (`References`, `Footpads`, `Shoes`, and `Premade Foothooks`) and flattens removed historical grouping baggage like `User References` upward into the surviving `References` assembly instead of preserving one more cosmetic parent row
   - shipped in `Browser-11.4`:
     retired the remaining Browser-facing adapted container branches for surviving root/category rows so live owner targeting, category drag, expand, visibility, and `Load All` behavior now resolves from ordinary assembly/component owner rows while narrow object-level `referenceId` runtime adapters stay intact
-  - next in `Browser-11.5`:
-    let the first cross-parent drop into a target owner like `Assembly 1` land directly at the intended child slot instead of requiring an owner-row `into` drop followed by a second reorder drag
+  - shipped in `Browser-11.5`:
+    first cross-parent drops beside a visible child anchor now land directly at that intended slot, while plain owner-row hover still stays honest as `into`
   - preserve current reference-backed object metadata and runtime compatibility while container truth converges
 - proposed subphases:
   - `Browser-11.1`:
@@ -2339,8 +2344,8 @@ Decision:
     shipped:
     retired the remaining Browser-facing `referenceContainerKind`, `references-root`, and `reference-category` interaction/context-menu branches for surviving root/category rows while preserving only narrow object-level `referenceId` adapters where runtime/reference behavior still honestly needs them
   - `Browser-11.5`:
-    implementation-ready:
-    polish cross-parent first-drop ordering so the existing visible landing-slot preview under a target owner like `Assembly 1` can finally commit as that intended ordered landing instead of still resolving through the current same-parent-only reorder rule plus owner `into` fallback
+    shipped:
+    hovering a concrete child slot under `Assembly 1` or another legal owner now commits the first cross-parent move directly beside that visible anchor row, while plain owner-row hover still commits as `into`
 - Questions / Decisions:
 
   #### [ ] q1 - Should `References` remain visible as a real assembly, or should it disappear entirely once container truth is cleaned up?
@@ -2386,4 +2391,111 @@ Decision:
   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.2 - Container Drag And Reparent Parity.md`
   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.3 - Grouping Label Survival And Tree Simplification.md`
   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.4 - Adapted Container Seam Retirement.md`
-  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
+
+### [x] Browser-12 - Part Row Surface Cleanup And Usability Polish
+
+- next Browser follow-on after the shipped `Browser-11` ladder
+- locked direction:
+  - keep `Part` rows truthful and source-backed under imported objects
+  - keep `Object` as the parent owner above visible `Part` rows for now
+  - clean up the Browser `Part` row surface so those rows read more clearly and feel less awkward
+  - do not widen this phase into full part-target promotion across Browser, Console, Viewer, and transform routing
+- why this exists:
+  - `Browser-9.3` correctly exposed real child `Part` rows under imported objects
+  - the Browser tree has gotten much cleaner since then, but the part-row surface has not received the same focused cleanup pass
+  - parts still feel a little rough compared with the newer cleaner assembly/component/object tree
+- first-pass direction:
+  - shipped:
+    Browser `Part` rows now use the same slim content-row surface language as the rest of the Browser tree, the extra outer box around labels like `XR_Foot...` is gone, and the row treatment now reads as a quieter leaf under the parent imported object
+- Questions / Decisions:
+
+  #### [ ] q1 - Should `Part` rows stay visually quieter than parent imported object rows?
+
+  Question:
+  - should child `Part` rows read as quieter subordinate leaves under imported object rows instead of competing visually with the parent object surface?
+
+  Suggestion:
+  - yes
+  - keep `Part` rows readable but quieter than the parent object row
+
+  #### [ ] q2 - Should `Part` rows keep a very small action surface for now?
+
+  Question:
+  - should this cleanup phase keep `Part` rows on a smaller Browser-local action set instead of widening them into full owner-style actions?
+
+  Suggestion:
+  - yes
+  - clean up the row without pretending parts are already fully promoted Browser owners
+
+  #### [ ] q3 - Should this phase stay surface-first instead of reopening part ownership?
+
+  Question:
+  - should `Browser-12` stay narrowly about Browser polish, leaving deeper part ownership, transform, and selection promotion for a later dedicated follow-on if we still want it?
+
+  Suggestion:
+  - yes
+  - keep `Browser-12` small and safe
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-12 - Part Row Surface Cleanup And Usability Polish.md`
+
+### [ ] Browser-12.1 - Real STEP Import Row Progress
+
+- next Browser enrichment after shipped `Browser-12`
+- locked direction:
+  - imported object rows handled by this loader path should show real per-file loading progress when the loader can report it
+  - do not fake progress with cosmetic smoothing or invented percentages
+  - aggregate root/category loading cues can stay, but they should no longer be the only visible progress signal for one imported object row on this loader path
+  - determinate Browser row progress should come from true loader/state plumbing
+- why this exists:
+  - Browser load state has gotten much more honest overall, but a single imported object row on this loader path can still stutter from `loading` to `loaded`
+  - users may import very small or very large files, so a fake progress bar would be misleading
+  - the Browser row the user is looking at should show the real progress of that file loading
+- first-pass direction:
+  - add a real progress seam in this loader path
+  - store per-file progress in shared app state keyed to the imported row the Browser renders
+  - expose that progress through normal Browser row derivation
+  - render determinate progress only when true progress exists
+- Questions / Decisions:
+
+  #### [x] q1 - Should this phase cover all imported object rows handled by this loader, not only rows labeled as STEP imports?
+
+  Question:
+  - should `Browser-12.1` cover every imported object row that comes through this loader path, instead of being limited only to rows labeled as STEP imports?
+
+  Suggestion:
+  - yes
+  - the user-visible need is honest per-file progress for imported objects on this loader path, not a narrower file-label-specific rule
+
+  Decision:
+  - `Browser-12.1` should cover all imported object rows handled by this loader path, not only rows labeled as STEP imports
+  - the phase can still stay scoped to this loader family instead of widening into unrelated loader systems
+
+  #### [ ] q2 - Should Browser show determinate object-row progress only when the loader reports real progress?
+
+  Question:
+  - if the loader cannot report intermediate progress for a given imported-object load, should the Browser avoid inventing a fake determinate bar for that object row?
+
+  Suggestion:
+  - yes
+  - determinate progress should only appear when the loader has real progress to report
+
+  #### [ ] q3 - Should aggregate category/root progress remain secondary once per-file object-row progress exists?
+
+  Question:
+  - after Browser gains true per-file imported-object row progress, should higher-level `References` or category progress stay as supporting aggregate context rather than the only visible cue?
+
+  Suggestion:
+  - yes
+  - keep aggregate progress, but let the object row carry the primary truth for that specific file
+
+  #### [ ] q4 - Should this phase stay limited to this loader family instead of widening into every loader?
+
+  Question:
+  - should the first pass focus on the imported-object loading path where the current stutter is visible, leaving broader non-related loader progress to a later follow-on if needed?
+
+  Suggestion:
+  - yes
+  - keep `Browser-12.1` narrowly about real imported-object row progress for this loader family
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-12.1 - Real STEP Import Row Progress.md`

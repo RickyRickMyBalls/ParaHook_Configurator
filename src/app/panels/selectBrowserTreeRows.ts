@@ -125,6 +125,8 @@ export type BrowserPartTreeRowVm = BrowserTreeRowBaseVm & {
   rowKind: 'part'
   partKey: string
   parentReferenceId: string
+  isVisible: boolean
+  visibilityPartKeys: string[]
 }
 
 export type BrowserGraphSectionTreeRowVm = BrowserTreeRowBaseVm & {
@@ -397,6 +399,7 @@ export const selectBrowserTreeRows = (options: {
   referenceLoadBatch?: ReferenceLoadBatchState | null
   activeTransformReferenceId?: string | null
   contentRows: ProjectContentBrowserRowVm[]
+  partsVisibility?: Record<string, boolean>
   contentOrderByParentKey?: Record<string, string[]>
   graphRows: BrowserGraphRowVm[]
   browserGraphBuildPolicyByGraphDocumentId?: Record<string, BrowserBuildPolicy>
@@ -420,19 +423,20 @@ export const selectBrowserTreeRows = (options: {
     browserContentBuildPolicyByRowId = {},
     browserGraphBuildPolicyByGraphDocumentId = {},
     contentRows,
-  contentOrderByParentKey = {},
-  editorViewports,
-  expandedGraphDocumentIds,
-  graphSectionExpandedByRowId = {},
-  graphDocumentsById,
-  graphRows,
-  hasActiveEditorViewport,
-  groupedSelectedRowIds = [],
-  collapsedContentRowIds,
-  selectedRowId,
-  selectedRowIds = selectedRowId === null ? [] : [selectedRowId],
-  sharedViewerCompositionActive,
-  sharedViewerCompositionGraphDocumentIds,
+    partsVisibility = {},
+    contentOrderByParentKey = {},
+    editorViewports,
+    expandedGraphDocumentIds,
+    graphSectionExpandedByRowId = {},
+    graphDocumentsById,
+    graphRows,
+    hasActiveEditorViewport,
+    groupedSelectedRowIds = [],
+    collapsedContentRowIds,
+    selectedRowId,
+    selectedRowIds = selectedRowId === null ? [] : [selectedRowId],
+    sharedViewerCompositionActive,
+    sharedViewerCompositionGraphDocumentIds,
   } = options
   const groupedSelectedRowIdSet = new Set(groupedSelectedRowIds)
   const selectedRowIdSet = new Set(selectedRowIds)
@@ -982,6 +986,8 @@ export const selectBrowserTreeRows = (options: {
         iconLabel: 'P',
         label: partRow.label,
         meta: '',
+        isVisible: partsVisibility[partRow.partKey] ?? true,
+        visibilityPartKeys: [partRow.partKey],
         isSelected: selectedRowIdSet.has(partRow.rowId),
         isGroupedSelected: groupedSelectedRowIdSet.has(partRow.rowId),
         isExpandable: false,

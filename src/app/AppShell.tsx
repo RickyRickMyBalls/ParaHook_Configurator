@@ -1,26 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { TitleStatusBar } from './components/TitleStatusBar'
-import { ViewToolbar } from './components/ViewToolbar'
-import { ViewerHost } from './components/ViewerHost'
-import { ViewportOverlay } from './components/ViewportOverlay'
 import { ConsoleDock } from './console/ConsoleDock'
 import { BrowserDockHost } from './hosts/BrowserDockHost'
 import { RadioRuntimeHost } from './hosts/RadioRuntimeHost'
 import { SpaghettiWindowHost } from './hosts/SpaghettiWindowHost'
-import {
-  defaultLeftDockWidth,
-  useAppShellDockController,
-} from './hosts/useAppShellDockController'
-import type {
-  LeftDockResizeMenuState,
-  WorkspaceSplitMenuState,
-} from './hosts/useAppShellDockController'
+import { useAppShellDockController } from './hosts/useAppShellDockController'
 import { RadioPanel } from './panels/RadioPanel'
 import { selectActiveEditorViewport, useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { useAudioSamplerStore } from './store/audioSamplerStore'
 import { useAppStore } from './store/useAppStore'
+import { useWorkspaceStore } from './workspace/useWorkspaceStore'
+import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
+import {
+  readPersistedWorkspaceLayout,
+  serializeWorkspaceLayout,
+  writePersistedWorkspaceLayout,
+} from './workspace/workspacePersistence'
 import {
   defaultWorkspaceSplitDirection,
+  resolveDefaultWorkspaceSplitDockSide,
+  resolveWorkspaceSplitDirectionForDockSide,
   defaultWorkspaceSplitPriority,
   type WorkspaceSplitDirection,
   type WorkspaceSplitPriority,
@@ -31,6 +38,7 @@ const splitDividerHeight = 10
 
 export function AppShell() {
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
+  const activeEditorViewportId = useSpaghettiStore((state) => state.activeEditorViewportId)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession ?? null)
   const setEditorViewportWindowMode = useSpaghettiStore((state) => state.setEditorViewportWindowMode)
   const setEditorViewportSplitDirection = useSpaghettiStore(
@@ -51,19 +59,46 @@ export function AppShell() {
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const appShellRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
+  const browserViewportSplitHostRef = useRef<HTMLDivElement | null>(null)
   const dockedBrowserHostRef = useRef<HTMLDivElement | null>(null)
   const dockedMeatballHostRef = useRef<HTMLDivElement | null>(null)
   const leftDockWidthPreviewHandlerRef = useRef<((nextWidth: number) => void) | null>(null)
-  const [leftDockWidth, setLeftDockWidth] = useState(defaultLeftDockWidth)
-  const [isLeftDockViewportSplit, setIsLeftDockViewportSplit] = useState(false)
-  const [activeLeftDockPreviewPanelId, setActiveLeftDockPreviewPanelId] = useState<
-    'browser' | 'meatball-editor' | null
-  >(null)
-  const [isBrowserFloating, setIsBrowserFloating] = useState(false)
-  const [leftDockResizeMenu, setLeftDockResizeMenu] = useState<LeftDockResizeMenuState | null>(null)
-  const [workspaceSplitMenu, setWorkspaceSplitMenu] = useState<WorkspaceSplitMenuState | null>(null)
+  const leftDockWidth = useWorkspaceStore((state) => state.leftDockWidth)
+  const setLeftDockWidth = useWorkspaceStore((state) => state.setLeftDockWidth)
+  const isLeftDockViewportSplit = useWorkspaceStore((state) => state.isLeftDockViewportSplit)
+  const setIsLeftDockViewportSplit = useWorkspaceStore((state) => state.setLeftDockViewportSplit)
+  const activeLeftDockPreviewPanelId = useWorkspaceStore(
+    (state) => state.activeLeftDockPreviewPanelId,
+  )
+  const setActiveLeftDockPreviewPanelId = useWorkspaceStore(
+    (state) => state.setActiveLeftDockPreviewPanelId,
+  )
+  const leftDockResizeMenu = useWorkspaceStore((state) => state.leftDockResizeMenu)
+  const setLeftDockResizeMenu = useWorkspaceStore((state) => state.setLeftDockResizeMenu)
+  const workspaceSplitMenu = useWorkspaceStore((state) => state.workspaceSplitMenu)
+  const setWorkspaceSplitMenu = useWorkspaceStore((state) => state.setWorkspaceSplitMenu)
+  const isBrowserFloating = useWorkspaceStore((state) => state.browserShell.isFloating)
+  const isBrowserPoppedOut = useWorkspaceStore((state) => state.browserShell.isPoppedOut)
+  const isBrowserViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
+  const browserViewportSplitRatio = useWorkspaceStore((state) => state.browserShell.viewportSplitRatio)
+  const browserViewportSplitDockSide = useWorkspaceStore(
+    (state) => state.browserShell.viewportSplitDockSide,
+  )
+  const setBrowserViewportSplitRatio = useWorkspaceStore((state) => state.setBrowserViewportSplitRatio)
+  const primaryViewportId = useWorkspaceStore((state) => state.primaryViewportId)
+  const hydratePersistedWorkspaceLayout = useWorkspaceStore(
+    (state) => state.hydratePersistedWorkspaceLayout,
+  )
+  const activeEditorSurface = useWorkspaceStore((state) =>
+    activeEditorViewportId.length > 0 ? state.editorSurfacePlacementById[activeEditorViewportId] ?? null : null,
+  )
   const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
   const lastHandledFloatingShellActivationSeqRef = useRef(0)
+  const hasHydratedWorkspacePersistenceRef = useRef(false)
+  const browserSplitResizeRef = useRef<{
+    viewportTop: number
+    viewportHeight: number
+  } | null>(null)
 
   const {
     resolveLeftDockPreviewPanelId,
@@ -79,6 +114,7 @@ export function AppShell() {
     dockedMeatballHostRef,
     leftDockWidth,
     setLeftDockWidth,
+    isLeftDockViewportSplit,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,
@@ -89,7 +125,7 @@ export function AppShell() {
     },
   })
 
-  const activeWindowMode = activeEditorViewport?.windowMode ?? null
+  const activeWindowMode = activeEditorSurface?.windowMode ?? activeEditorViewport?.windowMode ?? null
   const showEditorSurface = activeEditorViewport !== null
   const showFloatingShell =
     showEditorSurface &&
@@ -97,11 +133,34 @@ export function AppShell() {
       activeWindowMode === 'maximized' ||
       activeWindowMode === 'collapsed')
   const showSplitLayout = showEditorSurface && activeWindowMode === 'split view'
-  const splitRatio = activeEditorViewport?.splitRatio ?? 0.5
-  const splitDirection = activeEditorViewport?.splitDirection ?? defaultWorkspaceSplitDirection
-  const splitPriority = activeEditorViewport?.splitPriority ?? defaultWorkspaceSplitPriority
+  const splitRatio = activeEditorSurface?.splitRatio ?? activeEditorViewport?.splitRatio ?? 0.5
+  const splitDirection =
+    activeEditorSurface?.splitDirection ??
+    activeEditorViewport?.splitDirection ??
+    defaultWorkspaceSplitDirection
+  const splitDockSide =
+    activeEditorSurface?.splitDockSide ??
+    activeEditorViewport?.splitDockSide ??
+    resolveDefaultWorkspaceSplitDockSide(splitDirection)
+  const splitPriority =
+    activeEditorSurface?.splitPriority ??
+    activeEditorViewport?.splitPriority ??
+    defaultWorkspaceSplitPriority
   const isBrowserDockPreviewActive = activeLeftDockPreviewPanelId === 'browser'
   const isMeatballDockPreviewActive = activeLeftDockPreviewPanelId === 'meatball-editor'
+  const browserViewportSplitDirection = resolveWorkspaceSplitDirectionForDockSide(
+    browserViewportSplitDockSide,
+  )
+  const browserViewportSplitDirectionClass =
+    browserViewportSplitDirection === 'vertical' ? 'isVertical' : 'isHorizontal'
+  const browserViewportSplitDockSideClass =
+    browserViewportSplitDockSide === 'left'
+      ? 'isEditorLeft'
+      : browserViewportSplitDockSide === 'right'
+        ? 'isEditorRight'
+        : browserViewportSplitDockSide === 'top'
+          ? 'isEditorTop'
+          : 'isEditorBottom'
 
   const handleActivateSpaghettiFloatingWindow = useCallback(() => {
     setActiveFloatingShell('spaghetti')
@@ -146,10 +205,10 @@ export function AppShell() {
   }, [requestConsoleContextSync, setActiveSurface, showFloatingShell, workspaceActiveSurface])
 
   useEffect(() => {
-    if (!isBrowserFloating && workspaceActiveSurface === 'browser') {
+    if (!isBrowserFloating && !isBrowserPoppedOut && workspaceActiveSurface === 'browser') {
       setActiveFloatingShell(null)
     }
-  }, [isBrowserFloating, workspaceActiveSurface])
+  }, [isBrowserFloating, isBrowserPoppedOut, workspaceActiveSurface])
 
   useEffect(() => {
     if (
@@ -166,11 +225,17 @@ export function AppShell() {
       }
       return
     }
-    if (isBrowserFloating) {
+    if (isBrowserFloating || isBrowserPoppedOut) {
       setActiveFloatingShell('browser')
       setActiveSurface('browser')
     }
-  }, [floatingShellActivationRequest, isBrowserFloating, setActiveSurface, showFloatingShell])
+  }, [
+    floatingShellActivationRequest,
+    isBrowserFloating,
+    isBrowserPoppedOut,
+    setActiveSurface,
+    showFloatingShell,
+  ])
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -179,6 +244,7 @@ export function AppShell() {
         target instanceof Element &&
         (target.closest('.SpaghettiFloatingWindow') !== null ||
           target.closest('.BrowserFloatingWindow') !== null ||
+          target.closest('.ViewportWorkspaceHost') !== null ||
           target.closest('.ViewportViewerSurface') !== null)
       ) {
         return
@@ -195,6 +261,43 @@ export function AppShell() {
       window.removeEventListener('pointerdown', handlePointerDown)
     }
   }, [requestConsoleContextSync, setActiveSurface, workspaceActiveSurface])
+
+  useEffect(() => {
+    if (hasHydratedWorkspacePersistenceRef.current) {
+      return
+    }
+    hasHydratedWorkspacePersistenceRef.current = true
+    const persistedLayout = readPersistedWorkspaceLayout()
+    if (persistedLayout !== null) {
+      hydratePersistedWorkspaceLayout(persistedLayout)
+      const spaghettiState = useSpaghettiStore.getState()
+      for (const [editorViewportId, placement] of Object.entries(
+        persistedLayout.editorSurfacePlacementById,
+      )) {
+        if (spaghettiState.editorViewportsById[editorViewportId] === undefined) {
+          continue
+        }
+        spaghettiState.setEditorViewportPosition(editorViewportId, placement.position)
+        spaghettiState.setEditorViewportSize(editorViewportId, placement.size)
+        spaghettiState.setEditorViewportSplitRatio(editorViewportId, placement.splitRatio)
+        spaghettiState.setEditorViewportSplitDirection(editorViewportId, placement.splitDirection)
+        spaghettiState.setEditorViewportSplitDockSide(editorViewportId, placement.splitDockSide)
+        spaghettiState.setEditorViewportSplitPriority(editorViewportId, placement.splitPriority)
+        spaghettiState.setEditorViewportWindowMode(editorViewportId, placement.windowMode)
+      }
+    }
+    writePersistedWorkspaceLayout(serializeWorkspaceLayout(useWorkspaceStore.getState()))
+  }, [hydratePersistedWorkspaceLayout])
+
+  useEffect(() => {
+    const unsubscribe = useWorkspaceStore.subscribe((state) => {
+      if (!hasHydratedWorkspacePersistenceRef.current) {
+        return
+      }
+      writePersistedWorkspaceLayout(serializeWorkspaceLayout(state))
+    })
+    return unsubscribe
+  }, [])
 
   const handleFloatingSplitMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -249,6 +352,61 @@ export function AppShell() {
     setEditorViewportSplitRatio(activeEditorViewport.editorViewportId, 0.5)
     setWorkspaceSplitMenu(null)
   }, [activeEditorViewport, setEditorViewportSplitRatio])
+
+  const handleBrowserSplitResizeStart = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0 || !isBrowserViewportSplit) {
+        return
+      }
+      const viewportElement = viewportRef.current
+      if (viewportElement === null) {
+        return
+      }
+      const rect = viewportElement.getBoundingClientRect()
+      browserSplitResizeRef.current = {
+        viewportTop: rect.top,
+        viewportHeight: rect.height - splitDividerHeight,
+      }
+
+      const handleMove = (moveEvent: PointerEvent) => {
+        const state = browserSplitResizeRef.current
+        const liveViewportRect = viewportRef.current?.getBoundingClientRect()
+        if (state === null || liveViewportRect === undefined) {
+          return
+        }
+        const nextRatio =
+          browserViewportSplitDirection === 'vertical'
+            ? browserViewportSplitDockSide === 'left'
+              ? (moveEvent.clientX - liveViewportRect.left) /
+                Math.max(1, liveViewportRect.width - splitDividerHeight)
+              : (liveViewportRect.right - moveEvent.clientX) /
+                Math.max(1, liveViewportRect.width - splitDividerHeight)
+            : browserViewportSplitDockSide === 'top'
+              ? (moveEvent.clientY - state.viewportTop) /
+                Math.max(1, state.viewportHeight)
+              : (liveViewportRect.bottom - moveEvent.clientY) /
+                Math.max(1, state.viewportHeight)
+        setBrowserViewportSplitRatio(nextRatio)
+      }
+
+      const handleUp = () => {
+        browserSplitResizeRef.current = null
+        window.removeEventListener('pointermove', handleMove)
+        window.removeEventListener('pointerup', handleUp)
+      }
+
+      window.addEventListener('pointermove', handleMove)
+      window.addEventListener('pointerup', handleUp)
+      event.preventDefault()
+      event.stopPropagation()
+    },
+    [
+      browserViewportSplitDirection,
+      browserViewportSplitDockSide,
+      isBrowserViewportSplit,
+      setBrowserViewportSplitRatio,
+    ],
+  )
 
   const handleSetSplitPriority = useCallback(
     (nextPriority: WorkspaceSplitPriority) => {
@@ -320,13 +478,57 @@ export function AppShell() {
   const consoleListLeftOffset =
     isLeftDockViewportSplit && !showSplitLayout ? 0 : leftDockWidth
 
-  const viewerSurface = (
-    <>
-      <div className="ViewportViewerSurface" onPointerDownCapture={handleActivateViewerSurface}>
-        <ViewerHost />
+  const baseViewerSurface = (
+    <ViewportWorkspaceHost
+      viewportId={primaryViewportId}
+      onActivateViewerSurface={handleActivateViewerSurface}
+    />
+  )
+
+  const viewerSurface = isBrowserViewportSplit ? (
+    <div
+      className={`ViewportSplitLayout BrowserViewportSplitLayout ${browserViewportSplitDirectionClass} ${browserViewportSplitDockSideClass}`}
+      style={{
+        gridTemplateColumns:
+          browserViewportSplitDirection === 'vertical'
+            ? browserViewportSplitDockSide === 'left'
+              ? `${browserViewportSplitRatio}fr ${splitDividerHeight}px ${1 - browserViewportSplitRatio}fr`
+              : `${1 - browserViewportSplitRatio}fr ${splitDividerHeight}px ${browserViewportSplitRatio}fr`
+            : 'minmax(0, 1fr)',
+        gridTemplateRows:
+          browserViewportSplitDirection === 'vertical'
+            ? 'minmax(0, 1fr)'
+            : browserViewportSplitDockSide === 'top'
+              ? `${browserViewportSplitRatio}fr ${splitDividerHeight}px ${1 - browserViewportSplitRatio}fr`
+              : `${1 - browserViewportSplitRatio}fr ${splitDividerHeight}px ${browserViewportSplitRatio}fr`,
+        gridTemplateAreas:
+          browserViewportSplitDirection === 'vertical'
+            ? browserViewportSplitDockSide === 'left'
+              ? '"editor divider viewer"'
+              : '"viewer divider editor"'
+            : browserViewportSplitDockSide === 'top'
+              ? '"editor" "divider" "viewer"'
+              : '"viewer" "divider" "editor"',
+      }}
+    >
+      <div className="ViewportSplitPane ViewportSplitPane--viewer" style={{ gridArea: 'viewer' }}>
+        {baseViewerSurface}
       </div>
-      <ViewportOverlay />
-    </>
+      <div className="ViewportSplitDividerShell" style={{ gridArea: 'divider' }}>
+        <button
+          type="button"
+          className="ViewportSplitDivider"
+          onPointerDown={handleBrowserSplitResizeStart}
+          aria-label="Resize browser split view"
+          title="Drag to resize viewport and browser"
+        />
+      </div>
+      <div className="ViewportSplitPane ViewportSplitPane--editor" style={{ gridArea: 'editor' }}>
+        <div ref={browserViewportSplitHostRef} className="BrowserViewportSplitHost" />
+      </div>
+    </div>
+  ) : (
+    baseViewerSurface
   )
 
   return (
@@ -340,6 +542,7 @@ export function AppShell() {
           bottom:
             showSplitLayout &&
             splitDirection === 'horizontal' &&
+            splitDockSide === 'bottom' &&
             (!isLeftDockViewportSplit || splitPriority !== 'favorFirst')
               ? `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`
               : '0px',
@@ -405,6 +608,7 @@ export function AppShell() {
         }}
       >
         <SpaghettiWindowHost
+          appShellRef={appShellRef}
           viewportRef={viewportRef}
           dockedMeatballHostRef={dockedMeatballHostRef}
           leftDockWidth={leftDockWidth}
@@ -425,12 +629,11 @@ export function AppShell() {
       </section>
       <BrowserDockHost
         appShellRef={appShellRef}
+        viewportRef={viewportRef}
+        viewportSplitHostRef={browserViewportSplitHostRef}
         dockedBrowserHostRef={dockedBrowserHostRef}
-        activeLeftDockPreviewPanelId={activeLeftDockPreviewPanelId}
-        setActiveLeftDockPreviewPanelId={setActiveLeftDockPreviewPanelId}
         resolveLeftDockPreviewPanelId={resolveLeftDockPreviewPanelId}
         onActivateBrowserFloatingWindow={handleActivateBrowserFloatingWindow}
-        onFloatingStateChange={setIsBrowserFloating}
         newEditorSpawnPosition={newEditorSpawnPosition}
         workspaceActiveSurface={workspaceActiveSurface}
       />
@@ -524,7 +727,6 @@ export function AppShell() {
       ) : null}
       {isRadioToolbarOpen ? <RadioPanel /> : null}
       <RadioRuntimeHost />
-      <ViewToolbar />
     </div>
   )
 }

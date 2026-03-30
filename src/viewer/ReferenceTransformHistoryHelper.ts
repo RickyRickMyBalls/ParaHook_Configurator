@@ -14,7 +14,7 @@ import {
 } from 'three'
 import type { ReferenceTransformOverride } from '../app/references/referenceManifest'
 import type {
-  ReferenceTransformHistoryOverlayVm,
+  ViewerTransformHistoryOverlayVm,
   ReferenceTransformHistoryVec3Vm,
 } from '../app/viewerBridge'
 
@@ -257,7 +257,7 @@ export class ReferenceTransformHistoryHelper {
   }
 
   public setOverlay(
-    overlay: ReferenceTransformHistoryOverlayVm | null,
+    overlay: ViewerTransformHistoryOverlayVm | null,
     referenceObject: Object3D | null,
   ): void {
     this.clearDynamicHistoryEntries()

@@ -53,6 +53,7 @@ export type ConsoleStagedNavigationContext = {
     {
       activeSessionId: string | null
       activeSessionCommittedEntryCount: number
+      totalCommittedEntryCount: number
     }
   >
   referenceTransformSnapLockByReferenceId: Record<
@@ -62,6 +63,22 @@ export type ConsoleStagedNavigationContext = {
   referenceTransformSnapEnabledByReferenceId: Record<
     string,
     Partial<Record<ReferenceTransformSnapMode, boolean>>
+  >
+  contentObjectTransformSnapLockByObjectId: Record<
+    string,
+    Partial<Record<ReferenceTransformSnapMode, boolean>>
+  >
+  contentObjectTransformSnapEnabledByObjectId: Record<
+    string,
+    Partial<Record<ReferenceTransformSnapMode, boolean>>
+  >
+  contentObjectTransformShellByObjectId: Record<
+    string,
+    {
+      activeSessionId: string | null
+      activeSessionCommittedEntryCount: number
+      totalCommittedEntryCount: number
+    }
   >
 }
 
@@ -106,6 +123,21 @@ export type ConsoleStagedNavigationScopeId =
   | 'contentComponentSelected'
   | 'contentObjectSelected'
   | 'contentObjectTransformRoot'
+  | 'contentObjectTransformSettingsRoot'
+  | 'contentObjectTransformSpaceRoot'
+  | 'contentObjectTransformSnapRoot'
+  | 'contentObjectTransformMoveSnapRoot'
+  | 'contentObjectTransformRotateSnapRoot'
+  | 'contentObjectTransformScaleSnapRoot'
+  | 'contentObjectTransformMoveSnapXRoot'
+  | 'contentObjectTransformMoveSnapYRoot'
+  | 'contentObjectTransformMoveSnapZRoot'
+  | 'contentObjectTransformRotateSnapXRoot'
+  | 'contentObjectTransformRotateSnapYRoot'
+  | 'contentObjectTransformRotateSnapZRoot'
+  | 'contentObjectTransformScaleSnapXRoot'
+  | 'contentObjectTransformScaleSnapYRoot'
+  | 'contentObjectTransformScaleSnapZRoot'
   | 'contentObjectZoomRoot'
   | 'multiSelectSelected'
   | 'multiSelectZoomRoot'
@@ -138,6 +170,7 @@ export type ConsoleStagedNavigationSelection = {
   sketchNodeId: string | null
   contentAssemblyId?: string | null
   contentComponentId?: string | null
+  contentObjectId?: string | null
   referenceId?: string | null
   referenceCategoryId?: string | null
   referenceCanLoadModel?: boolean
@@ -234,14 +267,41 @@ export type ConsoleStagedNavigationExecuteResult = {
   | 'reference.transform.snap.scale.off'
   | 'reference.transform.snap.scale.lock'
   | 'reference.transform.snap.scale.unlock'
-  | 'reference.transform.snap.scale.value'
-  | 'reference.transform.snap.scale.x.value'
-  | 'reference.transform.snap.scale.y.value'
+    | 'reference.transform.snap.scale.value'
+    | 'reference.transform.snap.scale.x.value'
+    | 'reference.transform.snap.scale.y.value'
     | 'reference.transform.snap.scale.z.value'
     | 'content.selectAll'
     | 'content.transform.move'
     | 'content.transform.rotate'
     | 'content.transform.scale'
+    | 'content.transform.deleteLatest'
+    | 'content.transform.space.local'
+    | 'content.transform.space.world'
+    | 'content.transform.snap.translate.on'
+    | 'content.transform.snap.translate.off'
+    | 'content.transform.snap.translate.lock'
+    | 'content.transform.snap.translate.unlock'
+    | 'content.transform.snap.translate.value'
+    | 'content.transform.snap.translate.x.value'
+    | 'content.transform.snap.translate.y.value'
+    | 'content.transform.snap.translate.z.value'
+    | 'content.transform.snap.rotate.on'
+    | 'content.transform.snap.rotate.off'
+    | 'content.transform.snap.rotate.lock'
+    | 'content.transform.snap.rotate.unlock'
+    | 'content.transform.snap.rotate.value'
+    | 'content.transform.snap.rotate.x.value'
+    | 'content.transform.snap.rotate.y.value'
+    | 'content.transform.snap.rotate.z.value'
+    | 'content.transform.snap.scale.on'
+    | 'content.transform.snap.scale.off'
+    | 'content.transform.snap.scale.lock'
+    | 'content.transform.snap.scale.unlock'
+    | 'content.transform.snap.scale.value'
+    | 'content.transform.snap.scale.x.value'
+    | 'content.transform.snap.scale.y.value'
+    | 'content.transform.snap.scale.z.value'
   breadcrumb: string[]
   selections: ConsoleStagedNavigationSelection
 }
@@ -1108,12 +1168,19 @@ const buildReferenceSelectedChoices = (canLoadModel: boolean): ConsoleStagedNavi
   createBackChoice(),
 ]
 
-const buildTransformRootChoices = (): ConsoleStagedNavigationChoice[] => [
-  MOVE_CHOICE,
-  ROTATE_CHOICE,
-  SCALE_CHOICE,
-  createBackChoice(),
-]
+export const buildContentTransformRootChoices = (
+  hasCommittedEntriesInActiveShell = false,
+): ConsoleStagedNavigationChoice[] =>
+  hasCommittedEntriesInActiveShell
+    ? [
+        DELETE_LATEST_TRANSFORM_CHOICE,
+        MOVE_CHOICE,
+        ROTATE_CHOICE,
+        SCALE_CHOICE,
+        SNAP_CHOICE,
+        SETTINGS_CHOICE,
+      ]
+    : [MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, SNAP_CHOICE, SETTINGS_CHOICE, createBackChoice()]
 
 export const buildReferenceTransformRootChoices = (
   hasCommittedEntriesInActiveShell = false,
@@ -1182,11 +1249,17 @@ const buildReferenceTransformSnapModeChoices = (
   createBackChoice(),
 ]
 
-const hasCommittedEntriesInReferenceTransformShell = (
+const hasAnyCommittedEntriesInReferenceTransformHistory = (
   context: ConsoleStagedNavigationContext,
   referenceId: string,
 ): boolean =>
-  (context.referenceTransformShellByReferenceId[referenceId]?.activeSessionCommittedEntryCount ?? 0) > 0
+  (context.referenceTransformShellByReferenceId[referenceId]?.totalCommittedEntryCount ?? 0) > 0
+
+const hasAnyCommittedEntriesInContentObjectTransformHistory = (
+  context: ConsoleStagedNavigationContext,
+  objectId: string,
+): boolean =>
+  (context.contentObjectTransformShellByObjectId[objectId]?.totalCommittedEntryCount ?? 0) > 0
 
 const isReferenceTransformSnapModeLocked = (
   context: ConsoleStagedNavigationContext,
@@ -1199,6 +1272,18 @@ const isReferenceTransformSnapModeEnabled = (
   referenceId: string,
   mode: ReferenceTransformSnapMode,
 ): boolean => context.referenceTransformSnapEnabledByReferenceId[referenceId]?.[mode] ?? false
+
+const isContentObjectTransformSnapModeLocked = (
+  context: ConsoleStagedNavigationContext,
+  objectId: string,
+  mode: ReferenceTransformSnapMode,
+): boolean => context.contentObjectTransformSnapLockByObjectId[objectId]?.[mode] ?? true
+
+const isContentObjectTransformSnapModeEnabled = (
+  context: ConsoleStagedNavigationContext,
+  objectId: string,
+  mode: ReferenceTransformSnapMode,
+): boolean => context.contentObjectTransformSnapEnabledByObjectId[objectId]?.[mode] ?? false
 
 const createGraphRootSession = (
   context: ConsoleStagedNavigationContext,
@@ -1391,15 +1476,28 @@ const createContentRootSession = (
   validChoices: buildContentRootChoices(context.contentAssemblies),
 })
 
-const buildContentBreadcrumb = (label: string): string[] => ['Select', 'Content', label]
+const buildContentBreadcrumb = (labels: string | string[]): string[] => [
+  'Select',
+  'Content',
+  ...(Array.isArray(labels) ? labels : [labels]),
+]
+
+const extractContentBreadcrumbLabels = (
+  breadcrumb: readonly string[],
+  trailingCount = 0,
+): string[] => {
+  const endIndex =
+    trailingCount === 0 ? breadcrumb.length : Math.max(2, breadcrumb.length - trailingCount)
+  return breadcrumb.slice(2, endIndex)
+}
 
 const createContentAssemblySelectedSession = (
-  label: string,
+  labels: string | string[],
   assemblyId: string | null,
   canDelete: boolean,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentAssemblySelected',
-  breadcrumb: buildContentBreadcrumb(label),
+  breadcrumb: buildContentBreadcrumb(labels),
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1411,9 +1509,11 @@ const createContentAssemblySelectedSession = (
   validChoices: buildContentAssemblySelectedChoices(canDelete),
 })
 
-const createContentAssemblyZoomRootSession = (label: string): ConsoleStagedNavigationSession => ({
+const createContentAssemblyZoomRootSession = (
+  labels: string | string[],
+): ConsoleStagedNavigationSession => ({
   scopeId: 'contentAssemblyZoomRoot',
-  breadcrumb: [...buildContentBreadcrumb(label), 'Zoom'],
+  breadcrumb: [...buildContentBreadcrumb(labels), 'Zoom'],
   selections: {
     graphDocumentId: null,
     selectedNodeId: null,
@@ -1424,13 +1524,13 @@ const createContentAssemblyZoomRootSession = (label: string): ConsoleStagedNavig
 })
 
 const createContentComponentSelectedSession = (
-  label: string,
+  labels: string | string[],
   fallbackGraphDocumentId: string | null,
   componentId: string | null,
   canRenameDelete: boolean,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentComponentSelected',
-  breadcrumb: buildContentBreadcrumb(label),
+  breadcrumb: buildContentBreadcrumb(labels),
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
@@ -1443,54 +1543,170 @@ const createContentComponentSelectedSession = (
 })
 
 const createContentObjectSelectedSession = (
-  label: string,
+  labels: string | string[],
   fallbackGraphDocumentId: string | null,
+  objectId: string | null = null,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentObjectSelected',
-  breadcrumb: buildContentBreadcrumb(label),
+  breadcrumb: buildContentBreadcrumb(labels),
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
     sketchNodeId: null,
     contentAssemblyId: null,
     contentComponentId: null,
+    contentObjectId: objectId,
     referenceId: null,
   },
   validChoices: buildContentObjectSelectedChoices(),
 })
 
-const createContentObjectZoomRootSession = (
-  label: string,
+export const createContentObjectTransformRootSession = (
+  labels: string | string[],
   fallbackGraphDocumentId: string | null,
-): ConsoleStagedNavigationSession => ({
-  scopeId: 'contentObjectZoomRoot',
-  breadcrumb: [...buildContentBreadcrumb(label), 'Zoom'],
-  selections: {
-    graphDocumentId: fallbackGraphDocumentId,
-    selectedNodeId: null,
-    sketchNodeId: null,
-    contentAssemblyId: null,
-    contentComponentId: null,
-    referenceId: null,
-  },
-  validChoices: buildZoomActionChoices(),
-})
-
-const createContentObjectTransformRootSession = (
-  label: string,
-  fallbackGraphDocumentId: string | null,
+  objectId: string | null = null,
+  hasCommittedEntriesInHistory = false,
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentObjectTransformRoot',
-  breadcrumb: [...buildContentBreadcrumb(label), VIEWER_TRANSFORM_LABEL],
+  breadcrumb: [...buildContentBreadcrumb(labels), VIEWER_TRANSFORM_LABEL],
   selections: {
     graphDocumentId: fallbackGraphDocumentId,
     selectedNodeId: null,
     sketchNodeId: null,
     contentAssemblyId: null,
     contentComponentId: null,
+    contentObjectId: objectId,
     referenceId: null,
   },
-  validChoices: buildTransformRootChoices(),
+  validChoices: buildContentTransformRootChoices(hasCommittedEntriesInHistory),
+})
+
+const createContentObjectTransformSettingsRootSession = (
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentObjectTransformSettingsRoot',
+  breadcrumb: [...buildContentBreadcrumb(labels), VIEWER_TRANSFORM_LABEL, 'Settings'],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
+    contentObjectId: objectId,
+    referenceId: null,
+  },
+  validChoices: buildReferenceTransformSettingsChoices(),
+})
+
+const createContentObjectTransformSpaceRootSession = (
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentObjectTransformSpaceRoot',
+  breadcrumb: [...buildContentBreadcrumb(labels), VIEWER_TRANSFORM_LABEL, 'Settings', 'Space'],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
+    contentObjectId: objectId,
+    referenceId: null,
+  },
+  validChoices: buildReferenceTransformSpaceChoices(),
+})
+
+const createContentObjectTransformSnapRootSession = (
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string | null = null,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'contentObjectTransformSnapRoot',
+  breadcrumb: [...buildContentBreadcrumb(labels), VIEWER_TRANSFORM_LABEL, 'Settings', 'Snap'],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
+    contentObjectId: objectId,
+    referenceId: null,
+  },
+  validChoices: buildReferenceTransformSnapChoices(),
+})
+
+const createContentObjectTransformModeSnapRootSession = (
+  scopeId:
+    | 'contentObjectTransformMoveSnapRoot'
+    | 'contentObjectTransformRotateSnapRoot'
+    | 'contentObjectTransformScaleSnapRoot',
+  mode: ReferenceTransformSnapMode,
+  modeLabel: 'Move' | 'Rotate' | 'Scale',
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string | null,
+  xyzLocked: boolean,
+  enabled: boolean,
+): ConsoleStagedNavigationSession => ({
+  scopeId,
+  breadcrumb: [
+    ...buildContentBreadcrumb(labels),
+    VIEWER_TRANSFORM_LABEL,
+    'Settings',
+    'Snap',
+    modeLabel,
+  ],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
+    contentObjectId: objectId,
+    referenceId: null,
+  },
+  validChoices: buildReferenceTransformSnapModeChoices(mode, xyzLocked, enabled),
+})
+
+const createContentObjectTransformAxisSnapRootSession = (
+  scopeId:
+    | 'contentObjectTransformMoveSnapXRoot'
+    | 'contentObjectTransformMoveSnapYRoot'
+    | 'contentObjectTransformMoveSnapZRoot'
+    | 'contentObjectTransformRotateSnapXRoot'
+    | 'contentObjectTransformRotateSnapYRoot'
+    | 'contentObjectTransformRotateSnapZRoot'
+    | 'contentObjectTransformScaleSnapXRoot'
+    | 'contentObjectTransformScaleSnapYRoot'
+    | 'contentObjectTransformScaleSnapZRoot',
+  modeLabel: 'Move' | 'Rotate' | 'Scale',
+  axisLabel: 'X' | 'Y' | 'Z',
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string | null,
+): ConsoleStagedNavigationSession => ({
+  scopeId,
+  breadcrumb: [
+    ...buildContentBreadcrumb(labels),
+    VIEWER_TRANSFORM_LABEL,
+    'Settings',
+    'Snap',
+    modeLabel,
+    `${modeLabel} ${axisLabel}`,
+  ],
+  selections: {
+    graphDocumentId: fallbackGraphDocumentId,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    contentAssemblyId: null,
+    contentComponentId: null,
+    contentObjectId: objectId,
+    referenceId: null,
+  },
+  validChoices: [],
 })
 
 const formatMultiSelectLabels = (labels: readonly string[]): string => `[${labels.join(', ')}]`
@@ -1506,19 +1722,6 @@ const createMultiSelectSelectedSession = (labels: string[]): ConsoleStagedNaviga
     multiSelectLabels: labels,
   },
   validChoices: buildMultiSelectSelectedChoices(),
-})
-
-const createMultiSelectZoomRootSession = (labels: string[]): ConsoleStagedNavigationSession => ({
-  scopeId: 'multiSelectZoomRoot',
-  breadcrumb: ['Multi-Select', formatMultiSelectLabels(labels), 'Zoom'],
-  selections: {
-    graphDocumentId: null,
-    selectedNodeId: null,
-    sketchNodeId: null,
-    referenceId: null,
-    multiSelectLabels: labels,
-  },
-  validChoices: buildZoomActionChoices(),
 })
 
 const createReferenceSelectedSession = (
@@ -1564,7 +1767,7 @@ const createReferenceTransformRootSession = (
     referenceCategoryId,
   },
   validChoices: buildReferenceTransformRootChoices(
-    hasCommittedEntriesInReferenceTransformShell(context, referenceId),
+    hasAnyCommittedEntriesInReferenceTransformHistory(context, referenceId),
   ),
 })
 
@@ -1823,6 +2026,89 @@ const createReferenceTransformSnapAxisSession = (
   )
 }
 
+const createContentObjectTransformSnapModeSessionByToken = (
+  context: ConsoleStagedNavigationContext,
+  token: string,
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string,
+): ConsoleStagedNavigationSession | null => {
+  switch (token) {
+    case MOVE_CHOICE.canonicalToken:
+      return createContentObjectTransformModeSnapRootSession(
+        'contentObjectTransformMoveSnapRoot',
+        'translate',
+        'Move',
+        labels,
+        fallbackGraphDocumentId,
+        objectId,
+        isContentObjectTransformSnapModeLocked(context, objectId, 'translate'),
+        isContentObjectTransformSnapModeEnabled(context, objectId, 'translate'),
+      )
+    case ROTATE_CHOICE.canonicalToken:
+      return createContentObjectTransformModeSnapRootSession(
+        'contentObjectTransformRotateSnapRoot',
+        'rotate',
+        'Rotate',
+        labels,
+        fallbackGraphDocumentId,
+        objectId,
+        isContentObjectTransformSnapModeLocked(context, objectId, 'rotate'),
+        isContentObjectTransformSnapModeEnabled(context, objectId, 'rotate'),
+      )
+    case SCALE_CHOICE.canonicalToken:
+      return createContentObjectTransformModeSnapRootSession(
+        'contentObjectTransformScaleSnapRoot',
+        'scale',
+        'Scale',
+        labels,
+        fallbackGraphDocumentId,
+        objectId,
+        isContentObjectTransformSnapModeLocked(context, objectId, 'scale'),
+        isContentObjectTransformSnapModeEnabled(context, objectId, 'scale'),
+      )
+    default:
+      return null
+  }
+}
+
+const createContentObjectTransformSnapAxisSession = (
+  mode: ReferenceTransformSnapMode,
+  axis: ReferenceTransformSnapAxis,
+  labels: string | string[],
+  fallbackGraphDocumentId: string | null,
+  objectId: string,
+): ConsoleStagedNavigationSession => {
+  const modeLabel = mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
+  const axisLabel = axis.toUpperCase() as 'X' | 'Y' | 'Z'
+  const scopeId =
+    mode === 'translate'
+      ? axis === 'x'
+        ? 'contentObjectTransformMoveSnapXRoot'
+        : axis === 'y'
+          ? 'contentObjectTransformMoveSnapYRoot'
+          : 'contentObjectTransformMoveSnapZRoot'
+      : mode === 'rotate'
+        ? axis === 'x'
+          ? 'contentObjectTransformRotateSnapXRoot'
+          : axis === 'y'
+            ? 'contentObjectTransformRotateSnapYRoot'
+            : 'contentObjectTransformRotateSnapZRoot'
+        : axis === 'x'
+          ? 'contentObjectTransformScaleSnapXRoot'
+          : axis === 'y'
+            ? 'contentObjectTransformScaleSnapYRoot'
+            : 'contentObjectTransformScaleSnapZRoot'
+  return createContentObjectTransformAxisSnapRootSession(
+    scopeId,
+    modeLabel,
+    axisLabel,
+    labels,
+    fallbackGraphDocumentId,
+    objectId,
+  )
+}
+
 const parseReferenceTransformSnapValue = (token: string): number | null => {
   const trimmed = token.trim()
   if (trimmed.length === 0) {
@@ -1877,28 +2163,50 @@ const getReferenceTransformSnapAxisFromScopeId = (
   }
 }
 
-const createReferenceZoomRootSession = (
-  label: string,
-  referenceId: string,
-  canLoadModel: boolean,
-  referenceCategoryId: string | null = null,
-  referenceCategoryLabel: string | null = null,
-): ConsoleStagedNavigationSession => ({
-  scopeId: 'referenceZoomRoot',
-  breadcrumb:
-    referenceCategoryId !== null && referenceCategoryLabel !== null
-      ? ['Select', 'References', referenceCategoryLabel, label, 'Zoom']
-      : ['Select', 'Reference', label, 'Zoom'],
-  selections: {
-    graphDocumentId: null,
-    selectedNodeId: null,
-    sketchNodeId: null,
-    referenceId,
-    referenceCategoryId,
-    referenceCanLoadModel: canLoadModel,
-  },
-  validChoices: buildZoomActionChoices(),
-})
+const getContentObjectTransformSnapModeFromScopeId = (
+  scopeId: ConsoleStagedNavigationScopeId,
+): ReferenceTransformSnapMode | null => {
+  switch (scopeId) {
+    case 'contentObjectTransformMoveSnapRoot':
+    case 'contentObjectTransformMoveSnapXRoot':
+    case 'contentObjectTransformMoveSnapYRoot':
+    case 'contentObjectTransformMoveSnapZRoot':
+      return 'translate'
+    case 'contentObjectTransformRotateSnapRoot':
+    case 'contentObjectTransformRotateSnapXRoot':
+    case 'contentObjectTransformRotateSnapYRoot':
+    case 'contentObjectTransformRotateSnapZRoot':
+      return 'rotate'
+    case 'contentObjectTransformScaleSnapRoot':
+    case 'contentObjectTransformScaleSnapXRoot':
+    case 'contentObjectTransformScaleSnapYRoot':
+    case 'contentObjectTransformScaleSnapZRoot':
+      return 'scale'
+    default:
+      return null
+  }
+}
+
+const getContentObjectTransformSnapAxisFromScopeId = (
+  scopeId: ConsoleStagedNavigationScopeId,
+): ReferenceTransformSnapAxis | null => {
+  switch (scopeId) {
+    case 'contentObjectTransformMoveSnapXRoot':
+    case 'contentObjectTransformRotateSnapXRoot':
+    case 'contentObjectTransformScaleSnapXRoot':
+      return 'x'
+    case 'contentObjectTransformMoveSnapYRoot':
+    case 'contentObjectTransformRotateSnapYRoot':
+    case 'contentObjectTransformScaleSnapYRoot':
+      return 'y'
+    case 'contentObjectTransformMoveSnapZRoot':
+    case 'contentObjectTransformRotateSnapZRoot':
+    case 'contentObjectTransformScaleSnapZRoot':
+      return 'z'
+    default:
+      return null
+  }
+}
 
 const createReferencesSelectedSession = (
   label: string,
@@ -2016,7 +2324,7 @@ export const resolveConsoleWorkspaceContextSync = (
     }
     return {
       session: createContentAssemblySelectedSession(
-        target.label,
+        target.contentBreadcrumbLabels ?? target.label,
         target.assemblyId,
         target.canDelete,
       ),
@@ -2048,7 +2356,7 @@ export const resolveConsoleWorkspaceContextSync = (
     }
     return {
       session: createContentComponentSelectedSession(
-        target.label,
+        target.contentBreadcrumbLabels ?? target.label,
         target.fallbackGraphDocumentId,
         target.componentId,
         target.canRename || target.canDelete,
@@ -2071,7 +2379,11 @@ export const resolveConsoleWorkspaceContextSync = (
       }
     }
     return {
-      session: createContentObjectSelectedSession(target.label, target.fallbackGraphDocumentId),
+      session: createContentObjectSelectedSession(
+        target.contentBreadcrumbLabels ?? target.label,
+        target.fallbackGraphDocumentId,
+        target.objectId,
+      ),
       selectedLabel: target.label,
     }
   }
@@ -2424,6 +2736,9 @@ export const createConsoleStagedNavigationContext = (
     | ConsoleStagedNavigationContext['referenceTransformSnapLockByReferenceId']
     | ConsoleStagedNavigationContext['referenceTransformSnapEnabledByReferenceId'] = {},
   referenceTransformSnapEnabledByReferenceId: ConsoleStagedNavigationContext['referenceTransformSnapEnabledByReferenceId'] = {},
+  contentObjectTransformSnapLockByObjectId: ConsoleStagedNavigationContext['contentObjectTransformSnapLockByObjectId'] = {},
+  contentObjectTransformSnapEnabledByObjectId: ConsoleStagedNavigationContext['contentObjectTransformSnapEnabledByObjectId'] = {},
+  contentObjectTransformShellByObjectId: ConsoleStagedNavigationContext['contentObjectTransformShellByObjectId'] = {},
 ): ConsoleStagedNavigationContext => {
   const usingLegacyArgumentOrder =
     (contentAssembliesOrReferenceCategories.length > 0 &&
@@ -2491,6 +2806,9 @@ export const createConsoleStagedNavigationContext = (
     referenceTransformShellByReferenceId: { ...referenceTransformShellByReferenceId },
     referenceTransformSnapLockByReferenceId: { ...referenceTransformSnapLockByReferenceId },
     referenceTransformSnapEnabledByReferenceId: { ...normalizedReferenceTransformSnapEnabledByReferenceId },
+    contentObjectTransformSnapLockByObjectId: { ...contentObjectTransformSnapLockByObjectId },
+    contentObjectTransformSnapEnabledByObjectId: { ...contentObjectTransformSnapEnabledByObjectId },
+    contentObjectTransformShellByObjectId: { ...contentObjectTransformShellByObjectId },
   }
 }
 
@@ -2925,8 +3243,9 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(
         createContentObjectSelectedSession(
-          session.breadcrumb.at(-2) ?? 'Object',
+          extractContentBreadcrumbLabels(session.breadcrumb, 1),
           session.selections.graphDocumentId,
+          session.selections.contentObjectId ?? null,
         ),
         submittedToken,
         matchedChoice,
@@ -3762,7 +4081,7 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
       return createAdvanceResult(
-        createContentAssemblyZoomRootSession(session.breadcrumb.at(-1) ?? 'Content'),
+        createContentAssemblyZoomRootSession(extractContentBreadcrumbLabels(session.breadcrumb)),
         submittedToken,
         matchedChoice,
       )
@@ -3780,7 +4099,7 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(
         createContentAssemblySelectedSession(
-          session.breadcrumb.at(-2) ?? 'Content',
+          extractContentBreadcrumbLabels(session.breadcrumb, 1),
           session.selections.contentAssemblyId ?? null,
           context.contentAssemblies.find(
             (assembly) => assembly.assemblyId === session.selections.contentAssemblyId,
@@ -3886,20 +4205,25 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
-      return createAdvanceResult(
-        createContentObjectZoomRootSession(
-          session.breadcrumb.at(-1) ?? 'Content',
-          session.selections.graphDocumentId,
-        ),
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: contentChoices,
+        },
         submittedToken,
         matchedChoice,
-      )
+        actionId: 'zoom.model.object',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
     }
     if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
       return createAdvanceResult(
         createContentObjectTransformRootSession(
-          session.breadcrumb.at(-1) ?? 'Content',
+          extractContentBreadcrumbLabels(session.breadcrumb),
           session.selections.graphDocumentId,
+          session.selections.contentObjectId ?? null,
         ),
         submittedToken,
         matchedChoice,
@@ -3911,8 +4235,9 @@ export const submitConsoleStagedNavigationToken = (
       matchedChoice.canonicalToken === SCALE_CHOICE.canonicalToken
     ) {
       const transformRootSession = createContentObjectTransformRootSession(
-        session.breadcrumb.at(-1) ?? 'Content',
+        extractContentBreadcrumbLabels(session.breadcrumb),
         session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
       )
       const actionIdByToken: Record<
         string,
@@ -3939,7 +4264,15 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session.scopeId === 'contentObjectTransformRoot') {
-    const transformChoices = buildTransformRootChoices()
+    const transformChoices =
+      session.validChoices.length > 0
+        ? session.validChoices
+        : buildContentTransformRootChoices(
+            hasAnyCommittedEntriesInContentObjectTransformHistory(
+              context,
+              session.selections.contentObjectId ?? '',
+            ),
+          )
     const matchedChoice =
       transformChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -3952,18 +4285,69 @@ export const submitConsoleStagedNavigationToken = (
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(
         createContentObjectSelectedSession(
-          session.breadcrumb.at(-2) ?? 'Content',
+          extractContentBreadcrumbLabels(session.breadcrumb, 1),
           session.selections.graphDocumentId,
+          session.selections.contentObjectId ?? null,
         ),
         submittedToken,
         matchedChoice,
       )
     }
+    if (matchedChoice.canonicalToken === SETTINGS_CHOICE.canonicalToken) {
+      const nextSession = createContentObjectTransformSettingsRootSession(
+        extractContentBreadcrumbLabels(session.breadcrumb, 1),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    if (matchedChoice.canonicalToken === SNAP_CHOICE.canonicalToken) {
+      const nextSession = createContentObjectTransformSnapRootSession(
+        extractContentBreadcrumbLabels(session.breadcrumb, 1),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    if (matchedChoice.canonicalToken === DELETE_LATEST_TRANSFORM_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: transformChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.transform.deleteLatest',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
     const actionIdByToken: Record<
       string,
       Extract<
         ConsoleStagedNavigationExecuteResult['actionId'],
-        'content.transform.move' | 'content.transform.rotate' | 'content.transform.scale'
+        | 'content.transform.move'
+        | 'content.transform.rotate'
+        | 'content.transform.scale'
       >
     > = {
       MOVE: 'content.transform.move',
@@ -3984,6 +4368,438 @@ export const submitConsoleStagedNavigationToken = (
     }
   }
 
+  if (session.scopeId === 'contentObjectTransformSettingsRoot') {
+    const settingsChoices = buildReferenceTransformSettingsChoices()
+    const matchedChoice =
+      settingsChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: settingsChoices },
+        submittedToken,
+        settingsChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createContentObjectTransformRootSession(
+        extractContentBreadcrumbLabels(session.breadcrumb, 2),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const nextSession =
+      matchedChoice.canonicalToken === SNAP_CHOICE.canonicalToken
+        ? createContentObjectTransformSnapRootSession(
+            extractContentBreadcrumbLabels(session.breadcrumb, 2),
+            session.selections.graphDocumentId,
+            session.selections.contentObjectId ?? null,
+          )
+        : createContentObjectTransformSpaceRootSession(
+            extractContentBreadcrumbLabels(session.breadcrumb, 2),
+            session.selections.graphDocumentId,
+            session.selections.contentObjectId ?? null,
+          )
+    return {
+      kind: 'advance',
+      session: nextSession,
+      submittedToken,
+      matchedChoice,
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      validChoices: nextSession.validChoices,
+      selections: nextSession.selections,
+      autoSelections: [],
+    }
+  }
+
+  if (session.scopeId === 'contentObjectTransformSpaceRoot') {
+    const spaceChoices = buildReferenceTransformSpaceChoices()
+    const matchedChoice =
+      spaceChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: spaceChoices },
+        submittedToken,
+        spaceChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createContentObjectTransformSettingsRootSession(
+        extractContentBreadcrumbLabels(session.breadcrumb, 3),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const actionIdByToken: Record<
+      string,
+      Extract<
+        ConsoleStagedNavigationExecuteResult['actionId'],
+        'content.transform.space.local' | 'content.transform.space.world'
+      >
+    > = {
+      LOCAL: 'content.transform.space.local',
+      WORLD: 'content.transform.space.world',
+    }
+    return {
+      kind: 'execute',
+      session: {
+        ...session,
+        validChoices: spaceChoices,
+      },
+      submittedToken,
+      matchedChoice,
+      actionId: actionIdByToken[matchedChoice.canonicalToken],
+      breadcrumb: [...session.breadcrumb, matchedChoice.label],
+      selections: session.selections,
+    }
+  }
+
+  if (session.scopeId === 'contentObjectTransformSnapRoot') {
+    const snapChoices = buildReferenceTransformSnapChoices()
+    const matchedChoice =
+      snapChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: snapChoices },
+        submittedToken,
+        snapChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createContentObjectTransformSettingsRootSession(
+        extractContentBreadcrumbLabels(session.breadcrumb, 3),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    const objectId = session.selections.contentObjectId ?? null
+    const nextSession =
+      objectId === null
+        ? null
+        : createContentObjectTransformSnapModeSessionByToken(
+            context,
+            matchedChoice.canonicalToken,
+            extractContentBreadcrumbLabels(session.breadcrumb, 3),
+            session.selections.graphDocumentId,
+            objectId,
+          )
+    if (nextSession === null) {
+      return createInvalidResult(
+        { ...session, validChoices: snapChoices },
+        submittedToken,
+        snapChoices,
+      )
+    }
+    return {
+      kind: 'advance',
+      session: nextSession,
+      submittedToken,
+      matchedChoice,
+      breadcrumb: nextSession.breadcrumb,
+      validChoices: nextSession.validChoices,
+      selections: nextSession.selections,
+      autoSelections: [],
+    }
+  }
+
+  if (
+    session.scopeId === 'contentObjectTransformMoveSnapRoot' ||
+    session.scopeId === 'contentObjectTransformRotateSnapRoot' ||
+    session.scopeId === 'contentObjectTransformScaleSnapRoot'
+  ) {
+    const mode = getContentObjectTransformSnapModeFromScopeId(session.scopeId) ?? 'translate'
+    const objectId = session.selections.contentObjectId ?? null
+    const modeChoices = buildReferenceTransformSnapModeChoices(
+      mode,
+      objectId === null ? true : isContentObjectTransformSnapModeLocked(context, objectId, mode),
+      objectId === null ? false : isContentObjectTransformSnapModeEnabled(context, objectId, mode),
+    )
+    const numericValue = parseReferenceTransformSnapValue(submittedToken)
+    if (numericValue !== null) {
+      const actionIdByMode: Record<
+        ReferenceTransformSnapMode,
+        Extract<
+          ConsoleStagedNavigationExecuteResult['actionId'],
+          | 'content.transform.snap.translate.value'
+          | 'content.transform.snap.rotate.value'
+          | 'content.transform.snap.scale.value'
+        >
+      > = {
+        translate: 'content.transform.snap.translate.value',
+        rotate: 'content.transform.snap.rotate.value',
+        scale: 'content.transform.snap.scale.value',
+      }
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: modeChoices },
+        submittedToken,
+        matchedChoice: {
+          canonicalToken: String(numericValue),
+          aliases: [],
+          label: String(numericValue),
+          kind: 'action',
+        },
+        actionId: actionIdByMode[mode],
+        breadcrumb: [...session.breadcrumb, String(numericValue)],
+        selections: session.selections,
+      }
+    }
+    const matchedChoice =
+      modeChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: modeChoices },
+        submittedToken,
+        modeChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      const nextSession = createContentObjectTransformSnapRootSession(
+        extractContentBreadcrumbLabels(session.breadcrumb, 4),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? null,
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+    if (
+      matchedChoice.canonicalToken === 'SNAPXYZ:LOCK' ||
+      matchedChoice.canonicalToken === 'SNAPXYZ:UNLOCK'
+    ) {
+      const actionIdByModeAndToken: Record<
+        ReferenceTransformSnapMode,
+        Record<
+          'SNAPXYZ:LOCK' | 'SNAPXYZ:UNLOCK',
+          Extract<
+            ConsoleStagedNavigationExecuteResult['actionId'],
+            | 'content.transform.snap.translate.lock'
+            | 'content.transform.snap.translate.unlock'
+            | 'content.transform.snap.rotate.lock'
+            | 'content.transform.snap.rotate.unlock'
+            | 'content.transform.snap.scale.lock'
+            | 'content.transform.snap.scale.unlock'
+          >
+        >
+      > = {
+        translate: {
+          'SNAPXYZ:LOCK': 'content.transform.snap.translate.lock',
+          'SNAPXYZ:UNLOCK': 'content.transform.snap.translate.unlock',
+        },
+        rotate: {
+          'SNAPXYZ:LOCK': 'content.transform.snap.rotate.lock',
+          'SNAPXYZ:UNLOCK': 'content.transform.snap.rotate.unlock',
+        },
+        scale: {
+          'SNAPXYZ:LOCK': 'content.transform.snap.scale.lock',
+          'SNAPXYZ:UNLOCK': 'content.transform.snap.scale.unlock',
+        },
+      }
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: modeChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: actionIdByModeAndToken[mode][matchedChoice.canonicalToken as 'SNAPXYZ:LOCK' | 'SNAPXYZ:UNLOCK'],
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === 'ON' || matchedChoice.canonicalToken === 'OFF') {
+      const actionIdByModeAndToken: Record<
+        ReferenceTransformSnapMode,
+        Record<
+          'ON' | 'OFF',
+          Extract<
+            ConsoleStagedNavigationExecuteResult['actionId'],
+            | 'content.transform.snap.translate.on'
+            | 'content.transform.snap.translate.off'
+            | 'content.transform.snap.rotate.on'
+            | 'content.transform.snap.rotate.off'
+            | 'content.transform.snap.scale.on'
+            | 'content.transform.snap.scale.off'
+          >
+        >
+      > = {
+        translate: {
+          ON: 'content.transform.snap.translate.on',
+          OFF: 'content.transform.snap.translate.off',
+        },
+        rotate: {
+          ON: 'content.transform.snap.rotate.on',
+          OFF: 'content.transform.snap.rotate.off',
+        },
+        scale: {
+          ON: 'content.transform.snap.scale.on',
+          OFF: 'content.transform.snap.scale.off',
+        },
+      }
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: modeChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: actionIdByModeAndToken[mode][matchedChoice.canonicalToken as 'ON' | 'OFF'],
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    const axisChoice = matchedChoice.label.match(/^[A-Z]$/) ? matchedChoice.label.toLowerCase() : null
+    if (axisChoice === 'x' || axisChoice === 'y' || axisChoice === 'z') {
+      const nextSession = createContentObjectTransformSnapAxisSession(
+        mode,
+        axisChoice,
+        extractContentBreadcrumbLabels(session.breadcrumb, 4),
+        session.selections.graphDocumentId,
+        session.selections.contentObjectId ?? '',
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice,
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+  }
+
+  if (
+    session.scopeId === 'contentObjectTransformMoveSnapXRoot' ||
+    session.scopeId === 'contentObjectTransformMoveSnapYRoot' ||
+    session.scopeId === 'contentObjectTransformMoveSnapZRoot' ||
+    session.scopeId === 'contentObjectTransformRotateSnapXRoot' ||
+    session.scopeId === 'contentObjectTransformRotateSnapYRoot' ||
+    session.scopeId === 'contentObjectTransformRotateSnapZRoot' ||
+    session.scopeId === 'contentObjectTransformScaleSnapXRoot' ||
+    session.scopeId === 'contentObjectTransformScaleSnapYRoot' ||
+    session.scopeId === 'contentObjectTransformScaleSnapZRoot'
+  ) {
+    const numericValue = parseReferenceTransformSnapValue(submittedToken)
+    if (numericValue !== null) {
+      const mode = getContentObjectTransformSnapModeFromScopeId(session.scopeId) ?? 'translate'
+      const axis = getContentObjectTransformSnapAxisFromScopeId(session.scopeId) ?? 'x'
+      const actionIdByModeAndAxis: Record<
+        ReferenceTransformSnapMode,
+        Record<
+          ReferenceTransformSnapAxis,
+          Extract<
+            ConsoleStagedNavigationExecuteResult['actionId'],
+            | 'content.transform.snap.translate.x.value'
+            | 'content.transform.snap.translate.y.value'
+            | 'content.transform.snap.translate.z.value'
+            | 'content.transform.snap.rotate.x.value'
+            | 'content.transform.snap.rotate.y.value'
+            | 'content.transform.snap.rotate.z.value'
+            | 'content.transform.snap.scale.x.value'
+            | 'content.transform.snap.scale.y.value'
+            | 'content.transform.snap.scale.z.value'
+          >
+        >
+      > = {
+        translate: {
+          x: 'content.transform.snap.translate.x.value',
+          y: 'content.transform.snap.translate.y.value',
+          z: 'content.transform.snap.translate.z.value',
+        },
+        rotate: {
+          x: 'content.transform.snap.rotate.x.value',
+          y: 'content.transform.snap.rotate.y.value',
+          z: 'content.transform.snap.rotate.z.value',
+        },
+        scale: {
+          x: 'content.transform.snap.scale.x.value',
+          y: 'content.transform.snap.scale.y.value',
+          z: 'content.transform.snap.scale.z.value',
+        },
+      }
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: [] },
+        submittedToken,
+        matchedChoice: {
+          canonicalToken: String(numericValue),
+          aliases: [],
+          label: String(numericValue),
+          kind: 'action',
+        },
+        actionId: actionIdByModeAndAxis[mode][axis],
+        breadcrumb: [...session.breadcrumb, String(numericValue)],
+        selections: session.selections,
+      }
+    }
+    if (normalizedToken === 'BACK' || normalizedToken === 'B') {
+      const mode = getContentObjectTransformSnapModeFromScopeId(session.scopeId) ?? 'translate'
+      const modeLabel = mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'
+      const activeObjectId = session.selections.contentObjectId ?? null
+      const nextSession = createContentObjectTransformModeSnapRootSession(
+        mode === 'translate'
+          ? 'contentObjectTransformMoveSnapRoot'
+          : mode === 'rotate'
+            ? 'contentObjectTransformRotateSnapRoot'
+            : 'contentObjectTransformScaleSnapRoot',
+        mode,
+        modeLabel,
+        extractContentBreadcrumbLabels(session.breadcrumb, 5),
+        session.selections.graphDocumentId,
+        activeObjectId,
+        activeObjectId === null
+          ? true
+          : isContentObjectTransformSnapModeLocked(context, activeObjectId, mode),
+        activeObjectId === null
+          ? false
+          : isContentObjectTransformSnapModeEnabled(context, activeObjectId, mode),
+      )
+      return {
+        kind: 'advance',
+        session: nextSession,
+        submittedToken,
+        matchedChoice: createBackChoice(),
+        breadcrumb: nextSession.breadcrumb,
+        validChoices: nextSession.validChoices,
+        selections: nextSession.selections,
+        autoSelections: [],
+      }
+    }
+  }
+
   if (session.scopeId === 'multiSelectSelected') {
     const multiSelectChoices = buildMultiSelectSelectedChoices()
     const matchedChoice =
@@ -3996,11 +4812,18 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
-      return createAdvanceResult(
-        createMultiSelectZoomRootSession(session.selections.multiSelectLabels ?? []),
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: multiSelectChoices,
+        },
         submittedToken,
         matchedChoice,
-      )
+        actionId: 'zoom.model.object',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
     }
     return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
   }
@@ -4323,17 +5146,18 @@ export const submitConsoleStagedNavigationToken = (
       return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
     }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
-      return createAdvanceResult(
-        createReferenceZoomRootSession(
-          session.breadcrumb.at(-1) ?? 'Reference',
-          session.selections.referenceId ?? '',
-          session.selections.referenceCanLoadModel ?? false,
-          session.selections.referenceCategoryId ?? null,
-          session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-2) ?? null) : null,
-        ),
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: referenceChoices,
+        },
         submittedToken,
         matchedChoice,
-      )
+        actionId: 'zoom.model.object',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
     }
     if (matchedChoice.canonicalToken === TRANSFORM_CHOICE.canonicalToken) {
       return createAdvanceResult(
@@ -4395,7 +5219,7 @@ export const submitConsoleStagedNavigationToken = (
 
   if (session.scopeId === 'referenceTransformRoot') {
     const transformChoices = buildReferenceTransformRootChoices(
-      hasCommittedEntriesInReferenceTransformShell(context, session.selections.referenceId ?? ''),
+      hasAnyCommittedEntriesInReferenceTransformHistory(context, session.selections.referenceId ?? ''),
     )
     if (normalizedToken === SPACE_CHOICE.canonicalToken || normalizedToken === 'SP') {
       const nextSession = createReferenceTransformSpaceRootSession(

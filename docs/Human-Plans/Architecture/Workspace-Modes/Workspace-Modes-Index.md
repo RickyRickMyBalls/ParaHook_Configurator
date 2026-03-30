@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+35. 2026-03-30 12:14: Cleaned up the workspace-family ladder after the shipped first `Workspace 5` slice by rewriting `Workspace 5` as an honest landed Browser-first child-window record with carried-forward residue, adding the new native `Workspace 5.1`, `Workspace 5.2`, and `Workspace 5.3` future phase docs under `Future/`, and promoting the editor pop-out plus multi-graph follow-on ladder into explicit next-phase entries instead of leaving that work buried inside one suggestion block
+34. 2026-03-30 11:31: Expanded the active `Workspace 5` next-task read with the two concrete follow-on needs that should shape the next implementation cut, locking that `Spaghetti Editor` needs a titlebar `Pop-Out` control in the docked-right window chrome and that multiple graphs open at once should be handled through multiple honest editor surface instances instead of the old single-active-editor replacement assumption
+33. 2026-03-30 10:56: Tightened the active `Workspace 5` next-task read by grounding it more explicitly in the shipped `ConsoleDock` child-window proof, locking the real extraction boundary around style-copy, portal-host, and close-handback behavior, and clarifying that the first safe implementation cut should generalize that contract into `src/app/workspace/` before bringing `Browser` onto the shared pop-out owner-transfer model
+32. 2026-03-30 10:18: Cleaned up the workspace-family ladder after the shipped first `Workspace 4` slice by marking the new last-layout persistence and startup hydration cut as landed with its remaining residue called out, then re-homed the old `[5.1E]` multi-window/browser-pop-out lane into a native `Workspace 5` future phase doc and tightened that new phase into the active next implementation step
+31. 2026-03-30 10:03: Cleaned up the workspace-family ladder after the shipped first `Workspace 3` slice by marking the new viewport-local host extraction as landed with its remaining residue called out, then re-homed the old persistence lane into a native `Workspace 4` future phase doc and tightened that new phase into the active next implementation step for last-layout persistence plus migration
+30. 2026-03-30 08:18: Cleaned up the workspace-family ladder after the shipped first `Workspace 2` slice by marking shared editor placement ownership plus the follow-on shell parity cleanups as landed residue-reduction work, then tightened `Workspace 3` into the active next implementation phase with locked viewport-chrome ownership answers, grounded code seams, and a clearer first-cut migration order for per-viewport chrome hosting
+29. 2026-03-30 07:37: Cleaned up the workspace-family ladder after the shipped `Workspace 1` first slice by marking the new shared shell-owner cut as landed with explicit residue left for follow-on work, tightening the umbrella `Workspace 2` section into the active next implementation phase, and fixing the stale `Workspace 2` / `Workspace 3` source-doc references so the family index now points at the native current planning surfaces instead of older mixed future-task wording
+28. 2026-03-30 06:36: Tightened the umbrella `Workspace 1` section into an implementation-ready read by marking its key questions answered, aligning those answers with the new native `Workspace 1` future spec, and clarifying that the first cut should extract shared workspace ownership out of `AppShell` plus `useSpaghettiStore` while preserving the current host adapters and `useAppStore` activation seam
+27. 2026-03-29 15:05: Expanded the `Workspace 1` section in this family index with the key open questions that still need explicit answers before implementation, so the umbrella workspace doc now surfaces the shared-owner, extracted-state, transition-adapter, viewer-anchor, and left-dock-entry decisions directly instead of leaving most of that question set buried only in the standalone future phase file
+26. 2026-03-29 15:03: Added the first native `Workspace 1`, `Workspace 2`, and `Workspace 3` standalone future phase docs under `Workspace-Modes/Future/`, re-homing the current open implementation ladder out of the mixed `05.1A` / `05.1C` task-doc references, and giving viewport-local chrome plus toolbar-host ownership its own explicit Workspace-family planning surface before later multi-viewport growth
 25. 2026-03-27 15:20: Added a short cleanup read after the completed `Workspace 0.1` audit, clarifying that the current shell behavior is valuable and largely salvageable but that workspace ownership is still spread across `AppShell`, `useAppStore`, `useSpaghettiStore`, and host-specific surfaces, so the family should preserve behavior while consolidating ownership during the next phases
 24. 2026-03-27 15:18: Re-shaped the workspace-family phase ladder after the completed `Workspace 0.1` code audit, marking the research phase done, moving the next open work toward shared workspace ownership and state extraction first, treating shipped `05.1B` as split-proof history rather than the next defining future phase, and pulling viewport-local chrome and toolbar-host ownership forward as its own explicit follow-on
 23. 2026-03-27 15:06: Added a native `Workspace 0.1` research phase to this family, creating a code-grounded pre-implementation audit step plus a new standalone future doc under `Workspace-Modes/Future/` so the workspace lane now has one explicit place to inventory the current `AppShell`, dock-host, store, viewport, and split-type seams before the later implementation phases are tightened
@@ -706,7 +716,8 @@ Practical read:
 - `2.1D` proved split presentation is useful
 - shipped code also proved that one surface can move between floating, split, and docked/minimized shell states
 - `[5.1F]` already established the shared active-surface and canonical-intent seam that workspace hosting should reuse
-- this doc defines the larger shell model that should now be implemented through the dedicated `[5.1A]`, shipped `[5.1B]`, `[5.1C]`, and `[5.1D]` task-doc family, with later multi-window editor follow-through planned as `[5.1E]`
+- shipped `Workspace 1` now gives the shell one real shared workspace-state seam for left-dock plus Browser shell ownership, while preserving the current host adapters and floating-shell behavior
+- the main remaining open work is no longer creating the first shared owner, but widening that owner through native `Workspace 2`, native `Workspace 3`, and later persistence plus multi-window follow-through
 - later `SP - Phase 13` should use that shared surface model for real multiple visible spaghetti-editor windows and later detached/new-browser editor placement instead of bypassing the workspace architecture with a second shell system
 
 ### Current Relationship To Task Docs
@@ -717,31 +728,32 @@ Current planning sources:
 - `Workspace 0.1`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
 - `Workspace 1`
-  - `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+  - currently acts as the canonical planning-plus-shipped-first-slice record until the family gains standalone shipped workspace records
 - `Workspace 2`
-  - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
   - reuses shipped split-proof behavior from `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
 - `Workspace 3`
-  - still needs a native future workspace doc
-  - currently grounded by the completed `Workspace 0.1` audit plus the `AppShell`, `ViewerHost`, and viewport-toolbar ownership seams
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
 - `Workspace 4`
-  - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+  - still mapped by the old task-doc lane today:
+    - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 - `Workspace 5`
   - current roadmap slot `[5.1E]`
 - `Workspace 6`
   - `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1F - Workspace Selection, Surface Activation, And Canonical Intents.md`
 
-This family should gradually gain its own native `Future/` and `Shipped/` records here as the workspace-specific planning gets re-homed out of the mixed task/doc surfaces.
+This family should continue gaining its own native `Future/` and `Shipped/` records here as the remaining workspace-specific planning gets re-homed out of the mixed task/doc surfaces.
 
 ### Execution Doc Family
 
 Use the dedicated workspace-family docs for implementation detail:
 
-- `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
-  - shared layout owner
-  - tile-tree model
-  - main viewer anchor
-  - left-dock `[]` entry behavior
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+  - shipped first extraction slice
+  - shared shell owner for left-dock plus Browser shell state
+  - preserved host adapters and shell-level floating parity
+  - records the residue that now rolls forward into `Workspace 2`
 
 - `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
   - first split entry
@@ -750,14 +762,21 @@ Use the dedicated workspace-family docs for implementation detail:
   - row/column priority
   - close/merge behavior
 
-- `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
-  - first hosted-surface set
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+  - remaining editor placement extraction
+  - first explicit hosted-surface identity model
+  - transitional adapters
   - pane header responsibilities
-  - clone-capable hosting
   - tiled/windowed transitions
-  - default hybrid arrangement
 
-- `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+  - viewport-local chrome ownership
+  - viewport toolbar host
+  - per-viewport `View`, `Gizmo`, and overlay ownership
+  - multi-viewport preparation through ownership cleanup first
+
+- current next task-doc lane still to re-home:
+  - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
   - persisted layout shape
   - later saved modes
   - migration from the old Spaghetti-only split path
@@ -786,11 +805,13 @@ Keep this file focused on:
 - ownership boundaries
 - the relationship between current shipped proof and long-range direction
 
-Push detailed implementation locks into the active `05.1A`, `05.1C`, and `05.1D` task docs, refer back to shipped `05.1B` for split-authoring rules that already landed, and reuse shipped `[5.1F]` for shared activation/intent seams. Later `05.1E` should extend that same family once the broader browser-pop-out follow-through gets its own execution doc.
+Push detailed implementation locks into the shipped-first-slice `Workspace 1` record, the active next-phase `Workspace 2` spec, native `Workspace 3`, and the remaining `05.1D` persistence task doc, refer back to shipped `05.1B` for split-authoring rules that already landed, and reuse shipped `[5.1F]` for shared activation/intent seams. Later `05.1E` should extend that same family once the broader browser-pop-out follow-through gets its own execution doc.
 
 Important rule:
 - `Workspace-Modes/Workspace-Modes-Index.md` is the umbrella architecture doc
-- the `05.1A`, `05.1C`, and `05.1D` files are the current open execution-planning docs
+- the `Workspace 1` record now doubles as the canonical shipped-first-slice note until the family gains standalone shipped records
+- native `Workspace 2` and native `Workspace 3` are the active current Workspace-family future specs
+- `05.1D` is still the remaining non-re-homed persistence task doc
 - `05.1B` is already landed split-authoring history inside the same family
 - `[5.1F]` is the shipped workspace-selection and canonical-intent seam the family should build on
 - later multi-window follow-through should extend that same family as `05.1E`, not start a disconnected shell track
@@ -838,10 +859,10 @@ Plain-English rule:
 
 ### Next Steps
 
-Expected next cleanup after adding the family structure:
+Expected next cleanup after the shipped `Workspace 1` first slice:
 
-1. create native `Workspace 1` through `Workspace 5` phase records under `Workspace-Modes/Future/` as the current task-doc planning gets re-homed into this family
-2. give viewport-local chrome and toolbar-host ownership its own native future doc before multi-viewport work starts
+1. implement native `Workspace 2` by moving the remaining editor placement and first hosted-surface identity truth onto the shared workspace seam without rewriting the current hosts
+2. re-home the remaining persistence and later multi-window follow-through docs into native `Workspace 4` and `Workspace 5` family records
 3. add shipped workspace-native records under `Workspace-Modes/Shipped/` when the family has enough direct landed history to justify them
 4. keep later multi-window/pop-out and shared activation/intent planning tied to this same family instead of letting shell ownership split again across unrelated docs
 
@@ -858,7 +879,7 @@ The right mental model is:
 - the shared `[5.1F]` activation and intent seams should stay true across windowed, tiled, and later popped-out surfaces
 - future collaboration-facing browser surfaces should reuse this same workspace host model rather than creating a separate shell path
 - the split system owns placement and layout, while each tool surface keeps its own feature ownership
-- the detailed implementation now lives across open `05.1A`, `05.1C`, and `05.1D`, shipped `05.1B`, and the already-landed shared-selection seam `[5.1F]`, with later multi-window editor growth planned as `[5.1E]`
+- the detailed implementation now lives across native `Workspace 1`, shipped `05.1B`, native `Workspace 2`, native `Workspace 3`, the remaining `05.1D` persistence task doc, and the already-landed shared-selection seam `[5.1F]`, with later multi-window editor growth planned as `[5.1E]`
 
 ## list of all workspaces
 
@@ -908,61 +929,217 @@ Audit result:
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
 
-### [ ] Workspace 1 - Shared Workspace Owner And State Extraction
+### [x] Workspace 1 - Shared Workspace Owner And State Extraction
 #### Header
-- create one honest workspace owner above the current editor-specific viewport state
-- extract shell-level placement truth out of the mixed `AppShell` and `useSpaghettiStore` setup
-- keep the left-dock `[]` split affordance as the first tiled-entry seam without letting that legacy path define the long-term owner
+- land the first honest shared workspace owner above the old shell-local state
+- extract left-dock plus Browser shell placement truth out of `AppShell`
+- preserve current host adapters while leaving the remaining editor placement extraction for `Workspace 2`
 
-#### [ ] Question 1 - Where should the first real shared workspace owner live?
+#### [x] Question 1 - Where should the first real shared workspace owner live?
 ##### Question 1 Suggestion
 - create a dedicated workspace seam under `src/app/workspace/`
 - keep it shell-owned near `AppShell`
 - move placement and presentation truth there first
 - do not bury the layout tree in `useSpaghettiStore`
 
-Current source doc:
-- `docs/Phase-Plans/Tasks/Future/05.1A - VR-SP - Workspace Layout Foundation And Left-Dock Entry.md`
+#### [x] Question 2 - What state should move into the shared workspace seam first?
+##### Question 2 Suggestion
+- move shell-level placement truth first:
+  - left-dock split and shell menu ownership
+  - Browser placement mode
+  - Browser floating rect memory
+  - first neutral workspace-shell types
+- keep feature-local state out:
+  - graph/editor authored data
+  - editor session behavior
+  - Browser feature logic
+  - Console feature logic
+  - shared viewer scene/content truth
 
-### [ ] Workspace 2 - First Hosted Surface Migration And Transitional Adapters
+#### [x] Question 3 - What should stay as transition adapters during `Workspace 1`?
+##### Question 3 Suggestion
+- keep `BrowserDockHost` and `SpaghettiWindowHost` as transition adapters
+- preserve the current renderers and shell proofs while ownership moves upward
+- do not rewrite every floating, docked, and split path in the same phase
+
+#### [x] Question 4 - What must stay protected in the first shared workspace layout?
+##### Question 4 Suggestion
+- keep one protected main `Model Viewer` region alive
+- do not let `Workspace 1` accidentally remove the last honest viewer region
+- allow later additional viewers only after the shared owner and viewport-local chrome seams are honest
+
+#### [x] Question 5 - How should the current left-dock split entry behave during extraction?
+##### Question 5 Suggestion
+- keep the existing left-dock `[]` split affordance as the first visible tiled-entry seam
+- route that behavior through the shared workspace owner
+- do not let the current grouped left-dock proof harden into the permanent final pane model
+
+Shipped read:
+- the shared workspace shell seam now lives under `src/app/workspace/`
+- left-dock width, split state, split-menu state, Browser floating state, and Browser floating geometry are no longer shell-local `AppShell` state
+- floating Browser and floating `Spaghetti Editor` now both behave like shell-level floating surfaces across the split boundary
+- editor viewport placement and split ownership still remain the main residue that rolls into `Workspace 2`
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+
+### [x] Workspace 2 - First Hosted Surface Migration And Transitional Adapters
 #### Header
-- migrate the first honest surface set onto the shared workspace owner without rewriting every renderer at once
+- move the remaining editor placement and first hosted-surface identity truth onto the shared workspace owner
 - keep `BrowserDockHost` and `SpaghettiWindowHost` as transition adapters while ownership moves upward
 - reuse shipped split proof from `05.1B` instead of pretending divider behavior is still the main open architectural question
 
-#### [ ] Question 1 - What should the first honest hosted surface migration look like?
+#### [x] Question 1 - What should the first honest hosted surface migration look like?
 ##### Question 1 Suggestion
 - start with `Model Viewport`, `Browser`, `Console`, and `Spaghetti Editor`
 - preserve the current floating/docked host components as adapters during migration
 - reuse shipped split-authoring behavior from `05.1B` instead of re-planning it as the main next step
 
+Locked answer:
+- `Workspace 2` should migrate the first honest hosted surface set:
+  - `Model Viewport`
+  - `Browser`
+  - `Console`
+  - `Spaghetti Editor`
+- the shared workspace seam should own their placement identity and placement transitions
+- the current host components should survive as adapters while that ownership moves upward
+
+#### [x] Question 2 - What residue from shipped `Workspace 1` must move first in `Workspace 2`?
+##### Question 2 Suggestion
+- move editor viewport placement and split ownership out of `useSpaghettiStore`
+- keep editor session and authored graph data feature-local
+- make the shared workspace seam the owner of placement mode, floating rect memory, and tiled assignment truth for the first hosted surfaces
+
+Locked answer:
+- move editor viewport placement and split ownership out of `useSpaghettiStore` first
+- keep editor session behavior and authored graph data feature-local
+- make the shared workspace seam the owner of:
+  - placement mode
+  - floating rect memory
+  - tiled assignment truth
+  - first hosted-surface instance identity
+
+#### [x] Question 3 - What should stay adapter-based during `Workspace 2`?
+##### Question 3 Suggestion
+- keep `BrowserDockHost` and `SpaghettiWindowHost`
+- let them render current shell proofs while the shared workspace seam takes over more placement identity and transition truth
+- do not rewrite floating shells and pane renderers in the same phase
+
+Locked answer:
+- keep `BrowserDockHost`
+- keep `SpaghettiWindowHost`
+- preserve the current floating, docked, and split renderers as adapters while the shared workspace seam takes over ownership
+- do not rewrite pane renderers and floating shells in the same phase
+
+#### [x] Question 4 - What should still stay out of scope after `Workspace 2`?
+##### Question 4 Suggestion
+- leave viewport-local chrome and toolbar-host ownership to `Workspace 3`
+- leave persistence and saved layout work to `Workspace 4`
+- leave detached browser windows and true multi-window surface growth to `Workspace 5`
+
+Locked answer:
+- leave viewport-local chrome and toolbar-host ownership to `Workspace 3`
+- leave persistence and saved layout work to `Workspace 4`
+- leave detached browser windows and true multi-window surface growth to `Workspace 5`
+- keep `Workspace 2` focused on placement ownership and first hosted-surface identity, not later shell expansion
+
+Shipped read:
+- the shared workspace seam now owns editor placement records instead of leaving that truth only in `useSpaghettiStore`
+- floating `Spaghetti Editor` now shares shell-space drag behavior with Browser and can detach back out of split view with a normal titlebar drag
+- the bottom split ghost now previews the true full viewport landing width instead of carrying the stale left-dock offset
+- `BrowserDockHost` and `SpaghettiWindowHost` still survive as transition adapters, which means the next honest residue is viewport-local chrome still mounting too globally from `AppShell`
+
 Current source doc:
-- `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+- historical grounding:
+  - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
 - shipped proof to reuse: `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
 
-### [ ] Workspace 3 - Viewport-Local Chrome And Toolbar Host
+### [x] Workspace 3 - Viewport-Local Chrome And Toolbar Host
 #### Header
 - define one viewport-instance ownership seam for `View`, `Gizmo`, `ViewportOverlay`, and later command toolbars
 - stop treating viewport chrome as app-global if later multiple `Model Viewport` instances are expected
 - give spawned viewport tools such as `Transform` and `Sketch` a real viewport-local toolbar host instead of relying on global overlay mounting
 
-#### [ ] Question 1 - What needs to become viewport-owned before later multiple `Model Viewport` instances are believable?
+#### [x] Question 1 - What needs to become viewport-owned before later multiple `Model Viewport` instances are believable?
 ##### Question 1 Suggestion
 - move `View`, `Gizmo`, and related viewport chrome out of global shell mounting
 - let each `Model Viewport` instance own its own local toolbar host
 - keep behavior seams in `ViewerHost`, but stop making viewport chrome global in `AppShell`
 
-Current source doc:
-- native future workspace doc still needed
-- current grounding comes from completed `Workspace 0.1` audit plus the `AppShell` and `ViewerHost` seams
+Locked answer:
+- move `ViewToolbar` and `ViewportOverlay` behind one viewport-local chrome host first
+- keep `ViewerHost` as the protected first hosted `Model Viewport` renderer
+- make the viewport chrome host the owner of:
+  - `View`
+  - `Gizmo`
+  - axis widget / overlay chrome
+  - sketch and transform overlay-tool mounting
+- stop mounting those surfaces globally from `AppShell`
 
-### [ ] Workspace 4 - Persistence, Saved Modes, And Migration
+#### [x] Question 2 - Where should the first viewport-local chrome owner live?
+##### Question 2 Suggestion
+- create one viewport-surface seam under `src/app/workspace/`
+- key that chrome host by hosted `Model Viewport` surface identity
+- keep `AppShell` as orchestration only
+
+Locked answer:
+- the first viewport-local chrome owner should live under `src/app/workspace/`
+- it should hang off hosted `Model Viewport` surface identity instead of ad-hoc global shell refs
+- `AppShell` should stop directly mounting `ViewToolbar` and `ViewportOverlay` once the viewport host exists
+
+#### [x] Question 3 - What should stay shared even after chrome moves local?
+##### Question 3 Suggestion
+- keep scene, content, selection, transforms, and activation shared
+- keep the current viewer runtime singleton if that is what the live code still uses
+- change chrome ownership before changing deeper viewer-runtime architecture
+
+Locked answer:
+- keep scene/content truth shared
+- keep selection and activation shared through the existing app/workspace seams
+- keep the current viewer runtime singleton for this phase if needed
+- do not turn `Workspace 3` into a multi-viewer-runtime rewrite
+
+#### [x] Question 4 - What should stay adapter-based during the first cut?
+##### Question 4 Suggestion
+- keep `ViewerHost`, `ViewToolbar`, and `ViewportOverlay` as renderers
+- add a viewport-local host/composition seam around them
+- do not rewrite all sketch/transform overlay feature logic in the same pass
+
+Locked answer:
+- keep `ViewerHost`
+- keep `ViewToolbar`
+- keep `ViewportOverlay`
+- keep `ViewportOverlayToolPanel`
+- introduce one viewport-local host/composition seam around those existing renderers instead of rewriting their internal feature behavior
+
+#### [x] Question 5 - What should still stay out of scope after `Workspace 3`?
+##### Question 5 Suggestion
+- leave persistence and saved layouts to `Workspace 4`
+- leave detached browser windows and multi-window surface growth to `Workspace 5`
+- leave true multiple independent viewer runtimes out of this phase
+
+Locked answer:
+- leave persistence and saved layout work to `Workspace 4`
+- leave detached browser-window hosting and multi-window surface growth to `Workspace 5`
+- leave true multiple independent viewer runtimes out of scope
+- keep `Workspace 3` focused on ownership and mounting cleanup for viewport-local chrome
+
+Shipped read:
+- the protected first `Model Viewport` now has one viewport-local host seam under `src/app/workspace/`
+- `AppShell` no longer mounts `ViewToolbar` globally and now composes the viewer, overlay, and `View` toolbar through that protected viewport host
+- viewport-local chrome now has a real shared-owner identity seam, while deeper `ViewToolbar` enrichment and persistence still remain follow-on work
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+
+### [x] Workspace 4 - Persistence, Saved Modes, And Migration
 #### Header
 - remember one honest hybrid workspace state
 - give saved layouts a later home without forcing them into the first cut
 - define the migration path off the old special-case Spaghetti split/meatball shell
 
-#### [ ] Question 1 - What should the first persisted workspace state actually remember?
+#### [x] Question 1 - What should the first persisted workspace state actually remember?
 ##### Question 1 Suggestion
 - remember the tiled split tree
 - remember floating/windowed placements
@@ -970,23 +1147,194 @@ Current source doc:
 - remember viewport-local chrome ownership state where that affects layout and spawned toolbar hosting
 - leave named saved modes as a later follow-on
 
-Current source doc:
-- `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+Locked answer:
+- first-pass persistence should remember:
+  - left-dock shell state
+  - Browser shell placement state
+  - hosted-surface placement records
+  - protected viewport host records where layout ownership depends on them
+  - active surface or pane identity where restore feel depends on it
+- first-pass persistence should not require named saved-layout libraries or project-authored workspace content
 
-### [ ] Workspace 5 - Multi-Window Surfaces And Detached Browser Pop-Out
+#### [x] Question 2 - Where should workspace persistence live?
+##### Question 2 Suggestion
+- treat it as user/workspace preference state
+- persist the shared workspace seam instead of feature-local compatibility mirrors
+- align with the same preference-layer direction already used for other app-level UI state
+
+Locked answer:
+- workspace persistence should live as user/workspace preference state
+- the canonical snapshot shape should live under `src/app/workspace/`
+- persistence should restore the shared workspace seam, not revive `useSpaghettiStore` as the long-term layout owner
+
+#### [x] Question 3 - How should named saved layouts fit the first persistence pass?
+##### Question 3 Suggestion
+- persist only the last layout first
+- add named saved layouts later on top of the same snapshot format
+- avoid creating a second competing persistence model
+
+Locked answer:
+- first pass persists only the last layout
+- named saved layouts are the later extension of the same persisted snapshot shape
+- do not split last-layout persistence and saved-layout persistence into two divergent models
+
+#### [x] Question 4 - What migration boundary should `Workspace 4` define?
+##### Question 4 Suggestion
+- older special-case split/meatball restore assumptions should become migration sources only
+- compatibility mirrors may survive temporarily, but should not remain the persistence owner
+- restore should flow through the shared workspace seam
+
+Locked answer:
+- the older Spaghetti split/meatball restore assumptions should be treated as migration sources only
+- restore should flow through the shared workspace seam
+- compatibility mirrors in `useSpaghettiStore` may survive temporarily, but should not remain the persistence owner
+
+#### [x] Question 5 - What should still stay out of scope after `Workspace 4`?
+##### Question 5 Suggestion
+- leave browser pop-out persistence and multi-window surface libraries to `Workspace 5`
+- leave project-authored workspace content out of this phase
+- keep named saved-layout UI as a later extension after last-layout persistence is stable
+
+Locked answer:
+- leave browser pop-out persistence and multi-window surface libraries to `Workspace 5`
+- leave project-authored workspace content out of scope
+- keep named saved-layout UI as a later extension after last-layout persistence is stable
+
+Shipped read:
+- the shared workspace seam now has one canonical last-layout snapshot shape under `src/app/workspace/`
+- startup hydrates that shared workspace snapshot and writes layout changes back out automatically
+- `useSpaghettiStore` is no longer the long-term persistence owner, even though it still survives as a compatibility/session adapter
+- named saved-layout UI and child-window persistence remain the main follow-on residue
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
+- historical grounding:
+  - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+
+### [x] Workspace 5 - Multi-Window Surfaces And Detached Browser Pop-Out
 #### Header
 - widen the family from one visible editor/surface truth into real multi-window hosting where needed
 - keep browser `Pop-Out` attached to the same shared surface-instance model
 - preserve single-owner behavior when a surface moves into a browser window
 
-#### [ ] Question 1 - How should browser `Pop-Out` relate to the shared workspace host model?
+#### [x] Question 1 - How should browser `Pop-Out` relate to the shared workspace host model?
 ##### Question 1 Suggestion
 - treat `Pop-Out` as another placement mode of the same hosted surface instance
 - collapse the in-app owner when the browser window becomes active
 - do not invent a separate detached-window shell system
 
+Locked answer:
+- browser-window `Pop-Out` should be another placement mode of the same hosted surface instance
+- the child window should become the active owner
+- the in-app host should collapse instead of remaining as a duplicate interactive owner
+
+#### [x] Question 2 - What should be the first widened surface set?
+##### Question 2 Suggestion
+- use shipped `Console` pop-out as the first proof
+- bring `Browser` into the generalized child-window model first
+- treat detached spaghetti/editor browser-window hosting as the next follow-on after the shared owner-transfer seam is stable
+
+Locked answer:
+- reuse `Console` as the shipped browser-window proof
+- bring `Browser` into the first generalized child-window host model
+- leave detached editor/browser-window hosting as the next honest follow-on once the generalized owner-transfer seam exists
+
+#### [x] Question 3 - What should stay shared across in-app and child-window hosting?
+##### Question 3 Suggestion
+- keep one shared `activeSurface` model
+- keep one shared cross-surface intent layer
+- keep one shared hosted surface identity and project/content truth
+
+Locked answer:
+- keep one shared `activeSurface` model
+- keep one shared cross-surface intent layer
+- keep one shared hosted surface identity
+- keep one shared project/content/selection truth
+
+#### [x] Question 4 - What should stay adapter-based during the first cut?
+##### Question 4 Suggestion
+- keep `ConsoleDock` as the live proof
+- keep `BrowserDockHost`
+- keep `SpaghettiWindowHost`
+- generalize owner-transfer rules around those renderers instead of rewriting them all
+
+Locked answer:
+- keep `ConsoleDock` as the child-window proof
+- keep `BrowserDockHost`
+- keep `SpaghettiWindowHost`
+- add the generalized browser-window ownership model around those renderers instead of rewriting every host in one phase
+
+#### [x] Question 5 - What should still stay out of scope after `Workspace 5`?
+##### Question 5 Suggestion
+- leave independent viewer runtimes out of scope
+- leave collaboration/session transport layers out of scope
+- leave generic native desktop window abstraction out of scope
+
+Locked answer:
+- leave separate independent viewer runtimes out of scope
+- leave collaboration/session transport layers out of scope
+- leave generic native desktop window abstraction out of scope
+- keep `Workspace 5` focused on browser-window owner transfer inside the existing shared workspace model
+
+Shipped read:
+- the workspace family now has one shared child-window host contract under `src/app/workspace/`
+- `ConsoleDock` and `BrowserDockHost` both ride that shared child-window owner-transfer rule
+- Browser now has true browser-window pop-out owner transfer instead of only an in-app docked versus floating proof
+- Browser viewport split behavior now also matches the new edge-driven split-docking feel already landed for spaghetti
+- editor child-window hosting and multiple-open-graph truth remain the main residue that rolls into the next `Workspace 5.x` follow-ons
+
 Current source doc:
-- roadmap slot `[5.1E]`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
+- historical grounding:
+  - roadmap slot `[5.1E]`
+
+### [ ] Workspace 5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore
+#### Header
+- give `Spaghetti Editor` a real visible `Pop-Out` button in the titlebar controls
+- reuse the already-shipped shared child-window owner-transfer contract from `Console` and `Browser`
+- make dock-back restore return the editor to the correct in-app split, floating, or meatball target instead of inventing a separate detached-editor shell
+
+#### Locked implementation read
+- `Workspace 5.1` should adopt the already-landed shared child-window contract instead of inventing editor-only pop-out plumbing
+- `separateWindow` should become an honest workspace-owned editor placement state with an explicit dock-back restore target
+- the first cut should stay single-editor-surface-safe and leave multiple-open-graph work for `Workspace 5.2` and `Workspace 5.3`
+
+#### Active next-task read
+- `Workspace 5.1` should be the editor adoption phase of the already-landed shared child-window host seam
+- the first cut should add editor pop-out placement truth plus dock-back restore targets under `src/app/workspace/`
+- `SpaghettiWindowHost` should render the same editor surface instance in-app or in the child window, not two live interactive copies
+- docking back or closing the child window should restore the editor to the last honest in-app placement target
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
+
+### [ ] Workspace 5.2 - Multiple Editor Surface Instances And Graph Binding
+#### Header
+- stop treating one visible editor shell as the only honest graph surface
+- create explicit editor surface instances that each bind to one graph document id
+- widen the shared workspace seam so several graph editors can remain alive at once without replacing one another
+
+#### Forward read
+- `Workspace 5.2` should introduce explicit editor surface instance identity separate from graph authored data
+- each editor surface instance should bind to one graph document id and carry its own placement record
+- `useSpaghettiStore` should keep graph/session authored truth while `src/app/workspace/` owns the visible editor surface instance set and their placement
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+
+### [ ] Workspace 5.3 - Open Editors Multi-Graph Workspace UX And Session Truth
+#### Header
+- turn the new multiple-editor-surface foundation into a user-facing multi-graph workspace flow
+- make `Open Editors` the honest launcher, switcher, and closer for live graph surfaces
+- keep opening another graph additive by default instead of replacing the only visible editor shell
+
+#### Forward read
+- `Workspace 5.3` should point `Open Editors` at the live editor surface instance list
+- opening a graph should focus it if it is already open and create a new editor surface if it is not
+- close behavior should operate on one editor surface instance at a time with sensible focus fallback
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
 
 ### [x] Workspace 6 - Workspace Selection, Surface Activation, And Canonical Intents
 #### Header

@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useRef, useState } from 'react'
 import { SpaghettiWindowHost } from './SpaghettiWindowHost'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -64,6 +65,7 @@ const viewport = (windowMode: string) => ({
   size: { width: 800, height: 600 },
   splitRatio: 0.6,
   splitDirection: 'horizontal',
+  splitDockSide: 'bottom',
   splitPriority: 'balanced',
   restoreFromCollapsed: null,
   restoreFromSplit: null,
@@ -112,6 +114,7 @@ const mockElementSize = (
 }
 
 function SpaghettiWindowHostHarness() {
+  const appShellRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
   const dockedMeatballHostRef = useRef<HTMLDivElement | null>(null)
   const leftDockWidthPreviewHandlerRef = useRef<((nextWidth: number) => void) | null>(null)
@@ -139,36 +142,39 @@ function SpaghettiWindowHostHarness() {
   }
 
   return (
-    <section ref={viewportRef} className="ViewportArea">
-      <div
-        ref={dockedMeatballHostRef}
-        className={`LeftDockPanelTarget LeftDockPanelTarget--meatball-editor ${
-          activePreviewPanelId === 'meatball-editor' ? 'isPreviewActive' : ''
-        }`}
-      />
-      <SpaghettiWindowHost
-        viewportRef={viewportRef}
-        dockedMeatballHostRef={dockedMeatballHostRef}
-        leftDockWidth={320}
-        isLeftDockViewportSplit={false}
-        activeLeftDockPreviewPanelId={activePreviewPanelId}
-        setActiveLeftDockPreviewPanelId={setActivePreviewPanelId}
-        resolveLeftDockPreviewPanelId={resolveLeftDockPreviewPanelId}
-        viewerSurface={
-          <>
-            <div className="ViewportViewerSurface">Viewer Host</div>
-            <div>Viewport Overlay</div>
-          </>
-        }
-        workspaceActiveSurface={null}
-        onActivateSpaghettiSurface={() => {}}
-        onActivateSpaghettiFloatingWindow={() => {}}
-        onOpenFloatingSplitMenu={() => {}}
-        onOpenDividerSplitMenu={() => {}}
-        onResetSplitRatio={mockOnResetSplitRatio}
-        leftDockWidthPreviewHandlerRef={leftDockWidthPreviewHandlerRef}
-      />
-    </section>
+    <div ref={appShellRef} className="AppShellRoot">
+      <section ref={viewportRef} className="ViewportArea">
+        <div
+          ref={dockedMeatballHostRef}
+          className={`LeftDockPanelTarget LeftDockPanelTarget--meatball-editor ${
+            activePreviewPanelId === 'meatball-editor' ? 'isPreviewActive' : ''
+          }`}
+        />
+        <SpaghettiWindowHost
+          appShellRef={appShellRef}
+          viewportRef={viewportRef}
+          dockedMeatballHostRef={dockedMeatballHostRef}
+          leftDockWidth={320}
+          isLeftDockViewportSplit={false}
+          activeLeftDockPreviewPanelId={activePreviewPanelId}
+          setActiveLeftDockPreviewPanelId={setActivePreviewPanelId}
+          resolveLeftDockPreviewPanelId={resolveLeftDockPreviewPanelId}
+          viewerSurface={
+            <>
+              <div className="ViewportViewerSurface">Viewer Host</div>
+              <div>Viewport Overlay</div>
+            </>
+          }
+          workspaceActiveSurface={null}
+          onActivateSpaghettiSurface={() => {}}
+          onActivateSpaghettiFloatingWindow={() => {}}
+          onOpenFloatingSplitMenu={() => {}}
+          onOpenDividerSplitMenu={() => {}}
+          onResetSplitRatio={mockOnResetSplitRatio}
+          leftDockWidthPreviewHandlerRef={leftDockWidthPreviewHandlerRef}
+        />
+      </section>
+    </div>
   )
 }
 
@@ -192,6 +198,16 @@ describe('SpaghettiWindowHost', () => {
   }
 
   const mockGeometry = () => {
+    mockRect(container?.querySelector('.AppShellRoot'), {
+      left: 0,
+      top: 0,
+      width: 1440,
+      height: 900,
+    })
+    mockElementSize(container?.querySelector('.AppShellRoot'), {
+      width: 1440,
+      height: 900,
+    })
     mockRect(container?.querySelector('.ViewportArea'), {
       left: 320,
       top: 0,
@@ -211,6 +227,7 @@ describe('SpaghettiWindowHost', () => {
   }
 
   beforeEach(() => {
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     mockRequestGraphDocumentBuild.mockClear()
     mockOnResetSplitRatio.mockClear()
     currentSpaghettiState = {
@@ -261,6 +278,18 @@ describe('SpaghettiWindowHost', () => {
         },
       ),
       setEditorViewportSplitRatio: vi.fn(),
+      setEditorViewportSplitDockSide: vi.fn((editorViewportId: string, splitDockSide: string) => {
+        const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+        if (currentViewport === undefined) {
+          return
+        }
+        currentSpaghettiState.editorViewportsById[editorViewportId] = {
+          ...currentViewport,
+          splitDockSide,
+          splitDirection:
+            splitDockSide === 'left' || splitDockSide === 'right' ? 'vertical' : 'horizontal',
+        }
+      }),
       setEditorViewportPosition: vi.fn((editorViewportId: string, position: { x: number; y: number }) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
         if (currentViewport === undefined) {
@@ -362,6 +391,63 @@ describe('SpaghettiWindowHost', () => {
     )
   })
 
+  it('dragging the split titlebar detaches back to the floating editor without ctrl', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
+
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiSplitWindow .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 470,
+      width: 320,
+      height: 48,
+    })
+
+    const splitTitleBar = container?.querySelector(
+      '.SpaghettiSplitWindow .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      splitTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 490,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 560,
+          clientY: 530,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 560,
+          clientY: 530,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      expect.objectContaining({
+        x: expect.any(Number),
+        y: expect.any(Number),
+      }),
+    )
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'expanded',
+    )
+  })
+
   it('shows a bottom split ghost and re-enters split view when the floating editor is dropped at the bottom edge', async () => {
     await renderHarness()
     mockGeometry()
@@ -396,7 +482,7 @@ describe('SpaghettiWindowHost', () => {
       )
     })
 
-    expect(container?.querySelector('.ViewportBottomSplitDockGhost')).not.toBeNull()
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockBottom')).not.toBeNull()
 
     await act(async () => {
       window.dispatchEvent(
@@ -412,6 +498,124 @@ describe('SpaghettiWindowHost', () => {
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
       'split view',
+    )
+    expect(currentSpaghettiState.setEditorViewportSplitDockSide).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'bottom',
+    )
+  })
+
+  it('uses right-edge drag to re-enter split view as a right-side vertical dock', async () => {
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 60,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1432,
+          clientY: 360,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockRight')).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1432,
+          clientY: 360,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSplitDockSide).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'right',
+    )
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'split view',
+    )
+  })
+
+  it('lets a bottom drag override an older vertical split side when re-entering split view', async () => {
+    currentSpaghettiState.editorViewportsById['editor-viewport-1'] = {
+      ...viewport('expanded'),
+      splitDirection: 'vertical',
+      splitDockSide: 'right',
+    }
+
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 60,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 560,
+          clientY: 872,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 560,
+          clientY: 872,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSplitDockSide).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'bottom',
+    )
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.splitDirection).toBe(
+      'horizontal',
     )
   })
 

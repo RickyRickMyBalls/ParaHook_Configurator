@@ -4,6 +4,7 @@ import {
   activateGraphNodeIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
+import { getViewer } from '../viewerBridge'
 import {
   clearWorkspaceTargetSelection,
   commitWorkspaceExplicitSelection,
@@ -399,9 +400,25 @@ export const createBrowserRowInteractionHandlers = (
       })
       return
     }
+    if (row.rowKind === 'object') {
+      const viewer = getViewer()
+      if (viewer === null) {
+        return
+      }
+      const partKeys = [...new Set(row.visibilityPartKeys.filter((partKey) => partKey.length > 0))]
+      if (partKeys.length === 0 && typeof row.highlightViewerKey === 'string' && row.highlightViewerKey.length > 0) {
+        partKeys.push(row.highlightViewerKey)
+      }
+      const referenceIds =
+        typeof row.referenceId === 'string' && row.referenceId.length > 0 ? [row.referenceId] : []
+      if (partKeys.length === 0 && referenceIds.length === 0) {
+        return
+      }
+      viewer.frameSelectionSet(partKeys, referenceIds)
+      return
+    }
     if (
       row.rowKind !== 'component' &&
-      row.rowKind !== 'object' &&
       row.rowKind !== 'sketch' &&
       row.rowKind !== 'graph-rebuild-object' &&
       row.rowKind !== 'graph-node'
@@ -517,7 +534,12 @@ export const createBrowserRowInteractionHandlers = (
   }
 
   const handleToggleContentVisibility = (row: BrowserRenderableRowVm) => {
-    if (row.rowKind !== 'assembly' && row.rowKind !== 'component' && row.rowKind !== 'object') {
+    if (
+      row.rowKind !== 'assembly' &&
+      row.rowKind !== 'component' &&
+      row.rowKind !== 'object' &&
+      row.rowKind !== 'part'
+    ) {
       return
     }
     if (row.visibilityPartKeys.length === 0) {

@@ -115,15 +115,13 @@ Focus:
 - keep the current honest shared `before` / `after` / `into` drag grammar
 - remove the current friction where a move into `Assembly 1` works only when the user drops directly on the owner row first and then reorders afterward
 
-Future phase doc:
-- `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
+Shipped phase doc:
+- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
 
-Locked direction:
-- if a cross-parent drag is visibly targeting a legal child slot inside `Assembly 1` or another legal owner, the first drop should land there directly
-- do not require an initial owner-row `into` drop as a separate first step before later reorder
-- keep the shared Browser drag language honest instead of inventing a special first-placement grammar
-- implementation-ready note:
-  the current Browser already knows how to display a cross-parent landing slot, but the shared drop contract still only permits `before` / `after` for same-parent reorder and therefore commits those moves as plain owner `into`; `11.5` should close that preview-versus-commit gap without redesigning the owner model
+Shipped result:
+- hovering a concrete child slot inside `Assembly 1` or another legal owner now lets that first cross-parent drop land directly beside the visible anchor row
+- the Browser no longer requires `drop into owner first, then reorder` when the user is already targeting a visible child slot
+- plain owner-row hover still stays honest as `into`, so this pass improved first-drop slot parity without giving owner-row hover a second meaning
 
 ## First-Pass Direction
 

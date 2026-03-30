@@ -3,7 +3,8 @@ import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
   setViewer,
   type GeometrySketchOverlayVm,
-  type ReferenceTransformHistoryOverlayVm,
+  type ViewerTransformHistoryOverlayVm,
+  type ViewerTransformTarget,
   type ReferenceTransformHistoryVec3Vm,
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
@@ -15,6 +16,9 @@ import {
   getReferenceTransformHistoryEntriesThroughScrubIndex,
   resolveReferenceRuntimeTraits,
   resolveReferenceIdsForWorkspaceTarget,
+  selectActiveViewerTransformHistoryEntries,
+  selectActiveViewerTransformSession,
+  selectActiveViewerTransformTarget,
   selectCurrentProjectContentBrowserRows,
   type ReferenceTransformHistoryEntry,
   selectShouldSuppressBrowserGraphRuntimeOutput,
@@ -106,17 +110,17 @@ const buildReferenceTransformIdentity = () => ({
   scale: { x: 1, y: 1, z: 1 },
 })
 
-const buildReferenceTransformHistoryOverlayVm = (
-  referenceId: string,
+const buildViewerTransformHistoryOverlayVm = (
+  target: ViewerTransformTarget,
   entries: readonly ReferenceTransformHistoryEntry[],
-): ReferenceTransformHistoryOverlayVm | null => {
+): ViewerTransformHistoryOverlayVm | null => {
   if (entries.length === 0) {
     return null
   }
 
   const movePoints: ReferenceTransformHistoryVec3Vm[] = [{ x: 0, y: 0, z: 0 }]
-  const rotateEntries: ReferenceTransformHistoryOverlayVm['rotateEntries'] = []
-  const scaleEntries: ReferenceTransformHistoryOverlayVm['scaleEntries'] = []
+  const rotateEntries: ViewerTransformHistoryOverlayVm['rotateEntries'] = []
+  const scaleEntries: ViewerTransformHistoryOverlayVm['scaleEntries'] = []
 
   entries.forEach((entry, index) => {
     const previousTransform =
@@ -146,7 +150,7 @@ const buildReferenceTransformHistoryOverlayVm = (
   })
 
   return {
-    referenceId,
+    target,
     movePoints,
     rotateEntries,
     scaleEntries,
@@ -602,30 +606,19 @@ export function ViewerHost() {
   ])
   const [timelineNowMs, setTimelineNowMs] = useState(() => performance.now())
   const previousReferenceIdsRef = useRef<string[]>([])
-  const activeReferenceTransformSession = useMemo(
-    () =>
-      referenceWorkspace.activeReferenceTransformSession === null
-        ? null
-        : {
-            referenceId: referenceWorkspace.activeReferenceTransformSession.referenceId,
-            mode: referenceWorkspace.activeReferenceTransformSession.mode,
-            space: referenceWorkspace.activeReferenceTransformSession.space,
-            entryOrigin: referenceWorkspace.activeReferenceTransformSession.entryOrigin,
-          },
-    [referenceWorkspace.activeReferenceTransformSession],
-  )
-  const activeContentObjectTransformSession = useMemo(
-    () =>
-      referenceWorkspace.activeContentObjectTransformSession === null
-        ? null
-        : {
-            objectId: referenceWorkspace.activeContentObjectTransformSession.objectId,
-            mode: referenceWorkspace.activeContentObjectTransformSession.mode,
-            space: referenceWorkspace.activeContentObjectTransformSession.space,
-            entryOrigin: referenceWorkspace.activeContentObjectTransformSession.entryOrigin,
-          },
-    [referenceWorkspace.activeContentObjectTransformSession],
-  )
+  const activeViewerTransformSession = useMemo(() => {
+    const activeSession = selectActiveViewerTransformSession(referenceWorkspace)
+    if (activeSession === null) {
+      return null
+    }
+    return {
+      targetKind: activeSession.targetKind,
+      targetId: activeSession.targetId,
+      mode: activeSession.mode,
+      space: activeSession.space,
+      entryOrigin: activeSession.entryOrigin,
+    }
+  }, [referenceWorkspace])
   const contentObjectTransformGroups = useMemo(
     () =>
       projectContentRows
@@ -643,24 +636,21 @@ export function ViewerHost() {
         })),
     [projectContentRows],
   )
-  const activeReferenceTransformHistoryOverlay = useMemo<ReferenceTransformHistoryOverlayVm | null>(() => {
-    const activeSession = referenceWorkspace.activeReferenceTransformSession
-    const activeReferenceId = activeSession?.referenceId ?? null
-    if (activeReferenceId === null) {
+  const activeViewerTransformHistoryOverlay = useMemo<ViewerTransformHistoryOverlayVm | null>(() => {
+    const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
+    const activeSession = selectActiveViewerTransformSession(referenceWorkspace)
+    if (activeTarget === null || activeSession === null) {
       return null
     }
-    const currentEntries = referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
-    return buildReferenceTransformHistoryOverlayVm(
-      activeReferenceId,
+    const currentEntries = selectActiveViewerTransformHistoryEntries(referenceWorkspace)
+    return buildViewerTransformHistoryOverlayVm(
+      activeTarget,
       getReferenceTransformHistoryEntriesThroughScrubIndex(
         currentEntries,
         activeSession?.historyScrubIndex ?? currentEntries.length,
       ),
     )
-  }, [
-    referenceWorkspace.activeReferenceTransformSession,
-    referenceWorkspace.transformHistoryByReferenceId,
-  ])
+  }, [referenceWorkspace])
   const hasActiveReferenceTimelines = useMemo(
     () =>
       Object.values(referenceWorkspace.timelineModeByReferenceId).some((channelModes) =>
@@ -828,24 +818,33 @@ export function ViewerHost() {
       return
     }
 
-    viewer.setOnReferenceTransformChange((referenceId, transformOverride) => {
+    viewer.setOnViewerTransformChange((target, transformOverride) => {
       const store = useAppStore.getState()
-      const activeReferenceId =
-        store.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
-      if (activeReferenceId !== referenceId) {
+      const activeSession = selectActiveViewerTransformSession(store.referenceWorkspace)
+      if (activeSession === null) {
         return
       }
-      store.setActiveReferenceTransformDraft(transformOverride)
+      if (
+        (target.kind === 'reference' &&
+          (activeSession.targetKind !== 'reference' ||
+            activeSession.targetId !== target.referenceId)) ||
+        (target.kind === 'content-object' &&
+          (activeSession.targetKind !== 'content-object' ||
+            activeSession.targetId !== target.objectId))
+      ) {
+        return
+      }
+      store.setActiveViewerTransformDraft(transformOverride)
     })
-    viewer.setOnReferenceTransformCommit(() => {
-      useAppStore.getState().commitActiveReferenceTransformEntry()
+    viewer.setOnViewerTransformCommit(() => {
+      useAppStore.getState().commitActiveViewerTransformEntry()
     })
-    viewer.setOnReferenceTransformExit(() => {
-      useAppStore.getState().exitReferenceTransformShell()
+    viewer.setOnViewerTransformExit(() => {
+      useAppStore.getState().exitActiveViewerTransformShell()
     })
-    viewer.setOnReferenceTransformHandleChange((handle) => {
+    viewer.setOnViewerTransformHandleChange((handle) => {
       const store = useAppStore.getState()
-      const activeSession = store.referenceWorkspace.activeReferenceTransformSession
+      const activeSession = selectActiveViewerTransformSession(store.referenceWorkspace)
       if (handle !== null && activeSession !== null) {
         const nextMode =
           handle.mode === 'translate'
@@ -854,50 +853,16 @@ export function ViewerHost() {
               ? 'rotate'
               : 'scale'
         if (!activeSession.entryActive || activeSession.mode !== nextMode) {
-          store.beginReferenceTransformEntry(nextMode)
+          store.beginActiveViewerTransformEntry(nextMode)
         }
       }
-      store.setActiveReferenceTransformHandle(handle)
+      store.setActiveViewerTransformHandle(handle)
     })
-    viewer.setOnReferenceTransformModeChange((mode) => {
-      useAppStore.getState().beginReferenceTransformEntry(mode)
+    viewer.setOnViewerTransformModeChange((mode) => {
+      useAppStore.getState().beginActiveViewerTransformEntry(mode)
     })
-    viewer.setOnReferenceTransformSpaceChange((space) => {
-      useAppStore.getState().setActiveReferenceTransformSpace(space)
-    })
-    viewer.setOnContentObjectTransformChange((objectId, transformOverride) => {
-      const store = useAppStore.getState()
-      const activeObjectId =
-        store.referenceWorkspace.activeContentObjectTransformSession?.objectId ?? null
-      if (activeObjectId !== objectId) {
-        return
-      }
-      store.setActiveContentObjectTransformDraft(transformOverride)
-    })
-    viewer.setOnContentObjectTransformCommit(() => {
-      useAppStore.getState().commitActiveContentObjectTransformEntry()
-    })
-    viewer.setOnContentObjectTransformHandleChange((handle) => {
-      const store = useAppStore.getState()
-      const activeSession = store.referenceWorkspace.activeContentObjectTransformSession
-      if (handle !== null && activeSession !== null) {
-        const nextMode =
-          handle.mode === 'translate'
-            ? 'translate'
-            : handle.mode === 'rotate'
-              ? 'rotate'
-              : 'scale'
-        if (!activeSession.entryActive || activeSession.mode !== nextMode) {
-          store.beginContentObjectTransformEntry(nextMode)
-        }
-      }
-      store.setActiveContentObjectTransformHandle(handle)
-    })
-    viewer.setOnContentObjectTransformModeChange((mode) => {
-      useAppStore.getState().beginContentObjectTransformEntry(mode)
-    })
-    viewer.setOnContentObjectTransformSpaceChange((space) => {
-      useAppStore.getState().setActiveContentObjectTransformSpace(space)
+    viewer.setOnViewerTransformSpaceChange((space) => {
+      useAppStore.getState().setActiveViewerTransformSpace(space)
     })
     viewer.setOnSketchPlanePickPlaneSelect((plane) => {
       useSpaghettiStore.getState().setSketchPlanePickDraftPlane(plane)
@@ -1133,17 +1098,12 @@ export function ViewerHost() {
     })
 
     return () => {
-      viewer.setOnReferenceTransformChange(null)
-      viewer.setOnReferenceTransformCommit(null)
-      viewer.setOnReferenceTransformExit(null)
-      viewer.setOnReferenceTransformHandleChange(null)
-      viewer.setOnReferenceTransformModeChange(null)
-      viewer.setOnReferenceTransformSpaceChange(null)
-      viewer.setOnContentObjectTransformChange(null)
-      viewer.setOnContentObjectTransformCommit(null)
-      viewer.setOnContentObjectTransformHandleChange(null)
-      viewer.setOnContentObjectTransformModeChange(null)
-      viewer.setOnContentObjectTransformSpaceChange(null)
+      viewer.setOnViewerTransformChange(null)
+      viewer.setOnViewerTransformCommit(null)
+      viewer.setOnViewerTransformExit(null)
+      viewer.setOnViewerTransformHandleChange(null)
+      viewer.setOnViewerTransformModeChange(null)
+      viewer.setOnViewerTransformSpaceChange(null)
       viewer.setOnSketchPlanePickPlaneSelect(null)
       viewer.setOnSketchPlanePickTransformChange(null)
       viewer.setOnSketchPlanePickTransformCommit(null)
@@ -1375,12 +1335,8 @@ export function ViewerHost() {
   ])
 
   useEffect(() => {
-    viewerRef.current?.setReferenceTransformSession(activeReferenceTransformSession)
-  }, [activeReferenceTransformSession])
-
-  useEffect(() => {
-    viewerRef.current?.setContentObjectTransformSession(activeContentObjectTransformSession)
-  }, [activeContentObjectTransformSession])
+    viewerRef.current?.setViewerTransformSession(activeViewerTransformSession)
+  }, [activeViewerTransformSession])
 
   useEffect(() => {
     viewerRef.current?.setContentObjectTransformOverrides(
@@ -1461,8 +1417,8 @@ export function ViewerHost() {
   }, [referenceWorkspace.rotateSnapPreviewDelayMs])
 
   useEffect(() => {
-    viewerRef.current?.setReferenceTransformHistoryOverlay(activeReferenceTransformHistoryOverlay)
-  }, [activeReferenceTransformHistoryOverlay])
+    viewerRef.current?.setViewerTransformHistoryOverlay(activeViewerTransformHistoryOverlay)
+  }, [activeViewerTransformHistoryOverlay])
 
   useEffect(() => {
     viewerRef.current?.setGeometrySketchOverlay(geometrySketchOverlay)

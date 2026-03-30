@@ -406,6 +406,7 @@ export function useBrowserPanelController(
         browserContentBuildPolicyByRowId,
         editorViewports,
         graphDocumentsById,
+        partsVisibility,
         selectedRowId: selectedBrowserRowId,
         selectedRowIds: selectedBrowserRowIds,
         groupedSelectedRowIds: groupedSelectedBrowserRowIds,
@@ -429,6 +430,7 @@ export function useBrowserPanelController(
       graphRows,
       graphSectionExpandedByRowId,
       groupedSelectedBrowserRowIds,
+      partsVisibility,
       projectContentRows,
       referenceWorkspace,
       referenceWorkspaceTree,
@@ -836,7 +838,25 @@ export function useBrowserPanelController(
         if (resolvedDropTarget === null) {
           return null
         }
-        const moved = moveProjectContentOwner(resolvedCurrent.draggedTarget, resolvedDropTarget)
+        let moved = moveProjectContentOwner(resolvedCurrent.draggedTarget, resolvedDropTarget)
+        if (
+          moved &&
+          resolvedDropTarget.position === 'into' &&
+          (resolvedCurrent.resolvedIntent === 'before' || resolvedCurrent.resolvedIntent === 'after') &&
+          resolvedCurrent.previewAnchorRowId !== null
+        ) {
+          const anchorTarget = resolveContentOwnerTargetFromRowId(resolvedCurrent.previewAnchorRowId)
+          if (
+            anchorTarget !== null &&
+            anchorTarget.kind !== 'imported-reference'
+          ) {
+            moved =
+              moveProjectContentOwner(resolvedCurrent.draggedTarget, {
+                ...anchorTarget,
+                position: resolvedCurrent.resolvedIntent,
+              }) || moved
+          }
+        }
         if (moved) {
           setLocalSelectedBrowserRowId(resolvedCurrent.draggedRowId)
           requestConsoleContextSync('target-selection')

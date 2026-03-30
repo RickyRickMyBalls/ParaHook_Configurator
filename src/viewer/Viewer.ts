@@ -53,9 +53,11 @@ import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
 import type {
   GeometrySketchOverlayVm,
-  ReferenceTransformHistoryOverlayVm,
+  ViewerTransformHistoryOverlayVm,
   GeometrySketchSnapTarget,
   SketchPlanePickOverlayVm,
+  ViewerTransformSession,
+  ViewerTransformTarget,
   VisibleGeometrySketchOverlayVm,
 } from '../app/viewerBridge'
 import { loadStepReferenceObject } from './stepReferenceLoader'
@@ -261,7 +263,7 @@ export class Viewer {
   private geometrySketchCameraAlignKey: string | null = null
   private geometrySketchRestoreCameraPose: CameraPose | null = null
   private sketchPlanePickOverlay: SketchPlanePickOverlayVm | null = null
-  private referenceTransformHistoryOverlay: ReferenceTransformHistoryOverlayVm | null = null
+  private viewerTransformHistoryOverlay: ViewerTransformHistoryOverlayVm | null = null
   private readonly geometrySketchComponentMaterial: LineBasicMaterial
   private readonly geometrySketchDraftChainMaterial: LineBasicMaterial
   private readonly geometrySketchDraftGhostMaterial: LineBasicMaterial
@@ -322,6 +324,16 @@ export class Viewer {
   } = {}
   private onReferenceTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
   private onReferenceTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
+  private onViewerTransformChange:
+    | ((target: ViewerTransformTarget, transform: ReferenceTransformOverride) => void)
+    | null = null
+  private onViewerTransformCommit: (() => void) | null = null
+  private onViewerTransformExit: (() => void) | null = null
+  private onViewerTransformHandleChange:
+    | ((handle: ActiveReferenceTransformHandle | null) => void)
+    | null = null
+  private onViewerTransformModeChange: ((mode: TransformControlsMode) => void) | null = null
+  private onViewerTransformSpaceChange: ((space: GizmoSpace) => void) | null = null
   private onContentObjectTransformChange:
     | ((objectId: string, transform: ReferenceTransformOverride) => void)
     | null = null
@@ -957,10 +969,33 @@ export class Viewer {
     this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
-  public setReferenceTransformHistoryOverlay(
-    overlay: ReferenceTransformHistoryOverlayVm | null,
+  public setViewerTransformSession(session: ViewerTransformSession | null): void {
+    if (session === null) {
+      this.setReferenceTransformSession(null)
+      this.setContentObjectTransformSession(null)
+      return
+    }
+    if (session.targetKind === 'reference') {
+      this.setReferenceTransformSession({
+        referenceId: session.targetId,
+        mode: session.mode,
+        space: session.space,
+        entryOrigin: session.entryOrigin,
+      })
+      return
+    }
+    this.setContentObjectTransformSession({
+      objectId: session.targetId,
+      mode: session.mode,
+      space: session.space,
+      entryOrigin: session.entryOrigin,
+    })
+  }
+
+  public setViewerTransformHistoryOverlay(
+    overlay: ViewerTransformHistoryOverlayVm | null,
   ): void {
-    this.referenceTransformHistoryOverlay = overlay
+    this.viewerTransformHistoryOverlay = overlay
     this.syncReferenceTransformHistoryOverlay()
   }
 
@@ -1057,6 +1092,36 @@ export class Viewer {
 
   public setOnReferenceTransformSpaceChange(handler: ((space: GizmoSpace) => void) | null): void {
     this.onReferenceTransformSpaceChange = handler
+  }
+
+  public setOnViewerTransformChange(
+    handler: ((target: ViewerTransformTarget, transform: ReferenceTransformOverride) => void) | null,
+  ): void {
+    this.onViewerTransformChange = handler
+  }
+
+  public setOnViewerTransformCommit(handler: (() => void) | null): void {
+    this.onViewerTransformCommit = handler
+  }
+
+  public setOnViewerTransformExit(handler: (() => void) | null): void {
+    this.onViewerTransformExit = handler
+  }
+
+  public setOnViewerTransformHandleChange(
+    handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null,
+  ): void {
+    this.onViewerTransformHandleChange = handler
+  }
+
+  public setOnViewerTransformModeChange(
+    handler: ((mode: TransformControlsMode) => void) | null,
+  ): void {
+    this.onViewerTransformModeChange = handler
+  }
+
+  public setOnViewerTransformSpaceChange(handler: ((space: GizmoSpace) => void) | null): void {
+    this.onViewerTransformSpaceChange = handler
   }
 
   public beginTemporaryOrbitDrag(startClientX: number, startClientY: number): void {
@@ -2440,14 +2505,16 @@ export class Viewer {
   }
 
   private syncReferenceTransformHistoryOverlay(): void {
-    if (this.referenceTransformHistoryOverlay === null) {
+    if (this.viewerTransformHistoryOverlay === null) {
       this.referenceTransformHistoryHelper.setOverlay(null, null)
       return
     }
     const referenceObject =
-      this.referenceObjects.get(this.referenceTransformHistoryOverlay.referenceId) ?? null
+      this.viewerTransformHistoryOverlay.target.kind === 'reference'
+        ? this.referenceObjects.get(this.viewerTransformHistoryOverlay.target.referenceId) ?? null
+        : this.contentObjectPivots.get(this.viewerTransformHistoryOverlay.target.objectId) ?? null
     this.referenceTransformHistoryHelper.setOverlay(
-      this.referenceTransformHistoryOverlay,
+      this.viewerTransformHistoryOverlay,
       referenceObject,
     )
   }
@@ -2696,6 +2763,7 @@ export class Viewer {
     this.syncReferenceTransformMoveSnapAvailabilityOverlay()
     this.syncReferenceTransformRotateSnapPreviewOverlay()
     this.onReferenceTransformExit?.()
+    this.onViewerTransformExit?.()
   }
 
   private requestReferenceTransformCommit(): void {
@@ -2703,6 +2771,7 @@ export class Viewer {
       return
     }
     this.onReferenceTransformCommit?.()
+    this.onViewerTransformCommit?.()
     this.transformGizmo.clearActiveHandle()
     this.refreshGizmoAttachment()
   }
@@ -2712,6 +2781,7 @@ export class Viewer {
       return
     }
     this.onContentObjectTransformCommit?.()
+    this.onViewerTransformCommit?.()
     this.transformGizmo.clearActiveHandle()
     this.refreshGizmoAttachment()
   }
@@ -2813,6 +2883,13 @@ export class Viewer {
       this.activeReferenceTransformReferenceId,
       snappedOverride,
     )
+    this.onViewerTransformChange?.(
+      {
+        kind: 'reference',
+        referenceId: this.activeReferenceTransformReferenceId,
+      },
+      snappedOverride,
+    )
     if (this.cameraLockedReferenceId === this.activeReferenceTransformReferenceId) {
       this.syncLockedReferenceCamera(object)
     }
@@ -2842,10 +2919,12 @@ export class Viewer {
     this.syncReferenceTransformRotateSnapPreviewOverlay()
     if (this.activeReferenceTransformReferenceId !== null) {
       this.onReferenceTransformHandleChange?.(handle)
+      this.onViewerTransformHandleChange?.(handle)
       return
     }
     if (this.activeContentObjectTransformObjectId !== null) {
       this.onContentObjectTransformHandleChange?.(handle)
+      this.onViewerTransformHandleChange?.(handle)
     }
   }
 
@@ -2902,6 +2981,13 @@ export class Viewer {
         this.readReferenceTransformOverride(object),
       )
       this.onContentObjectTransformChange?.(this.activeContentObjectTransformObjectId, snappedOverride)
+      this.onViewerTransformChange?.(
+        {
+          kind: 'content-object',
+          objectId: this.activeContentObjectTransformObjectId,
+        },
+        snappedOverride,
+      )
       this.syncReferenceTransformMoveSnapAvailabilityOverlay()
       this.syncReferenceTransformRotateSnapPreviewOverlay()
       return
@@ -3849,8 +3935,10 @@ export class Viewer {
       this.setGizmoMode('translate')
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformModeChange?.('translate')
+        this.onViewerTransformModeChange?.('translate')
       } else if (this.activeContentObjectTransformObjectId !== null) {
         this.onContentObjectTransformModeChange?.('translate')
+        this.onViewerTransformModeChange?.('translate')
       }
       return
     }
@@ -3859,8 +3947,10 @@ export class Viewer {
       this.setGizmoMode('rotate')
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformModeChange?.('rotate')
+        this.onViewerTransformModeChange?.('rotate')
       } else if (this.activeContentObjectTransformObjectId !== null) {
         this.onContentObjectTransformModeChange?.('rotate')
+        this.onViewerTransformModeChange?.('rotate')
       }
       return
     }
@@ -3869,8 +3959,10 @@ export class Viewer {
       this.setGizmoMode('scale')
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformModeChange?.('scale')
+        this.onViewerTransformModeChange?.('scale')
       } else if (this.activeContentObjectTransformObjectId !== null) {
         this.onContentObjectTransformModeChange?.('scale')
+        this.onViewerTransformModeChange?.('scale')
       }
       return
     }
@@ -3880,8 +3972,10 @@ export class Viewer {
       this.setGizmoSpace(nextSpace)
       if (this.activeReferenceTransformReferenceId !== null) {
         this.onReferenceTransformSpaceChange?.(nextSpace)
+        this.onViewerTransformSpaceChange?.(nextSpace)
       } else if (this.activeContentObjectTransformObjectId !== null) {
         this.onContentObjectTransformSpaceChange?.(nextSpace)
+        this.onViewerTransformSpaceChange?.(nextSpace)
       }
       return
     }

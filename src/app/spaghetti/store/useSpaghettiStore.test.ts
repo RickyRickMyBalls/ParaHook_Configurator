@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { useConsoleStore } from '../../console/useConsoleStore'
+import { useWorkspaceStore } from '../../workspace/useWorkspaceStore'
 import {
   loadGraphDocumentFromFile,
   saveGraphDocumentToFile,
@@ -125,6 +126,7 @@ const graphWithPublishedPart = (
 describe('useSpaghettiStore graph normalization', () => {
   afterEach(() => {
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
   })
 
   it('setGraph auto-creates OutputPreview singleton when missing', () => {
@@ -1649,11 +1651,39 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(viewportId).not.toBeNull()
 
     useSpaghettiStore.getState().setEditorViewportSplitDirection(viewportId ?? '', 'vertical')
+    useSpaghettiStore.getState().setEditorViewportSplitDockSide(viewportId ?? '', 'left')
     useSpaghettiStore.getState().setEditorViewportSplitPriority(viewportId ?? '', 'favorSecond')
 
     const viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
     expect(viewport?.splitDirection).toBe('vertical')
+    expect(viewport?.splitDockSide).toBe('left')
     expect(viewport?.splitPriority).toBe('favorSecond')
+  })
+
+  it('mirrors editor placement ownership into the shared workspace store', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportPosition(viewportId ?? '', { x: 60, y: 90 })
+    useSpaghettiStore.getState().setEditorViewportSize(viewportId ?? '', { width: 700, height: 540 })
+    useSpaghettiStore.getState().setEditorViewportSplitDirection(viewportId ?? '', 'vertical')
+    useSpaghettiStore.getState().setEditorViewportSplitDockSide(viewportId ?? '', 'left')
+    useSpaghettiStore.getState().setEditorViewportSplitPriority(viewportId ?? '', 'favorSecond')
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'split view')
+
+    const editorSurface =
+      useWorkspaceStore.getState().editorSurfacePlacementById[viewportId ?? ''] ?? null
+
+    expect(editorSurface).not.toBeNull()
+    expect(editorSurface?.surfaceKind).toBe('spaghettiEditor')
+    expect(editorSurface?.surfaceInstanceId).toBe(viewportId)
+    expect(editorSurface?.presentationMode).toBe('tiled')
+    expect(editorSurface?.windowMode).toBe('split view')
+    expect(editorSurface?.position).toEqual({ x: 60, y: 90 })
+    expect(editorSurface?.size).toEqual({ width: 700, height: 540 })
+    expect(editorSurface?.splitDirection).toBe('vertical')
+    expect(editorSurface?.splitDockSide).toBe('left')
+    expect(editorSurface?.splitPriority).toBe('favorSecond')
   })
 
   it('only keeps one meatball editor view alive at a time', () => {
@@ -2190,6 +2220,7 @@ describe('useSpaghettiStore graph normalization', () => {
 describe('useSpaghettiStore feature stack editing semantics', () => {
   afterEach(() => {
     useSpaghettiStore.getState().setGraph(emptyGraph)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
   })
 
   it('reorders independent features deterministically', () => {
@@ -2330,6 +2361,7 @@ describe('useSpaghettiStore feature stack editing semantics', () => {
 describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
   afterEach(() => {
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
   })
 

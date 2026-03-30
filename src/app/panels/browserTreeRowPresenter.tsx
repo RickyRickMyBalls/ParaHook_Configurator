@@ -213,6 +213,8 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     (row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object') &&
     row.visibilityPartKeys.length > 0
   const isContentVisible = isContentVisibilityRow ? row.isVisible : false
+  const isPartVisibilityRow = row.rowKind === 'part' && row.visibilityPartKeys.length > 0
+  const isPartVisible = isPartVisibilityRow ? row.isVisible : false
   const isSketchVisibilityRow = row.rowKind === 'sketch'
   const isSketchVisible = row.rowKind === 'sketch' ? row.isVisible : false
   const buildSurfaceRow = isContentRow || isGraphRebuildRow ? row : null
@@ -265,13 +267,34 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     .filter((value) => value.length > 0)
     .join(' ')
   const canShowVisibilityToggle =
-    familyAdapter.supportsVisibilityToggle &&
-    (isReferenceVisibilityRow || isSketchVisibilityRow || isContentVisibilityRow)
+    isReferenceVisibilityRow ||
+    isSketchVisibilityRow ||
+    isContentVisibilityRow ||
+    isPartVisibilityRow
 
   return (
     <div
       ref={props.rowRef}
       className={rowClassName}
+      onClick={(event) => {
+        const target = event.target as HTMLElement | null
+        if (target === null) {
+          return
+        }
+        if (target.closest('button, [role="button"], a, input, select, textarea') !== null) {
+          return
+        }
+        if (props.shouldSuppressClick?.(row)) {
+          event.preventDefault()
+          event.stopPropagation()
+          props.clearSuppressedClick?.(row)
+          return
+        }
+        onSelect(row, {
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+        })
+      }}
       onContextMenu={(event) => {
         if (!familyAdapter.supportsContextMenu) {
           return
@@ -356,6 +379,8 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                 ? isReferenceVisible
                 : isContentVisibilityRow
                   ? isContentVisible
+                  : isPartVisibilityRow
+                    ? isPartVisible
                   : isSketchVisible)
                 ? 'isVisible'
                 : 'isHidden'
@@ -371,6 +396,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                 onToggleContentVisibility?.(row)
                 return
               }
+              if (isPartVisibilityRow) {
+                onToggleContentVisibility?.(row)
+                return
+              }
               onToggleSketchVisibility?.(row)
             }}
             aria-label={`${
@@ -378,6 +407,8 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                 ? isReferenceVisible
                 : isContentVisibilityRow
                   ? isContentVisible
+                  : isPartVisibilityRow
+                    ? isPartVisible
                   : isSketchVisible)
                 ? 'Hide'
                 : 'Show'
@@ -387,6 +418,8 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                 ? isReferenceVisible
                 : isContentVisibilityRow
                   ? isContentVisible
+                  : isPartVisibilityRow
+                    ? isPartVisible
                   : isSketchVisible)
                 ? 'Hide'
                 : 'Show'
@@ -399,6 +432,8 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
               ? isReferenceVisible
               : isContentVisibilityRow
                 ? isContentVisible
+                : isPartVisibilityRow
+                  ? isPartVisible
                 : isSketchVisible) ? (
               <span className="BrowserTreeRowVisibilityToggleSlash" aria-hidden="true" />
             ) : null}
@@ -409,8 +444,36 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
       <button
         type="button"
         className={rowMainClassName}
-        onPointerDown={(event) => props.onPointerDragStartCandidate?.(row, event)}
+        onPointerDown={(event) => {
+          props.onPointerDragStartCandidate?.(row, event)
+          if (event.button !== 0) {
+            return
+          }
+          if (props.shouldSuppressClick?.(row)) {
+            return
+          }
+          event.currentTarget.dataset.browserPointerSelectionHandled = 'true'
+          onSelect(row, {
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+          })
+        }}
+        onPointerUp={(event) => {
+          delete event.currentTarget.dataset.browserPointerSelectionHandled
+        }}
+        onPointerCancel={(event) => {
+          delete event.currentTarget.dataset.browserPointerSelectionHandled
+        }}
         onClick={(event) => {
+          if (event.currentTarget.dataset.browserPointerSelectionHandled === 'true') {
+            delete event.currentTarget.dataset.browserPointerSelectionHandled
+            if (props.shouldSuppressClick?.(row)) {
+              event.preventDefault()
+              event.stopPropagation()
+              props.clearSuppressedClick?.(row)
+            }
+            return
+          }
           if (props.shouldSuppressClick?.(row)) {
             event.preventDefault()
             event.stopPropagation()
@@ -475,6 +538,14 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
               }
               aria-hidden="true"
             />
+            <BrowserTreeRowContent label={row.label} meta={visibleRowMeta} />
+          </span>
+        ) : isPartRow ? (
+          <span
+            className="BrowserTreeRowSurface BrowserContentStateBar BrowserContentStateBar--part BrowserTreeRowSurface--slim BrowserContentStateBar--slim"
+            title={visibleRowMeta}
+          >
+            <span className="BrowserContentStateFill" aria-hidden="true" />
             <BrowserTreeRowContent label={row.label} meta={visibleRowMeta} />
           </span>
         ) : referenceSurfaceRow !== null ? (

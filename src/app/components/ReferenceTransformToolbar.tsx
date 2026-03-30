@@ -16,9 +16,12 @@ import {
   type ViewportOverlayToolPanelResizeDirection,
 } from './ViewportOverlayToolPanel'
 import {
-  DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
   getReferenceTransformHistoryLatestScrubIndex,
   resolveWorkspaceSelectedContentOwnerTarget,
+  selectActiveViewerTransformHistoryEntries,
+  selectActiveViewerTransformSession,
+  selectActiveViewerTransformSnapState,
+  selectActiveViewerTransformTarget,
   selectReferenceWorkspaceItems,
   type ReferenceTransformSnapAxis,
   type ReferenceTransformSnapMode,
@@ -299,50 +302,28 @@ const groupReferenceTransformHistoryEntries = (
 export function ReferenceTransformToolbar() {
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const projectContent = useAppStore((state) => state.projectContent)
-  const beginReferenceTransformEntry = useAppStore((state) => state.beginReferenceTransformEntry)
-  const exitReferenceTransformShell = useAppStore((state) => state.exitReferenceTransformShell)
+  const beginActiveViewerTransformEntry = useAppStore((state) => state.beginActiveViewerTransformEntry)
+  const exitActiveViewerTransformShell = useAppStore((state) => state.exitActiveViewerTransformShell)
   const requestReferenceTransformShellExit = useAppStore(
     (state) => state.requestReferenceTransformShellExit,
   )
-  const setActiveReferenceTransformSpace = useAppStore(
-    (state) => state.setActiveReferenceTransformSpace,
-  )
-  const setActiveReferenceTransformDraft = useAppStore(
-    (state) => state.setActiveReferenceTransformDraft,
-  )
-  const beginContentObjectTransformEntry = useAppStore((state) => state.beginContentObjectTransformEntry)
-  const exitContentObjectTransformShell = useAppStore((state) => state.exitContentObjectTransformShell)
-  const setActiveContentObjectTransformSpace = useAppStore(
-    (state) => state.setActiveContentObjectTransformSpace,
-  )
-  const setActiveContentObjectTransformDraft = useAppStore(
-    (state) => state.setActiveContentObjectTransformDraft,
-  )
-  const resetContentObjectTransform = useAppStore((state) => state.resetContentObjectTransform)
-  const cancelActiveContentObjectTransformEntry = useAppStore(
-    (state) => state.cancelActiveContentObjectTransformEntry,
-  )
-  const resetReferenceTransform = useAppStore((state) => state.resetReferenceTransform)
-  const cancelActiveReferenceTransformEntry = useAppStore(
-    (state) => state.cancelActiveReferenceTransformEntry,
+  const setActiveViewerTransformSpace = useAppStore((state) => state.setActiveViewerTransformSpace)
+  const setActiveViewerTransformDraft = useAppStore((state) => state.setActiveViewerTransformDraft)
+  const resetViewerTransform = useAppStore((state) => state.resetViewerTransform)
+  const cancelActiveViewerTransformEntry = useAppStore(
+    (state) => state.cancelActiveViewerTransformEntry,
   )
   const setReferenceChannelClampRange = useAppStore((state) => state.setReferenceChannelClampRange)
   const setReferenceTimelineMode = useAppStore((state) => state.setReferenceTimelineMode)
   const setReferenceTimelineSpeed = useAppStore((state) => state.setReferenceTimelineSpeed)
   const setReferenceTimelineCycle = useAppStore((state) => state.setReferenceTimelineCycle)
   const setReferenceTimelinePoints = useAppStore((state) => state.setReferenceTimelinePoints)
-  const setReferenceTransformSnapEnabled = useAppStore(
-    (state) => state.setReferenceTransformSnapEnabled,
+  const setViewerTransformSnapEnabled = useAppStore((state) => state.setViewerTransformSnapEnabled)
+  const setViewerTransformSnapValue = useAppStore((state) => state.setViewerTransformSnapValue)
+  const setViewerTransformSnapAxisValue = useAppStore(
+    (state) => state.setViewerTransformSnapAxisValue,
   )
-  const setReferenceTransformSnapValue = useAppStore(
-    (state) => state.setReferenceTransformSnapValue,
-  )
-  const setReferenceTransformSnapAxisValue = useAppStore(
-    (state) => state.setReferenceTransformSnapAxisValue,
-  )
-  const setReferenceTransformSnapLocked = useAppStore(
-    (state) => state.setReferenceTransformSnapLocked,
-  )
+  const setViewerTransformSnapLocked = useAppStore((state) => state.setViewerTransformSnapLocked)
   const setReferenceTransformMoveSnapDotScale = useAppStore(
     (state) => state.setReferenceTransformMoveSnapDotScale,
   )
@@ -379,46 +360,19 @@ export function ReferenceTransformToolbar() {
   const setReferenceTransformRotateSnapPreviewDelayMs = useAppStore(
     (state) => state.setReferenceTransformRotateSnapPreviewDelayMs,
   )
-  const toggleReferenceTransformHistoryLock = useAppStore(
-    (state) => state.toggleReferenceTransformHistoryLock,
+  const toggleViewerTransformHistoryLock = useAppStore(
+    (state) => state.toggleViewerTransformHistoryLock,
   )
-  const setReferenceTransformHistoryEntryDeltaValue = useAppStore(
-    (state) => state.setReferenceTransformHistoryEntryDeltaValue,
+  const setViewerTransformHistoryEntryDeltaValue = useAppStore(
+    (state) => state.setViewerTransformHistoryEntryDeltaValue,
   )
-  const deleteReferenceTransformHistoryEntry = useAppStore(
-    (state) => state.deleteReferenceTransformHistoryEntry,
+  const deleteViewerTransformHistoryEntry = useAppStore(
+    (state) => state.deleteViewerTransformHistoryEntry,
   )
-  const setActiveReferenceTransformHistoryScrubIndex = useAppStore(
-    (state) => state.setActiveReferenceTransformHistoryScrubIndex,
+  const setActiveViewerTransformHistoryScrubIndex = useAppStore(
+    (state) => state.setActiveViewerTransformHistoryScrubIndex,
   )
-  const mergeReferenceTransformHistory = useAppStore((state) => state.mergeReferenceTransformHistory)
-  const toggleContentObjectTransformHistoryLock = useAppStore(
-    (state) => state.toggleContentObjectTransformHistoryLock,
-  )
-  const setContentObjectTransformHistoryEntryDeltaValue = useAppStore(
-    (state) => state.setContentObjectTransformHistoryEntryDeltaValue,
-  )
-  const deleteContentObjectTransformHistoryEntry = useAppStore(
-    (state) => state.deleteContentObjectTransformHistoryEntry,
-  )
-  const setActiveContentObjectTransformHistoryScrubIndex = useAppStore(
-    (state) => state.setActiveContentObjectTransformHistoryScrubIndex,
-  )
-  const mergeContentObjectTransformHistory = useAppStore(
-    (state) => state.mergeContentObjectTransformHistory,
-  )
-  const setContentObjectTransformSnapEnabled = useAppStore(
-    (state) => state.setContentObjectTransformSnapEnabled,
-  )
-  const setContentObjectTransformSnapValue = useAppStore(
-    (state) => state.setContentObjectTransformSnapValue,
-  )
-  const setContentObjectTransformSnapAxisValue = useAppStore(
-    (state) => state.setContentObjectTransformSnapAxisValue,
-  )
-  const setContentObjectTransformSnapLocked = useAppStore(
-    (state) => state.setContentObjectTransformSnapLocked,
-  )
+  const mergeViewerTransformHistory = useAppStore((state) => state.mergeViewerTransformHistory)
   const consolePromptSession = useConsoleStore((state) => state.consolePromptSession)
 
   const referenceItems = useMemo(
@@ -526,33 +480,20 @@ export function ReferenceTransformToolbar() {
     setChannelContextMenu(null)
   }, [activeObjectSession?.objectId, activeReference?.referenceId])
 
-  const activeTargetKind = activeObjectSession !== null ? 'content-object' : 'reference'
-  const activeSession =
-    activeObjectSession ?? referenceWorkspace.activeReferenceTransformSession
+  const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
+  const activeTargetKind = activeTarget?.kind ?? 'reference'
+  const activeSession = selectActiveViewerTransformSession(referenceWorkspace)
   const activeMode = activeSession?.mode ?? 'translate'
   const activeSpace = activeSession?.space ?? 'local'
   const entryActive = activeSession?.entryActive ?? false
 
-  const activeReferenceId =
-    activeTargetKind === 'reference' && activeSession !== null && 'referenceId' in activeSession
-      ? activeSession.referenceId
-      : null
-  const activeObjectId =
-    activeTargetKind === 'content-object' && activeObjectSession !== null
-      ? activeObjectSession.objectId
-      : null
+  const activeReferenceId = activeTarget?.kind === 'reference' ? activeTarget.referenceId : null
+  const activeObjectId = activeTarget?.kind === 'content-object' ? activeTarget.objectId : null
   const activeLabel = activeReference?.label ?? activeObject?.label ?? 'Object'
   const activeTargetKindLabel = activeTargetKind === 'content-object' ? 'Object' : 'Reference'
   const activeTransformOverride =
     activeSession?.draftTransform ?? buildDefaultTransformOverride()
-  const transformHistory =
-    activeTargetKind === 'content-object'
-      ? activeObjectId === null
-        ? []
-        : referenceWorkspace.transformHistoryByObjectId[activeObjectId] ?? []
-      : activeReferenceId === null
-        ? []
-        : referenceWorkspace.transformHistoryByReferenceId[activeReferenceId] ?? []
+  const transformHistory = selectActiveViewerTransformHistoryEntries(referenceWorkspace)
   const latestHistoryScrubIndex = useMemo(
     () => getReferenceTransformHistoryLatestScrubIndex(transformHistory),
     [transformHistory],
@@ -582,16 +523,7 @@ export function ReferenceTransformToolbar() {
     activeTargetKind === 'content-object' || activeReferenceId === null
       ? {}
       : referenceWorkspace.timelineConfigByReferenceId[activeReferenceId] ?? {}
-  const transformSnapState =
-    activeTargetKind === 'content-object'
-      ? activeObjectId === null
-        ? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
-        : referenceWorkspace.transformSnapByObjectId[activeObjectId] ??
-          DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
-      : activeReferenceId === null
-        ? DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
-        : referenceWorkspace.transformSnapByReferenceId[activeReferenceId] ??
-          DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+  const transformSnapState = selectActiveViewerTransformSnapState(referenceWorkspace)
   const activeTargetDescriptor = useMemo(
     () => {
       if (activeContentOwnerTarget !== null) {
@@ -825,11 +757,7 @@ export function ReferenceTransformToolbar() {
           ? 'rotate-center'
           : 'scale-center',
     )
-    if (activeTargetKind === 'content-object') {
-      beginContentObjectTransformEntry(mode)
-      return
-    }
-    beginReferenceTransformEntry(mode)
+    beginActiveViewerTransformEntry(mode)
   }
 
   const activateAxisShortcut = (section: TransformSectionKey, axis: Axis) => {
@@ -872,21 +800,13 @@ export function ReferenceTransformToolbar() {
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        if (activeReferenceId !== null) {
+        if (activeReferenceId !== null || activeObjectId !== null) {
           getViewer()?.cancelReferenceTransformDrag()
           getViewer()?.clearReferenceTransformHandle()
           if (entryActive) {
-            cancelActiveReferenceTransformEntry()
+            cancelActiveViewerTransformEntry()
           } else {
-            exitReferenceTransformShell()
-          }
-        } else if (activeObjectId !== null) {
-          getViewer()?.cancelReferenceTransformDrag()
-          getViewer()?.clearReferenceTransformHandle()
-          if (entryActive) {
-            cancelActiveContentObjectTransformEntry()
-          } else {
-            exitContentObjectTransformShell()
+            exitActiveViewerTransformShell()
           }
         }
         return
@@ -930,13 +850,10 @@ export function ReferenceTransformToolbar() {
     activeMode,
     activeObjectId,
     activeReferenceId,
-    beginContentObjectTransformEntry,
-    beginReferenceTransformEntry,
-    cancelActiveContentObjectTransformEntry,
-    cancelActiveReferenceTransformEntry,
+    beginActiveViewerTransformEntry,
+    cancelActiveViewerTransformEntry,
     entryActive,
-    exitContentObjectTransformShell,
-    exitReferenceTransformShell,
+    exitActiveViewerTransformShell,
   ])
 
   const updateTransformAxis = (
@@ -964,11 +881,7 @@ export function ReferenceTransformToolbar() {
         [axis]: value,
       }
     }
-    if (activeTargetKind === 'content-object') {
-      setActiveContentObjectTransformDraft(nextOverride)
-      return
-    }
-    setActiveReferenceTransformDraft(nextOverride)
+    setActiveViewerTransformDraft(nextOverride)
   }
 
   const beginToolbarDrag = (pointerId: number | null, startX: number, startY: number) => {
@@ -1143,16 +1056,10 @@ export function ReferenceTransformToolbar() {
   }
 
   const updateTransformSnapEnabled = (mode: ReferenceTransformSnapMode, enabled: boolean) => {
-    if (activeTargetKind === 'content-object') {
-      if (activeObjectId === null) {
-        return
-      }
-      setContentObjectTransformSnapEnabled(activeObjectId, mode, enabled)
-    } else if (activeReferenceId !== null) {
-      setReferenceTransformSnapEnabled(activeReferenceId, mode, enabled)
-    } else {
+    if (activeTarget === null) {
       return
     }
+    setViewerTransformSnapEnabled(activeTarget, mode, enabled)
     appendConsoleEntry({
       layer: 'Transforms',
       text: `${transformModeLabel(mode)} snap ${enabled ? 'enabled' : 'disabled'}`,
@@ -1162,16 +1069,10 @@ export function ReferenceTransformToolbar() {
   }
 
   const updateTransformSnapValue = (mode: ReferenceTransformSnapMode, value: number) => {
-    if (activeTargetKind === 'content-object') {
-      if (activeObjectId === null) {
-        return
-      }
-      setContentObjectTransformSnapValue(activeObjectId, mode, value)
-    } else if (activeReferenceId !== null) {
-      setReferenceTransformSnapValue(activeReferenceId, mode, value)
-    } else {
+    if (activeTarget === null) {
       return
     }
+    setViewerTransformSnapValue(activeTarget, mode, value)
     appendConsoleEntry({
       layer: 'Transforms',
       text: `${transformModeLabel(mode)} snap value: ${formatSnapValue(value)}`,
@@ -1185,16 +1086,10 @@ export function ReferenceTransformToolbar() {
     axis: ReferenceTransformSnapAxis,
     value: number,
   ) => {
-    if (activeTargetKind === 'content-object') {
-      if (activeObjectId === null) {
-        return
-      }
-      setContentObjectTransformSnapAxisValue(activeObjectId, mode, axis, value)
-    } else if (activeReferenceId !== null) {
-      setReferenceTransformSnapAxisValue(activeReferenceId, mode, axis, value)
-    } else {
+    if (activeTarget === null) {
       return
     }
+    setViewerTransformSnapAxisValue(activeTarget, mode, axis, value)
     appendConsoleEntry({
       layer: 'Transforms',
       text: `${transformModeLabel(mode)} ${axis.toUpperCase()} snap value: ${formatSnapValue(value)}`,
@@ -1204,16 +1099,10 @@ export function ReferenceTransformToolbar() {
   }
 
   const updateTransformSnapLocked = (mode: ReferenceTransformSnapMode, locked: boolean) => {
-    if (activeTargetKind === 'content-object') {
-      if (activeObjectId === null) {
-        return
-      }
-      setContentObjectTransformSnapLocked(activeObjectId, mode, locked)
-    } else if (activeReferenceId !== null) {
-      setReferenceTransformSnapLocked(activeReferenceId, mode, locked)
-    } else {
+    if (activeTarget === null) {
       return
     }
+    setViewerTransformSnapLocked(activeTarget, mode, locked)
     appendConsoleEntry({
       layer: 'Transforms',
       text: `${transformModeLabel(mode)} snap XYZ ${locked ? 'locked' : 'unlocked'}`,
@@ -1681,7 +1570,7 @@ export function ReferenceTransformToolbar() {
               if (activeTargetKind === 'content-object') {
                 getViewer()?.cancelReferenceTransformDrag()
                 getViewer()?.clearReferenceTransformHandle()
-                exitContentObjectTransformShell()
+                exitActiveViewerTransformShell()
                 return
               }
               requestReferenceTransformShellExit('toolbar-close')
@@ -1911,11 +1800,7 @@ export function ReferenceTransformToolbar() {
               className={`ReferenceTransformToolbarButton ${activeSpace === 'local' ? 'isActive' : ''}`}
               onClick={() => {
                 const nextSpace = activeSpace === 'local' ? 'world' : 'local'
-                if (activeTargetKind === 'content-object') {
-                  setActiveContentObjectTransformSpace(nextSpace)
-                  return
-                }
-                setActiveReferenceTransformSpace(nextSpace)
+                setActiveViewerTransformSpace(nextSpace)
               }}
               aria-pressed={activeSpace === 'local'}
             >
@@ -1932,15 +1817,10 @@ export function ReferenceTransformToolbar() {
               type="button"
               className="ReferenceTransformToolbarButton ReferenceTransformToolbarButton--pushRight"
               onClick={() => {
-                if (activeTargetKind === 'content-object') {
-                  if (activeObjectId !== null) {
-                    resetContentObjectTransform(activeObjectId)
-                  }
+                if (activeTarget === null) {
                   return
                 }
-                if (activeReferenceId !== null) {
-                  resetReferenceTransform(activeReferenceId)
-                }
+                resetViewerTransform(activeTarget)
               }}
             >
               Reset Transform
@@ -1971,12 +1851,8 @@ export function ReferenceTransformToolbar() {
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    if (activeTargetKind === 'content-object') {
-                      if (activeObjectId !== null) {
-                        mergeContentObjectTransformHistory(activeObjectId)
-                      }
-                    } else if (activeReferenceId !== null) {
-                      mergeReferenceTransformHistory(activeReferenceId)
+                    if (activeTarget !== null) {
+                      mergeViewerTransformHistory(activeTarget)
                     }
                   }}
                 >
@@ -1993,13 +1869,7 @@ export function ReferenceTransformToolbar() {
                     min={0}
                     max={Math.max(latestHistoryScrubIndex, 0)}
                     step={1}
-                    onChange={(value) => {
-                      if (activeTargetKind === 'content-object') {
-                        setActiveContentObjectTransformHistoryScrubIndex(value)
-                        return
-                      }
-                      setActiveReferenceTransformHistoryScrubIndex(value)
-                    }}
+                    onChange={setActiveViewerTransformHistoryScrubIndex}
                     displayLabel="Entry"
                     displayValue={`${activeHistoryScrubIndex} / ${latestHistoryScrubIndex}`}
                   />
@@ -2013,13 +1883,7 @@ export function ReferenceTransformToolbar() {
                     type="button"
                     className="ReferenceTransformToolbarHistoryEntryButton"
                     aria-pressed={activeHistoryScrubIndex === 0}
-                    onClick={() => {
-                      if (activeTargetKind === 'content-object') {
-                        setActiveContentObjectTransformHistoryScrubIndex(0)
-                        return
-                      }
-                      setActiveReferenceTransformHistoryScrubIndex(0)
-                    }}
+                    onClick={() => setActiveViewerTransformHistoryScrubIndex(0)}
                   >
                     <span className="ReferenceTransformToolbarHistoryLabel">Origin</span>
                   </button>
@@ -2078,13 +1942,9 @@ export function ReferenceTransformToolbar() {
                                     className="ReferenceTransformToolbarHistoryEntryButton"
                                     aria-label={`Jump to Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
                                     aria-pressed={isScrubbedEntry}
-                                    onClick={() => {
-                                      if (activeTargetKind === 'content-object') {
-                                        setActiveContentObjectTransformHistoryScrubIndex(entryScrubIndex)
-                                        return
-                                      }
-                                      setActiveReferenceTransformHistoryScrubIndex(entryScrubIndex)
-                                    }}
+                                    onClick={() =>
+                                      setActiveViewerTransformHistoryScrubIndex(entryScrubIndex)
+                                    }
                                   >
                                     <span className="ReferenceTransformToolbarHistoryLabel">
                                       {formatHistoryEntryTitle(entry, historyIndex)}
@@ -2102,22 +1962,10 @@ export function ReferenceTransformToolbar() {
                                       aria-pressed={entry.locked}
                                       title={entry.locked ? 'Unlock entry' : 'Lock entry'}
                                       onClick={() => {
-                                        if (activeTargetKind === 'content-object') {
-                                        if (activeObjectId !== null) {
-                                          toggleContentObjectTransformHistoryLock(
-                                            activeObjectId,
-                                            entry.entryId,
-                                          )
+                                        if (activeTarget !== null) {
+                                          toggleViewerTransformHistoryLock(activeTarget, entry.entryId)
                                         }
-                                        return
-                                      }
-                                      if (activeReferenceId !== null) {
-                                        toggleReferenceTransformHistoryLock(
-                                          activeReferenceId,
-                                          entry.entryId,
-                                        )
-                                      }
-                                    }}
+                                      }}
                                   >
                                       <HistoryLockIcon locked={entry.locked} />
                                     </button>
@@ -2127,22 +1975,10 @@ export function ReferenceTransformToolbar() {
                                       aria-label={`Delete Transform ${sessionGroup.sessionOrdinal} entry ${historyIndex + 1}`}
                                       title="Delete entry"
                                       onClick={() => {
-                                        if (activeTargetKind === 'content-object') {
-                                        if (activeObjectId !== null) {
-                                          deleteContentObjectTransformHistoryEntry(
-                                            activeObjectId,
-                                            entry.entryId,
-                                          )
+                                        if (activeTarget !== null) {
+                                          deleteViewerTransformHistoryEntry(activeTarget, entry.entryId)
                                         }
-                                        return
-                                      }
-                                      if (activeReferenceId !== null) {
-                                        deleteReferenceTransformHistoryEntry(
-                                          activeReferenceId,
-                                          entry.entryId,
-                                        )
-                                      }
-                                    }}
+                                      }}
                                   >
                                       x
                                     </button>
@@ -2164,25 +2000,15 @@ export function ReferenceTransformToolbar() {
                                       if (isFutureEntry) {
                                         return
                                       }
-                                      if (activeTargetKind === 'content-object') {
-                                        if (activeObjectId !== null) {
-                                          setContentObjectTransformHistoryEntryDeltaValue(
-                                            activeObjectId,
-                                            entry.entryId,
-                                            axis,
-                                            value,
-                                          )
-                                        }
+                                      if (activeTarget === null) {
                                         return
                                       }
-                                      if (activeReferenceId !== null) {
-                                        setReferenceTransformHistoryEntryDeltaValue(
-                                          activeReferenceId,
-                                          entry.entryId,
-                                          axis,
-                                          value,
-                                        )
-                                      }
+                                      setViewerTransformHistoryEntryDeltaValue(
+                                        activeTarget,
+                                        entry.entryId,
+                                        axis,
+                                        value,
+                                      )
                                     }}
                                     formatValue={(_axis, value) => formatHistoryDeltaValue(value)}
                                     displayValue={(_axis, value) => formatHistoryDeltaValue(value)}

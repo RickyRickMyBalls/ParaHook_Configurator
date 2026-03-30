@@ -6,6 +6,7 @@ import type {
   BrowserGraphTreeRowVm,
   BrowserGraphNodeTreeRowVm,
   BrowserObjectTreeRowVm,
+  BrowserPartTreeRowVm,
   BrowserReferenceItemTreeRowVm,
   BrowserSketchTreeRowVm,
 } from './selectBrowserTreeRows'
@@ -15,10 +16,19 @@ const { activateGraphDocumentIntentMock, activateGraphNodeIntentMock } = vi.hois
   activateGraphDocumentIntentMock: vi.fn(() => ({ editorViewportId: 'editor-viewport-1' })),
   activateGraphNodeIntentMock: vi.fn(() => ({ editorViewportId: 'editor-viewport-1' })),
 }))
+const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
+  viewerFrameSelectionSetMock: vi.fn(),
+}))
 
 vi.mock('../store/workspaceIntents', () => ({
   activateGraphDocumentIntent: activateGraphDocumentIntentMock,
   activateGraphNodeIntent: activateGraphNodeIntentMock,
+}))
+
+vi.mock('../viewerBridge', () => ({
+  getViewer: () => ({
+    frameSelectionSet: viewerFrameSelectionSetMock,
+  }),
 }))
 
 const graphDocument = {
@@ -253,6 +263,7 @@ describe('createBrowserRowInteractionHandlers', () => {
     activateGraphNodeIntentMock.mockReset()
     activateGraphDocumentIntentMock.mockReturnValue({ editorViewportId: 'editor-viewport-1' })
     activateGraphNodeIntentMock.mockReturnValue({ editorViewportId: 'editor-viewport-1' })
+    viewerFrameSelectionSetMock.mockReset()
   })
 
   it('clears Browser selection and requests console sync for empty-body deselect', () => {
@@ -445,6 +456,42 @@ describe('createBrowserRowInteractionHandlers', () => {
     )
   })
 
+  it('routes object-row double select into the model viewer instead of the authoring graph', () => {
+    const row = objectRow('object-1', 'Pedal Body')
+    const deps = createDeps()
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleDoubleSelectBrowserRow(row)
+
+    expect(viewerFrameSelectionSetMock).toHaveBeenCalledWith(['part:object-1'], [])
+    expect(activateGraphDocumentIntentMock).not.toHaveBeenCalled()
+    expect(activateGraphNodeIntentMock).not.toHaveBeenCalled()
+  })
+
+  it('frames imported-reference object rows by their reference id when double-clicked', () => {
+    const row: BrowserObjectTreeRowVm = {
+      ...objectRow('reference-item-row:shoe-1', 'Shoe 1'),
+      visibilityPartKeys: [],
+      highlightViewerKey: null,
+      contentOriginKind: 'imported-reference',
+      referenceId: 'shoe-1',
+      sourceGraphDocumentId: null,
+      sourceOutputEntryId: null,
+      slotId: null,
+      sourceNodeId: null,
+      authoringGraphDocumentId: null,
+      authoringNodeId: null,
+    }
+    const deps = createDeps()
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleDoubleSelectBrowserRow(row)
+
+    expect(viewerFrameSelectionSetMock).toHaveBeenCalledWith([], ['shoe-1'])
+    expect(activateGraphDocumentIntentMock).not.toHaveBeenCalled()
+    expect(activateGraphNodeIntentMock).not.toHaveBeenCalled()
+  })
+
   it('dispatches expand toggles to the family-specific ownership seam', () => {
     const graphDocumentRow = graphRow()
     const categoryRow: BrowserComponentTreeRowVm = {
@@ -473,15 +520,34 @@ describe('createBrowserRowInteractionHandlers', () => {
     const nextReferenceRow = referenceItemRow()
     const nextSketchRow = sketchRow()
     const nextObjectRow = objectRow('object-1', 'Pedal Body')
+    const nextPartRow: BrowserPartTreeRowVm = {
+      rowId: 'part-row:1',
+      rowKind: 'part' as const,
+      depth: 2,
+      treeGuides: ['none', 'vertical', 'elbow'],
+      iconLabel: 'P',
+      label: 'Part 1',
+      meta: '',
+      isVisible: true,
+      visibilityPartKeys: ['part:object-1:1'],
+      isSelected: false,
+      isExpandable: false,
+      isExpanded: false,
+      actions: [],
+      partKey: 'part:object-1:1',
+      parentReferenceId: 'reference-1',
+    }
     const deps = createDeps()
     const handlers = createBrowserRowInteractionHandlers(deps)
 
     handlers.handleToggleReferenceVisibility(nextReferenceRow)
     handlers.handleToggleSketchVisibility(nextSketchRow)
     handlers.handleToggleContentVisibility(nextObjectRow)
+    handlers.handleToggleContentVisibility(nextPartRow)
 
     expect(deps.toggleReferenceItemVisibility).toHaveBeenCalledWith('shoe-1')
     expect(deps.toggleSketchVisibility).toHaveBeenCalledWith(nextSketchRow.rowId)
     expect(deps.setPartVisibility).toHaveBeenCalledWith('part:object-1', false)
+    expect(deps.setPartVisibility).toHaveBeenCalledWith('part:object-1:1', false)
   })
 })

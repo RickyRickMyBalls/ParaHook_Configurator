@@ -4434,7 +4434,6 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Selected target: Object 1')).toBe(true)
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Object 1')).toBe(true)
     expect(
       useConsoleStore
         .getState()
@@ -4445,11 +4444,22 @@ describe('ConsoleDock', () => {
     ).toBe(true)
     expect(useConsoleStore.getState().inputText).toBe('ViewTransform')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Content > Object 1 > Choose next',
+      'Select > Content > Assembly 1 > Component 1 > Object 1 > Choose next',
     )
   })
 
-  it('enters object-local zoom from a browser-selected object and backs out to object scope', async () => {
+  it('commits object-local zoom directly from a browser-selected object', async () => {
+    const viewerFrameSelected = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: viewerFrameSelected,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -4460,11 +4470,33 @@ describe('ConsoleDock', () => {
         ...state,
         projectContent: {
           ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
           objectsById: {
             'object-1': {
               objectId: 'object-1',
               ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
+              parentComponentId: 'component-1',
               objectSourceKind: 'published-object',
               sourceGraphDocumentId: 'graph-document-1',
               sourceOutputEntryId: 'output-entry-1',
@@ -4506,29 +4538,15 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
-    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content > Object 1 > Zoom')).toBe(true)
     expect(
-      useConsoleStore.getState().entries.some(
-        (entry) =>
-          entry.text === 'Select > Content > Object 1 > Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
-      ),
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Select > Content > Assembly 1 > Component 1 > Object 1 > Zoom'),
     ).toBe(true)
-    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Content > Object 1 > Zoom > Choose next',
-    )
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('Back')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
+    expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Content > Object 1 > Choose next',
+      'Select > Content > Assembly 1 > Component 1 > Object 1 > Choose next',
     )
   })
 
@@ -4736,7 +4754,18 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
-  it('enters reference-local zoom from a selected reference and backs out to reference scope', async () => {
+  it('commits reference-local zoom directly from a selected reference', async () => {
+    const viewerFrameReference = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameReference: viewerFrameReference,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -4761,37 +4790,19 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceZoomRoot')
     expect(
       useConsoleStore
         .getState()
         .entries.some((entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom'),
     ).toBe(true)
-    expect(
-      useConsoleStore.getState().entries.some(
-        (entry) =>
-          entry.text === 'Select > References > Shoes > Shoe 1 > Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
-      ),
-    ).toBe(true)
-    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > References > Shoes > Shoe 1 > Zoom > Choose next',
-    )
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('Back')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
+    expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1')
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > References > Shoes > Shoe 1 > Choose next',
     )
   })
 
-  it('frames a selected reference from reference-local z > o', async () => {
+  it('frames a selected reference from reference-local z', async () => {
     const viewerFrameReference = vi.fn()
     setViewer({
       frameAll: vi.fn(),
@@ -4827,17 +4838,9 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    await act(async () => {
-      useConsoleStore.getState().setInputText('Object')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
     expect(
       useConsoleStore.getState().entries.some(
-        (entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom > Object',
+        (entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom',
       ),
     ).toBe(true)
     expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1')
@@ -4903,11 +4906,33 @@ describe('ConsoleDock', () => {
         ...state,
         projectContent: {
           ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
           objectsById: {
             'object-1': {
               objectId: 'object-1',
               ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
+              parentComponentId: 'component-1',
               objectSourceKind: 'published-object',
               sourceGraphDocumentId: 'graph-document-1',
               sourceOutputEntryId: 'output-entry-1',
@@ -4974,7 +4999,19 @@ describe('ConsoleDock', () => {
     )
   })
 
-  it('enters multi-select zoom from explicit object selection and backs out to multi-select scope', async () => {
+  it('commits multi-select zoom directly from explicit object selection', async () => {
+    const viewerFrameSelectionSet = vi.fn(() => true)
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: vi.fn(),
+      frameSelectionSet: viewerFrameSelectionSet,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -4985,11 +5022,33 @@ describe('ConsoleDock', () => {
         ...state,
         projectContent: {
           ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
           objectsById: {
             'object-1': {
               objectId: 'object-1',
               ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
+              parentComponentId: 'component-1',
               objectSourceKind: 'published-object',
               sourceGraphDocumentId: 'graph-document-1',
               sourceOutputEntryId: 'output-entry-1',
@@ -5054,29 +5113,15 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectZoomRoot')
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Multi-Select > [Object 1, Object 2] > Zoom')).toBe(true)
-    expect(
-      useConsoleStore.getState().entries.some(
-        (entry) => entry.text === 'Zoom > Choose next [All, Extents, Previous, Window, Object, Back]',
-      ),
-    ).toBe(true)
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('Back')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['slot-a', 'slot-b'], [])
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Multi-Select > [Object 1, Object 2] > Choose next',
     )
   })
 
-  it('frames the explicit multi-selection from multi-select z > o', async () => {
+  it('frames the explicit multi-selection from multi-select z', async () => {
     const viewerFrameSelectionSet = vi.fn(() => true)
     setViewer({
       frameAll: vi.fn(),
@@ -5099,11 +5144,33 @@ describe('ConsoleDock', () => {
         ...state,
         projectContent: {
           ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
           objectsById: {
             'object-1': {
               objectId: 'object-1',
               ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
+              parentComponentId: 'component-1',
               objectSourceKind: 'published-object',
               sourceGraphDocumentId: 'graph-document-1',
               sourceOutputEntryId: 'output-entry-1',
@@ -5162,14 +5229,6 @@ describe('ConsoleDock', () => {
 
     await act(async () => {
       useConsoleStore.getState().setInputText('z')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('Object')
     })
 
     await act(async () => {
@@ -5862,6 +5921,82 @@ describe('ConsoleDock', () => {
     expect(
       useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
     ).toEqual(['Move', 'Rotate', 'Scale', 'Snap', 'Settings', 'Back'])
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted latest transform entry'),
+    ).toBe(true)
+  })
+
+  it('keeps DeleteLatest available across transform re-entry for references', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: {
+            ...state.referenceWorkspace.visibilityById,
+            'shoe:shoe-1': true,
+          },
+          loadStateById: {
+            ...state.referenceWorkspace.loadStateById,
+            'shoe:shoe-1': 'loaded',
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useAppStore.getState().beginReferenceTransformEntry('translate')
+      useAppStore.getState().setActiveReferenceTransformDraft({
+        position: { x: 4, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      useAppStore.getState().commitActiveReferenceTransformEntry()
+      useAppStore.getState().exitReferenceTransformShell()
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {})
+
+    expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
+    })
+
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
+    ).toContain('DeleteLatest')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('delete')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByReferenceId['shoe:shoe-1'] ?? [],
+    ).toHaveLength(0)
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted latest transform entry'),
     ).toBe(true)
@@ -9131,11 +9266,33 @@ describe('ConsoleDock', () => {
         ...state,
         projectContent: {
           ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
           objectsById: {
             'object-1': {
               objectId: 'object-1',
               ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
+              parentComponentId: 'component-1',
               objectSourceKind: 'published-object',
               sourceGraphDocumentId: 'graph-document-1',
               sourceOutputEntryId: 'output-entry-1',
@@ -9189,13 +9346,8 @@ describe('ConsoleDock', () => {
     expect(
       useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession?.objectId,
     ).toBe('object-1')
-    expect(
-      useConsoleStore.getState().entries.some(
-        (entry) => entry.text === 'Select > Content > Object 1 > Viewer Transform > Move',
-      ),
-    ).toBe(true)
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Content > Object 1 > Viewer Transform > Choose next',
+      'Select > Content > Assembly 1 > Component 1 > Object 1 > Viewer Transform > Choose next',
     )
   })
 
@@ -9203,18 +9355,45 @@ describe('ConsoleDock', () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
+    const openGraphDocumentInViewport = vi.fn(() => 'editor-viewport-transform')
 
     await act(async () => {
+      useSpaghettiStore.setState((state) => ({
+        ...state,
+        openGraphDocumentInViewport,
+      }))
       root?.render(<ConsoleDock />)
       useAppStore.setState((state) => ({
         ...state,
         projectContent: {
           ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
           objectsById: {
             'object-1': {
               objectId: 'object-1',
               ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
+              parentComponentId: 'component-1',
               objectSourceKind: 'published-object',
               sourceGraphDocumentId: 'graph-document-1',
               sourceOutputEntryId: 'output-entry-1',
@@ -9248,11 +9427,361 @@ describe('ConsoleDock', () => {
       useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession?.objectId,
     ).toBe('object-1')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Content > Object 1 > Viewer Transform > Choose next',
+      'Select > Content > Assembly 1 > Component 1 > Object 1 > Viewer Transform > Choose next',
+    )
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text ===
+          'Select > Content > Assembly 1 > Component 1 > Object 1 > Viewer Transform > Choose next [Move, Rotate, Scale, Snap, Settings, Back]',
+      ),
+    ).toBe(true)
+    expect(openGraphDocumentInViewport).not.toHaveBeenCalled()
+  })
+
+  it('cycles generated object Transform root to Rotate on tab', async () => {
+    const viewerSetContentObjectTransformSession = vi.fn()
+    setViewer({
+      setContentObjectTransformSession: viewerSetContentObjectTransformSession,
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-1',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().setActiveSurface('viewer')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession,
+    ).toMatchObject({
+      objectId: 'object-1',
+      mode: 'rotate',
+      entryActive: true,
+    })
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(container?.querySelector('.ConsoleBarSummary')?.textContent ?? '').toContain(
+      'Select > Content > Assembly 1 > Component 1 > Object 1 > Viewer Transform > Choose next',
+    )
+    expect(viewerSetContentObjectTransformSession).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        objectId: 'object-1',
+        mode: 'rotate',
+        space:
+          useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession?.space,
+      }),
     )
   })
 
+  it('shows DeleteLatest at the object transform root after the first committed entry and deletes it', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-1',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().selectPart('slot-a')
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useAppStore.getState().beginContentObjectTransformEntry('translate')
+      useAppStore.getState().setActiveContentObjectTransformDraft({
+        position: { x: 4, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      useAppStore.getState().commitActiveContentObjectTransformEntry()
+    })
+
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
+    ).toContain('DeleteLatest')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('delete')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().entries.slice(-6).map((entry) => entry.text)).toContain(
+      'Deleted latest transform entry',
+    )
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByObjectId['object-1'] ?? [],
+    ).toHaveLength(0)
+    expect(
+      useAppStore.getState().referenceWorkspace.contentObjectTransformOverrideById['object-1'] ?? {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    ).toMatchObject(
+      {
+        position: { x: 0, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectTransformRoot')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
+    ).toEqual(['Move', 'Rotate', 'Scale', 'Snap', 'Settings', 'Back'])
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted latest transform entry'),
+    ).toBe(true)
+  })
+
+  it('keeps DeleteLatest available across transform re-entry for content objects and confirms cross-session deletion', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              parentAssemblyId: 'assembly-root:project-file-1',
+              childObjectIds: ['object-1'],
+            },
+          },
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-1',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().selectPart('slot-a')
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+      useConsoleStore.getState().setInputText('transform')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useAppStore.getState().beginContentObjectTransformEntry('translate')
+      useAppStore.getState().setActiveContentObjectTransformDraft({
+        position: { x: 4, y: 0, z: 0 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      })
+      useAppStore.getState().commitActiveContentObjectTransformEntry()
+    })
+
+    await act(async () => {
+      useAppStore.getState().exitContentObjectTransformShell()
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {})
+
+    expect(useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession).toBeNull()
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('transform')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label) ?? [],
+    ).toContain('DeleteLatest')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('delete')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().consolePromptSession?.kind).toBe('transform.delete-latest.confirm')
+    expect(useConsoleStore.getState().inputText).toBe('yes')
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text ===
+          'Delete latest will remove an entry from the previous transform. Are you sure?',
+      ),
+    ).toBe(true)
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.transformHistoryByObjectId['object-1'] ?? [],
+    ).toHaveLength(0)
+    expect(useConsoleStore.getState().consolePromptSession).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted latest transform entry'),
+    ).toBe(true)
+  })
+
   it('uses the same object-local zoom branch for viewer-driven target sync as browser selection', async () => {
+    const viewerFrameSelected = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: viewerFrameSelected,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -9297,13 +9826,14 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Select > Content > Object 1 > Zoom > Choose next',
+      'Select > Content > Object 1 > Choose next',
     )
   })
 
-  it('frames a browser-selected object from object-local z > o even when selectedPartKey is null', async () => {
+  it('frames a browser-selected object from object-local z even when selectedPartKey is null', async () => {
     const viewerFrameSelected = vi.fn()
     setViewer({
       frameAll: vi.fn(),
@@ -9372,17 +9902,9 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    await act(async () => {
-      useConsoleStore.getState().setInputText('Object')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
     expect(
       useConsoleStore.getState().entries.some(
-        (entry) => entry.text === 'Select > Content > Object 1 > Zoom > Object',
+        (entry) => entry.text === 'Select > Content > Object 1 > Zoom',
       ),
     ).toBe(true)
     expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
@@ -9395,74 +9917,6 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Content > Object 1 > Choose next',
     )
-  })
-
-  it('returns to object scope after object-local z > w arms zoom window', async () => {
-    const viewerSetConsoleCameraMode = vi.fn()
-    setViewer({
-      frameAll: vi.fn(),
-      frameExtents: vi.fn(),
-      frameGeometrySketch: vi.fn(),
-      framePrevious: vi.fn(),
-      frameSelected: vi.fn(),
-      frameReference: vi.fn(),
-      setConsoleCameraMode: viewerSetConsoleCameraMode,
-    } as any)
-
-    container = document.createElement('div')
-    document.body.appendChild(container)
-    root = createRoot(container)
-
-    await act(async () => {
-      root?.render(<ConsoleDock />)
-      useAppStore.setState((state) => ({
-        ...state,
-        projectContent: {
-          ...state.projectContent,
-          objectsById: {
-            'object-1': {
-              objectId: 'object-1',
-              ownerGraphDocumentId: 'graph-document-1',
-              parentComponentId: null,
-              objectSourceKind: 'published-object',
-              sourceGraphDocumentId: 'graph-document-1',
-              sourceOutputEntryId: 'output-entry-1',
-              sourceNodeId: 'node-output-1',
-              slotId: 'slot-a',
-              label: 'Object 1',
-              resolutionState: 'resolved',
-            },
-          },
-        },
-      }))
-      useAppStore.getState().setWorkspaceSelectedTarget({
-        kind: 'object',
-        objectId: 'object-1',
-      })
-      useAppStore.getState().setActiveSurface('browser')
-      useAppStore.getState().requestConsoleContextSync('target-selection')
-    })
-
-    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('z')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
-    await act(async () => {
-      useConsoleStore.getState().setInputText('w')
-    })
-
-    await act(async () => {
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    })
-
-    expect(viewerSetConsoleCameraMode).toHaveBeenCalledWith('zoom-window')
-    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
   })
 
   it('updates the object-selected console session when viewer sync changes to a different object in the same graph', async () => {

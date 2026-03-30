@@ -26,6 +26,7 @@ import {
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { getTypeColor } from '../spaghetti/canvas/typeColors'
+import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 import type {
   ConsoleBackgroundColorMode,
   ConsoleBackgroundFillMode,
@@ -420,7 +421,12 @@ const getOverlayToolPreset = ({
   return 'custom'
 }
 
-export function ViewportOverlay() {
+type ViewportOverlayProps = {
+  viewportId?: WorkspaceViewportId
+}
+
+export function ViewportOverlay(props: ViewportOverlayProps = {}) {
+  const { viewportId } = props
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const axisWidgetRef = useRef<HTMLDivElement | null>(null)
   const overlayRootRef = useRef<HTMLDivElement | null>(null)
@@ -2246,7 +2252,11 @@ export function ViewportOverlay() {
 
 
   return (
-    <div ref={overlayRootRef} className="ViewportOverlayRoot">
+    <div
+      ref={overlayRootRef}
+      className="ViewportOverlayRoot"
+      data-workspace-viewport-id={viewportId}
+    >
       <ReferenceTransformToolbar />
       {axisOverlayEnabled ? (
         <div

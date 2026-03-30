@@ -3,7 +3,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
@@ -35,6 +34,7 @@ import {
   useAppStore,
 } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import {
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
@@ -83,8 +83,10 @@ import {
 } from './useConsoleStore'
 import type { ConsoleAssistDescriptor, ConsoleFloatingRect } from './consoleTypes'
 import {
+  buildContentTransformRootChoices,
   buildReferenceTransformRootChoices,
   cancelConsoleStagedNavigationSession,
+  createContentObjectTransformRootSession,
   createConsoleRootSession,
   createReferenceTransformRootSessionForTarget,
   createSketchDrawZoomRootSession,
@@ -113,6 +115,13 @@ const FLOATING_MIN_HEIGHT = 220
 const FLOATING_VIEWPORT_MARGIN = 12
 const POPOUT_WINDOW_FEATURES =
   'popup=yes,width=1080,height=720,resizable=yes,scrollbars=no'
+const CONSOLE_POPOUT_SPEC = {
+  childWindowId: 'console-surface-popout',
+  owner: 'child-window' as const,
+  windowName: 'parahook-console',
+  windowTitle: 'ParaHook Console',
+  windowFeatures: POPOUT_WINDOW_FEATURES,
+}
 
 type ConsoleDockProps = {
   listLeftOffset?: number
@@ -237,22 +246,6 @@ const clampFloatingRect = (
     width,
     height,
   }
-}
-
-const copyDocumentStyles = (sourceDocument: Document, targetDocument: Document) => {
-  const existing = targetDocument.querySelector('[data-console-popout-styles="true"]')
-  if (existing !== null) {
-    return
-  }
-  const fragment = targetDocument.createDocumentFragment()
-  Array.from(sourceDocument.querySelectorAll('link[rel="stylesheet"], style')).forEach((node) => {
-    const clone = node.cloneNode(true)
-    if (clone instanceof HTMLElement) {
-      clone.setAttribute('data-console-popout-styles', 'true')
-    }
-    fragment.appendChild(clone)
-  })
-  targetDocument.head.appendChild(fragment)
 }
 
 const parseConsoleCommand = (
@@ -719,6 +712,21 @@ const getStagedScopeLabel = (session: ConsoleStagedNavigationSession | null): st
     case 'contentObjectSelected':
       return 'Content'
     case 'contentObjectTransformRoot':
+    case 'contentObjectTransformSettingsRoot':
+    case 'contentObjectTransformSpaceRoot':
+    case 'contentObjectTransformSnapRoot':
+    case 'contentObjectTransformMoveSnapRoot':
+    case 'contentObjectTransformRotateSnapRoot':
+    case 'contentObjectTransformScaleSnapRoot':
+    case 'contentObjectTransformMoveSnapXRoot':
+    case 'contentObjectTransformMoveSnapYRoot':
+    case 'contentObjectTransformMoveSnapZRoot':
+    case 'contentObjectTransformRotateSnapXRoot':
+    case 'contentObjectTransformRotateSnapYRoot':
+    case 'contentObjectTransformRotateSnapZRoot':
+    case 'contentObjectTransformScaleSnapXRoot':
+    case 'contentObjectTransformScaleSnapYRoot':
+    case 'contentObjectTransformScaleSnapZRoot':
       return formatStagedBreadcrumb(session.breadcrumb)
     case 'contentObjectZoomRoot':
       return formatStagedBreadcrumb(session.breadcrumb)
@@ -759,7 +767,10 @@ const buildStagedPromptText = (
   if (
     session?.scopeId === 'referenceTransformMoveSnapRoot' ||
     session?.scopeId === 'referenceTransformRotateSnapRoot' ||
-    session?.scopeId === 'referenceTransformScaleSnapRoot'
+    session?.scopeId === 'referenceTransformScaleSnapRoot' ||
+    session?.scopeId === 'contentObjectTransformMoveSnapRoot' ||
+    session?.scopeId === 'contentObjectTransformRotateSnapRoot' ||
+    session?.scopeId === 'contentObjectTransformScaleSnapRoot'
   ) {
     const choiceSummary = formatStagedChoiceSummary(choices)
     return `${scopeLabel} > Enter value [${choiceSummary}]`
@@ -793,6 +804,9 @@ const buildConsolePromptSessionText = (
     return `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Choose next [${buildReferenceTransformAxisPromptChoices(
       promptSession,
     ).join(', ')}]`
+  }
+  if (promptSession.kind === 'transform.delete-latest.confirm') {
+    return `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Are you sure? [${promptSession.prefill}]`
   }
   return `${formatStagedBreadcrumb(promptSession.breadcrumb)} > Enter value [${promptSession.prefill}]`
 }
@@ -953,6 +967,23 @@ const isReferenceTransformSnapScope = (
   scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
 ): boolean => getReferenceTransformSnapScopeMode(scopeId) !== null || scopeId === 'referenceTransformSnapRoot'
 
+const isContentObjectTransformSnapScope = (
+  scopeId: ConsoleStagedNavigationSession['scopeId'] | null | undefined,
+): boolean =>
+  scopeId === 'contentObjectTransformSnapRoot' ||
+  scopeId === 'contentObjectTransformMoveSnapRoot' ||
+  scopeId === 'contentObjectTransformRotateSnapRoot' ||
+  scopeId === 'contentObjectTransformScaleSnapRoot' ||
+  scopeId === 'contentObjectTransformMoveSnapXRoot' ||
+  scopeId === 'contentObjectTransformMoveSnapYRoot' ||
+  scopeId === 'contentObjectTransformMoveSnapZRoot' ||
+  scopeId === 'contentObjectTransformRotateSnapXRoot' ||
+  scopeId === 'contentObjectTransformRotateSnapYRoot' ||
+  scopeId === 'contentObjectTransformRotateSnapZRoot' ||
+  scopeId === 'contentObjectTransformScaleSnapXRoot' ||
+  scopeId === 'contentObjectTransformScaleSnapYRoot' ||
+  scopeId === 'contentObjectTransformScaleSnapZRoot'
+
 const isValueAlignedToStep = (value: number, step: number): boolean => {
   if (!Number.isFinite(step) || step <= 0) {
     return true
@@ -1042,8 +1073,7 @@ const buildStagedNavigationContextFromStoreState = (
 ) => {
   const appState = useAppStore.getState()
   const referenceTree = selectReferenceWorkspaceBrowserTree(appState)
-  return (
-  createConsoleStagedNavigationContext(
+  return createConsoleStagedNavigationContext(
     selectOrderedGraphDocuments(spaghettiState).map((document) => ({
       graphDocumentId: document.graphDocumentId,
       name: document.name,
@@ -1107,6 +1137,11 @@ const buildStagedNavigationContextFromStoreState = (
       : {
           [appState.referenceWorkspace.activeReferenceTransformSession.referenceId]: {
             activeSessionId: appState.referenceWorkspace.activeReferenceTransformSession.sessionId,
+            totalCommittedEntryCount: (
+              appState.referenceWorkspace.transformHistoryByReferenceId[
+                appState.referenceWorkspace.activeReferenceTransformSession.referenceId
+              ] ?? []
+            ).length,
             activeSessionCommittedEntryCount: (
               appState.referenceWorkspace.transformHistoryByReferenceId[
                 appState.referenceWorkspace.activeReferenceTransformSession.referenceId
@@ -1141,7 +1176,51 @@ const buildStagedNavigationContextFromStoreState = (
         ],
       ),
     ),
-  )
+    Object.fromEntries(
+      Object.entries(appState.referenceWorkspace.transformSnapByObjectId).map(
+        ([objectId, snapState]) => [
+          objectId,
+          {
+            translate: snapState.translate.xyzLocked,
+            rotate: snapState.rotate.xyzLocked,
+            scale: snapState.scale.xyzLocked,
+          },
+        ],
+      ),
+    ),
+    Object.fromEntries(
+      Object.entries(appState.referenceWorkspace.transformSnapByObjectId).map(
+        ([objectId, snapState]) => [
+          objectId,
+          {
+            translate: snapState.translate.enabled,
+            rotate: snapState.rotate.enabled,
+            scale: snapState.scale.enabled,
+          },
+        ],
+      ),
+    ),
+    appState.referenceWorkspace.activeContentObjectTransformSession === null
+      ? {}
+      : {
+          [appState.referenceWorkspace.activeContentObjectTransformSession.objectId]: {
+            activeSessionId: appState.referenceWorkspace.activeContentObjectTransformSession.sessionId,
+            totalCommittedEntryCount: (
+              appState.referenceWorkspace.transformHistoryByObjectId[
+                appState.referenceWorkspace.activeContentObjectTransformSession.objectId
+              ] ?? []
+            ).length,
+            activeSessionCommittedEntryCount: (
+              appState.referenceWorkspace.transformHistoryByObjectId[
+                appState.referenceWorkspace.activeContentObjectTransformSession.objectId
+              ] ?? []
+            ).filter(
+              (entry) =>
+                entry.sessionId ===
+                appState.referenceWorkspace.activeContentObjectTransformSession?.sessionId,
+            ).length,
+          },
+        },
   )
 }
 
@@ -1220,11 +1299,9 @@ const buildDefaultCreatedSketchPosition = (graph: SpaghettiGraph): GraphNodePos 
 export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const dockRef = useRef<HTMLDivElement | null>(null)
   const floatingWindowRef = useRef<HTMLDivElement | null>(null)
-  const popoutWindowRef = useRef<Window | null>(null)
   const dockedInputRef = useRef<HTMLInputElement | null>(null)
   const floatingInputRef = useRef<HTMLInputElement | null>(null)
   const popoutInputRef = useRef<HTMLInputElement | null>(null)
-  const suppressPopoutCloseRef = useRef(false)
   const suppressAutoCaptureRef = useRef(false)
   const graphRootEditorRevealRestoreRef = useRef<GraphRootEditorRevealRestore | null>(null)
   const rootGuidedOptOutRef = useRef(false)
@@ -1235,7 +1312,6 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
   >(null)
   const previousSketchDrawIdleRef = useRef(false)
-  const [popoutHost, setPopoutHost] = useState<HTMLElement | null>(null)
   const appendEscUserEntry = useCallback(() => {
     appendConsoleEntry({
       layer: 'Commands',
@@ -1333,14 +1409,37 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     ) {
       return
     }
-    const activeTransformSession = referenceWorkspace.activeReferenceTransformSession
-    const activeSessionCommittedEntryCount =
-      activeTransformSession?.referenceId === stagedNavigationSession.selections.referenceId
-        ? (
-            referenceWorkspace.transformHistoryByReferenceId[activeTransformSession.referenceId] ?? []
-          ).filter((entry) => entry.sessionId === activeTransformSession.sessionId).length
-        : 0
-    const nextChoices = buildReferenceTransformRootChoices(activeSessionCommittedEntryCount > 0)
+    const totalCommittedEntryCount =
+      referenceWorkspace.transformHistoryByReferenceId[
+        stagedNavigationSession.selections.referenceId
+      ]?.length ?? 0
+    const nextChoices = buildReferenceTransformRootChoices(totalCommittedEntryCount > 0)
+    const currentChoiceTokens = stagedNavigationSession.validChoices.map((choice) => choice.canonicalToken)
+    const nextChoiceTokens = nextChoices.map((choice) => choice.canonicalToken)
+    const choicesChanged =
+      currentChoiceTokens.length !== nextChoiceTokens.length ||
+      currentChoiceTokens.some((token, index) => token !== nextChoiceTokens[index])
+    if (!choicesChanged) {
+      return
+    }
+    setStagedNavigationSession({
+      ...stagedNavigationSession,
+      validChoices: nextChoices,
+    })
+  }, [referenceWorkspace, setStagedNavigationSession, stagedNavigationSession])
+
+  useEffect(() => {
+    if (
+      stagedNavigationSession?.scopeId !== 'contentObjectTransformRoot' ||
+      typeof stagedNavigationSession.selections.contentObjectId !== 'string'
+    ) {
+      return
+    }
+    const totalCommittedEntryCount =
+      referenceWorkspace.transformHistoryByObjectId[
+        stagedNavigationSession.selections.contentObjectId
+      ]?.length ?? 0
+    const nextChoices = buildContentTransformRootChoices(totalCommittedEntryCount > 0)
     const currentChoiceTokens = stagedNavigationSession.validChoices.map((choice) => choice.canonicalToken)
     const nextChoiceTokens = nextChoices.map((choice) => choice.canonicalToken)
     const choicesChanged =
@@ -1393,6 +1492,24 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   const focusPopoutConsoleInput = useCallback(() => {
     popoutInputRef.current?.focus()
   }, [])
+
+  const handleConsolePopoutBlocked = useCallback(() => {
+    appendConsoleEntry({
+      layer: 'Diagnostics',
+      text: 'Console pop-out was blocked by the browser',
+      source: 'console',
+      severity: 'warn',
+    })
+    switchToDocked(false)
+  }, [switchToDocked])
+
+  const { childWindow: popoutWindow, host: popoutHost } = useWorkspaceChildWindow({
+    isOpen: windowMode === 'popout',
+    spec: CONSOLE_POPOUT_SPEC,
+    rootClassName: 'ConsolePopoutRoot',
+    onBlocked: handleConsolePopoutBlocked,
+    onClosed: handlePopoutWindowClosed,
+  })
 
   const enterGuidedRootSession = useCallback((options?: { appendPrompt?: boolean }) => {
     rootGuidedOptOutRef.current = false
@@ -1574,6 +1691,83 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     )
   }, [])
 
+  const createActiveContentObjectTransformRootSession = useCallback((objectId: string) => {
+    const appState = useAppStore.getState()
+    const objectRecord = appState.projectContent.objectsById[objectId] ?? null
+    const hasCommittedEntriesInHistory =
+      (appState.referenceWorkspace.transformHistoryByObjectId[objectId] ?? []).length > 0
+    const breadcrumbLabels = (() => {
+      if (objectRecord === null) {
+        return ['Object']
+      }
+      const labels = [objectRecord.label]
+      let nextComponentId = objectRecord.parentComponentId
+      let nextAssemblyId = objectRecord.parentAssemblyId ?? null
+
+      while (nextComponentId !== null) {
+        const currentComponentId = nextComponentId
+        const componentRecord = appState.projectContent.componentsById[currentComponentId] ?? null
+        labels.unshift(componentRecord?.label ?? currentComponentId)
+        nextAssemblyId =
+          componentRecord?.parentAssemblyId ??
+          nextAssemblyId ??
+          Object.values(appState.projectContent.assembliesById).find((assembly) =>
+            assembly.childRowIds.includes(currentComponentId),
+          )?.assemblyId ??
+          null
+        nextComponentId = null
+      }
+
+      while (nextAssemblyId !== null) {
+        const assemblyRecord = appState.projectContent.assembliesById[nextAssemblyId] ?? null
+        labels.unshift(assemblyRecord?.label ?? nextAssemblyId)
+        nextAssemblyId = assemblyRecord?.parentAssemblyId ?? null
+      }
+
+      return labels
+    })()
+    return createContentObjectTransformRootSession(
+      breadcrumbLabels,
+      objectRecord?.sourceGraphDocumentId ?? objectRecord?.ownerGraphDocumentId ?? null,
+      objectId,
+      hasCommittedEntriesInHistory,
+    )
+  }, [])
+
+  const createDeleteLatestTransformConfirmPromptSession = useCallback((
+    target:
+      | { kind: 'reference'; referenceId: string }
+      | { kind: 'content-object'; objectId: string },
+    returnSession: ConsoleStagedNavigationSession,
+  ): ConsolePromptSession => ({
+    kind: 'transform.delete-latest.confirm',
+    breadcrumb: [...returnSession.breadcrumb, 'DeleteLatest'],
+    label: 'Are you sure?',
+    prefill: 'yes',
+    returnSession,
+    target,
+  }), [])
+
+  const deleteLatestReferenceTransformEntry = useCallback((referenceId: string) => {
+    const appState = useAppStore.getState()
+    const currentEntries = appState.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
+    const latestEntry = currentEntries.at(-1) ?? null
+    if (latestEntry !== null) {
+      appState.deleteReferenceTransformHistoryEntry(referenceId, latestEntry.entryId)
+    }
+    return latestEntry
+  }, [])
+
+  const deleteLatestContentObjectTransformEntry = useCallback((objectId: string) => {
+    const appState = useAppStore.getState()
+    const currentEntries = appState.referenceWorkspace.transformHistoryByObjectId[objectId] ?? []
+    const latestEntry = currentEntries.at(-1) ?? null
+    if (latestEntry !== null) {
+      appState.deleteContentObjectTransformHistoryEntry(objectId, latestEntry.entryId)
+    }
+    return latestEntry
+  }, [])
+
   const createActiveReferenceTransformSnapSession = useCallback((
     referenceId: string,
     mode: ReferenceTransformSnapMode,
@@ -1592,6 +1786,25 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     const modeResult = submitConsoleStagedNavigationToken(snapResult.session, modeToken, context)
     return modeResult.kind === 'advance' ? modeResult.session : null
   }, [createActiveReferenceTransformRootSession])
+
+  const createActiveContentObjectTransformSnapSession = useCallback((
+    objectId: string,
+    mode: ReferenceTransformSnapMode,
+  ) => {
+    const context = buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState())
+    const rootSession = createActiveContentObjectTransformRootSession(objectId)
+    const settingsResult = submitConsoleStagedNavigationToken(rootSession, 'settings', context)
+    if (settingsResult.kind !== 'advance') {
+      return null
+    }
+    const snapResult = submitConsoleStagedNavigationToken(settingsResult.session, 'snap', context)
+    if (snapResult.kind !== 'advance') {
+      return null
+    }
+    const modeToken = mode === 'translate' ? 'move' : mode === 'rotate' ? 'rotate' : 'scale'
+    const modeResult = submitConsoleStagedNavigationToken(snapResult.session, modeToken, context)
+    return modeResult.kind === 'advance' ? modeResult.session : null
+  }, [createActiveContentObjectTransformRootSession])
 
   const closeReferenceTransformPromptToModeRoot = useCallback(() => {
     const appState = useAppStore.getState()
@@ -2037,6 +2250,16 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       }
     }
     if (
+      activeContentObjectSession?.entryActive === true &&
+      (activeSession?.scopeId === 'contentObjectTransformSettingsRoot' ||
+        activeSession?.scopeId === 'contentObjectTransformSpaceRoot' ||
+        isContentObjectTransformSnapScope(activeSession?.scopeId))
+    ) {
+      if (stepActiveStagedNavigationSessionOneLevel()) {
+        return
+      }
+    }
+    if (
       activeReferenceSession?.entryActive === true
     ) {
       cancelActiveReferenceTransformSession()
@@ -2387,6 +2610,42 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     transitionReferenceTransformAxisPrompt,
   ])
 
+  const cycleActiveContentObjectTransformModeWithTab = useCallback(() => {
+    const appState = useAppStore.getState()
+    const activeSession = appState.referenceWorkspace.activeContentObjectTransformSession
+    const stagedSession = useConsoleStore.getState().stagedNavigationSession
+    if (activeSession === null || stagedSession?.scopeId !== 'contentObjectTransformRoot') {
+      return false
+    }
+    const nextMode =
+      activeSession.mode === 'translate'
+        ? 'rotate'
+        : activeSession.mode === 'rotate'
+          ? 'scale'
+          : 'translate'
+    appState.beginContentObjectTransformEntry(nextMode)
+    const nextSession = useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession
+    useConsoleStore.getState().clearConsolePromptSession()
+    getViewer()?.setContentObjectTransformSession?.({
+      objectId: activeSession.objectId,
+      mode: nextMode,
+      space: activeSession.space,
+      entryOrigin: nextSession?.entryOrigin ?? null,
+    })
+    if (nextMode === 'rotate') {
+      getViewer()?.activateRotateCenterHandle?.()
+    } else if (nextMode === 'scale') {
+      getViewer()?.activateScaleCenterHandle?.()
+    } else {
+      getViewer()?.activateTranslateCenterHandle?.()
+    }
+    setStagedNavigationSession(createActiveContentObjectTransformRootSession(activeSession.objectId))
+    return true
+  }, [
+    createActiveContentObjectTransformRootSession,
+    setStagedNavigationSession,
+  ])
+
   const handleSubmitCommand = useCallback(
     (inputText: string) => {
       const trimmedInput = inputText.trim().toLowerCase()
@@ -2397,9 +2656,119 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
 
       if (activePromptSession !== null) {
         const rawToken = inputText.trim()
+        const normalizedPromptToken = normalizeRadioCommandIdentity(rawToken)
+
+        if (activePromptSession.kind === 'transform.delete-latest.confirm') {
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${rawToken}`,
+          })
+          pushCommandHistory(rawToken)
+          if (
+            normalizedPromptToken === 'YES' ||
+            normalizedPromptToken === 'Y' ||
+            normalizedPromptToken === 'CONFIRM'
+          ) {
+            if (activePromptSession.target.kind === 'reference') {
+              const latestEntry = deleteLatestReferenceTransformEntry(
+                activePromptSession.target.referenceId,
+              )
+              const nextTransformRootSession = createActiveReferenceTransformRootSession(
+                activePromptSession.target.referenceId,
+              )
+              setStagedNavigationSession(nextTransformRootSession)
+              useConsoleStore.getState().clearConsolePromptSession()
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text:
+                  latestEntry === null
+                    ? 'Delete latest skipped: no committed transform entry'
+                    : 'Deleted latest transform entry',
+                source: 'console',
+                severity: latestEntry === null ? 'warn' : 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  nextTransformRootSession,
+                  nextTransformRootSession.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+              return
+            }
+
+            const latestEntry = deleteLatestContentObjectTransformEntry(
+              activePromptSession.target.objectId,
+            )
+            const nextTransformRootSession = createActiveContentObjectTransformRootSession(
+              activePromptSession.target.objectId,
+            )
+            setStagedNavigationSession(nextTransformRootSession)
+            useConsoleStore.getState().clearConsolePromptSession()
+            appendConsoleEntry({
+              layer: 'Transforms',
+              text:
+                latestEntry === null
+                  ? 'Delete latest skipped: no committed transform entry'
+                  : 'Deleted latest transform entry',
+              source: 'console',
+              severity: latestEntry === null ? 'warn' : 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(
+                nextTransformRootSession,
+                nextTransformRootSession.validChoices,
+              ),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+
+          if (
+            normalizedPromptToken === 'NO' ||
+            normalizedPromptToken === 'N' ||
+            normalizedPromptToken === 'BACK' ||
+            normalizedPromptToken === 'B' ||
+            normalizedPromptToken === 'ESC' ||
+            normalizedPromptToken === 'CANCEL'
+          ) {
+            useConsoleStore.getState().clearConsolePromptSession()
+            setStagedNavigationSession(activePromptSession.returnSession)
+            appendConsoleEntry({
+              layer: 'Transforms',
+              text: 'Delete latest cancelled',
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(
+                activePromptSession.returnSession,
+                activePromptSession.returnSession.validChoices,
+              ),
+              source: 'console',
+              severity: 'info',
+            })
+            return
+          }
+
+          appendConsoleEntry({
+            layer: 'Commands',
+            text: buildConsolePromptSessionText(activePromptSession),
+            source: 'console',
+            severity: 'info',
+          })
+          useConsoleStore.getState().setInputText(rawToken)
+          return
+        }
 
         if (activePromptSession.kind === 'reference-transform.axis') {
-          const normalizedReferenceToken = normalizeRadioCommandIdentity(rawToken)
+          const normalizedReferenceToken = normalizedPromptToken
           if (normalizedReferenceToken === 'L' || normalizedReferenceToken === 'LOCAL') {
             applyReferenceTransformSpaceShortcut('local', rawToken, {
               closePromptToModeRoot: true,
@@ -2567,7 +2936,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         }
 
         if (activePromptSession.kind === 'reference-transform.plane') {
-          const normalizedReferenceToken = normalizeRadioCommandIdentity(rawToken)
+          const normalizedReferenceToken = normalizedPromptToken
           if (normalizedReferenceToken === 'L' || normalizedReferenceToken === 'LOCAL') {
             applyReferenceTransformSpaceShortcut('local', rawToken, {
               closePromptToModeRoot: true,
@@ -3061,10 +3430,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           stagedContext,
         )
         if (stagedResult.kind === 'advance') {
-          const isObjectLocalZoomNavigation =
+          const isObjectLocalViewerNavigation =
             (activeStagedSession?.scopeId === 'contentObjectSelected' &&
-              stagedResult.session.scopeId === 'contentObjectZoomRoot') ||
-            (activeStagedSession?.scopeId === 'contentObjectZoomRoot' &&
+              (stagedResult.session.scopeId === 'contentObjectZoomRoot' ||
+                stagedResult.session.scopeId === 'contentObjectTransformRoot')) ||
+            ((activeStagedSession?.scopeId === 'contentObjectZoomRoot' ||
+              activeStagedSession?.scopeId === 'contentObjectTransformRoot') &&
               stagedResult.session.scopeId === 'contentObjectSelected')
           const commandIdentity = resolveConsoleRadioCommandIdentity({
             kind: 'stagedAdvance',
@@ -3179,7 +3550,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
           if (
             activeStagedSession?.selections.selectedNodeId !== null &&
             stagedResult.selections.selectedNodeId === null &&
-            !isObjectLocalZoomNavigation &&
+            !isObjectLocalViewerNavigation &&
             stagedResult.selections.graphDocumentId !== null
           ) {
             selectTargetIntent(buildWorkspaceIntentDepsFromStoreState(), {
@@ -3188,7 +3559,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
             })
           } else if (
             stagedResult.selections.selectedNodeId !== null &&
-            !isObjectLocalZoomNavigation &&
+            !isObjectLocalViewerNavigation &&
             stagedResult.selections.graphDocumentId !== null
           ) {
             activateGraphNodeIntent(
@@ -3200,7 +3571,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               },
             )
           } else if (stagedResult.selections.graphDocumentId !== null) {
-            if (!isObjectLocalZoomNavigation) {
+            if (!isObjectLocalViewerNavigation) {
               activateGraphDocumentIntent(
                 buildWorkspaceIntentDepsFromStoreState(),
                 stagedResult.selections.graphDocumentId,
@@ -3823,7 +4194,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   stagedResult.session.selections.referenceZoomIds ?? [],
                 )
               }
-              if (stagedResult.session.scopeId === 'multiSelectZoomRoot') {
+              if (
+                stagedResult.session.scopeId === 'multiSelectZoomRoot' ||
+                stagedResult.session.scopeId === 'multiSelectSelected'
+              ) {
                 const selectionSet = resolveSelectionSetForZoom()
                 return frameSelectionSetCommand(selectionSet.partKeys, selectionSet.referenceIds)
               }
@@ -4059,14 +4433,22 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               stagedResult.actionId === 'content.selectAll' ||
               stagedResult.actionId === 'content.transform.move' ||
               stagedResult.actionId === 'content.transform.rotate' ||
-              stagedResult.actionId === 'content.transform.scale') &&
+              stagedResult.actionId === 'content.transform.scale' ||
+              stagedResult.actionId === 'content.transform.deleteLatest' ||
+              stagedResult.actionId === 'content.transform.space.local' ||
+              stagedResult.actionId === 'content.transform.space.world' ||
+              stagedResult.actionId.startsWith('content.transform.snap.')) &&
             (stagedResult.actionId === 'reference.loadAll' ||
               stagedResult.actionId === 'reference.category.loadAll' ||
               typeof stagedResult.selections.referenceId === 'string' ||
               stagedResult.actionId === 'content.selectAll' ||
               stagedResult.actionId === 'content.transform.move' ||
               stagedResult.actionId === 'content.transform.rotate' ||
-              stagedResult.actionId === 'content.transform.scale')
+              stagedResult.actionId === 'content.transform.scale' ||
+              stagedResult.actionId === 'content.transform.deleteLatest' ||
+              stagedResult.actionId === 'content.transform.space.local' ||
+              stagedResult.actionId === 'content.transform.space.world' ||
+              stagedResult.actionId.startsWith('content.transform.snap.'))
           ) {
             const appState = useAppStore.getState()
             setStagedNavigationSession(stagedResult.session)
@@ -4128,22 +4510,46 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
               return
             } else if (stagedResult.actionId === 'reference.transform.deleteLatest') {
               const referenceId = stagedResult.selections.referenceId as string
-              const latestEntry = (
-                appState.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []
-              ).at(-1) ?? null
-              if (latestEntry !== null) {
-                appState.deleteReferenceTransformHistoryEntry(referenceId, latestEntry.entryId)
+              const activeSession = appState.referenceWorkspace.activeReferenceTransformSession
+              const latestEntry =
+                (appState.referenceWorkspace.transformHistoryByReferenceId[referenceId] ?? []).at(-1) ??
+                null
+              const shouldConfirmDeleteLatest =
+                latestEntry !== null &&
+                activeSession?.referenceId === referenceId &&
+                latestEntry.sessionId !== activeSession.sessionId
+              if (shouldConfirmDeleteLatest) {
+                const promptSession = createDeleteLatestTransformConfirmPromptSession(
+                  { kind: 'reference', referenceId },
+                  stagedResult.session,
+                )
+                setConsolePromptSession(promptSession)
+                appendConsoleEntry({
+                  layer: 'Transforms',
+                  text: 'Delete latest will remove an entry from the previous transform. Are you sure?',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildConsolePromptSessionText(promptSession),
+                  source: 'console',
+                  severity: 'info',
+                })
+                requestRadioBurst(commandIdentity, 'enter')
+                return
               }
+              const deletedEntry = deleteLatestReferenceTransformEntry(referenceId)
               const nextTransformRootSession = createActiveReferenceTransformRootSession(referenceId)
               setStagedNavigationSession(nextTransformRootSession)
               appendConsoleEntry({
                 layer: 'Transforms',
                 text:
-                  latestEntry === null
+                  deletedEntry === null
                     ? 'Delete latest skipped: no committed transform entry'
                     : 'Deleted latest transform entry',
                 source: 'console',
-                severity: latestEntry === null ? 'warn' : 'info',
+                severity: deletedEntry === null ? 'warn' : 'info',
               })
               appendConsoleEntry({
                 layer: 'Commands',
@@ -4322,6 +4728,194 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
                   })
                 }
               }
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            } else if (
+              stagedResult.actionId === 'content.transform.space.local' ||
+              stagedResult.actionId === 'content.transform.space.world'
+            ) {
+              const activeSession = appState.referenceWorkspace.activeContentObjectTransformSession
+              const objectId = activeSession?.objectId ?? stagedResult.selections.contentObjectId ?? null
+              if (objectId === null) {
+                appendConsoleEntry({
+                  layer: 'Transforms',
+                  text: 'Viewer Transform space requires an active content object transform session',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                requestRadioBurst(commandIdentity, 'enter')
+                return
+              }
+              const nextSpace =
+                stagedResult.actionId === 'content.transform.space.world' ? 'world' : 'local'
+              const alreadyApplied = activeSession?.space === nextSpace
+              if (!alreadyApplied) {
+                appState.setActiveContentObjectTransformSpace(nextSpace)
+              }
+              const nextTransformRootSession = createActiveContentObjectTransformRootSession(objectId)
+              setStagedNavigationSession(nextTransformRootSession)
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text: `Space: ${nextSpace === 'local' ? 'Local' : 'World'}${
+                  alreadyApplied ? ' already applied' : ' applied'
+                }`,
+                source: 'console',
+                severity: 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  nextTransformRootSession,
+                  nextTransformRootSession.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            } else if (stagedResult.actionId.startsWith('content.transform.snap.')) {
+              const activeSession = appState.referenceWorkspace.activeContentObjectTransformSession
+              const objectId = activeSession?.objectId ?? stagedResult.selections.contentObjectId ?? null
+              if (objectId === null) {
+                appendConsoleEntry({
+                  layer: 'Transforms',
+                  text: 'Viewer Transform snap requires an active content object transform session',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                requestRadioBurst(commandIdentity, 'enter')
+                return
+              }
+              const snapMode =
+                stagedResult.actionId.includes('.translate.')
+                  ? 'translate'
+                  : stagedResult.actionId.includes('.rotate.')
+                    ? 'rotate'
+                    : 'scale'
+              const isModeValueAction =
+                stagedResult.actionId === `content.transform.snap.${snapMode}.value`
+              const snapAxis = stagedResult.actionId.endsWith('.x.value')
+                ? 'x'
+                : stagedResult.actionId.endsWith('.y.value')
+                  ? 'y'
+                  : stagedResult.actionId.endsWith('.z.value')
+                    ? 'z'
+                    : null
+              const isAxisValueAction = snapAxis !== null
+              const isOnAction = stagedResult.actionId.endsWith('.on')
+              const isLockAction = stagedResult.actionId.endsWith('.lock')
+              const isUnlockAction = stagedResult.actionId.endsWith('.unlock')
+              const numericValue = parseConsoleSignedFloatLiteral(rawToken)
+              const nextSession =
+                activeSession?.entryActive === true
+                  ? createActiveContentObjectTransformSnapSession(objectId, snapMode)
+                  : createActiveContentObjectTransformRootSession(objectId)
+              if (isModeValueAction && numericValue !== null) {
+                appState.setContentObjectTransformSnapValue(objectId, snapMode, numericValue)
+              } else if (isAxisValueAction && numericValue !== null) {
+                appState.setContentObjectTransformSnapAxisValue(objectId, snapMode, snapAxis, numericValue)
+              } else if (isLockAction || isUnlockAction) {
+                appState.setContentObjectTransformSnapLocked(objectId, snapMode, isLockAction)
+              } else {
+                appState.setContentObjectTransformSnapEnabled(objectId, snapMode, isOnAction)
+              }
+              if (nextSession !== null) {
+                setStagedNavigationSession(nextSession)
+              }
+              const nextSnapState =
+                useAppStore.getState().referenceWorkspace.transformSnapByObjectId[objectId] ??
+                DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+              const modeLabel = getReferenceTransformSnapModeLabel(snapMode)
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text: isModeValueAction
+                  ? `${modeLabel} snap value: ${formatReferenceTransformSnapValue(
+                      getReferenceTransformSnapDriverValue(nextSnapState[snapMode]),
+                    )}`
+                  : isAxisValueAction
+                    ? `${modeLabel} ${getReferenceTransformSnapAxisLabel(snapAxis)} snap value: ${formatReferenceTransformSnapValue(
+                        getReferenceTransformSnapAxisValue(nextSnapState[snapMode], snapAxis),
+                      )}`
+                    : isLockAction || isUnlockAction
+                      ? `${modeLabel} snap XYZ: ${isLockAction ? 'Locked' : 'Unlocked'}`
+                      : `${modeLabel} snap: ${isOnAction ? 'On' : 'Off'}`,
+                source: 'console',
+                severity: 'info',
+              })
+              if (nextSession !== null) {
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildStagedPromptText(nextSession, nextSession.validChoices),
+                  source: 'console',
+                  severity: 'info',
+                })
+              }
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            } else if (stagedResult.actionId === 'content.transform.deleteLatest') {
+              const latestAppState = useAppStore.getState()
+              const activeSession =
+                latestAppState.referenceWorkspace.activeContentObjectTransformSession
+              const objectId = activeSession?.objectId ?? stagedResult.selections.contentObjectId ?? null
+              if (objectId === null) {
+                appendConsoleEntry({
+                  layer: 'Transforms',
+                  text: 'Delete latest requires an active content object transform session',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                requestRadioBurst(commandIdentity, 'enter')
+                return
+              }
+              const currentEntries =
+                latestAppState.referenceWorkspace.transformHistoryByObjectId[objectId] ?? []
+              const latestEntry = currentEntries.at(-1) ?? null
+              const shouldConfirmDeleteLatest =
+                latestEntry !== null &&
+                activeSession?.objectId === objectId &&
+                latestEntry.sessionId !== activeSession.sessionId
+              if (shouldConfirmDeleteLatest) {
+                const promptSession = createDeleteLatestTransformConfirmPromptSession(
+                  { kind: 'content-object', objectId },
+                  stagedResult.session,
+                )
+                setConsolePromptSession(promptSession)
+                appendConsoleEntry({
+                  layer: 'Transforms',
+                  text: 'Delete latest will remove an entry from the previous transform. Are you sure?',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                appendConsoleEntry({
+                  layer: 'Commands',
+                  text: buildConsolePromptSessionText(promptSession),
+                  source: 'console',
+                  severity: 'info',
+                })
+                requestRadioBurst(commandIdentity, 'enter')
+                return
+              }
+              const deletedEntry = deleteLatestContentObjectTransformEntry(objectId)
+              const nextTransformRootSession = createActiveContentObjectTransformRootSession(objectId)
+              setStagedNavigationSession(nextTransformRootSession)
+              appendConsoleEntry({
+                layer: 'Transforms',
+                text:
+                  deletedEntry === null
+                    ? 'Delete latest skipped: no committed transform entry'
+                    : 'Deleted latest transform entry',
+                source: 'console',
+                severity: deletedEntry === null ? 'warn' : 'info',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(
+                  nextTransformRootSession,
+                  nextTransformRootSession.validChoices,
+                ),
+                source: 'console',
+                severity: 'info',
+              })
               requestRadioBurst(commandIdentity, 'enter')
               return
             } else if (stagedResult.actionId === 'content.selectAll') {
@@ -5760,7 +6354,12 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       cancelActiveReferenceTransformSession,
       clearStagedNavigationSession,
       commitActiveReferenceTransformFromConsole,
+      createActiveContentObjectTransformRootSession,
+      createActiveReferenceTransformRootSession,
+      createDeleteLatestTransformConfirmPromptSession,
       createMissingGraphNodeInGraphDocument,
+      deleteLatestContentObjectTransformEntry,
+      deleteLatestReferenceTransformEntry,
       dispatchImmediateShortcut,
       enterGuidedRootSession,
       featureAssistDescriptor,
@@ -5772,6 +6371,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
       resolveSelectionSetForZoom,
       resolveSelectedObjectPartKeyForZoom,
       resolveSelectedReferenceIdForZoom,
+      setConsolePromptSession,
       setStagedNavigationSession,
       trackRadioCommandIdentity,
       transitionReferenceTransformAxisPrompt,
@@ -6095,75 +6695,6 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   }, [floatingRect, setFloatingRect, windowMode])
 
   useEffect(() => {
-    if (windowMode !== 'popout') {
-      if (popoutWindowRef.current !== null) {
-        suppressPopoutCloseRef.current = true
-        popoutWindowRef.current.close()
-        popoutWindowRef.current = null
-        setPopoutHost(null)
-      }
-      return
-    }
-
-    let popup = popoutWindowRef.current
-    if (popup === null || popup.closed) {
-      popup = window.open('', 'parahook-console', POPOUT_WINDOW_FEATURES)
-      if (popup === null) {
-        appendConsoleEntry({
-          layer: 'Diagnostics',
-          text: 'Console pop-out was blocked by the browser',
-          source: 'console',
-          severity: 'warn',
-        })
-        switchToDocked(false)
-        return
-      }
-      popoutWindowRef.current = popup
-      popup.document.title = 'ParaHook Console'
-      popup.document.body.innerHTML = ''
-      popup.document.body.style.margin = '0'
-      popup.document.body.style.background = 'rgb(5, 7, 11)'
-      popup.document.body.style.overflow = 'hidden'
-      copyDocumentStyles(document, popup.document)
-      const host = popup.document.createElement('div')
-      host.className = 'ConsolePopoutRoot'
-      popup.document.body.appendChild(host)
-      setPopoutHost(host)
-      const handleBeforeUnload = () => {
-        popoutWindowRef.current = null
-        setPopoutHost(null)
-        if (suppressPopoutCloseRef.current) {
-          suppressPopoutCloseRef.current = false
-          return
-        }
-        handlePopoutWindowClosed()
-      }
-      popup.addEventListener('beforeunload', handleBeforeUnload, { once: true })
-    } else {
-      popup.focus()
-      const host = popup.document.querySelector('.ConsolePopoutRoot')
-      if (host instanceof HTMLElement) {
-        setPopoutHost(host)
-      }
-    }
-
-    return () => {
-      if (windowMode !== 'popout') {
-        return
-      }
-    }
-  }, [handlePopoutWindowClosed, switchToDocked, windowMode])
-
-  useEffect(() => {
-    return () => {
-      if (popoutWindowRef.current !== null && !popoutWindowRef.current.closed) {
-        suppressPopoutCloseRef.current = true
-        popoutWindowRef.current.close()
-      }
-    }
-  }, [])
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
@@ -6183,7 +6714,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         !event.ctrlKey &&
         !event.altKey &&
         !event.metaKey &&
-        cycleActiveReferenceTransformModeWithTab()
+        (cycleActiveReferenceTransformModeWithTab() ||
+          cycleActiveContentObjectTransformModeWithTab())
       ) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -6279,6 +6811,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [
     cycleStagedChoiceWithRadioBurst,
+    cycleActiveContentObjectTransformModeWithTab,
     cycleActiveReferenceTransformModeWithTab,
     consolePromptSession,
     featureAssistDescriptor,
@@ -6292,7 +6825,6 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   ])
 
   useEffect(() => {
-    const popoutWindow = popoutWindowRef.current
     if (windowMode !== 'popout' || popoutWindow === null) {
       return
     }
@@ -6316,7 +6848,8 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         !event.ctrlKey &&
         !event.altKey &&
         !event.metaKey &&
-        cycleActiveReferenceTransformModeWithTab()
+        (cycleActiveReferenceTransformModeWithTab() ||
+          cycleActiveContentObjectTransformModeWithTab())
       ) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -6412,6 +6945,7 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
     }
   }, [
     cycleStagedChoiceWithRadioBurst,
+    cycleActiveContentObjectTransformModeWithTab,
     cycleActiveReferenceTransformModeWithTab,
     consolePromptSession,
     featureAssistDescriptor,

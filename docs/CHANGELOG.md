@@ -65,6 +65,452 @@ Do not use it for:
 
 ## Doc Body
 
+### [739] - 2026-03-30 12:07 - `VR-SP - Workspace 5 - Edge-Driven Split Docking For Browser`
+<!-- ENTRY 739 -->
+HUMAN SUMMARY: `This extends the new edge-driven split-docking behavior to Browser, so the floating browser can dock into viewport split from any edge and a browser already living in viewport split can be dragged back out into a true floating window without instantly snapping back into its old split lane.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on Browser host drag and viewport-split behavior instead of widening into editor pop-out controls, multi-graph editor-surface work, or broader workspace-mode docs reshaping.
+- Preserved the existing docked, floating, popped-out, and persisted Browser shell ownership in the shared workspace seam while adding only the minimum split drag handoff needed to make Browser match spaghetti.
+- Verified the change with focused Browser host regressions, AppShell integration tests, and a full TypeScript build.
+#### What Changed
+- Extended the Browser shell workspace state and persistence seam so Browser can carry viewport-split truth through the same shared workspace owner that already handles docked, floating, and popped-out Browser behavior.
+- Reworked `src/app/hosts/BrowserDockHost.tsx` so dragging the docked browser now transitions cleanly into a floating drag session, then previews left-dock versus viewport-edge split targets without immediately snapping back into the source slot.
+- Added split-pane-aware drag handoff for Browser so a browser already docked into viewport split can detach back into a floating shell, with source-pane suppression preventing stale immediate re-dock and re-split during that first detach gesture.
+- Added Browser host regressions for right-edge split preview plus drop, clean detach from dock into floating, re-dock from floating, and dragging a viewport-split browser back out into a floating browser window.
+#### Behavior Changes
+- Dragging the floating Browser to the `top`, `right`, `bottom`, or `left` edge of the model viewport now enters viewport split on that matching side.
+- Dragging the docked Browser out by its titlebar now behaves like a real detach gesture instead of instantly re-docking because the pointer is still over the original dock slot.
+- Dragging a Browser that is already in viewport split back out by its titlebar now returns it to a floating browser window instead of snapping back into the same split lane on release.
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx src/app/AppShell.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [738] - 2026-03-30 11:47 - `VR-SP - Workspace 5 - Edge-Driven Split Docking For Spaghetti Editor`
+<!-- ENTRY 738 -->
+HUMAN SUMMARY: `This makes spaghetti split docking edge-driven instead of stale-state-driven by adding explicit split-side ownership, letting the floating editor dock into any viewport edge, and fixing the right-side plus stale-vertical-then-bottom drag cases so the resulting split matches the user gesture.` 
+#### Scope / Constraints Honored
+- Kept this cleanup focused on the spaghetti editor split-docking interaction instead of widening into new toolbar controls, detached editor browser-window hosting, or multi-graph editor-surface work.
+- Preserved the existing split ratio, divider, meatball dock, floating drag, and persistence seams while adding only the minimum new stored truth needed for honest side-driven split re-entry.
+- Verified the change with focused Spaghetti host tests, AppShell shell regressions, editor-store placement tests, and a full TypeScript build.
+#### What Changed
+- Added explicit `splitDockSide` ownership to the shared workspace/editor surface types and the spaghetti viewport schema, plus direction helpers so split-side truth survives workspace mirroring and persisted last-layout hydration.
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so editor placement now reads, writes, mirrors, and restores the new split-side state, and added a dedicated `setEditorViewportSplitDockSide(...)` path that also keeps split direction in sync.
+- Reworked `src/app/hosts/SpaghettiWindowHost.tsx` so floating drag now previews the nearest eligible viewport edge, docks back into split view on `top`, `right`, `bottom`, or `left`, and lets explicit meatball dock targets win over generic edge-split previews.
+- Updated split rendering and shell styling so the split layout can place the editor on any side of the model viewport, including matching ghost previews plus the needed top/left layout and border adjustments.
+- Refreshed `src/app/hosts/SpaghettiWindowHost.test.tsx`, `src/app/AppShell.test.tsx`, and `src/app/spaghetti/store/useSpaghettiStore.test.ts` with regressions for right-edge docking, bottom-edge override after an older vertical split, persistence hydration of split-side state, and the renamed generic split ghost.
+#### Behavior Changes
+- Dragging the floating spaghetti editor to any side of the model viewport now re-enters split view for that exact side.
+- Dragging to the right edge now creates a right-side vertical split instead of falling back to the older bottom-only behavior.
+- Re-entering split view from a drag now follows the latest edge gesture instead of snapping back to a stale stored split direction from an earlier split session.
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [737] - 2026-03-30 11:24 - `VR-SP - Workspace 5 - Shared Child-Window Host And Browser Pop-Out`
+<!-- ENTRY 737 -->
+HUMAN SUMMARY: `This lands the first `Workspace 5` slice by extracting the shared browser child-window host contract into `src/app/workspace/`, moving `ConsoleDock` onto that shared contract, and giving Browser a real single-owner browser-window pop-out path instead of only the older in-app docked versus floating proof.` 
+#### Scope / Constraints Honored
+- Kept this first `Workspace 5` cut focused on shared child-window host extraction plus Browser pop-out owner transfer instead of widening into detached Spaghetti editor windows, collaboration transport, or independent viewer runtimes.
+- Preserved the existing Browser docked/floating shell proof and the existing Console feature-local transcript/command behavior while extracting the named child-window, style-copy, portal-host, and close-handback contract into the shared workspace seam.
+- Kept the first persistence follow-through limited to Browser shell pop-out ownership inside the existing last-layout snapshot model and verified the cut with focused Browser/AppShell/Console tests plus a full TypeScript build.
+#### What Changed
+- Expanded `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/useWorkspaceStore.ts`, and `src/app/workspace/workspacePersistence.ts` so the shared workspace seam now understands Browser child-window pop-out ownership and persists that state beside the existing Browser shell placement records.
+- Added `src/app/workspace/useWorkspaceChildWindow.ts` as the shared browser-window host helper that owns named child-window open/focus behavior, stylesheet copying, stable portal-host creation, and clean close-handback into the main app.
+- Updated `src/app/console/ConsoleDock.tsx` so Console pop-out now uses the shared child-window host contract instead of carrying its own feature-local browser-window setup and teardown logic.
+- Updated `src/app/hosts/BrowserDockHost.tsx` and `src/app/panels/BrowserPanel.tsx` so Browser now supports true child-window pop-out ownership while still preserving the existing in-app floating/docked path and dock-drag behavior.
+- Updated `src/app/AppShell.tsx`, `src/app/hosts/BrowserDockHost.test.tsx`, `src/app/AppShell.test.tsx`, and the focused Browser mock/test seams so the new Browser pop-out owner-transfer flow, Browser floating regressions, and shared host reuse are all covered.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/console/ConsoleDock.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/AppShell.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [736] - 2026-03-30 10:12 - `VR-SP - Workspace 4 - Last Layout Persistence And Startup Hydration`
+<!-- ENTRY 736 -->
+HUMAN SUMMARY: `This lands the first `Workspace 4` slice by giving the shared workspace seam a real last-layout snapshot, hydrating that snapshot on startup, and persisting the main hybrid workspace state across restarts without making `useSpaghettiStore` the long-term persistence owner again.` 
+#### Scope / Constraints Honored
+- Kept this first `Workspace 4` cut focused on last-layout persistence and startup hydration instead of widening into named saved-layout UI, browser pop-out persistence, or multi-window workspace libraries.
+- Persisted the shared workspace seam under `src/app/workspace/` while keeping `useSpaghettiStore` only as a compatibility/session adapter that gets synced from the restored shared placement state on startup.
+- Verified the persistence flow with focused shell tests and a full TypeScript build.
+#### What Changed
+- Expanded `src/app/workspace/workspaceShellTypes.ts` with the canonical `PersistedWorkspaceLayout` shape plus shared shell types needed for a durable last-layout snapshot.
+- Added `src/app/workspace/workspacePersistence.ts` with serialization, normalization, local-storage read/write helpers, and the canonical storage key for the persisted workspace layout snapshot.
+- Updated `src/app/workspace/useWorkspaceStore.ts` so the shared workspace seam can hydrate itself from a persisted snapshot while keeping Browser shell, viewport host, and editor placement ownership centralized.
+- Updated `src/app/AppShell.tsx` so startup now reads the persisted workspace snapshot, hydrates the shared workspace seam, syncs restored editor placement back through the `useSpaghettiStore` compatibility bridge, and subscribes future workspace-store changes back into persisted last-layout storage.
+- Updated `src/app/AppShell.test.tsx` with regressions that prove a persisted snapshot hydrates on startup and that live workspace-store changes write the expected last-layout data back to storage.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [735] - 2026-03-30 09:52 - `VR-SP - Workspace 3 - First Viewport-Local Chrome Host`
+<!-- ENTRY 735 -->
+HUMAN SUMMARY: `This lands the first `Workspace 3` slice by giving the protected primary model viewport its own workspace-hosted chrome composition seam, moving the viewer, overlay, and view toolbar under one viewport-local host instead of leaving the toolbar and overlay mounted globally from AppShell.` 
+#### Scope / Constraints Honored
+- Kept this first `Workspace 3` cut focused on viewport-local chrome composition and ownership instead of widening into persistence, browser pop-out, or a multi-viewer-runtime rewrite.
+- Preserved the current singleton viewer runtime and the existing `ViewerHost`, `ViewToolbar`, and `ViewportOverlay` renderers while introducing a new viewport-local host seam around them.
+- Verified the host extraction with focused shell and overlay tests plus a full TypeScript build.
+#### What Changed
+- Expanded `src/app/workspace/workspaceShellTypes.ts` and `src/app/workspace/useWorkspaceStore.ts` with the first protected primary viewport identity and viewport-chrome owner records so the workspace seam now has a native place for viewport-local chrome ownership.
+- Added `src/app/workspace/ViewportWorkspaceHost.tsx` as the new viewport-local composition seam that owns the protected first viewport host, ensures its workspace chrome record exists, and mounts `ViewerHost`, `ViewportOverlay`, and `ViewToolbar` together under one viewport-owned shell.
+- Updated `src/app/AppShell.tsx` so the viewer surface now renders through `ViewportWorkspaceHost`, the global `ViewToolbar` mount is removed, and viewport-host pointer interaction counts as viewer-surface activation instead of outside-shell clearing.
+- Updated `src/app/components/ViewToolbar.tsx`, `src/app/components/ViewportOverlay.tsx`, and `src/app/theme/foundation/base.css` so the viewport-local chrome can carry a viewport identity and mount cleanly under the new host without changing its live behavior.
+- Updated `src/app/AppShell.test.tsx` with a regression that proves the viewer, overlay, and view toolbar now mount under one viewport-local workspace host, then re-ran the focused shell and overlay suites.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/components/ViewportOverlay.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [734] - 2026-03-30 08:16 - `VR-SP - Workspace 2 - Bottom Split Ghost Full-Width Preview`
+<!-- ENTRY 734 -->
+HUMAN SUMMARY: `This fixes the bottom split ghost for the spaghetti editor so the preview now spans the full viewport split target instead of looking artificially narrowed when left-dock/browser split state is active elsewhere in the shell.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow shell-preview cleanup on top of the current `Workspace 2` seam instead of widening into broader split-layout or host ownership changes.
+- Preserved the real bottom split target behavior and only removed the stale offset logic that made the ghost preview look narrower than the actual landing zone.
+- Added a focused shell regression and re-ran the relevant host tests plus the full TypeScript build.
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the bottom split dock ghost no longer carries the stale left-dock split offset class or width variable when previewing the spaghetti editor at the bottom edge of the viewport.
+- Updated `src/app/theme/foundation/base.css` to remove the old `ViewportBottomSplitDockGhost.isLeftDockShifted` rule because the ghost already renders inside the viewport coordinate space and should fill that space directly.
+- Added an `AppShell` regression in `src/app/AppShell.test.tsx` that proves the bottom split ghost stays full-width even when left-dock split is active.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [733] - 2026-03-30 08:10 - `VR-SP - Workspace 2 - Split Titlebar Drag Back To Floating`
+<!-- ENTRY 733 -->
+HUMAN SUMMARY: `This makes the spaghetti split-view titlebar behave more like Browser by allowing a normal drag gesture to pull the editor back out of split view and into the floating model-viewport window layer, instead of requiring a hidden Ctrl-drag path.` 
+#### Scope / Constraints Honored
+- Kept this as a small follow-on to the new `Workspace 2` placement seam instead of widening into broader hosted-surface or split-authoring changes.
+- Preserved the existing `Ctrl+click` detach shortcut while adding the more discoverable split-titlebar drag gesture the user expected.
+- Verified the new path with focused shell-host tests and a full TypeScript build.
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so split-titlebar drags now use a normal drag-intent threshold before detaching the editor out of split view and starting floating-window drag.
+- Preserved the existing `Ctrl`-modified detach path as a shortcut, but removed the modifier requirement for the normal split-titlebar drag gesture.
+- Added a regression in `src/app/hosts/SpaghettiWindowHost.test.tsx` that proves a plain drag on the split titlebar detaches the editor back to floating without `Ctrl`.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [732] - 2026-03-30 08:05 - `VR-SP - Workspace 2 - Shared Editor Placement Ownership`
+<!-- ENTRY 732 -->
+HUMAN SUMMARY: `This landed the first real Workspace 2 slice by moving spaghetti editor placement ownership onto the shared workspace seam, while keeping the existing shell hosts alive as adapters and preserving current floating, split, collapsed, and meatball behavior.` 
+#### Scope / Constraints Honored
+- Kept this `Workspace 2` cut focused on remaining editor placement ownership and first hosted-surface identity instead of widening into viewport-local chrome, persistence, or browser pop-out work.
+- Preserved the current `BrowserDockHost` and `SpaghettiWindowHost` renderer proofs while moving spaghetti window mode, rect memory, split state, and restore snapshots onto the shared workspace seam.
+- Added targeted coverage for workspace-store editor placement sync and re-ran the focused workspace shell suite plus the full TypeScript build.
+#### What Changed
+- Expanded `src/app/workspace/workspaceShellTypes.ts` with first hosted-surface identity and editor placement types, defaults, and presentation-mode mapping for the shared workspace seam.
+- Expanded `src/app/workspace/useWorkspaceStore.ts` so the shared workspace store now owns editor-surface placement records alongside the earlier Browser and left-dock shell state.
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so editor viewport placement setters now write through the shared workspace owner and mirror that placement back onto `EditorViewport` records for compatibility, while viewport creation and close flows register and remove shared editor-surface placement state.
+- Updated `src/app/AppShell.tsx` and `src/app/hosts/SpaghettiWindowHost.tsx` so split and floating editor rendering now reads active placement truth from the shared workspace seam instead of relying only on editor-local viewport fields.
+- Updated `src/app/spaghetti/store/useSpaghettiStore.test.ts`, `src/app/hosts/SpaghettiWindowHost.test.tsx`, and the existing shell tests so they reset the shared workspace store correctly and verify editor placement state now mirrors into the workspace seam.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/AppShell.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [731] - 2026-03-30 07:21 - `VR-SP - Workspace 1 - Floating Shell Boundary Parity`
+<!-- ENTRY 731 -->
+HUMAN SUMMARY: `This unified floating-window boundary behavior between Browser and the spaghetti editor by moving the spaghetti floating shell onto the same app-shell layer and letting its drag clamp cross the viewport boundary into dock space instead of hard-stopping at the viewport edge.`
+#### Scope / Constraints Honored
+- Kept this follow-on narrowly focused on floating-shell boundary parity instead of widening into the larger editor-placement migration that still belongs to later Workspace work.
+- Preserved existing split-view, meatball-dock, and viewport-relative editor position semantics while changing only how the floating spaghetti shell is mounted and clamped.
+- Added targeted regression coverage for the cross-boundary drag path and re-ran the focused shell host suite plus TypeScript build.
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the floating spaghetti shell now portals to the app-shell surface, matching the Browser floating host layer.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so floating editor clamp math now uses shell-space limits with viewport-offset translation, allowing negative viewport-relative `x` positions when the window crosses left into dock territory.
+- Preserved viewport-relative editor storage by translating between shell-space render offsets and viewport-space drag coordinates rather than rewriting the editor viewport store contract in this pass.
+- Updated `src/app/theme/shell/windows.css` so maximized spaghetti floating windows no longer rely on the old full-parent inset rule, letting the host provide explicit viewport-sized placement on the new shell portal surface.
+- Added an `AppShell` regression in `src/app/AppShell.test.tsx` for dragging the floating spaghetti editor left across the viewport boundary, and updated `src/app/hosts/SpaghettiWindowHost.test.tsx` to provide the new app-shell portal target in its harness.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [730] - 2026-03-30 06:56 - `VR-SP - Workspace 1 - Shared Workspace Shell State Extraction`
+<!-- ENTRY 730 -->
+HUMAN SUMMARY: `This landed the first real Workspace 1 extraction by giving the shell a native shared workspace store for left-dock and browser-shell placement state, then rewiring the app shell and browser host to use that shared owner instead of local shell state.`
+#### Scope / Constraints Honored
+- Kept this first `Workspace 1` cut focused on shared shell-owned workspace state instead of trying to fully migrate editor viewport placement out of `useSpaghettiStore` in one risky pass.
+- Preserved the current hosted-surface split where `BrowserDockHost` and `SpaghettiWindowHost` stay as transitional adapters, while moving dock width, split toggle, preview panel ownership, and browser floating chrome state into one shared workspace seam.
+- Verified the change with focused shell and browser-host tests plus a full TypeScript build so the first extraction stays shippable.
+#### What Changed
+- Added `src/app/workspace/workspaceShellTypes.ts` and `src/app/workspace/useWorkspaceStore.ts` as the new native workspace-shell seam for left dock width, dock preview targeting, split-menu state, and browser floating position, size, collapse, and docked-vs-floating ownership.
+- Updated `src/app/AppShell.tsx` to read and mutate that shared workspace state instead of holding duplicate local shell state for the dock/browser surfaces.
+- Updated `src/app/hosts/useAppShellDockController.ts` so the left-dock resize and split controller now works against the shared workspace owner callbacks instead of React local-state dispatchers.
+- Updated `src/app/hosts/BrowserDockHost.tsx` so the browser dock/floating host now uses the shared workspace store for preview targeting and floating-shell geometry, and updated `src/app/hosts/SpaghettiWindowHost.tsx` to accept the extracted preview setter contract.
+- Refreshed `src/app/AppShell.test.tsx` and `src/app/hosts/BrowserDockHost.test.tsx` so the focused shell/browser coverage resets the new workspace store correctly and keeps the test harness aligned to the current workspace-shell contract.
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [729] - 2026-03-29 14:17 - `BRW - Browser Part Visibility Eyeball Parity`
+<!-- ENTRY 729 -->
+HUMAN SUMMARY: `This extended the Browser’s viewer-only visibility contract down to part rows, so imported object parts now carry the same eyeball affordance as assemblies, components, and objects and can be hidden directly from the tree without introducing a separate part-only visibility system.`
+#### Scope / Constraints Honored
+- Kept the change focused on Browser visibility affordances and the existing viewer-only `partsVisibility` seam instead of widening into transform, selection, or tree-structure work.
+- Preserved the current assembly/component/object visibility behavior for both generated and reference-backed rows while adding honest part-row visibility state.
+- Reused the same `setPartVisibility` path that already drives viewer hiding so the new part eyeballs stay viewer-only and do not mutate project structure.
+#### What Changed
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so `part` rows now carry `isVisible` and `visibilityPartKeys`, sourced from the shared `partsVisibility` map, and threaded that `partsVisibility` input through `src/app/panels/useBrowserPanelController.ts`.
+- Updated `src/app/panels/browserTreeRowPresenter.tsx` so part rows render the Browser eyeball toggle alongside the existing assembly/component/object/reference visibility controls.
+- Updated `src/app/panels/browserInteractions.ts` so part-row eyeball clicks route through the existing content visibility handler and toggle the part’s viewer visibility with `setPartVisibility`.
+- Refreshed focused Browser coverage in `src/app/panels/BrowserPanel.test.tsx`, `src/app/panels/browserInteractions.test.ts`, and `src/app/panels/selectBrowserTreeRows.test.ts` so the new part-row visibility contract is exercised end to end.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+### [728] - 2026-03-29 14:10 - `BRW - Browser Part Rows Black Surface And Tree Guide Alignment`
+<!-- ENTRY 728 -->
+HUMAN SUMMARY: `This finished the latest part-row polish by making part children render with a black object-like surface and aligning their first tree-guide segment with the same branch geometry the parent content rows use, which cleans up the broken line look when an imported object’s part list is open.`
+#### Scope / Constraints Honored
+- Kept the pass tightly scoped to Browser part-row presentation and guide alignment instead of changing part selection, expansion behavior, or object ownership.
+- Preserved the existing part-row shell, labels, and `P` badge while only tuning the surface colors and guide positioning.
+- Reused the shared Browser guide system instead of introducing a separate part-only tree-line implementation.
+#### What Changed
+- Updated `src/app/theme/surfaces/browser.css` so `.BrowserContentStateBar--part` now renders with a black object-like background and darker fill treatment instead of the lighter gray surface.
+- Updated `src/app/theme/surfaces/browser.css` so `.BrowserTreeRow--part .BrowserTreeRowGuide:first-child` now follows the same first-guide center and offset rule as assembly/component/object rows, improving branch-line continuity when part rows are visible.
+- Rechecked the Browser part-row rendering coverage in `src/app/panels/BrowserPanel.test.tsx` against the updated surface/guide styling.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+### [727] - 2026-03-29 14:08 - `BRW - Browser Part Row Surface Styling Closer To Parent Object`
+<!-- ENTRY 727 -->
+HUMAN SUMMARY: `This softened the visual gap between imported object rows and their part children by giving Browser part rows the same filled content-bar treatment as their parent object surface, so those `P` rows read more like subordinate object parts and less like separate gray chips.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on part-row presentation instead of changing part selection, transform behavior, or Browser tree structure.
+- Preserved the existing part-row shell and icon treatment while only adjusting the inner surface/fill styling.
+- Reused the existing content-bar fill pattern rather than inventing a new part-only row widget style.
+#### What Changed
+- Updated `src/app/panels/browserTreeRowPresenter.tsx` so part rows now render a `BrowserContentStateFill` inside the part content bar, matching the parent content-row surface structure.
+- Updated `src/app/theme/surfaces/browser.css` so `.BrowserContentStateBar--part` now uses a darker imported-like gradient surface and a subtle fill layer instead of the old flat gray background.
+- Rechecked the focused Browser render coverage in `src/app/panels/BrowserPanel.test.tsx` against the new part-row surface.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+### [726] - 2026-03-29 14:04 - `BRW - Browser Object Pointer-Down Selection Before Drag Suppression`
+<!-- ENTRY 726 -->
+HUMAN SUMMARY: `This tightened Browser object selection for real mouse use by selecting the row on left-button pointer down before the drag-suppression seam can swallow the later click, so clicking a generated object like \`Object 1\` no longer leaves the old parent assembly highlight behind.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on pointer-driven Browser row selection instead of changing keyboard activation, drag legality, or context-menu behavior.
+- Preserved the existing drag-start candidate path and only added early selection for left-button pointer interaction on the main row button.
+- Avoided duplicate pointer-click selection side effects by marking pointer-driven selection on the row button and skipping the later click-phase re-selection.
+#### What Changed
+- Updated `src/app/panels/browserTreeRowPresenter.tsx` so left-button pointer down on a Browser row main button now commits row selection immediately, while still handing the same event into the existing drag-start candidate path.
+- Added pointer cleanup plus click-phase deduping in `src/app/panels/browserTreeRowPresenter.tsx` so normal mouse clicks do not emit duplicate selection work and suppressed drag-end clicks still clear correctly.
+- Re-verified the Browser selection suite in `src/app/panels/BrowserPanel.test.tsx` and `src/app/panels/browserInteractions.test.ts` against the new pointer-first selection behavior.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts`
+- `npm.cmd run build`
+
+### [725] - 2026-03-29 13:56 - `BRW - Browser Object Row Gutter Click Selection Parity`
+<!-- ENTRY 725 -->
+HUMAN SUMMARY: `This fixed a Browser selection UX seam where clicking the non-interactive gutter/tree-line area beside a generated object row could leave the parent assembly selected, by making the whole visible row shell select that object unless the click lands on an actual interactive control.`
+#### Scope / Constraints Honored
+- Kept the fix narrowly focused on Browser row-shell click handling instead of changing drag, expand, context-menu, or double-click behavior.
+- Preserved the existing main-button selection flow and ignored clicks that originate from interactive descendants like row buttons, toggles, and links.
+- Added a regression for the specific parent-assembly fallback symptom instead of widening the Browser selection contract more broadly.
+#### What Changed
+- Updated `src/app/panels/browserTreeRowPresenter.tsx` so a non-interactive click anywhere on a Browser row shell now delegates to the same row selection handler the main row button already uses.
+- Kept suppression handling intact so pending drag suppression still blocks the delegated shell click when needed.
+- Updated `src/app/panels/BrowserPanel.test.tsx` so the focused Browser regression now proves clicking the visible gutter area of `Object 1` switches selection off `Assembly 1` and onto the object row.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+### [724] - 2026-03-29 13:41 - `CON - Content Object Viewer Transform Tab Gizmo Cycle Parity`
+<!-- ENTRY 724 -->
+HUMAN SUMMARY: `This brought `Viewer Transform` `Tab` gizmo-cycle parity to generated objects, so once a content object transform shell is active, pressing \`Tab\` now advances the gizmo mode through move, rotate, and scale the same way the reference transform flow already does.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on active generated-object `Viewer Transform` shell behavior instead of widening into deeper transform-console parity or history-command cleanup.
+- Preserved the existing reference `Tab` cycle behavior and reused the current content-object viewer-session bridge instead of introducing another object-only input path.
+- Left the content-object console summary at its existing root prompt shape while still rotating the active gizmo and viewer transform mode underneath.
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so `Tab` handling now falls through to a content-object transform-cycle helper whenever the active staged session is the generated-object `Viewer Transform` root, rotating `translate -> rotate -> scale -> translate`.
+- Reused the existing content-object viewer-session sync path so each `Tab` press updates the active transform entry, clears any pending prompt session, and re-activates the matching center gizmo handle in the viewer.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the focused console regression now proves a generated object selected through the Console enters `rotate` on `Tab` and syncs that mode to the viewer session.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [723] - 2026-03-29 13:31 - `CON - Console Multi-Select Zoom Direct Commit From Selected Scope`
+<!-- ENTRY 723 -->
+HUMAN SUMMARY: `This applied the same Console zoom simplification to multi-select, so when the explicit selection scope is already active, submitting \`z\` or \`zoom\` now immediately frames the current selection set instead of opening a separate local zoom submenu.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on the `multiSelectSelected` Console scope instead of changing root, assembly, references, sketch, or graph zoom menus.
+- Preserved the existing multi-select framing behavior and only removed the extra submenu hop before running it.
+- Reused the current selection-set framing path instead of introducing a new multi-select-only zoom command family.
+#### What Changed
+- Updated `src/app/console/stagedNavigation.ts` so `multiSelectSelected` now resolves `Zoom` directly to `zoom.model.object` instead of advancing into `multiSelectZoomRoot`.
+- Updated `src/app/console/ConsoleDock.tsx` so the shared model zoom executor treats `multiSelectSelected` the same as the old multi-select zoom root when framing the current selection set.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the focused multi-select regressions now prove `z`/`zoom` frames the explicit selection immediately from the selected scope and returns to the same multi-select prompt.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [722] - 2026-03-29 13:27 - `CON - Console Object Zoom Direct Commit From Selected Object Scopes`
+<!-- ENTRY 722 -->
+HUMAN SUMMARY: `This simplified selected-object Console zoom so when a reference or generated object is already selected, submitting \`z\` or \`zoom\` now immediately frames that selected object in the model viewport instead of opening a second local zoom submenu.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on selected object/reference Console scopes instead of changing assembly/root/category/graph zoom families.
+- Preserved the existing object framing behavior itself and only removed the extra submenu step from the selected object/reference entry points.
+- Left broader zoom menus such as assembly, references root, reference category, multi-select, sketch, and graph unchanged.
+#### What Changed
+- Updated `src/app/console/stagedNavigation.ts` so `contentObjectSelected` and `referenceSelected` now resolve `Zoom` directly to `zoom.model.object` instead of advancing into `contentObjectZoomRoot` or `referenceZoomRoot`.
+- Removed the now-unused selected object/reference zoom-root session builders from `src/app/console/stagedNavigation.ts`.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the focused Console regressions now prove selected generated objects and references frame directly from `z`/`zoom`, while the other zoom families continue using their existing deeper flows.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [721] - 2026-03-29 13:18 - `TRN - Transform-15.3.1 - Delete Latest History-Wide Availability And Cross-Session Confirmation`
+<!-- ENTRY 721 -->
+HUMAN SUMMARY: `This widened Console \`DeleteLatest\` so `Viewer Transform` keeps offering it whenever a reference or generated object has any committed history at all, even after leaving and re-entering the transform shell, and it now asks for confirmation with autofilled \`yes\` before deleting an entry that belongs to an older transform session.`
+#### Scope / Constraints Honored
+- Kept the change focused on `DeleteLatest` availability and cross-session safety instead of widening into broader transform-history redesign, viewer/runtime changes, or new Console feature branches.
+- Preserved the already-shipped shared `Viewer Transform` session model, object-side history/render-line parity, and the existing one-step delete flow when the latest entry still belongs to the active transform session.
+- Reused the current reference/content history deletion seams instead of inventing a separate archive or reset workflow.
+#### What Changed
+- Updated `src/app/console/stagedNavigation.ts` so both reference and content-object transform roots decide `DeleteLatest` availability from total committed history, not only the currently active shell's entry count.
+- Updated `src/app/console/useConsoleStore.ts` and `src/app/console/ConsoleDock.tsx` so Console can open a dedicated `transform.delete-latest.confirm` prompt with autofilled `yes` when the latest entry belongs to an older transform session.
+- Updated `src/app/console/ConsoleDock.tsx` so both reference and content-object `DeleteLatest` flows rebuild the transform root from current history after delete/cancel, and so the shared staged submit callback depends on the new confirm/delete helpers explicitly.
+- Updated `src/app/console/ConsoleDock.test.tsx` and `src/app/console/stagedNavigation.test.ts` so the focused regression coverage now proves re-entered content-object transform shells still expose `DeleteLatest`, cross-session deletion prompts for confirmation, and the staged-navigation fixtures follow the new total-history contract.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [720] - 2026-03-29 13:04 - `TRN - Transform-15.3.1 - Content Object Console Delete Latest Parity`
+<!-- ENTRY 720 -->
+HUMAN SUMMARY: `This completed the next content-object Console transform parity cut by wiring object-local \`DeleteLatest\` all the way through the staged-action handler, so once a generated object has a committed \`Viewer Transform\` entry the Console can remove that latest entry from the same transform root the reference flow already uses.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on object-local Console `DeleteLatest` parity instead of widening into a larger transform-history redesign, new toolbar work, or broader Console cleanup.
+- Preserved the existing shared `Viewer Transform` session model and the already-shipped object-side breadcrumb, snap, and settings parity work.
+- Reused the existing content-object history deletion seam instead of introducing a second object-only reset contract.
+#### What Changed
+- Updated `src/app/console/stagedNavigation.ts` so the content-object transform root submit path now trusts the live staged root choices when matching commands like `DeleteLatest`, keeping the visible Console prompt and the accepted action tokens aligned.
+- Updated `src/app/console/ConsoleDock.tsx` so the staged-action allowlist now includes `content.transform.deleteLatest`, letting the existing object-side delete handler actually execute instead of falling through to the generic staged-action transcript path.
+- Updated `src/app/console/ConsoleDock.tsx` so object-local `DeleteLatest` removes the latest committed content-object transform history entry through the shared history-delete seam and then rebuilds the transform root prompt from the updated shell state.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the focused Console regression now proves a generated object gains `DeleteLatest` after its first committed transform entry and that submitting it clears the history and restores the ordinary root choices.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [719] - 2026-03-29 12:42 - `TRN - Transform-15.3.1 - Content Object Console Viewer Transform Breadcrumb, Snap, And Settings Parity`
+<!-- ENTRY 719 -->
+HUMAN SUMMARY: `This completed the next content-object Console transform parity cut by giving object-local \`Viewer Transform\` the same full staged breadcrumb shape plus \`Snap\` and \`Settings\` branches the reference flow already had, so generated-object transform work in the Console no longer drops back to a short object-only path when the content ancestry is available.`
+#### Scope / Constraints Honored
+- Kept the change focused on content-object Console `Viewer Transform` parity instead of widening into a larger reference-console cleanup, graph navigation rewrite, or deeper transform persistence redesign.
+- Preserved the already-shipped object-local viewer-only transform behavior and the shared `Viewer Transform` session contract from `Transform 15.2` and `15.3`.
+- Reused the existing staged-navigation shell and content-owner ancestry truth instead of creating an object-only duplicate transform root.
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so Console-facing content breadcrumb labels now walk real assembly/component ancestry more robustly for selected content targets, including component parents that still need assembly truth recovered from assembly child order.
+- Updated `src/app/console/stagedNavigation.ts` so content-object `Viewer Transform` now exposes the same staged root family shape as the reference flow, including `Snap` and `Settings`, while preserving the deeper settings/space/snap breadcrumbs through object-local navigation.
+- Updated `src/app/console/ConsoleDock.tsx` so active content-object transform entry uses the richer content breadcrumb ancestry when building the object-local transform root, and so the Console prompt/status formatting recognizes the new object transform snap/settings scopes.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the focused Console regression suite now proves the richer content-object breadcrumb shape plus the object-local `Viewer Transform` root parity contract.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+### [718] - 2026-03-29 12:08 - `TRN - Transform-15.3.1 - Content Object Viewer Transform Stays Out Of Graph`
+<!-- ENTRY 718 -->
+HUMAN SUMMARY: `This removed the remaining graph-pop side effect when entering \`Viewer Transform\` for a selected content object through the Console flow, by treating object-local transform entry the same way object-local zoom already behaves and keeping that navigation inside the model viewer instead of opening the authoring graph.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on object-local `Viewer Transform` staged-navigation behavior instead of widening into reference transform routing, graph navigation commands, or larger Console transform-root cleanup.
+- Preserved the existing graph-opening behavior for true graph-navigation flows while extending only the object-local viewer exemption to transform entry.
+- Reused the existing local-object navigation guard instead of inventing a second transform-only escape path.
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so staged navigation from `contentObjectSelected` into `contentObjectTransformRoot`, and back out again, now stays on the local object/viewer path and no longer auto-opens the source graph document.
+- Updated `src/app/console/ConsoleDock.test.tsx` so the object `Viewer Transform` autofill path now proves the content-object transform shell opens without calling the graph viewport open seam.
+#### Verification
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+
+### [717] - 2026-03-29 11:52 - `BRW - Browser-12.2 - Object Row Double-Click Model Viewer Framing`
+<!-- ENTRY 717 -->
+HUMAN SUMMARY: `This changed Browser object-row double-click behavior so authored and reference-backed object rows now frame themselves in the main model viewport instead of opening the authoring graph, while leaving component, graph, and sketch double-click routing on their existing graph-focused paths.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on Browser object-row double-click behavior instead of widening into component double-click semantics, graph navigation, or broader selection-routing cleanup.
+- Preserved the existing graph-opening behavior for component, sketch, graph-node, graph-rebuild, and graph-document rows so only object rows switch to viewer framing.
+- Reused the existing viewer framing seam instead of inventing a Browser-only zoom path.
+#### What Changed
+- Updated `src/app/panels/browserInteractions.ts` so object-row double select now resolves viewer-facing part/reference targets and frames them through the main model viewer instead of routing through authoring-graph activation.
+- Updated `src/app/panels/browserInteractions.test.ts` so the focused interaction helper coverage now proves object double-click goes to the viewer while graph-child double-click still routes through graph intents.
+- Updated `src/app/panels/BrowserPanel.test.tsx` so the Browser integration harness now verifies double-clicking an object row frames the model viewport and no longer opens a graph editor viewport.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/browserInteractions.test.ts src/app/panels/BrowserPanel.test.tsx`
+
+### [716] - 2026-03-29 11:38 - `TRN - Transform-15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity`
+<!-- ENTRY 716 -->
+HUMAN SUMMARY: `This landed the first Transform-15.3 parity cut by making the committed \`Viewer Transform\` history-overlay contract target-aware, so generated objects now drive the same viewport history/render-line path as references, and by locking focused object-side snap verification onto the same shared viewer gizmo contract instead of leaving that parity implicit.`
+#### Scope / Constraints Honored
+- Kept the change focused on generated-object history/render-line parity plus shared snap verification instead of reopening the shipped `Transform 15.2` session-model cleanup or widening into a larger Console transform-root rewrite.
+- Preserved the lower split committed-history storage maps and target-specific runtime adapters so the parity cut stayed on the public overlay/viewer seam instead of forcing a deeper persistence redesign.
+- Left the remaining `contentObjectTransformRoot` Console difference in place as a narrow compatibility adapter for the later capability-cleanup work.
+#### What Changed
+- Updated `src/app/viewerBridge.ts` so committed transform-history visuals now use one target-aware `ViewerTransformHistoryOverlayVm` contract instead of a reference-only overlay payload shape.
+- Updated `src/app/components/ViewerHost.tsx` so the active history overlay now builds from the shared active target/session/history selectors, letting generated-object shells feed the same scrubbed move/rotate/scale render-line payload into the viewer as reference shells.
+- Updated `src/viewer/Viewer.ts` and `src/viewer/ReferenceTransformHistoryHelper.ts` so the viewer can resolve the shared committed-history overlay against either the active reference object or the active content-object pivot without inventing a second object-only history-visual system.
+- Updated `src/app/components/ViewerHost.test.tsx` and `src/viewer/ReferenceTransformHistoryHelper.test.ts` so the focused transform regression suite now proves generated-object history overlay parity and shared object-side gizmo snap delivery alongside the existing reference coverage.
+#### Verification
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/store/useAppStore.test.ts src/viewer/ReferenceTransformHistoryHelper.test.ts`
+- `npm.cmd run build`
+
+### [715] - 2026-03-29 11:03 - `TRN - Transform-15.2 - Single Viewer Transform Session Model`
+<!-- ENTRY 715 -->
+HUMAN SUMMARY: `This landed the first Transform-15.2 shared-session cleanup by adding one app-level active \`Viewer Transform\` target/session seam, routing the shared toolbar and \`ViewerHost\` through one target-aware transform contract, and adding a shared viewer-session facade so new transform-shell features no longer have to be re-added separately for reference and generated-object session plumbing.`
+#### Scope / Constraints Honored
+- Kept the change focused on shared session-contract convergence across the store, toolbar, viewer facade, and `ViewerHost` instead of widening into multi-select, durable generated-object transform truth, or a larger Console-root rewrite.
+- Preserved current target-specific history, snap, and transform-override storage so the lower runtime/persistence adapters stay narrow and stable while the public session contract converges.
+- Left the existing Console `contentObjectTransformRoot` compatibility path in place as a temporary adapter instead of forcing the later parity work into the same pass.
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so `Viewer Transform` now has one shared active target/session selector seam plus shared target-aware wrapper actions for shell entry, entry lifecycle, mode/space, draft, history scrub, history edits, and snap edits across references and generated objects.
+- Updated `src/app/components/ReferenceTransformToolbar.tsx` so the live toolbar now reads the active target, history, snap state, and shared actions from the new `Viewer Transform` session seam instead of branching through parallel reference-versus-object session APIs for the common shell behavior.
+- Updated `src/app/viewerBridge.ts` and `src/viewer/Viewer.ts` so the viewer now exposes one shared `Viewer Transform` session/callback facade above the existing target-specific runtime adapters, letting host surfaces talk to one transform contract without deleting the lower target-kind runtime seams yet.
+- Updated `src/app/components/ViewerHost.tsx` so the app host now syncs one shared `Viewer Transform` session and one shared callback family into the viewer, while preserving the existing reference-only history overlay and target-specific override/snap adapter reads underneath.
+- Updated `src/app/components/ViewerHost.test.tsx`, `src/app/components/ReferenceTransformToolbar.test.tsx`, and `src/app/store/useAppStore.test.ts` so the focused transform regression suite follows the new shared session-contract surface.
+#### Verification
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+### [714] - 2026-03-29 10:23 - `BRW - Browser-12.1 - Reference Empty-State Row Removal`
+<!-- ENTRY 714 -->
+HUMAN SUMMARY: `This cleaned up the Browser reference tree by removing the stale nested \`No loadable references yet.\` row under reference categories, which restores a cleaner branch line and stops empty-category messaging from visually breaking the unified content tree.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on Browser tree presentation cleanup around empty reference-category rows.
+- Preserved the current Browser owner model, reference-category behavior, and the already-shipped Browser-11 and Browser-12 structure work.
+- Avoided widening the change into broader reference loading, category counting, or hierarchy redesign.
+#### What Changed
+- Updated `src/app/panels/browserTreeSections.tsx` so expanded reference-category component rows no longer render the nested empty-state message row from `referenceContainerEmptyLabel`.
+- Updated `src/app/panels/BrowserPanel.test.tsx` so the Content-tree regression now asserts that `No loadable references yet.` no longer appears in the live Browser tree.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts`
+- `npm.cmd run build`
+
+### [713] - 2026-03-29 10:17 - `BRW - Browser-12 - Part Row Surface Cleanup And Usability Polish`
+<!-- ENTRY 713 -->
+HUMAN SUMMARY: `This landed the Browser-12 part-row cleanup by moving imported-object \`Part\` rows onto the same slim content-row surface treatment as the rest of the Browser tree, removing the extra outer box around labels like \`XR_Foot...\`, and keeping those rows visually quieter than their parent imported object.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on Browser part-row presentation and light usability cleanup.
+- Preserved the current truthful object/part structure and Browser-local part behavior under imported objects.
+- Avoided widening this pass into full part-target promotion, transform ownership, or deeper runtime/reference redesign.
+#### What Changed
+- Updated `src/app/panels/browserTreeRowPresenter.tsx` so Browser `Part` rows now render through a slim content-row surface branch instead of falling through the older plain fallback row shell.
+- Updated `src/app/theme/surfaces/browser.css` so `Part` rows use the same transparent outer row-shell treatment as the other Browser rows and pick up a quieter slim content-surface style without the extra boxed wrapper around the label.
+- Updated `src/app/panels/BrowserPanel.test.tsx` with a focused regression proving part rows now render through the slim content-row surface and no longer use the older plain fallback bar.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+### [712] - 2026-03-29 10:06 - `BRW - Browser-11.5 - Cross-Parent First-Drop Ordering Parity`
+<!-- ENTRY 712 -->
+HUMAN SUMMARY: `This landed the Browser-11.5 drag polish by making first cross-parent child-slot drops commit directly beside the visible anchor row, aligning the Browser's existing landing-slot preview with the actual move result, and keeping plain owner-row hover honest as a normal \`into\` move.`
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on first-drop preview-versus-commit alignment instead of redesigning the shared store move contract.
+- Preserved same-parent reorder behavior, empty/collapsed-owner `into` behavior, and the already-shipped Browser-11 tree and owner-model work.
+- Avoided widening runtime/reference compatibility work beyond the narrow drag behavior needed for first-drop ordering parity.
+#### What Changed
+- Updated `src/app/panels/browserContentDrag.ts` so hovering a child row can synthesize a legal cross-parent landing lane under that row's parent owner, allowing the Browser to keep a concrete slot target during a first cross-parent move instead of only treating the owner row itself as the actionable drop surface.
+- Updated `src/app/panels/useBrowserPanelController.ts` so a first cross-parent child-slot drop now commits through the shared owner move seam and then immediately applies the corresponding ordered follow-up move beside the visible anchor row, while plain owner-row hover still commits as `into`.
+- Updated `src/app/panels/BrowserPanel.test.tsx` so BrowserPanel regressions now prove both sides of the contract: owner-row cross-parent hover still commits as `into`, and child-row cross-parent hover lands directly beside the intended visible anchor on the first move.
+#### Verification
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserContextMenu.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
 ### [711] - 2026-03-29 09:34 - `BRW - Browser-11.4 - Adapted Container Seam Retirement`
 <!-- ENTRY 711 -->
 HUMAN SUMMARY: `This landed the Browser-11.4 cleanup by retiring the last Browser-facing adapted-container branches for \`References\` and grouping rows like \`Shoes\`, switching live root/category owner handling, expand, visibility, and context-menu behavior onto ordinary assembly/component rows, and leaving only the narrower object-level \`referenceId\` adapters where runtime behavior still honestly needs them.`

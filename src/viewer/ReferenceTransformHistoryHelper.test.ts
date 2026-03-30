@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BoxGeometry, Group, Line, LineSegments, Mesh, MeshBasicMaterial } from 'three'
-import type { ReferenceTransformHistoryOverlayVm } from '../app/viewerBridge'
+import type { ViewerTransformHistoryOverlayVm } from '../app/viewerBridge'
 import { ReferenceTransformHistoryHelper } from './ReferenceTransformHistoryHelper'
 
 const makeReferenceObject = (): Group => {
@@ -16,9 +16,9 @@ const makeReferenceObject = (): Group => {
 }
 
 const makeOverlay = (
-  overrides: Partial<ReferenceTransformHistoryOverlayVm> = {},
-): ReferenceTransformHistoryOverlayVm => ({
-  referenceId: 'shoe:shoe-1',
+  overrides: Partial<ViewerTransformHistoryOverlayVm> = {},
+): ViewerTransformHistoryOverlayVm => ({
+  target: { kind: 'reference', referenceId: 'shoe:shoe-1' },
   movePoints: [
     { x: 0, y: 0, z: 0 },
     { x: 3, y: 0, z: 0 },

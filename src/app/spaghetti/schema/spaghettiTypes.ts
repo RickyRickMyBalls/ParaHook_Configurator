@@ -1,4 +1,5 @@
 import type {
+  WorkspaceSplitDockSide,
   WorkspaceSplitDirection,
   WorkspaceSplitPriority,
 } from '../../workspace/workspaceSplitTypes'
@@ -172,6 +173,7 @@ export type EditorViewport = {
   size: EditorViewportSize
   splitRatio: number
   splitDirection?: WorkspaceSplitDirection
+  splitDockSide?: WorkspaceSplitDockSide
   splitPriority?: WorkspaceSplitPriority
   restoreFromCollapsed: EditorViewportRestoreFromCollapsed | null
   restoreFromSplit: EditorViewportRestoreFromSplit | null

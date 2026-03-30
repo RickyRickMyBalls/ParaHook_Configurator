@@ -2,14 +2,20 @@ import {
   useCallback,
   useEffect,
   useRef,
-  type Dispatch,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
-  type SetStateAction,
 } from 'react'
+import {
+  defaultLeftDockWidth,
+  type LeftDockPanelId,
+  type LeftDockResizeMenuState,
+  type WorkspaceSplitMenuState,
+} from '../workspace/workspaceShellTypes'
 
-export type LeftDockPanelId = 'browser' | 'meatball-editor'
+const dockGhostHeight = 72
+const minLeftDockWidth = 260
+const maxLeftDockWidth = 520
 
 type DockTargetRect = {
   left: number
@@ -17,22 +23,6 @@ type DockTargetRect = {
   top: number
   bottom: number
 }
-
-export type LeftDockResizeMenuState = {
-  x: number
-  y: number
-}
-
-export type WorkspaceSplitMenuState = {
-  x: number
-  y: number
-  scope: 'floating-titlebar' | 'divider'
-}
-
-const dockGhostHeight = 72
-export const defaultLeftDockWidth = 320
-const minLeftDockWidth = 260
-const maxLeftDockWidth = 520
 
 function isPointInsideRect(clientX: number, clientY: number, rect: DockTargetRect | null): boolean {
   if (rect === null) {
@@ -51,12 +41,13 @@ type UseAppShellDockControllerInput = {
   dockedBrowserHostRef: RefObject<HTMLDivElement | null>
   dockedMeatballHostRef: RefObject<HTMLDivElement | null>
   leftDockWidth: number
-  setLeftDockWidth: Dispatch<SetStateAction<number>>
+  setLeftDockWidth: (nextWidth: number) => void
+  isLeftDockViewportSplit: boolean
   leftDockResizeMenu: LeftDockResizeMenuState | null
-  setLeftDockResizeMenu: Dispatch<SetStateAction<LeftDockResizeMenuState | null>>
+  setLeftDockResizeMenu: (menu: LeftDockResizeMenuState | null) => void
   workspaceSplitMenu: WorkspaceSplitMenuState | null
-  setWorkspaceSplitMenu: Dispatch<SetStateAction<WorkspaceSplitMenuState | null>>
-  setIsLeftDockViewportSplit: Dispatch<SetStateAction<boolean>>
+  setWorkspaceSplitMenu: (menu: WorkspaceSplitMenuState | null) => void
+  setIsLeftDockViewportSplit: (isSplit: boolean) => void
   onLeftDockWidthPreview?: (nextWidth: number) => void
 }
 
@@ -67,6 +58,7 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
     dockedMeatballHostRef,
     leftDockWidth,
     setLeftDockWidth,
+    isLeftDockViewportSplit,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,
@@ -257,9 +249,9 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
   }, [setLeftDockResizeMenu, setLeftDockWidth])
 
   const handleToggleLeftDockViewportSplit = useCallback(() => {
-    setIsLeftDockViewportSplit((current) => !current)
+    setIsLeftDockViewportSplit(!isLeftDockViewportSplit)
     setLeftDockResizeMenu(null)
-  }, [setIsLeftDockViewportSplit, setLeftDockResizeMenu])
+  }, [isLeftDockViewportSplit, setIsLeftDockViewportSplit, setLeftDockResizeMenu])
 
   const handleLeftDockSplitTogglePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {

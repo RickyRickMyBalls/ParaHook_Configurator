@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+70. 2026-03-29 11:38: Marked `Transform 15.3` shipped after generated objects gained the same active `Viewer Transform` history-overlay/render-line path and shared viewer gizmo-snap verification as references, moved its standalone record into `Shipped/`, and advanced the next open Transform follow-on to the narrower post-parity capability cleanup in `Transform 15.4`
+69. 2026-03-29 11:18: Tightened `Transform 15.3` into an implementation-ready generated-object parity pass by grounding it in the surviving split history maps, reference-first viewport history/render-line overlay path, and remaining Console transform-root adapters that still keep generated objects from matching the reference transform experience on history, render lines, and snap
+68. 2026-03-29 11:03: Marked `Transform 15.2` shipped after the shared `Viewer Transform` session-contract cleanup landed across the store, toolbar, viewer facade, and `ViewerHost`, moved its standalone record into `Shipped/`, and advanced the next open follow-ons to generated-object history/render-line/snap parity plus later capability cleanup
+67. 2026-03-29 10:41: Tightened `Transform 15.2` into an implementation-ready shared-session cleanup by grounding it in the live split active-session, viewer-callback, and Console-root seams, and locking the first-pass shared session shape plus the exact store/viewer/Console boundaries the phase should collapse before later parity work
+66. 2026-03-29 10:38: Expanded this Transform family index with a new `Transform 15.3` parity phase for generated-object `Viewer Transform History`, viewport history/render-line visuals, and snap behavior, plus a narrower `Transform 15.4` capability-cleanup follow-on so the post-`15.2` ladder now reflects the actual parity features the user wants before later multi-select widening
+65. 2026-03-29 10:30: Added a new open `Transform 15.2` cleanup phase to this family index so the next transform follow-on explicitly collapses the duplicated reference-versus-generated-object store, viewer, and Console session plumbing behind one shared `Viewer Transform` session model before later multi-select work widens that surface again
 64. 2026-03-28 00:48: Marked `Transform 15.1` shipped after `Viewer Transform` gained a focused-target toolbar section, object-side snap parity, and the first shared target-adapter cleanup across the toolbar/store/viewer seam, moved its standalone record into `Shipped/`, and advanced the next open follow-ons to multi-select and prior-transform delete cleanup
 63. 2026-03-28 00:42: Tightened `Transform 15.1` into an implementation-ready cleanup by locking the exact shared `Viewer Transform` target-descriptor shape, the new `transformSnapByObjectId` widening for object snap parity, and the focused-target section contract so the next cleanup can unify more of the shell before multi-select lands
 62. 2026-03-28 00:36: Tightened `Transform 15.1` into a more implementation-ready cleanup spec by locking one shared target-adapter/template direction for `Viewer Transform`, adding object snap parity to that phase, and sharpening the follow-on so references and generated objects can share more of the same shell before multi-select arrives
@@ -193,10 +199,11 @@ This family now owns the shipped Transform-shell cleanup trail directly, while B
 Expected next open transform-native follow-ons:
 
 1. make multi-select actually enter and use `Viewer Transform` as `Transform 16`
-2. clean up multi-select commit/history/truth rules later as `Transform 16.1`
-3. allow safe delete/re-entry into older transform sessions as `Transform 17`
-4. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
-5. keep cleaning stale family links whenever a transform follow-on moves from `Future/` to `Shipped/`
+2. clean up any remaining reference-only capability drift after parity as `Transform 15.4`
+3. clean up multi-select commit/history/truth rules later as `Transform 16.1`
+4. allow safe delete/re-entry into older transform sessions as `Transform 17`
+5. keep deciding how much of the remaining Browser-umbrella direction should be re-expressed as Transform-native future records instead of staying Browser-numbered
+6. keep cleaning stale family links whenever a transform follow-on moves from `Future/` to `Shipped/`
 
 
 ## Phases
@@ -1532,6 +1539,176 @@ Decision:
 
 Standalone phase doc:
 - `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+
+### [x] Transform 15.2 - Single Viewer Transform Session Model
+
+- remove the remaining duplicated reference-versus-generated-object transform backend so `Viewer Transform` is one real system, not one shared toolbar over two parallel session stacks
+- keep one feature surface for toolbar, viewer, and Console so future transform features land once instead of being re-added to both reference and content-object branches
+- do this cleanup before later multi-select widening so the next expansion grows one session model instead of hardening two
+
+#### [x] q1 - Should references and generated objects keep separate store-owned transform sessions under the same toolbar, or collapse onto one shared `Viewer Transform` session model?
+
+##### Suggestion
+- collapse onto one shared `Viewer Transform` session model
+- keep target identity as data on that session instead of forking the whole session state shape by target kind
+- do not keep a long-term `activeReferenceTransformSession` versus `activeContentObjectTransformSession` split if the user-facing shell is meant to stay one tool
+
+Decision:
+- collapse references and generated objects onto one shared `Viewer Transform` session model
+- keep target identity as data on that session instead of forking the whole session state shape by target kind
+- do not keep a long-term `activeReferenceTransformSession` versus `activeContentObjectTransformSession` split if the user-facing shell is meant to stay one tool
+
+#### [x] q2 - Should new toolbar features be authored once in the shared `Viewer Transform` surface, or continue to depend on target-specific duplicate store/viewer plumbing?
+
+##### Suggestion
+- author new toolbar features once
+- keep one toolbar surface and one underlying feature contract for snap, history, shortcuts, timelines, and later polish
+- treat any remaining target-specific behavior as narrow persistence/runtime adapters only
+
+Decision:
+- author new toolbar features once
+- keep one toolbar surface and one underlying feature contract for snap, history, shortcuts, timelines, and later polish
+- treat any remaining target-specific behavior as narrow persistence/runtime adapters only
+
+#### [x] q3 - Should `ViewerHost` keep separate reference and content-object transform callback/session contracts?
+
+##### Suggestion
+- no
+- move toward one viewer transform callback/session contract with a target descriptor that can resolve reference-backed and generated-object targets
+- keep only the minimal adapter needed where viewer runtime truth still differs by target kind
+
+Decision:
+- no
+- move toward one viewer transform callback/session contract with a target descriptor that can resolve reference-backed and generated-object targets
+- keep only the minimal adapter needed where viewer runtime truth still differs by target kind
+
+#### [x] q4 - Should Console keep a separate `contentObjectTransformRoot` branch once the shared session model lands?
+
+##### Suggestion
+- no
+- Console should enter the same `Viewer Transform` shell for references and generated objects
+- keep target-specific wording as status metadata, not as a second transform-tree owner path
+
+Decision:
+- no
+- Console should enter the same `Viewer Transform` shell for references and generated objects
+- keep target-specific wording as status metadata, not as a second transform-tree owner path
+
+#### Direction Lock
+
+- this is not a second toolbar project
+- the toolbar component already reads as one shared surface
+- the cleanup target is the duplicated store/viewer/Console session plumbing underneath it
+- after this phase, future transform features should land once against the shared `Viewer Transform` model
+- multi-select should build on that unified session model in `Transform 16`, not on parallel reference/object transform stacks
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.2 - Single Viewer Transform Session Model.md`
+
+### [x] Transform 15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity
+
+- bring generated objects up to the same practical `Viewer Transform` feature level the user already relies on for references
+- focus the parity pass on the features the current shared toolbar/shell still does not fully deliver for generated objects:
+  - `Viewer Transform History`
+  - viewport history/render-line visuals
+  - snap behavior and snap UI parity
+- assume `Transform 15.2` has already collapsed the duplicated session plumbing so this phase can focus on feature parity instead of backend fork cleanup
+- ground the work in the actual surviving post-`15.2` seams:
+  - split committed history maps in `useAppStore.ts`
+  - reference-first viewport history/render-line overlay reads in `ViewerHost.tsx`
+  - the remaining `contentObjectTransformRoot` Console adapter path in `ConsoleDock.tsx`, `referenceTransformConsole.ts`, and `stagedNavigation.ts`
+  - reference-first move/rotate snap helper widening in `Viewer.ts`
+
+#### [x] q1 - Should the next post-`15.2` parity pass explicitly own generated-object `Viewer Transform History` instead of leaving object history as a quieter reduced feature tier?
+
+##### Suggestion
+- yes
+- generated objects should participate in the same practical `Viewer Transform History` experience
+- do not leave object transform history as a second-class fallback if the long-term shell is meant to stay shared
+
+Decision:
+- yes
+- generated objects should participate in the same practical `Viewer Transform History` experience
+- do not leave object transform history as a second-class fallback if the long-term shell is meant to stay shared
+
+#### [x] q2 - Should generated objects gain the same viewport history/render-line visuals that references already use?
+
+##### Suggestion
+- yes
+- generated objects should get the same viewport history/render-line treatment where the feature depends only on shared transform history, not on reference-only runtime identity
+- keep the viewport transform visual system shared wherever the underlying history model is shared
+
+Decision:
+- yes
+- generated objects should get the same viewport history/render-line treatment where the feature depends only on shared transform history, not on reference-only runtime identity
+- keep the viewport transform visual system shared wherever the underlying history model is shared
+
+#### [x] q3 - Should generated objects gain the same snap behavior and snap UI the reference path already has, as long as the feature is not truly reference-specific?
+
+##### Suggestion
+- yes
+- if snap is part of the shared `Viewer Transform` feature surface, generated objects should not stay on a reduced snap tier because of leftover adapter drift
+- keep truly reference-specific extras separate only where they honestly depend on reference-only runtime data
+
+Decision:
+- yes
+- if snap is part of the shared `Viewer Transform` feature surface, generated objects should not stay on a reduced snap tier because of leftover adapter drift
+- keep truly reference-specific extras separate only where they honestly depend on reference-only runtime data
+
+#### Direction Lock
+
+- this phase is about practical feature parity, not another toolbar fork
+- the target feature set is:
+  - shared history experience
+  - shared viewport history/render-line visuals
+  - shared snap behavior and snap UI
+- the first pass should widen the existing shared seams and viewer helpers, not introduce object-only copies
+- after this phase, generated-object `Viewer Transform` should feel much closer to the reference path for the features the user already cares about most
+- any remaining difference after this phase should be because of true capability limits, not because the object path never got the feature work
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity.md`
+
+### [ ] Transform 15.4 - Viewer Transform Capability Cleanup After Parity
+
+- audit what still remains reference-only after `15.2` and `15.3`
+- keep only the differences that are truly capability-driven instead of accidental leftovers
+- prevent later transform work from reintroducing fuzzy “shared toolbar but uneven hidden contract” behavior
+
+#### [x] q1 - After shared-session cleanup and feature parity, should the remaining reference-versus-generated-object differences be explicitly audited and locked?
+
+##### Suggestion
+- yes
+- do one narrow capability-cleanup pass so the remaining differences become intentional and documented instead of historical residue
+- use this pass to decide what truly stays reference-only
+
+Decision:
+- yes
+- do one narrow capability-cleanup pass so the remaining differences become intentional and documented instead of historical residue
+- use this pass to decide what truly stays reference-only
+
+#### [x] q2 - Should this later cleanup keep features like timelines or camera lock reference-only if generated objects still do not honestly support them?
+
+##### Suggestion
+- yes
+- keep only true capability-driven differences
+- do not fake parity for features that depend on reference-only runtime ownership or runtime data that generated objects do not yet have
+
+Decision:
+- yes
+- keep only true capability-driven differences
+- do not fake parity for features that depend on reference-only runtime ownership or runtime data that generated objects do not yet have
+
+#### Direction Lock
+
+- `15.4` is the audit/final-cleanup pass after the more important parity work lands
+- this phase should not block the earlier history/render-line/snap parity pass
+- the goal is to leave a clean line between:
+  - shared transform features
+  - truly reference-only capabilities
+
+Standalone phase doc:
+- `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.4 - Viewer Transform Capability Cleanup After Parity.md`
 
 ### [ ] Transform 16 - Multi-Select Viewer Transform Entry And Live Group Motion
 

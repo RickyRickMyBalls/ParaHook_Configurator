@@ -27,6 +27,7 @@ export type ConsolePromptSessionKind =
   | 'reference-transform.axis'
   | 'reference-transform.plane'
   | 'content.owner.label'
+  | 'transform.delete-latest.confirm'
 
 export type ConsolePromptSession =
   | {
@@ -63,6 +64,16 @@ export type ConsolePromptSession =
       target:
         | { kind: 'assembly'; assemblyId: string }
         | { kind: 'component'; componentId: string }
+    }
+  | {
+      kind: 'transform.delete-latest.confirm'
+      breadcrumb: string[]
+      label: string
+      prefill: string
+      returnSession: ConsoleStagedNavigationSession
+      target:
+        | { kind: 'reference'; referenceId: string }
+        | { kind: 'content-object'; objectId: string }
     }
 
 const CONSOLE_LAYERS: ConsoleLayer[] = [

@@ -816,6 +816,8 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Content', 'Transform', 'Rotate')
     case 'content.transform.scale':
       return buildIdentity('Console', 'Content', 'Transform', 'Scale')
+    case 'content.transform.deleteLatest':
+      return buildIdentity('Console', 'Content', 'Transform', 'DeleteLatest')
     case 'content.newAssembly':
       return buildIdentity('Console', 'Content', 'NewAssembly')
     case 'content.newComponent':

@@ -12,7 +12,8 @@ let viewerSetReferenceTransformSession: ReturnType<typeof vi.fn>
 let viewerSetContentObjectTransformGroups: ReturnType<typeof vi.fn>
 let viewerSetContentObjectTransformSession: ReturnType<typeof vi.fn>
 let viewerSetContentObjectTransformOverrides: ReturnType<typeof vi.fn>
-let viewerSetReferenceTransformHistoryOverlay: ReturnType<typeof vi.fn>
+let viewerSetViewerTransformSession: ReturnType<typeof vi.fn>
+let viewerSetViewerTransformHistoryOverlay: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
 let viewerGetReferencePartDescriptors: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
@@ -21,6 +22,12 @@ let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformHandleChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformModeChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformSpaceChange: ReturnType<typeof vi.fn>
+let viewerSetOnViewerTransformChange: ReturnType<typeof vi.fn>
+let viewerSetOnViewerTransformCommit: ReturnType<typeof vi.fn>
+let viewerSetOnViewerTransformExit: ReturnType<typeof vi.fn>
+let viewerSetOnViewerTransformHandleChange: ReturnType<typeof vi.fn>
+let viewerSetOnViewerTransformModeChange: ReturnType<typeof vi.fn>
+let viewerSetOnViewerTransformSpaceChange: ReturnType<typeof vi.fn>
 let viewerSetOnContentObjectTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnContentObjectTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnContentObjectTransformHandleChange: ReturnType<typeof vi.fn>
@@ -82,8 +89,10 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetContentObjectTransformSession(...args)
     public setContentObjectTransformOverrides = (...args: unknown[]) =>
       viewerSetContentObjectTransformOverrides(...args)
-    public setReferenceTransformHistoryOverlay = (...args: unknown[]) =>
-      viewerSetReferenceTransformHistoryOverlay(...args)
+    public setViewerTransformSession = (...args: unknown[]) =>
+      viewerSetViewerTransformSession(...args)
+    public setViewerTransformHistoryOverlay = (...args: unknown[]) =>
+      viewerSetViewerTransformHistoryOverlay(...args)
     public setReferenceTransformOverride = (...args: unknown[]) =>
       viewerSetReferenceTransformOverride(...args)
     public getReferencePartDescriptors = (...args: unknown[]) =>
@@ -100,6 +109,18 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetOnReferenceTransformModeChange(...args)
     public setOnReferenceTransformSpaceChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformSpaceChange(...args)
+    public setOnViewerTransformChange = (...args: unknown[]) =>
+      viewerSetOnViewerTransformChange(...args)
+    public setOnViewerTransformCommit = (...args: unknown[]) =>
+      viewerSetOnViewerTransformCommit(...args)
+    public setOnViewerTransformExit = (...args: unknown[]) =>
+      viewerSetOnViewerTransformExit(...args)
+    public setOnViewerTransformHandleChange = (...args: unknown[]) =>
+      viewerSetOnViewerTransformHandleChange(...args)
+    public setOnViewerTransformModeChange = (...args: unknown[]) =>
+      viewerSetOnViewerTransformModeChange(...args)
+    public setOnViewerTransformSpaceChange = (...args: unknown[]) =>
+      viewerSetOnViewerTransformSpaceChange(...args)
     public setOnContentObjectTransformChange = (...args: unknown[]) =>
       viewerSetOnContentObjectTransformChange(...args)
     public setOnContentObjectTransformCommit = (...args: unknown[]) =>
@@ -381,7 +402,8 @@ describe('ViewerHost reference loading', () => {
     viewerSetContentObjectTransformGroups = vi.fn()
     viewerSetContentObjectTransformSession = vi.fn()
     viewerSetContentObjectTransformOverrides = vi.fn()
-    viewerSetReferenceTransformHistoryOverlay = vi.fn()
+    viewerSetViewerTransformSession = vi.fn()
+    viewerSetViewerTransformHistoryOverlay = vi.fn()
     viewerSetReferenceTransformOverride = vi.fn()
     viewerGetReferencePartDescriptors = vi.fn(() => [])
     viewerSetOnReferenceTransformChange = vi.fn()
@@ -390,6 +412,12 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnReferenceTransformHandleChange = vi.fn()
     viewerSetOnReferenceTransformModeChange = vi.fn()
     viewerSetOnReferenceTransformSpaceChange = vi.fn()
+    viewerSetOnViewerTransformChange = vi.fn()
+    viewerSetOnViewerTransformCommit = vi.fn()
+    viewerSetOnViewerTransformExit = vi.fn()
+    viewerSetOnViewerTransformHandleChange = vi.fn()
+    viewerSetOnViewerTransformModeChange = vi.fn()
+    viewerSetOnViewerTransformSpaceChange = vi.fn()
     viewerSetOnContentObjectTransformChange = vi.fn()
     viewerSetOnContentObjectTransformCommit = vi.fn()
     viewerSetOnContentObjectTransformHandleChange = vi.fn()
@@ -757,8 +785,9 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    expect(viewerSetReferenceTransformSession).toHaveBeenCalledWith({
-      referenceId: 'shoe:shoe-1',
+    expect(viewerSetViewerTransformSession).toHaveBeenCalledWith({
+      targetKind: 'reference',
+      targetId: 'shoe:shoe-1',
       mode: 'translate',
       space: 'local',
       entryOrigin: null,
@@ -788,7 +817,7 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    const spaceChangeHandler = viewerSetOnReferenceTransformSpaceChange.mock.calls.at(-1)?.[0] as
+    const spaceChangeHandler = viewerSetOnViewerTransformSpaceChange.mock.calls.at(-1)?.[0] as
       | ((space: 'local' | 'world') => void)
       | undefined
 
@@ -801,8 +830,9 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession?.space).toBe(
       'world',
     )
-    expect(viewerSetReferenceTransformSession).toHaveBeenLastCalledWith({
-      referenceId: 'shoe:shoe-1',
+    expect(viewerSetViewerTransformSession).toHaveBeenLastCalledWith({
+      targetKind: 'reference',
+      targetId: 'shoe:shoe-1',
       mode: 'translate',
       space: 'world',
       entryOrigin: null,
@@ -856,8 +886,9 @@ describe('ViewerHost reference loading', () => {
       { objectId: 'object-a', partKeys: ['slot-a', 'graph-document-1:slot-a'] },
       { objectId: 'object-b', partKeys: ['slot-b', 'graph-document-1:slot-b'] },
     ])
-    expect(viewerSetContentObjectTransformSession).toHaveBeenCalledWith({
-      objectId: 'object-a',
+    expect(viewerSetViewerTransformSession).toHaveBeenCalledWith({
+      targetKind: 'content-object',
+      targetId: 'object-a',
       mode: 'rotate',
       space: 'local',
       entryOrigin: {
@@ -904,10 +935,10 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    const commitHandler = viewerSetOnReferenceTransformCommit.mock.calls.at(-1)?.[0] as
+    const commitHandler = viewerSetOnViewerTransformCommit.mock.calls.at(-1)?.[0] as
       | (() => void)
       | undefined
-    const exitHandler = viewerSetOnReferenceTransformExit.mock.calls.at(-1)?.[0] as
+    const exitHandler = viewerSetOnViewerTransformExit.mock.calls.at(-1)?.[0] as
       | (() => void)
       | undefined
 
@@ -1035,9 +1066,9 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    expect(viewerSetReferenceTransformHistoryOverlay.mock.calls).toContainEqual([
+    expect(viewerSetViewerTransformHistoryOverlay.mock.calls).toContainEqual([
       {
-        referenceId: 'shoe:shoe-1',
+        target: { kind: 'reference', referenceId: 'shoe:shoe-1' },
         movePoints: [
           { x: 0, y: 0, z: 0 },
           { x: 5, y: 0, z: 0 },
@@ -1144,8 +1175,8 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    expect(viewerSetReferenceTransformHistoryOverlay).toHaveBeenCalledWith({
-      referenceId: 'shoe:shoe-1',
+    expect(viewerSetViewerTransformHistoryOverlay).toHaveBeenCalledWith({
+      target: { kind: 'reference', referenceId: 'shoe:shoe-1' },
       movePoints: [
         { x: 0, y: 0, z: 0 },
         { x: 5, y: 0, z: 0 },
@@ -1160,6 +1191,129 @@ describe('ViewerHost reference loading', () => {
       ],
       scaleEntries: [],
     })
+  })
+
+  it('builds the active content-object history overlay vm from committed move rotate and scale rows', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginContentObjectTransformShell('object-a')
+      useAppStore.setState((state) => ({
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeContentObjectTransformSession:
+            state.referenceWorkspace.activeContentObjectTransformSession === null
+              ? null
+              : {
+                  ...state.referenceWorkspace.activeContentObjectTransformSession,
+                  historyScrubIndex: 4,
+                  draftTransform: {
+                    position: { x: 6, y: -3, z: 4 },
+                    rotationDeg: { x: 0, y: 35, z: 0 },
+                    scale: { x: 1.5, y: 1.2, z: 1 },
+                  },
+                },
+          transformHistoryByObjectId: {
+            ...state.referenceWorkspace.transformHistoryByObjectId,
+            'object-a': [
+              {
+                entryId: 'move-1',
+                sessionId: 'content-object-transform-session:object-a:1',
+                sessionOrdinal: 1,
+                kind: 'move',
+                delta: { x: 2, y: 0, z: 0 },
+                after: { x: 2, y: 0, z: 0 },
+                transformAfter: {
+                  position: { x: 2, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 0, z: 0 },
+                  scale: { x: 1, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'rotate-1',
+                sessionId: 'content-object-transform-session:object-a:1',
+                sessionOrdinal: 1,
+                kind: 'rotate',
+                delta: { x: 0, y: 35, z: 0 },
+                after: { x: 0, y: 35, z: 0 },
+                transformAfter: {
+                  position: { x: 2, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 35, z: 0 },
+                  scale: { x: 1, y: 1, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'scale-1',
+                sessionId: 'content-object-transform-session:object-a:1',
+                sessionOrdinal: 1,
+                kind: 'scale',
+                delta: { x: 0.5, y: 0.2, z: 0 },
+                after: { x: 1.5, y: 1.2, z: 1 },
+                transformAfter: {
+                  position: { x: 2, y: 0, z: 0 },
+                  rotationDeg: { x: 0, y: 35, z: 0 },
+                  scale: { x: 1.5, y: 1.2, z: 1 },
+                },
+                locked: false,
+              },
+              {
+                entryId: 'move-2',
+                sessionId: 'content-object-transform-session:object-a:2',
+                sessionOrdinal: 2,
+                kind: 'move',
+                delta: { x: 4, y: -3, z: 4 },
+                after: { x: 6, y: -3, z: 4 },
+                transformAfter: {
+                  position: { x: 6, y: -3, z: 4 },
+                  rotationDeg: { x: 0, y: 35, z: 0 },
+                  scale: { x: 1.5, y: 1.2, z: 1 },
+                },
+                locked: false,
+              },
+            ],
+          },
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetViewerTransformHistoryOverlay.mock.calls).toContainEqual([
+      {
+        target: { kind: 'content-object', objectId: 'object-a' },
+        movePoints: [
+          { x: 0, y: 0, z: 0 },
+          { x: 2, y: 0, z: 0 },
+          { x: 6, y: -3, z: 4 },
+        ],
+        rotateEntries: [
+          {
+            entryId: 'rotate-1',
+            position: { x: 2, y: 0, z: 0 },
+            beforeRotationDeg: { x: 0, y: 0, z: 0 },
+            afterRotationDeg: { x: 0, y: 35, z: 0 },
+          },
+        ],
+        scaleEntries: [
+          {
+            entryId: 'scale-1',
+            position: { x: 2, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 35, z: 0 },
+            beforeScale: { x: 1, y: 1, z: 1 },
+            afterScale: { x: 1.5, y: 1.2, z: 1 },
+          },
+        ],
+      },
+    ])
   })
 
   it('stores the active reference transform handle when the viewer handle callback fires', async () => {
@@ -1179,7 +1333,7 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    const handleChangeHandler = viewerSetOnReferenceTransformHandleChange.mock.calls.at(-1)?.[0] as
+    const handleChangeHandler = viewerSetOnViewerTransformHandleChange.mock.calls.at(-1)?.[0] as
       | ((handle: { mode: 'translate'; kind: 'axis'; axis: 'y' }) => void)
       | undefined
 
@@ -1214,7 +1368,7 @@ describe('ViewerHost reference loading', () => {
       root?.render(<ViewerHost />)
     })
 
-    const handleChangeHandler = viewerSetOnReferenceTransformHandleChange.mock.calls.at(-1)?.[0] as
+    const handleChangeHandler = viewerSetOnViewerTransformHandleChange.mock.calls.at(-1)?.[0] as
       | ((handle: { mode: 'translate'; kind: 'center' }) => void)
       | undefined
 
@@ -1261,6 +1415,59 @@ describe('ViewerHost reference loading', () => {
       translate: { x: 10, y: 10, z: 10 },
       rotate: { x: 22.5, y: 22.5, z: 22.5 },
       scale: { x: 0.25, y: 0.25, z: 0.25 },
+    })
+  })
+
+  it('pushes the active content-object transform snap values into the viewer gizmo snap state', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    act(() => {
+      useAppStore.getState().beginContentObjectTransformShell('object-a')
+      useAppStore.getState().setViewerTransformSnapEnabled(
+        { kind: 'content-object', objectId: 'object-a' },
+        'translate',
+        true,
+      )
+      useAppStore.getState().setViewerTransformSnapValue(
+        { kind: 'content-object', objectId: 'object-a' },
+        'translate',
+        12,
+      )
+      useAppStore.getState().setViewerTransformSnapEnabled(
+        { kind: 'content-object', objectId: 'object-a' },
+        'rotate',
+        true,
+      )
+      useAppStore.getState().setViewerTransformSnapValue(
+        { kind: 'content-object', objectId: 'object-a' },
+        'rotate',
+        30,
+      )
+      useAppStore.getState().setViewerTransformSnapEnabled(
+        { kind: 'content-object', objectId: 'object-a' },
+        'scale',
+        true,
+      )
+      useAppStore.getState().setViewerTransformSnapValue(
+        { kind: 'content-object', objectId: 'object-a' },
+        'scale',
+        0.5,
+      )
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost />)
+    })
+
+    expect(viewerSetGizmoSnap).toHaveBeenCalledWith({
+      translate: { x: 12, y: 12, z: 12 },
+      rotate: { x: 30, y: 30, z: 30 },
+      scale: { x: 0.5, y: 0.5, z: 0.5 },
     })
   })
 
@@ -2379,8 +2586,8 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(viewerSetHighlightedReferenceIds).toHaveBeenCalledWith(['shoe:shoe-1'])
-    expect(viewerSetReferenceTransformSession).not.toHaveBeenCalledWith(
-      expect.objectContaining({ referenceId: 'shoe:shoe-1' }),
+    expect(viewerSetViewerTransformSession).not.toHaveBeenCalledWith(
+      expect.objectContaining({ targetKind: 'reference', targetId: 'shoe:shoe-1' }),
     )
   })
 

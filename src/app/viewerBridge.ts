@@ -103,11 +103,29 @@ export type ReferenceTransformScaleHistoryEntryVm = {
   afterScale: ReferenceTransformHistoryVec3Vm
 }
 
-export type ReferenceTransformHistoryOverlayVm = {
-  referenceId: string
+export type ViewerTransformTarget =
+  | {
+      kind: 'reference'
+      referenceId: string
+    }
+  | {
+      kind: 'content-object'
+      objectId: string
+    }
+
+export type ViewerTransformHistoryOverlayVm = {
+  target: ViewerTransformTarget
   movePoints: ReferenceTransformHistoryVec3Vm[]
   rotateEntries: ReferenceTransformRotateHistoryEntryVm[]
   scaleEntries: ReferenceTransformScaleHistoryEntryVm[]
+}
+
+export type ViewerTransformSession = {
+  targetKind: ViewerTransformTarget['kind']
+  targetId: string
+  mode: GizmoMode
+  space: GizmoSpace
+  entryOrigin: ReferenceTransformOverride | null
 }
 
 export interface ViewerApi {
@@ -186,6 +204,8 @@ export interface ViewerApi {
   setContentObjectTransformOverrides: (
     overrides: Record<string, ReferenceTransformOverride | null>,
   ) => void
+  setViewerTransformSession: (session: ViewerTransformSession | null) => void
+  setViewerTransformHistoryOverlay: (overlay: ViewerTransformHistoryOverlayVm | null) => void
   setReferenceCameraLock: (referenceId: string | null) => void
   setReferenceTransformOverride: (
     referenceId: string,
@@ -207,6 +227,16 @@ export interface ViewerApi {
   ) => void
   setOnReferenceTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
   setOnReferenceTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
+  setOnViewerTransformChange: (
+    handler: ((target: ViewerTransformTarget, transform: ReferenceTransformOverride) => void) | null,
+  ) => void
+  setOnViewerTransformCommit: (handler: (() => void) | null) => void
+  setOnViewerTransformExit: (handler: (() => void) | null) => void
+  setOnViewerTransformHandleChange: (
+    handler: ((handle: ActiveReferenceTransformHandle | null) => void) | null,
+  ) => void
+  setOnViewerTransformModeChange: ((handler: ((mode: GizmoMode) => void) | null) => void)
+  setOnViewerTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
   setOnContentObjectTransformChange: (
     handler: ((objectId: string, transform: ReferenceTransformOverride) => void) | null,
   ) => void

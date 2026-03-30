@@ -4,6 +4,20 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+166. 2026-03-30 12:14: Cleaned up the workspace-family docs after the shipped first `Workspace 5` slice by rewriting `Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md` into an honest shipped-first-slice record, adding the new native future phase docs `Workspace-5.1`, `Workspace-5.2`, and `Workspace-5.3` under `docs/Human-Plans/Architecture/Workspace-Modes/Future/`, refreshing `Workspace-Modes-Index.md` so the next editor-pop-out and multi-graph ladder is explicit, and extending the workspace docs map to include the new `5.x` follow-on files
+165. 2026-03-30 10:18: Added the native future workspace-family phase doc `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`, cleaned up the `Workspace 4` future record into an honest shipped-first-slice read, refreshed `Workspace-Modes-Index.md` so `Workspace 4` now reads as landed and `Workspace 5` as the active next phase, and extended the workspace docs map to include the current native `Workspace 0.1` through `Workspace 5` ladder under `Future/`
+164. 2026-03-30 10:03: Added the native future workspace-family phase doc `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`, cleaned up the `Workspace 3` future record into an honest shipped-first-slice read, refreshed `Workspace-Modes-Index.md` so `Workspace 3` now reads as landed and `Workspace 4` as the active next phase, and extended the workspace docs map to include the current native `Workspace 1` through `Workspace 4` ladder under `Future/`
+163. 2026-03-30 06:36: Added `docs/Human-Plans/CodexNotes/14_CodexChatNotes.md` to the foldable docs map as the new active Codex-notes file for `Workspace 1` implementation-prep work, tightened `Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md` into an implementation-ready spec, and refreshed `Workspace-Modes-Index.md` so the umbrella workspace read now reflects the newly locked `Workspace 1` answers
+162. 2026-03-29 15:03: Added the native future Workspace-family phase docs `Workspace-1`, `Workspace-2`, and `Workspace-3` under `docs/Human-Plans/Architecture/Workspace-Modes/Future/`, rewired `Workspace-Modes-Index.md` so the family now points at those native planning surfaces instead of only the older mixed `05.1A` / `05.1C` task-doc paths, and made viewport-local chrome plus toolbar-host ownership explicit as the new `Workspace 3` follow-on
+161. 2026-03-29 14:59: Added `docs/Human-Plans/CodexNotes/13_CodexChatNotes.md` to the foldable docs map as the new active Codex-notes file for workspace-modes implementation prep, continuing the running numbered planning-notes sequence after `12_CodexChatNotes.md`
+160. 2026-03-29 14:26: Added `Browser-12.1 - Real STEP Import Row Progress` to the Browser docs map, refreshed the Browser subtree so the next post-`12` Browser enrichment is visible under `Future/`, and kept the Browser family index as the umbrella summary surface for the new real per-file STEP progress direction
+159. 2026-03-29 11:38: Moved the shipped `Transform 15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity` record out of `Transform/Future/` and into `Transform/Shipped/`, refreshed the Transform subtree so the new generated-object parity cut now appears only once as shipped history, and kept `transform-index.md` as the umbrella family summary surface
+158. 2026-03-29 11:03: Moved the shipped `Transform 15.2 - Single Viewer Transform Session Model` record out of `Transform/Future/` and into `Transform/Shipped/`, refreshed the Transform subtree so the shared-session cleanup now appears only once as shipped history, and kept `transform-index.md` as the umbrella family summary surface
+157. 2026-03-29 10:39: Added the standalone future Transform phase docs `Transform 15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity` plus `Transform 15.4 - Viewer Transform Capability Cleanup After Parity`, refreshed the Transform subtree so the new post-`15.2` parity ladder appears under `Future/`, and kept `transform-index.md` as the umbrella family summary surface
+156. 2026-03-29 10:30: Added `docs/Human-Plans/Architecture/Transform/Future/Transform_Phase Transform-15.2 - Single Viewer Transform Session Model.md` to the architecture docs map, refreshed the Transform subtree so the new post-`15.1` shared-session cleanup is visible under `Future/`, and kept `docs/Human-Plans/Architecture/Transform/transform-index.md` as the umbrella family summary surface
+155. 2026-03-29 10:17: Moved the shipped `Browser-12 - Part Row Surface Cleanup And Usability Polish` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the part-row cleanup now appears only once as shipped history, and kept the Browser family index as the umbrella summary surface
+154. 2026-03-29 10:12: Added `Browser-12 - Part Row Surface Cleanup And Usability Polish` to the Browser docs map, refreshed the Browser subtree so the next post-`11.x` Browser follow-on is visible under `Future/`, and kept the Browser family index as the umbrella summary surface for the new part-row cleanup direction
+153. 2026-03-29 10:06: Moved the shipped `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` record out of Browser `Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the first-drop-ordering polish now appears only once as shipped history, and kept the Browser-11 umbrella doc as the family-level summary surface
 152. 2026-03-29 09:47: Added `Browser-11.5 - Cross-Parent First-Drop Ordering Parity` to the Browser docs map, refreshed the Browser subtree so the next post-`11.4` drag-polish follow-on is visible under `Future/`, and kept the Browser-11 umbrella doc as the family-level summary surface
 151. 2026-03-29 09:34: Moved the shipped `Browser-11.4 - Adapted Container Seam Retirement` record out of `Browser/Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the Browser-11 ladder now appears fully shipped, and kept the Browser-11 umbrella doc as the remaining family-level summary surface
 150. 2026-03-29 09:21: Moved the shipped `Browser-11.3 - Grouping Label Survival And Tree Simplification` record out of `Browser/Future/` and into `Browser/Shipped/`, refreshed the Browser subtree so the `User References` simplification cut now appears only once as shipped history, and kept the Browser-11 umbrella plus remaining `11.4` seam-retirement follow-on under `Future/`
@@ -485,6 +499,8 @@ Rule notes:
         - `10_CodexChatNotes.md`
         - `11_CodexChatNotes.md`
         - `12_CodexChatNotes.md`
+        - `13_CodexChatNotes.md`
+        - `14_CodexChatNotes.md`
 ### ----Architecture
         - `Architecture Setup.md`
         - `Audio-Patchbay.md`
@@ -513,6 +529,17 @@ Rule notes:
         - `v15Theme.md`
         - `Worker/Worker.md`
         - `Workspace-Modes/Workspace-Modes-Index.md`
+#### -------Workspace-Modes
+            - `Workspace-Modes-Index.md`
+            - `Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
+            - `Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+            - `Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+            - `Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+            - `Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
+            - `Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
+            - `Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
+            - `Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+            - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
 #### -------AppShell
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
@@ -527,7 +554,9 @@ Rule notes:
             - `Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
             - `Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
             - `Future/Browser_Phase Browser-11 - Real Project-Owned Reference Containers And Full Container Parity.md`
-            - `Future/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
+            - `Future/Browser_Phase Browser-12.1 - Real STEP Import Row Progress.md`
+            - `Shipped/Browser_Phase Browser-12 - Part Row Surface Cleanup And Usability Polish.md`
+            - `Shipped/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
             - `Shipped/Browser_Phase Browser-1 - Build Policy Icon Surface.md`
             - `Shipped/Browser_Phase Browser-2 - Cascade And Effective Policy Truth.md`
             - `Shipped/Browser_Phase Browser-3 - Runtime Build Policy Execution.md`
@@ -592,6 +621,19 @@ Rule notes:
             - `ThreeViewier.md`
             - `View-Toolbar-Index.md`
             - `Future/View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
+#### -------Transform
+            - `transform-index.md`
+            - `Future/Transform_Phase Transform-1 - Reference Session And History Foundation.md`
+            - `Future/Transform_Phase Transform-2 - Canonical Hierarchy And Target Ownership.md`
+            - `Future/Transform_Phase Transform-8 - Shared Transform Snap Controls.md`
+            - `Future/Transform_Phase Transform-12 - Transform Shell Polish And Canonical Adapter Cleanup.md`
+            - `Future/Transform_Phase Transform-13.1 - Rotate Snap Preview Lines.md`
+            - `Future/Transform_Phase Transform-15.4 - Viewer Transform Capability Cleanup After Parity.md`
+            - `Shipped/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
+            - `Shipped/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`
+            - `Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
+            - `Shipped/Transform_Phase Transform-15.2 - Single Viewer Transform Session Model.md`
+            - `Shipped/Transform_Phase Transform-15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity.md`
 #### -------Worker
             - `Worker.md`
             - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`

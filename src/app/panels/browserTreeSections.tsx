@@ -128,15 +128,6 @@ function BrowserAnimatedContentRows(props: {
             rowRef={registerRowElement(row.rowId)}
             {...rowHandlers}
           />
-          {row.rowKind === 'component' &&
-          row.referenceContainerKind === 'category' &&
-          row.isExpanded &&
-          (row.referenceContainerItemCount ?? 0) === 0 &&
-          (row.referenceContainerEmptyLabel?.length ?? 0) > 0 ? (
-            <div className="BrowserTreeEmpty BrowserTreeEmpty--nested">
-              {row.referenceContainerEmptyLabel}
-            </div>
-          ) : null}
         </div>
       ))}
     </div>
