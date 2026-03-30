@@ -1,15 +1,17 @@
 import {
+  Component,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
+  type ErrorInfo,
   type MouseEvent as ReactMouseEvent,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type RefObject,
-  type MutableRefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
 import { SpaghettiPanel } from '../panels/SpaghettiPanel'
@@ -26,6 +28,7 @@ import {
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import { useAppStore } from '../store/useAppStore'
+import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import {
   defaultWorkspaceSplitDirection,
   resolveDefaultWorkspaceSplitDockSide,
@@ -33,6 +36,7 @@ import {
   type WorkspaceSplitDockSide,
 } from '../workspace/workspaceSplitTypes'
 import {
+  createDefaultEditorPopoutState,
   defaultEditorSurfacePosition,
   defaultEditorSurfaceSize,
   type LeftDockPanelId,
@@ -59,6 +63,54 @@ const minVisibleFloatingHandleHeight = 56
 const splitDividerHeight = 10
 const normalizedFloatingHeightRatio = 0.9
 const floatingDockLockGap = 25
+const spaghettiPopoutBackground = 'rgb(5, 7, 11)'
+
+type WorkspaceSurface = 'spaghetti' | 'browser' | 'console' | 'viewer' | null
+
+type SpaghettiPopoutErrorBoundaryProps = {
+  children: ReactNode
+}
+
+type SpaghettiPopoutErrorBoundaryState = {
+  hasError: boolean
+  message: string
+}
+
+class SpaghettiPopoutErrorBoundary extends Component<
+  SpaghettiPopoutErrorBoundaryProps,
+  SpaghettiPopoutErrorBoundaryState
+> {
+  public state: SpaghettiPopoutErrorBoundaryState = {
+    hasError: false,
+    message: '',
+  }
+
+  static getDerivedStateFromError(error: unknown): SpaghettiPopoutErrorBoundaryState {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : 'Unknown detached Spaghetti popup error.',
+    }
+  }
+
+  componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
+    console.error('Detached Spaghetti popup render error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="SpaghettiFloatingWindow SpaghettiPopoutContent">
+          <div className="SpaghettiFloatingBody">
+            <div className="V15Error">
+              Detached Spaghetti popup crashed: {this.state.message}
+            </div>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function SpaghettiWindowTitleBar(props: {
   editorViewportId: string
@@ -70,6 +122,7 @@ function SpaghettiWindowTitleBar(props: {
   onMeatball: () => void
   onMaximizeToggle: () => void
   onSplitToggle: () => void
+  onTogglePopout?: () => void
   onClose: () => void
   onDragStart?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onShellClick?: (event: ReactMouseEvent<HTMLDivElement>) => void
@@ -83,6 +136,7 @@ function SpaghettiWindowTitleBar(props: {
   isEssentials?: boolean
   isMaximized: boolean
   isSplit: boolean
+  popoutButtonMode?: 'popout' | 'dock'
 }) {
   const {
     editorViewportId,
@@ -105,8 +159,10 @@ function SpaghettiWindowTitleBar(props: {
     onMaximizeToggle,
     onMeatball,
     onSplitToggle,
+    onTogglePopout,
     onShellClick,
     onContextMenu,
+    popoutButtonMode = 'popout',
   } = props
   const requestBrowserGraphDocumentBuild = useAppStore(
     (state) => state.requestBrowserGraphDocumentBuild,
@@ -278,6 +334,26 @@ function SpaghettiWindowTitleBar(props: {
             </button>
             <button
               type="button"
+              className={`SpaghettiWindowAction ${
+                popoutButtonMode === 'dock' ? 'isActive' : ''
+              }`}
+              onPointerDown={stopPointer}
+              onClick={onTogglePopout}
+              aria-label={
+                popoutButtonMode === 'dock'
+                  ? 'Dock editor back into workspace'
+                  : 'Pop editor out into browser window'
+              }
+              title={
+                popoutButtonMode === 'dock'
+                  ? 'Dock editor back into workspace'
+                  : 'Pop editor out into browser window'
+              }
+            >
+              {popoutButtonMode === 'dock' ? 'DK' : 'PO'}
+            </button>
+            <button
+              type="button"
               className="SpaghettiWindowAction"
               onPointerDown={stopPointer}
               onClick={onClose}
@@ -290,6 +366,85 @@ function SpaghettiWindowTitleBar(props: {
         </div>
       </div>
     </div>
+  )
+}
+
+function SpaghettiPopoutSurfaceHost(props: {
+  editorViewportId: string
+  popoutState: ReturnType<typeof createDefaultEditorPopoutState>
+  workspaceActiveSurface: WorkspaceSurface
+  onActivateSpaghettiSurface: () => void
+  onActivateViewport: (editorViewportId: string) => void
+  onActivateSpaghettiFloatingWindow: () => void
+  claimPendingWindow?: (editorViewportId: string) => Window | null
+  onClosed: (editorViewportId: string) => void
+  onBlocked: (editorViewportId: string) => void
+  children: ReactNode
+}) {
+  const {
+    editorViewportId,
+    popoutState,
+    workspaceActiveSurface,
+    onActivateSpaghettiSurface,
+    onActivateViewport,
+    onActivateSpaghettiFloatingWindow,
+    claimPendingWindow,
+    onClosed,
+    onBlocked,
+    children,
+  } = props
+
+  const claimPendingWindowForViewport = useCallback(
+    () => claimPendingWindow?.(editorViewportId) ?? null,
+    [claimPendingWindow, editorViewportId],
+  )
+  const handleBlocked = useCallback(() => {
+    onBlocked(editorViewportId)
+  }, [editorViewportId, onBlocked])
+  const handleClosed = useCallback(() => {
+    onClosed(editorViewportId)
+  }, [editorViewportId, onClosed])
+
+  const { childWindow, host } = useWorkspaceChildWindow({
+    isOpen: true,
+    spec: popoutState,
+    rootClassName: 'SpaghettiPopoutRoot',
+    bodyBackground: spaghettiPopoutBackground,
+    claimPendingWindow: claimPendingWindowForViewport,
+    onBlocked: handleBlocked,
+    onClosed: handleClosed,
+  })
+
+  useEffect(() => {
+    if (childWindow === null) {
+      return
+    }
+    const handleFocus = () => {
+      onActivateViewport(editorViewportId)
+      onActivateSpaghettiFloatingWindow()
+    }
+    childWindow.addEventListener('focus', handleFocus)
+    return () => {
+      childWindow.removeEventListener('focus', handleFocus)
+    }
+  }, [childWindow, editorViewportId, onActivateSpaghettiFloatingWindow, onActivateViewport])
+
+  if (host === null) {
+    return null
+  }
+
+  return createPortal(
+    <div className="SpaghettiPopoutSurface" onPointerDownCapture={onActivateSpaghettiSurface}>
+      <div
+        className={`SpaghettiPopoutWindow SpaghettiWindowShell ${
+          workspaceActiveSurface === 'spaghetti' ? 'isActiveWindow' : ''
+        }`}
+        onPointerDown={() => onActivateViewport(editorViewportId)}
+      >
+        {children}
+      </div>
+    </div>,
+    host,
   )
 }
 
@@ -337,6 +492,8 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   } = props
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
   const activeEditorViewportId = useSpaghettiStore((state) => state.activeEditorViewportId)
+  const editorViewportsById = useSpaghettiStore((state) => state.editorViewportsById) ?? {}
+  const editorViewportOrder = useSpaghettiStore((state) => state.editorViewportOrder) ?? []
   const headerCollapsedByViewportId = useSpaghettiStore(
     (state) => state.editorViewportHeaderCollapsedById,
   ) ?? {}
@@ -361,8 +518,15 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   const setEditorViewportPosition = useSpaghettiStore((state) => state.setEditorViewportPosition)
   const setEditorViewportSize = useSpaghettiStore((state) => state.setEditorViewportSize)
   const closeEditorViewport = useSpaghettiStore((state) => state.closeEditorViewport)
-  const activeEditorSurface = useWorkspaceStore((state) =>
-    activeEditorViewportId.length > 0 ? state.editorSurfacePlacementById[activeEditorViewportId] ?? null : null,
+  const editorSurfacePlacementById = useWorkspaceStore((state) => state.editorSurfacePlacementById)
+  const activeEditorSurface =
+    activeEditorViewportId.length > 0 ? editorSurfacePlacementById[activeEditorViewportId] ?? null : null
+  const orderedEditorViewports = useMemo(
+    () =>
+      editorViewportOrder
+        .map((editorViewportId) => editorViewportsById[editorViewportId] ?? null)
+        .filter((viewport) => viewport !== null),
+    [editorViewportOrder, editorViewportsById],
   )
   const [dockedMeatballPortalTarget, setDockedMeatballPortalTarget] = useState<HTMLDivElement | null>(
     null,
@@ -420,6 +584,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     viewportHeight: number
   } | null>(null)
   const lastLeftDockWidthRef = useRef<number | null>(null)
+  const pendingPopoutWindowByViewportIdRef = useRef<Record<string, Window | null>>({})
 
   const activeWindowMode = activeEditorSurface?.windowMode ?? activeEditorViewport?.windowMode ?? null
   const showEditorSurface = activeEditorViewport !== null
@@ -1112,6 +1277,13 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     ],
   )
 
+  const handleActivateViewport = useCallback(
+    (editorViewportId: string) => {
+      setActiveEditorViewportId(editorViewportId)
+    },
+    [setActiveEditorViewportId],
+  )
+
   const handleWindowSettingsToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
@@ -1122,6 +1294,13 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       [editorViewportId]: !(current[editorViewportId] ?? false),
     }))
   }, [activeEditorViewport])
+
+  const handleViewportWindowSettingsToggle = useCallback((editorViewportId: string) => {
+    setWindowSettingsOpenByViewportId((current) => ({
+      ...current,
+      [editorViewportId]: !(current[editorViewportId] ?? false),
+    }))
+  }, [])
 
   const handleActionTrayToggle = useCallback(() => {
     if (activeEditorViewport === null) {
@@ -1134,6 +1313,13 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     }))
   }, [activeEditorViewport])
 
+  const handleViewportActionTrayToggle = useCallback((editorViewportId: string) => {
+    setActionTrayExpandedByViewportId((current) => ({
+      ...current,
+      [editorViewportId]: !(current[editorViewportId] ?? false),
+    }))
+  }, [])
+
   const handleWindowClampEditingToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
@@ -1144,6 +1330,13 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       [editorViewportId]: !(current[editorViewportId] ?? false),
     }))
   }, [activeEditorViewport])
+
+  const handleViewportWindowClampEditingToggle = useCallback((editorViewportId: string) => {
+    setWindowClampEditingByViewportId((current) => ({
+      ...current,
+      [editorViewportId]: !(current[editorViewportId] ?? false),
+    }))
+  }, [])
 
   const handleWindowAppearanceChange = useCallback(
     (editorViewportId: string, patch: Partial<SpaghettiWindowAppearance>) => {
@@ -1312,20 +1505,70 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     setEditorViewportPresentationMode,
   ])
 
+  const handleViewportPrimaryViewModeCycle = useCallback(
+    (editorViewportId: string) => {
+      const viewport = orderedEditorViewports.find(
+        (currentViewport) => currentViewport.editorViewportId === editorViewportId,
+      )
+      if (viewport === undefined) {
+        return
+      }
+      const viewportPlacement = editorSurfacePlacementById[editorViewportId] ?? null
+      const windowMode = viewportPlacement?.windowMode ?? viewport.windowMode
+      const headerCollapsed = headerCollapsedByViewportId[editorViewportId] ?? false
+      const canvasToolbarVisible = canvasToolbarVisibleByViewportId[editorViewportId] ?? true
+      const isViewportEssentials =
+        windowMode === 'maximized' && headerCollapsed && !canvasToolbarVisible
+
+      if (windowMode === 'collapsed') {
+        setEditorViewportPresentationMode(editorViewportId, 'expanded')
+        return
+      }
+
+      if (isViewportEssentials) {
+        setEditorViewportPresentationMode(editorViewportId, 'collapsed')
+        return
+      }
+
+      setEditorViewportPresentationMode(editorViewportId, 'essentials')
+    },
+    [
+      canvasToolbarVisibleByViewportId,
+      editorSurfacePlacementById,
+      headerCollapsedByViewportId,
+      orderedEditorViewports,
+      setEditorViewportPresentationMode,
+    ],
+  )
+
   const handleHeaderToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
     }
+    const editorViewportId = activeEditorViewport.editorViewportId
     setHeaderToggleRevisionByViewportId((current) => ({
       ...current,
-      [activeEditorViewport.editorViewportId]:
-        (current[activeEditorViewport.editorViewportId] ?? 0) + 1,
+      [editorViewportId]: (current[editorViewportId] ?? 0) + 1,
     }))
     setEditorViewportHeaderCollapsed(
-      activeEditorViewport.editorViewportId,
-      !(headerCollapsedByViewportId[activeEditorViewport.editorViewportId] ?? false),
+      editorViewportId,
+      !(headerCollapsedByViewportId[editorViewportId] ?? false),
     )
   }, [activeEditorViewport, headerCollapsedByViewportId, setEditorViewportHeaderCollapsed])
+
+  const handleViewportHeaderToggle = useCallback(
+    (editorViewportId: string) => {
+      setHeaderToggleRevisionByViewportId((current) => ({
+        ...current,
+        [editorViewportId]: (current[editorViewportId] ?? 0) + 1,
+      }))
+      setEditorViewportHeaderCollapsed(
+        editorViewportId,
+        !(headerCollapsedByViewportId[editorViewportId] ?? false),
+      )
+    },
+    [headerCollapsedByViewportId, setEditorViewportHeaderCollapsed],
+  )
 
   const handleSetHeaderCollapsed = useCallback(
     (collapsed: boolean) => {
@@ -1337,15 +1580,33 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     [activeEditorViewport, setEditorViewportHeaderCollapsed],
   )
 
+  const handleSetViewportHeaderCollapsed = useCallback(
+    (editorViewportId: string, collapsed: boolean) => {
+      setEditorViewportHeaderCollapsed(editorViewportId, collapsed)
+    },
+    [setEditorViewportHeaderCollapsed],
+  )
+
   const handleCanvasToolbarToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
     }
+    const editorViewportId = activeEditorViewport.editorViewportId
     setEditorViewportCanvasToolbarVisible(
-      activeEditorViewport.editorViewportId,
-      !(canvasToolbarVisibleByViewportId[activeEditorViewport.editorViewportId] ?? true),
+      editorViewportId,
+      !(canvasToolbarVisibleByViewportId[editorViewportId] ?? true),
     )
   }, [activeEditorViewport, canvasToolbarVisibleByViewportId, setEditorViewportCanvasToolbarVisible])
+
+  const handleViewportCanvasToolbarToggle = useCallback(
+    (editorViewportId: string) => {
+      setEditorViewportCanvasToolbarVisible(
+        editorViewportId,
+        !(canvasToolbarVisibleByViewportId[editorViewportId] ?? true),
+      )
+    },
+    [canvasToolbarVisibleByViewportId, setEditorViewportCanvasToolbarVisible],
+  )
 
   const handleMeatballMode = useCallback(() => {
     if (activeEditorViewport === null) {
@@ -1366,6 +1627,34 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     setEditorViewportWindowMode,
   ])
 
+  const handleViewportMeatballMode = useCallback(
+    (editorViewportId: string) => {
+      const viewport = orderedEditorViewports.find(
+        (currentViewport) => currentViewport.editorViewportId === editorViewportId,
+      )
+      if (viewport === undefined) {
+        return
+      }
+      const viewportPlacement = editorSurfacePlacementById[editorViewportId] ?? null
+      const windowMode = viewportPlacement?.windowMode ?? viewport.windowMode
+      setActiveLeftDockPreviewPanelId(null)
+      if (windowMode !== 'meatball editor view') {
+        setEditorViewportHeaderCollapsed(editorViewportId, true)
+      }
+      setEditorViewportWindowMode(
+        editorViewportId,
+        windowMode === 'meatball editor view' ? 'expanded' : 'meatball editor view',
+      )
+    },
+    [
+      editorSurfacePlacementById,
+      orderedEditorViewports,
+      setActiveLeftDockPreviewPanelId,
+      setEditorViewportHeaderCollapsed,
+      setEditorViewportWindowMode,
+    ],
+  )
+
   const handleMaximizeToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
@@ -1373,12 +1662,80 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'maximized')
   }, [activeEditorViewport, setEditorViewportWindowMode])
 
+  const handleViewportMaximizeToggle = useCallback(
+    (editorViewportId: string) => {
+      setEditorViewportWindowMode(editorViewportId, 'maximized')
+    },
+    [setEditorViewportWindowMode],
+  )
+
   const handleSplitToggle = useCallback(() => {
     if (activeEditorViewport === null) {
       return
     }
     setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'split view')
   }, [activeEditorViewport, setEditorViewportWindowMode])
+
+  const handleViewportSplitToggle = useCallback(
+    (editorViewportId: string) => {
+      setEditorViewportWindowMode(editorViewportId, 'split view')
+    },
+    [setEditorViewportWindowMode],
+  )
+
+  const preopenViewportPopoutWindow = useCallback(
+    (editorViewportId: string) => {
+      const placement = editorSurfacePlacementById[editorViewportId] ?? null
+      const popoutState = placement?.popoutState ?? createDefaultEditorPopoutState(editorViewportId)
+      const popup = window.open('', popoutState.windowName, popoutState.windowFeatures)
+      pendingPopoutWindowByViewportIdRef.current[editorViewportId] = popup
+      return popup
+    },
+    [editorSurfacePlacementById],
+  )
+
+  const claimPendingViewportPopoutWindow = useCallback((editorViewportId: string) => {
+    const pendingWindow = pendingPopoutWindowByViewportIdRef.current[editorViewportId] ?? null
+    delete pendingPopoutWindowByViewportIdRef.current[editorViewportId]
+    return pendingWindow
+  }, [])
+
+  const handleTogglePopout = useCallback(() => {
+    if (activeEditorViewport === null) {
+      return
+    }
+    const editorViewportId = activeEditorViewport.editorViewportId
+    setActiveLeftDockPreviewPanelId(null)
+    setSplitDockPreviewSide(null)
+    preopenViewportPopoutWindow(editorViewportId)
+    setEditorViewportWindowMode(editorViewportId, 'separateWindow')
+  }, [
+    activeEditorViewport,
+    preopenViewportPopoutWindow,
+    setActiveLeftDockPreviewPanelId,
+    setEditorViewportWindowMode,
+  ])
+
+  const handleViewportDockFromPopout = useCallback(
+    (editorViewportId: string) => {
+      delete pendingPopoutWindowByViewportIdRef.current[editorViewportId]
+      const viewport = editorViewportsById[editorViewportId] ?? null
+      const placement = editorSurfacePlacementById[editorViewportId] ?? null
+      const windowMode = placement?.windowMode ?? viewport?.windowMode ?? null
+      if (windowMode !== 'separateWindow') {
+        return
+      }
+      setActiveLeftDockPreviewPanelId(null)
+      setSplitDockPreviewSide(null)
+      setEditorViewportWindowMode(editorViewportId, 'separateWindow')
+    },
+    [
+      editorSurfacePlacementById,
+      editorViewportsById,
+      setActiveLeftDockPreviewPanelId,
+      setEditorViewportWindowMode,
+    ],
+  )
 
   const handleSplitTitleBarClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -1492,6 +1849,13 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     closeEditorViewport(activeEditorViewport.editorViewportId)
   }, [activeEditorViewport, closeEditorViewport])
 
+  const handleViewportCloseEditor = useCallback(
+    (editorViewportId: string) => {
+      closeEditorViewport(editorViewportId)
+    },
+    [closeEditorViewport],
+  )
+
   const splitLayoutStyle = useMemo(
     () => ({
       gridTemplateColumns:
@@ -1539,6 +1903,29 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     } as CSSProperties
   }, [splitDockPreviewSide, splitRatio])
 
+  const detachedEditorViewportIds = useMemo(() => {
+    const orderedDetachedViewportIds = orderedEditorViewports
+      .filter((viewport) => {
+        const placement = editorSurfacePlacementById[viewport.editorViewportId] ?? null
+        const windowMode = placement?.windowMode ?? viewport.windowMode
+        return windowMode === 'separateWindow'
+      })
+      .map((viewport) => viewport.editorViewportId)
+
+    const detachedViewportIdSet = new Set(orderedDetachedViewportIds)
+    for (const [editorViewportId, placement] of Object.entries(editorSurfacePlacementById)) {
+      if (placement.windowMode !== 'separateWindow') {
+        continue
+      }
+      if (editorViewportsById[editorViewportId] === undefined) {
+        continue
+      }
+      detachedViewportIdSet.add(editorViewportId)
+    }
+
+    return Array.from(detachedViewportIdSet)
+  }, [editorSurfacePlacementById, editorViewportsById, orderedEditorViewports])
+
   const meatballShell =
     showMeatballDock && activeEditorViewport !== null ? (
       <div
@@ -1556,6 +1943,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
           onMeatball={handleMeatballMode}
           onMaximizeToggle={handleMaximizeToggle}
           onSplitToggle={handleSplitToggle}
+          onTogglePopout={handleTogglePopout}
           onClose={handleCloseEditor}
           onDragStart={handleMeatballDockDragStart}
           isCollapsed={false}
@@ -1631,6 +2019,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                 onMeatball={handleMeatballMode}
                 onMaximizeToggle={handleMaximizeToggle}
                 onSplitToggle={handleSplitToggle}
+                onTogglePopout={handleTogglePopout}
                 onDragStart={handleSplitTitleBarDragStart}
                 onShellClick={handleSplitTitleBarClick}
                 onContextMenu={onOpenDividerSplitMenu}
@@ -1748,6 +2137,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                   onMeatball={handleMeatballMode}
                   onMaximizeToggle={handleMaximizeToggle}
                   onSplitToggle={handleSplitToggle}
+                  onTogglePopout={handleTogglePopout}
                   onClose={handleCloseEditor}
                   onDragStart={handleSpaghettiDragStart}
                   onContextMenu={onOpenFloatingSplitMenu}
@@ -1794,6 +2184,97 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
             floatingSpaghettiPortalTarget,
           )
         : null}
+      {detachedEditorViewportIds.map((editorViewportId) => {
+        const viewport = editorViewportsById[editorViewportId] ?? null
+        if (viewport === null) {
+          return null
+        }
+        const placement = editorSurfacePlacementById[editorViewportId] ?? null
+        const popoutState = placement?.popoutState ?? createDefaultEditorPopoutState(editorViewportId)
+        const windowMode = placement?.windowMode ?? viewport.windowMode
+        if (windowMode !== 'separateWindow') {
+          return null
+        }
+        const viewportHeaderCollapsed = headerCollapsedByViewportId[editorViewportId] ?? false
+        const viewportHeaderToggleRevision = headerToggleRevisionByViewportId[editorViewportId] ?? 0
+        const viewportCanvasToolbarVisible =
+          canvasToolbarVisibleByViewportId[editorViewportId] ?? true
+        const viewportWindowSettingsOpen = windowSettingsOpenByViewportId[editorViewportId] ?? false
+        const viewportSavedActionTrayExpanded = actionTrayExpandedByViewportId[editorViewportId] ?? false
+        const viewportWindowAppearance =
+          windowAppearanceByViewportId[editorViewportId] ?? defaultSpaghettiWindowAppearance
+        const viewportClampEditing = windowClampEditingByViewportId[editorViewportId] ?? false
+        const viewportIsEssentials = false
+        const viewportActionTrayExpanded = viewportSavedActionTrayExpanded
+
+        return (
+          <SpaghettiPopoutSurfaceHost
+            key={editorViewportId}
+            editorViewportId={editorViewportId}
+            popoutState={popoutState}
+            workspaceActiveSurface={workspaceActiveSurface}
+            onActivateSpaghettiSurface={onActivateSpaghettiSurface}
+            onActivateViewport={handleActivateViewport}
+            onActivateSpaghettiFloatingWindow={onActivateSpaghettiFloatingWindow}
+            claimPendingWindow={claimPendingViewportPopoutWindow}
+            onBlocked={handleViewportDockFromPopout}
+            onClosed={handleViewportDockFromPopout}
+          >
+            <SpaghettiPopoutErrorBoundary>
+              <div
+                className="SpaghettiFloatingWindow SpaghettiPopoutContent"
+                style={getWindowAppearanceStyle(viewportWindowAppearance)}
+              >
+                <SpaghettiWindowTitleBar
+                  editorViewportId={editorViewportId}
+                  onPrimaryViewModeCycle={() => handleViewportPrimaryViewModeCycle(editorViewportId)}
+                  onActionTrayToggle={() => handleViewportActionTrayToggle(editorViewportId)}
+                  onWindowSettingsToggle={() => handleViewportWindowSettingsToggle(editorViewportId)}
+                  onHeaderToggle={() => handleViewportHeaderToggle(editorViewportId)}
+                  onCanvasToolbarToggle={() => handleViewportCanvasToolbarToggle(editorViewportId)}
+                  onMeatball={() => handleViewportMeatballMode(editorViewportId)}
+                  onMaximizeToggle={() => handleViewportMaximizeToggle(editorViewportId)}
+                  onSplitToggle={() => handleViewportSplitToggle(editorViewportId)}
+                  onTogglePopout={() => handleViewportDockFromPopout(editorViewportId)}
+                  popoutButtonMode="dock"
+                  onClose={() => handleViewportCloseEditor(editorViewportId)}
+                  isCollapsed={false}
+                  isActionTrayExpanded={viewportActionTrayExpanded}
+                  isWindowSettingsOpen={viewportWindowSettingsOpen}
+                  isHeaderCollapsed={viewportHeaderCollapsed}
+                  isCanvasToolbarVisible={viewportCanvasToolbarVisible}
+                  isMeatball={false}
+                  isEssentials={viewportIsEssentials}
+                  isMaximized={false}
+                  isSplit={false}
+                />
+                <div className={`SpaghettiFloatingBody ${viewportIsEssentials ? 'isEssentials' : ''}`}>
+                  <SpaghettiPanel
+                    editorViewportId={editorViewportId}
+                    isEssentials={viewportIsEssentials}
+                    isWindowSettingsOpen={viewportWindowSettingsOpen}
+                    isClampEditing={viewportClampEditing}
+                    windowAppearance={viewportWindowAppearance}
+                    onWindowAppearanceChange={(patch) =>
+                      handleWindowAppearanceChange(editorViewportId, patch)
+                    }
+                    onToggleClampEditing={() =>
+                      handleViewportWindowClampEditingToggle(editorViewportId)
+                    }
+                    onResetWindowAppearance={() => handleResetWindowAppearance(editorViewportId)}
+                    isHeaderCollapsed={viewportHeaderCollapsed}
+                    isCanvasToolbarVisible={viewportCanvasToolbarVisible}
+                    headerToggleRevision={viewportHeaderToggleRevision}
+                    onSetHeaderCollapsed={(collapsed) =>
+                      handleSetViewportHeaderCollapsed(editorViewportId, collapsed)
+                    }
+                  />
+                </div>
+              </div>
+            </SpaghettiPopoutErrorBoundary>
+          </SpaghettiPopoutSurfaceHost>
+        )
+      })}
     </>
   )
 }

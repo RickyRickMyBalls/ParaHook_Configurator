@@ -1646,6 +1646,43 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(viewport?.restoreFromCollapsed).toBeNull()
   })
 
+  it('setEditorViewportWindowMode toggles separateWindow back to the captured prior split state', () => {
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'split view')
+    useSpaghettiStore.getState().setEditorViewportSplitDockSide(viewportId ?? '', 'right')
+    useSpaghettiStore.getState().setEditorViewportSplitRatio(viewportId ?? '', 0.62)
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'separateWindow')
+
+    let viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    let editorSurface =
+      useWorkspaceStore.getState().editorSurfacePlacementById[viewportId ?? ''] ?? null
+
+    expect(viewport?.windowMode).toBe('separateWindow')
+    expect(viewport?.restoreFromSeparateWindow).toEqual({
+      windowMode: 'split view',
+      position: defaultViewportPosition,
+      size: defaultViewportSize,
+      splitRatio: 0.62,
+      splitDirection: 'vertical',
+      splitDockSide: 'right',
+      splitPriority: 'balanced',
+    })
+    expect(editorSurface?.popoutState?.owner).toBe('child-window')
+
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'separateWindow')
+
+    viewport = selectActiveEditorViewport(useSpaghettiStore.getState())
+    editorSurface = useWorkspaceStore.getState().editorSurfacePlacementById[viewportId ?? ''] ?? null
+    expect(viewport?.windowMode).toBe('split view')
+    expect(viewport?.splitDockSide).toBe('right')
+    expect(viewport?.splitDirection).toBe('vertical')
+    expect(viewport?.splitRatio).toBe(0.62)
+    expect(viewport?.restoreFromSeparateWindow).toBeNull()
+    expect(editorSurface?.popoutState?.owner).toBe('main-app')
+  })
+
   it('stores split direction and priority per editor viewport', () => {
     const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
     expect(viewportId).not.toBeNull()
@@ -1684,6 +1721,32 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(editorSurface?.splitDirection).toBe('vertical')
     expect(editorSurface?.splitDockSide).toBe('left')
     expect(editorSurface?.splitPriority).toBe('favorSecond')
+  })
+
+  it('mirrors editor surface graph bindings into the shared workspace store and removes them on close', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(emptyGraph, 'Graph 2')
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInNewViewport(secondGraphId)
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+
+    let binding =
+      useWorkspaceStore.getState().editorSurfaceBindingById[secondViewportId ?? ''] ?? null
+    expect(binding).toEqual({
+      surfaceKind: 'spaghettiEditor',
+      surfaceInstanceId: secondViewportId,
+      graphDocumentId: secondGraphId,
+    })
+
+    useSpaghettiStore
+      .getState()
+      .bindEditorViewportToGraphDocument(secondViewportId ?? '', 'graph-document-1')
+
+    binding = useWorkspaceStore.getState().editorSurfaceBindingById[secondViewportId ?? ''] ?? null
+    expect(binding?.graphDocumentId).toBe('graph-document-1')
+
+    useSpaghettiStore.getState().closeEditorViewport(secondViewportId ?? '')
+    expect(useWorkspaceStore.getState().editorSurfaceBindingById[secondViewportId ?? '']).toBeUndefined()
   })
 
   it('only keeps one meatball editor view alive at a time', () => {

@@ -467,6 +467,10 @@ export function SpaghettiCanvas({
 
   const stageRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
+  const getCanvasWindow = useCallback(
+    () => viewportRef.current?.ownerDocument.defaultView ?? stageRef.current?.ownerDocument.defaultView ?? window,
+    [],
+  )
   const portElementsRef = useRef<Map<string, HTMLElement>>(new Map())
   const [portElementVersionByNodeId, setPortElementVersionByNodeId] = useState(
     () => new Map<string, number>(),
@@ -715,7 +719,8 @@ export function SpaghettiCanvas({
     if (portAnchorDirtyBumpRafRef.current !== null) {
       return
     }
-    portAnchorDirtyBumpRafRef.current = window.requestAnimationFrame(() => {
+    const canvasWindow = getCanvasWindow()
+    portAnchorDirtyBumpRafRef.current = canvasWindow.requestAnimationFrame(() => {
       portAnchorDirtyBumpRafRef.current = null
       const dirtyNodeIds = pendingPortAnchorDirtyNodeIdsRef.current
       if (dirtyNodeIds.size === 0) {
@@ -730,7 +735,7 @@ export function SpaghettiCanvas({
       })
       pendingPortAnchorDirtyNodeIdsRef.current = new Set<string>()
     })
-  }, [])
+  }, [getCanvasWindow])
 
   const getCompositeExpanded = useCallback(
     (
@@ -775,7 +780,7 @@ export function SpaghettiCanvas({
       bumpCompositeExpansionRevision(nodeId)
       queuePortAnchorDirtyNode(nodeId)
       if (DEV) {
-        window.requestAnimationFrame(() => {
+        getCanvasWindow().requestAnimationFrame(() => {
           console.log('[perf] expand->paint ms', performance.now() - t0, 'node', nodeId)
           if (actionLabel !== null && lastUiActionRef.current === actionLabel) {
             lastUiActionRef.current = null
@@ -783,7 +788,7 @@ export function SpaghettiCanvas({
         })
       }
     },
-    [bumpCompositeExpansionRevision, queuePortAnchorDirtyNode],
+    [bumpCompositeExpansionRevision, getCanvasWindow, queuePortAnchorDirtyNode],
   )
 
   const availableNodeTypes = useMemo(
@@ -932,21 +937,22 @@ export function SpaghettiCanvas({
       if (dragRafRef.current !== null) {
         return
       }
-      dragRafRef.current = window.requestAnimationFrame(flushQueuedNodePos)
+      dragRafRef.current = getCanvasWindow().requestAnimationFrame(flushQueuedNodePos)
     },
-    [flushQueuedNodePos],
+    [flushQueuedNodePos, getCanvasWindow],
   )
 
   useEffect(
     () => () => {
+      const canvasWindow = getCanvasWindow()
       if (dragRafRef.current !== null) {
-        window.cancelAnimationFrame(dragRafRef.current)
+        canvasWindow.cancelAnimationFrame(dragRafRef.current)
       }
       if (portAnchorDirtyBumpRafRef.current !== null) {
-        window.cancelAnimationFrame(portAnchorDirtyBumpRafRef.current)
+        canvasWindow.cancelAnimationFrame(portAnchorDirtyBumpRafRef.current)
       }
     },
-    [],
+    [getCanvasWindow],
   )
 
   const measureAllPortAnchors = useCallback(() => {
@@ -1057,11 +1063,12 @@ export function SpaghettiCanvas({
     const handleResize = () => {
       measureAllPortAnchors()
     }
-    window.addEventListener('resize', handleResize)
+    const canvasWindow = getCanvasWindow()
+    canvasWindow.addEventListener('resize', handleResize)
     return () => {
-      window.removeEventListener('resize', handleResize)
+      canvasWindow.removeEventListener('resize', handleResize)
     }
-  }, [measureAllPortAnchors])
+  }, [getCanvasWindow, measureAllPortAnchors])
 
   useEffect(() => {
     if (nodeAddMenu === null) {
@@ -1077,24 +1084,26 @@ export function SpaghettiCanvas({
       }
       setNodeAddMenu(null)
     }
-    window.addEventListener('pointerdown', handleWindowPointerDown)
+    const canvasWindow = getCanvasWindow()
+    canvasWindow.addEventListener('pointerdown', handleWindowPointerDown)
     return () => {
-      window.removeEventListener('pointerdown', handleWindowPointerDown)
+      canvasWindow.removeEventListener('pointerdown', handleWindowPointerDown)
     }
-  }, [nodeAddMenu])
+  }, [getCanvasWindow, nodeAddMenu])
 
   useEffect(() => {
     if (nodeAddMenu === null) {
       return
     }
-    const raf = window.requestAnimationFrame(() => {
+    const canvasWindow = getCanvasWindow()
+    const raf = canvasWindow.requestAnimationFrame(() => {
       nodeAddSearchRef.current?.focus()
       nodeAddSearchRef.current?.select()
     })
     return () => {
-      window.cancelAnimationFrame(raf)
+      canvasWindow.cancelAnimationFrame(raf)
     }
-  }, [nodeAddMenu])
+  }, [getCanvasWindow, nodeAddMenu])
 
   const handleRegisterPortElement = useCallback(
     (
@@ -1175,17 +1184,19 @@ export function SpaghettiCanvas({
       const handleUp = () => {
         dragStateRef.current = null
         flushQueuedNodePos()
-        window.removeEventListener('pointermove', handleMove)
-        window.removeEventListener('pointerup', handleUp)
+        canvasWindow.removeEventListener('pointermove', handleMove)
+        canvasWindow.removeEventListener('pointerup', handleUp)
       }
 
-      window.addEventListener('pointermove', handleMove)
-      window.addEventListener('pointerup', handleUp)
+      const canvasWindow = getCanvasWindow()
+      canvasWindow.addEventListener('pointermove', handleMove)
+      canvasWindow.addEventListener('pointerup', handleUp)
       event.preventDefault()
     },
     [
       clearUiMessage,
       flushQueuedNodePos,
+      getCanvasWindow,
       graph.nodes,
       nodePos,
       queueNodePos,
@@ -1449,8 +1460,8 @@ export function SpaghettiCanvas({
             hoverOutputTargetRef.current = null
             setHoverInputTarget(null)
             setHoverOutputTarget(null)
-            window.removeEventListener('pointermove', handleMove)
-            window.removeEventListener('pointerup', handleUp)
+            canvasWindow.removeEventListener('pointermove', handleMove)
+            canvasWindow.removeEventListener('pointerup', handleUp)
             return
           }
 
@@ -1482,8 +1493,8 @@ export function SpaghettiCanvas({
               hoverOutputTargetRef.current = null
               setHoverInputTarget(null)
               setHoverOutputTarget(null)
-              window.removeEventListener('pointermove', handleMove)
-              window.removeEventListener('pointerup', handleUp)
+              canvasWindow.removeEventListener('pointermove', handleMove)
+              canvasWindow.removeEventListener('pointerup', handleUp)
               return
             }
 
@@ -1522,17 +1533,19 @@ export function SpaghettiCanvas({
         hoverOutputTargetRef.current = null
         setHoverInputTarget(null)
         setHoverOutputTarget(null)
-        window.removeEventListener('pointermove', handleMove)
-        window.removeEventListener('pointerup', handleUp)
+        canvasWindow.removeEventListener('pointermove', handleMove)
+        canvasWindow.removeEventListener('pointerup', handleUp)
       }
 
-      window.addEventListener('pointermove', handleMove)
-      window.addEventListener('pointerup', handleUp)
+      const canvasWindow = getCanvasWindow()
+      canvasWindow.addEventListener('pointermove', handleMove)
+      canvasWindow.addEventListener('pointerup', handleUp)
     },
     [
       applyGraphCommand,
       clearConnectionDrag,
       clearUiMessage,
+      getCanvasWindow,
       setConnectionDrag,
       setSelectedEdgeId,
       setSelectedNodeId,
@@ -1768,14 +1781,15 @@ export function SpaghettiCanvas({
       }
 
       const handleUp = () => {
-        window.removeEventListener('pointermove', handleMove)
-        window.removeEventListener('pointerup', handleUp)
+        canvasWindow.removeEventListener('pointermove', handleMove)
+        canvasWindow.removeEventListener('pointerup', handleUp)
       }
 
-      window.addEventListener('pointermove', handleMove)
-      window.addEventListener('pointerup', handleUp)
+      const canvasWindow = getCanvasWindow()
+      canvasWindow.addEventListener('pointermove', handleMove)
+      canvasWindow.addEventListener('pointerup', handleUp)
     },
-    [setEdgeWaypointPos, setSelectedEdgeId, setSelectedNodeId],
+    [getCanvasWindow, setEdgeWaypointPos, setSelectedEdgeId, setSelectedNodeId],
   )
 
   const handleWaypointDoubleClick = useCallback(
@@ -2185,20 +2199,21 @@ export function SpaghettiCanvas({
       onMove: (moveEvent: PointerEvent) => void,
       onEnd: () => void,
     ) => {
+      const canvasWindow = getCanvasWindow()
       const handleMove = (moveEvent: PointerEvent) => {
         onMove(moveEvent)
       }
       const handleEnd = () => {
         onEnd()
-        window.removeEventListener('pointermove', handleMove)
-        window.removeEventListener('pointerup', handleEnd)
-        window.removeEventListener('pointercancel', handleEnd)
+        canvasWindow.removeEventListener('pointermove', handleMove)
+        canvasWindow.removeEventListener('pointerup', handleEnd)
+        canvasWindow.removeEventListener('pointercancel', handleEnd)
       }
-      window.addEventListener('pointermove', handleMove)
-      window.addEventListener('pointerup', handleEnd)
-      window.addEventListener('pointercancel', handleEnd)
+      canvasWindow.addEventListener('pointermove', handleMove)
+      canvasWindow.addEventListener('pointerup', handleEnd)
+      canvasWindow.addEventListener('pointercancel', handleEnd)
     },
-    [],
+    [getCanvasWindow],
   )
 
   return (

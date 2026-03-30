@@ -65,6 +65,308 @@ Do not use it for:
 
 ## Doc Body
 
+### [752] - 2026-03-30 14:36 - `VR-SP - Workspace 5.1 - Detached Popup Host Reuse And Body Preservation`
+<!-- ENTRY 752 -->
+HUMAN SUMMARY: `This hardens the shared child-window hook so detached popups stop wiping their own document body during setup and instead reuse one marked popup host, which directly targets the still-blank Spaghetti popup symptom where the child window opens and themes correctly but the React surface never stays painted.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the shared child-window host lifecycle instead of widening the editor surface model again.
+- Reused the existing Browser and Spaghetti popup contract so the fix applies at the shared popup seam.
+- Avoided speculative editor-subtree rewrites and targeted the popup document preservation path that best matches the live blank-window symptom.
+- Verified the change with the focused popup/shell suites and a full TypeScript build.
+#### What Changed
+- Updated `src/app/workspace/useWorkspaceChildWindow.ts` so popup setup now reuses a marked host element instead of clearing `document.body.innerHTML`.
+- Added a dedicated `ensureChildWindowHost(...)` helper so claimed or remounted child windows keep one stable popup root.
+- Narrowed the popup effect dependencies to the primitive spec fields rather than the whole spec object to reduce unnecessary popup re-setup churn under Spaghetti rerenders.
+- Reset the hook's cached host ref when the popup closes or the child window unmounts so future popout claims still rebuild cleanly.
+#### Files Changed
+- `src/app/workspace/useWorkspaceChildWindow.ts`
+#### Behavior Changes
+- Detached popup windows now preserve their existing popup document shell and host node across rerenders instead of recreating the body wholesale.
+- The shared popup hook should now behave more like the stable Browser popout path even when the Spaghetti host rerenders aggressively.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [751] - 2026-03-30 14:29 - `VR-SP - Workspace 5.1 - Detached Editor Popup Crash Visibility Boundary`
+<!-- ENTRY 751 -->
+HUMAN SUMMARY: `This adds a popup-level error boundary around the full detached Spaghetti Editor surface so the child window can surface a real crash message instead of staying silently blank, which makes the remaining popup regression diagnosable if the live subtree is still failing during render.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on diagnostics for the still-blank detached editor popup instead of widening the workspace model again.
+- Reused the existing detached popup host and child-window render path rather than inventing a separate debug-only popup surface.
+- Preserved the live titlebar and panel render path, adding only a top-level crash visibility guard around the detached popup subtree.
+- Verified the change with the focused host and shell suites plus a full TypeScript build.
+#### What Changed
+- Added `SpaghettiPopoutErrorBoundary` in `src/app/hosts/SpaghettiWindowHost.tsx` to catch render errors across the full detached popup subtree.
+- Wrapped the detached popup surface content in `SpaghettiWindowHost.tsx` with that boundary so popup crashes render a visible `V15Error` fallback inside the popup window.
+- Added popup-specific console logging for detached popup render failures to make the remaining regression easier to diagnose if the subtree still throws.
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+#### Behavior Changes
+- A detached Spaghetti Editor popup that crashes during render should now show a visible error message instead of staying as a silent dark blank surface.
+- The popup path now emits a more specific detached-popup render error log when that full subtree throws.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [750] - 2026-03-30 14:25 - `VR-SP - Workspace 5.1 - Detached Editor Child-Window Native Panel And Canvas Window Ownership`
+<!-- ENTRY 750 -->
+HUMAN SUMMARY: `This makes the real detached Spaghetti Editor subtree more child-window-native by resolving panel and canvas listeners against the mounted surface's own document window instead of the opener-global window, which is the strongest current code-backed cause for the still-blank popup after the earlier lifecycle and layout repairs.` 
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the child-window portability seam in the real Spaghetti panel and canvas subtree.
+- Reused the existing popup host and detached-surface render path instead of widening into `Workspace 5.3` UX or another popout wrapper rewrite.
+- Replaced opener-global window ownership only where the mounted panel/canvas actually bind resize, pointer, and animation work.
+- Verified the change with focused shell and panel coverage plus a full TypeScript build, and recorded the existing unrelated canvas-test environment blocker instead of hiding it.
+#### What Changed
+- Added panel-local window resolution in `src/app/panels/SpaghettiPanel.tsx` so resize listeners and toolbar/window-settings/debug drag sessions bind to `panelRef.current?.ownerDocument?.defaultView` instead of the opener-global `window`.
+- Added canvas-local window resolution in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` so animation scheduling, resize listeners, node drag sessions, connection drag sessions, waypoint drag sessions, and generic pointer drag helpers bind to `viewportRef.current?.ownerDocument?.defaultView` or the stage document window.
+- Kept the existing popup shell and detached render ownership path intact while making the real editor subtree itself more child-window aware.
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+#### Behavior Changes
+- Detached Spaghetti Editor panel and canvas runtime behavior no longer assume the opener window is the live host for resize, pointer, and animation work.
+- The popped-out editor should now have a much better chance of painting and staying interactive inside the child browser window because its core panel/canvas effects follow the popup document's own window.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/panels/SpaghettiPanel.test.tsx src/app/spaghetti/canvas/SpaghettiCanvas.validation.test.ts` and confirmed `SpaghettiPanel.test.tsx` passed while `SpaghettiCanvas.validation.test.ts` still hits the pre-existing `Worker is not defined` test-environment failure
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [749] - 2026-03-30 13:48 - `VR-SP - Workspace 5.1 - Detached Popup Render Ownership Fallback`
+<!-- ENTRY 749 -->
+HUMAN SUMMARY: `This hardens the detached Spaghetti Editor popup against the old single-viewport ordering seam by rendering separate-window surfaces from shared workspace placement truth first, so the popup does not fall back to a blank host when the legacy viewport order list drops or lags that detached surface.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the detached Spaghetti popup render-ownership seam instead of widening into `Workspace 5.3` multi-graph UX.
+- Reused the existing shared workspace placement state from `Workspace 5.2` rather than introducing another popup-only registry.
+- Preserved the live Spaghetti viewport data path and only changed how detached surfaces are discovered for rendering.
+- Added a focused regression and kept verification to the relevant host suite plus a TypeScript build.
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so detached popup surfaces are derived from shared workspace `editorSurfacePlacementById` with a fallback merge against ordered Spaghetti viewport state, rather than relying only on the legacy `editorViewportOrder` list.
+- Changed the detached popup render loop in `src/app/hosts/SpaghettiWindowHost.tsx` to map popup surfaces by `editorViewportId` and resolve the current viewport record just-in-time.
+- Added a regression in `src/app/hosts/SpaghettiWindowHost.test.tsx` proving a detached popup still renders when workspace placement truth says `separateWindow` even if the old viewport-order list no longer includes that viewport.
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- Detached Spaghetti Editor popups are no longer solely dependent on the legacy ordered-viewport list to stay rendered.
+- A popup surface can remain alive from shared workspace placement truth even when the older in-app viewport ordering state is temporarily out of sync.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [748] - 2026-03-30 13:42 - `VR-SP - Workspace 5.1 - Detached Editor Popup Non-Overlay Layout Override`
+<!-- ENTRY 748 -->
+HUMAN SUMMARY: `This fixes another popup-layout mismatch for the detached Spaghetti Editor by overriding the in-app floating-window absolute-position rules inside the child window, so the popup editor can fill the standalone window like a real surface instead of inheriting viewport-overlay positioning that leaves the popup visually blank.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the detached editor popup layout after the earlier lifecycle, callback-stability, and focus-loop repairs.
+- Reused the same editor shell markup and added popup-specific CSS overrides instead of forking the editor shell into a second popup-only component tree.
+- Preserved the existing popup host and dock-back behavior while changing only the child-window positioning/layout contract.
+- Verified the change with the focused editor-host suite, the shell suite, and a full TypeScript build.
+#### What Changed
+- Added `SpaghettiPopoutContent` layout overrides in `src/app/theme/shell/windows.css` so the detached editor popup shell uses `position: relative`, fills the popup client area, and drops the viewport-overlay-only max-size and border-radius assumptions.
+- Tightened `src/app/hosts/SpaghettiWindowHost.tsx` popup-content markup through the existing `SpaghettiPopoutContent` class path so the detached editor uses the new child-window layout contract.
+- Added a regression expectation in `src/app/hosts/SpaghettiWindowHost.test.tsx` that proves the popup document now contains the `SpaghettiPopoutContent` shell wrapper.
+#### Files Changed
+- `src/app/theme/shell/windows.css`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- The detached Spaghetti Editor popup no longer uses the in-app absolute overlay positioning model inside the child window.
+- Popup editor content should now occupy and lay out against the popup window itself instead of behaving like a floating overlay with no viewport host.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [747] - 2026-03-30 13:39 - `VR-SP - Workspace 5.1 - Pop-Out Editor Shell Layout Parity`
+<!-- ENTRY 747 -->
+HUMAN SUMMARY: `This fixes the detached Spaghetti Editor popup using the wrong shell wrapper by giving the popup content the same `SpaghettiFloatingWindow` class contract as the in-app editor, which should let the real titlebar/body layout render inside the claimed child window instead of only showing the popup background.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the popup-content render mismatch after the earlier lifecycle and freeze-loop repairs.
+- Reused the existing in-app editor shell class stack instead of inventing a separate popup-only editor layout system.
+- Left the child-window ownership and dock-back behavior intact while making the detached editor content use the same window-shell layout contract as the main app surface.
+- Verified the change with the focused editor-host suite, the shell suite, and a full TypeScript build.
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the detached editor popup content is now wrapped in `SpaghettiFloatingWindow SpaghettiPopoutContent` rather than a plain unclassified `div`.
+- Brought the popup editor surface onto the same flex/size/window shell CSS path as the working in-app floating editor, improving layout parity for the titlebar and `SpaghettiFloatingBody` region inside the child window.
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+#### Behavior Changes
+- The detached Spaghetti Editor popup should now render the real window shell and editor body instead of showing only the popup background.
+- Popup editor content now uses the same base shell layout contract as the working in-app floating editor.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [746] - 2026-03-30 13:37 - `VR-SP - Workspace 5.1 - Pop-Out Focus Loop Removal`
+<!-- ENTRY 746 -->
+HUMAN SUMMARY: `This removes another likely cross-window freeze trigger in the Spaghetti Editor popup path by stopping the shared child-window hook from refocusing an already-open popup on every effect rerun, which could feed the editor popup's focus listener back into repeated surface-activation updates.` 
+#### Scope / Constraints Honored
+- Kept this pass tightly focused on the remaining white-popup freeze behavior after the earlier popup lifecycle and callback-stability repairs.
+- Reused the existing shared child-window hook and editor popup host instead of widening into more window-management refactors.
+- Preserved the popup open, claim, and dock-back lifecycle while only removing the repeated focus side effect for already-open windows.
+- Verified the change with the focused editor-host suite, the shell suite, and a full TypeScript build.
+#### What Changed
+- Removed the unconditional `popup.focus()` call from the already-open branch of `src/app/workspace/useWorkspaceChildWindow.ts`.
+- Added a regression expectation in `src/app/hosts/SpaghettiWindowHost.test.tsx` so the editor popup path now proves it does not refocus an existing popup during the strict-mode rerender path used by the current app bootstrap.
+- Kept the popup creation path intact, so the editor popup still opens under the user gesture while no longer looping focus through repeated effect execution.
+#### Files Changed
+- `src/app/workspace/useWorkspaceChildWindow.ts`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- Already-open child windows are no longer automatically refocused every time the shared popup hook reruns.
+- The Spaghetti Editor popup path should stop feeding repeated popup-focus events back into the main workspace activation path.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [745] - 2026-03-30 13:35 - `VR-SP - Workspace 5.1 - Pop-Out Freeze Loop Callback-Stability Repair`
+<!-- ENTRY 745 -->
+HUMAN SUMMARY: `This fixes the remaining Spaghetti Editor popout white-screen freeze by stopping `SpaghettiPopoutSurfaceHost` from feeding fresh inline close/block/claim callbacks into the shared child-window hook every render, which could re-trigger popup focus and surface-activation updates in a loop across both windows.` 
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the cross-window freeze after the earlier popup-open and StrictMode lifecycle repairs.
+- Reused the existing shared child-window hook and editor host structure instead of widening into more workspace/windowing refactors.
+- Left the current dock-back restore semantics alone while stabilizing the popout-host effect inputs.
+- Verified the repair with the focused editor-host suite, the shell suite, and a full TypeScript build.
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so `SpaghettiPopoutSurfaceHost` now receives stable viewport-aware popout callbacks instead of fresh inline lambdas from the parent render path.
+- Added local `useCallback` wrappers inside `SpaghettiPopoutSurfaceHost` that bind the stable parent callbacks to the current `editorViewportId`, keeping the shared child-window hook inputs stable across ordinary rerenders.
+- Stopped the shared child-window hook from being needlessly re-invoked just because the parent editor host rerendered, which removed the likely popup-focus / activation loop that could freeze both the main app window and the editor popup.
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+#### Behavior Changes
+- Spaghetti Editor child-window popouts no longer feed a repeated focus/update loop through unstable close/block/claim callback identities.
+- The editor popup should now render its portal content instead of sitting white and freezing both windows.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [744] - 2026-03-30 13:28 - `VR-SP - Workspace 5.1 - StrictMode-Safe Child Window Lifecycle For Editor Pop-Out`
+<!-- ENTRY 744 -->
+HUMAN SUMMARY: `This fixes the remaining Spaghetti Editor `PO` bounce where the popup opened and then immediately closed under the live app's React StrictMode mount cycle by making the shared child-window hook preserve claimed popups across the development remount instead of treating that fake unmount as a real close.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the real remaining editor popout lifecycle bug after the earlier `PO`-gesture window-claim repair.
+- Fixed the shared child-window hook once so the lifecycle rule benefits Browser, Console, and future workspace child-window surfaces too.
+- Preserved the existing blocked/closed handback semantics while stopping StrictMode remounts from closing a valid popup.
+- Verified the repair with focused editor-host and app-shell tests plus a full TypeScript build.
+#### What Changed
+- Added a small shared child-window registry in `src/app/workspace/useWorkspaceChildWindow.ts` keyed by `childWindowId` so the hook can reclaim an already-open popup across a StrictMode remount.
+- Replaced the old immediate unmount close behavior with a delayed registry-backed close schedule, allowing the next mount to cancel that close when the remount is only React StrictMode lifecycle churn.
+- Updated the hook to register, claim, unregister, and re-focus shared child windows safely so popup ownership survives the dev-mode double-effect pass.
+- Tightened the `SpaghettiWindowHost` popout regression by running its editor popout test through `StrictMode`, which now matches the real app entry path from `src/main.tsx`.
+#### Files Changed
+- `src/app/workspace/useWorkspaceChildWindow.ts`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- Clicking `PO` on the Spaghetti Editor no longer opens a popup and then immediately closes it during the live app's StrictMode mount cycle.
+- Shared workspace child windows can now survive a dev-mode remount without being mistaken for a real user close.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [743] - 2026-03-30 13:23 - `VR-SP - Workspace 5.1 - Spaghetti Editor Pop-Out Gesture Window Claim Repair`
+<!-- ENTRY 743 -->
+HUMAN SUMMARY: `This fixes the Spaghetti Editor `PO` gesture bouncing straight back into the in-app floating window by pre-opening the child window inside the real titlebar click gesture, then handing that claimed window to the shared child-window host instead of relying only on the later effect-driven popup open path.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the broken Spaghetti Editor `PO` flow without widening into more `Workspace 5.2` multi-surface work or broader Browser popout rewrites.
+- Reused the existing shared child-window host contract instead of inventing a second editor-only popup system.
+- Preserved the current dock-back restore behavior while making the open path more robust against browser popup-gesture timing.
+- Verified the repair with the focused editor host suite, the shell suite, and a full TypeScript build.
+#### What Changed
+- Extended `src/app/workspace/useWorkspaceChildWindow.ts` so a caller can hand the hook a pending already-opened child window to claim before it falls back to `window.open(...)`.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the editor `PO` button now pre-opens the child window synchronously from the titlebar click, stores it by viewport id, and lets the shared child-window host claim that exact window during the later render/effect pass.
+- Split the editor popout transition behavior into clearer open-versus-dock-back paths, so the detached editor popup no longer routes every callback through the same generic toggle helper.
+- Kept popup blocked/closed behavior restoring the editor back into the main app while avoiding the immediate bounce caused by the old open path.
+#### Files Changed
+- `src/app/workspace/useWorkspaceChildWindow.ts`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+#### Behavior Changes
+- Clicking `PO` on the Spaghetti Editor now keeps the editor alive in the new browser window instead of immediately closing and returning it to the model-viewport floating shell.
+- The shared child-window host can now adopt a popup created directly from a user gesture when a surface needs stronger popup-blocker compatibility.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [742] - 2026-03-30 13:18 - `VR-SP - Workspace 5.2 - Startup Black Screen Selector-Stability Repair`
+<!-- ENTRY 742 -->
+HUMAN SUMMARY: `This fixes the new post-Workspace 5.2 dark-screen startup regression by removing the unstable direct `selectOrderedEditorViewports` hook subscription from `SpaghettiWindowHost`, rebuilding the ordered and detached editor viewport lists from stable store slices instead, and hardening the host plus test harness around that new stable derivation path.` 
+#### Scope / Constraints Honored
+- Kept this pass tightly focused on the startup regression instead of widening into more `Workspace 5.2` feature work or changing detached-editor behavior beyond the selector-stability repair.
+- Reused the existing `editorViewportId` and detached-surface logic instead of redesigning editor ownership again.
+- Preserved the recent detached-editor child-window behavior while replacing only the unstable live subscription seam that matched the older black-screen bug family.
+- Verified the repair with focused host coverage, app-shell coverage, and a full TypeScript build.
+#### What Changed
+- Removed the direct `useSpaghettiStore(selectOrderedEditorViewports)` subscription from `src/app/hosts/SpaghettiWindowHost.tsx`.
+- Switched `SpaghettiWindowHost` to read the stable `editorViewportsById` and `editorViewportOrder` store slices, then rebuild the ordered editor viewport list inside `useMemo`.
+- Kept the detached editor viewport list derived locally from that stable ordered list so the child-window popout path no longer depends on an unstable derived selector subscription during startup.
+- Added null-safe fallbacks for the host's ordered viewport derivation so startup and thinner test/store states do not explode if those slices are temporarily absent.
+- Updated the `src/app/hosts/SpaghettiWindowHost.test.tsx` harness so mock viewport updates replace nested maps immutably and mirror real store behavior under the new memoized derivation path.
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- The app no longer depends on an unstable ordered-editor array selector during initial `SpaghettiWindowHost` mount.
+- The recent `Workspace 5.2` detached-editor widening keeps working without reintroducing the old dark blue-black startup failure pattern.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [741] - 2026-03-30 13:08 - `VR-SP - Workspace 5.2 - Editor Surface Bindings And Detached Surface Independence`
+<!-- ENTRY 741 -->
+HUMAN SUMMARY: `This lands the first `Workspace 5.2` multi-surface slice by separating editor surface graph-binding truth from the single active-editor bridge and making detached Spaghetti Editor child windows stay alive even while another in-app editor surface becomes active.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the first honest `Workspace 5.2` widening cut instead of attempting the full `Open Editors` UX phase or a full rewrite of every in-app editor window path at once.
+- Reused the existing `editorViewportId` model as the first editor surface instance identity seam instead of inventing a second editor registry.
+- Preserved the current focused-surface compatibility bridge while stopping that bridge from implicitly acting like the only live editor surface owner.
+- Verified the work with focused store and host regressions plus a full TypeScript build.
+#### What Changed
+- Added workspace-owned editor surface graph-binding records in `src/app/workspace/workspaceShellTypes.ts` and `src/app/workspace/useWorkspaceStore.ts`, so the shared workspace seam now tracks which graph document each live editor surface instance is bound to.
+- Reworked `src/app/spaghetti/store/useSpaghettiStore.ts` to mirror graph-binding lifecycle into that shared workspace seam when editor surfaces are opened, rebound, and closed.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so detached `separateWindow` editor surfaces are rendered per viewport instance instead of only through the one dominant active-editor path.
+- Added a dedicated detached-surface child-window host path so a popped-out Spaghetti Editor keeps running and keeps its UI alive even when another editor viewport becomes the active in-app surface.
+- Preserved the existing active-editor compatibility behavior for the focused surface while proving that another live editor surface can remain visible and interactive at the same time.
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- Detached Spaghetti Editor child windows no longer disappear or go dead just because another graph-open action changes the active in-app editor surface.
+- The workspace seam now carries explicit graph bindings for live editor surface instances.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [740] - 2026-03-30 12:33 - `VR-SP - Workspace 5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore`
+<!-- ENTRY 740 -->
+HUMAN SUMMARY: `This lands the first real Spaghetti Editor browser-window pop-out path on the shared workspace child-window contract, including dock-back restore so the editor returns to its prior in-app workspace mode instead of dropping into one generic floating fallback.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the single-editor `Workspace 5.1` seam instead of widening into multiple editor surface instances, multi-graph workspace UX, or broader Browser/Console pop-out refactors.
+- Reused the shipped shared child-window host contract instead of adding a second editor-only pop-out system.
+- Preserved the existing split, meatball, floating, and persistence seams while extending them just enough to carry honest `separateWindow` ownership and restore metadata.
+- Verified the work with focused editor store regressions, child-window host regressions, and a full TypeScript build.
+#### What Changed
+- Extended the shared workspace editor placement contract so each editor surface can now carry child-window pop-out spec metadata plus an explicit `restoreFromSeparateWindow` snapshot.
+- Reworked `src/app/spaghetti/store/useSpaghettiStore.ts` so `setEditorViewportWindowMode(..., 'separateWindow')` is now a real workspace mode: entering it transfers the editor surface to child-window ownership, while repeating it restores the editor back to its captured `split view`, `expanded`, `maximized`, `collapsed`, or `meatball editor view` placement.
+- Extended workspace persistence in `src/app/workspace/workspacePersistence.ts` so editor pop-out ownership and dock-back restore targets survive layout serialization and startup rehydration.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` to add a titlebar `Pop-Out` / `Dock` control, render the editor through the shared `useWorkspaceChildWindow` hook, and hand activation back through the existing workspace surface focus path.
+- Added host coverage proving the editor can leave the main app into a child window and dock back cleanly on close, plus a store regression proving `separateWindow` restores the captured split state instead of losing its prior placement.
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/theme/shell/windows.css`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+#### Behavior Changes
+- The Spaghetti Editor titlebar now exposes a real browser-window pop-out control.
+- Closing or docking the popped-out editor restores it to its previously captured in-app workspace mode instead of forcing a generic floating fallback.
+- The editor workspace seam now persists child-window ownership metadata and dock-back restore state.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
 ### [739] - 2026-03-30 12:07 - `VR-SP - Workspace 5 - Edge-Driven Split Docking For Browser`
 <!-- ENTRY 739 -->
 HUMAN SUMMARY: `This extends the new edge-driven split-docking behavior to Browser, so the floating browser can dock into viewport split from any edge and a browser already living in viewport split can be dragged back out into a true floating window without instantly snapping back into its old split lane.` 

@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+41. 2026-03-30 15:18: Locked the next `Workspace 7` slot-switch rule, clarifying that changing a slot's surface kind should detach the old surface from that slot immediately while still keeping meaningful retained surfaces like `Browser` and `Spaghetti Editor` alive in workspace state for restore or rehousing instead of tearing them down destructively
+40. 2026-03-30 15:15: Locked the first floating-host target rule for `Workspace 7`, clarifying that floating and popout surfaces should carry an explicit `hostViewportId` instead of deriving ownership from whichever viewport is nearest or currently active, so later multi-viewport growth can stay deterministic
+39. 2026-03-30 15:12: Expanded the `Workspace 7` architecture read to lock the modular host-mode model explicitly, clarifying that `viewport slot`, `floating window`, and `popout window` should be peer presentations of the same surface instance, that split layouts must still allow surfaces to float back over a specific model viewport, and that restructuring the current floating system is acceptable if needed to make that model clean
+38. 2026-03-30 15:09: Clarified the new `Workspace 7` interaction read after locking the current view-control conflict: the local viewport button should keep ParaHook's existing left-click view-mode behavior while right-click on that same slot-local button opens the viewport-type picker, so the new slot-swapping affordance can coexist with today's viewport control without forcing an immediate left-click rewrite
+37. 2026-03-30 15:06: Tightened the new `Workspace 7` read after reviewing the referenced Blender screenshots directly, clarifying that the target pattern is a real per-viewport area header with a local area-type selector rather than just a floating corner button, and aligning the family index wording with that stronger viewport-frame plus header model
+36. 2026-03-30 15:02: Cleaned up the workspace-family ladder after the shipped first `Workspace 5.1` and `Workspace 5.2` slices by marking editor child-window adoption plus the first multiple-editor-surface foundation as landed with their current popup and multi-graph residue called out, and added the new native `Workspace 7` viewport-slot vision phase under `Future/` so the Blender-style interchangeable viewport direction now has a dedicated architecture home
 35. 2026-03-30 12:14: Cleaned up the workspace-family ladder after the shipped first `Workspace 5` slice by rewriting `Workspace 5` as an honest landed Browser-first child-window record with carried-forward residue, adding the new native `Workspace 5.1`, `Workspace 5.2`, and `Workspace 5.3` future phase docs under `Future/`, and promoting the editor pop-out plus multi-graph follow-on ladder into explicit next-phase entries instead of leaving that work buried inside one suggestion block
 34. 2026-03-30 11:31: Expanded the active `Workspace 5` next-task read with the two concrete follow-on needs that should shape the next implementation cut, locking that `Spaghetti Editor` needs a titlebar `Pop-Out` control in the docked-right window chrome and that multiple graphs open at once should be handled through multiple honest editor surface instances instead of the old single-active-editor replacement assumption
 33. 2026-03-30 10:56: Tightened the active `Workspace 5` next-task read by grounding it more explicitly in the shipped `ConsoleDock` child-window proof, locking the real extraction boundary around style-copy, portal-host, and close-handback behavior, and clarifying that the first safe implementation cut should generalize that contract into `src/app/workspace/` before bringing `Browser` onto the shared pop-out owner-transfer model
@@ -1288,36 +1294,40 @@ Current source doc:
 - historical grounding:
   - roadmap slot `[5.1E]`
 
-### [ ] Workspace 5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore
+### [x] Workspace 5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore
 #### Header
 - give `Spaghetti Editor` a real visible `Pop-Out` button in the titlebar controls
 - reuse the already-shipped shared child-window owner-transfer contract from `Console` and `Browser`
 - make dock-back restore return the editor to the correct in-app split, floating, or meatball target instead of inventing a separate detached-editor shell
 
-#### Locked implementation read
-- `Workspace 5.1` should adopt the already-landed shared child-window contract instead of inventing editor-only pop-out plumbing
-- `separateWindow` should become an honest workspace-owned editor placement state with an explicit dock-back restore target
-- the first cut should stay single-editor-surface-safe and leave multiple-open-graph work for `Workspace 5.2` and `Workspace 5.3`
+#### Shipped first-slice read
+- `Spaghetti Editor` now has a visible titlebar `Pop-Out` affordance and a real child-window owner-transfer path on the shared workspace seam
+- `separateWindow` is now an honest workspace-owned editor placement mode with an explicit dock-back restore target
+- docking back or closing the child window now restores the editor to an honest in-app placement target instead of inventing a separate detached-editor shell
 
-#### Active next-task read
-- `Workspace 5.1` should be the editor adoption phase of the already-landed shared child-window host seam
-- the first cut should add editor pop-out placement truth plus dock-back restore targets under `src/app/workspace/`
-- `SpaghettiWindowHost` should render the same editor surface instance in-app or in the child window, not two live interactive copies
-- docking back or closing the child window should restore the editor to the last honest in-app placement target
+#### Residue carried forward
+- the detached `Spaghetti Editor` popup render path is still not healthy and remains tracked in `Bug 9` plus `Bug 10`
+- the first cut still leaves multiple-open-graph truth and the full `Open Editors` UX widening for `Workspace 5.2` and `Workspace 5.3`
+- the child-window shell now exists, but the detached editor still needs a cleaner single-owner render path like the working `Console` pop-out seam
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
 
-### [ ] Workspace 5.2 - Multiple Editor Surface Instances And Graph Binding
+### [x] Workspace 5.2 - Multiple Editor Surface Instances And Graph Binding
 #### Header
 - stop treating one visible editor shell as the only honest graph surface
 - create explicit editor surface instances that each bind to one graph document id
 - widen the shared workspace seam so several graph editors can remain alive at once without replacing one another
 
-#### Forward read
-- `Workspace 5.2` should introduce explicit editor surface instance identity separate from graph authored data
-- each editor surface instance should bind to one graph document id and carry its own placement record
-- `useSpaghettiStore` should keep graph/session authored truth while `src/app/workspace/` owns the visible editor surface instance set and their placement
+#### Shipped first-slice read
+- editor surface graph binding and placement truth now have shared workspace ownership instead of living only behind the old one-visible-editor replacement seam
+- a popped-out or otherwise detached editor surface can now stay alive while another graph-open action creates or focuses a different surface
+- the first honest multi-editor-surface foundation landed without requiring the full user-facing multi-graph UX to ship in the same cut
+
+#### Residue carried forward
+- `Open Editors` is still not yet the honest live multi-graph launcher, switcher, and closer
+- detached `Spaghetti Editor` popup rendering is still mixed-owner residue and remains tracked in `Bug 9` plus `Bug 10`
+- additive multi-graph UX, exact create-versus-reuse rules, and surface-level close plus focus fallback still belong to `Workspace 5.3`
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
@@ -1350,3 +1360,28 @@ Current source doc:
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1F - Workspace Selection, Surface Activation, And Canonical Intents.md`
+
+### [ ] Workspace 7 - Viewport Slot Architecture And Surface Swapping
+#### Header
+- make workspace viewports fluid and dynamic like Blender by giving each viewport a real local area header with a top-left selector control
+- let one viewport slot switch between `Model Viewport`, `Spaghetti Editor Viewport`, and `Browser Viewport` without changing unrelated slots
+- turn split view into a generic viewport-slot layout foundation instead of keeping Browser and Spaghetti as special-case split systems
+
+#### Locked vision read
+- `Workspace 7` should make the viewport slot the primary workspace object instead of treating Browser, Spaghetti, and Viewer as separate shell systems
+- surface kind must be separate from surface instance so two Browsers, two Spaghetti editors, and later two Model Viewports can stay honest at the same time
+- host mode must also be separate from surface instance so one surface can live in a `viewport slot`, `floating window`, or `popout window`
+- split view should become a layout tree of viewport slots with local viewport headers and chrome, not a feature-specific split mode per surface family
+
+#### Active planning read
+- the first cut should add one generic `ViewportFrame` with a real local header, a top-left viewport selector, and a surface-host registry
+- the first cut should preserve ParaHook's hybrid strength by allowing a surface to leave a slot and become a floating overlay over a specific model viewport
+- that floating or popped-out surface should carry an explicit `hostViewportId` instead of inferring ownership from the nearest or currently active viewport
+- changing a slot kind should detach the old surface from the slot immediately, while keeping meaningful retained surfaces like `Browser` and `Spaghetti Editor` alive for restore or rehousing
+- one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
+- this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
+- vision grounding:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/vision1.md`

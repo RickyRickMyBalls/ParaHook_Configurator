@@ -3,9 +3,10 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useRef, useState } from 'react'
+import { StrictMode, useRef, useState } from 'react'
 import { SpaghettiWindowHost } from './SpaghettiWindowHost'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
+import { createDefaultEditorWorkspaceSurfaceState } from '../workspace/workspaceShellTypes'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -23,6 +24,10 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => {
     useSpaghettiStore: store,
     selectActiveEditorViewport: (state: any) =>
       state.editorViewportsById[state.activeEditorViewportId] ?? null,
+    selectOrderedEditorViewports: (state: any) =>
+      (state.editorViewportOrder ?? [])
+        .map((editorViewportId: string) => state.editorViewportsById[editorViewportId] ?? null)
+        .filter(Boolean),
     selectEditorViewportById: (state: any, editorViewportId: string) =>
       state.editorViewportsById[editorViewportId] ?? null,
   }
@@ -181,19 +186,36 @@ function SpaghettiWindowHostHarness() {
 describe('SpaghettiWindowHost', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
+  const originalWindowOpen = window.open
 
-  const renderHarness = async () => {
+  const renderHarness = async (options?: { strict?: boolean }) => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
     await act(async () => {
-      root?.render(<SpaghettiWindowHostHarness />)
+      root?.render(
+        options?.strict ? (
+          <StrictMode>
+            <SpaghettiWindowHostHarness />
+          </StrictMode>
+        ) : (
+          <SpaghettiWindowHostHarness />
+        ),
+      )
     })
   }
 
-  const rerenderHarness = async () => {
+  const rerenderHarness = async (options?: { strict?: boolean }) => {
     await act(async () => {
-      root?.render(<SpaghettiWindowHostHarness />)
+      root?.render(
+        options?.strict ? (
+          <StrictMode>
+            <SpaghettiWindowHostHarness />
+          </StrictMode>
+        ) : (
+          <SpaghettiWindowHostHarness />
+        ),
+      )
     })
   }
 
@@ -230,8 +252,10 @@ describe('SpaghettiWindowHost', () => {
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     mockRequestGraphDocumentBuild.mockClear()
     mockOnResetSplitRatio.mockClear()
+    window.open = originalWindowOpen
     currentSpaghettiState = {
       activeEditorViewportId: 'editor-viewport-1',
+      editorViewportOrder: ['editor-viewport-1'],
       editorViewportsById: {
         'editor-viewport-1': viewport('expanded'),
       },
@@ -243,16 +267,47 @@ describe('SpaghettiWindowHost', () => {
         if (currentViewport === undefined) {
           return
         }
-        currentSpaghettiState.editorViewportsById[editorViewportId] = {
-          ...currentViewport,
-          windowMode,
+        if (windowMode === 'separateWindow' && currentViewport.windowMode === 'separateWindow') {
+          currentSpaghettiState = {
+            ...currentSpaghettiState,
+            editorViewportsById: {
+              ...currentSpaghettiState.editorViewportsById,
+              [editorViewportId]: {
+                ...currentViewport,
+                windowMode: 'expanded',
+              },
+            },
+          }
+          return
+        }
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportsById: {
+            ...currentSpaghettiState.editorViewportsById,
+            [editorViewportId]: {
+              ...currentViewport,
+              windowMode,
+            },
+          },
         }
       }),
       setEditorViewportHeaderCollapsed: vi.fn((editorViewportId: string, collapsed: boolean) => {
-        currentSpaghettiState.editorViewportHeaderCollapsedById[editorViewportId] = collapsed
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportHeaderCollapsedById: {
+            ...currentSpaghettiState.editorViewportHeaderCollapsedById,
+            [editorViewportId]: collapsed,
+          },
+        }
       }),
       setEditorViewportCanvasToolbarVisible: vi.fn((editorViewportId: string, visible: boolean) => {
-        currentSpaghettiState.editorViewportCanvasToolbarVisibleById[editorViewportId] = visible
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportCanvasToolbarVisibleById: {
+            ...currentSpaghettiState.editorViewportCanvasToolbarVisibleById,
+            [editorViewportId]: visible,
+          },
+        }
       }),
       setEditorViewportPresentationMode: vi.fn(
         (editorViewportId: string, mode: 'collapsed' | 'essentials' | 'expanded') => {
@@ -283,11 +338,17 @@ describe('SpaghettiWindowHost', () => {
         if (currentViewport === undefined) {
           return
         }
-        currentSpaghettiState.editorViewportsById[editorViewportId] = {
-          ...currentViewport,
-          splitDockSide,
-          splitDirection:
-            splitDockSide === 'left' || splitDockSide === 'right' ? 'vertical' : 'horizontal',
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportsById: {
+            ...currentSpaghettiState.editorViewportsById,
+            [editorViewportId]: {
+              ...currentViewport,
+              splitDockSide,
+              splitDirection:
+                splitDockSide === 'left' || splitDockSide === 'right' ? 'vertical' : 'horizontal',
+            },
+          },
         }
       }),
       setEditorViewportPosition: vi.fn((editorViewportId: string, position: { x: number; y: number }) => {
@@ -295,9 +356,15 @@ describe('SpaghettiWindowHost', () => {
         if (currentViewport === undefined) {
           return
         }
-        currentSpaghettiState.editorViewportsById[editorViewportId] = {
-          ...currentViewport,
-          position,
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportsById: {
+            ...currentSpaghettiState.editorViewportsById,
+            [editorViewportId]: {
+              ...currentViewport,
+              position,
+            },
+          },
         }
       }),
       setEditorViewportSize: vi.fn((editorViewportId: string, size: { width: number; height: number }) => {
@@ -305,9 +372,15 @@ describe('SpaghettiWindowHost', () => {
         if (currentViewport === undefined) {
           return
         }
-        currentSpaghettiState.editorViewportsById[editorViewportId] = {
-          ...currentViewport,
-          size,
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportsById: {
+            ...currentSpaghettiState.editorViewportsById,
+            [editorViewportId]: {
+              ...currentViewport,
+              size,
+            },
+          },
         }
       }),
       closeEditorViewport: vi.fn(),
@@ -323,6 +396,7 @@ describe('SpaghettiWindowHost', () => {
     container?.remove()
     container = null
     root = null
+    window.open = originalWindowOpen
   })
 
   it('renders the meatball editor into the left dock host via portal', async () => {
@@ -560,6 +634,136 @@ describe('SpaghettiWindowHost', () => {
       'editor-viewport-1',
       'split view',
     )
+  })
+
+  it('moves the editor into a child-window popout owner and docks it back when the popout closes', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popout')
+    let beforeUnloadHandler: (() => void) | null = null
+    let isPopoutClosed = false
+    const popoutWindow = {
+      get closed() {
+        return isPopoutClosed
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(() => {
+        isPopoutClosed = true
+      }),
+      addEventListener: vi.fn((type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'beforeunload' && typeof handler === 'function') {
+          beforeUnloadHandler = handler as () => void
+        }
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(window.open).toHaveBeenCalled()
+    expect(popoutWindow.focus).not.toHaveBeenCalled()
+    expect(container?.querySelector('.SpaghettiFloatingWindow')).toBeNull()
+    expect(popoutDocument.body.querySelector('.SpaghettiPopoutContent')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
+
+    await act(async () => {
+      beforeUnloadHandler?.()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.windowMode).toBe('expanded')
+    expect(container?.querySelector('.SpaghettiFloatingWindow')).not.toBeNull()
+  })
+
+  it('keeps a popped-out editor surface alive when another viewport is active in-app', async () => {
+    currentSpaghettiState.activeEditorViewportId = 'editor-viewport-2'
+    currentSpaghettiState.editorViewportOrder = ['editor-viewport-1', 'editor-viewport-2']
+    currentSpaghettiState.editorViewportsById = {
+      'editor-viewport-1': {
+        ...viewport('separateWindow'),
+        editorViewportId: 'editor-viewport-1',
+        graphDocumentId: 'graph-document-1',
+      },
+      'editor-viewport-2': {
+        ...viewport('expanded'),
+        editorViewportId: 'editor-viewport-2',
+        graphDocumentId: 'graph-document-2',
+        position: { x: 80, y: 72 },
+      },
+    }
+
+    const popoutDocument = document.implementation.createHTMLDocument('Detached Editor')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await renderHarness()
+    mockGeometry()
+    await rerenderHarness()
+
+    expect(window.open).toHaveBeenCalledTimes(1)
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
+    expect(container?.querySelector('.SpaghettiFloatingWindow')).not.toBeNull()
+    expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-2')
+  })
+
+  it('renders a detached editor popup from workspace placement even if the old viewport order no longer carries it', async () => {
+    currentSpaghettiState.activeEditorViewportId = 'editor-viewport-2'
+    currentSpaghettiState.editorViewportOrder = ['editor-viewport-2']
+    currentSpaghettiState.editorViewportsById = {
+      'editor-viewport-1': {
+        ...viewport('separateWindow'),
+        editorViewportId: 'editor-viewport-1',
+        graphDocumentId: 'graph-document-1',
+      },
+      'editor-viewport-2': {
+        ...viewport('expanded'),
+        editorViewportId: 'editor-viewport-2',
+        graphDocumentId: 'graph-document-2',
+      },
+    }
+    const detachedPlacement = createDefaultEditorWorkspaceSurfaceState('editor-viewport-1')
+    useWorkspaceStore.getState().setEditorSurfacePlacement('editor-viewport-1', {
+      ...detachedPlacement,
+      windowMode: 'separateWindow',
+      popoutState: {
+        ...detachedPlacement.popoutState!,
+        childWindowId: 'spaghetti-editor-workspace-placement-test-popout',
+        windowName: 'parahook-spaghetti-workspace-placement-test',
+        windowTitle: 'ParaHook Spaghetti Editor Placement Test',
+        owner: 'child-window',
+      },
+    })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Detached Editor')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await renderHarness()
+    await rerenderHarness()
+
+    expect(window.open).toHaveBeenCalledTimes(1)
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
+    expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-2')
   })
 
   it('lets a bottom drag override an older vertical split side when re-entering split view', async () => {

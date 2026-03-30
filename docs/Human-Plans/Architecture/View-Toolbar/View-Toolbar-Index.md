@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+11. 2026-03-30 15:02: Added standalone `Future/` phase docs for `View-Toolbar 1` through `View-Toolbar 4`, renamed the old `5.0I-1` future doc into the new family naming, and rewired this index so the live `Future/` folder now matches the newer `View-Toolbar` phase ladder directly
+10. 2026-03-30 14:51: Renamed the live phase labels in this index from the older `[5.0I-*]` shorthand to the clearer `View-Toolbar 1` through `View-Toolbar 4` naming, while leaving the existing standalone doc filenames unchanged for now so the family can transition without a bigger path churn
 9. 2026-03-23 14:07: Added the first standalone future phase doc under `Future/` for `[5.0I-1] Shared View Command Dispatch And Projection Console Entry`, so the family now has an implementation-ready planning surface for the initial `Orthographic` versus `Perspective` console-plus-toolbar seam instead of only the umbrella phase summary
 8. 2026-03-23 01:02: Added a concrete roadmap home for this family after reviewing the live roadmap lanes, placing `View-Toolbar` under the pre-workspace bridge lane as `[5.0I] View Toolbar And Shared View State` with `[5.0I-1]` through `[5.0I-4]` matching the local phase ladder
 7. 2026-03-23 00:55: Reworked the bottom of this file into a real phased rollout, replacing the looser future-split note with a four-phase ladder and making the first cut explicitly about shared view-command dispatch plus the new `Camera > Projection > Orthographic / Perspective` console path
@@ -92,17 +94,19 @@ Use this folder like this:
   - cross-doc ownership summary
 - `Future/`
   - standalone view-toolbar execution/planning docs
-  - current first phase doc:
-    - `View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
+  - `View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`
+  - `View_Toolbar_Phase View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls.md`
+  - `View_Toolbar_Phase View-Toolbar 3 - Grid, Background, And Core View State.md`
+  - `View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 
 Current roadmap home:
-- `[5.0I] View Toolbar And Shared View State`
-- `[5.0I-1] Shared View Command Dispatch And Projection Console Entry`
-- `[5.0I-2] Projection Surface, ParaSelect, And Lens Controls`
-- `[5.0I-3] Grid, Background, And Core View State`
-- `[5.0I-4] Gizmo, Helpers, And Legacy Feel Follow-Ons`
+- `[View-Toolbar] View Toolbar And Shared View State`
+- `[View-Toolbar 1] Shared View Command Dispatch And Projection Console Entry`
+- `[View-Toolbar 2] Projection Surface, ParaSelect, And Lens Controls`
+- `[View-Toolbar 3] Grid, Background, And Core View State`
+- `[View-Toolbar 4] Gizmo, Helpers, And Legacy Feel Follow-Ons`
 
 ### Cross-Doc Boundaries
 
@@ -376,7 +380,7 @@ Important rule:
 
 This family should ship in the fewest safe cuts that still keep command ownership, projection changes, grid growth, and legacy helper carry-forward readable.
 
-#### [ ] Phase 1 - Shared View Command Dispatch And Projection Console Entry
+#### [ ] View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry
 
 Goal:
 - make the first view-toolbar command family real through the shared toolbar-plus-console seam
@@ -397,7 +401,7 @@ Why first:
 - this is the smallest honest `View-Toolbar` vertical slice
 - it proves the command-structure rule before the family widens into sliders and richer settings
 
-#### [ ] Phase 2 - Projection Surface, ParaSelect, And Lens Controls
+#### [ ] View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls
 
 Goal:
 - turn projection into a fuller user-facing view section instead of only a command leaf
@@ -411,7 +415,7 @@ This phase should:
 - decide whether `Zoom` belongs here as a visible framing control
 - define per-mode remembered values where useful
 
-#### [ ] Phase 3 - Grid, Background, And Core View State
+#### [ ] View-Toolbar 3 - Grid, Background, And Core View State
 
 Goal:
 - recover the broader everyday view-state controls that make the viewer feel intentionally configurable
@@ -424,7 +428,7 @@ This phase should:
 - decide the first return set for scene/environment variants
 - keep these controls reachable through console as honest view-state commands
 
-#### [ ] Phase 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons
+#### [ ] View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons
 
 Goal:
 - bring back the later helper-tuning and camera-feel controls without polluting the first essential view cuts
@@ -444,7 +448,7 @@ This phase should:
   - `Zoom Stops Inertia`
 
 Phase rule:
-- do not widen Phase 1 with legacy helper tuning just because the old app had it
+- do not widen `View-Toolbar 1` with legacy helper tuning just because the old app had it
 - prove shared command ownership first, then widen the visible settings surface
 
 ### Open Questions

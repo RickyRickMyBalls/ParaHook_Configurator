@@ -164,6 +164,16 @@ export type EditorViewportRestoreFromSplit = {
   size?: EditorViewportSize
 }
 
+export type EditorViewportRestoreFromSeparateWindow = {
+  windowMode: Exclude<EditorViewportWindowMode, 'separateWindow'>
+  position?: EditorViewportPosition
+  size?: EditorViewportSize
+  splitRatio?: number
+  splitDirection?: WorkspaceSplitDirection
+  splitDockSide?: WorkspaceSplitDockSide
+  splitPriority?: WorkspaceSplitPriority
+}
+
 export type EditorViewport = {
   editorViewportId: string
   graphDocumentId: string
@@ -177,5 +187,6 @@ export type EditorViewport = {
   splitPriority?: WorkspaceSplitPriority
   restoreFromCollapsed: EditorViewportRestoreFromCollapsed | null
   restoreFromSplit: EditorViewportRestoreFromSplit | null
+  restoreFromSeparateWindow?: EditorViewportRestoreFromSeparateWindow | null
   zOrder: number
 }

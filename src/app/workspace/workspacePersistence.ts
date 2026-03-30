@@ -1,4 +1,5 @@
 import {
+  createDefaultEditorPopoutState,
   defaultBrowserViewportSplitDockSide,
   defaultBrowserViewportSplitRatio,
   createDefaultEditorWorkspaceSurfaceState,
@@ -97,6 +98,10 @@ const cloneEditorSurfacePlacement = (
     height: roundNumber(surface.size.height, 760),
   },
   splitDockSide: surface.splitDockSide,
+  popoutState:
+    surface.popoutState === null
+      ? null
+      : cloneWorkspacePopoutSurfaceState(surface.popoutState),
   restoreFromCollapsed:
     surface.restoreFromCollapsed === null
       ? null
@@ -135,6 +140,38 @@ const cloneEditorSurfacePlacement = (
               : {
                   width: roundNumber(surface.restoreFromSplit.size.width, surface.size.width),
                   height: roundNumber(surface.restoreFromSplit.size.height, surface.size.height),
+                },
+        },
+  restoreFromSeparateWindow:
+    surface.restoreFromSeparateWindow === null
+      ? null
+      : {
+          ...surface.restoreFromSeparateWindow,
+          position:
+            surface.restoreFromSeparateWindow.position === undefined
+              ? undefined
+              : {
+                  x: roundNumber(
+                    surface.restoreFromSeparateWindow.position.x,
+                    surface.position.x,
+                  ),
+                  y: roundNumber(
+                    surface.restoreFromSeparateWindow.position.y,
+                    surface.position.y,
+                  ),
+                },
+          size:
+            surface.restoreFromSeparateWindow.size === undefined
+              ? undefined
+              : {
+                  width: roundNumber(
+                    surface.restoreFromSeparateWindow.size.width,
+                    surface.size.width,
+                  ),
+                  height: roundNumber(
+                    surface.restoreFromSeparateWindow.size.height,
+                    surface.size.height,
+                  ),
                 },
         },
 })
@@ -196,8 +233,30 @@ const normalizeEditorSurfacePlacement = (
       value.splitPriority === 'favorSecond'
         ? value.splitPriority
         : base.splitPriority,
+    popoutState: isRecord(value.popoutState)
+      ? cloneWorkspacePopoutSurfaceState({
+          childWindowId:
+            typeof value.popoutState.childWindowId === 'string'
+              ? value.popoutState.childWindowId
+              : createDefaultEditorPopoutState(surfaceInstanceId).childWindowId,
+          owner: value.popoutState.owner === 'child-window' ? 'child-window' : 'main-app',
+          windowName:
+            typeof value.popoutState.windowName === 'string'
+              ? value.popoutState.windowName
+              : createDefaultEditorPopoutState(surfaceInstanceId).windowName,
+          windowTitle:
+            typeof value.popoutState.windowTitle === 'string'
+              ? value.popoutState.windowTitle
+              : createDefaultEditorPopoutState(surfaceInstanceId).windowTitle,
+          windowFeatures:
+            typeof value.popoutState.windowFeatures === 'string'
+              ? value.popoutState.windowFeatures
+              : createDefaultEditorPopoutState(surfaceInstanceId).windowFeatures,
+        })
+      : base.popoutState,
     restoreFromCollapsed: base.restoreFromCollapsed,
     restoreFromSplit: base.restoreFromSplit,
+    restoreFromSeparateWindow: base.restoreFromSeparateWindow,
   }
 
   normalized.splitDockSide =
@@ -255,6 +314,66 @@ const normalizeEditorSurfacePlacement = (
             height: roundNumber(Number(value.restoreFromSplit.size.height), normalized.size.height),
           }
         : undefined,
+    }
+  }
+
+  if (isRecord(value.restoreFromSeparateWindow)) {
+    normalized.restoreFromSeparateWindow = {
+      windowMode:
+        value.restoreFromSeparateWindow.windowMode === 'collapsed' ||
+        value.restoreFromSeparateWindow.windowMode === 'meatball editor view' ||
+        value.restoreFromSeparateWindow.windowMode === 'expanded' ||
+        value.restoreFromSeparateWindow.windowMode === 'maximized' ||
+        value.restoreFromSeparateWindow.windowMode === 'split view'
+          ? value.restoreFromSeparateWindow.windowMode
+          : 'expanded',
+      position: isRecord(value.restoreFromSeparateWindow.position)
+        ? {
+            x: roundNumber(
+              Number(value.restoreFromSeparateWindow.position.x),
+              normalized.position.x,
+            ),
+            y: roundNumber(
+              Number(value.restoreFromSeparateWindow.position.y),
+              normalized.position.y,
+            ),
+          }
+        : undefined,
+      size: isRecord(value.restoreFromSeparateWindow.size)
+        ? {
+            width: roundNumber(
+              Number(value.restoreFromSeparateWindow.size.width),
+              normalized.size.width,
+            ),
+            height: roundNumber(
+              Number(value.restoreFromSeparateWindow.size.height),
+              normalized.size.height,
+            ),
+          }
+        : undefined,
+      splitRatio:
+        typeof value.restoreFromSeparateWindow.splitRatio === 'number' &&
+        Number.isFinite(value.restoreFromSeparateWindow.splitRatio)
+          ? value.restoreFromSeparateWindow.splitRatio
+          : undefined,
+      splitDirection:
+        value.restoreFromSeparateWindow.splitDirection === 'vertical' ||
+        value.restoreFromSeparateWindow.splitDirection === 'horizontal'
+          ? value.restoreFromSeparateWindow.splitDirection
+          : undefined,
+      splitDockSide:
+        value.restoreFromSeparateWindow.splitDockSide === 'top' ||
+        value.restoreFromSeparateWindow.splitDockSide === 'right' ||
+        value.restoreFromSeparateWindow.splitDockSide === 'bottom' ||
+        value.restoreFromSeparateWindow.splitDockSide === 'left'
+          ? value.restoreFromSeparateWindow.splitDockSide
+          : undefined,
+      splitPriority:
+        value.restoreFromSeparateWindow.splitPriority === 'balanced' ||
+        value.restoreFromSeparateWindow.splitPriority === 'favorFirst' ||
+        value.restoreFromSeparateWindow.splitPriority === 'favorSecond'
+          ? value.restoreFromSeparateWindow.splitPriority
+          : undefined,
     }
   }
 

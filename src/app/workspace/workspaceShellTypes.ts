@@ -94,6 +94,16 @@ export type EditorSurfaceRestoreFromSplit = {
   size?: EditorSurfaceSize
 }
 
+export type EditorSurfaceRestoreFromSeparateWindow = {
+  windowMode: Exclude<EditorSurfaceWindowMode, 'separateWindow'>
+  position?: EditorSurfacePosition
+  size?: EditorSurfaceSize
+  splitRatio?: number
+  splitDirection?: WorkspaceSplitDirection
+  splitDockSide?: WorkspaceSplitDockSide
+  splitPriority?: WorkspaceSplitPriority
+}
+
 export type EditorWorkspaceSurfaceState = {
   surfaceKind: 'spaghettiEditor'
   surfaceInstanceId: WorkspaceSurfaceInstanceId
@@ -105,8 +115,16 @@ export type EditorWorkspaceSurfaceState = {
   splitDirection: WorkspaceSplitDirection
   splitDockSide: WorkspaceSplitDockSide
   splitPriority: WorkspaceSplitPriority
+  popoutState: WorkspacePopoutSurfaceState | null
   restoreFromCollapsed: EditorSurfaceRestoreFromCollapsed | null
   restoreFromSplit: EditorSurfaceRestoreFromSplit | null
+  restoreFromSeparateWindow: EditorSurfaceRestoreFromSeparateWindow | null
+}
+
+export type WorkspaceEditorSurfaceBinding = {
+  surfaceKind: 'spaghettiEditor'
+  surfaceInstanceId: WorkspaceSurfaceInstanceId
+  graphDocumentId: string
 }
 
 export type WorkspaceViewportChromeState = {
@@ -142,6 +160,16 @@ export const defaultEditorSurfacePosition: EditorSurfacePosition = { x: 344, y: 
 export const defaultEditorSurfaceSize: EditorSurfaceSize = { width: 980, height: 760 }
 export const defaultEditorSurfaceSplitRatio = 0.5
 
+export const createDefaultEditorPopoutState = (
+  surfaceInstanceId: WorkspaceSurfaceInstanceId,
+): WorkspacePopoutSurfaceState => ({
+  childWindowId: `spaghetti-editor-${surfaceInstanceId}-popout`,
+  owner: 'main-app',
+  windowName: `parahook-spaghetti-${surfaceInstanceId}`,
+  windowTitle: 'ParaHook Spaghetti Editor',
+  windowFeatures: 'popup=yes,width=1440,height=920,resizable=yes,scrollbars=no',
+})
+
 export const resolveWorkspacePresentationMode = (
   windowMode: EditorSurfaceWindowMode,
 ): WorkspacePresentationMode => (windowMode === 'split view' ? 'tiled' : 'windowed')
@@ -159,8 +187,10 @@ export const createDefaultEditorWorkspaceSurfaceState = (
   splitDirection: defaultWorkspaceSplitDirection,
   splitDockSide: resolveDefaultWorkspaceSplitDockSide(defaultWorkspaceSplitDirection),
   splitPriority: defaultWorkspaceSplitPriority,
+  popoutState: createDefaultEditorPopoutState(surfaceInstanceId),
   restoreFromCollapsed: null,
   restoreFromSplit: null,
+  restoreFromSeparateWindow: null,
 })
 
 export const createDefaultWorkspaceViewportChromeState = (

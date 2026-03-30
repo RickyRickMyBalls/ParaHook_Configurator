@@ -13,6 +13,7 @@ import {
   type BrowserFloatingPosition,
   type BrowserFloatingSize,
   type EditorWorkspaceSurfaceState,
+  type WorkspaceEditorSurfaceBinding,
   type LeftDockPanelId,
   type LeftDockResizeMenuState,
   type PersistedWorkspaceLayout,
@@ -33,6 +34,7 @@ type WorkspaceStoreState = {
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
   editorSurfacePlacementById: Record<string, EditorWorkspaceSurfaceState>
+  editorSurfaceBindingById: Record<string, WorkspaceEditorSurfaceBinding>
   setLeftDockWidth: (width: number) => void
   setLeftDockViewportSplit: (isSplit: boolean) => void
   setActiveLeftDockPreviewPanelId: (panelId: LeftDockPanelId | null) => void
@@ -53,6 +55,8 @@ type WorkspaceStoreState = {
     surfaceInstanceId: string,
     seed?: Partial<EditorWorkspaceSurfaceState>,
   ) => void
+  setEditorSurfaceBinding: (surfaceInstanceId: string, graphDocumentId: string) => void
+  removeEditorSurfaceBinding: (surfaceInstanceId: string) => void
   setEditorSurfacePlacement: (
     surfaceInstanceId: string,
     placement: EditorWorkspaceSurfaceState,
@@ -79,6 +83,8 @@ const createInitialState = (): Omit<
   | 'hydratePersistedWorkspaceLayout'
   | 'ensureViewportChrome'
   | 'ensureEditorSurfacePlacement'
+  | 'setEditorSurfaceBinding'
+  | 'removeEditorSurfaceBinding'
   | 'setEditorSurfacePlacement'
   | 'removeEditorSurfacePlacement'
 > => ({
@@ -104,6 +110,7 @@ const createInitialState = (): Omit<
       createDefaultWorkspaceViewportChromeState(defaultPrimaryWorkspaceViewportId),
   },
   editorSurfacePlacementById: {},
+  editorSurfaceBindingById: {},
 })
 
 export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
@@ -276,6 +283,30 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
             ...seed,
           },
         },
+      }
+    })
+  },
+  setEditorSurfaceBinding: (surfaceInstanceId, graphDocumentId) => {
+    set((state) => ({
+      editorSurfaceBindingById: {
+        ...state.editorSurfaceBindingById,
+        [surfaceInstanceId]: {
+          surfaceKind: 'spaghettiEditor',
+          surfaceInstanceId,
+          graphDocumentId,
+        },
+      },
+    }))
+  },
+  removeEditorSurfaceBinding: (surfaceInstanceId) => {
+    set((state) => {
+      if (state.editorSurfaceBindingById[surfaceInstanceId] === undefined) {
+        return state
+      }
+      const nextEditorSurfaceBindingById = { ...state.editorSurfaceBindingById }
+      delete nextEditorSurfaceBindingById[surfaceInstanceId]
+      return {
+        editorSurfaceBindingById: nextEditorSurfaceBindingById,
       }
     })
   },

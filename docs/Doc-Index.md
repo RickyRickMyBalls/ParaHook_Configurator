@@ -4,6 +4,10 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+170. 2026-03-30 15:02: Cleaned up the workspace-family ladder so `Workspace 5.1` and `Workspace 5.2` now read as shipped first slices with their popup and multi-graph residue called out, added the new native future phase doc `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`, and refreshed the workspace docs map so the new Blender-style viewport-slot vision is indexed under `Workspace-Modes`
+169. 2026-03-30 14:42: Added `docs/Bugs/10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md` to the docs map, refreshed `docs/Bugs/0_Bug_Report.md` so the new Console-versus-Spaghetti popup ownership finding is indexed as `Bug 10`, and kept the Bugs subtree aligned with the new repair-planning note for the detached Spaghetti popup seam
+168. 2026-03-30 13:54: Added `docs/Bugs/9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md` to the docs map, refreshed `docs/Bugs/0_Bug_Report.md` so the still-open detached Spaghetti popup blank-surface regression is indexed as `Bug 9`, and kept the Bugs subtree aligned with the new dedicated popup-regression note
+167. 2026-03-30 13:14: Added `docs/Bugs/8_Workspace-5.2-SpaghettiWindowHost-OrderedViewport-Selector-BlackScreen.md` to the docs map, refreshed `docs/Bugs/0_Bug_Report.md` so the new post-`Workspace 5.2` startup blank-screen regression is indexed in the master bug list and priority order, and kept the Bugs subtree aligned with the new dedicated regression note
 166. 2026-03-30 12:14: Cleaned up the workspace-family docs after the shipped first `Workspace 5` slice by rewriting `Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md` into an honest shipped-first-slice record, adding the new native future phase docs `Workspace-5.1`, `Workspace-5.2`, and `Workspace-5.3` under `docs/Human-Plans/Architecture/Workspace-Modes/Future/`, refreshing `Workspace-Modes-Index.md` so the next editor-pop-out and multi-graph ladder is explicit, and extending the workspace docs map to include the new `5.x` follow-on files
 165. 2026-03-30 10:18: Added the native future workspace-family phase doc `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`, cleaned up the `Workspace 4` future record into an honest shipped-first-slice read, refreshed `Workspace-Modes-Index.md` so `Workspace 4` now reads as landed and `Workspace 5` as the active next phase, and extended the workspace docs map to include the current native `Workspace 0.1` through `Workspace 5` ladder under `Future/`
 164. 2026-03-30 10:03: Added the native future workspace-family phase doc `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`, cleaned up the `Workspace 3` future record into an honest shipped-first-slice read, refreshed `Workspace-Modes-Index.md` so `Workspace 3` now reads as landed and `Workspace 4` as the active next phase, and extended the workspace docs map to include the current native `Workspace 1` through `Workspace 4` ladder under `Future/`
@@ -540,6 +544,7 @@ Rule notes:
             - `Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
             - `Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
             - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
+            - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
 #### -------AppShell
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
@@ -658,6 +663,9 @@ Rule notes:
         - `2_BrowserPanel-ProjectContent-Selector-Crash.md`
         - `3_ReferenceWorkspace-BlackScreen-Regression.md`
         - `4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
+        - `8_Workspace-5.2-SpaghettiWindowHost-OrderedViewport-Selector-BlackScreen.md`
+        - `9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md`
+        - `10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md`
 ### ----roadmap
         - `roadmap.md`
         - `Architecture-roadmap.md`

@@ -58,6 +58,7 @@ import type {
   EdgeEndpoint,
   EditorViewport,
   EditorViewportRestoreFromCollapsed,
+  EditorViewportRestoreFromSeparateWindow,
   EditorViewportRestoreFromSplit,
   EditorViewportPosition,
   EditorViewportSize,
@@ -82,10 +83,12 @@ import { DEFAULT_BUILD_EXECUTION_INTENT } from '../../../shared/buildTypes'
 import { appendConsoleEntry } from '../../console/useConsoleStore'
 import { artifactToPartKeyStr } from '../../parts/partKeyResolver'
 import {
+  createDefaultEditorPopoutState,
   createDefaultEditorWorkspaceSurfaceState,
   defaultEditorSurfacePosition,
   defaultEditorSurfaceSize,
   defaultEditorSurfaceSplitRatio,
+  type EditorSurfaceRestoreFromSeparateWindow,
   resolveWorkspacePresentationMode,
   type EditorSurfaceRestoreFromCollapsed,
   type EditorSurfaceRestoreFromSplit,
@@ -2114,6 +2117,7 @@ const createEditorViewport = (
   splitPriority: defaultWorkspaceSplitPriority,
   restoreFromCollapsed: null,
   restoreFromSplit: null,
+  restoreFromSeparateWindow: null,
   zOrder: options?.zOrder ?? 1,
 })
 
@@ -2185,6 +2189,34 @@ const cloneEditorSurfaceRestoreFromSplit = (
         size: restore.size === undefined ? undefined : { ...restore.size },
       }
 
+const snapshotSeparateWindowRestoreState = (
+  viewport: EditorViewport,
+): EditorViewportRestoreFromSeparateWindow => ({
+  windowMode:
+    viewport.windowMode === 'separateWindow' ? 'expanded' : viewport.windowMode,
+  position: viewport.position,
+  size: viewport.size,
+  splitRatio: viewport.splitRatio,
+  splitDirection: viewport.splitDirection,
+  splitDockSide: viewport.splitDockSide,
+  splitPriority: viewport.splitPriority,
+})
+
+const cloneEditorSurfaceRestoreFromSeparateWindow = (
+  restore: EditorSurfaceRestoreFromSeparateWindow | null,
+): EditorViewportRestoreFromSeparateWindow | null =>
+  restore === null
+    ? null
+    : {
+        windowMode: restore.windowMode,
+        position: restore.position === undefined ? undefined : { ...restore.position },
+        size: restore.size === undefined ? undefined : { ...restore.size },
+        splitRatio: restore.splitRatio,
+        splitDirection: restore.splitDirection,
+        splitDockSide: restore.splitDockSide,
+        splitPriority: restore.splitPriority,
+      }
+
 const createEditorWorkspaceSurfaceStateFromViewport = (
   viewport: EditorViewport,
 ): EditorWorkspaceSurfaceState => ({
@@ -2206,6 +2238,7 @@ const createEditorWorkspaceSurfaceStateFromViewport = (
     viewport.splitDockSide ??
     resolveDefaultWorkspaceSplitDockSide(viewport.splitDirection ?? defaultWorkspaceSplitDirection),
   splitPriority: viewport.splitPriority ?? defaultWorkspaceSplitPriority,
+  popoutState: createDefaultEditorPopoutState(viewport.editorViewportId),
   restoreFromCollapsed: viewport.restoreFromCollapsed
     ? {
         windowMode: viewport.restoreFromCollapsed.windowMode,
@@ -2241,6 +2274,27 @@ const createEditorWorkspaceSurfaceStateFromViewport = (
               },
       }
     : null,
+  restoreFromSeparateWindow: viewport.restoreFromSeparateWindow
+    ? {
+        windowMode: viewport.restoreFromSeparateWindow.windowMode,
+        position:
+          viewport.restoreFromSeparateWindow.position === undefined
+            ? undefined
+            : {
+                ...viewport.restoreFromSeparateWindow.position,
+              },
+        size:
+          viewport.restoreFromSeparateWindow.size === undefined
+            ? undefined
+            : {
+                ...viewport.restoreFromSeparateWindow.size,
+              },
+        splitRatio: viewport.restoreFromSeparateWindow.splitRatio,
+        splitDirection: viewport.restoreFromSeparateWindow.splitDirection,
+        splitDockSide: viewport.restoreFromSeparateWindow.splitDockSide,
+        splitPriority: viewport.restoreFromSeparateWindow.splitPriority,
+      }
+    : null,
 })
 
 const readEditorWorkspaceSurfaceState = (
@@ -2268,6 +2322,9 @@ const applyEditorWorkspaceSurfaceStateToViewport = (
     splitDirection: surface.splitDirection,
     splitDockSide: surface.splitDockSide,
     splitPriority: surface.splitPriority,
+    restoreFromSeparateWindow: cloneEditorSurfaceRestoreFromSeparateWindow(
+      surface.restoreFromSeparateWindow,
+    ),
     restoreFromCollapsed: cloneEditorSurfaceRestoreFromCollapsed(surface.restoreFromCollapsed),
     restoreFromSplit: cloneEditorSurfaceRestoreFromSplit(surface.restoreFromSplit),
   })
@@ -5657,12 +5714,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
     const nextViewport = nextViewportState.editorViewportsById[nextViewportState.editorViewportId]
     if (nextViewport !== undefined) {
-      useWorkspaceStore
-        .getState()
-        .setEditorSurfacePlacement(
-          nextViewport.editorViewportId,
-          createEditorWorkspaceSurfaceStateFromViewport(nextViewport),
-        )
+      const workspaceState = useWorkspaceStore.getState()
+      workspaceState.setEditorSurfacePlacement(
+        nextViewport.editorViewportId,
+        createEditorWorkspaceSurfaceStateFromViewport(nextViewport),
+      )
+      workspaceState.setEditorSurfaceBinding(
+        nextViewport.editorViewportId,
+        nextViewport.graphDocumentId,
+      )
     }
     return nextViewportState.editorViewportId
   },
@@ -5681,16 +5741,20 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     )
     const nextViewport = nextViewportState.editorViewportsById[nextViewportState.editorViewportId]
     if (nextViewport !== undefined) {
-      useWorkspaceStore
-        .getState()
-        .setEditorSurfacePlacement(
-          nextViewport.editorViewportId,
-          createEditorWorkspaceSurfaceStateFromViewport(nextViewport),
-        )
+      const workspaceState = useWorkspaceStore.getState()
+      workspaceState.setEditorSurfacePlacement(
+        nextViewport.editorViewportId,
+        createEditorWorkspaceSurfaceStateFromViewport(nextViewport),
+      )
+      workspaceState.setEditorSurfaceBinding(
+        nextViewport.editorViewportId,
+        nextViewport.graphDocumentId,
+      )
     }
     return nextViewportState.editorViewportId
   },
   bindEditorViewportToGraphDocument: (editorViewportId, graphDocumentId) => {
+    let nextGraphDocumentId: string | null = null
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       if (viewport === undefined || state.graphDocumentsById[graphDocumentId] === undefined) {
@@ -5706,11 +5770,15 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         },
         editorViewportId,
       )
+      nextGraphDocumentId = graphDocumentId
       return withBrowserViewportState(state, {
         editorViewportsById: nextViewportsById,
         activeEditorViewportId: editorViewportId,
       })
     })
+    if (nextGraphDocumentId !== null) {
+      useWorkspaceStore.getState().setEditorSurfaceBinding(editorViewportId, nextGraphDocumentId)
+    }
   },
   swapFocusedEditorViewportToGraphDocument: (graphDocumentId) => {
     const state = get()
@@ -5800,6 +5868,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       })
     })
     useWorkspaceStore.getState().removeEditorSurfacePlacement(editorViewportId)
+    useWorkspaceStore.getState().removeEditorSurfaceBinding(editorViewportId)
   },
   setActiveEditorViewportId: (editorViewportId) => {
     set((state) => {
@@ -5875,21 +5944,28 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     set((state) => {
       const viewport = state.editorViewportsById[editorViewportId]
       const currentSurface = viewport === undefined ? null : readEditorWorkspaceSurfaceState(viewport)
-      if (viewport === undefined || currentSurface?.windowMode === windowMode) {
-        if (
-          currentSurface?.windowMode !== 'collapsed' &&
-          currentSurface?.windowMode !== 'maximized' &&
-          currentSurface?.windowMode !== 'split view'
-        ) {
-          return state
-        }
+      if (viewport === undefined || currentSurface === null) {
+        return state
+      }
+
+      const isSurfaceAlreadyInRequestedMode = currentSurface.windowMode === windowMode
+      const isViewportAlreadyInRequestedMode = viewport.windowMode === windowMode
+      if (
+        isSurfaceAlreadyInRequestedMode &&
+        isViewportAlreadyInRequestedMode &&
+        currentSurface.windowMode !== 'collapsed' &&
+        currentSurface.windowMode !== 'maximized' &&
+        currentSurface.windowMode !== 'split view' &&
+        currentSurface.windowMode !== 'separateWindow'
+      ) {
+        return state
       }
 
       const resolveRestoreFromCollapsed = (): EditorWorkspaceSurfaceState => {
-        const restore = currentSurface?.restoreFromCollapsed ?? null
+        const restore = currentSurface.restoreFromCollapsed ?? null
         if (restore === null) {
           return {
-            ...currentSurface!,
+            ...currentSurface,
             windowMode: 'expanded',
             position: defaultViewportPosition,
             size: defaultViewportSize,
@@ -5898,21 +5974,21 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           }
         }
         return {
-          ...currentSurface!,
+          ...currentSurface,
           windowMode: restore.windowMode,
-          position: restore.position ?? currentSurface!.position,
-          size: restore.size ?? currentSurface!.size,
-          splitRatio: restore.splitRatio ?? currentSurface!.splitRatio,
+          position: restore.position ?? currentSurface.position,
+          size: restore.size ?? currentSurface.size,
+          splitRatio: restore.splitRatio ?? currentSurface.splitRatio,
           presentationMode: resolveWorkspacePresentationMode(restore.windowMode),
           restoreFromCollapsed: null,
         }
       }
 
       const resolveRestoreFromSplit = (): EditorWorkspaceSurfaceState => {
-        const restore = currentSurface?.restoreFromSplit ?? null
+        const restore = currentSurface.restoreFromSplit ?? null
         if (restore === null) {
           return {
-            ...currentSurface!,
+            ...currentSurface,
             windowMode: 'expanded',
             position: defaultViewportPosition,
             size: defaultViewportSize,
@@ -5921,12 +5997,47 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
           }
         }
         return {
-          ...currentSurface!,
+          ...currentSurface,
           windowMode: restore.windowMode,
-          position: restore.position ?? currentSurface!.position,
-          size: restore.size ?? currentSurface!.size,
+          position: restore.position ?? currentSurface.position,
+          size: restore.size ?? currentSurface.size,
           presentationMode: resolveWorkspacePresentationMode(restore.windowMode),
           restoreFromSplit: null,
+        }
+      }
+
+      const resolveRestoreFromSeparateWindow = (): EditorWorkspaceSurfaceState => {
+        const restore = currentSurface.restoreFromSeparateWindow ?? null
+        const popoutState = currentSurface.popoutState ?? createDefaultEditorPopoutState(editorViewportId)
+        if (restore === null) {
+          return {
+            ...currentSurface,
+            windowMode: 'expanded',
+            position: defaultViewportPosition,
+            size: defaultViewportSize,
+            presentationMode: 'windowed',
+            popoutState: {
+              ...popoutState,
+              owner: 'main-app',
+            },
+            restoreFromSeparateWindow: null,
+          }
+        }
+        return {
+          ...currentSurface,
+          windowMode: restore.windowMode,
+          position: restore.position ?? currentSurface.position,
+          size: restore.size ?? currentSurface.size,
+          splitRatio: restore.splitRatio ?? currentSurface.splitRatio,
+          splitDirection: restore.splitDirection ?? currentSurface.splitDirection,
+          splitDockSide: restore.splitDockSide ?? currentSurface.splitDockSide,
+          splitPriority: restore.splitPriority ?? currentSurface.splitPriority,
+          presentationMode: resolveWorkspacePresentationMode(restore.windowMode),
+          popoutState: {
+            ...popoutState,
+            owner: 'main-app',
+          },
+          restoreFromSeparateWindow: null,
         }
       }
 
@@ -5934,19 +6045,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
 
       if (windowMode === 'collapsed') {
         nextSurface =
-          currentSurface!.windowMode === 'collapsed'
+          currentSurface.windowMode === 'collapsed'
             ? resolveRestoreFromCollapsed()
             : {
-                ...currentSurface!,
+                ...currentSurface,
                 windowMode: 'collapsed',
                 presentationMode: 'windowed',
                 restoreFromCollapsed: snapshotCollapsedRestoreState(viewport),
               }
       } else if (windowMode === 'maximized') {
         nextSurface =
-          currentSurface!.windowMode === 'maximized'
+          currentSurface.windowMode === 'maximized'
             ? {
-                ...currentSurface!,
+                ...currentSurface,
                 windowMode: 'expanded',
                 position: defaultViewportPosition,
                 size: defaultViewportSize,
@@ -5955,53 +6066,68 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
                 restoreFromSplit: null,
               }
             : {
-                ...currentSurface!,
+                ...currentSurface,
                 windowMode: 'maximized',
                 presentationMode: 'windowed',
                 restoreFromCollapsed: null,
                 restoreFromSplit: null,
               }
       } else if (windowMode === 'split view') {
-        if (currentSurface!.windowMode === 'split view') {
+        if (currentSurface.windowMode === 'split view') {
           nextSurface = resolveRestoreFromSplit()
-        } else if (currentSurface!.windowMode === 'collapsed') {
+        } else if (currentSurface.windowMode === 'collapsed') {
           nextSurface = {
-            ...currentSurface!,
+            ...currentSurface,
             windowMode: 'split view',
             splitRatio: defaultViewportSplitRatio,
             presentationMode: 'tiled',
             restoreFromCollapsed: null,
             restoreFromSplit:
-              currentSurface!.restoreFromSplit ??
-              (currentSurface!.restoreFromCollapsed !== null &&
-              currentSurface!.restoreFromCollapsed.windowMode !== 'split view'
+              currentSurface.restoreFromSplit ??
+              (currentSurface.restoreFromCollapsed !== null &&
+              currentSurface.restoreFromCollapsed.windowMode !== 'split view'
                 ? {
-                    windowMode: currentSurface!.restoreFromCollapsed.windowMode,
-                    position: currentSurface!.restoreFromCollapsed.position,
-                    size: currentSurface!.restoreFromCollapsed.size,
+                    windowMode: currentSurface.restoreFromCollapsed.windowMode,
+                    position: currentSurface.restoreFromCollapsed.position,
+                    size: currentSurface.restoreFromCollapsed.size,
                   }
                 : snapshotExpandedRestoreState(viewport)),
           }
         } else {
           nextSurface = {
-            ...currentSurface!,
+            ...currentSurface,
             windowMode: 'split view',
             splitRatio: defaultViewportSplitRatio,
             presentationMode: 'tiled',
             restoreFromCollapsed: null,
             restoreFromSplit:
-              currentSurface!.windowMode === 'maximized'
+              currentSurface.windowMode === 'maximized'
                 ? {
                     windowMode: 'maximized',
-                    position: currentSurface!.position,
-                    size: currentSurface!.size,
+                    position: currentSurface.position,
+                    size: currentSurface.size,
                   }
                 : snapshotExpandedRestoreState(viewport),
           }
         }
+      } else if (windowMode === 'separateWindow') {
+        nextSurface =
+          isSurfaceAlreadyInRequestedMode && isViewportAlreadyInRequestedMode
+            ? resolveRestoreFromSeparateWindow()
+            : {
+                ...currentSurface,
+                windowMode: 'separateWindow',
+                presentationMode: 'windowed',
+                popoutState: {
+                  ...(currentSurface.popoutState ?? createDefaultEditorPopoutState(editorViewportId)),
+                  owner: 'child-window',
+                },
+                restoreFromSeparateWindow:
+                  currentSurface.restoreFromSeparateWindow ?? snapshotSeparateWindowRestoreState(viewport),
+              }
       } else if (windowMode === 'meatball editor view') {
         nextSurface = {
-          ...currentSurface!,
+          ...currentSurface,
           windowMode: 'meatball editor view',
           presentationMode: 'windowed',
           restoreFromCollapsed: null,
@@ -6009,9 +6135,23 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         }
       } else {
         nextSurface = {
-          ...currentSurface!,
+          ...currentSurface,
           windowMode,
           presentationMode: resolveWorkspacePresentationMode(windowMode),
+        }
+      }
+
+      if (nextSurface.windowMode !== 'separateWindow') {
+        nextSurface = {
+          ...nextSurface,
+          popoutState: nextSurface.popoutState
+            ? {
+                ...nextSurface.popoutState,
+                owner: 'main-app',
+              }
+            : createDefaultEditorPopoutState(editorViewportId),
+          restoreFromSeparateWindow:
+            windowMode === 'separateWindow' ? nextSurface.restoreFromSeparateWindow : null,
         }
       }
 
@@ -6673,10 +6813,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
 }))
 
 for (const viewport of Object.values(useSpaghettiStore.getState().editorViewportsById)) {
-  useWorkspaceStore
-    .getState()
-    .setEditorSurfacePlacement(
-      viewport.editorViewportId,
-      createEditorWorkspaceSurfaceStateFromViewport(viewport),
-    )
+  const workspaceState = useWorkspaceStore.getState()
+  workspaceState.setEditorSurfacePlacement(
+    viewport.editorViewportId,
+    createEditorWorkspaceSurfaceStateFromViewport(viewport),
+  )
+  workspaceState.setEditorSurfaceBinding(viewport.editorViewportId, viewport.graphDocumentId)
 }

@@ -242,6 +242,10 @@ export function SpaghettiPanel({
   const lastHeaderToggleRevisionRef = useRef<number>(headerToggleRevision)
   const lastExternalFitRequestKeyRef = useRef<number>(-1)
   const isHeaderCollapsed = controlledHeaderCollapsed ?? false
+  const getPanelWindow = useCallback(
+    () => panelRef.current?.ownerDocument.defaultView ?? window,
+    [],
+  )
   const graphDocumentId = viewport?.graphDocumentId ?? null
   const spaghettiLastCompile = useSpaghettiStore((state) =>
     graphDocumentId === null ? null : selectGraphCompileResultByDocumentId(state, graphDocumentId),
@@ -389,7 +393,8 @@ export function SpaghettiPanel({
       return
     }
 
-    window.addEventListener('resize', clampToolbarToAvailableSpace)
+    const panelWindow = getPanelWindow()
+    panelWindow.addEventListener('resize', clampToolbarToAvailableSpace)
 
     const observedPanel = panelRef.current
     let resizeObserver: ResizeObserver | null = null
@@ -401,17 +406,18 @@ export function SpaghettiPanel({
     }
 
     return () => {
-      window.removeEventListener('resize', clampToolbarToAvailableSpace)
+      panelWindow.removeEventListener('resize', clampToolbarToAvailableSpace)
       resizeObserver?.disconnect()
     }
-  }, [clampToolbarToAvailableSpace, toolbarHeight])
+  }, [clampToolbarToAvailableSpace, getPanelWindow, toolbarHeight])
 
   useEffect(() => {
     if (windowSettingsHeight === null || !isWindowSettingsOpen || !isWindowSettingsExpanded) {
       return
     }
 
-    window.addEventListener('resize', clampWindowSettingsToAvailableSpace)
+    const panelWindow = getPanelWindow()
+    panelWindow.addEventListener('resize', clampWindowSettingsToAvailableSpace)
 
     const observedPanel = panelRef.current
     let resizeObserver: ResizeObserver | null = null
@@ -423,11 +429,12 @@ export function SpaghettiPanel({
     }
 
     return () => {
-      window.removeEventListener('resize', clampWindowSettingsToAvailableSpace)
+      panelWindow.removeEventListener('resize', clampWindowSettingsToAvailableSpace)
       resizeObserver?.disconnect()
     }
   }, [
     clampWindowSettingsToAvailableSpace,
+    getPanelWindow,
     isWindowSettingsExpanded,
     isWindowSettingsOpen,
     windowSettingsHeight,
@@ -611,14 +618,15 @@ export function SpaghettiPanel({
       onSetHeaderCollapsed?.(false)
     }
 
+    const panelWindow = getPanelWindow()
     const handlePointerUp = () => {
       resizeStateRef.current = null
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
+      panelWindow.removeEventListener('pointermove', handlePointerMove)
+      panelWindow.removeEventListener('pointerup', handlePointerUp)
     }
 
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
+    panelWindow.addEventListener('pointermove', handlePointerMove)
+    panelWindow.addEventListener('pointerup', handlePointerUp)
     event.preventDefault()
   }
 
@@ -658,14 +666,15 @@ export function SpaghettiPanel({
       expandedWindowSettingsHeightRef.current = nextHeight
     }
 
+    const panelWindow = getPanelWindow()
     const handlePointerUp = () => {
       resizeStateRef.current = null
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
+      panelWindow.removeEventListener('pointermove', handlePointerMove)
+      panelWindow.removeEventListener('pointerup', handlePointerUp)
     }
 
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
+    panelWindow.addEventListener('pointermove', handlePointerMove)
+    panelWindow.addEventListener('pointerup', handlePointerUp)
     event.preventDefault()
   }
 
@@ -715,14 +724,15 @@ export function SpaghettiPanel({
       setDebugHeight(nextHeight)
     }
 
+    const panelWindow = getPanelWindow()
     const handlePointerUp = () => {
       resizeStateRef.current = null
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
+      panelWindow.removeEventListener('pointermove', handlePointerMove)
+      panelWindow.removeEventListener('pointerup', handlePointerUp)
     }
 
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
+    panelWindow.addEventListener('pointermove', handlePointerMove)
+    panelWindow.addEventListener('pointerup', handlePointerUp)
     event.preventDefault()
   }
 

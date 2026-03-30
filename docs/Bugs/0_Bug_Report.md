@@ -1,6 +1,9 @@
 # 0 - Bug Report
 
 ## Doc History
+9. 2026-03-30 14:42: Added `Bug 10` to capture the stronger Console-versus-Spaghetti popup comparison finding, indexing the fact that Console popout already works as a single-owner child-window surface while Spaghetti popup still mixes workspace placement truth with legacy viewport/runtime truth, and linked the new note into the master bug list as the concrete repair-planning companion to `Bug 9`
+8. 2026-03-30 13:54: Added `Bug 9` for the still-open post-`Workspace 5.2` detached Spaghetti Editor popup blank-surface regression, linked it to the `Workspace 5.2` split-brain surface-ownership seam, and recorded the full sequence of popup lifecycle, focus, layout, and render-ownership fixes already attempted so far
+7. 2026-03-30 13:14: Added `Bug 8` for the new post-`Workspace 5.2` dark blue-black startup screen, linked it to the older unstable-selector black-screen family, and recorded the likely `SpaghettiWindowHost -> selectOrderedEditorViewports` direct hook subscription as the strongest current cause
 6. 2026-03-23 13:50: Updated `Bug 7` to `[resolved?]` after the graph-native mesh-preview repair landed in code, keeping it visible in the short bug list while manual in-app verification of the irregular `Sketch Draw -> Geometry/Extrude -> OutputPreview` case still remains
 1. 2026-03-06 16:21: Re-formatted the `## Bug List` entries so each line now reads in the order `Bug N`, then status key, then the note text
 2. 2026-03-06 16:20: Added status tags to every entry in `## Bug List` so the short bug index now shows each bug's current state at a glance without changing the separate `Priority Order` section
@@ -61,6 +64,9 @@ It is mainly:
 
 Current practical order:
 
+- `Bug 9` - Workspace 5.2 detached Spaghetti Editor popup opens blank
+- `Bug 10` - Workspace 5.2 detached Spaghetti popup still mixes ownership unlike Console
+- `Bug 8` - Workspace 5.2 startup can collapse into a dark blue-black screen
 - `Bug 7` - Geometry/Sketch profile does not extrude the real Sketch Draw shape
 - `Bug 4` - Cube connected to OutputPreview does not render
 - `Bug 1` - Spaghetti editor toolbar drag bar cannot move high enough
@@ -78,10 +84,107 @@ Current practical order:
 - `Bug 5` - `[planned]` - Spaghetti toolbar is fragmented across too many UI regions
 - `Bug 6` - `[planned]` - Wires lack clear render-path and active-flow visibility
 - `Bug 7` - `[resolved?]` - Geometry/Sketch profile loses the real Sketch Draw shape before Geometry/Extrude
+- `Bug 8` - `[investigating]` - Workspace 5.2 startup can collapse into a dark blue-black screen
+- `Bug 9` - `[investigating]` - Workspace 5.2 detached Spaghetti Editor popup opens but stays blank
+- `Bug 10` - `[planned]` - Workspace 5.2 detached Spaghetti popup still mixes workspace and legacy viewport ownership unlike Console
 
 
 
 ## Current Known Bugs
+
+### Bug 10 - Workspace 5.2 detached Spaghetti popup still mixes workspace and legacy viewport ownership unlike Console
+
+Status:
+- `[planned]`
+
+Problem:
+- Console popout already works because it is a single-owner child-window surface
+- Spaghetti popout still mixes shared workspace placement truth with legacy `useSpaghettiStore` viewport/runtime truth
+- that mixed ownership is now the strongest architecture-level explanation for why the Spaghetti popup window can open and theme correctly while the real editor surface still never paints
+
+Strongest current likely cause:
+- `SpaghettiWindowHost` still discovers and renders detached popup surfaces through a mixed path that depends on:
+  - workspace placement state
+  - `editorViewportsById`
+  - `editorViewportOrder`
+  - `activeEditorViewportId`
+- unlike `ConsoleDock`, Spaghetti popup still does not render from one canonical detached-surface record
+
+Likely ownership:
+- `SP`
+- `VR`
+
+Likely files:
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+
+Related docs:
+- `/docs/Bugs/10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md`
+- `/docs/Bugs/9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md`
+- `/docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+
+### Bug 9 - Workspace 5.2 detached Spaghetti Editor popup opens but stays blank
+
+Status:
+- `[investigating]`
+
+Problem:
+- clicking `PO` on the Spaghetti Editor opens a child browser window
+- the popup now tends to stay open
+- but the popup still renders only a dark blank surface instead of the real editor UI
+
+Strongest current likely cause:
+- `Workspace 5.2` widened editor ownership into a mixed model where detached placement truth lives in the shared workspace seam while the legacy active-editor runtime still survives in `useSpaghettiStore`
+- `SpaghettiWindowHost` still mixes those two ownership models in its detached render path
+- the popup shell can now open correctly, but the real detached editor subtree is still not fully driven by one stable canonical detached-surface record
+
+Likely ownership:
+- `SP`
+- `VR`
+
+Likely files:
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/useWorkspaceChildWindow.ts`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/spaghetti/ui/ExpandedEditor.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+
+Related docs:
+- `/docs/Bugs/9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md`
+- `/docs/Bugs/10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md`
+- `/docs/Bugs/8_Workspace-5.2-SpaghettiWindowHost-OrderedViewport-Selector-BlackScreen.md`
+- `/docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+
+### Bug 8 - Workspace 5.2 startup can collapse into a dark blue-black screen
+
+Status:
+- `[investigating]`
+
+Problem:
+- after the first `Workspace 5.2` detached-editor widening landed, the app can boot into a dark blue-black screen
+- the normal Browser and workspace shell disappear even though background styling remains visible
+
+Strongest current likely cause:
+- `SpaghettiWindowHost` now directly subscribes to `useSpaghettiStore(selectOrderedEditorViewports)`
+- `selectOrderedEditorViewports` allocates a fresh array every time it runs
+- under the current React 19 + Zustand behavior, that matches the older unstable-snapshot crash family that previously produced the same black-screen symptom
+
+Likely ownership:
+- `SP`
+- `VR`
+
+Likely files:
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+
+Related docs:
+- `/docs/Bugs/8_Workspace-5.2-SpaghettiWindowHost-OrderedViewport-Selector-BlackScreen.md`
+- `/docs/Bugs/1_BrowserPanel-Startup-Crash.md`
+- `/docs/Bugs/2_BrowserPanel-ProjectContent-Selector-Crash.md`
+- `/docs/Bugs/3_ReferenceWorkspace-BlackScreen-Regression.md`
 
 ### Bug 1 - Spaghetti editor toolbar drag bar cannot move high enough
 
