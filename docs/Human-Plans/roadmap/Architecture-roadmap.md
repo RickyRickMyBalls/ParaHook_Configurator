@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-03-31 11:05: Added `Workspace Modes` into this cross-family roadmap and rebuilt the `## To do` checklist from the live family docs, so the roadmap now reflects the shipped `Workspace 0.1` through `Workspace 6` work plus the active `Workspace 5.3` and `Workspace 7.x` follow-ons instead of the stale older shorthand list
 20. 2026-03-28 14:06: Refreshed the source-doc pointers in this cross-family roadmap after a docs audit by replacing stale `Layers.md` and archived Spaghetti explainer paths with the real live family index docs, so the roadmap now points at the current umbrella files that actually exist in the repo
 19. 2026-03-28 13:19: Reordered the roadmap `## To do` list so the new `Edit History` groundwork now sits ahead of later `Pasta Path` sync, and replaced the old roadmap-only `PastaPath-1` placeholder with a descriptive `PastaPath-first-standalone-phase-doc` checklist item so the near-term sequence stays aligned with the current family source docs
 18. 2026-03-28 13:16: Added the new `Edit History` family to this cross-family roadmap, wiring in the first open `Edit History 1` through `Edit History 5` ladder so the roadmap now tracks canonical undo/redo foundation, graph and parameter commit coverage, Browser-plus-Console parity, transform commit integration, and later `Pasta Path` sync beside the older architecture families
@@ -47,6 +48,7 @@ This file covers:
 - `Radio`
 - `Camera Controls`
 - `View Toolbar`
+- `Workspace Modes`
 - `Spaghetti Editor`
 - `Nodes`
 - `Worker`
@@ -72,6 +74,8 @@ The `Layers` family now belongs in that tracker too because it has a real four-p
 
 The `Edit History` family now belongs in that tracker too because it has a real five-phase execution ladder instead of only one umbrella concept note.
 
+The `Workspace Modes` family now belongs in that tracker too because it has a real shipped-and-future phase ladder instead of living only as old task-doc residue.
+
 ### Source Docs
 
 - `Browser`
@@ -92,6 +96,8 @@ The `Edit History` family now belongs in that tracker too because it has a real 
   - `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
 - `View Toolbar`
   - `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`
+- `Workspace Modes`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
 - `Spaghetti Editor`
   - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
 - `Nodes`
@@ -341,6 +347,42 @@ Current read:
 ### [ ] [5.0I-3] Grid, Background, And Core View State
 ### [ ] [5.0I-4] Gizmo, Helpers, And Legacy Feel Follow-Ons
 
+## [~] Workspace Modes
+### Info
+
+Source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+
+Current read:
+- the `Workspace Modes` family now has a real shipped ladder plus explicit future follow-ons instead of only the older `05.1*` task-doc carry-forward
+- the shipped workspace groundwork now includes:
+  - `Workspace 0.1` through `Workspace 5.2`
+  - `Workspace 6`
+  - the shipped `Workspace 7.1`, `Workspace 7.2`, and `Workspace 7.2c` slot-foundation cuts recorded in the family index
+- the main remaining open follow-ons are now:
+  - `Workspace 5.3`
+  - `Workspace 7`, with the next active handoff explicitly reading as `Workspace 7.3`
+- the family no longer reads like early extraction work is still pending:
+  - `Workspace 1`
+  - `Workspace 2`
+  - `Workspace 3`
+  - `Workspace 4`
+  - `Workspace 5`
+  - `Workspace 6`
+  all count as shipped groundwork in the current source doc
+
+### [x] Workspace 0.1 - Codebase Research And Implementation Audit
+### [x] Workspace 1 - Shared Workspace Owner And State Extraction
+### [x] Workspace 2 - First Hosted Surface Migration And Transitional Adapters
+### [x] Workspace 3 - Viewport-Local Chrome And Toolbar Host
+### [x] Workspace 4 - Persistence, Saved Modes, And Migration
+### [x] Workspace 5 - Multi-Window Surfaces And Detached Browser Pop-Out
+### [x] Workspace 5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore
+### [x] Workspace 5.2 - Multiple Editor Surface Instances And Graph Binding
+### [ ] Workspace 5.3 - Open Editors Multi-Graph Workspace UX And Session Truth
+### [x] Workspace 6 - Workspace Selection, Surface Activation, And Canonical Intents
+### [ ] Workspace 7 - Viewport Slot Architecture And Surface Swapping
+
 ## [~] Spaghetti Editor
 ### Info
 
@@ -459,14 +501,29 @@ Current read:
 
 ## To do
 
+This checklist should mirror the live family sections above.
+
+Keep shipped items visible when they are part of a family that was previously stale in this file, so recent completed work does not disappear during roadmap cleanup.
+
+- [x] `Browser-1`
+- [x] `Browser-2`
+- [x] `Browser-3`
+- [x] `Browser-4`
+- [x] `Browser-5`
+- [x] `Browser-5.1`
+- [x] `Browser-5.2`
+- [x] `Browser-5.3`
+- [x] `Browser-5.4`
+- [x] `Browser-5.5`
 - [x] `Browser-6`
 - [ ] `Browser-7`
-- [ ] `EditHistory-1`
-- [ ] `EditHistory-2`
-- [ ] `EditHistory-3`
-- [ ] `EditHistory-4`
-- [ ] `PastaPath-first-standalone-phase-doc`
-- [ ] `EditHistory-5`
+- [~] `[4.1I]`
+- [ ] `Edit History 1`
+- [ ] `Edit History 2`
+- [ ] `Edit History 3`
+- [ ] `Edit History 4`
+- [ ] `Edit History 5`
+- [~] `Pasta Path - Umbrella Concept And First Questions`
 - [ ] `Layers-1`
 - [ ] `Layers-2`
 - [ ] `Layers-3`
@@ -475,32 +532,57 @@ Current read:
 - [ ] `Export-2`
 - [ ] `Export-3`
 - [ ] `Export-4`
-- [ ] `SketchPlane-2`
-- [ ] `SketchPlane-2-Cleanup`
-- [ ] `SketchPlane-3`
-- [ ] `SketchPlane-S8`
-- [ ] `Sketch-Console-2`
-- [ ] `Sketch-Console-3`
-- [ ] `DrawSketch-6`
-- [ ] `DrawSketch-7`
-- [ ] `Nodes-3.2A-1`
-- [ ] `Nodes-3.2A-2`
-- [ ] `Nodes-3.2A-3`
+- [ ] `Radio Phase 8`
+- [ ] `Radio Phase 11`
+- [x] `[5.0F]`
+- [x] `[5.0F-1]`
+- [x] `[5.0F-2]`
+- [x] `[5.3A-1]`
+- [x] `[5.3A-2]`
+- [x] `[5.3A-3]`
+- [x] `[5.3A-4]`
+- [x] `[5.3A-5]`
+- [x] `[5.3A-6]`
+- [x] `[5.3A-7]`
+- [ ] `[5.0H-5]`
+- [ ] `[5.0I-1]`
+- [ ] `[5.0I-2]`
+- [ ] `[5.0I-3]`
+- [ ] `[5.0I-4]`
+- [x] `Workspace 0.1`
+- [x] `Workspace 1`
+- [x] `Workspace 2`
+- [x] `Workspace 3`
+- [x] `Workspace 4`
+- [x] `Workspace 5`
+- [x] `Workspace 5.1`
+- [x] `Workspace 5.2`
+- [ ] `Workspace 5.3`
+- [x] `Workspace 6`
+- [ ] `Workspace 7`
+- [ ] `Master Spaghetti-1`
+- [ ] `[3.2A-1]`
+- [ ] `[3.2A-2]`
+- [ ] `[3.2A-3]`
+- [ ] `[3.2A-4]`
+- [ ] `[3.2B-SketchPlane-2]`
+- [ ] `[3.2B-SketchPlane-2-Cleanup]`
+- [ ] `[3.2B-SketchPlane-3]`
+- [ ] `[3.2B-S8]`
+- [ ] `[3.2B-Console-2]`
+- [ ] `[3.2B-Console-3]`
+- [ ] `[3.2B-DrawSketch-6]`
+- [ ] `[3.2B-DrawSketch-7]`
+- [ ] `[3.2B-4]`
+- [ ] `[3.2B-5]`
+- [~] `[3.2B-6]`
 - [ ] `Extrude-1`
-- [ ] `Nodes-3.2A-4`
-- [ ] `Sketch-4`
-- [ ] `Sketch-5`
-- [ ] `Sketch-6`
-- [ ] `Camera-5`
-- [ ] `ViewToolbar-1`
-- [ ] `Workspace-1`
-- [ ] `Workspace-2`
-- [ ] `Workspace-3`
 
 ## Next Cleanup
 
 The likely next maintenance pass for this file is:
 - add more family notes only when a source architecture doc gains a real new phase
 - avoid inventing roadmap-only phase ids that do not exist in the family source docs
-- keep `Spaghetti Editor` explicit as a current gap until it gets a real architecture-side phase ladder of its own
+- keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own
 - let `Pasta Path` stay marked as an umbrella concept family until its first standalone execution phase exists
+- keep the workspace checklist synced to the native `Workspace-Modes` family docs instead of reviving the older `Workspace-1/2/3` shorthand again

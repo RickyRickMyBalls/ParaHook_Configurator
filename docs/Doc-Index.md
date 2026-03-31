@@ -4,6 +4,11 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+175. 2026-03-30 23:58: Moved the shipped native workspace phase records out of `docs/Human-Plans/Architecture/Workspace-Modes/Future/` and into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the umbrella workspace family now points at the shipped lane for landed records, and updated the workspace docs map so only active workspace execution surfaces remain under `Future/`
+174. 2026-03-30 23:26: Added the native `Workspace 7.2c-1` through `Workspace 7.2c-3` subphase docs to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the left-dock-unification work is now staged across host extraction, behavior parity, and old-shell retirement, and kept the workspace subtree aligned with that new `7.2c` subphase ladder
+173. 2026-03-30 23:22: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the next `Workspace 7` cleanup slice now explicitly targets one primary-model-viewport-owned left dock host, and kept the workspace subtree aligned with that new left-dock unification follow-on
+172. 2026-03-30 18:24: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the first `7.2` slice now reads as shipped and `7.2b` as the active next lane, and kept the workspace subtree aligned with the new host-mode-parity follow-on
+171. 2026-03-30 18:00: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2 - Duplicated Surface Instances, Restore Rules, And Host-Mode Parity.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the `Workspace 7` family now points at a native second execution surface, and kept the workspace subtree aligned with the new `7.2` duplicated-surface planning lane
 170. 2026-03-30 15:02: Cleaned up the workspace-family ladder so `Workspace 5.1` and `Workspace 5.2` now read as shipped first slices with their popup and multi-graph residue called out, added the new native future phase doc `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`, and refreshed the workspace docs map so the new Blender-style viewport-slot vision is indexed under `Workspace-Modes`
 169. 2026-03-30 14:42: Added `docs/Bugs/10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md` to the docs map, refreshed `docs/Bugs/0_Bug_Report.md` so the new Console-versus-Spaghetti popup ownership finding is indexed as `Bug 10`, and kept the Bugs subtree aligned with the new repair-planning note for the detached Spaghetti popup seam
 168. 2026-03-30 13:54: Added `docs/Bugs/9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md` to the docs map, refreshed `docs/Bugs/0_Bug_Report.md` so the still-open detached Spaghetti popup blank-surface regression is indexed as `Bug 9`, and kept the Bugs subtree aligned with the new dedicated popup-regression note
@@ -535,16 +540,23 @@ Rule notes:
         - `Workspace-Modes/Workspace-Modes-Index.md`
 #### -------Workspace-Modes
             - `Workspace-Modes-Index.md`
-            - `Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
-            - `Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
-            - `Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
-            - `Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
-            - `Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
-            - `Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
-            - `Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
-            - `Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
             - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
             - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
+            - `Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
+            - `Future/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md`
+            - `Future/Workspace_Phase Workspace-7.2c-2 - Left Dock Ref Repoint And Behavior Parity.md`
+            - `Future/Workspace_Phase Workspace-7.2c-3 - Old Left Dock Shell Retirement And Cleanup.md`
+            - `Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
+            - `Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+            - `Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+            - `Shipped/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+            - `Shipped/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
+            - `Shipped/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
+            - `Shipped/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
+            - `Shipped/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+            - `Shipped/Workspace_Phase Workspace-7.1 - Viewport Slot Foundations, Header Shell, And First Split Loop.md`
+            - `Shipped/Workspace_Phase Workspace-7.2 - Duplicated Surface Instances, Restore Rules, And Host-Mode Parity.md`
+            - `Shipped/Workspace_Phase Workspace-7.2c-1 - Primary Viewport Left Dock Host Extraction.md`
 #### -------AppShell
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`

@@ -125,6 +125,7 @@ const CONSOLE_POPOUT_SPEC = {
 
 type ConsoleDockProps = {
   listLeftOffset?: number
+  suppressDockedSurface?: boolean
 }
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
@@ -1296,7 +1297,10 @@ const buildDefaultCreatedSketchPosition = (graph: SpaghettiGraph): GraphNodePos 
   }
 }
 
-export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
+export function ConsoleDock({
+  listLeftOffset = 0,
+  suppressDockedSurface = false,
+}: ConsoleDockProps) {
   const dockRef = useRef<HTMLDivElement | null>(null)
   const floatingWindowRef = useRef<HTMLDivElement | null>(null)
   const dockedInputRef = useRef<HTMLInputElement | null>(null)
@@ -7281,8 +7285,10 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
         )
       : null
 
+  const shouldRenderDockedSurface = !(suppressDockedSurface && windowMode === 'docked')
+
   const listSurface =
-    isListMode ? (
+    isListMode && shouldRenderDockedSurface ? (
       <div className={`ConsoleListOverlay ${windowMode === 'docked' && isExpanded ? 'isPanelOpen' : ''}`}>
       <div
         className="ConsoleListView"
@@ -7313,42 +7319,44 @@ export function ConsoleDock({ listLeftOffset = 0 }: ConsoleDockProps) {
   return (
     <>
       {listSurface}
-      <div
-        ref={dockRef}
-        className={`ConsoleDock ${
-          windowMode === 'floating'
-            ? 'ConsoleDock--floatingOwner'
-            : windowMode === 'popout'
-              ? 'ConsoleDock--popoutOwner'
-              : 'ConsoleDock--docked'
-        }`}
-        style={sharedStyle}
-        data-console-fill-mode={backgroundFillMode}
-      >
-        {isExpanded && windowMode === 'docked' ? (
-          <ConsolePanel
-            surfaceMode="docked"
-            isVisible
-            onClose={isListMode ? handleListPanelClose : undefined}
-            onFloatToggle={handleFloatToggle}
-            onPopoutToggle={handlePopoutToggle}
-            onListToggle={handleListToggle}
-          />
-        ) : null}
-        {windowMode !== 'floating' ? (
-          <ConsoleBar
-            surfaceMode="docked"
-            showExpandToggle
-            inputRef={dockedInputRef}
-            onSubmitCommand={handleSubmitCommand}
-            onCancelCommand={handleEscCancelCommand}
-            onCycleGuidedChoice={handleGuidedChoiceCycle}
-            treatSpaceAsSubmit={treatSpaceAsSubmit}
-            onInputFocus={rehydrateGuidedRootSession}
-          />
-        ) : null}
-        {floatingWindow}
-      </div>
+      {shouldRenderDockedSurface ? (
+        <div
+          ref={dockRef}
+          className={`ConsoleDock ${
+            windowMode === 'floating'
+              ? 'ConsoleDock--floatingOwner'
+              : windowMode === 'popout'
+                ? 'ConsoleDock--popoutOwner'
+                : 'ConsoleDock--docked'
+          }`}
+          style={sharedStyle}
+          data-console-fill-mode={backgroundFillMode}
+        >
+          {isExpanded && windowMode === 'docked' ? (
+            <ConsolePanel
+              surfaceMode="docked"
+              isVisible
+              onClose={isListMode ? handleListPanelClose : undefined}
+              onFloatToggle={handleFloatToggle}
+              onPopoutToggle={handlePopoutToggle}
+              onListToggle={handleListToggle}
+            />
+          ) : null}
+          {windowMode !== 'floating' ? (
+            <ConsoleBar
+              surfaceMode="docked"
+              showExpandToggle
+              inputRef={dockedInputRef}
+              onSubmitCommand={handleSubmitCommand}
+              onCancelCommand={handleEscCancelCommand}
+              onCycleGuidedChoice={handleGuidedChoiceCycle}
+              treatSpaceAsSubmit={treatSpaceAsSubmit}
+              onInputFocus={rehydrateGuidedRootSession}
+            />
+          ) : null}
+          {floatingWindow}
+        </div>
+      ) : null}
       {popoutSurface}
     </>
   )

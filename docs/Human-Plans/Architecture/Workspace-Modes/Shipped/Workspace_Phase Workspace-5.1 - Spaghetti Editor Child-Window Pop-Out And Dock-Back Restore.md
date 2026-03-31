@@ -71,8 +71,8 @@ Current shipped seam after the first `Workspace 5` slice:
 
 Primary planning sources:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
 
 Current code seams:
 - `src/app/hosts/SpaghettiWindowHost.tsx`

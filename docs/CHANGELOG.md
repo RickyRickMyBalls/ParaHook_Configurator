@@ -65,6 +65,1083 @@ Do not use it for:
 
 ## Doc Body
 
+### [799] - 2026-03-31 09:54 - `VR-SP - Workspace 7 - Prevent Text Selection When Dragging Out From Viewport Headers`
+<!-- ENTRY 799 -->
+HUMAN SUMMARY: `Dragging a split Browser back into floating mode no longer starts a text-selection gesture through the shared viewport titlebar. The shared slot header now behaves like a true drag handle, which stops the model viewport labels and toolbar text from getting highlighted during Browser drag-out.` 
+#### Scope / Constraints Honored
+- Kept this fix focused on the shared viewport-header drag seam.
+- Avoided adding another Browser-only selection workaround when the drag starts in the shared slot titlebar path.
+
+#### What Changed
+- Added `preventDefault()` to the shared viewport-header drag start so drag-out begins as a pure drag gesture.
+- Marked the shared viewport header as non-selectable so slot titlebars do not participate in text selection while dragging.
+- Added a focused viewport-frame regression proving the drag-start event now prevents default selection behavior.
+
+#### Files Touched
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/ViewportFrame.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [798] - 2026-03-31 09:45 - `VR-SP - Workspace 7 - Add Floating Browser Quick-Dock Button Beside Popout`
+<!-- ENTRY 798 -->
+HUMAN SUMMARY: `Floating Browser no longer repurposes its popout icon as a hidden dock shortcut. It now gets a dedicated \`<\` quick-dock button beside the real \`↗\` popout button, so docking back to the left toolbar and popping out to a new browser window are separate actions.` 
+#### Scope / Constraints Honored
+- Kept this focused on the floating Browser titlebar controls.
+- Preserved the existing left-toolbar quick-dock behavior while restoring real popout behavior for the `↗` button.
+
+#### What Changed
+- Added a dedicated floating Browser quick-dock button rendered to the left of the popout button.
+- Changed the floating Browser path so `<` docks back to the left toolbar while `↗` performs a true popout.
+- Added the Browser titlebar actions cluster styling for the two-button layout.
+- Updated focused Browser host/AppShell mocks and added a Browser host regression for the separate quick-dock and popout controls.
+
+#### Files Touched
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "shows separate quick dock and popout controls for a floating browser|moves the docked browser into a child-window popout owner and docks it again when closed"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [797] - 2026-03-31 09:38 - `VR-SP - Workspace 7 - Make Viewport Top-Right Button A Dedicated Popout Control`
+<!-- ENTRY 797 -->
+HUMAN SUMMARY: `The viewport frame no longer uses the top-right \`...\` button for an action menu that already exists on titlebar right click. That button is now a dedicated \`↗\` popout control, which lines it up with the Browser floating titlebar popout behavior.` 
+#### Scope / Constraints Honored
+- Kept the viewport titlebar right-click action menu intact.
+- Changed only the duplicate top-right frame button behavior.
+
+#### What Changed
+- Replaced the top-right viewport frame `...` button with a dedicated `↗` popout button.
+- Wired that button to call the existing `onPopOut` action directly.
+- Left the titlebar right-click action menu as the route for split and float actions.
+- Updated focused ViewportFrame tests for the new button contract.
+
+#### Files Touched
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [796] - 2026-03-31 09:34 - `VR-SP - Workspace 7 - Prevent Text Selection During Split Browser Drag-Out`
+<!-- ENTRY 796 -->
+HUMAN SUMMARY: `Dragging a Browser out of viewport-split mode no longer highlights the viewport text behind it. The Browser drag handoff now temporarily disables text selection for the duration of the drag and restores it when the drag ends.` 
+#### Scope / Constraints Honored
+- Kept this focused on the Browser split-to-floating drag cleanup.
+- Preserved the existing Browser drag, split, and redock behavior.
+
+#### What Changed
+- Added a Browser drag-time text-selection lock in the Browser host so floating, docked, split, and slot-header Browser drags temporarily set `document.body.style.userSelect = 'none'`.
+- Restored the prior body `user-select` value on drag release and host cleanup.
+- Updated the Browser titlebar chrome so the titlebar itself is no longer selectable text.
+- Added a focused Browser host regression for the split-to-floating drag path.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/theme/surfaces/browser.css`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "locks text selection while dragging a viewport-split browser back into floating mode|shows a right split ghost and moves the floating browser into viewport split on release"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [795] - 2026-03-31 09:31 - `VR-SP - Workspace 7 - Preserve Browser Left Split Ratio Through Legacy Split Bridge`
+<!-- ENTRY 795 -->
+HUMAN SUMMARY: `This fixes the last Browser left-split case that was still recreating a 50/50 slot. The older Browser viewport-split bridge now carries the Browser side-split ratio through when it materializes a real left slot.` 
+#### Scope / Constraints Honored
+- Kept this focused on the remaining Browser left-split ratio bridge.
+- Left the newer slot split and floating Browser ratio work unchanged.
+
+#### What Changed
+- Updated the AppShell Browser viewport-split bridge to pass the current Browser split ratio through when creating a real left/right Browser slot.
+- Added a focused AppShell regression proving the legacy Browser viewport-split bridge preserves the left-side ratio instead of falling back to `0.5`.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "preserves the browser side-split ratio when the legacy browser viewport split bridge creates a left slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [794] - 2026-03-31 09:20 - `VR-SP - Workspace 7 - Default Browser Side Splits To Slim Width`
+<!-- ENTRY 794 -->
+HUMAN SUMMARY: `Browser left and right splits no longer come in at a 50/50 layout by default. When Browser is sent into a side split, it now starts at the normal slim Browser width instead, while top and bottom splits keep their existing behavior.` 
+#### Scope / Constraints Honored
+- Kept this focused on Browser side-split default sizing.
+- Left top/bottom split behavior unchanged.
+
+#### What Changed
+- Added a preferred-ratio seam for new slot splits so side splits can opt into a custom starting width.
+- Updated the Browser floating split path so left/right splits seed the viewport split ratio from the normal Browser width instead of `0.5`.
+- Updated the slotted Browser split path so left/right slot splits also start from the slim Browser width instead of a 50/50 split.
+- Added focused store and Browser host coverage for the new Browser side-split ratio behavior.
+
+#### Files Touched
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts src/app/hosts/BrowserDockHost.test.tsx src/app/AppShell.test.tsx -t "respects a preferred ratio when creating a new slot split|shows a right split ghost and moves the floating browser into viewport split on release|opens a floating browser titlebar split menu and moves the browser into a left split"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [793] - 2026-03-31 09:18 - `VR-SP - Workspace 7 - Use Top-Right Popout Icon In Browser Title Bar`
+<!-- ENTRY 793 -->
+HUMAN SUMMARY: `This replaces the Browser title bar's placeholder \`[]\` popout glyph with a real top-right arrow icon so the control reads like an actual popout action.` 
+#### Scope / Constraints Honored
+- Kept this limited to the Browser title bar popout control.
+- Preserved the existing Browser popout and dock behavior.
+
+#### What Changed
+- Replaced the Browser title bar popout button text from `[]` to a top-right arrow glyph.
+- Left the existing Browser popout and dock labels/titles unchanged.
+
+#### Files Touched
+- `src/app/panels/BrowserPanel.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/panels/BrowserPanel.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [792] - 2026-03-31 09:16 - `VR-SP - Workspace 7 - Add Floating Browser Titlebar Split Menu`
+<!-- ENTRY 792 -->
+HUMAN SUMMARY: `Right-clicking the Browser title bar while it is floating now opens a directional split menu. From there the user can send the floating Browser straight into a real top, right, bottom, or left split without having to edge-drag it into place.` 
+#### Scope / Constraints Honored
+- Kept this focused on the floating Browser titlebar context action path.
+- Reused the existing Browser split behavior instead of introducing a separate Browser-only split system.
+
+#### What Changed
+- Added a Browser titlebar context-menu hook so the floating Browser can open split actions from its own header.
+- Added a floating Browser split menu with `Split Top`, `Split Right`, `Split Bottom`, and `Split Left`.
+- Wired those actions to move the Browser straight into a real viewport split, including the detached-slot Browser path when Browser originated from a slot.
+- Added focused Browser host coverage for the new floating titlebar split menu path.
+
+#### Files Touched
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "opens a floating browser titlebar split menu and moves the browser into a left split|shows a right split ghost and moves the floating browser into viewport split on release|shows the dock preview and re-docks when the floating browser is dragged back to its slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [791] - 2026-03-31 09:11 - `VR-SP - Workspace 7 - Add Browser Essentials Presentation Mode`
+<!-- ENTRY 791 -->
+HUMAN SUMMARY: `This adds a real third Browser presentation preset between expanded and collapsed. The Browser header button now cycles \`- -> e -> +\`, and the new essentials mode keeps Content visible while auto-collapsing Graph Documents and Open Editors in both the slotted Browser header and the Browser's own title bar.` 
+#### Scope / Constraints Honored
+- Kept this focused on the Browser presentation-state seam instead of introducing another one-off slot-only toggle.
+- Preserved the existing Browser floating, popout, and viewport-split shell behavior while enriching the shared header button cycle.
+
+#### What Changed
+- Added a shared Browser `presentationMode` state with `expanded`, `essentials`, and `collapsed` modes in the workspace shell and persistence path.
+- Updated the Browser panel so its own title bar cycles through the same `- / e / +` preset sequence when it is not running through an external slot header owner.
+- Updated the slotted Browser viewport header to use the new shared presentation mode instead of the old boolean collapse toggle.
+- Made Browser essentials mode auto-collapse `Graph Documents` and `Open Editors` while leaving `Content` visible.
+- Added focused Browser panel, workspace store, and AppShell regressions for the new Browser presentation-mode cycle.
+
+#### Files Touched
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/panels/BrowserPanel.test.tsx src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/workspace/useWorkspaceStore.test.ts -t "cycles the Browser header through essentials and collapsed modes|uses the viewport header as the only title bar for a slotted browser and cycles - e \+ browser presentation modes|tracks browser presentation mode separately from floating and split shell state"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [790] - 2026-03-31 08:49 - `VR-SP - Workspace 7 - Let The Left Dock Status Bar Accept Browser And Spaghetti Drops`
+<!-- ENTRY 790 -->
+HUMAN SUMMARY: `This makes the `ParaHook Generator v20` status card act like the head of the unified left dock, so Browser and Spaghetti can both dock when dropped on the title card as well as on their exact dock slots. Browser routes to the Browser dock, and Spaghetti routes to the meatball dock.` 
+#### Scope / Constraints Honored
+- Kept this focused on unified left dock drop targeting.
+- Preserved the existing per-surface dock destinations: Browser still docks to Browser, and Spaghetti still docks to meatball editor view.
+
+#### What Changed
+- Updated the unified left dock hit-testing so the `.PrimaryViewportLeftDockStatus` area is treated as a valid alternate dock target for both Browser and meatball/spaghetti docking.
+- Tightened the Browser host harness so it includes the left dock status card and can prove Browser docks when dropped on that header area.
+- Tightened the Spaghetti host harness so it includes the same left dock status card and proves the floating editor re-enters meatball editor view when dropped there.
+
+#### Files Touched
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx -t "treats the left dock status bar as a browser dock target|treats the left dock status bar as a meatball dock target for the floating editor|shows the left dock preview and docks a detached slotted browser back into the toolbar"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [789] - 2026-03-31 08:37 - `VR-SP - Workspace 7 - Restore Left Toolbar Browser Dock Preview After Split-Based Float`
+<!-- ENTRY 789 -->
+HUMAN SUMMARY: `This restores the Browser left-toolbar drop target after Browser has previously lived in a split slot. A Browser dragged back out of that split can now show the dock preview again and truly dock into the unified left toolbar instead of staying stuck in split-only behavior.` 
+#### Scope / Constraints Honored
+- Kept this focused on Browser drag-back-to-dock behavior after split-based detachment.
+- Preserved the existing split-edge redock behavior and the unified left toolbar ownership model.
+
+#### What Changed
+- Added a workspace-store path to clear a detached slot-surface record when Browser really returns to the left toolbar instead of the slot tree.
+- Updated the Browser drag host so detached-from-split Browser can still show the left-toolbar preview and can clear its detached slot record when dropped there.
+- Added focused Browser host regressions for both detached slotted Browser and viewport-split Browser docking back into the unified left toolbar.
+
+#### Files Touched
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "shows the left dock preview and docks a detached slotted browser back into the toolbar|re-docks a viewport-split browser back into the left toolbar even when the dock target is empty|shows the dock preview and re-docks when the floating browser is dragged back to its slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [788] - 2026-03-31 08:30 - `VR-SP - Workspace 7 - Let Viewport-Split Browser Re-Dock Into The Unified Left Toolbar`
+<!-- ENTRY 788 -->
+HUMAN SUMMARY: `This lets a Browser dragged out of viewport-split mode dock back into the unified left toolbar with `ParaHook Generator v20` instead of only re-entering split previews. The left-toolbar Browser dock target now stays hittable even when Browser is not currently mounted there and the target box would otherwise collapse empty.` 
+#### Scope / Constraints Honored
+- Kept this focused on Browser viewport-split-to-left-toolbar docking.
+- Preserved the existing floating Browser and split-edge docking behavior.
+
+#### What Changed
+- Updated the left-dock target hit-test fallback so Browser can still preview and dock against the unified left toolbar even when the Browser dock target itself is empty.
+- Added a focused Browser host regression proving a viewport-split Browser can drag back into the left toolbar when the dock target has no live Browser content mounted.
+- Tightened the Browser host harness to use the same empty-target fallback geometry rules as the real dock controller.
+
+#### Files Touched
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "re-docks a viewport-split browser back into the left toolbar even when the dock target is empty|drags the viewport-split browser titlebar back into a floating browser window|shows the dock preview and re-docks when the floating browser is dragged back to its slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [787] - 2026-03-31 08:13 - `VR-SP - Workspace 7 - Reset Slotted Browser Size When It Returns To Floating`
+<!-- ENTRY 787 -->
+HUMAN SUMMARY: `This resets the Browser back to its normal floating size when it leaves a split slot and returns to floating mode. Split slots still resize Browser to fit the slot, but dragging it back out no longer leaves the Browser stuck at the split-slot dimensions.` 
+#### Scope / Constraints Honored
+- Kept this focused on the Browser slot-to-float transition.
+- Preserved the live slot-header drag handoff and existing split-slot sizing behavior.
+
+#### What Changed
+- Updated the Browser slot float path so Browser resets to the default floating shell size and default fallback position when it leaves a slot through the normal float action.
+- Updated the Browser slot-header drag-out path so it seeds the live drag using the default Browser floating size instead of the slot frame size.
+- Tightened the AppShell regression to prove a Browser dragged out from a split slot becomes floating at the default floating width.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "drags a slotted browser out from the viewport header into floating mode|uses the viewport header as the only title bar for a slotted browser and wires its minus button to collapse"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [786] - 2026-03-31 08:09 - `VR-SP - Workspace 7 - Keep Slotted Browser Drag Alive Through Float Handoff`
+<!-- ENTRY 786 -->
+HUMAN SUMMARY: `This fixes the slotted Browser header drag handoff so the Browser stays in the same live drag when it leaves a split slot and becomes floating. The float handoff now initializes before paint instead of dropping the Browser mid-gesture while the mouse button is still held down.` 
+#### Scope / Constraints Honored
+- Kept this focused on the slot-header Browser drag-to-float handoff.
+- Preserved the existing Browser dock, split, and floating ownership model.
+
+#### What Changed
+- Moved the Browser slot-header drag seed handoff onto a layout-timed path so the floating Browser drag session is initialized before the next paint.
+- Tightened the Browser host test so the drag-seed handoff is exercised after real shell geometry exists.
+- Strengthened the AppShell slot-header drag regression so it proves a slotted Browser becomes floating and continues to receive live drag movement after the handoff.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx src/app/AppShell.test.tsx -t "drags a slotted browser out from the viewport header into floating mode|consumes a slotted-header drag seed to initialize the floating browser handoff"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [785] - 2026-03-31 07:52 - `VR-SP - Workspace 7 - Make The Primary Left Dock Scroll When Slot Splits Constrain The Viewer`
+<!-- ENTRY 785 -->
+HUMAN SUMMARY: `This makes the unified primary left dock become scrollable when a slot-tree split, like `Split Bottom`, makes the top model viewport too short for the Browser stack. The left toolbar now treats primary viewport slot splits as a constrained state instead of only reacting to the older left-dock and Spaghetti split systems.` 
+#### Scope / Constraints Honored
+- Kept this focused on the constrained-height scroll behavior for the unified primary left dock.
+- Preserved the existing dock ownership model and only widened the constraint detection plus dock-shell overflow behavior.
+
+#### What Changed
+- Updated `AppShell` so the primary left dock treats any slot-tree split on the primary viewport as a constrained state, not just the legacy left-dock split or old Spaghetti split layout.
+- Tightened the primary left dock CSS so its panel stack shell is a bounded flex/overflow container, allowing the Browser stack to scroll instead of clipping when the top viewport gets short.
+- Added an AppShell regression proving the primary left dock panel stack becomes constrained after a bottom slot split.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "constrains the primary left dock panel stack so it can scroll after a bottom slot split|keeps the docked browser visible after the primary left dock remounts during a left split"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [784] - 2026-03-31 07:48 - `VR-SP - Workspace 7 - Hide The Old Left Dock Toggle While The Slot Split Is Active`
+<!-- ENTRY 784 -->
+HUMAN SUMMARY: `This hides the old `[]` left-dock toggle while the new slot-based left Browser split is active. Once the toolbar is living as a real docked left slot, the leftover legacy button no longer stays visible beside it.` 
+#### Scope / Constraints Honored
+- Kept this as a visual cleanup follow-up to the slot-tree left split toggle work.
+- Preserved the toggle behavior itself and only hid the old button while that slot split is active.
+
+#### What Changed
+- Added a slot-split-active state class on the legacy left-dock `[]` toggle.
+- Updated the dock CSS so that button becomes visually hidden and non-interactive while the slot-based left split is active.
+- Tightened the AppShell toggle regression to verify the button enters and leaves that hidden state with the split.
+
+#### Files Touched
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "lets the resize-bar toggle button switch left dock viewport split on and off"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [783] - 2026-03-31 07:45 - `VR-SP - Workspace 7 - Hide The Old Left Dock Rail While The Slot Split Is Active`
+<!-- ENTRY 783 -->
+HUMAN SUMMARY: `This removes the old vertical left-dock rail visual while the new slot-based left Browser split is active. The `[]` toggle stays available, but the toolbar now reads like a true docked split instead of a dock plus a leftover legacy divider line.` 
+#### Scope / Constraints Honored
+- Kept this focused on the visual rail residue after the new slot-tree split toggle fix.
+- Preserved the `[]` toggle interaction and only hid the old rail line while the slot split is active.
+
+#### What Changed
+- Added a slot-split-active class on the unified primary left dock resize handle.
+- Updated the dock CSS so the old vertical rail fades out whenever the left toolbar is in the new slot-based split state.
+- Tightened the AppShell toggle regression so it also proves the resize handle enters and leaves that slot-split-active visual state.
+
+#### Files Touched
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "lets the resize-bar toggle button switch left dock viewport split on and off"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [782] - 2026-03-31 00:58 - `VR-SP - Workspace 7 - Route Left Dock Split Toggle Into The Slot Tree`
+<!-- ENTRY 782 -->
+HUMAN SUMMARY: `This replaces the old left-dock viewport-split toggle behavior with a real slot-tree `Split Left` Browser route. The `[]` button and resize-menu split action now create and remove an actual left Browser slot instead of shifting the viewport with the legacy margin-left path.` 
+#### Scope / Constraints Honored
+- Kept this focused on the `[]` split-toggle regression instead of reopening the larger left-dock ownership work that already landed in `Workspace 7.2c`.
+- Preserved the existing resize-handle button and menu affordances while changing their routing to the new workspace slot model.
+
+#### What Changed
+- Updated `AppShell` so the left-dock split toggle now creates a real left Browser slot, reuses an existing root-left slot when available, and removes that left branch again when toggled off.
+- Removed the legacy `ViewportArea.isLeftDockSplit` margin-left behavior from this route so the toggle no longer uses the old visual split system.
+- Tightened the AppShell regressions so the left-dock split button and resize-menu action are now verified through slot-tree state instead of legacy CSS classes.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "lets the resize handle menu split the viewport from the left dock edge|lets the resize-bar toggle button switch left dock viewport split on and off|keeps the docked browser visible after the primary left dock remounts during a left split"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [781] - 2026-03-31 00:50 - `VR-SP - Workspace 7 - Keep Docked Browser Alive When Split Left Remounts The Left Dock`
+<!-- ENTRY 781 -->
+HUMAN SUMMARY: `This fixes the remaining `Split Left` Browser disappearance bug by refreshing the docked Browser portal target when the unified left dock remounts. The left dock can now rebuild under the primary model viewport during a left split without dropping the Browser panel into a dead portal node.` 
+#### Scope / Constraints Honored
+- Kept this focused on the stale docked-Browser portal-target bug instead of reopening the wider `Workspace 7.2c` left-dock ownership model.
+- Preserved the unified `PrimaryViewportLeftDock` structure and only hardened the Browser dock host against left-dock remounts.
+
+#### What Changed
+- Updated `BrowserDockHost` so the docked Browser portal target re-syncs when `dockedBrowserHostRef.current` changes during slot-tree remounts, rather than only capturing the original host once.
+- Added an AppShell regression proving the Browser stays visible after `Split Left` remounts the primary left dock, while keeping the broader Browser dock/redock tests green.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "keeps the generator title status bar docked to the primary model viewport after a left split|keeps the docked browser visible after the primary left dock remounts during a left split|shows a browser dock ghost and re-docks when the floating Browser is dragged back to its slot"`
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [780] - 2026-03-31 00:48 - `VR-SP - Workspace 7 - Re-Dock Unified Left Toolbar To The Primary Model Viewport`
+<!-- ENTRY 780 -->
+HUMAN SUMMARY: `This corrects the previous left-toolbar anchoring follow-up by putting the unified `PrimaryViewportLeftDock` back under the primary model viewport instead of the whole viewport area. The Browser and `ParaHook Generator v20` title/status chrome now dock to the primary model viewport again, which matches the intended `Workspace 7.2c` ownership model.` 
+#### Scope / Constraints Honored
+- Kept this as a correction to the previous split-left follow-up instead of reopening the wider `7.2c` or `7.3` architecture.
+- Restored the intended primary-model-viewport ownership for the unified left toolbar without changing the broader slot-tree or Browser/Meatball host model.
+
+#### What Changed
+- Moved `PrimaryViewportLeftDock` back into the primary `modelViewer` slot render path in `AppShell` so the left toolbar once again belongs to the primary model viewport rather than the whole viewport area shell.
+- Restored the focused AppShell assertions so the generator status bar and unified left dock are again expected under the primary slot after left and right splits.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "mounts the generator title status bar inside the viewport area|keeps the generator title status bar docked to the primary model viewport after a left split|keeps the unified left dock attached only to the primary model viewport after a right split|keeps the unified left dock attached only to the primary model viewport after deeper slot-tree changes"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [779] - 2026-03-31 00:45 - `VR-SP - Workspace 7 - Keep Left Toolbar Visible On Split Left`
+<!-- ENTRY 779 -->
+HUMAN SUMMARY: `This fixes the new workspace-slot regression where `Split Left` made the docked Browser seem to disappear by moving the unified left toolbar with the primary slot. The left toolbar now stays anchored to the viewport-area left edge, so the Browser remains visible in the left dock after a left split.` 
+#### Scope / Constraints Honored
+- Kept this focused on the left-toolbar split-left visibility bug instead of reopening the wider `7.2c` ownership cleanup or `7.3` multi-viewport work.
+- Preserved the unified `PrimaryViewportLeftDock` host and only changed where it is mounted so the left toolbar remains visible through left splits.
+
+#### What Changed
+- Moved the unified `PrimaryViewportLeftDock` render path out of the primary slot body and back to the viewport-area shell, so it stays on the far-left dock band instead of shifting with the primary slot when `Split Left` creates a new pane.
+- Updated the AppShell ownership tests to assert the left toolbar at the viewport-area level and added a direct regression proving the docked Browser stays visible after a left split.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "mounts the generator title status bar inside the viewport area|keeps the generator title status bar docked to the primary model viewport after a left split|keeps the unified left dock attached only to the primary model viewport after a right split|keeps the unified left dock attached only to the primary model viewport after deeper slot-tree changes|keeps the docked browser visible in the left toolbar after a left split|shows a browser dock ghost and re-docks when the floating Browser is dragged back to its slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [778] - 2026-03-31 00:36 - `VR-SP - Workspace 7.2c-3 - Old Left Dock Shell Retirement And Cleanup`
+<!-- ENTRY 778 -->
+HUMAN SUMMARY: `This ships the `7.2c-3` old-shell retirement cut by removing the remaining `.LeftDock` DOM and selector assumptions from the live left-dock route, renaming the resize menu and dock targets to the new `PrimaryViewportLeftDock` model, and proving the unified primary-viewport left dock still owns Browser, Meatball, resize, and overlay anchoring behavior.` 
+#### Scope / Constraints Honored
+- Kept this focused on retiring old left-dock shell residue instead of reopening broader Browser, Spaghetti, or multi-viewport design work.
+- Preserved the already-shipped `7.2c-1` host extraction and `7.2c-2` live parity behavior while converging the remaining DOM, CSS, and test ownership story on `PrimaryViewportLeftDock`.
+
+#### What Changed
+- Removed the remaining live `.LeftDock` selector assumptions from the viewport overlay and left-dock parity tests, so Browser and Meatball dock targets now read only through `PrimaryViewportLeftDock` and its panel-target classes.
+- Renamed the old left-dock resize menu DOM and CSS classes to `PrimaryViewportLeftDockResizeMenu` / `PrimaryViewportLeftDockResizeMenuAction`, and updated the dock controller dismissal logic to treat that new menu as the only active left-dock resize menu surface.
+- Finished the old-shell cleanup pass by updating the Browser / Meatball test harnesses and AppShell parity tests to assert the new primary-viewport-owned left-dock route instead of the older app-global shell naming.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c-3 - Old Left Dock Shell Retirement And Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "mounts the generator title status bar inside the viewport area|keeps the generator title status bar docked to the primary model viewport after a left split|keeps the unified left dock attached only to the primary model viewport after a right split|keeps the unified left dock attached only to the primary model viewport after deeper slot-tree changes|lets the user resize the full left dock width from the shared vertical handle|lets the resize handle menu reset the dock width back to default|lets the resize handle menu split the viewport from the left dock edge|lets the resize-bar toggle button switch left dock viewport split on and off|shows a browser dock ghost and re-docks when the floating Browser is dragged back to its slot|shows a meatball dock ghost and re-enters meatball editor view when the floating editor is dragged back"`
+- `.\node_modules\.bin\vitest.cmd run src/app/components/ViewportOverlay.test.tsx -t "spawns the sketch session window to the right of the docked browser using overlay-local coordinates"`
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+#### Notes
+- A broader AppShell / Spaghetti test bundle still carries older unrelated residues around startup-restore and floating-editor split ghosts, so `7.2c-3` signoff was based on the focused left-dock parity bundle rather than pretending those existing failures were introduced by this cleanup.
+
+### [777] - 2026-03-31 00:05 - `VR-SP - Workspace 7.2c-2 - Left Dock Ref Repoint And Behavior Parity`
+<!-- ENTRY 777 -->
+HUMAN SUMMARY: `This ships the live `7.2c-2` parity cut by proving the new primary-viewport left dock host is the real Browser and Meatball preview target, the live resize and split-toggle owner, and the only left dock that stays attached to the primary model viewport through slot-tree growth.` 
+#### Scope / Constraints Honored
+- Kept this focused on live left-dock behavior parity instead of broad Browser or Spaghetti runtime rewrites.
+- Preserved the extracted `PrimaryViewportLeftDock` host from `7.2c-1` and advanced the lane by tightening the remaining live preview and attachment seams.
+
+#### What Changed
+- Hardened the floating Spaghetti frame fallback and split-edge preview logic so the primary-viewport left dock parity path no longer depends on an already-measured shell before the floating editor can render and redock.
+- Added direct AppShell coverage for the unified left dock staying attached only to the primary model viewport after both right splits and deeper nested slot-tree growth.
+- Tightened the left-dock parity test coverage around Browser preview, Meatball preview, resize, split toggle, and primary-only attachment so `7.2c-2` now has an explicit proof surface before `7.2c-3` retires more of the old shell.
+
+#### Files Touched
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c-2 - Left Dock Ref Repoint And Behavior Parity.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "keeps the generator title status bar docked to the primary model viewport after a left split|keeps the unified left dock attached only to the primary model viewport after a right split|keeps the unified left dock attached only to the primary model viewport after deeper slot-tree changes|shows a browser dock ghost and re-docks when the floating Browser is dragged back to its slot|shows a meatball dock ghost and re-enters meatball editor view when the floating editor is dragged back|anchors console list mode to the browser resize seam and moves it with dock resize|lets the user resize the full left dock width from the shared vertical handle|lets the resize handle menu split the viewport from the left dock edge|lets the resize-bar toggle button switch left dock viewport split on and off"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [776] - 2026-03-30 23:34 - `VR-SP - Workspace 7.2c-1 - Primary Viewport Left Dock Host Extraction`
+<!-- ENTRY 776 -->
+HUMAN SUMMARY: `This ships the structural `7.2c-1` move by extracting one `PrimaryViewportLeftDock` host under the primary model viewport, so `ParaHook Generator v20`, the Browser dock target, the Meatball dock target, the resize rail, the split toggle, and the preview ghosts now belong to one shared viewport-local left dock family instead of split app-global versus viewport-local ownership.` 
+#### Scope / Constraints Honored
+- Kept this as the structural ownership move for `7.2c-1` instead of broad Browser or Meatball behavior rewrites.
+- Preserved the existing left-dock behavior shape while moving the family under one primary-viewport-local host.
+
+#### What Changed
+- Added `PrimaryViewportLeftDock` under the workspace shell and moved the title status bar, Browser dock target, Meatball dock target, resize rail, split toggle, and preview ghost slots into that extracted host.
+- Mounted that new host from the primary `modelViewer` slot path in `AppShell` so the left dock family now belongs to the real primary model viewport instead of the old app-global left dock shell.
+- Updated dock-shell styling and AppShell coverage so the unified left dock host still renders, resizes, and stays attached to the primary viewport through left splits.
+
+#### Files Touched
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "mounts the generator title status bar inside the viewport area|keeps the generator title status bar docked to the primary model viewport after a left split"`
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "lets the user resize the full left dock width from the shared vertical handle"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [775] - 2026-03-30 23:17 - `VR-SP - Workspace 7.1 - Primary Viewport Status Card Slot Ownership Fix`
+<!-- ENTRY 775 -->
+HUMAN SUMMARY: `This moves the `ParaHook Generator v20` status card into the primary model viewport slot itself, so left splits no longer leave that card overlapping the new secondary area and the card stays docked to the real model viewport.` 
+#### Scope / Constraints Honored
+- Fixed the overlay ownership bug by moving the status-card mount into the primary slot render path instead of layering more viewport-area offsets on top.
+- Kept the change narrow to viewport-local status-card ownership and added a focused left-split regression.
+
+#### What Changed
+- Moved `.ViewportTitleStatusBar` from the whole `.ViewportArea` section into the primary `modelViewer` slot content in `AppShell`.
+- Added AppShell coverage proving the status card still mounts in the viewport area and now stays attached only to the primary slot after a left split.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "mounts the generator title status bar inside the viewport area|keeps the generator title status bar docked to the primary model viewport after a left split"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [774] - 2026-03-30 23:14 - `VR-SP - Workspace 7.1 - Left Split Slot Render Order Fix`
+<!-- ENTRY 774 -->
+HUMAN SUMMARY: `This fixes the new slot layout rendering so `Split Left` actually places the new slot on the left instead of mirroring it onto the right, bringing the `L` action back in line with the locked edge-based workspace behavior.` 
+#### Scope / Constraints Honored
+- Fixed the visual slot render order instead of remapping or disabling the `Split Left` action.
+- Kept the change narrow to the slot-tree render mapping and added a focused regression for the left-split route.
+
+#### What Changed
+- Updated the viewport split renderer so `firstChild` and `secondChild` map into the correct grid areas for left/top versus right/bottom splits.
+- Added an AppShell regression proving a `Split Left` browser slot renders in the left pane while the primary model viewport stays on the right.
+
+#### Files Touched
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "renders a left split on the left side instead of mirroring it to the right"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [773] - 2026-03-30 23:11 - `VR-SP - Workspace 7.2b - Floating Surface Viewport Body Clamp Fix`
+<!-- ENTRY 773 -->
+HUMAN SUMMARY: `This keeps floating Browser and Spaghetti windows out of the model viewport header band by clamping their live drag bounds to the primary viewport body vertically, while preserving the older horizontal floating behavior that the workspace still relies on.` 
+#### Scope / Constraints Honored
+- Fixed the specific “float window can slide under the title bar” bug without widening into a broader floating-host rewrite.
+- Kept the older horizontal float behavior intact so existing drag-out, dock preview, and shell-size assumptions continue to work.
+
+#### What Changed
+- Updated Browser floating bounds so the vertical clamp honors the primary model viewport body when it exists.
+- Updated Spaghetti floating bounds so the vertical clamp also respects the primary viewport body while preserving the older left/right float range and shell-size rules.
+- Added a focused AppShell regression that proves a floating Browser now stops at the viewport body top edge instead of sliding under the title bar.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "keeps a floating browser inside the primary model viewport body instead of letting it slide under the title bar"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [772] - 2026-03-30 23:03 - `VR-SP - Workspace 7.2b - Slotted Browser Header Drag-Out To Floating Slice`
+<!-- ENTRY 772 -->
+HUMAN SUMMARY: `This lets the user drag the new slotted Browser viewport header out into floating mode, so the Browser slot now behaves more like the older Browser titlebar route instead of being trapped in the tiled layout unless `F` is clicked.` 
+#### Scope / Constraints Honored
+- Implemented the drag-out on the new viewport-slot header path rather than reviving the old inner Browser title bar.
+- Kept the change focused on Browser slot-to-floating parity and left the other surface kinds unchanged.
+
+#### What Changed
+- Added a generic viewport-frame header drag-out hook with a small pointer threshold.
+- Wired slotted Browser headers in `AppShell` so dragging the header detaches that Browser surface into floating mode.
+- Seeded the floating Browser position and size from the slot frame before the detach, so the Browser pops out from the slot region instead of jumping from a stale default.
+- Added regression coverage for the viewport-frame drag-out threshold and the Browser slot-to-floating loop.
+
+#### Files Touched
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/workspace/ViewportFrame.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [771] - 2026-03-30 23:00 - `VR-SP - Workspace 7.2b - Browser Slot Header De-Duplication And Collapse Handoff`
+<!-- ENTRY 771 -->
+HUMAN SUMMARY: `This removes the duplicate inner Browser title bar from slotted Browser surfaces and hands its collapse behavior off to the new viewport header `-` button, so the slot header becomes the only Browser chrome in the tiled route.` 
+#### Scope / Constraints Honored
+- Kept the cleanup focused on the slotted Browser route under the new viewport-slot system.
+- Preserved the older Browser title bar for floating, docked, viewport-split compatibility, and popout routes where it still owns drag/popout behavior.
+
+#### What Changed
+- Added a headerless Browser panel mode for slotted Browser surfaces.
+- Wired slotted Browser rendering through that headerless mode in the viewport surface registry.
+- Handed Browser collapse/expand behavior to the viewport-frame primary `- / +` button for Browser slots.
+- Tightened AppShell coverage so the slot route now proves there is no duplicate inner Browser title bar and the viewport header button still collapses the Browser.
+
+#### Files Touched
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/workspace/ViewportFrame.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [770] - 2026-03-30 22:54 - `VR-SP - Workspace 7.1 - Slot Split Divider Drag Resize Slice`
+<!-- ENTRY 770 -->
+HUMAN SUMMARY: `This lands the missing `Workspace 7.1` slot-divider resize loop so the new viewport-slot splits can finally be dragged wider or narrower instead of staying fixed-ratio.` 
+#### Scope / Constraints Honored
+- Implemented divider resizing in the new slot tree rather than patching the old Browser or Spaghetti split hosts.
+- Kept the change focused on slot-layout ratio ownership, divider pointer handling, and direct regression coverage.
+
+#### What Changed
+- Added `setViewportLayoutSplitRatio(...)` to the workspace store with ratio clamping.
+- Wired the new viewport-slot divider button in `AppShell` to pointer drag updates against the owning split node.
+- Added store and AppShell regressions proving split-node ratio updates and live divider dragging.
+
+#### Files Touched
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [769] - 2026-03-30 22:39 - `VR-SP - Workspace 7.2b - Left Dock Resize Handle Clearance Under Status Card Fix`
+<!-- ENTRY 769 -->
+HUMAN SUMMARY: `This moves the left-dock resize line and its little `[]` toggle down below the viewport-local generator status card so the whole left-dock chrome clears that top-left overlay band, not just the Browser panel.` 
+#### Scope / Constraints Honored
+- Kept the change to left-dock shell layout only.
+- Reused the same top-clearance band for both the Browser stack and the left-dock resize affordance.
+
+#### What Changed
+- Introduced a shared left-dock top-clearance custom property.
+- Applied that clearance to both `.LeftDockPanelStackShell` and `.LeftDockResizeHandle`.
+- Updated the viewport-split resize-handle height calculation to honor the new top clearance.
+
+#### Files Touched
+- `src/app/theme/shell/docks.css`
+
+#### Verification
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [768] - 2026-03-30 22:36 - `VR-SP - Workspace 7.2b - Left Dock Browser Vertical Clearance Follow-Up 2`
+<!-- ENTRY 768 -->
+HUMAN SUMMARY: `This nudges the Browser dock stack down one more small step so it sits more cleanly underneath the viewport-local generator status card.` 
+#### Scope / Constraints Honored
+- Kept the change to another tiny left-dock spacing tune.
+- Left the viewport-local status card anchored in place.
+
+#### What Changed
+- Increased `.LeftDockPanelStackShell` top padding again for a little more separation between the generator status card and the Browser panel.
+
+#### Files Touched
+- `src/app/theme/shell/docks.css`
+
+#### Verification
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [767] - 2026-03-30 22:34 - `VR-SP - Workspace 7.2b - Left Dock Browser Clearance Under Status Card Follow-Up`
+<!-- ENTRY 767 -->
+HUMAN SUMMARY: `This increases the left-dock top clearance again so the Browser panel sits fully underneath the viewport-local `ParaHook Generator v20` status card instead of still brushing its lower edge.` 
+#### Scope / Constraints Honored
+- Kept the change to a small left-dock spacing tune rather than shifting the viewport-local status card itself.
+- Preserved the earlier left-dock-under-status-card alignment behavior.
+
+#### What Changed
+- Increased the top padding on `.LeftDockPanelStackShell` so the Browser panel clears the bottom of the viewport-local status card more comfortably.
+
+#### Files Touched
+- `src/app/theme/shell/docks.css`
+
+#### Verification
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [766] - 2026-03-30 22:33 - `VR-SP - Workspace 7.2b - Left Dock Stack Offset Under Viewport Status Card Fix`
+<!-- ENTRY 766 -->
+HUMAN SUMMARY: `This moves the left dock stack down so the viewport-local `ParaHook Generator v20` status card becomes the real top-left anchor and the Browser docks underneath it instead of overlapping the same band.` 
+#### Scope / Constraints Honored
+- Kept the change narrow to left-dock layout spacing instead of moving the status card again.
+- Preserved the viewport-local status-card placement from the prior `7.2b` slice.
+
+#### What Changed
+- Added top padding to `.LeftDockPanelStackShell` so the Browser dock stack starts below the viewport-local generator status card.
+
+#### Why
+- After moving the status card into the viewport, the old left-dock stack was still anchored at the top of the dock shell, which left the Browser visually competing with the new top-left viewport overlay region.
+
+#### Files Touched
+- `src/app/theme/shell/docks.css`
+
+#### Verification
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [765] - 2026-03-30 22:31 - `VR-SP - Workspace 7.2b - Generator Status Bar Viewport Offset Fix`
+<!-- ENTRY 765 -->
+HUMAN SUMMARY: `This nudges the viewport-local `ParaHook Generator v20` status bar down so it clears the new viewport slot header instead of still starting underneath it.` 
+#### Scope / Constraints Honored
+- Kept this as a small viewport-anchor correction instead of reworking the status bar shell again.
+- Preserved the new viewport-local mount and only adjusted its viewport offset.
+- Left the existing top-left viewport anchoring model intact while moving the card below the slot header band.
+- Verified the style-only change with a TypeScript build sanity check.
+#### What Changed
+- Updated `src/app/theme/foundation/base.css` so `.ViewportTitleStatusBar` now sits lower in the viewport, below the slot header instead of starting underneath it.
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+#### Behavior Changes
+- The generator status card now clears the viewport title bar and reads like a top-left viewport overlay instead of hiding underneath the header.
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [764] - 2026-03-30 22:27 - `VR-SP - Workspace 7.2b - Viewport-Local Generator Status Bar Placement Fix`
+<!-- ENTRY 764 -->
+HUMAN SUMMARY: `This moves the `ParaHook Generator v20` status bar out of the old left-dock stack and into the main viewport area so it belongs to the viewport shell instead of hiding underneath the new viewport title bar.` 
+#### Scope / Constraints Honored
+- Kept this as a focused shell-placement fix instead of redesigning the generator status component itself.
+- Preserved the existing `TitleStatusBar` component and only changed where it mounts in the app shell.
+- Made the placement viewport-local so it aligns with the newer workspace-slot framing instead of the older left-dock framing.
+- Verified the mount location change with focused AppShell and TypeScript checks.
+#### What Changed
+- Updated `src/app/AppShell.tsx` so `TitleStatusBar` now mounts inside the main `.ViewportArea` instead of the left dock stack.
+- Added `src/app/theme/foundation/base.css` rules for `.ViewportTitleStatusBar` so the status card sits in the viewport overlay area with a stable top-left placement.
+- Updated `src/app/AppShell.test.tsx` with a regression proving the generator status bar mounts inside the viewport area and no longer inside the left dock.
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/foundation/base.css`
+#### Behavior Changes
+- The generator title/status card now belongs to the viewport instead of appearing tucked under the viewport title bar from the old left-dock mount.
+- The left dock no longer owns that status card.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [763] - 2026-03-30 22:24 - `VR-SP - Workspace 7.2b - Viewport Menu Dismiss-On-Outside-Click Fix`
+<!-- ENTRY 763 -->
+HUMAN SUMMARY: `This fixes the compact viewport menus staying open when the user clicks elsewhere in the same frame by making the dismiss logic track the active menu and its trigger instead of treating the whole viewport frame as inside the menu.` 
+#### Scope / Constraints Honored
+- Kept this as a focused menu-dismiss behavior fix instead of widening the viewport header interaction model again.
+- Preserved the existing title-bar right-click and pointer-anchored menu behavior.
+- Tightened the close logic only around the active menu and its trigger so normal menu clicks still work.
+- Verified the behavior with a direct frame-level regression plus a TypeScript sanity check.
+#### What Changed
+- Updated `src/app/workspace/ViewportFrame.tsx` so outside-click dismissal now:
+  - keeps the viewport type picker open only when the click is inside the picker or on the `-` mode button
+  - keeps the compact action menu open only when the click is inside the actions menu or on its trigger button
+  - closes the open menu when the user clicks elsewhere in the frame
+- Updated `src/app/workspace/ViewportFrame.test.tsx` with a regression proving the action menu closes when the user clicks in the viewport frame body outside the menu.
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+#### Behavior Changes
+- Clicking somewhere that is not the open viewport menu now closes it, even if the click is still inside the same viewport frame.
+- Menu buttons and menu items themselves still work without immediately dismissing before the action runs.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [762] - 2026-03-30 22:23 - `VR-SP - Workspace 7.2b - Pointer-Anchored Viewport Menu Positioning Slice`
+<!-- ENTRY 762 -->
+HUMAN SUMMARY: `This makes the new viewport action menu behave like a real context menu by anchoring it to the user’s right-click position inside the viewport frame instead of opening from a fixed header corner.` 
+#### Scope / Constraints Honored
+- Kept this as a focused viewport-menu positioning fix instead of widening the slot action model.
+- Preserved the compact viewport action menu and only changed how its open position is computed.
+- Kept the menu clamped inside the viewport frame so it stays visible even near the frame edges.
+- Verified the pointer-anchor behavior with a focused frame test and a TypeScript sanity check.
+#### What Changed
+- Updated `src/app/workspace/ViewportFrame.tsx` so right-click-opened viewport action menus now store and use the pointer position relative to the viewport frame.
+- The compact action menu now opens where the user right-clicks, clamped inside the frame bounds.
+- The viewport type picker now also uses explicit anchored coordinates inside the frame instead of a hardcoded corner origin.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` with a regression proving the action menu uses the right-click coordinates.
+- Updated `src/app/theme/foundation/base.css` so the action menu positioning no longer relies on the old fixed `right: 8px` anchor.
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/theme/foundation/base.css`
+#### Behavior Changes
+- Right-clicking the viewport title bar now opens the action menu at the click position instead of the top-right corner.
+- The menu still clamps inside the viewport frame so it does not render off-frame.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [761] - 2026-03-30 22:18 - `VR-SP - Workspace 7.2b - Viewport Header Right-Click Actions Menu Slice`
+<!-- ENTRY 761 -->
+HUMAN SUMMARY: `This extends the new compact viewport actions menu onto the title-bar context-menu path, so right-clicking the viewport header opens the same slot actions menu while the `-` mode button keeps its separate right-click viewport-type picker behavior.` 
+#### Scope / Constraints Honored
+- Kept this as a small viewport-header interaction cleanup instead of changing the locked `Workspace 7` button model.
+- Preserved the existing rule that right-clicking the `-` mode button opens the viewport-type picker.
+- Added focused frame-level coverage so the new title-bar context-menu path is tested directly.
+- Verified the interaction change with targeted viewport-frame and TypeScript checks.
+#### What Changed
+- Updated `src/app/workspace/ViewportFrame.tsx` so right-clicking the viewport header now opens the compact viewport actions menu.
+- The `-` mode button still intercepts right-click and opens the viewport-type picker instead of the actions menu.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` with a new regression covering the title-bar right-click behavior.
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+#### Behavior Changes
+- You can now open the compact viewport actions menu by right-clicking the title bar.
+- Right-click on the `-` viewport mode button still opens the viewport-type picker.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [760] - 2026-03-30 22:17 - `VR-SP - Workspace 7.2b - Viewport Menu Overlay Layering Fix`
+<!-- ENTRY 760 -->
+HUMAN SUMMARY: `This fixes the new compact viewport header menus stacking underneath the viewport gizmo by raising the slot-header and menu z-index above the overlay chrome layer, so the action menu and viewport-type picker open on top of the gizmo instead of behind it.` 
+#### Scope / Constraints Honored
+- Kept this as a small shell-layering fix instead of widening the viewport header behavior again.
+- Preserved the new compact action-menu design and only corrected its stacking order against the viewport overlay layer.
+- Avoided changing the gizmo or overlay ownership; the fix only adjusts the viewport-frame layer priorities.
+- Verified the style-only change with a TypeScript build sanity pass.
+#### What Changed
+- Updated `src/app/theme/foundation/base.css` so:
+  - `.ViewportFrameHeader` now sits above the viewport overlay chrome layer
+  - `.ViewportFrameTypePicker` now opens above the gizmo layer
+  - `.ViewportFrameActionMenu` now opens above the gizmo layer
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+#### Behavior Changes
+- The viewport action menu now appears on top of the gizmo instead of underneath it.
+- The viewport type picker now also stacks above the viewport overlay chrome.
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [759] - 2026-03-30 22:13 - `VR-SP - Workspace 7.2b - Compact Viewport Action Menu Slice`
+<!-- ENTRY 759 -->
+HUMAN SUMMARY: `This cleans up the new viewport-slot header by collapsing the top-right `Split` / `Float` / `Pop Out` button strip into one compact actions menu, so the slot frame stays readable while preserving the same `7.x` split and host-mode controls underneath.` 
+#### Scope / Constraints Honored
+- Kept this as a focused viewport-header UX cleanup instead of widening the action model or changing `Workspace 7` behavior.
+- Preserved the same slot actions and only changed how they are presented in the header shell.
+- Added dedicated frame-level coverage so the compact menu path is tested directly instead of only through bigger AppShell integration tests.
+- Verified the change with focused viewport-frame, AppShell, and TypeScript checks.
+#### What Changed
+- Updated `src/app/workspace/ViewportFrame.tsx` so the old inline `T / R / B / L / F / P` action strip is replaced by one compact actions button that opens a dropdown menu.
+- The new action menu now exposes the same controls:
+  - `Split Top`
+  - `Split Right`
+  - `Split Bottom`
+  - `Split Left`
+  - `Float`
+  - `Pop Out`
+- Updated `src/app/theme/foundation/base.css` with the new compact action-menu shell styling.
+- Added `src/app/workspace/ViewportFrame.test.tsx` to prove the menu opens and dispatches the expected slot actions.
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/theme/foundation/base.css`
+#### Behavior Changes
+- The viewport-slot header no longer shows six separate top-right action buttons inline.
+- Those actions now live under one compact menu button in the top-right of the viewport frame.
+- The underlying split, float, and pop-out behavior is unchanged; only the header presentation is cleaner.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/ViewportFrame.test.tsx src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [758] - 2026-03-30 21:45 - `VR-SP - Workspace 7.2b - Startup Layout Restore Prompt Slice`
+<!-- ENTRY 758 -->
+HUMAN SUMMARY: `This adds a startup restore prompt for the persisted workspace layout so a bad saved layout no longer traps refreshes: if saved workspace state exists, the app now asks whether to restore it or start fresh, and choosing fresh overwrites the old saved layout with the clean current workspace.` 
+#### Scope / Constraints Honored
+- Kept this as a focused persistence-recovery slice instead of widening into a broader workspace-settings UI.
+- Preserved the existing last-layout persistence system and only added a user choice at startup when a saved layout is present.
+- Made the fresh-start branch overwrite the bad saved layout immediately so repeated refreshes do not keep reopening the stuck state.
+- Verified both startup branches with focused app-shell, browser-host, workspace-store, Spaghetti-host, and TypeScript checks.
+#### What Changed
+- Updated `src/app/AppShell.tsx` so startup persistence hydration now asks whether to restore the saved workspace layout or start fresh before hydrating the saved snapshot.
+- If the user declines restore, the app now skips layout hydration and immediately writes the current clean workspace back into persistence.
+- Updated `src/app/AppShell.test.tsx` so startup persistence coverage now proves both:
+  - restoring the saved layout when the prompt is accepted
+  - starting fresh and overwriting the old saved layout when the prompt is declined
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+#### Behavior Changes
+- Refreshing with a bad saved workspace layout no longer forces the app back into the same stuck layout without a choice.
+- When saved workspace state exists, startup now prompts to restore the last layout or start fresh.
+- Choosing fresh keeps the current default workspace and replaces the old saved snapshot with that clean state.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/workspace/useWorkspaceStore.test.ts src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [757] - 2026-03-30 21:09 - `VR-SP - Workspace 7.2b - Detached Browser Direct Slot Redock Slice`
+<!-- ENTRY 757 -->
+HUMAN SUMMARY: `This lands the next `Workspace 7.2b` Browser parity slice by making detached slotted Browser surfaces bypass the old left-dock preview and redock directly into the slot tree when they edge-drop back onto a viewport side, instead of bouncing through the legacy Browser viewport-split compatibility state.` 
+#### Scope / Constraints Honored
+- Kept this as a focused Browser host-parity cleanup slice instead of claiming full `7.2b` completion.
+- Preserved the older Browser compatibility host for legacy docked, floating, and popout rendering where the slot system still depends on it.
+- Narrowed the retired legacy route specifically to detached slotted Browser edge-redock, where the slot tree already owns the destination model.
+- Verified the change with focused Browser host, AppShell, Spaghetti host, workspace-store, and TypeScript checks.
+#### What Changed
+- Updated `src/app/hosts/BrowserDockHost.tsx` so detached slotted Browser floating surfaces now:
+  - ignore the old left-dock preview while floating
+  - use viewport-edge drop as a direct redock back into the slot tree
+  - avoid re-entering the legacy `browserShell.isViewportSplit` compatibility path for that route
+- Added a focused Browser host regression in `src/app/hosts/BrowserDockHost.test.tsx` proving that a detached slotted Browser edge-drop restores the same Browser surface instance into the slot tree instead of recreating the old viewport-split host.
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+#### Behavior Changes
+- A Browser that originally came from a slot no longer tries to dock back into the old left dock while floating.
+- Edge-dropping that detached Browser onto a viewport side now rebuilds a slot-tree split directly with the same Browser surface instance.
+- The older Browser viewport-split compatibility route still exists for legacy Browser hosting paths that have not been retired yet.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx src/app/AppShell.test.tsx src/app/workspace/useWorkspaceStore.test.ts src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [756] - 2026-03-30 20:57 - `VR-SP - Workspace 7.2b - Docked Compatibility Surface Suppression Slice`
+<!-- ENTRY 756 -->
+HUMAN SUMMARY: `This lands the next `Workspace 7.2b` live-parity cleanup by suppressing the duplicate docked Browser and Console compatibility surfaces once the slot tree or detached-slot seam already owns those same surfaces, so the old hosts stop visually co-existing beside the new slot-owned surfaces.` 
+#### Scope / Constraints Honored
+- Kept this as a focused `7.2b` live-parity cleanup slice instead of claiming the whole Browser / Console / Spaghetti host-mode convergence is done.
+- Preserved the older Browser and Console compatibility hosts for floating and popout rendering where the slot system still reuses them.
+- Removed duplicate live docked ownership where the slot tree already hosts the same Browser or Console surface, rather than rewriting the entire compatibility-host stack in one pass.
+- Verified the change with focused AppShell, Spaghetti host, workspace-store, and TypeScript checks.
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the global docked compatibility surfaces are now suppressed when the slot tree or detached-slot seam already owns the corresponding Browser or Console surface:
+  - Browser dock host now receives explicit suppression state while slot-owned or detached Browser surfaces exist
+  - global Console dock rendering is now suppressed while slot-owned or detached Console surfaces exist
+- Updated `src/app/hosts/BrowserDockHost.tsx` with a `suppressDockedSurface` path so the older docked Browser panel no longer renders beside a slot-owned Browser surface.
+- Updated `src/app/console/ConsoleDock.tsx` with a matching `suppressDockedSurface` path so the older docked Console shell no longer renders beside a slot-owned Console surface while still preserving floating and popout compatibility behavior.
+- Tightened `src/app/AppShell.test.tsx` so the slot-tree tests now prove the old docked Browser and Console compatibility surfaces stay out of the way once the slot model owns those routes.
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+#### Behavior Changes
+- Slot-hosted Browser surfaces no longer visually duplicate the old left-dock Browser compatibility panel.
+- Slot-hosted Console surfaces no longer visually duplicate the old docked Console compatibility surface.
+- The older Browser and Console hosts still remain active for floating and popout compatibility in this slice; the change only suppresses duplicate docked ownership while the slot tree already owns that route.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceStore.test.ts`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [755] - 2026-03-30 20:34 - `VR-SP - Workspace 7.2b - Detached Slot Surface Redock Parity Slice`
+<!-- ENTRY 755 -->
+HUMAN SUMMARY: `This lands the first real `Workspace 7.2b` slice by adding a shared detached-slot surface contract in the workspace seam, then using it so Browser and Console compatibility hosts dock back into the slot tree and detached Spaghetti surfaces re-enter the slot tree when they edge-dock or close their popout window.` 
+#### Scope / Constraints Honored
+- Kept this as the first safe `Workspace 7.2b` slice instead of pretending every legacy Browser / Console / Spaghetti host can disappear in one pass.
+- Added one shared workspace-owned detached-slot record and redock action rather than letting each compatibility host invent a separate “return to slots” rule.
+- Preserved the older Browser and Console compatibility hosts for live floating and popout rendering, but made their dock-back path return through the slot tree when the surface originally came from a slot.
+- Kept the current single protected model viewport assumption intact; detached surfaces redock against the protected viewer slot for now rather than widening full multi-model-viewer routing early.
+#### What Changed
+- Extended `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/useWorkspaceStore.ts`, and `src/app/workspace/workspacePersistence.ts` with a canonical detached-slot surface record:
+  - stores which non-viewer surface left a slot
+  - remembers its preferred split side and host viewport affinity
+  - lets the workspace redock that same surface instance back into the slot tree later
+- Updated `src/app/AppShell.tsx` so slot `Float` / `Pop Out` actions detach through the shared workspace seam first, then:
+  - Browser compatibility routing can redock the same detached Browser instance when it returns to docked mode or re-enters viewport split
+  - Console compatibility routing can redock the same detached Console instance when it docks back from floating or popout mode
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so a detached slotted Spaghetti surface no longer falls back to legacy editor-only `split view` when it hits a viewport edge:
+  - edge-dock now redocks that detached editor back into the workspace slot tree
+  - popout close now redocks detached slotted editors back through the slot tree instead of only restoring the old editor-local window mode
+- Added regression coverage in `src/app/workspace/useWorkspaceStore.test.ts`, `src/app/AppShell.test.tsx`, and `src/app/hosts/SpaghettiWindowHost.test.tsx` for the shared detach / redock contract.
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/workspaceShellTypes.ts`
+#### Behavior Changes
+- Slot `Float` and `Pop Out` actions now record a detached-slot surface in shared workspace state before the old compatibility hosts take over rendering.
+- A detached Browser that re-enters viewport split or returns from the old docked host now redocks into the slot tree as the same Browser surface instance.
+- A detached Console that returns to docked mode now redocks into the slot tree as the same Console surface instance.
+- A detached slotted Spaghetti editor now re-enters the slot tree when it edge-docks or closes its popout window, instead of always falling back to legacy editor-only `split view` or detached restore behavior.
+- Legacy Browser / Console compatibility hosts still render the live floating and popout UI in this slice; this change fixes the shared redock contract, not the full host retirement pass.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [754] - 2026-03-30 18:19 - `VR-SP - Workspace 7.2 - Duplicated Surface Slot Tree And Host-Mode Compatibility Slice`
+<!-- ENTRY 754 -->
+HUMAN SUMMARY: `This lands the first `Workspace 7.2` slice by widening the new viewport-slot tree from one secondary slot into nested duplicated slot branches, restoring prior surface instances when a slot changes back to an earlier kind, and rendering Browser / Console / Spaghetti secondary slots from canonical workspace slot state while keeping the older Browser floating/popout shell only as a compatibility host.` 
+#### Scope / Constraints Honored
+- Kept this as the first safe `Workspace 7.2` slice instead of trying to delete every legacy Browser and Spaghetti host in one pass.
+- Extended the canonical workspace slot tree first so deeper split branches and retained-surface restore rules live under `src/app/workspace/` rather than inside `AppShell`-only local state.
+- Preserved the shipped Browser floating and popout behavior, but stopped the old Browser split portal from double-rendering the new slot-owned split surface.
+- Verified the widened slot tree with focused workspace-store tests, an AppShell integration check for duplicated secondary surfaces, the Browser and Spaghetti host suites, and a full TypeScript build.
+#### What Changed
+- Extended `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/workspacePersistence.ts`, and `src/app/workspace/useWorkspaceStore.ts` with the first deeper `Workspace 7.2` slot-tree behaviors:
+  - retained surface-instance ids per slot and per surface kind
+  - generic nested `splitViewportSlot(...)` creation beyond the old one-secondary-slot path
+  - slot removal that dissolves an empty slot and recombines the layout tree
+  - slot surface-kind switching that restores an earlier retained instance when available
+- Updated `src/app/AppShell.tsx` so the recursive slot-tree renderer is the authoritative split render path, with slot-local split / type-switch / float / popout handlers built on top of the workspace slot tree.
+- Updated `src/app/workspace/ViewportSurfaceRegistry.tsx` so non-primary slots render Browser, Console, and Spaghetti surfaces from canonical slot instance ids instead of the older single-secondary-slot assumptions.
+- Updated `src/app/hosts/BrowserDockHost.tsx` so the older Browser host can be told not to render its legacy viewport-split portal when the new slot renderer already owns that split surface.
+- Added slot-tree regression coverage in `src/app/workspace/useWorkspaceStore.test.ts` and an AppShell integration proof in `src/app/AppShell.test.tsx` that renders duplicated non-primary slot surfaces from the widened slot tree.
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/workspaceShellTypes.ts`
+#### Behavior Changes
+- The workspace slot model can now build deeper split trees instead of stopping at one secondary slot.
+- Changing a slot back to an earlier surface kind now restores the prior retained surface instance for that slot when one exists.
+- Browser / Console / Spaghetti secondary slots now render from canonical slot instance state, while Browser floating and popout still route through the older compatibility host.
+- Split-slot divider drag remains staged for later work; this slice widens the slot tree and restore model, not split resizing parity.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [753] - 2026-03-30 17:54 - `VR-SP - Workspace 7.1 - Viewport Slot Foundation And First Secondary Slot Shell`
+<!-- ENTRY 753 -->
+HUMAN SUMMARY: `This lands the first real `Workspace 7.1` slot foundation by giving the workspace one protected primary viewport slot, one secondary split slot backed by canonical slot/layout state, a reusable local viewport frame with the right-click type picker, and the first Browser/Console/Spaghetti secondary-slot hosting bridge without deleting the older floating and popout systems yet.` 
+#### Scope / Constraints Honored
+- Kept this as the first safe `Workspace 7.1` slice instead of trying to fully replace every older Browser, Spaghetti, and Console host in one jump.
+- Added canonical slot and layout ownership under `src/app/workspace/` before widening the UI shell, so the new viewport frame is backed by real workspace state rather than local component-only flags.
+- Preserved the protected primary model viewport and reused the already-shipped Browser floating/popout loop and Spaghetti/Console runtime seams instead of introducing parallel popup or floating systems.
+- Verified the slot foundation with a focused workspace-store regression, the existing AppShell plus Browser/Spaghetti host suites, and a full TypeScript build.
+#### What Changed
+- Extended `src/app/workspace/workspaceShellTypes.ts`, `src/app/workspace/useWorkspaceStore.ts`, and `src/app/workspace/workspacePersistence.ts` with the first viewport-slot and layout-node foundation:
+  - canonical slot ids and layout node ids
+  - one primary slot plus optional secondary split slot
+  - persisted slot tree records alongside the earlier browser/editor workspace state
+- Added `src/app/workspace/ViewportFrame.tsx` as the first reusable local viewport shell with:
+  - the new top-left viewport button
+  - right-click viewport-type picker
+  - first slot-local action row for edge splits, float, and pop out
+- Added `src/app/workspace/ViewportSurfaceRegistry.tsx` as the first surface-host bridge so the secondary slot can host:
+  - `Browser`
+  - `Console`
+  - `Spaghetti Editor`
+  - a staged `Model Viewport` placeholder
+- Updated `src/app/AppShell.tsx` so the primary viewer now renders inside the slot frame and the first secondary split slot is driven from workspace slot state instead of only a special Browser split wrapper.
+- Added `src/app/workspace/useWorkspaceStore.test.ts` to pin the new slot-tree foundation at the store seam.
+- Added the first frame and slot-surface styles in `src/app/theme/foundation/base.css`.
+#### Behavior Changes
+- The workspace now has a real first-class secondary viewport slot model instead of only feature-specific split ownership.
+- When the Browser re-enters viewport split, the app now represents that split through the shared slot shell and secondary slot record.
+- The secondary split slot can now be switched between `Browser`, `Console`, and `Spaghetti Editor` through the new viewport frame contract while the primary model viewport stays protected in this first cut.
+- The slot shell now has the first local viewport header bar and right-click type picker foundation needed for the later `Workspace 7.x` ladder.
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
 ### [752] - 2026-03-30 14:36 - `VR-SP - Workspace 5.1 - Detached Popup Host Reuse And Body Preservation`
 <!-- ENTRY 752 -->
 HUMAN SUMMARY: `This hardens the shared child-window hook so detached popups stop wiping their own document body during setup and instead reuse one marked popup host, which directly targets the still-blank Spaghetti popup symptom where the child window opens and themes correctly but the React surface never stays painted.` 

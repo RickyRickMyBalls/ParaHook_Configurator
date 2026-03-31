@@ -879,9 +879,9 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     preferredHeight: number,
   ): OverlayPosition => {
     const browserPanel = document.querySelector<HTMLElement>(
-      '.LeftDock .LeftDockPanelTarget--browser',
+      '.PrimaryViewportLeftDock .PrimaryViewportLeftDockPanelTarget--browser',
     )
-    const leftDock = document.querySelector<HTMLElement>('.LeftDock')
+    const leftDock = document.querySelector<HTMLElement>('.PrimaryViewportLeftDock')
     const anchor = browserPanel ?? leftDock
     const overlayHost = getOverlayHostMetrics()
     if (anchor === null) {

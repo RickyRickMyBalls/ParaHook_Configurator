@@ -73,7 +73,7 @@ Main residue still blocking multiple graphs honestly:
 
 Primary planning sources:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
 
 Current code seams:

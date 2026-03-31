@@ -7,7 +7,7 @@
   overflow: hidden;
 }
 
-.LeftDock {
+.PrimaryViewportLeftDock {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -26,7 +26,7 @@
   pointer-events: none;
 }
 
-.LeftDockContent {
+.PrimaryViewportLeftDockContent {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -34,23 +34,31 @@
   min-height: 0;
   gap: 12px;
   width: 100%;
-  overflow: visible;
+  overflow: hidden;
   pointer-events: auto;
 }
 
-.LeftDockPanelStackShell {
+.PrimaryViewportLeftDockStatus {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.PrimaryViewportLeftDockPanelStackShell {
   position: relative;
   width: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.LeftDockPanelStackShell.isConstrained {
+.PrimaryViewportLeftDockPanelStackShell.isConstrained {
   flex: 1 1 auto;
 }
 
-.LeftDockResizeHandle {
+.PrimaryViewportLeftDockResizeHandle {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -61,12 +69,12 @@
   z-index: 4;
 }
 
-.LeftDockResizeHandle.isViewportSplit {
-  bottom: auto;
-  height: calc(100dvh - 32px);
+.PrimaryViewportLeftDockResizeHandle.isViewportSplit {
+  bottom: 0;
+  height: auto;
 }
 
-.LeftDockResizeHandle::before {
+.PrimaryViewportLeftDockResizeHandle::before {
   content: '';
   position: absolute;
   top: 0;
@@ -81,12 +89,16 @@
     box-shadow 140ms ease;
 }
 
-.LeftDockResizeHandle:hover::before {
+.PrimaryViewportLeftDockResizeHandle:hover::before {
   background: rgba(124, 160, 255, 0.52);
   box-shadow: 0 0 0 3px rgba(124, 160, 255, 0.12);
 }
 
-.LeftDockResizeToggle {
+.PrimaryViewportLeftDockResizeHandle.isSlotSplitActive::before {
+  opacity: 0;
+}
+
+.PrimaryViewportLeftDockResizeToggle {
   position: absolute;
   top: 0;
   left: 50%;
@@ -109,14 +121,19 @@
   z-index: 1;
 }
 
-.LeftDockResizeToggle:hover,
-.LeftDockResizeToggle.isActive {
+.PrimaryViewportLeftDockResizeToggle:hover,
+.PrimaryViewportLeftDockResizeToggle.isActive {
   border-color: rgba(124, 160, 255, 0.42);
   background: rgba(96, 142, 255, 0.2);
   color: rgba(245, 247, 255, 0.98);
 }
 
-.LeftDockResizeMenu {
+.PrimaryViewportLeftDockResizeToggle.isSlotSplitActive {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.PrimaryViewportLeftDockResizeMenu {
   position: fixed;
   z-index: 50;
   min-width: 180px;
@@ -132,7 +149,7 @@
     0 0 0 1px rgba(124, 160, 255, 0.12);
 }
 
-.LeftDockResizeMenuAction {
+.PrimaryViewportLeftDockResizeMenuAction {
   width: 100%;
   min-height: 28px;
   padding: 0 10px;
@@ -148,7 +165,7 @@
   font-weight: 700;
 }
 
-.LeftDockResizeMenuAction:hover {
+.PrimaryViewportLeftDockResizeMenuAction:hover {
   border-color: var(--v15-panel-border-soft);
   background: rgba(255, 255, 255, 0.09);
 }
@@ -185,24 +202,24 @@
   width: 100%;
 }
 
-.LeftDock > *,
+.PrimaryViewportLeftDock > *,
 .RightDock > * {
   pointer-events: auto;
 }
 
-.LeftDockPanelTarget {
+.PrimaryViewportLeftDockPanelTarget {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-.LeftDockPanelTarget--meatball-editor {
+.PrimaryViewportLeftDockPanelTarget--meatball-editor {
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.LeftDockPanelGhostSlot {
+.PrimaryViewportLeftDockPanelGhostSlot {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
@@ -211,12 +228,12 @@
     opacity 180ms ease;
 }
 
-.LeftDockPanelTarget.isPreviewActive .LeftDockPanelGhostSlot {
+.PrimaryViewportLeftDockPanelTarget.isPreviewActive .PrimaryViewportLeftDockPanelGhostSlot {
   max-height: 88px;
   opacity: 1;
 }
 
-.LeftDockPanelGhost {
+.PrimaryViewportLeftDockPanelGhost {
   height: 72px;
   box-sizing: border-box;
   border: 1px dashed rgba(255, 255, 255, 0.85);
@@ -232,7 +249,7 @@
   text-transform: uppercase;
 }
 
-.WorkspaceSplitMenu .LeftDockResizeMenuAction.isActive {
+.WorkspaceSplitMenu .PrimaryViewportLeftDockResizeMenuAction.isActive {
   background: rgba(96, 142, 255, 0.22);
   border-color: rgba(96, 142, 255, 0.45);
 }

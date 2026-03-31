@@ -11,30 +11,52 @@ import {
 } from './browserTreeSections'
 import { BrowserImportMenu, BrowserRowContextMenu } from './browserTreeMenus'
 import { useBrowserPanelController } from './useBrowserPanelController'
+import type { BrowserPresentationMode } from '../workspace/workspaceShellTypes'
 
 type BrowserPanelProps = {
+  presentationMode?: BrowserPresentationMode
+  onCyclePresentationMode?: () => void
   isCollapsed?: boolean
   onToggleCollapsed?: () => void
+  showTitleBar?: boolean
   isFloating?: boolean
   isPoppedOut?: boolean
   popoutButtonMode?: 'popout' | 'dock'
+  showQuickDockButton?: boolean
+  onQuickDock?: () => void
   onTogglePopout?: () => void
   onTitleBarPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onTitleBarContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
   newEditorSpawnPosition?: { x: number; y: number }
 }
 
 export function BrowserPanel({
+  presentationMode,
+  onCyclePresentationMode,
   isCollapsed: controlledIsCollapsed,
   onToggleCollapsed,
+  showTitleBar = true,
   isFloating = false,
   isPoppedOut = false,
-  popoutButtonMode = isFloating || isPoppedOut ? 'dock' : 'popout',
+  popoutButtonMode = isPoppedOut ? 'dock' : 'popout',
+  showQuickDockButton = false,
+  onQuickDock,
   onTogglePopout,
   onTitleBarPointerDown,
+  onTitleBarContextMenu,
   newEditorSpawnPosition = defaultViewportPosition,
 }: BrowserPanelProps = {}) {
-  const [localIsBrowserCollapsed, setLocalIsBrowserCollapsed] = useState(false)
-  const isBrowserCollapsed = controlledIsCollapsed ?? localIsBrowserCollapsed
+  const [localPresentationMode, setLocalPresentationMode] =
+    useState<BrowserPresentationMode>('expanded')
+  const resolvedPresentationMode =
+    presentationMode ??
+    (controlledIsCollapsed !== undefined
+      ? controlledIsCollapsed
+        ? 'collapsed'
+        : 'expanded'
+      : localPresentationMode)
+  const isBrowserCollapsed = resolvedPresentationMode === 'collapsed'
+  const isBrowserEssentials = resolvedPresentationMode === 'essentials'
   const {
     browserTreeRows,
     canOpenNewEditor,
@@ -48,17 +70,29 @@ export function BrowserPanel({
 
   const toggleBrowserCollapsed = () => {
     bodyHandlers.closeBrowserOverlays()
+    if (onCyclePresentationMode !== undefined) {
+      onCyclePresentationMode()
+      return
+    }
     if (onToggleCollapsed !== undefined) {
       onToggleCollapsed()
       return
     }
-    setLocalIsBrowserCollapsed((current) => !current)
+    setLocalPresentationMode((current) =>
+      current === 'expanded' ? 'essentials' : current === 'essentials' ? 'collapsed' : 'expanded',
+    )
   }
 
   const handlePopoutBrowser = (event: ReactMouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
     bodyHandlers.closeBrowserOverlays()
     onTogglePopout?.()
+  }
+
+  const handleQuickDockBrowser = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    bodyHandlers.closeBrowserOverlays()
+    onQuickDock?.()
   }
 
   const stopTitleBarPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -69,41 +103,68 @@ export function BrowserPanel({
     <section
       className={`V15Panel BrowserPanelRoot ${isFloating ? 'isFloating' : ''} ${
         isPoppedOut ? 'isPoppedOut' : ''
-      } ${
+      } ${showTitleBar ? '' : 'isHeaderless'} ${
         isBrowserCollapsed ? 'isCollapsed' : ''
       }`}
       onPointerDownCapture={bodyHandlers.onActivateBrowserSurface}
     >
-      <div
-        className={`BrowserPanelTitleBar ${isBrowserCollapsed ? 'isCollapsed' : ''}`}
-        onPointerDown={onTitleBarPointerDown}
-      >
-        <div className="BrowserPanelTitleCluster">
-          <button
-            type="button"
-            className="BrowserPanelChromeButton BrowserPanelCollapseButton"
-            onPointerDown={stopTitleBarPointer}
-            onClick={toggleBrowserCollapsed}
-            aria-label="Toggle browser panel"
-            aria-expanded={!isBrowserCollapsed}
-            aria-controls="browser-panel-body"
-            title={isBrowserCollapsed ? 'Expand browser' : 'Collapse browser'}
-          >
-            {isBrowserCollapsed ? '+' : '-'}
-          </button>
-          <h3 className="BrowserPanelTitle">Browser</h3>
-        </div>
-        <button
-          type="button"
-          className="BrowserPanelChromeButton BrowserPanelPopoutButton"
-          onPointerDown={stopTitleBarPointer}
-          onClick={handlePopoutBrowser}
-          aria-label={popoutButtonMode === 'dock' ? 'Dock browser' : 'Pop out browser'}
-          title={popoutButtonMode === 'dock' ? 'Dock browser' : 'Pop out browser'}
+      {showTitleBar ? (
+        <div
+          className={`BrowserPanelTitleBar ${isBrowserCollapsed ? 'isCollapsed' : ''}`}
+          onContextMenu={onTitleBarContextMenu}
+          onPointerDown={onTitleBarPointerDown}
         >
-          []
-        </button>
-      </div>
+          <div className="BrowserPanelTitleCluster">
+            <button
+              type="button"
+              className="BrowserPanelChromeButton BrowserPanelCollapseButton"
+              onPointerDown={stopTitleBarPointer}
+              onClick={toggleBrowserCollapsed}
+              aria-label="Toggle browser panel"
+              aria-expanded={!isBrowserCollapsed}
+              aria-controls="browser-panel-body"
+              title={
+                resolvedPresentationMode === 'expanded'
+                  ? 'Browser essentials'
+                  : resolvedPresentationMode === 'essentials'
+                    ? 'Collapse browser'
+                    : 'Expand browser'
+              }
+            >
+              {resolvedPresentationMode === 'expanded'
+                ? '-'
+                : resolvedPresentationMode === 'essentials'
+                  ? 'e'
+                  : '+'}
+            </button>
+            <h3 className="BrowserPanelTitle">Browser</h3>
+          </div>
+          <div className="BrowserPanelTitleBarActions">
+            {showQuickDockButton ? (
+              <button
+                type="button"
+                className="BrowserPanelChromeButton BrowserPanelQuickDockButton"
+                onPointerDown={stopTitleBarPointer}
+                onClick={handleQuickDockBrowser}
+                aria-label="Quick dock browser"
+                title="Quick dock browser"
+              >
+                {'<'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="BrowserPanelChromeButton BrowserPanelPopoutButton"
+              onPointerDown={stopTitleBarPointer}
+              onClick={handlePopoutBrowser}
+              aria-label={popoutButtonMode === 'dock' ? 'Dock browser' : 'Pop out browser'}
+              title={popoutButtonMode === 'dock' ? 'Dock browser' : 'Pop out browser'}
+            >
+              ↗
+            </button>
+          </div>
+        </div>
+      ) : null}
       {!isBrowserCollapsed ? (
         <div
           id="browser-panel-body"
@@ -120,6 +181,7 @@ export function BrowserPanel({
                 onOpenContentImportMenu={sectionHandlers.onOpenContentImportMenu}
               />
               <BrowserGraphDocumentsSection
+                isCollapsed={isBrowserEssentials}
                 graphRows={browserTreeRows.graphRows}
                 rowHandlers={rowHandlers}
                 onCreateGraph={sectionHandlers.onCreateGraph}
@@ -127,6 +189,7 @@ export function BrowserPanel({
                 onLoadGraphFile={sectionHandlers.onLoadGraphFile}
               />
               <BrowserOpenEditorsSection
+                isCollapsed={isBrowserEssentials}
                 viewportRows={browserTreeRows.viewportRows}
                 rowHandlers={rowHandlers}
                 canOpenNewEditor={canOpenNewEditor}

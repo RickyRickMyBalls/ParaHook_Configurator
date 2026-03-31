@@ -226,6 +226,7 @@ export function BrowserContentSection(props: BrowserContentSectionProps) {
 }
 
 type BrowserGraphDocumentsSectionProps = {
+  isCollapsed?: boolean
   graphRows: BrowserGraphTreeRowVm[]
   rowHandlers: BrowserTreeRowHandlers
   onCreateGraph: () => void
@@ -235,6 +236,7 @@ type BrowserGraphDocumentsSectionProps = {
 
 export function BrowserGraphDocumentsSection(props: BrowserGraphDocumentsSectionProps) {
   const {
+    isCollapsed = false,
     graphRows,
     onCreateGraph,
     onDuplicateFocusedGraph,
@@ -243,7 +245,7 @@ export function BrowserGraphDocumentsSection(props: BrowserGraphDocumentsSection
   } = props
 
   return (
-    <details open className="BrowserTreeSection">
+    <details open={!isCollapsed} className="BrowserTreeSection">
       <summary className="BrowserTreeSummary BrowserTreeSummary--withActions">
         <span className="BrowserTreeSummaryLabel">Graph Documents</span>
         <span className="BrowserTreeSummaryActions">
@@ -304,6 +306,7 @@ export function BrowserGraphDocumentsSection(props: BrowserGraphDocumentsSection
 }
 
 type BrowserOpenEditorsSectionProps = {
+  isCollapsed?: boolean
   viewportRows: BrowserTreeRowsVm['viewportRows']
   rowHandlers: BrowserTreeRowHandlers
   canOpenNewEditor: boolean
@@ -311,10 +314,10 @@ type BrowserOpenEditorsSectionProps = {
 }
 
 export function BrowserOpenEditorsSection(props: BrowserOpenEditorsSectionProps) {
-  const { canOpenNewEditor, onOpenNewEditor, rowHandlers, viewportRows } = props
+  const { canOpenNewEditor, isCollapsed = false, onOpenNewEditor, rowHandlers, viewportRows } = props
 
   return (
-    <details open className="BrowserTreeSection">
+    <details open={!isCollapsed} className="BrowserTreeSection">
       <summary className="BrowserTreeSummary BrowserTreeSummary--withActions">
         <span className="BrowserTreeSummaryLabel">Open Editors</span>
         <span className="BrowserTreeSummaryActions">

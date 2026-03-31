@@ -1107,12 +1107,33 @@ describe('BrowserPanel', () => {
     expect(findButtonByLabel('Open new editor')).not.toBeNull()
   })
 
-  it('lets the Browser header collapse and hide the panel body', async () => {
+  it('cycles the Browser header through essentials and collapsed modes', async () => {
     ;({ container, root } = await renderBrowserPanel())
 
     const browserToggle = findButtonByLabel('Toggle browser panel')
     expect(browserToggle).not.toBeNull()
     expect(findButtonByLabel('Create new graph')).not.toBeNull()
+    expect(container?.textContent).toContain('Graph Documents')
+    expect(container?.textContent).toContain('Open Editors')
+
+    await click(browserToggle!)
+
+    expect(findButtonByLabel('Create new graph')).not.toBeNull()
+    expect(container?.textContent).toContain('Graph Documents')
+    expect(container?.textContent).toContain('Open Editors')
+    const graphDocumentsSection = Array.from(
+      container?.querySelectorAll('.BrowserTreeSummaryLabel') ?? [],
+    ).find((element) => element.textContent?.includes('Graph Documents'))?.closest(
+      'details',
+    ) as HTMLDetailsElement | null
+    const openEditorsSection = Array.from(
+      container?.querySelectorAll('.BrowserTreeSummaryLabel') ?? [],
+    ).find((element) => element.textContent?.includes('Open Editors'))?.closest(
+      'details',
+    ) as HTMLDetailsElement | null
+
+    expect(graphDocumentsSection?.open).toBe(false)
+    expect(openEditorsSection?.open).toBe(false)
 
     await click(browserToggle!)
 
@@ -1124,6 +1145,7 @@ describe('BrowserPanel', () => {
 
     expect(findButtonByLabel('Create new graph')).not.toBeNull()
     expect(container?.textContent).toContain('Graph Documents')
+    expect(container?.textContent).toContain('Open Editors')
   })
 
   it('claims the browser as the active surface when the panel is clicked', async () => {

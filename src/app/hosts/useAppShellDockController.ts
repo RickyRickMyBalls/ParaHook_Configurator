@@ -94,22 +94,49 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
       const parentRect = targetElement.parentElement?.getBoundingClientRect()
       const left = targetRect.width > 1 ? targetRect.left : (parentRect?.left ?? targetRect.left)
       const right = targetRect.width > 1 ? targetRect.right : (parentRect?.right ?? targetRect.right)
-      const top = targetRect.top
-      const height = Math.max(targetRect.height, dockGhostHeight)
+      const top = targetRect.height > 1 ? targetRect.top : (parentRect?.top ?? targetRect.top)
+      const bottom =
+        targetRect.height > 1
+          ? targetRect.bottom
+          : Math.max(
+              top + dockGhostHeight,
+              parentRect?.bottom ?? top + dockGhostHeight,
+            )
       return {
         left,
         right,
         top,
-        bottom: top + height,
+        bottom,
       }
     },
     [dockedBrowserHostRef, dockedMeatballHostRef],
   )
 
+  const getLeftDockStatusRect = useCallback((panelId: LeftDockPanelId): DockTargetRect | null => {
+    const targetElement =
+      panelId === 'browser' ? dockedBrowserHostRef.current : dockedMeatballHostRef.current
+    const statusElement = targetElement
+      ?.closest('.PrimaryViewportLeftDock')
+      ?.querySelector('.PrimaryViewportLeftDockStatus')
+    if (!(statusElement instanceof HTMLElement)) {
+      return null
+    }
+    const rect = statusElement.getBoundingClientRect()
+    return {
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+    }
+  }, [dockedBrowserHostRef, dockedMeatballHostRef])
+
   const resolveLeftDockPreviewPanelId = useCallback(
     (panelId: LeftDockPanelId, clientX: number, clientY: number): LeftDockPanelId | null =>
-      isPointInsideRect(clientX, clientY, getLeftDockTargetRect(panelId)) ? panelId : null,
-    [getLeftDockTargetRect],
+      isPointInsideRect(clientX, clientY, getLeftDockTargetRect(panelId)) ||
+      isPointInsideRect(clientX, clientY, getLeftDockStatusRect(panelId))
+        ? panelId
+        : null,
+    [getLeftDockStatusRect, getLeftDockTargetRect],
   )
 
   useEffect(() => {
@@ -119,7 +146,10 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target
-      if (target instanceof Element && target.closest('.LeftDockResizeMenu') !== null) {
+      if (
+        target instanceof Element &&
+        target.closest('.PrimaryViewportLeftDockResizeMenu') !== null
+      ) {
         return
       }
       setLeftDockResizeMenu(null)

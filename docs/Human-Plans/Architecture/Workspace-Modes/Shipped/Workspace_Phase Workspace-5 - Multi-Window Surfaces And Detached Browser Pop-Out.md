@@ -106,7 +106,7 @@ Practical read:
 
 Primary planning sources:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
 - shipped shared activation grounding:
   - `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1F - Workspace Selection, Surface Activation, And Canonical Intents.md`
 

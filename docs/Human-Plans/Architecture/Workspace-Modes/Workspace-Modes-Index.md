@@ -3,6 +3,21 @@
 ## Doc Header
 
 ### Doc History
+69. 2026-03-31 00:36: Marked `Workspace 7.2c-3` as the shipped old-shell-retirement cleanup cut, updating the family read so the full `Workspace 7.2c` left-dock-unification ladder now counts as complete under `PrimaryViewportLeftDock` and the active `Workspace 7` execution lane now hands forward to `Workspace 7.3`
+68. 2026-03-31 00:11: Tightened the native `Workspace 7.2c-3` doc into an implementation-ready old-shell-retirement spec, locking the exact cleanup boundary, concrete code seams, first-cut sequence, and verification shape so the active `Workspace 7` execution lane now reads as the final left-dock-unification cleanup instead of a loose placeholder
+67. 2026-03-31 00:05: Marked `Workspace 7.2c-2` as the shipped live left-dock parity cut, updating the family read so Browser and Meatball preview, resize, split-toggle, and primary-only-attachment parity now count as landed under the new `PrimaryViewportLeftDock` host and `7.2c-3` is the active next cleanup lane
+66. 2026-03-30 23:59: Tightened the native `Workspace 7.2c-2` doc into an implementation-ready parity spec, locking the exact live-browser/meatball preview, resize, split-toggle, and primary-viewport-attachment boundary so the active `Workspace 7` execution lane now reads as a concrete behavior-parity cut instead of a loose cleanup placeholder
+65. 2026-03-30 23:58: Moved the shipped native workspace phase docs into `Workspace-Modes/Shipped/`, refreshed the umbrella workspace-family read so landed records now point at the shipped lane instead of lingering under `Future/`, and kept only the active next execution surfaces in the future lane
+64. 2026-03-30 23:34: Marked `Workspace 7.2c-1` as the shipped structural extraction slice, refreshed the active `Workspace 7` family read so the full left-dock family now lives under one primary-viewport-local host, and moved the next execution surface forward to `7.2c-2` for live parity plus cleanup
+63. 2026-03-30 23:31: Tightened the native `Workspace 7.2c-1` doc into an implementation-ready structural extraction spec, and refreshed the active `Workspace 7` family read so the next execution surface now clearly focuses on moving the whole left-dock family under one primary-viewport-local host before any wider ref rewiring or old-shell retirement
+62. 2026-03-30 23:26: Broke `Workspace 7.2c` into native `7.2c-1` through `7.2c-3` subphase docs under `Workspace-Modes/Future/`, tightened the `Workspace 7` family read so the left-dock-unification work is now staged as host extraction, behavior-parity rewiring, and old-shell retirement, and made `7.2c-1` the active next execution surface
+61. 2026-03-30 23:22: Added the native `Workspace 7.2c` follow-on doc under `Workspace-Modes/Future/`, tightened the `Workspace 7` family read so the next concrete cleanup slice now explicitly unifies `ParaHook Generator v20`, Browser dock, Meatball dock, and the resize rail into one primary-model-viewport-owned left dock host before `Workspace 7.3`
+60. 2026-03-30 18:24: Added the native `Workspace 7.2b` follow-on doc under `Workspace-Modes/Future/`, tightened the `Workspace 7` family read so the first `7.2` slice now reads as shipped duplicated-slot-tree and retained-restore work, and made `7.2b` the active next lane for host-mode parity plus Browser and Spaghetti split-host retirement before `7.3`
+59. 2026-03-30 18:00: Added the native `Workspace 7.2` phase doc under `Workspace-Modes/Future/`, tightening the second subphase into an implementation-ready spec for real duplicate `Browser`, `Console`, and `Spaghetti Editor` surfaces under the slot model, stronger retained-surface restore and rebind rules, fuller host-mode parity, and the first retirement pass for older special-case split hosts
+58. 2026-03-30 17:42: Added the native `Workspace 7.1` phase doc under `Workspace-Modes/Future/`, tightening the first subphase into an implementation-ready spec for viewport-slot types, local headers, the right-click viewport-type picker, first slot-based split creation, and the drag-out-to-float plus re-dock loop, and refreshed the `Workspace 7` family read so the umbrella now points at a concrete first execution surface
+57. 2026-03-30 16:31: Locked `Workspace 7` Questions `35` through `39`, clarifying the `7.4` convergence-cleanup pass, when slot duplicate/close/merge actions should land, how `Pop Out` should mirror float under the slot model, how the workspace snapshot should represent slot trees plus retained-surface host modes, and how the old Browser and Spaghetti split hosts should be retired once slot hosting proves itself, while leaving `Question 40` open as a later advanced-feature bucket
+56. 2026-03-30 16:24: Locked the first `Workspace 7.3` scope read and added the first explicit remaining-open-question list for the later `7.x` ladder, so the workspace-family docs now show both the locked foundation and the still-open cleanup, lifecycle, popout-parity, persistence, migration, and advanced-feature questions in one place
+55. 2026-03-30 16:18: Locked the first `Workspace 7.2` scope read, clarifying that the second `7.x` subphase after `7.1` should prove real duplicate `Browser`, `Console`, and `Spaghetti Editor` surfaces under the new slot model, widen host-mode parity across slotted, floating, and popout, and begin retiring older special-case split hosts where the new slot system already replaces them
 54. 2026-03-30 16:15: Locked the first `Workspace 7.1` scope read, clarifying that the first `7.x` subphase should cover viewport-slot types, local headers, the right-click viewport-type picker, first slot-based split creation, and the drag-out-to-float plus re-dock loop, while leaving full duplicate-model-viewport runtime parity and deeper slot lifecycle actions for later cuts
 53. 2026-03-30 16:06: Locked the `Workspace 7` drag-out lifecycle loop, clarifying that when a slotted surface is dragged into floating mode its now-empty slot should dissolve and the layout should recombine cleanly, while that same floating surface can later be dragged back to a viewport edge to create a new split slot again
 52. 2026-03-30 16:01: Locked the `Workspace 7` slot-restore rule, clarifying that when a slot changes away from one surface kind and later returns, it should restore the prior retained surface if that surface still exists and only create a fresh one when no sensible retained surface remains
@@ -745,30 +760,28 @@ The current workspace-family planning still lives partly in the phase-task and a
 
 Current planning sources:
 - `Workspace 0.1`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
 - `Workspace 1`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
-  - currently acts as the canonical planning-plus-shipped-first-slice record until the family gains standalone shipped workspace records
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
 - `Workspace 2`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
   - reuses shipped split-proof behavior from `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
 - `Workspace 3`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
 - `Workspace 4`
-  - still mapped by the old task-doc lane today:
-    - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
 - `Workspace 5`
-  - current roadmap slot `[5.1E]`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
 - `Workspace 6`
   - `docs/Human-Plans/Architecture/Console/Shipped/Console_Phase 5.1F - Workspace Selection, Surface Activation, And Canonical Intents.md`
 
-This family should continue gaining its own native `Future/` and `Shipped/` records here as the remaining workspace-specific planning gets re-homed out of the mixed task/doc surfaces.
+This family now has a real native `Shipped/` lane for the landed workspace records while the remaining open work stays in `Future/`.
 
 ### Execution Doc Family
 
 Use the dedicated workspace-family docs for implementation detail:
 
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
   - shipped first extraction slice
   - shared shell owner for left-dock plus Browser shell state
   - preserved host adapters and shell-level floating parity
@@ -781,14 +794,14 @@ Use the dedicated workspace-family docs for implementation detail:
   - row/column priority
   - close/merge behavior
 
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
   - remaining editor placement extraction
   - first explicit hosted-surface identity model
   - transitional adapters
   - pane header responsibilities
   - tiled/windowed transitions
 
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
   - viewport-local chrome ownership
   - viewport toolbar host
   - per-viewport `View`, `Gizmo`, and overlay ownership
@@ -946,7 +959,7 @@ Audit result:
 - viewport-local chrome still needs a real per-viewport ownership seam
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
 
 ### [x] Workspace 1 - Shared Workspace Owner And State Extraction
 #### Header
@@ -1000,7 +1013,7 @@ Shipped read:
 - editor viewport placement and split ownership still remain the main residue that rolls into `Workspace 2`
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
 
 ### [x] Workspace 2 - First Hosted Surface Migration And Transitional Adapters
 #### Header
@@ -1069,7 +1082,7 @@ Shipped read:
 - `BrowserDockHost` and `SpaghettiWindowHost` still survive as transition adapters, which means the next honest residue is viewport-local chrome still mounting too globally from `AppShell`
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
 - historical grounding:
   - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
 - shipped proof to reuse: `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`
@@ -1150,7 +1163,7 @@ Shipped read:
 - viewport-local chrome now has a real shared-owner identity seam, while deeper `ViewToolbar` enrichment and persistence still remain follow-on work
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
 
 ### [x] Workspace 4 - Persistence, Saved Modes, And Migration
 #### Header
@@ -1226,7 +1239,7 @@ Shipped read:
 - named saved-layout UI and child-window persistence remain the main follow-on residue
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-4 - Persistence, Saved Modes, And Migration.md`
 - historical grounding:
   - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 
@@ -1303,7 +1316,7 @@ Shipped read:
 - editor child-window hosting and multiple-open-graph truth remain the main residue that rolls into the next `Workspace 5.x` follow-ons
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5 - Multi-Window Surfaces And Detached Browser Pop-Out.md`
 - historical grounding:
   - roadmap slot `[5.1E]`
 
@@ -1324,7 +1337,7 @@ Current source doc:
 - the child-window shell now exists, but the detached editor still needs a cleaner single-owner render path like the working `Console` pop-out seam
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5.1 - Spaghetti Editor Child-Window Pop-Out And Dock-Back Restore.md`
 
 ### [x] Workspace 5.2 - Multiple Editor Surface Instances And Graph Binding
 #### Header
@@ -1343,7 +1356,7 @@ Current source doc:
 - additive multi-graph UX, exact create-versus-reuse rules, and surface-level close plus focus fallback still belong to `Workspace 5.3`
 
 Current source doc:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-5.2 - Multiple Editor Surface Instances And Graph Binding.md`
 
 ### [ ] Workspace 5.3 - Open Editors Multi-Graph Workspace UX And Session Truth
 #### Header
@@ -1403,11 +1416,34 @@ Current source doc:
 - when a slotted surface is dragged out into floating mode, the now-empty slot should dissolve and the layout should recombine, and that same floating surface should be able to dock back into a new split later
 - splitting a slot should duplicate the source slot's surface kind by default while still creating a fresh surface instance for the new slot
 - the first `Workspace 7.1` cut should cover viewport-slot types, local headers, the right-click type picker, first slot-based split creation, and the drag-out-to-float plus re-dock loop, while leaving full duplicate-model-viewport runtime parity and deeper slot lifecycle actions for later `7.x` cuts
+- the first `Workspace 7.2` slice has now landed the duplicated slot tree, retained-surface restore, and first recursive non-primary slot rendering
+- `Workspace 7.2b` should now finish non-viewer host-mode parity and shrink older Browser and Spaghetti split-specific host ownership where the slot tree replaces it
+- `Workspace 7.2c` should then unify `ParaHook Generator v20`, Browser dock, Meatball dock, and the left-dock resize rail into one primary-model-viewport-owned left dock host so the top-left chrome family stops straddling both the viewport slot model and the old app-global dock shell
+- `Workspace 7.2c-1` is now shipped as the structural extraction cut that moved `ParaHook Generator v20`, Browser dock, Meatball dock, the resize rail, the split toggle, and left-dock preview ghosts under one primary-viewport-local host
+- `Workspace 7.2c-2` is now shipped as the live parity cut that proved Browser / Meatball preview, resize, split-toggle, and primary-only left-dock attachment on top of that new host
+- `Workspace 7.2c-3` is now shipped as the old-shell retirement cut that removed the remaining live `.LeftDock` selector and resize-menu assumptions once the new host fully owned the route
+- `Workspace 7.2c` now counts as complete
+- the first `Workspace 7.3` cut should then widen into true multiple `Model Viewport` surfaces, explicit cross-viewport floating-host targeting, and the start of deleting the remaining one-protected-viewer assumptions before the final cleanup and persistence follow-ons
+- `Workspace 7.4` should then act as the convergence cleanup pass that deletes the remaining temporary split adapters, lands the deeper slot lifecycle actions once the tree rules are trustworthy, and keeps `Pop Out` fully parallel with `Float` under the same slot-based owner-transfer model
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
+- current active execution surface:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity.md`
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
+- first subphase:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.1 - Viewport Slot Foundations, Header Shell, And First Split Loop.md`
+- second subphase:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2 - Duplicated Surface Instances, Restore Rules, And Host-Mode Parity.md`
+- second follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
+- third follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md`
+- staged `7.2c` subphases:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2c-1 - Primary Viewport Left Dock Host Extraction.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c-2 - Left Dock Ref Repoint And Behavior Parity.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c-3 - Old Left Dock Shell Retirement And Cleanup.md`
 - vision grounding:
   - `docs/Human-Plans/Architecture/Workspace-Modes/vision1.md`

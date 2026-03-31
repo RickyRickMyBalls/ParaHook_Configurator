@@ -1,20 +1,39 @@
 import {
+  createDefaultWorkspaceLayoutLeafNode,
+  createDefaultWorkspaceSlotTree,
   createDefaultEditorPopoutState,
+  defaultBrowserPresentationMode,
   defaultBrowserViewportSplitDockSide,
   defaultBrowserViewportSplitRatio,
   createDefaultEditorWorkspaceSurfaceState,
   createDefaultWorkspaceViewportChromeState,
+  createDefaultWorkspaceViewportSlot,
   defaultBrowserPopoutState,
   defaultLeftDockWidth,
   defaultPrimaryWorkspaceViewportId,
+  defaultPrimaryViewportLeafNodeId,
+  defaultPrimaryViewportSlotId,
+  defaultSecondaryViewportLeafNodeId,
+  defaultSecondaryViewportSlotId,
+  defaultViewportLayoutRootNodeId,
   type BrowserShellState,
+  type BrowserPresentationMode,
   type EditorWorkspaceSurfaceState,
+  type WorkspaceDetachedSlotSurfaceState,
+  type WorkspaceLayoutNode,
+  type WorkspaceLayoutNodeId,
   type PersistedWorkspaceLayout,
   type WorkspacePopoutSurfaceState,
+  type WorkspaceSurfaceKind,
+  type WorkspaceRetainedSurfaceInstanceIdsByKind,
+  type WorkspaceViewportSlot,
   type WorkspaceViewportChromeState,
   type WorkspaceViewportId,
 } from './workspaceShellTypes'
-import { resolveDefaultWorkspaceSplitDockSide } from './workspaceSplitTypes'
+import {
+  resolveDefaultWorkspaceSplitDockSide,
+  resolveWorkspaceSplitDirectionForDockSide,
+} from './workspaceSplitTypes'
 
 export const workspaceLayoutStorageKey = 'parahook.workspace.lastLayout.v1'
 
@@ -24,6 +43,10 @@ type WorkspacePersistenceSource = {
   browserShell: BrowserShellState
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
+  viewportSlotRootNodeId: WorkspaceLayoutNodeId
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>
+  viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>
+  detachedSlotSurfaceById: Record<string, WorkspaceDetachedSlotSurfaceState>
   editorSurfacePlacementById: Record<string, EditorWorkspaceSurfaceState>
 }
 
@@ -34,6 +57,14 @@ const roundNumber = (value: number, fallback: number): number =>
   Number.isFinite(value) ? Math.round(value) : fallback
 
 const cloneBrowserShellState = (browserShell: BrowserShellState): BrowserShellState => ({
+  presentationMode:
+    browserShell.presentationMode === 'collapsed' ||
+    browserShell.presentationMode === 'essentials' ||
+    browserShell.presentationMode === 'expanded'
+      ? browserShell.presentationMode
+      : browserShell.isCollapsed
+        ? 'collapsed'
+        : defaultBrowserPresentationMode,
   isCollapsed: browserShell.isCollapsed,
   isFloating: browserShell.isFloating,
   isPoppedOut: browserShell.isPoppedOut,
@@ -83,6 +114,17 @@ const cloneWorkspacePopoutSurfaceState = (
     typeof popoutState.windowFeatures === 'string' && popoutState.windowFeatures.length > 0
       ? popoutState.windowFeatures
       : defaultBrowserPopoutState.windowFeatures,
+})
+
+const cloneDetachedSlotSurfaceState = (
+  detachedSurface: WorkspaceDetachedSlotSurfaceState,
+): WorkspaceDetachedSlotSurfaceState => ({
+  surfaceKind: detachedSurface.surfaceKind,
+  surfaceInstanceId: detachedSurface.surfaceInstanceId,
+  hostMode: detachedSurface.hostMode,
+  hostViewportId: detachedSurface.hostViewportId,
+  lastSlotId: detachedSurface.lastSlotId,
+  preferredSplitDockSide: detachedSurface.preferredSplitDockSide,
 })
 
 const cloneEditorSurfacePlacement = (
@@ -188,6 +230,108 @@ const normalizeViewportChromeRecord = (
       ? value.viewportId
       : fallbackViewportId
   return createDefaultWorkspaceViewportChromeState(viewportId)
+}
+
+const normalizeViewportSlotRecord = (
+  slotId: string,
+  value: unknown,
+  primaryViewportId: WorkspaceViewportId,
+): WorkspaceViewportSlot | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const surfaceKind: WorkspaceSurfaceKind =
+    value.surfaceKind === 'browser' ||
+    value.surfaceKind === 'console' ||
+    value.surfaceKind === 'spaghettiEditor' ||
+    value.surfaceKind === 'modelViewer'
+      ? value.surfaceKind
+      : slotId === defaultPrimaryViewportSlotId
+        ? 'modelViewer'
+        : 'browser'
+  const leafNodeId =
+    typeof value.leafNodeId === 'string' && value.leafNodeId.length > 0
+      ? value.leafNodeId
+      : slotId === defaultPrimaryViewportSlotId
+        ? defaultPrimaryViewportLeafNodeId
+        : defaultSecondaryViewportLeafNodeId
+  const baseSlot = createDefaultWorkspaceViewportSlot(slotId, surfaceKind, leafNodeId, primaryViewportId)
+  const retainedSurfaceInstanceIdsByKind: WorkspaceRetainedSurfaceInstanceIdsByKind = {
+    ...baseSlot.retainedSurfaceInstanceIdsByKind,
+  }
+  if (isRecord(value.retainedSurfaceInstanceIdsByKind)) {
+    for (const [kind, surfaceInstanceId] of Object.entries(value.retainedSurfaceInstanceIdsByKind)) {
+      if (
+        (kind === 'modelViewer' ||
+          kind === 'browser' ||
+          kind === 'console' ||
+          kind === 'spaghettiEditor') &&
+        typeof surfaceInstanceId === 'string' &&
+        surfaceInstanceId.length > 0
+      ) {
+        retainedSurfaceInstanceIdsByKind[kind] = surfaceInstanceId
+      }
+    }
+  }
+  return {
+    ...baseSlot,
+    surfaceInstanceId:
+      typeof value.surfaceInstanceId === 'string' && value.surfaceInstanceId.length > 0
+        ? value.surfaceInstanceId
+        : baseSlot.surfaceInstanceId,
+    hostMode: 'slotted',
+    hostViewportId:
+      typeof value.hostViewportId === 'string' && value.hostViewportId.length > 0
+        ? value.hostViewportId
+        : primaryViewportId,
+    retainedSurfaceInstanceIdsByKind,
+  }
+}
+
+const normalizeViewportLayoutNodeRecord = (
+  nodeId: string,
+  value: unknown,
+): WorkspaceLayoutNode | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  if (value.kind === 'split') {
+    const splitDockSide =
+      value.splitDockSide === 'top' ||
+      value.splitDockSide === 'right' ||
+      value.splitDockSide === 'bottom' ||
+      value.splitDockSide === 'left'
+        ? value.splitDockSide
+        : defaultBrowserViewportSplitDockSide
+    return {
+      nodeId,
+      kind: 'split',
+      splitDirection:
+        value.splitDirection === 'vertical' || value.splitDirection === 'horizontal'
+          ? value.splitDirection
+          : resolveWorkspaceSplitDirectionForDockSide(splitDockSide),
+      splitDockSide,
+      ratio:
+        typeof value.ratio === 'number' && Number.isFinite(value.ratio)
+          ? Math.min(0.85, Math.max(0.15, value.ratio))
+          : defaultBrowserViewportSplitRatio,
+      firstChildId:
+        typeof value.firstChildId === 'string' && value.firstChildId.length > 0
+          ? value.firstChildId
+          : defaultPrimaryViewportLeafNodeId,
+      secondChildId:
+        typeof value.secondChildId === 'string' && value.secondChildId.length > 0
+          ? value.secondChildId
+          : defaultSecondaryViewportLeafNodeId,
+    }
+  }
+  const slotId =
+    typeof value.slotId === 'string' && value.slotId.length > 0
+      ? value.slotId
+      : nodeId === defaultPrimaryViewportLeafNodeId
+        ? defaultPrimaryViewportSlotId
+        : defaultSecondaryViewportSlotId
+  return createDefaultWorkspaceLayoutLeafNode(nodeId, slotId)
 }
 
 const normalizeEditorSurfacePlacement = (
@@ -394,6 +538,25 @@ export const serializeWorkspaceLayout = (
       createDefaultWorkspaceViewportChromeState(chrome.viewportId),
     ]),
   ),
+  viewportSlotRootNodeId: state.viewportSlotRootNodeId,
+  viewportSlotsById: Object.fromEntries(
+    Object.entries(state.viewportSlotsById).map(([slotId, slot]) => [
+      slotId,
+      {
+        ...slot,
+        hostMode: 'slotted' as const,
+      },
+    ]),
+  ),
+  viewportLayoutNodesById: Object.fromEntries(
+    Object.entries(state.viewportLayoutNodesById).map(([nodeId, node]) => [nodeId, { ...node }]),
+  ),
+  detachedSlotSurfaceById: Object.fromEntries(
+    Object.entries(state.detachedSlotSurfaceById).map(([surfaceInstanceId, detachedSurface]) => [
+      surfaceInstanceId,
+      cloneDetachedSlotSurfaceState(detachedSurface),
+    ]),
+  ),
   editorSurfacePlacementById: Object.fromEntries(
     Object.entries(state.editorSurfacePlacementById).map(([surfaceInstanceId, surface]) => [
       surfaceInstanceId,
@@ -439,6 +602,71 @@ export const normalizePersistedWorkspaceLayout = (
         ] as const)
         .filter((entry): entry is readonly [string, EditorWorkspaceSurfaceState] => entry[1] !== null)
     : []
+  const defaultSlotTree = createDefaultWorkspaceSlotTree()
+  const viewportSlotEntries = isRecord(value.viewportSlotsById)
+    ? Object.entries(value.viewportSlotsById)
+        .map(([slotId, slot]) => [
+          slotId,
+          normalizeViewportSlotRecord(slotId, slot, primaryViewportId),
+        ] as const)
+        .filter((entry): entry is readonly [string, WorkspaceViewportSlot] => entry[1] !== null)
+    : []
+  const viewportLayoutNodeEntries = isRecord(value.viewportLayoutNodesById)
+    ? Object.entries(value.viewportLayoutNodesById)
+        .map(([nodeId, node]) => [
+          nodeId,
+          normalizeViewportLayoutNodeRecord(nodeId, node),
+        ] as const)
+        .filter((entry): entry is readonly [string, WorkspaceLayoutNode] => entry[1] !== null)
+    : []
+  const detachedSlotSurfaceEntries = isRecord(value.detachedSlotSurfaceById)
+    ? Object.entries(value.detachedSlotSurfaceById)
+        .map(([surfaceInstanceId, detachedSurface]) => {
+          if (!isRecord(detachedSurface)) {
+            return null
+          }
+          const surfaceKind =
+            detachedSurface.surfaceKind === 'browser' ||
+            detachedSurface.surfaceKind === 'console' ||
+            detachedSurface.surfaceKind === 'spaghettiEditor'
+              ? detachedSurface.surfaceKind
+              : null
+          if (surfaceKind === null) {
+            return null
+          }
+          return [
+            surfaceInstanceId,
+            cloneDetachedSlotSurfaceState({
+              surfaceKind,
+              surfaceInstanceId:
+                typeof detachedSurface.surfaceInstanceId === 'string' &&
+                detachedSurface.surfaceInstanceId.length > 0
+                  ? detachedSurface.surfaceInstanceId
+                  : surfaceInstanceId,
+              hostMode: detachedSurface.hostMode === 'popout' ? 'popout' : 'floating',
+              hostViewportId:
+                typeof detachedSurface.hostViewportId === 'string' &&
+                detachedSurface.hostViewportId.length > 0
+                  ? detachedSurface.hostViewportId
+                  : primaryViewportId,
+              lastSlotId:
+                typeof detachedSurface.lastSlotId === 'string' && detachedSurface.lastSlotId.length > 0
+                  ? detachedSurface.lastSlotId
+                  : defaultSecondaryViewportSlotId,
+              preferredSplitDockSide:
+                detachedSurface.preferredSplitDockSide === 'top' ||
+                detachedSurface.preferredSplitDockSide === 'right' ||
+                detachedSurface.preferredSplitDockSide === 'bottom' ||
+                detachedSurface.preferredSplitDockSide === 'left'
+                  ? detachedSurface.preferredSplitDockSide
+                  : defaultBrowserViewportSplitDockSide,
+            }),
+          ] as const
+        })
+        .filter(
+          (entry): entry is readonly [string, WorkspaceDetachedSlotSurfaceState] => entry !== null,
+        )
+    : []
 
   return {
     version: 1,
@@ -449,6 +677,15 @@ export const normalizePersistedWorkspaceLayout = (
     isLeftDockViewportSplit: value.isLeftDockViewportSplit === true,
     browserShell: cloneBrowserShellState({
       isCollapsed: isRecord(value.browserShell) && value.browserShell.isCollapsed === true,
+      presentationMode:
+        isRecord(value.browserShell) &&
+        (value.browserShell.presentationMode === 'collapsed' ||
+          value.browserShell.presentationMode === 'essentials' ||
+          value.browserShell.presentationMode === 'expanded')
+          ? (value.browserShell.presentationMode as BrowserPresentationMode)
+          : isRecord(value.browserShell) && value.browserShell.isCollapsed === true
+            ? 'collapsed'
+            : defaultBrowserPresentationMode,
       isFloating: isRecord(value.browserShell) && value.browserShell.isFloating === true,
       isPoppedOut: isRecord(value.browserShell) && value.browserShell.isPoppedOut === true,
       isViewportSplit: isRecord(value.browserShell) && value.browserShell.isViewportSplit === true,
@@ -514,6 +751,19 @@ export const normalizePersistedWorkspaceLayout = (
     }),
     primaryViewportId,
     viewportChromeById,
+    viewportSlotRootNodeId:
+      typeof value.viewportSlotRootNodeId === 'string' && value.viewportSlotRootNodeId.length > 0
+        ? value.viewportSlotRootNodeId
+        : defaultViewportLayoutRootNodeId,
+    viewportSlotsById:
+      viewportSlotEntries.length > 0
+        ? Object.fromEntries(viewportSlotEntries)
+        : defaultSlotTree.viewportSlotsById,
+    viewportLayoutNodesById:
+      viewportLayoutNodeEntries.length > 0
+        ? Object.fromEntries(viewportLayoutNodeEntries)
+        : defaultSlotTree.viewportLayoutNodesById,
+    detachedSlotSurfaceById: Object.fromEntries(detachedSlotSurfaceEntries),
     editorSurfacePlacementById: Object.fromEntries(editorSurfaceEntries),
   }
 }

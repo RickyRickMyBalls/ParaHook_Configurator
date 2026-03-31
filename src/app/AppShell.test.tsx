@@ -14,6 +14,7 @@ import { createDefaultEditorWorkspaceSurfaceState } from './workspace/workspaceS
 
 let currentSpaghettiState: any
 let currentAppState: any
+const originalWindowConfirm = window.confirm
 let mockSoundCloudPlaybackMode: 'ready' | 'throw' = 'ready'
 const mockSoundCloudEnsureSourceReady = vi.fn(async () => {
   if (mockSoundCloudPlaybackMode === 'throw') {
@@ -123,20 +124,34 @@ vi.mock('./console/ConsoleDock', async () => {
     await vi.importActual<typeof import('./console/useConsoleStore')>('./console/useConsoleStore')
 
   return {
-    ConsoleDock: ({ listLeftOffset }: { listLeftOffset: number }) => {
+    ConsoleDock: ({
+      listLeftOffset,
+      suppressDockedSurface = false,
+    }: {
+      listLeftOffset: number
+      suppressDockedSurface?: boolean
+    }) => {
       const isExpanded = useConsoleStore((state) => state.isExpanded)
       const isListMode = useConsoleStore((state) => state.isListMode)
+      const windowMode = useConsoleStore((state) => state.windowMode)
       const entries = useConsoleStore((state) => state.entries)
       const toggleExpanded = useConsoleStore((state) => state.toggleExpanded)
+      const shouldRenderDockedSurface = !(suppressDockedSurface && windowMode === 'docked')
+
+      if (!shouldRenderDockedSurface) {
+        return null
+      }
 
       return (
         <div className="ConsoleDockMock">
-          <div className="ConsoleBar">
-            <button type="button" aria-label="Expand console" onClick={toggleExpanded}>
-              ^
-            </button>
-          </div>
-          {isListMode ? (
+          {shouldRenderDockedSurface ? (
+            <div className="ConsoleBar">
+              <button type="button" aria-label="Expand console" onClick={toggleExpanded}>
+                ^
+              </button>
+            </div>
+          ) : null}
+          {isListMode && shouldRenderDockedSurface ? (
             <div className="ConsoleListView" style={{ left: `${listLeftOffset}px` }}>
               {entries.length > 0
                 ? entries.map((entry) => (
@@ -147,7 +162,7 @@ vi.mock('./console/ConsoleDock', async () => {
                 : 'Ready'}
             </div>
           ) : null}
-          {isExpanded ? <div className="ConsolePanel">Console Panel</div> : null}
+          {isExpanded && shouldRenderDockedSurface ? <div className="ConsolePanel">Console Panel</div> : null}
         </div>
       )
     },
@@ -156,38 +171,63 @@ vi.mock('./console/ConsoleDock', async () => {
 
 vi.mock('./panels/BrowserPanel', () => ({
   BrowserPanel: ({
+    presentationMode,
+    onCyclePresentationMode,
     isFloating,
     isPoppedOut,
     isCollapsed,
+    showTitleBar = true,
+    showQuickDockButton,
+    onQuickDock,
     onToggleCollapsed,
     onTogglePopout,
     onTitleBarPointerDown,
   }: {
+    presentationMode?: 'expanded' | 'essentials' | 'collapsed'
+    onCyclePresentationMode?: () => void
     isFloating?: boolean
     isPoppedOut?: boolean
     isCollapsed?: boolean
+    showTitleBar?: boolean
+    showQuickDockButton?: boolean
+    onQuickDock?: () => void
     onToggleCollapsed?: () => void
     onTogglePopout?: () => void
     onTitleBarPointerDown?: (event: any) => void
   }) => (
     <div>
-      <div
-        data-testid={`browser-titlebar-${isFloating === true ? 'floating' : 'docked'}`}
-        onPointerDown={onTitleBarPointerDown}
-      >
-        Browser Titlebar
-      </div>
+      {showTitleBar ? (
+        <div
+          data-testid={`browser-titlebar-${isFloating === true ? 'floating' : 'docked'}`}
+          onPointerDown={onTitleBarPointerDown}
+        >
+          Browser Titlebar
+        </div>
+      ) : null}
       <div>{`Browser Panel ${
         isPoppedOut === true ? 'poppedout' : isFloating === true ? 'floating' : 'docked'
       } ${
-        isCollapsed === true ? 'collapsed' : 'expanded'
+        presentationMode ?? (isCollapsed === true ? 'collapsed' : 'expanded')
       }`}</div>
-      <button type="button" aria-label="Mock browser toggle collapse" onClick={onToggleCollapsed}>
-        Toggle Browser Collapse
-      </button>
-      <button type="button" aria-label="Mock browser popout" onClick={onTogglePopout}>
-        Toggle Browser Popout
-      </button>
+      {showTitleBar ? (
+        <>
+          <button
+            type="button"
+            aria-label="Mock browser toggle collapse"
+            onClick={onCyclePresentationMode ?? onToggleCollapsed}
+          >
+            Toggle Browser Collapse
+          </button>
+          {showQuickDockButton ? (
+            <button type="button" aria-label="Mock browser quick dock" onClick={onQuickDock}>
+              Quick Dock Browser
+            </button>
+          ) : null}
+          <button type="button" aria-label="Mock browser popout" onClick={onTogglePopout}>
+            Toggle Browser Popout
+          </button>
+        </>
+      ) : null}
     </div>
   ),
 }))
@@ -310,7 +350,7 @@ const mockShellGeometry = (container: HTMLDivElement | null) => {
     width: 1120,
     height: 900,
   })
-  mockRect(container?.querySelector('.LeftDockPanelTarget--browser'), {
+  mockRect(container?.querySelector('.PrimaryViewportLeftDockPanelTarget--browser'), {
     left: 16,
     top: 88,
     width: 320,
@@ -322,7 +362,7 @@ const mockShellGeometry = (container: HTMLDivElement | null) => {
     width: 320,
     height: 420,
   })
-  mockRect(container?.querySelector('.LeftDockPanelTarget--meatball-editor'), {
+  mockRect(container?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor'), {
     left: 16,
     top: 470,
     width: 320,
@@ -433,6 +473,7 @@ describe('AppShell', () => {
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     resetAudioSamplerStore()
     window.localStorage.clear()
+    window.confirm = vi.fn(() => true)
     mockSoundCloudPlaybackMode = 'ready'
     mockSoundCloudEnsureSourceReady.mockClear()
     mockSoundCloudGetTransportState.mockClear()
@@ -449,6 +490,7 @@ describe('AppShell', () => {
       consolePreviewNodeId: null,
       sketchPlanePickPreviewPlane: null,
       sketchPlanePickSession: null,
+      editorViewportOrder: ['editor-viewport-1'],
       editorViewportsById: {
         'editor-viewport-1': viewport('expanded'),
       },
@@ -490,7 +532,27 @@ describe('AppShell', () => {
         ]
         return nextGraphDocumentId
       }),
-      setActiveEditorViewportId: vi.fn(),
+      setActiveEditorViewportId: vi.fn((editorViewportId: string) => {
+        if (currentSpaghettiState.editorViewportsById[editorViewportId] === undefined) {
+          return
+        }
+        currentSpaghettiState.activeEditorViewportId = editorViewportId
+      }),
+      openGraphDocumentInNewViewport: vi.fn((graphDocumentId: string) => {
+        const nextViewportId = `editor-viewport-${currentSpaghettiState.editorViewportOrder.length + 1}`
+        currentSpaghettiState.editorViewportsById[nextViewportId] = {
+          ...viewport('expanded'),
+          editorViewportId: nextViewportId,
+          graphDocumentId,
+          isFocused: false,
+          zOrder: currentSpaghettiState.editorViewportOrder.length + 5,
+        }
+        currentSpaghettiState.editorViewportOrder = [
+          ...currentSpaghettiState.editorViewportOrder,
+          nextViewportId,
+        ]
+        return nextViewportId
+      }),
       bindEditorViewportToGraphDocument: vi.fn(
         (editorViewportId: string, graphDocumentId: string) => {
           const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
@@ -662,6 +724,7 @@ describe('AppShell', () => {
     container = null
     document.body.innerHTML = ''
     window.localStorage.clear()
+    window.confirm = originalWindowConfirm
     window.open = originalWindowOpen
     window.AudioContext = originalAudioContext
   })
@@ -699,6 +762,498 @@ describe('AppShell', () => {
     expect(
       viewportHost?.querySelector('.RightDock[data-workspace-viewport-id="model-viewer-primary"]'),
     ).not.toBeNull()
+  })
+
+  it('mounts the generator title status bar inside the viewport area', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const viewportArea = container?.querySelector('.ViewportArea') as HTMLElement | null
+    const leftDock = container?.querySelector('.PrimaryViewportLeftDock') as HTMLElement | null
+    const primarySlot = container?.querySelector(
+      '.ViewportFrame.isPrimarySlot',
+    ) as HTMLElement | null
+
+    expect(viewportArea?.querySelector('.PrimaryViewportLeftDockStatus')).not.toBeNull()
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDockStatus')).not.toBeNull()
+    expect(viewportArea?.textContent).toContain('Title Status')
+    expect(leftDock?.textContent).toContain('Title Status')
+  })
+
+  it('keeps the generator title status bar docked to the primary model viewport after a left split', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'left', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const nonPrimarySlot = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) => !element.classList.contains('isPrimarySlot'),
+    ) as HTMLElement | undefined
+    const primarySlot = container?.querySelector(
+      '.ViewportFrame.isPrimarySlot',
+    ) as HTMLElement | null
+
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDock')).not.toBeNull()
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDockStatus')).not.toBeNull()
+    expect(nonPrimarySlot?.querySelector('.PrimaryViewportLeftDock')).toBeNull()
+  })
+
+  it('keeps the unified left dock attached only to the primary model viewport after a right split', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const nonPrimarySlots = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).filter(
+      (element) => !element.classList.contains('isPrimarySlot'),
+    ) as HTMLElement[]
+    const primarySlot = container?.querySelector(
+      '.ViewportFrame.isPrimarySlot',
+    ) as HTMLElement | null
+
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDock')).not.toBeNull()
+    expect(nonPrimarySlots.every((slot) => slot.querySelector('.PrimaryViewportLeftDock') === null)).toBe(
+      true,
+    )
+  })
+
+  it('keeps the unified left dock attached only to the primary model viewport after deeper slot-tree changes', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let rightSlotId: string | null = null
+    await act(async () => {
+      rightSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    expect(rightSlotId).toBeTruthy()
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot(rightSlotId ?? '', 'bottom', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-2',
+      })
+    })
+
+    const nonPrimarySlots = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).filter(
+      (element) => !element.classList.contains('isPrimarySlot'),
+    ) as HTMLElement[]
+    const primarySlot = container?.querySelector(
+      '.ViewportFrame.isPrimarySlot',
+    ) as HTMLElement | null
+
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDock')).not.toBeNull()
+    expect(nonPrimarySlots.length).toBe(2)
+    expect(nonPrimarySlots.every((slot) => slot.querySelector('.PrimaryViewportLeftDock') === null)).toBe(
+      true,
+    )
+  })
+
+  it('keeps the docked browser visible after the primary left dock remounts during a left split', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'left', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-surface-secondary',
+      })
+    })
+
+    await rerenderAppShell(root!)
+    mockShellGeometry(container)
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDock')).not.toBeNull()
+    expect(primarySlot?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('constrains the primary left dock panel stack so it can scroll after a bottom slot split', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'bottom', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-surface-bottom',
+      })
+    })
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+    const panelStack = primarySlot?.querySelector('.PanelStack') as HTMLElement | null
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDock')).not.toBeNull()
+    expect(panelStack?.classList.contains('isConstrained')).toBe(true)
+  })
+
+  it('renders duplicated secondary slot surfaces from the workspace slot tree', async () => {
+    const duplicatedEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport('graph-document-1')
+
+    ;({ container, root } = await renderAppShell())
+
+    let consoleSlotId: string | null = null
+    await act(async () => {
+      consoleSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    expect(consoleSlotId).toBeTruthy()
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot(consoleSlotId ?? '', 'bottom', {
+        surfaceKind: 'spaghettiEditor',
+        surfaceInstanceId: duplicatedEditorViewportId,
+      })
+    })
+
+    expect(container?.querySelectorAll('.ViewportFrame').length).toBe(3)
+    expect(container?.querySelectorAll('.ConsoleDockMock').length).toBe(1)
+    expect(container?.textContent).toContain(`Spaghetti Panel ${duplicatedEditorViewportId}`)
+  })
+
+  it('renders a left split on the left side instead of mirroring it to the right', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'left', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const viewerPane = container?.querySelector(
+      '.ViewportSplitPane--viewer',
+    ) as HTMLDivElement | null
+    const editorPane = container?.querySelector(
+      '.ViewportSplitPane--editor',
+    ) as HTMLDivElement | null
+
+    expect(editorPane?.textContent).toContain('Browser Panel docked expanded')
+    expect(viewerPane?.textContent).toContain('Viewer Host')
+  })
+
+  it('preserves the browser side-split ratio when the legacy browser viewport split bridge creates a left slot', async () => {
+    useWorkspaceStore.getState().setBrowserViewportSplitRatio(320 / 1120)
+    useWorkspaceStore.getState().setBrowserViewportSplitDockSide('left')
+    useWorkspaceStore.getState().setBrowserViewportSplit(true)
+
+    ;({ container, root } = await renderAppShell())
+
+    const splitNodeId =
+      Object.keys(useWorkspaceStore.getState().viewportLayoutNodesById).find(
+        (nodeId) => useWorkspaceStore.getState().viewportLayoutNodesById[nodeId]?.kind === 'split',
+      ) ?? null
+    const splitNode =
+      (splitNodeId !== null
+        ? useWorkspaceStore.getState().viewportLayoutNodesById[splitNodeId]
+        : null) ?? null
+
+    expect(splitNode?.kind).toBe('split')
+    if (splitNode?.kind === 'split') {
+      expect(splitNode.splitDockSide).toBe('left')
+      expect(splitNode.ratio).toBeCloseTo(320 / 1120, 5)
+    }
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('drags the viewport split divider to resize the slot split ratio', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const splitLayout = container?.querySelector('.ViewportSplitLayout') as HTMLDivElement | null
+    const splitDivider = container?.querySelector('.ViewportSplitDivider') as HTMLButtonElement | null
+    expect(splitLayout).not.toBeNull()
+    expect(splitDivider).not.toBeNull()
+
+    mockRect(splitLayout, {
+      left: 320,
+      top: 0,
+      width: 1120,
+      height: 900,
+    })
+
+    await act(async () => {
+      splitDivider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 880,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1208,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1208,
+          clientY: 300,
+        }),
+      )
+    })
+
+    const splitNodeId =
+      Object.keys(useWorkspaceStore.getState().viewportLayoutNodesById).find(
+        (nodeId) => useWorkspaceStore.getState().viewportLayoutNodesById[nodeId]?.kind === 'split',
+      ) ?? null
+    const splitNode =
+      (splitNodeId !== null
+        ? useWorkspaceStore.getState().viewportLayoutNodesById[splitNodeId]
+        : null) ?? null
+    expect(splitNode?.kind).toBe('split')
+    if (splitNode?.kind === 'split') {
+      expect(splitNode.ratio).toBeCloseTo(0.20714285714285716)
+    }
+  })
+
+  it('suppresses the old docked browser host while a browser surface is already hosted in the slot tree', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    expect(container?.querySelectorAll('button[aria-label="Mock browser popout"]').length).toBe(0)
+    expect(container?.querySelector('[data-testid="browser-titlebar-docked"]')).toBeNull()
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('uses the viewport header as the only title bar for a slotted browser and cycles - e + browser presentation modes', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    expect(container?.querySelector('[data-testid="browser-titlebar-docked"]')).toBeNull()
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton?.textContent).toBe('-')
+    expect(modeButton?.getAttribute('aria-label')).toBe('Browser essentials')
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('essentials')
+    expect(useWorkspaceStore.getState().browserShell.isCollapsed).toBe(false)
+    expect(container?.textContent).toContain('Browser Panel docked essentials')
+    expect(modeButton?.textContent).toBe('e')
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('collapsed')
+    expect(useWorkspaceStore.getState().browserShell.isCollapsed).toBe(true)
+    expect(container?.textContent).not.toContain('Browser Panel docked expanded')
+    expect(container?.textContent).toContain('Browser Panel docked collapsed')
+    expect(modeButton?.textContent).toBe('+')
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.presentationMode).toBe('expanded')
+    expect(useWorkspaceStore.getState().browserShell.isCollapsed).toBe(false)
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+    expect(modeButton?.textContent).toBe('-')
+  })
+
+  it('drags a slotted browser out from the viewport header into floating mode', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const header = slotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+    expect(slotFrame).not.toBeUndefined()
+    expect(header).not.toBeNull()
+
+    mockShellGeometry(container)
+    mockRect(slotFrame, {
+      left: 920,
+      top: 0,
+      width: 520,
+      height: 900,
+    })
+    mockElementSize(slotFrame, {
+      width: 520,
+      height: 900,
+    })
+    mockRect(header, {
+      left: 920,
+      top: 0,
+      width: 520,
+      height: 40,
+    })
+
+    await act(async () => {
+      header?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 1,
+          clientX: 980,
+          clientY: 24,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 1020,
+          clientY: 72,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 800,
+          clientY: 140,
+        }),
+      )
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 800,
+          clientY: 140,
+        }),
+      )
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(true)
+    const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    expect(browserShell).not.toBeNull()
+    expect(browserShell?.style.width).toBe('320px')
+    expect(useWorkspaceStore.getState().browserShell.position.x).toBeGreaterThan(0)
+  })
+
+  it('suppresses the old docked console host while a console surface is already hosted in the slot tree', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    expect(container?.querySelectorAll('.ConsoleDockMock').length).toBe(1)
+  })
+
+  it('redocks a detached browser slot surface back into the slot tree when the compatibility host re-enters viewport split', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let browserSlotId: string | null = null
+    await act(async () => {
+      browserSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    expect(browserSlotId).toBeTruthy()
+
+    await act(async () => {
+      useWorkspaceStore.getState().detachViewportSlotSurface(browserSlotId ?? '', 'floating')
+      useWorkspaceStore.getState().setBrowserFloating(true)
+      useWorkspaceStore.getState().setBrowserViewportSplitDockSide('bottom')
+      useWorkspaceStore.getState().setBrowserViewportSplit(true)
+    })
+    await rerenderAppShell(root!)
+
+    const browserSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'browser',
+    )
+    expect(browserSlots).toHaveLength(1)
+    expect(browserSlots[0]?.surfaceInstanceId).toBe('browser-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['browser-surface-1']).toBeUndefined()
+    expect(useWorkspaceStore.getState().browserShell.isViewportSplit).toBe(false)
+  })
+
+  it('redocks a detached console slot surface back into the slot tree when the compatibility host docks', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let consoleSlotId: string | null = null
+    await act(async () => {
+      consoleSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    expect(consoleSlotId).toBeTruthy()
+
+    await act(async () => {
+      useWorkspaceStore.getState().detachViewportSlotSurface(consoleSlotId ?? '', 'popout')
+      useConsoleStore.getState().switchToPopout()
+      useConsoleStore.getState().switchToDocked()
+    })
+    await rerenderAppShell(root!)
+
+    const consoleSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'console',
+    )
+    expect(consoleSlots).toHaveLength(1)
+    expect(consoleSlots[0]?.surfaceInstanceId).toBe('console-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['console-surface-1']).toBeUndefined()
   })
 
   it('hydrates the shared workspace seam from the persisted last-layout snapshot on startup', async () => {
@@ -741,6 +1296,9 @@ describe('AppShell', () => {
     ;({ container, root } = await renderAppShell())
 
     const workspaceState = useWorkspaceStore.getState()
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Restore your saved workspace layout? Click Cancel to start fresh.',
+    )
     expect(workspaceState.leftDockWidth).toBe(404)
     expect(workspaceState.isLeftDockViewportSplit).toBe(true)
     expect(workspaceState.browserShell.isFloating).toBe(true)
@@ -776,6 +1334,55 @@ describe('AppShell', () => {
       'editor-viewport-1',
       persistedEditorSurface.windowMode,
     )
+  })
+
+  it('starts fresh and overwrites the saved layout when startup restore is declined', async () => {
+    window.localStorage.setItem(
+      workspaceLayoutStorageKey,
+      JSON.stringify({
+        version: 1,
+        leftDockWidth: 404,
+        isLeftDockViewportSplit: true,
+        browserShell: {
+          isCollapsed: true,
+          isFloating: true,
+          position: { x: 88, y: 132 },
+          size: { width: 360, height: 520 },
+        },
+        primaryViewportId: 'model-viewer-primary',
+        viewportChromeById: {
+          'model-viewer-primary': {
+            viewportId: 'model-viewer-primary',
+            surfaceKind: 'modelViewer',
+          },
+        },
+        editorSurfacePlacementById: {},
+      }),
+    )
+    window.confirm = vi.fn(() => false)
+
+    ;({ container, root } = await renderAppShell())
+
+    const workspaceState = useWorkspaceStore.getState()
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Restore your saved workspace layout? Click Cancel to start fresh.',
+    )
+    expect(workspaceState.leftDockWidth).toBe(useWorkspaceStore.getInitialState().leftDockWidth)
+    expect(workspaceState.isLeftDockViewportSplit).toBe(
+      useWorkspaceStore.getInitialState().isLeftDockViewportSplit,
+    )
+    expect(workspaceState.browserShell.isFloating).toBe(false)
+    expect(currentSpaghettiState.setEditorViewportPosition).not.toHaveBeenCalled()
+
+    const persisted = JSON.parse(
+      window.localStorage.getItem(workspaceLayoutStorageKey) ?? 'null',
+    ) as Record<string, unknown> | null
+
+    expect(persisted?.leftDockWidth).toBe(useWorkspaceStore.getInitialState().leftDockWidth)
+    expect(persisted?.isLeftDockViewportSplit).toBe(false)
+    expect(
+      (persisted?.browserShell as { isFloating?: boolean } | undefined)?.isFloating,
+    ).toBe(false)
   })
 
   it('persists shared workspace layout changes into the last-layout snapshot', async () => {
@@ -1031,7 +1638,7 @@ describe('AppShell', () => {
   it('caps browser floating width from the dock host measurement path', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
-    mockRect(container?.querySelector('.LeftDockPanelTarget--browser'), {
+    mockRect(container?.querySelector('.PrimaryViewportLeftDockPanelTarget--browser'), {
       left: 16,
       top: 88,
       width: 840,
@@ -1080,7 +1687,7 @@ describe('AppShell', () => {
     mockShellGeometry(container)
 
     const listView = container?.querySelector('.ConsoleListView') as HTMLDivElement | null
-    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
+    let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     expect(listView).not.toBeNull()
     expect(listView?.style.left).toBe('320px')
     expect(listView?.textContent).toContain('Build started')
@@ -1126,7 +1733,7 @@ describe('AppShell', () => {
 
     expect(container?.querySelector('.ViewportSplitLayout.isHorizontal')).not.toBeNull()
     expect(container?.querySelector('.ViewportSplitDivider')).not.toBeNull()
-    expect((container?.querySelector('.LeftDock') as HTMLElement | null)?.style.bottom).toContain(
+    expect((container?.querySelector('.PrimaryViewportLeftDock') as HTMLElement | null)?.style.bottom).toContain(
       'calc(',
     )
     expect(container?.textContent).toContain('Viewer Host')
@@ -1372,6 +1979,13 @@ describe('AppShell', () => {
         new MouseEvent('click', { bubbles: true, cancelable: true }),
       )
     })
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
 
     const floatingTitleBar = container?.querySelector(
       '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
@@ -1563,8 +2177,8 @@ describe('AppShell', () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
 
-    const leftDock = container?.querySelector('.LeftDock') as HTMLElement | null
-    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
+    const leftDock = container?.querySelector('.PrimaryViewportLeftDock') as HTMLElement | null
+    let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     expect(leftDock).not.toBeNull()
     expect(resizeHandle).not.toBeNull()
     expect(leftDock?.style.width).toBe('320px')
@@ -1612,7 +2226,7 @@ describe('AppShell', () => {
       height: 48,
     })
 
-    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
+    let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     const floatingTitleBar = container?.querySelector(
       '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
     ) as HTMLDivElement | null
@@ -1715,8 +2329,8 @@ describe('AppShell', () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
 
-    const leftDock = container?.querySelector('.LeftDock') as HTMLElement | null
-    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
+    const leftDock = container?.querySelector('.PrimaryViewportLeftDock') as HTMLElement | null
+    let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     expect(leftDock).not.toBeNull()
     expect(resizeHandle).not.toBeNull()
 
@@ -1761,9 +2375,11 @@ describe('AppShell', () => {
       )
     })
 
-    const resetButton = Array.from(container?.querySelectorAll('.LeftDockResizeMenuAction') ?? []).find(
-      (element) => element.textContent?.trim() === 'Default Width',
-    ) as HTMLButtonElement | undefined
+    const resetButton = Array.from(
+      container?.querySelectorAll('.PrimaryViewportLeftDockResizeMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Default Width') as
+      | HTMLButtonElement
+      | undefined
     expect(resetButton).not.toBeUndefined()
 
     await act(async () => {
@@ -1777,11 +2393,8 @@ describe('AppShell', () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
 
-    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
-    const viewportArea = container?.querySelector('.ViewportArea') as HTMLElement | null
+    const resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     expect(resizeHandle).not.toBeNull()
-    expect(viewportArea).not.toBeNull()
-    expect(viewportArea?.style.marginLeft).toBe('')
 
     await act(async () => {
       resizeHandle?.dispatchEvent(
@@ -1794,47 +2407,76 @@ describe('AppShell', () => {
       )
     })
 
-    const splitButton = Array.from(container?.querySelectorAll('.LeftDockResizeMenuAction') ?? []).find(
-      (element) => element.textContent?.trim() === 'Split Viewport',
-    ) as HTMLButtonElement | undefined
+    const splitButton = Array.from(
+      container?.querySelectorAll('.PrimaryViewportLeftDockResizeMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Split Viewport') as
+      | HTMLButtonElement
+      | undefined
     expect(splitButton).not.toBeUndefined()
 
     await act(async () => {
       splitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewportArea?.classList.contains('isLeftDockSplit')).toBe(true)
-    expect(viewportArea?.style.marginLeft).toBe('320px')
+    const workspaceState = useWorkspaceStore.getState()
+    const rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    expect(rootNode?.kind).toBe('split')
+    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('left')
+    const leftSlotNode =
+      rootNode?.kind === 'split'
+        ? workspaceState.viewportLayoutNodesById[rootNode.firstChildId]
+        : null
+    expect(leftSlotNode?.kind).toBe('leaf')
+    expect(
+      leftSlotNode?.kind === 'leaf'
+        ? workspaceState.viewportSlotsById[leftSlotNode.slotId]?.surfaceKind
+        : null,
+    ).toBe('browser')
   })
 
   it('lets the resize-bar toggle button switch left dock viewport split on and off', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
 
-    const splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
+    let splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
       (element) => element.getAttribute('aria-label') === 'Toggle left dock viewport split',
     ) as HTMLButtonElement | undefined
-    const viewportArea = container?.querySelector('.ViewportArea') as HTMLElement | null
-    const resizeHandle = container?.querySelector('.LeftDockResizeHandle') as HTMLDivElement | null
+    let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     expect(splitToggle).not.toBeUndefined()
-    expect(viewportArea?.classList.contains('isLeftDockSplit')).toBe(false)
     expect(resizeHandle?.classList.contains('isViewportSplit')).toBe(false)
+    expect(splitToggle?.classList.contains('isSlotSplitActive')).toBe(false)
 
     await act(async () => {
       splitToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewportArea?.classList.contains('isLeftDockSplit')).toBe(true)
-    expect(viewportArea?.style.marginLeft).toBe('320px')
+    let workspaceState = useWorkspaceStore.getState()
+    let rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
+    expect(rootNode?.kind).toBe('split')
+    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('left')
     expect(resizeHandle?.classList.contains('isViewportSplit')).toBe(false)
+    expect(resizeHandle?.classList.contains('isSlotSplitActive')).toBe(true)
+
+    splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (element) => element.getAttribute('aria-label') === 'Toggle left dock viewport split',
+    ) as HTMLButtonElement | undefined
+    expect(splitToggle?.classList.contains('isSlotSplitActive')).toBe(true)
 
     await act(async () => {
       splitToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewportArea?.classList.contains('isLeftDockSplit')).toBe(false)
-    expect(viewportArea?.style.marginLeft).toBe('')
+    workspaceState = useWorkspaceStore.getState()
+    rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
+    splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (element) => element.getAttribute('aria-label') === 'Toggle left dock viewport split',
+    ) as HTMLButtonElement | undefined
+    expect(rootNode?.kind).toBe('leaf')
     expect(resizeHandle?.classList.contains('isViewportSplit')).toBe(false)
+    expect(resizeHandle?.classList.contains('isSlotSplitActive')).toBe(false)
+    expect(splitToggle?.classList.contains('isSlotSplitActive')).toBe(false)
   })
 
   it('undocks the Browser into a floating window when the docked titlebar is dragged', async () => {
@@ -1911,7 +2553,9 @@ describe('AppShell', () => {
     })
 
     expect(
-      container?.querySelector('.LeftDockPanelTarget--browser')?.classList.contains('isPreviewActive'),
+      container
+        ?.querySelector('.PrimaryViewportLeftDockPanelTarget--browser')
+        ?.classList.contains('isPreviewActive'),
     ).toBe(true)
 
     await act(async () => {
@@ -1927,6 +2571,54 @@ describe('AppShell', () => {
 
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
     expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('keeps a floating browser inside the primary model viewport body instead of letting it slide under the title bar', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('.ViewportFrame.isPrimarySlot .ViewportFrameBody'), {
+      left: 320,
+      top: 56,
+      width: 1120,
+      height: 844,
+    })
+
+    await undockBrowserFromDock(container)
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+    expect(floatingTitlebar).not.toBeNull()
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 260,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 280,
+          clientY: 0,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 280,
+          clientY: 0,
+        }),
+      )
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.position.y).toBe(56)
   })
 
   it('keeps the window controls available in meatball editor view', async () => {
@@ -2041,7 +2733,9 @@ describe('AppShell', () => {
     })
 
     expect(
-      container?.querySelector('.LeftDockPanelTarget--meatball-editor')?.classList.contains('isPreviewActive'),
+      container
+        ?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor')
+        ?.classList.contains('isPreviewActive'),
     ).toBe(true)
 
     await act(async () => {

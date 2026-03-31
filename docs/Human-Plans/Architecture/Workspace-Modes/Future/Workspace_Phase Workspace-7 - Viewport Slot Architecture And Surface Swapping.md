@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+25. 2026-03-30 16:31: Locked `Workspace 7` Questions `35` through `39`, clarifying the cleanup pass for `7.4`, when slot duplicate/close/merge actions should land, how `Pop Out` should mirror the float lifecycle under the slot model, how workspace persistence should store slot trees plus retained-surface host modes, and how the old Browser and Spaghetti split hosts should be retired after the slot system proves itself, while leaving `Question 40` open as a later advanced-feature bucket
+24. 2026-03-30 16:24: Locked the first `Workspace 7.3` scope question and added the first explicit remaining open-question list for the later `7.x` ladder, so the doc now shows both the locked foundation and the still-open follow-on decisions in one readable place instead of implying there are no questions left
+23. 2026-03-30 16:18: Locked the first `Workspace 7.2` scope question, clarifying that the second subphase after `7.1` should prove real duplicate `Browser`, `Console`, and `Spaghetti Editor` surfaces under the new slot model, widen host-mode parity across slotted, floating, and popout presentations, and begin retiring older special-case split hosts where the new slot system has already replaced them
 22. 2026-03-30 16:15: Locked the first `Workspace 7.1` scope question, clarifying that the first subphase should cover viewport-slot types, local headers, the right-click viewport-type picker, first slot-based split creation, and the drag-out-to-float plus re-dock loop, while leaving full duplicate-model-viewport runtime parity and deeper slot lifecycle actions for later `7.x` cuts
 21. 2026-03-30 16:11: Reorganized the `Workspace 7` question ladder for readability while keeping all 31 locked questions, adding a short question-status summary and regrouping the questions into a cleaner sequential order so the architecture checklist is easier to scan without changing the underlying decisions
 20. 2026-03-30 16:06: Locked the drag-out lifecycle loop for `Workspace 7`, clarifying that when a slotted surface is dragged into floating mode its now-empty slot should dissolve and the layout should recombine cleanly, while that same floating surface can later be dragged back to a viewport edge to create a new split slot again
@@ -157,9 +160,9 @@ Current code seams:
 
 ### Question Status
 
-- locked questions: `32`
-- open questions: `0`
-- current need: break `Workspace 7` into safe implementation subphases, not discover a new first-wave architecture question set
+- locked questions: `39`
+- open questions: `1`
+- current need: finish the final later-feature bucket question only if it helps shape post-`7.4` planning; the core `7.x` ladder is now mostly locked
 
 ### Core Architecture
 
@@ -592,6 +595,114 @@ Current code seams:
 - this gives the first real working viewport-slot architecture without forcing the riskiest parts into the same cut
 - it is enough to prove the new slot model, host-mode transitions, and viewport selector behavior
 - it keeps the later `Workspace 7.x` ladder meaningful instead of collapsing every risk into the first implementation pass
+
+#### [x] Workspace 7 - Question 33 - What should the first `Workspace 7.2` subphase include after `7.1` proves the slot model?
+
+##### Locked Answer
+- `Workspace 7.2` should include:
+  - real duplicate `Browser` surfaces under the new slot model
+  - real duplicate `Console` surfaces under the new slot model
+  - real duplicate `Spaghetti Editor` surfaces under the new slot model
+  - stronger restore and rebind behavior for retained surfaces
+  - fuller host-mode parity across `slotted`, `floating`, and `popout`
+  - the start of retiring older special-case Browser and Spaghetti split hosts where the new slot system has already replaced them
+- `Workspace 7.2` should still leave:
+  - full multiple-`Model Viewport` runtime parity
+  - the deepest slot lifecycle actions and cleanup
+  - later viewport copy or preset features
+
+##### Why
+- `Workspace 7.1` proves the slot architecture
+- `Workspace 7.2` should prove the duplicated-surface architecture on top of that slot model
+- this keeps a later `7.3` available for the heavier multiple-`Model Viewport` widening work
+
+#### [x] Workspace 7 - Question 34 - What should the first `Workspace 7.3` subphase include once `7.2` proves duplicated `Browser`, `Console`, and `Spaghetti Editor` surfaces?
+
+##### Locked Answer
+- `Workspace 7.3` should include:
+  - real multiple `Model Viewport` surfaces under the slot model
+  - fully widened per-viewport camera and view state
+  - explicit floating-host targeting across multiple model viewports
+  - stronger parity for re-docking and cross-viewport floating behavior
+  - the start of deleting remaining "one protected viewer" assumptions where the new slot model already replaces them
+- `Workspace 7.3` should still leave:
+  - later viewport preset or copy-library features
+  - the final host cleanup and deletion pass after the new viewer model is proven
+
+##### Why
+- `Workspace 7.1` proves the slot architecture
+- `Workspace 7.2` proves duplicated non-viewer surfaces
+- `Workspace 7.3` is the right place to widen the heaviest part: true multiple model viewports
+
+#### [x] Workspace 7 - Question 35 - What should the first `Workspace 7.4` cleanup phase delete once `7.3` proves the honest multi-viewport model?
+
+##### Locked Answer
+- delete surviving special-case split logic that the slot system now replaces
+- delete old one-protected-viewer assumptions that no longer have a runtime reason to survive
+- collapse temporary migration adapters introduced during `7.1` through `7.3`
+
+##### Why
+- `7.4` should be the convergence cleanup pass, not another feature-expansion phase
+- once the slot system is proven, keeping the older special-case split logic alive would only preserve confusion and maintenance cost
+
+#### [x] Workspace 7 - Question 36 - When should `Duplicate Slot`, `Close Slot`, and `Join/Merge Slots` land, and what lifecycle rules should they follow?
+
+##### Locked Answer
+- land them only after `7.1` through `7.3` prove slot identity, retained-surface restore, and multi-viewport host behavior
+- keep them out until slot destruction and recombine rules are fully trustworthy
+- when they do land, they should operate on the honest slot tree rather than reviving old feature-specific split logic
+
+##### Why
+- these actions directly mutate slot lifecycle and layout topology
+- they are high-risk until the new slot identity and dissolve/recombine rules are proven stable
+
+#### [x] Workspace 7 - Question 37 - What exact parity should `Pop Out` have with slotted and floating surfaces once the slot model is live?
+
+##### Locked Answer
+- `Pop Out` should follow the same owner-transfer truth as `Float`
+- leaving a slot for `Pop Out` should dissolve the empty slot
+- the popped-out surface should be able to re-dock into a new split slot or return to floating later
+- the main difference should only be host location:
+  - `Float` = over a model viewport
+  - `Pop Out` = in a child browser window
+
+##### Why
+- this keeps `slotted`, `floating`, and `popout` as peer host modes instead of making `Pop Out` another special-case system
+- it also matches the drag-out / re-dock lifecycle already locked for `Float`
+
+#### [x] Workspace 7 - Question 38 - How should persisted workspace layouts represent slot trees, host modes, retained surfaces, and viewport affinity?
+
+##### Locked Answer
+- extend the `Workspace 4` persistence seam to store:
+  - the slot tree
+  - per-slot hosted surface instance ids
+  - host modes
+  - retained surfaces where needed
+  - explicit `hostViewportId` affinity for floating or popped-out surfaces
+- keep authored graph or project data out of that snapshot
+
+##### Why
+- the workspace snapshot needs to describe shell and hosting truth, not authored project truth
+- this keeps persistence aligned with the modular host-mode model already locked for `Workspace 7`
+
+#### [x] Workspace 7 - Question 39 - What migration rule should retire the old Browser and Spaghetti split hosts once slot hosting takes over?
+
+##### Locked Answer
+- once a behavior is proven under the slot model, stop leaving the old special-case split path alive beside it
+- retire `BrowserDockHost` and `SpaghettiWindowHost` split-specific ownership gradually
+- do not keep two parallel split systems long term
+
+##### Why
+- the goal of `Workspace 7` is convergence on one honest system
+- parallel split systems would keep the architecture muddy even after the new slot model is proven
+
+#### [ ] Workspace 7 - Question 40 - What later advanced viewport features belong after the core slot system is fully honest?
+
+##### Suggestion
+- viewport presets
+- copy or clone viewport layouts
+- richer area-type families beyond the first Browser, Console, Spaghetti, and Model Viewport set
+- deeper per-viewport command bars after the core slot and host model is stable
 
 ### Locked UX Rule
 

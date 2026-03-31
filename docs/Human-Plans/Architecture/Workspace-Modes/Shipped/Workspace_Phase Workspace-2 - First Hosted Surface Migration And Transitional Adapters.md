@@ -90,7 +90,7 @@ Practical read:
 
 Primary planning sources:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
 - `docs/Phase-Plans/Tasks/Future/05.1C - VR-SP - Hybrid Tool Surface Hosting And Floating-Tiled Transitions.md`
 - shipped split proof:
   - `docs/Phase-Plans/Tasks/Old/05.1B - VR-SP - Split Pane Authoring And Divider Controls.md`

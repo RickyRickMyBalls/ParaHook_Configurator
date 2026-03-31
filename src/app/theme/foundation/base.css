@@ -57,6 +57,15 @@ body {
   animation: title-status-border-glow 4.8s ease-in-out infinite;
 }
 
+.ViewportTitleStatusBar {
+  position: absolute;
+  top: 56px;
+  left: 14px;
+  z-index: 35;
+  width: min(320px, calc(100% - 28px));
+  pointer-events: auto;
+}
+
 .TitleStatusBar::before {
   content: '';
   position: absolute;
@@ -1299,6 +1308,140 @@ button.ParaSelectMenuAction:hover {
 .ViewportWorkspaceHost {
   position: absolute;
   inset: 0;
+}
+
+.ViewportFrame {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(7, 9, 13, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ViewportFrameHeader {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 8px;
+  background: linear-gradient(180deg, rgba(15, 18, 25, 0.96) 0%, rgba(10, 12, 17, 0.92) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ViewportFrameHeaderStart {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ViewportFrameModeButton,
+.ViewportFrameActionMenuButton,
+.ViewportFrameActionMenuAction,
+.ViewportFrameTypePickerAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(241, 244, 255, 0.96);
+}
+
+.ViewportFrameTitle {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(223, 229, 255, 0.78);
+  white-space: nowrap;
+}
+
+.ViewportFrameBody {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ViewportFrameTypePicker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 8px;
+  z-index: 50;
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(13, 15, 20, 0.98);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+}
+
+.ViewportFrameActionMenu {
+  position: absolute;
+  z-index: 50;
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(13, 15, 20, 0.98);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+}
+
+.ViewportFrameActionMenuAction,
+.ViewportFrameTypePickerAction {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 32px;
+  font-size: 12px;
+}
+
+.ViewportFrameTypePickerAction.isActive {
+  border-color: rgba(120, 176, 255, 0.48);
+  background: rgba(71, 108, 191, 0.24);
+}
+
+.WorkspaceViewportSlotSurface,
+.WorkspaceViewportSlotSurface .ConsoleDock {
+  position: absolute;
+  inset: 0;
+}
+
+.WorkspaceViewportSlotSurface {
+  min-width: 0;
+  min-height: 0;
+}
+
+.WorkspaceViewportSlotPlaceholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(220, 226, 255, 0.68);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(88, 128, 255, 0.14), transparent 56%),
+    rgba(7, 9, 13, 0.74);
 }
 
 .ViewportViewerSurface {

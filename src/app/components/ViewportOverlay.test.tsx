@@ -908,7 +908,7 @@ describe('ViewportOverlay sketch session window', () => {
       Object.defineProperty(HTMLElement.prototype, 'getBoundingClientRect', {
         configurable: true,
         value: function mockGetBoundingClientRect(this: HTMLElement) {
-          if (this.classList.contains('LeftDockPanelTarget--browser')) {
+          if (this.classList.contains('PrimaryViewportLeftDockPanelTarget--browser')) {
             return {
               left: 0,
               top: 24,
@@ -921,7 +921,7 @@ describe('ViewportOverlay sketch session window', () => {
               toJSON: () => ({}),
             }
           }
-          if (this.classList.contains('LeftDock')) {
+          if (this.classList.contains('PrimaryViewportLeftDock')) {
             return {
               left: 0,
               top: 0,
@@ -952,9 +952,10 @@ describe('ViewportOverlay sketch session window', () => {
       })
 
       const leftDock = document.createElement('aside')
-      leftDock.className = 'LeftDock'
+      leftDock.className = 'PrimaryViewportLeftDock'
       const browserTarget = document.createElement('div')
-      browserTarget.className = 'LeftDockPanelTarget LeftDockPanelTarget--browser'
+      browserTarget.className =
+        'PrimaryViewportLeftDockPanelTarget PrimaryViewportLeftDockPanelTarget--browser'
       leftDock.appendChild(browserTarget)
       document.body.appendChild(leftDock)
 

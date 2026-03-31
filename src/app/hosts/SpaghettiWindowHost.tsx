@@ -519,6 +519,8 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   const setEditorViewportSize = useSpaghettiStore((state) => state.setEditorViewportSize)
   const closeEditorViewport = useSpaghettiStore((state) => state.closeEditorViewport)
   const editorSurfacePlacementById = useWorkspaceStore((state) => state.editorSurfacePlacementById)
+  const detachedSlotSurfaceById = useWorkspaceStore((state) => state.detachedSlotSurfaceById)
+  const redockDetachedSurface = useWorkspaceStore((state) => state.redockDetachedSurface)
   const activeEditorSurface =
     activeEditorViewportId.length > 0 ? editorSurfacePlacementById[activeEditorViewportId] ?? null : null
   const orderedEditorViewports = useMemo(
@@ -670,8 +672,26 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   const getFloatingShellFrame = useCallback(() => {
     const shellElement = appShellRef.current
     const viewportElement = viewportRef.current
+    const primaryViewportBodyElement =
+      viewportElement?.querySelector('.ViewportFrame.isPrimarySlot .ViewportFrameBody') instanceof
+      HTMLElement
+        ? (viewportElement.querySelector('.ViewportFrame.isPrimarySlot .ViewportFrameBody') as HTMLElement)
+        : null
     const shellRect = shellElement?.getBoundingClientRect()
+    const primaryViewportBodyRect = primaryViewportBodyElement?.getBoundingClientRect()
     const viewportRect = viewportElement?.getBoundingClientRect()
+    const fallbackShellWidth =
+      shellElement?.clientWidth ??
+      (typeof window === 'undefined' ? 1440 : Math.max(1, window.innerWidth))
+    const fallbackShellHeight =
+      shellElement?.clientHeight ??
+      (typeof window === 'undefined' ? 900 : Math.max(1, window.innerHeight))
+    const fallbackViewportWidth =
+      viewportElement?.clientWidth ??
+      (typeof window === 'undefined' ? fallbackShellWidth : Math.max(1, window.innerWidth))
+    const fallbackViewportHeight =
+      viewportElement?.clientHeight ??
+      (typeof window === 'undefined' ? fallbackShellHeight : Math.max(1, window.innerHeight))
     if (
       shellElement === null ||
       viewportElement === null ||
@@ -680,13 +700,35 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     ) {
       return null
     }
+    const shellWidth = Math.max(1, Math.round(shellRect.width || fallbackShellWidth))
+    const shellHeight = Math.max(1, Math.round(shellRect.height || fallbackShellHeight))
+    const viewportWidth = Math.max(1, Math.round(viewportRect.width || fallbackViewportWidth))
+    const viewportHeight = Math.max(1, Math.round(viewportRect.height || fallbackViewportHeight))
+    const viewportOffsetLeft =
+      viewportRect.width > 0 ? Math.round(viewportRect.left - shellRect.left) : 0
+    const viewportOffsetTop =
+      viewportRect.height > 0 ? Math.round(viewportRect.top - shellRect.top) : 0
+    const bodyOffsetTop =
+      primaryViewportBodyRect !== undefined &&
+      primaryViewportBodyRect.width > 0 &&
+      primaryViewportBodyRect.height > 0
+        ? Math.round(primaryViewportBodyRect.top - shellRect.top)
+        : viewportOffsetTop
+    const bodyHeight =
+      primaryViewportBodyRect !== undefined &&
+      primaryViewportBodyRect.width > 0 &&
+      primaryViewportBodyRect.height > 0
+        ? Math.max(1, Math.round(primaryViewportBodyRect.height))
+        : viewportHeight
     return {
-      shellWidth: shellElement.clientWidth,
-      shellHeight: shellElement.clientHeight,
-      offsetLeft: Math.round(viewportRect.left - shellRect.left),
-      offsetTop: Math.round(viewportRect.top - shellRect.top),
-      viewportWidth: viewportElement.clientWidth,
-      viewportHeight: viewportElement.clientHeight,
+      shellWidth,
+      shellHeight,
+      offsetLeft: viewportOffsetLeft,
+      offsetTop: viewportOffsetTop,
+      viewportWidth,
+      viewportHeight,
+      bodyOffsetTop,
+      bodyHeight,
     }
   }, [appShellRef, viewportRef])
 
@@ -865,18 +907,18 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
           y: Math.max(0, Math.round(pos.y)),
         }
       }
-      const minX = -frame.offsetLeft
+      const minViewportX = -frame.offsetLeft
       const maxX = Math.max(
-        minX,
+        minViewportX,
         frame.shellWidth - frame.offsetLeft - floatingSizeRef.current.width - floatingEdgePadding,
       )
-      const minY = -frame.offsetTop
+      const minY = frame.bodyOffsetTop
       const maxY = Math.max(
         minY,
-        frame.shellHeight - frame.offsetTop - minVisibleFloatingHandleHeight,
+        frame.bodyOffsetTop + frame.bodyHeight - minVisibleFloatingHandleHeight,
       )
       return {
-        x: Math.min(maxX, Math.max(minX, Math.round(pos.x))),
+        x: Math.min(maxX, Math.max(minViewportX, Math.round(pos.x))),
         y: Math.min(maxY, Math.max(minY, Math.round(pos.y))),
       }
     },
@@ -914,24 +956,22 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
 
   const resolveSplitDockPreviewSide = useCallback(
     (candidate: FloatingPosition, titleBarHeight: number): WorkspaceSplitDockSide | null => {
-      const viewportElement = viewportRef.current
-      if (
-        viewportElement === null ||
-        viewportElement.clientWidth <= 0 ||
-        viewportElement.clientHeight <= 0
-      ) {
+      const frame = getFloatingShellFrame()
+      if (frame === null) {
         return null
       }
       const edgeThreshold = 20
+      const bodyTop = frame.bodyOffsetTop
+      const bodyBottom = frame.bodyOffsetTop + frame.bodyHeight
       const edgeDistances: Array<{ side: WorkspaceSplitDockSide; distance: number }> = [
-        { side: 'top', distance: Math.max(0, candidate.y) },
+        { side: 'top', distance: Math.max(0, candidate.y - bodyTop) },
         {
           side: 'right',
-          distance: Math.max(0, viewportElement.clientWidth - (candidate.x + floatingSizeRef.current.width)),
+          distance: Math.max(0, frame.viewportWidth - (candidate.x + floatingSizeRef.current.width)),
         },
         {
           side: 'bottom',
-          distance: Math.max(0, viewportElement.clientHeight - (candidate.y + titleBarHeight)),
+          distance: Math.max(0, bodyBottom - (candidate.y + titleBarHeight)),
         },
         { side: 'left', distance: Math.max(0, candidate.x) },
       ]
@@ -940,7 +980,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         .sort((left, right) => left.distance - right.distance)[0]
       return previewableEdge?.side ?? null
     },
-    [viewportRef],
+    [getFloatingShellFrame],
   )
 
   useEffect(() => {
@@ -1176,8 +1216,12 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
           setEditorViewportHeaderCollapsed(editorViewportId, true)
           setEditorViewportWindowMode(editorViewportId, 'meatball editor view')
         } else if (nextSplitDockSide !== null) {
-          setEditorViewportSplitDockSide(editorViewportId, nextSplitDockSide)
-          setEditorViewportWindowMode(editorViewportId, 'split view')
+          if (detachedSlotSurfaceById[editorViewportId] !== undefined) {
+            redockDetachedSurface(editorViewportId, nextSplitDockSide)
+          } else {
+            setEditorViewportSplitDockSide(editorViewportId, nextSplitDockSide)
+            setEditorViewportWindowMode(editorViewportId, 'split view')
+          }
         }
         window.removeEventListener('pointermove', handleMove)
         window.removeEventListener('pointerup', handleUp)
@@ -1195,6 +1239,8 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       setEditorViewportPosition,
       setEditorViewportSplitDockSide,
       setEditorViewportWindowMode,
+      detachedSlotSurfaceById,
+      redockDetachedSurface,
       resolveSplitDockPreviewSide,
       viewportRef,
     ],
@@ -1725,13 +1771,21 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       if (windowMode !== 'separateWindow') {
         return
       }
+      const detachedSlotSurface = detachedSlotSurfaceById[editorViewportId] ?? null
+      if (detachedSlotSurface !== null) {
+        setEditorViewportWindowMode(editorViewportId, 'separateWindow')
+        redockDetachedSurface(editorViewportId, detachedSlotSurface.preferredSplitDockSide)
+        return
+      }
       setActiveLeftDockPreviewPanelId(null)
       setSplitDockPreviewSide(null)
       setEditorViewportWindowMode(editorViewportId, 'separateWindow')
     },
     [
+      detachedSlotSurfaceById,
       editorSurfacePlacementById,
       editorViewportsById,
+      redockDetachedSurface,
       setActiveLeftDockPreviewPanelId,
       setEditorViewportWindowMode,
     ],

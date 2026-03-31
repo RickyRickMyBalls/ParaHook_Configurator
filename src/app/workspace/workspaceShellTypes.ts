@@ -2,6 +2,7 @@ import {
   defaultWorkspaceSplitDirection,
   resolveDefaultWorkspaceSplitDockSide,
   defaultWorkspaceSplitPriority,
+  resolveWorkspaceSplitDirectionForDockSide,
   type WorkspaceSplitDockSide,
   type WorkspaceSplitDirection,
   type WorkspaceSplitPriority,
@@ -30,7 +31,10 @@ export type BrowserFloatingSize = {
   height: number
 }
 
+export type BrowserPresentationMode = 'expanded' | 'essentials' | 'collapsed'
+
 export type BrowserShellState = {
+  presentationMode: BrowserPresentationMode
   isCollapsed: boolean
   isFloating: boolean
   isPoppedOut: boolean
@@ -46,8 +50,14 @@ export type WorkspaceSurfaceKind = 'modelViewer' | 'browser' | 'console' | 'spag
 
 export type WorkspaceSurfaceInstanceId = string
 export type WorkspaceViewportId = WorkspaceSurfaceInstanceId
+export type WorkspaceViewportSlotId = string
+export type WorkspaceLayoutNodeId = string
+export type WorkspaceRetainedSurfaceInstanceIdsByKind = Partial<
+  Record<WorkspaceSurfaceKind, WorkspaceSurfaceInstanceId>
+>
 
 export type WorkspacePresentationMode = 'windowed' | 'tiled'
+export type WorkspaceSurfaceHostMode = 'slotted' | 'floating' | 'popout'
 
 export type WorkspaceHostedSurfaceWindowOwner = 'main-app' | 'child-window'
 export type WorkspaceChildWindowId = string
@@ -132,6 +142,45 @@ export type WorkspaceViewportChromeState = {
   surfaceKind: 'modelViewer'
 }
 
+export type WorkspaceViewportSlot = {
+  slotId: WorkspaceViewportSlotId
+  surfaceKind: WorkspaceSurfaceKind
+  surfaceInstanceId: WorkspaceSurfaceInstanceId
+  hostMode: 'slotted'
+  hostViewportId: WorkspaceViewportId | null
+  leafNodeId: WorkspaceLayoutNodeId
+  retainedSurfaceInstanceIdsByKind: WorkspaceRetainedSurfaceInstanceIdsByKind
+}
+
+export type WorkspaceDetachedSurfaceHostMode = Exclude<WorkspaceSurfaceHostMode, 'slotted'>
+
+export type WorkspaceDetachedSlotSurfaceState = {
+  surfaceKind: Exclude<WorkspaceSurfaceKind, 'modelViewer'>
+  surfaceInstanceId: WorkspaceSurfaceInstanceId
+  hostMode: WorkspaceDetachedSurfaceHostMode
+  hostViewportId: WorkspaceViewportId | null
+  lastSlotId: WorkspaceViewportSlotId
+  preferredSplitDockSide: WorkspaceSplitDockSide
+}
+
+export type WorkspaceLayoutLeafNode = {
+  nodeId: WorkspaceLayoutNodeId
+  kind: 'leaf'
+  slotId: WorkspaceViewportSlotId
+}
+
+export type WorkspaceLayoutSplitNode = {
+  nodeId: WorkspaceLayoutNodeId
+  kind: 'split'
+  splitDirection: WorkspaceSplitDirection
+  splitDockSide: WorkspaceSplitDockSide
+  ratio: number
+  firstChildId: WorkspaceLayoutNodeId
+  secondChildId: WorkspaceLayoutNodeId
+}
+
+export type WorkspaceLayoutNode = WorkspaceLayoutLeafNode | WorkspaceLayoutSplitNode
+
 export type PersistedWorkspaceLayout = {
   version: 1
   leftDockWidth: number
@@ -139,14 +188,27 @@ export type PersistedWorkspaceLayout = {
   browserShell: BrowserShellState
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
+  viewportSlotRootNodeId: WorkspaceLayoutNodeId
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>
+  viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>
+  detachedSlotSurfaceById: Record<string, WorkspaceDetachedSlotSurfaceState>
   editorSurfacePlacementById: Record<string, EditorWorkspaceSurfaceState>
 }
 
 export const defaultLeftDockWidth = 320
 export const defaultPrimaryWorkspaceViewportId: WorkspaceViewportId = 'model-viewer-primary'
+export const defaultPrimaryViewportSlotId: WorkspaceViewportSlotId = 'workspace-slot-primary'
+export const defaultSecondaryViewportSlotId: WorkspaceViewportSlotId = 'workspace-slot-secondary'
+export const defaultPrimaryViewportLeafNodeId: WorkspaceLayoutNodeId = 'workspace-slot-leaf-primary'
+export const defaultSecondaryViewportLeafNodeId: WorkspaceLayoutNodeId =
+  'workspace-slot-leaf-secondary'
+export const defaultViewportLayoutSplitNodeId: WorkspaceLayoutNodeId = 'workspace-slot-split-root'
+export const defaultViewportLayoutRootNodeId: WorkspaceLayoutNodeId =
+  defaultPrimaryViewportLeafNodeId
 
 export const defaultBrowserFloatingPosition: BrowserFloatingPosition = { x: 16, y: 96 }
 export const defaultBrowserFloatingSize: BrowserFloatingSize = { width: 320, height: 560 }
+export const defaultBrowserPresentationMode: BrowserPresentationMode = 'expanded'
 export const defaultBrowserViewportSplitRatio = 0.5
 export const defaultBrowserViewportSplitDockSide: WorkspaceSplitDockSide = 'right'
 export const defaultBrowserPopoutState: WorkspacePopoutSurfaceState = {
@@ -198,4 +260,103 @@ export const createDefaultWorkspaceViewportChromeState = (
 ): WorkspaceViewportChromeState => ({
   viewportId,
   surfaceKind: 'modelViewer',
+})
+
+export const createWorkspaceSurfaceInstanceIdForSlot = (
+  surfaceKind: WorkspaceSurfaceKind,
+  slotId: WorkspaceViewportSlotId,
+): WorkspaceSurfaceInstanceId => {
+  if (surfaceKind === 'modelViewer') {
+    return slotId === defaultPrimaryViewportSlotId
+      ? defaultPrimaryWorkspaceViewportId
+      : `model-viewer-${slotId}`
+  }
+  if (surfaceKind === 'browser') {
+    return `browser-${slotId}`
+  }
+  if (surfaceKind === 'console') {
+    return `console-${slotId}`
+  }
+  return `spaghetti-${slotId}`
+}
+
+export const createNextWorkspaceGeneratedId = (
+  prefix: string,
+  existingIds: Iterable<string>,
+): string => {
+  let maxOrdinal = 0
+  const matcher = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\\\]/g, '\\$&')}(?:-(\\d+))?$`)
+  for (const existingId of existingIds) {
+    const matched = existingId.match(matcher)
+    if (matched === null) {
+      continue
+    }
+    const ordinal =
+      matched[1] === undefined || matched[1].length === 0 ? 1 : Number.parseInt(matched[1], 10)
+    if (Number.isFinite(ordinal)) {
+      maxOrdinal = Math.max(maxOrdinal, ordinal)
+    }
+  }
+  return `${prefix}-${maxOrdinal + 1}`
+}
+
+export const createDefaultWorkspaceViewportSlot = (
+  slotId: WorkspaceViewportSlotId,
+  surfaceKind: WorkspaceSurfaceKind,
+  leafNodeId: WorkspaceLayoutNodeId,
+  hostViewportId: WorkspaceViewportId | null = null,
+): WorkspaceViewportSlot => ({
+  slotId,
+  surfaceKind,
+  surfaceInstanceId: createWorkspaceSurfaceInstanceIdForSlot(surfaceKind, slotId),
+  hostMode: 'slotted',
+  hostViewportId,
+  leafNodeId,
+  retainedSurfaceInstanceIdsByKind: {
+    [surfaceKind]: createWorkspaceSurfaceInstanceIdForSlot(surfaceKind, slotId),
+  },
+})
+
+export const createDefaultWorkspaceLayoutLeafNode = (
+  nodeId: WorkspaceLayoutNodeId,
+  slotId: WorkspaceViewportSlotId,
+): WorkspaceLayoutLeafNode => ({
+  nodeId,
+  kind: 'leaf',
+  slotId,
+})
+
+export const createDefaultWorkspaceLayoutSplitNode = (
+  splitDockSide: WorkspaceSplitDockSide,
+  ratio: number,
+): WorkspaceLayoutSplitNode => ({
+  nodeId: defaultViewportLayoutSplitNodeId,
+  kind: 'split',
+  splitDirection: resolveWorkspaceSplitDirectionForDockSide(splitDockSide),
+  splitDockSide,
+  ratio,
+  firstChildId: defaultPrimaryViewportLeafNodeId,
+  secondChildId: defaultSecondaryViewportLeafNodeId,
+})
+
+export const createDefaultWorkspaceSlotTree = (): {
+  viewportSlotRootNodeId: WorkspaceLayoutNodeId
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>
+  viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>
+} => ({
+  viewportSlotRootNodeId: defaultViewportLayoutRootNodeId,
+  viewportSlotsById: {
+    [defaultPrimaryViewportSlotId]: createDefaultWorkspaceViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'modelViewer',
+      defaultPrimaryViewportLeafNodeId,
+      defaultPrimaryWorkspaceViewportId,
+    ),
+  },
+  viewportLayoutNodesById: {
+    [defaultPrimaryViewportLeafNodeId]: createDefaultWorkspaceLayoutLeafNode(
+      defaultPrimaryViewportLeafNodeId,
+      defaultPrimaryViewportSlotId,
+    ),
+  },
 })

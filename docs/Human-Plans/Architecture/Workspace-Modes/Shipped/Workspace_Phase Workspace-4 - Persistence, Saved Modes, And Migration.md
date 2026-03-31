@@ -98,9 +98,9 @@ Practical read:
 
 Primary planning sources:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-3 - Viewport-Local Chrome And Toolbar Host.md`
 - historical grounding:
   - `docs/Phase-Plans/Tasks/Future/05.1D - VR-SP - Workspace Persistence, Saved Modes, And Migration.md`
 

@@ -70,6 +70,11 @@
   overflow: auto;
 }
 
+.BrowserPanelRoot.isHeaderless .BrowserPanelBody {
+  border-top: 1px solid var(--v15-panel-border);
+  border-radius: 12px;
+}
+
 .BrowserPanelTitleBar {
   display: flex;
   align-items: center;
@@ -92,7 +97,7 @@
   position: relative;
   z-index: 1;
   cursor: grab;
-  user-select: text;
+  user-select: none;
 }
 
 .BrowserPanelTitleBar.isCollapsed {
@@ -104,6 +109,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.BrowserPanelTitleBarActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .BrowserPanelTitle {

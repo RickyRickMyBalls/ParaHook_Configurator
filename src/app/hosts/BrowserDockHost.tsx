@@ -1,9 +1,11 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from 'react'
@@ -13,6 +15,7 @@ import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
   defaultBrowserPopoutState,
+  defaultBrowserFloatingSize,
   type BrowserFloatingPosition,
   type BrowserFloatingSize,
   type LeftDockPanelId,
@@ -27,11 +30,20 @@ const floatingEdgePadding = 12
 const browserPopoutBackground = 'rgb(11, 12, 16)'
 const browserSplitDividerSize = 10
 
+type BrowserFloatingFrame = {
+  shellWidth: number
+  shellHeight: number
+  minY: number
+  maxY: number
+}
+
 type BrowserDockHostProps = {
   appShellRef: RefObject<HTMLDivElement | null>
   viewportRef: RefObject<HTMLElement | null>
   viewportSplitHostRef: RefObject<HTMLDivElement | null>
   dockedBrowserHostRef: RefObject<HTMLDivElement | null>
+  renderViewportSplitSurface?: boolean
+  suppressDockedSurface?: boolean
   resolveLeftDockPreviewPanelId: (
     panelId: LeftDockPanelId,
     clientX: number,
@@ -43,6 +55,15 @@ type BrowserDockHostProps = {
     y: number
   }
   workspaceActiveSurface: 'spaghetti' | 'browser' | 'console' | 'viewer' | null
+  slotHeaderDragSeed: {
+    pointerId: number
+    clientX: number
+    clientY: number
+    pointerOffsetX: number
+    pointerOffsetY: number
+    titleBarHeight: number
+  } | null
+  onConsumeSlotHeaderDragSeed: () => void
 }
 
 export function BrowserDockHost(props: BrowserDockHostProps) {
@@ -51,10 +72,14 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     viewportRef,
     viewportSplitHostRef,
     dockedBrowserHostRef,
+    renderViewportSplitSurface = true,
+    suppressDockedSurface = false,
     resolveLeftDockPreviewPanelId,
     onActivateBrowserFloatingWindow,
     newEditorSpawnPosition,
     workspaceActiveSurface,
+    slotHeaderDragSeed,
+    onConsumeSlotHeaderDragSeed,
   } = props
   const [dockedBrowserPortalTarget, setDockedBrowserPortalTarget] = useState<HTMLDivElement | null>(null)
   const activeLeftDockPreviewPanelId = useWorkspaceStore(
@@ -69,13 +94,17 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const setIsBrowserPoppedOut = useWorkspaceStore((state) => state.setBrowserPoppedOut)
   const isBrowserViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
   const setIsBrowserViewportSplit = useWorkspaceStore((state) => state.setBrowserViewportSplit)
+  const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const isBrowserCollapsed = useWorkspaceStore((state) => state.browserShell.isCollapsed)
-  const setIsBrowserCollapsed = useWorkspaceStore((state) => state.setBrowserCollapsed)
+  const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
   const browserFloatingPos = useWorkspaceStore((state) => state.browserShell.position)
   const setBrowserFloatingPos = useWorkspaceStore((state) => state.setBrowserFloatingPosition)
   const browserFloatingSize = useWorkspaceStore((state) => state.browserShell.size)
   const setBrowserFloatingSize = useWorkspaceStore((state) => state.setBrowserFloatingSize)
   const browserViewportSplitRatio = useWorkspaceStore((state) => state.browserShell.viewportSplitRatio)
+  const setBrowserViewportSplitRatio = useWorkspaceStore(
+    (state) => state.setBrowserViewportSplitRatio,
+  )
   const browserViewportSplitDockSide = useWorkspaceStore(
     (state) => state.browserShell.viewportSplitDockSide,
   )
@@ -84,9 +113,16 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   )
   const browserPopoutState = useWorkspaceStore((state) => state.browserShell.popoutState)
   const setBrowserPopoutState = useWorkspaceStore((state) => state.setBrowserPopoutState)
+  const detachedSlotSurfaceById = useWorkspaceStore((state) => state.detachedSlotSurfaceById)
+  const clearDetachedSlotSurface = useWorkspaceStore((state) => state.clearDetachedSlotSurface)
+  const redockDetachedSurface = useWorkspaceStore((state) => state.redockDetachedSurface)
   const browserFloatingWindowRef = useRef<HTMLDivElement | null>(null)
   const [browserViewportSplitPortalTarget, setBrowserViewportSplitPortalTarget] =
     useState<HTMLDivElement | null>(null)
+  const [browserFloatingSplitMenu, setBrowserFloatingSplitMenu] = useState<{
+    x: number
+    y: number
+  } | null>(null)
   const browserFloatingPosRef = useRef(browserFloatingPos)
   const browserFloatingSizeRef = useRef(browserFloatingSize)
   const browserDragRef = useRef<{
@@ -105,8 +141,44 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       | null
   } | null>(null)
   const browserSplitDockPreviewSideRef = useRef<WorkspaceSplitDockSide | null>(null)
+  const browserDragUserSelectRestoreRef = useRef<string | null>(null)
   const [browserSplitDockPreviewSide, setBrowserSplitDockPreviewSide] =
     useState<WorkspaceSplitDockSide | null>(null)
+  const activeDetachedBrowserSurface =
+    Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'browser') ?? null
+
+  const lockBrowserDragTextSelection = useCallback(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+    if (browserDragUserSelectRestoreRef.current === null) {
+      browserDragUserSelectRestoreRef.current = document.body.style.userSelect
+    }
+    document.body.style.userSelect = 'none'
+    window.getSelection?.()?.removeAllRanges()
+  }, [])
+
+  const unlockBrowserDragTextSelection = useCallback(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+    document.body.style.userSelect = browserDragUserSelectRestoreRef.current ?? ''
+    browserDragUserSelectRestoreRef.current = null
+  }, [])
+
+  const resolvePreferredBrowserViewportSplitRatio = useCallback(
+    (splitDockSide: WorkspaceSplitDockSide) => {
+      if (splitDockSide === 'top' || splitDockSide === 'bottom') {
+        return browserViewportSplitRatio
+      }
+      const viewportRect = viewportRef.current?.getBoundingClientRect()
+      if (viewportRect === undefined || viewportRect.width <= 0) {
+        return browserViewportSplitRatio
+      }
+      return defaultBrowserFloatingSize.width / viewportRect.width
+    },
+    [browserViewportSplitRatio, viewportRef],
+  )
 
   const handleBrowserPopoutClosed = useCallback(() => {
     setIsBrowserPoppedOut(false)
@@ -125,50 +197,94 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     onClosed: handleBrowserPopoutClosed,
   })
 
+  const getBrowserFloatingFrame = useCallback((): BrowserFloatingFrame | null => {
+    const shellElement = appShellRef.current
+    const viewportElement = viewportRef.current
+    const primaryViewportBodyElement =
+      viewportElement?.querySelector('.ViewportFrame.isPrimarySlot .ViewportFrameBody') instanceof
+      HTMLElement
+        ? (viewportElement.querySelector('.ViewportFrame.isPrimarySlot .ViewportFrameBody') as HTMLElement)
+        : null
+    const shellRect = shellElement?.getBoundingClientRect()
+    const primaryViewportBodyRect = primaryViewportBodyElement?.getBoundingClientRect()
+    const viewportRect = viewportElement?.getBoundingClientRect()
+    if (shellElement === null || shellRect === undefined) {
+      return null
+    }
+    const fallbackMinY =
+      viewportRect === undefined || viewportRect.height <= 0
+        ? 0
+        : Math.max(0, Math.round(viewportRect.top - shellRect.top))
+    const fallbackMaxY =
+      viewportRect === undefined || viewportRect.height <= 0
+        ? shellElement.clientHeight
+        : Math.round(viewportRect.bottom - shellRect.top)
+    const minY =
+      primaryViewportBodyRect !== undefined &&
+      primaryViewportBodyRect.width > 0 &&
+      primaryViewportBodyRect.height > 0
+        ? Math.round(primaryViewportBodyRect.top - shellRect.top)
+        : fallbackMinY
+    const maxY =
+      primaryViewportBodyRect !== undefined &&
+      primaryViewportBodyRect.width > 0 &&
+      primaryViewportBodyRect.height > 0
+        ? Math.round(primaryViewportBodyRect.bottom - shellRect.top)
+        : fallbackMaxY
+    return {
+      shellWidth: shellElement.clientWidth,
+      shellHeight: shellElement.clientHeight,
+      minY,
+      maxY,
+    }
+  }, [appShellRef, viewportRef])
+
   const clampBrowserFloatingSize = useCallback(
     (size: BrowserFloatingSize): BrowserFloatingSize => {
-      const shellElement = appShellRef.current
+      const frame = getBrowserFloatingFrame()
       const limits =
-        shellElement === null
+        frame === null
           ? {
               maxWidth: minBrowserFloatingWidth,
               maxHeight: minBrowserFloatingHeight,
             }
           : {
-              maxWidth: Math.max(minBrowserFloatingWidth, shellElement.clientWidth - 24),
-              maxHeight: Math.max(minBrowserFloatingHeight, shellElement.clientHeight - 24),
+              maxWidth: Math.max(minBrowserFloatingWidth, frame.shellWidth - 24),
+              maxHeight: Math.max(minBrowserFloatingHeight, frame.shellHeight - 24),
             }
       return {
         width: Math.min(limits.maxWidth, Math.max(minBrowserFloatingWidth, Math.round(size.width))),
         height: Math.min(limits.maxHeight, Math.max(minBrowserFloatingHeight, Math.round(size.height))),
       }
     },
-    [appShellRef],
+    [getBrowserFloatingFrame],
   )
 
   const clampBrowserFloatingPos = useCallback(
     (pos: BrowserFloatingPosition): BrowserFloatingPosition => {
-      const shellElement = appShellRef.current
-      if (shellElement === null) {
+      const frame = getBrowserFloatingFrame()
+      if (frame === null) {
         return {
           x: Math.max(0, Math.round(pos.x)),
           y: Math.max(0, Math.round(pos.y)),
         }
       }
+      const minX = 0
+      const minY = frame.minY
       const maxX = Math.max(
-        0,
-        shellElement.clientWidth - browserFloatingSizeRef.current.width - floatingEdgePadding,
+        minX,
+        frame.shellWidth - browserFloatingSizeRef.current.width - floatingEdgePadding,
       )
       const maxY = Math.max(
-        0,
-        shellElement.clientHeight - browserFloatingSizeRef.current.height - floatingEdgePadding,
+        minY,
+        frame.maxY - browserFloatingSizeRef.current.height - floatingEdgePadding,
       )
       return {
-        x: Math.min(maxX, Math.max(0, Math.round(pos.x))),
-        y: Math.min(maxY, Math.max(0, Math.round(pos.y))),
+        x: Math.min(maxX, Math.max(minX, Math.round(pos.x))),
+        y: Math.min(maxY, Math.max(minY, Math.round(pos.y))),
       }
     },
-    [appShellRef],
+    [getBrowserFloatingFrame],
   )
 
   const resolveBrowserSplitDockPreviewSide = useCallback(
@@ -246,6 +362,16 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     openBrowserFloatingFromDock()
   }, [isBrowserFloating, openBrowserFloatingFromDock, setActiveLeftDockPreviewPanelId])
 
+  const handleCycleBrowserPresentationMode = useCallback(() => {
+    setBrowserPresentationMode(
+      browserPresentationMode === 'expanded'
+        ? 'essentials'
+        : browserPresentationMode === 'essentials'
+          ? 'collapsed'
+          : 'expanded',
+    )
+  }, [browserPresentationMode, setBrowserPresentationMode])
+
   const handleToggleBrowserPopout = useCallback(() => {
     setActiveLeftDockPreviewPanelId(null)
     setBrowserSplitDockPreviewSide(null)
@@ -271,6 +397,50 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     isBrowserViewportSplit,
   ])
 
+  const handleOpenFloatingSplitMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (!isBrowserFloating) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      setActiveLeftDockPreviewPanelId(null)
+      setBrowserSplitDockPreviewSide(null)
+      setBrowserFloatingSplitMenu({
+        x: event.clientX,
+        y: event.clientY,
+      })
+    },
+    [isBrowserFloating, setActiveLeftDockPreviewPanelId],
+  )
+
+  const handleSelectFloatingSplitDockSide = useCallback(
+    (splitDockSide: WorkspaceSplitDockSide) => {
+      setBrowserFloatingSplitMenu(null)
+      setActiveLeftDockPreviewPanelId(null)
+      setBrowserSplitDockPreviewSide(null)
+      setBrowserViewportSplitRatio(resolvePreferredBrowserViewportSplitRatio(splitDockSide))
+      if (activeDetachedBrowserSurface !== null) {
+        redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, splitDockSide)
+        setIsBrowserFloating(false)
+        setIsBrowserViewportSplit(false)
+        return
+      }
+      setBrowserViewportSplitDockSide(splitDockSide)
+      setIsBrowserViewportSplit(true)
+    },
+    [
+      activeDetachedBrowserSurface,
+      redockDetachedSurface,
+      resolvePreferredBrowserViewportSplitRatio,
+      setActiveLeftDockPreviewPanelId,
+      setIsBrowserFloating,
+      setIsBrowserViewportSplit,
+      setBrowserViewportSplitRatio,
+      setBrowserViewportSplitDockSide,
+    ],
+  )
+
   const handleBrowserDragStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || !isBrowserFloating) {
@@ -291,9 +461,10 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         hasExitedSourceRect: true,
         sourceRect: null,
       }
+      lockBrowserDragTextSelection()
       event.preventDefault()
     },
-    [appShellRef, isBrowserFloating, setActiveLeftDockPreviewPanelId],
+    [appShellRef, isBrowserFloating, lockBrowserDragTextSelection, setActiveLeftDockPreviewPanelId],
   )
 
   const handleBrowserDockDragStart = useCallback(
@@ -337,6 +508,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
           bottom: panelRect.bottom,
         },
       }
+      lockBrowserDragTextSelection()
       event.preventDefault()
     },
     [
@@ -349,6 +521,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       setBrowserFloatingPos,
       setBrowserFloatingSize,
       setIsBrowserFloating,
+      lockBrowserDragTextSelection,
     ],
   )
 
@@ -433,6 +606,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         hasExitedSourceRect: !hasValidSplitPaneRect,
         sourceRect: splitPaneRect,
       }
+      lockBrowserDragTextSelection()
       event.preventDefault()
       event.stopPropagation()
     },
@@ -442,6 +616,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       browserViewportSplitRatio,
       clampBrowserFloatingPos,
       isBrowserViewportSplit,
+      lockBrowserDragTextSelection,
       setBrowserFloatingPos,
       setIsBrowserFloating,
       setIsBrowserViewportSplit,
@@ -450,8 +625,11 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   )
 
   useEffect(() => {
-    setDockedBrowserPortalTarget(dockedBrowserHostRef.current)
-  }, [dockedBrowserHostRef])
+    const nextPortalTarget = dockedBrowserHostRef.current
+    setDockedBrowserPortalTarget((currentPortalTarget) =>
+      currentPortalTarget === nextPortalTarget ? currentPortalTarget : nextPortalTarget,
+    )
+  })
 
   useEffect(() => {
     setBrowserViewportSplitPortalTarget(isBrowserViewportSplit ? viewportSplitHostRef.current : null)
@@ -468,6 +646,39 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   useEffect(() => {
     browserSplitDockPreviewSideRef.current = browserSplitDockPreviewSide
   }, [browserSplitDockPreviewSide])
+
+  useLayoutEffect(() => {
+    if (!isBrowserFloating || slotHeaderDragSeed === null) {
+      return
+    }
+    const shellRect = appShellRef.current?.getBoundingClientRect()
+    if (shellRect !== undefined) {
+      const nextPos = clampBrowserFloatingPos({
+        x: slotHeaderDragSeed.clientX - shellRect.left - slotHeaderDragSeed.pointerOffsetX,
+        y: slotHeaderDragSeed.clientY - shellRect.top - slotHeaderDragSeed.pointerOffsetY,
+      })
+      browserFloatingPosRef.current = nextPos
+      setBrowserFloatingPos(nextPos)
+    }
+    browserDragRef.current = {
+      pointerOffsetX: slotHeaderDragSeed.pointerOffsetX,
+      pointerOffsetY: slotHeaderDragSeed.pointerOffsetY,
+      titleBarHeight: slotHeaderDragSeed.titleBarHeight,
+      sourceKind: 'floating',
+      hasExitedSourceRect: true,
+      sourceRect: null,
+    }
+    lockBrowserDragTextSelection()
+    onConsumeSlotHeaderDragSeed()
+  }, [
+    appShellRef,
+    clampBrowserFloatingPos,
+    isBrowserFloating,
+    lockBrowserDragTextSelection,
+    onConsumeSlotHeaderDragSeed,
+    setBrowserFloatingPos,
+    slotHeaderDragSeed,
+  ])
 
   useEffect(() => {
     if (!isBrowserFloating || typeof ResizeObserver === 'undefined') {
@@ -511,6 +722,30 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       setActiveLeftDockPreviewPanelId(null)
     }
   }, [activeLeftDockPreviewPanelId, isBrowserFloating, setActiveLeftDockPreviewPanelId])
+
+  useEffect(() => {
+    if (browserFloatingSplitMenu === null) {
+      return
+    }
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (target instanceof Element && target.closest('.WorkspaceSplitMenu') !== null) {
+        return
+      }
+      setBrowserFloatingSplitMenu(null)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setBrowserFloatingSplitMenu(null)
+      }
+    }
+    window.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [browserFloatingSplitMenu])
 
   useEffect(() => {
     if (!isBrowserFloating && browserSplitDockPreviewSide !== null) {
@@ -625,11 +860,22 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               browserDragRef.current.titleBarHeight,
             )
       browserDragRef.current = null
+      unlockBrowserDragTextSelection()
       setActiveLeftDockPreviewPanelId(null)
       setBrowserSplitDockPreviewSide(null)
       if (shouldDockBrowser) {
+        if (activeDetachedBrowserSurface !== null) {
+          clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
+        }
         setIsBrowserFloating(false)
       } else if (nextSplitDockSide !== null) {
+        setBrowserViewportSplitRatio(resolvePreferredBrowserViewportSplitRatio(nextSplitDockSide))
+        if (activeDetachedBrowserSurface !== null) {
+          redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, nextSplitDockSide)
+          setIsBrowserFloating(false)
+          setIsBrowserViewportSplit(false)
+          return
+        }
         setBrowserViewportSplitDockSide(nextSplitDockSide)
         setIsBrowserViewportSplit(true)
       }
@@ -643,29 +889,41 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     }
   }, [
     appShellRef,
+    activeDetachedBrowserSurface,
+    clearDetachedSlotSurface,
     clampBrowserFloatingPos,
     clampBrowserFloatingSize,
     isBrowserFloating,
+    redockDetachedSurface,
+    resolvePreferredBrowserViewportSplitRatio,
     resolveBrowserSplitDockPreviewSide,
     resolveLeftDockPreviewPanelId,
     setActiveLeftDockPreviewPanelId,
     setBrowserFloatingPos,
     setBrowserFloatingSize,
     setIsBrowserFloating,
+    setBrowserViewportSplitRatio,
     setBrowserViewportSplitDockSide,
     setIsBrowserViewportSplit,
+    unlockBrowserDragTextSelection,
   ])
+
+  useEffect(() => () => {
+    unlockBrowserDragTextSelection()
+  }, [unlockBrowserDragTextSelection])
 
   return (
     <>
       {dockedBrowserPortalTarget !== null &&
+      !suppressDockedSurface &&
       !isBrowserFloating &&
       !isBrowserPoppedOut &&
       !isBrowserViewportSplit
         ? createPortal(
             <BrowserPanel
+              presentationMode={browserPresentationMode}
+              onCyclePresentationMode={handleCycleBrowserPresentationMode}
               isCollapsed={isBrowserCollapsed}
-              onToggleCollapsed={() => setIsBrowserCollapsed(!isBrowserCollapsed)}
               popoutButtonMode="popout"
               onTogglePopout={handleToggleBrowserPopout}
               onTitleBarPointerDown={handleBrowserDockDragStart}
@@ -678,8 +936,9 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         ? createPortal(
             <div className="BrowserPopoutSurface">
               <BrowserPanel
+                presentationMode={browserPresentationMode}
+                onCyclePresentationMode={handleCycleBrowserPresentationMode}
                 isCollapsed={isBrowserCollapsed}
-                onToggleCollapsed={() => setIsBrowserCollapsed(!isBrowserCollapsed)}
                 isPoppedOut
                 popoutButtonMode="dock"
                 onTogglePopout={handleToggleBrowserPopout}
@@ -689,12 +948,13 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
             browserPopoutHost,
           )
         : null}
-      {isBrowserViewportSplit && browserViewportSplitPortalTarget !== null
+      {renderViewportSplitSurface && isBrowserViewportSplit && browserViewportSplitPortalTarget !== null
         ? createPortal(
             <div className="BrowserViewportSplitWindow">
               <BrowserPanel
+                presentationMode={browserPresentationMode}
+                onCyclePresentationMode={handleCycleBrowserPresentationMode}
                 isCollapsed={isBrowserCollapsed}
-                onToggleCollapsed={() => setIsBrowserCollapsed(!isBrowserCollapsed)}
                 popoutButtonMode="dock"
                 onTogglePopout={handleToggleBrowserPopout}
                 onTitleBarPointerDown={handleBrowserSplitDragStart}
@@ -719,16 +979,70 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
             }}
           >
             <BrowserPanel
+              presentationMode={browserPresentationMode}
+              onCyclePresentationMode={handleCycleBrowserPresentationMode}
               isCollapsed={isBrowserCollapsed}
-              onToggleCollapsed={() => setIsBrowserCollapsed(!isBrowserCollapsed)}
               isFloating
-              popoutButtonMode="dock"
-              onTogglePopout={handleToggleBrowserFloating}
+              popoutButtonMode="popout"
+              showQuickDockButton
+              onQuickDock={handleToggleBrowserFloating}
+              onTogglePopout={handleToggleBrowserPopout}
+              onTitleBarContextMenu={handleOpenFloatingSplitMenu}
               onTitleBarPointerDown={handleBrowserDragStart}
               newEditorSpawnPosition={newEditorSpawnPosition}
             />
           </div>
         </aside>
+      ) : null}
+      {browserFloatingSplitMenu !== null ? (
+        <div
+          className="WorkspaceSplitMenu PrimaryViewportLeftDockResizeMenu"
+          style={{
+            left: `${Math.max(
+              12,
+              Math.min(
+                browserFloatingSplitMenu.x,
+                (typeof window === 'undefined' ? browserFloatingSplitMenu.x : window.innerWidth) - 240,
+              ),
+            )}px`,
+            top: `${Math.max(
+              12,
+              Math.min(
+                browserFloatingSplitMenu.y,
+                (typeof window === 'undefined' ? browserFloatingSplitMenu.y : window.innerHeight) - 280,
+              ),
+            )}px`,
+          }}
+        >
+          <button
+            type="button"
+            className="PrimaryViewportLeftDockResizeMenuAction"
+            onClick={() => handleSelectFloatingSplitDockSide('top')}
+          >
+            Split Top
+          </button>
+          <button
+            type="button"
+            className="PrimaryViewportLeftDockResizeMenuAction"
+            onClick={() => handleSelectFloatingSplitDockSide('right')}
+          >
+            Split Right
+          </button>
+          <button
+            type="button"
+            className="PrimaryViewportLeftDockResizeMenuAction"
+            onClick={() => handleSelectFloatingSplitDockSide('bottom')}
+          >
+            Split Bottom
+          </button>
+          <button
+            type="button"
+            className="PrimaryViewportLeftDockResizeMenuAction"
+            onClick={() => handleSelectFloatingSplitDockSide('left')}
+          >
+            Split Left
+          </button>
+        </div>
       ) : null}
       {browserSplitDockPreviewSide !== null && viewportRef.current !== null
         ? createPortal(

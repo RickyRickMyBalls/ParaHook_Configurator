@@ -121,6 +121,7 @@ const mockElementSize = (
 function SpaghettiWindowHostHarness() {
   const appShellRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
+  const leftDockHostRef = useRef<HTMLDivElement | null>(null)
   const dockedMeatballHostRef = useRef<HTMLDivElement | null>(null)
   const leftDockWidthPreviewHandlerRef = useRef<((nextWidth: number) => void) | null>(null)
   const [activePreviewPanelId, setActivePreviewPanelId] = useState<'browser' | 'meatball-editor' | null>(
@@ -135,13 +136,24 @@ function SpaghettiWindowHostHarness() {
       return null
     }
     const rect = dockedMeatballHostRef.current?.getBoundingClientRect()
+    const statusRect = leftDockHostRef.current
+      ?.querySelector('.PrimaryViewportLeftDockStatus')
+      ?.getBoundingClientRect()
     if (rect === undefined) {
       return null
     }
-    return clientX >= rect.left &&
+    const isInsideDockTarget =
+      clientX >= rect.left &&
       clientX <= rect.right &&
       clientY >= rect.top &&
       clientY <= rect.bottom
+    const isInsideStatusTarget =
+      statusRect !== undefined &&
+      clientX >= statusRect.left &&
+      clientX <= statusRect.right &&
+      clientY >= statusRect.top &&
+      clientY <= statusRect.bottom
+    return isInsideDockTarget || isInsideStatusTarget
       ? 'meatball-editor'
       : null
   }
@@ -149,12 +161,15 @@ function SpaghettiWindowHostHarness() {
   return (
     <div ref={appShellRef} className="AppShellRoot">
       <section ref={viewportRef} className="ViewportArea">
-        <div
-          ref={dockedMeatballHostRef}
-          className={`LeftDockPanelTarget LeftDockPanelTarget--meatball-editor ${
-            activePreviewPanelId === 'meatball-editor' ? 'isPreviewActive' : ''
-          }`}
-        />
+        <div ref={leftDockHostRef} className="PrimaryViewportLeftDock">
+          <div className="PrimaryViewportLeftDockStatus">Title Status</div>
+          <div
+            ref={dockedMeatballHostRef}
+            className={`PrimaryViewportLeftDockPanelTarget PrimaryViewportLeftDockPanelTarget--meatball-editor ${
+              activePreviewPanelId === 'meatball-editor' ? 'isPreviewActive' : ''
+            }`}
+          />
+        </div>
         <SpaghettiWindowHost
           appShellRef={appShellRef}
           viewportRef={viewportRef}
@@ -240,11 +255,17 @@ describe('SpaghettiWindowHost', () => {
       width: 1120,
       height: 900,
     })
-    mockRect(container?.querySelector('.LeftDockPanelTarget--meatball-editor'), {
+    mockRect(container?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor'), {
       left: 16,
       top: 470,
       width: 320,
       height: 280,
+    })
+    mockRect(container?.querySelector('.PrimaryViewportLeftDockStatus'), {
+      left: 16,
+      top: 16,
+      width: 320,
+      height: 56,
     })
   }
 
@@ -579,6 +600,67 @@ describe('SpaghettiWindowHost', () => {
     )
   })
 
+  it('treats the left dock status bar as a meatball dock target for the floating editor', async () => {
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 60,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 40,
+        }),
+      )
+    })
+
+    expect(
+      container
+        ?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor')
+        ?.classList.contains('isPreviewActive'),
+    ).toBe(true)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 40,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setEditorViewportHeaderCollapsed).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      true,
+    )
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'meatball editor view',
+    )
+  })
+
   it('uses right-edge drag to re-enter split view as a right-side vertical dock', async () => {
     await renderHarness()
     mockGeometry()
@@ -636,6 +718,69 @@ describe('SpaghettiWindowHost', () => {
     )
   })
 
+  it('redocks a detached slotted editor back into the workspace slot tree when it hits a viewport edge', async () => {
+    const detachedSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'spaghettiEditor',
+      surfaceInstanceId: 'editor-viewport-1',
+    })
+    expect(detachedSlotId).toBeTruthy()
+    useWorkspaceStore.getState().detachViewportSlotSurface(detachedSlotId ?? '', 'floating')
+
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 60,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1432,
+          clientY: 360,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1432,
+          clientY: 360,
+        }),
+      )
+    })
+
+    const spaghettiSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'spaghettiEditor',
+    )
+    expect(spaghettiSlots).toHaveLength(1)
+    expect(spaghettiSlots[0]?.surfaceInstanceId).toBe('editor-viewport-1')
+    expect(
+      useWorkspaceStore.getState().detachedSlotSurfaceById['editor-viewport-1'],
+    ).toBeUndefined()
+    expect(currentSpaghettiState.setEditorViewportWindowMode).not.toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'split view',
+    )
+  })
+
   it('moves the editor into a child-window popout owner and docks it back when the popout closes', async () => {
     await renderHarness({ strict: true })
 
@@ -679,6 +824,59 @@ describe('SpaghettiWindowHost', () => {
 
     expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.windowMode).toBe('expanded')
     expect(container?.querySelector('.SpaghettiFloatingWindow')).not.toBeNull()
+  })
+
+  it('redocks a detached slotted editor from popout back into the workspace slot tree', async () => {
+    const detachedSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'spaghettiEditor',
+      surfaceInstanceId: 'editor-viewport-1',
+    })
+    expect(detachedSlotId).toBeTruthy()
+    useWorkspaceStore.getState().detachViewportSlotSurface(detachedSlotId ?? '', 'popout')
+
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Detached Slot Popout')
+    let beforeUnloadHandler: (() => void) | null = null
+    let isPopoutClosed = false
+    const popoutWindow = {
+      get closed() {
+        return isPopoutClosed
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(() => {
+        isPopoutClosed = true
+      }),
+      addEventListener: vi.fn((type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'beforeunload' && typeof handler === 'function') {
+          beforeUnloadHandler = handler as () => void
+        }
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    await act(async () => {
+      beforeUnloadHandler?.()
+    })
+    await rerenderHarness({ strict: true })
+
+    const spaghettiSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'spaghettiEditor',
+    )
+    expect(spaghettiSlots).toHaveLength(1)
+    expect(spaghettiSlots[0]?.surfaceInstanceId).toBe('editor-viewport-1')
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.windowMode).toBe('expanded')
+    expect(
+      useWorkspaceStore.getState().detachedSlotSurfaceById['editor-viewport-1'],
+    ).toBeUndefined()
   })
 
   it('keeps a popped-out editor surface alive when another viewport is active in-app', async () => {
