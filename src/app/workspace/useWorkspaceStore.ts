@@ -1,11 +1,13 @@
 import { create } from 'zustand'
 import {
   defaultBrowserPresentationMode,
+  defaultBrowserToolbarOwnerSurfaceInstanceId,
   createNextWorkspaceGeneratedId,
   createDefaultWorkspaceLayoutSplitNode,
   createDefaultWorkspaceSlotTree,
   createDefaultEditorWorkspaceSurfaceState,
   createDefaultWorkspaceViewportChromeState,
+  createDefaultWorkspaceViewportLocalViewState,
   createDefaultWorkspaceViewportSlot,
   createWorkspaceSurfaceInstanceIdForSlot,
   defaultBrowserFloatingPosition,
@@ -35,8 +37,10 @@ import {
   type WorkspaceViewportSlot,
   type WorkspaceViewportSlotId,
   type WorkspaceViewportChromeState,
+  type WorkspaceViewportLocalViewState,
   type WorkspaceViewportId,
   type WorkspaceSplitMenuState,
+  type WorkspaceSurfaceInstanceId,
 } from './workspaceShellTypes'
 import {
   resolveWorkspaceSplitDirectionForDockSide,
@@ -49,7 +53,9 @@ type WorkspaceStoreState = {
   activeLeftDockPreviewPanelId: LeftDockPanelId | null
   leftDockResizeMenu: LeftDockResizeMenuState | null
   workspaceSplitMenu: WorkspaceSplitMenuState | null
+  browserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId | null
   browserShell: BrowserShellState
+  activeViewerViewportId: WorkspaceViewportId
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
   viewportSlotRootNodeId: WorkspaceLayoutNodeId
@@ -63,6 +69,9 @@ type WorkspaceStoreState = {
   setActiveLeftDockPreviewPanelId: (panelId: LeftDockPanelId | null) => void
   setLeftDockResizeMenu: (menu: LeftDockResizeMenuState | null) => void
   setWorkspaceSplitMenu: (menu: WorkspaceSplitMenuState | null) => void
+  setBrowserToolbarOwnerSurfaceInstanceId: (
+    surfaceInstanceId: WorkspaceSurfaceInstanceId | null,
+  ) => void
   setBrowserCollapsed: (isCollapsed: boolean) => void
   setBrowserPresentationMode: (presentationMode: BrowserPresentationMode) => void
   setBrowserFloating: (isFloating: boolean) => void
@@ -87,6 +96,15 @@ type WorkspaceStoreState = {
       preferredRatio?: number
     },
   ) => WorkspaceViewportSlotId | null
+  splitViewportRoot: (
+    splitDockSide: WorkspaceSplitDockSide,
+    options?: {
+      surfaceKind?: WorkspaceSurfaceKind
+      surfaceInstanceId?: string
+      preferredRatio?: number
+      hostViewportId?: WorkspaceViewportId | null
+    },
+  ) => WorkspaceViewportSlotId | null
   setViewportLayoutSplitRatio: (nodeId: WorkspaceLayoutNodeId, ratio: number) => void
   removeViewportSlot: (slotId: WorkspaceViewportSlotId) => void
   detachViewportSlotSurface: (
@@ -106,7 +124,12 @@ type WorkspaceStoreState = {
     },
   ) => void
   hydratePersistedWorkspaceLayout: (layout: PersistedWorkspaceLayout) => void
+  setActiveViewerViewportId: (viewportId: WorkspaceViewportId) => void
   ensureViewportChrome: (viewportId: WorkspaceViewportId) => void
+  setViewportLocalViewState: (
+    viewportId: WorkspaceViewportId,
+    patch: Partial<WorkspaceViewportLocalViewState>,
+  ) => void
   ensureEditorSurfacePlacement: (
     surfaceInstanceId: string,
     seed?: Partial<EditorWorkspaceSurfaceState>,
@@ -127,6 +150,7 @@ const createInitialState = (): Omit<
   | 'setActiveLeftDockPreviewPanelId'
   | 'setLeftDockResizeMenu'
   | 'setWorkspaceSplitMenu'
+  | 'setBrowserToolbarOwnerSurfaceInstanceId'
   | 'setBrowserCollapsed'
   | 'setBrowserPresentationMode'
   | 'setBrowserFloating'
@@ -140,6 +164,7 @@ const createInitialState = (): Omit<
   | 'showViewportSplitSlot'
   | 'hideViewportSplitSlot'
   | 'splitViewportSlot'
+  | 'splitViewportRoot'
   | 'setViewportLayoutSplitRatio'
   | 'removeViewportSlot'
   | 'detachViewportSlotSurface'
@@ -147,7 +172,9 @@ const createInitialState = (): Omit<
   | 'redockDetachedSurface'
   | 'setViewportSlotSurfaceKind'
   | 'hydratePersistedWorkspaceLayout'
+  | 'setActiveViewerViewportId'
   | 'ensureViewportChrome'
+  | 'setViewportLocalViewState'
   | 'ensureEditorSurfacePlacement'
   | 'setEditorSurfaceBinding'
   | 'removeEditorSurfaceBinding'
@@ -159,6 +186,7 @@ const createInitialState = (): Omit<
   activeLeftDockPreviewPanelId: null,
   leftDockResizeMenu: null,
   workspaceSplitMenu: null,
+  browserToolbarOwnerSurfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
   browserShell: {
     presentationMode: defaultBrowserPresentationMode,
     isCollapsed: false,
@@ -171,6 +199,7 @@ const createInitialState = (): Omit<
     viewportSplitDockSide: defaultBrowserViewportSplitDockSide,
     popoutState: defaultBrowserPopoutState,
   },
+  activeViewerViewportId: defaultPrimaryWorkspaceViewportId,
   primaryViewportId: defaultPrimaryWorkspaceViewportId,
   viewportChromeById: {
     [defaultPrimaryWorkspaceViewportId]:
@@ -274,6 +303,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       workspaceSplitMenu,
     })
   },
+  setBrowserToolbarOwnerSurfaceInstanceId: (browserToolbarOwnerSurfaceInstanceId) => {
+    set({
+      browserToolbarOwnerSurfaceInstanceId,
+    })
+  },
   setBrowserCollapsed: (isCollapsed) => {
     set((state) => ({
       browserShell: {
@@ -297,7 +331,6 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       browserShell: {
         ...state.browserShell,
         isFloating,
-        isPoppedOut: isFloating ? false : state.browserShell.isPoppedOut,
         isViewportSplit: isFloating ? false : state.browserShell.isViewportSplit,
       },
     }))
@@ -306,8 +339,6 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
     set((state) => ({
       browserShell: {
         ...state.browserShell,
-        isFloating: isPoppedOut ? false : state.browserShell.isFloating,
-        isViewportSplit: isPoppedOut ? false : state.browserShell.isViewportSplit,
         isPoppedOut,
         popoutState: isPoppedOut
           ? state.browserShell.popoutState ?? defaultBrowserPopoutState
@@ -320,7 +351,6 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       browserShell: {
         ...state.browserShell,
         isFloating: isViewportSplit ? false : state.browserShell.isFloating,
-        isPoppedOut: isViewportSplit ? false : state.browserShell.isPoppedOut,
         isViewportSplit,
       },
     }))
@@ -461,12 +491,18 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       const nextSurfaceInstanceId =
         options?.surfaceInstanceId ??
         createWorkspaceSurfaceInstanceIdForSlot(nextSurfaceKind, nextSlotId)
+      const nextHostViewportId =
+        nextSurfaceKind === 'modelViewer'
+          ? currentSlot.surfaceKind === 'modelViewer'
+            ? currentSlot.surfaceInstanceId
+            : currentSlot.hostViewportId ?? state.primaryViewportId
+          : state.primaryViewportId
       const nextSlot: WorkspaceViewportSlot = {
         ...createDefaultWorkspaceViewportSlot(
           nextSlotId,
           nextSurfaceKind,
           nextLeafNodeId,
-          state.primaryViewportId,
+          nextHostViewportId,
         ),
         surfaceInstanceId: nextSurfaceInstanceId,
         retainedSurfaceInstanceIdsByKind: {
@@ -528,6 +564,78 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
           [nextSlotId]: nextSlot,
         },
         viewportLayoutNodesById: nextViewportLayoutNodesById,
+      }
+    })
+    return createdSlotId
+  },
+  splitViewportRoot: (splitDockSide, options) => {
+    let createdSlotId: WorkspaceViewportSlotId | null = null
+    set((state) => {
+      const currentRootNode = state.viewportLayoutNodesById[state.viewportSlotRootNodeId]
+      if (currentRootNode === undefined) {
+        return state
+      }
+
+      const nextSlotId = createNextWorkspaceGeneratedId(
+        'workspace-slot',
+        Object.keys(state.viewportSlotsById),
+      )
+      const nextLeafNodeId = createNextWorkspaceGeneratedId(
+        'workspace-slot-leaf',
+        Object.keys(state.viewportLayoutNodesById),
+      )
+      const nextSplitNodeId = createNextWorkspaceGeneratedId(
+        'workspace-slot-split',
+        Object.keys(state.viewportLayoutNodesById),
+      )
+      const nextSurfaceKind = options?.surfaceKind ?? 'browser'
+      const nextSurfaceInstanceId =
+        options?.surfaceInstanceId ??
+        createWorkspaceSurfaceInstanceIdForSlot(nextSurfaceKind, nextSlotId)
+      const nextSlot: WorkspaceViewportSlot = {
+        ...createDefaultWorkspaceViewportSlot(
+          nextSlotId,
+          nextSurfaceKind,
+          nextLeafNodeId,
+          options?.hostViewportId === undefined ? state.primaryViewportId : options.hostViewportId,
+        ),
+        surfaceInstanceId: nextSurfaceInstanceId,
+        retainedSurfaceInstanceIdsByKind: {
+          [nextSurfaceKind]: nextSurfaceInstanceId,
+        },
+      }
+      const nextLeafNode: WorkspaceLayoutNode = {
+        nodeId: nextLeafNodeId,
+        kind: 'leaf',
+        slotId: nextSlotId,
+      }
+      const childOrder = resolveSplitChildOrder(
+        splitDockSide,
+        state.viewportSlotRootNodeId,
+        nextLeafNodeId,
+      )
+      const nextSplitNode: WorkspaceLayoutNode = {
+        nodeId: nextSplitNodeId,
+        kind: 'split',
+        splitDirection: resolveWorkspaceSplitDirectionForDockSide(splitDockSide),
+        splitDockSide,
+        ratio: clampWorkspaceSplitRatio(options?.preferredRatio ?? defaultBrowserViewportSplitRatio),
+        firstChildId: childOrder.firstChildId,
+        secondChildId: childOrder.secondChildId,
+      }
+
+      createdSlotId = nextSlotId
+      return {
+        viewportSlotRootNodeId: nextSplitNodeId,
+        viewportSlotsById: {
+          ...state.viewportSlotsById,
+          [nextSlotId]: nextSlot,
+        },
+        viewportLayoutNodesById: {
+          ...state.viewportLayoutNodesById,
+          [nextLeafNodeId]: nextLeafNode,
+          [nextSplitNodeId]: nextSplitNode,
+        },
       }
     })
     return createdSlotId
@@ -614,8 +722,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       const currentSlot = state.viewportSlotsById[slotId]
       if (
         currentSlot === undefined ||
-        currentSlot.slotId === defaultPrimaryViewportSlotId ||
-        currentSlot.surfaceKind === 'modelViewer'
+        currentSlot.slotId === defaultPrimaryViewportSlotId
       ) {
         return state
       }
@@ -709,10 +816,13 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         return state
       }
       const nextSplitDockSide = splitDockSide ?? detachedSurface.preferredSplitDockSide
-      const targetSlotId =
+      const targetViewerSlot =
         Object.values(state.viewportSlotsById).find(
-          (slot) => slot.surfaceKind === 'modelViewer' && slot.surfaceInstanceId === detachedSurface.hostViewportId,
-        )?.slotId ?? defaultPrimaryViewportSlotId
+          (slot) =>
+            slot.surfaceKind === 'modelViewer' &&
+            slot.surfaceInstanceId === detachedSurface.hostViewportId,
+        ) ?? state.viewportSlotsById[defaultPrimaryViewportSlotId]
+      const targetSlotId = targetViewerSlot?.slotId ?? defaultPrimaryViewportSlotId
       const currentSlot = state.viewportSlotsById[targetSlotId]
       if (currentSlot === undefined) {
         return state
@@ -739,7 +849,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
           nextSlotId,
           detachedSurface.surfaceKind,
           nextLeafNodeId,
-          detachedSurface.hostViewportId,
+          currentSlot.surfaceInstanceId,
         ),
         surfaceInstanceId,
         retainedSurfaceInstanceIdsByKind: {
@@ -837,20 +947,43 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
             ...currentSlot,
             surfaceKind,
             surfaceInstanceId: nextSurfaceInstanceId,
-            hostViewportId: state.primaryViewportId,
+            hostViewportId:
+              surfaceKind === 'modelViewer'
+                ? currentSlot.hostViewportId ?? state.primaryViewportId
+                : state.primaryViewportId,
             retainedSurfaceInstanceIdsByKind: {
               ...nextRetainedSurfaceInstanceIdsByKind,
               [surfaceKind]: nextSurfaceInstanceId,
             },
           },
         },
+        ...(currentSlot.surfaceKind === 'modelViewer' &&
+        surfaceKind !== 'modelViewer' &&
+        state.activeViewerViewportId === currentSlot.surfaceInstanceId
+          ? { activeViewerViewportId: state.primaryViewportId }
+          : {}),
       }
     })
   },
   hydratePersistedWorkspaceLayout: (layout) => {
+    const nextViewportChromeById = Object.fromEntries(
+      Object.entries(layout.viewportChromeById).map(([viewportId, chrome]) => [
+        viewportId,
+        {
+          ...createDefaultWorkspaceViewportChromeState(viewportId),
+          ...chrome,
+          localViewState: {
+            ...createDefaultWorkspaceViewportLocalViewState(),
+            ...(chrome?.localViewState ?? {}),
+          },
+        },
+      ]),
+    )
     set({
       leftDockWidth: Math.round(layout.leftDockWidth),
       isLeftDockViewportSplit: layout.isLeftDockViewportSplit,
+      browserToolbarOwnerSurfaceInstanceId:
+        layout.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId,
       browserShell: {
         presentationMode:
           layout.browserShell.presentationMode ??
@@ -871,10 +1004,16 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         viewportSplitDockSide: layout.browserShell.viewportSplitDockSide,
         popoutState: layout.browserShell.popoutState,
       },
+      activeViewerViewportId: layout.activeViewerViewportId ?? layout.primaryViewportId,
       primaryViewportId: layout.primaryViewportId,
-      viewportChromeById: {
-        ...layout.viewportChromeById,
-      },
+      viewportChromeById:
+        Object.keys(nextViewportChromeById).length > 0
+          ? nextViewportChromeById
+          : {
+              [layout.primaryViewportId]: createDefaultWorkspaceViewportChromeState(
+                layout.primaryViewportId,
+              ),
+            },
       viewportSlotRootNodeId: layout.viewportSlotRootNodeId ?? defaultViewportLayoutRootNodeId,
       viewportSlotsById:
         Object.keys(layout.viewportSlotsById ?? {}).length > 0
@@ -896,6 +1035,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       },
     })
   },
+  setActiveViewerViewportId: (activeViewerViewportId) => {
+    set({
+      activeViewerViewportId,
+    })
+  },
   ensureViewportChrome: (viewportId) => {
     set((state) => {
       if (state.viewportChromeById[viewportId] !== undefined) {
@@ -905,6 +1049,25 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         viewportChromeById: {
           ...state.viewportChromeById,
           [viewportId]: createDefaultWorkspaceViewportChromeState(viewportId),
+        },
+      }
+    })
+  },
+  setViewportLocalViewState: (viewportId, patch) => {
+    set((state) => {
+      const currentChrome =
+        state.viewportChromeById[viewportId] ?? createDefaultWorkspaceViewportChromeState(viewportId)
+      return {
+        viewportChromeById: {
+          ...state.viewportChromeById,
+          [viewportId]: {
+            ...currentChrome,
+            localViewState: {
+              ...createDefaultWorkspaceViewportLocalViewState(),
+              ...currentChrome.localViewState,
+              ...patch,
+            },
+          },
         },
       }
     })

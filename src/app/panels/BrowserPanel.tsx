@@ -2,6 +2,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
 } from 'react'
 import { defaultViewportPosition } from '../spaghetti/store/useSpaghettiStore'
 import {
@@ -27,6 +28,7 @@ type BrowserPanelProps = {
   onTogglePopout?: () => void
   onTitleBarPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
   onTitleBarContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
+  onWheelCapture?: (event: ReactWheelEvent<HTMLElement>) => void
   newEditorSpawnPosition?: { x: number; y: number }
 }
 
@@ -44,6 +46,7 @@ export function BrowserPanel({
   onTogglePopout,
   onTitleBarPointerDown,
   onTitleBarContextMenu,
+  onWheelCapture,
   newEditorSpawnPosition = defaultViewportPosition,
 }: BrowserPanelProps = {}) {
   const [localPresentationMode, setLocalPresentationMode] =
@@ -107,6 +110,7 @@ export function BrowserPanel({
         isBrowserCollapsed ? 'isCollapsed' : ''
       }`}
       onPointerDownCapture={bodyHandlers.onActivateBrowserSurface}
+      onWheelCapture={onWheelCapture}
     >
       {showTitleBar ? (
         <div

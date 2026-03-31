@@ -7,6 +7,7 @@ import {
   useRef,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
 } from 'react'
 import { BrowserDockHost } from './BrowserDockHost'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
@@ -28,6 +29,7 @@ vi.mock('../panels/BrowserPanel', () => ({
     onTogglePopout,
     onTitleBarContextMenu,
     onTitleBarPointerDown,
+    onWheelCapture,
   }: {
     presentationMode?: 'expanded' | 'essentials' | 'collapsed'
     onCyclePresentationMode?: () => void
@@ -40,14 +42,18 @@ vi.mock('../panels/BrowserPanel', () => ({
     onTogglePopout?: () => void
     onTitleBarPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
     onTitleBarContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
+    onWheelCapture?: (event: ReactWheelEvent<HTMLDivElement>) => void
   }) => (
-    <div>
+    <div className="BrowserPanelRoot" onWheelCapture={onWheelCapture}>
       <div
         data-testid={`browser-titlebar-${isFloating === true ? 'floating' : 'docked'}`}
         onContextMenu={onTitleBarContextMenu}
         onPointerDown={onTitleBarPointerDown}
       >
         Browser Titlebar
+      </div>
+      <div className="BrowserPanelBody" data-testid="mock-browser-body">
+        Mock Browser Body
       </div>
       <div>{`Browser Panel ${
         isPoppedOut === true ? 'poppedout' : isFloating === true ? 'floating' : 'docked'
@@ -134,6 +140,7 @@ function BrowserDockHostHarness({
   const leftDockHostRef = useRef<HTMLDivElement | null>(null)
   const dockedBrowserHostRef = useRef<HTMLDivElement | null>(null)
   const activePreviewPanelId = useWorkspaceStore((state) => state.activeLeftDockPreviewPanelId)
+  const viewportSlotsById = useWorkspaceStore((state) => state.viewportSlotsById)
   const resolveLeftDockPreviewPanelId = (
     panelId: 'browser' | 'meatball-editor',
     clientX: number,
@@ -174,16 +181,25 @@ function BrowserDockHostHarness({
   return (
     <div ref={appShellRef} className="AppShellRoot">
       <div ref={viewportRef} className="ViewportArea">
+        {Object.values(viewportSlotsById).map((slot) => (
+          <div key={slot.slotId} className="MockWorkspaceSlot" data-workspace-slot-id={slot.slotId}>
+            {slot.surfaceKind === 'modelViewer' ? <div className="ViewportFrameBody" /> : null}
+          </div>
+        ))}
         <div ref={viewportSplitHostRef} className="BrowserViewportSplitHost" />
       </div>
       <div ref={leftDockHostRef} className="PrimaryViewportLeftDock">
         <div className="PrimaryViewportLeftDockStatus">Title Status</div>
-        <div
-          ref={dockedBrowserHostRef}
-          className={`PrimaryViewportLeftDockPanelTarget PrimaryViewportLeftDockPanelTarget--browser ${
-            activePreviewPanelId === 'browser' ? 'isPreviewActive' : ''
-          }`}
-        />
+        <div className="PrimaryViewportLeftDockPanelStackShell isConstrained">
+          <div className="PanelStack isConstrained">
+            <div
+              ref={dockedBrowserHostRef}
+              className={`PrimaryViewportLeftDockPanelTarget PrimaryViewportLeftDockPanelTarget--browser ${
+                activePreviewPanelId === 'browser' ? 'isPreviewActive' : ''
+              }`}
+            />
+          </div>
+        </div>
       </div>
       <BrowserDockHost
         appShellRef={appShellRef}
@@ -205,10 +221,15 @@ describe('BrowserDockHost', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
   const originalWindowOpen = window.open
+  const originalElementsFromPoint = document.elementsFromPoint
 
   beforeEach(() => {
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     window.open = originalWindowOpen
+    document.elementsFromPoint =
+      originalElementsFromPoint === undefined
+        ? ((() => []) as typeof document.elementsFromPoint)
+        : originalElementsFromPoint.bind(document)
   })
 
   const renderHarness = async (props?: Parameters<typeof BrowserDockHostHarness>[0]) => {
@@ -271,6 +292,10 @@ describe('BrowserDockHost', () => {
     container = null
     root = null
     window.open = originalWindowOpen
+    document.elementsFromPoint =
+      originalElementsFromPoint === undefined
+        ? ((() => []) as typeof document.elementsFromPoint)
+        : originalElementsFromPoint.bind(document)
   })
 
   it('caps floating width from the dock host measurement path', async () => {
@@ -414,7 +439,72 @@ describe('BrowserDockHost', () => {
     expect(container?.textContent).toContain('Browser Panel docked expanded')
   })
 
-  it('moves the docked browser into a child-window popout owner and docks it again when closed', async () => {
+  it('forwards wheel scrolling from the whole left-docked browser surface into the browser body', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const dockedHost = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelTarget--browser > div',
+    ) as HTMLDivElement | null
+    const panelStack = container?.querySelector('.PanelStack') as HTMLDivElement | null
+    const browserBody = container?.querySelector(
+      '[data-testid="mock-browser-body"]',
+    ) as HTMLDivElement | null
+
+    expect(dockedHost).not.toBeNull()
+    expect(panelStack).not.toBeNull()
+    expect(browserBody).not.toBeNull()
+
+    if (panelStack !== null) {
+      Object.defineProperty(panelStack, 'clientHeight', {
+        configurable: true,
+        value: 220,
+      })
+      Object.defineProperty(panelStack, 'scrollHeight', {
+        configurable: true,
+        value: 560,
+      })
+      Object.defineProperty(panelStack, 'scrollTop', {
+        configurable: true,
+        get: () => panelStack.dataset.scrollTop === undefined ? 0 : Number(panelStack.dataset.scrollTop),
+        set: (value: number) => {
+          panelStack.dataset.scrollTop = String(value)
+        },
+      })
+    }
+
+    if (browserBody !== null) {
+      Object.defineProperty(browserBody, 'clientHeight', {
+        configurable: true,
+        value: 160,
+      })
+      Object.defineProperty(browserBody, 'scrollHeight', {
+        configurable: true,
+        value: 520,
+      })
+      Object.defineProperty(browserBody, 'scrollTop', {
+        configurable: true,
+        get: () => browserBody.dataset.scrollTop === undefined ? 0 : Number(browserBody.dataset.scrollTop),
+        set: (value: number) => {
+          browserBody.dataset.scrollTop = String(value)
+        },
+      })
+    }
+
+    const wheelEvent = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 96,
+    })
+
+    await act(async () => {
+      dockedHost?.dispatchEvent(wheelEvent)
+    })
+
+    expect(panelStack?.dataset.scrollTop).toBe('96')
+  })
+
+  it('keeps the docked browser visible while opening a child-window popout copy', async () => {
     await renderHarness()
     mockGeometry()
 
@@ -450,7 +540,7 @@ describe('BrowserDockHost', () => {
 
     expect(window.open).toHaveBeenCalled()
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
-    expect(container?.textContent).not.toContain('Browser Panel docked expanded')
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
     expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
 
     await act(async () => {
@@ -458,6 +548,64 @@ describe('BrowserDockHost', () => {
     })
 
     expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('still lets the original docked browser drag into floating while a popout copy is open', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const popoutDocument = document.implementation.createHTMLDocument('Browser Popout')
+    const popoutWindow = {
+      get closed() {
+        return false
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isPoppedOut).toBe(true)
+    expect(container?.querySelector('.BrowserFloatingWindow')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
   })
 
   it('shows separate quick dock and popout controls for a floating browser', async () => {
@@ -574,11 +722,1185 @@ describe('BrowserDockHost', () => {
     })
 
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
-    expect(container?.querySelector('.BrowserViewportSplitWindow')).not.toBeNull()
+    expect(container?.querySelector('.BrowserViewportSplitWindow')).toBeNull()
+    expect(useWorkspaceStore.getState().browserShell.isViewportSplit).toBe(false)
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'browser',
+      ),
+    ).toHaveLength(1)
+    const rootNode =
+      useWorkspaceStore.getState().viewportLayoutNodesById[
+        useWorkspaceStore.getState().viewportSlotRootNodeId
+      ]
+    expect(rootNode?.kind).toBe('split')
+    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('right')
     expect(useWorkspaceStore.getState().browserShell.viewportSplitRatio).toBeCloseTo(
       320 / 544,
       5,
     )
+  })
+
+  it('commits a whole-layout top split above an existing left browser and model viewport when the whole-browser top ghost is dropped', async () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'left', {
+      surfaceKind: 'browser',
+      surfaceInstanceId: 'browser-existing-left',
+      preferredRatio: 0.32,
+    })
+
+    await renderHarness()
+    mockGeometry()
+
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotBodyElement = primarySlotElement?.querySelector(
+      '.ViewportFrameBody',
+    ) as HTMLDivElement | null
+    const browserSlotElement = Array.from(
+      container?.querySelectorAll('[data-workspace-slot-id]') ?? [],
+    ).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== defaultPrimaryViewportSlotId,
+    ) as HTMLDivElement | undefined
+
+    mockRect(browserSlotElement, {
+      left: 0,
+      top: 0,
+      width: 320,
+      height: 900,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 0,
+      width: 544,
+      height: 900,
+    })
+    mockRect(primarySlotBodyElement, {
+      left: 320,
+      top: 38,
+      width: 544,
+      height: 862,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 320 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      if (clientX >= 0 && clientX < 320 && clientY >= 0 && clientY <= 900) {
+        return browserSlotElement !== undefined ? [browserSlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 520,
+          clientY: 44,
+        }),
+      )
+    })
+
+    const topGhost = container?.querySelector('.ViewportSplitDockGhost.isDockTop') as
+      | HTMLDivElement
+      | null
+    expect(topGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 520,
+          clientY: 44,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
+    expect(useWorkspaceStore.getState().browserShell.isViewportSplit).toBe(false)
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'browser',
+      ),
+    ).toHaveLength(2)
+    const nextRootNode =
+      useWorkspaceStore.getState().viewportLayoutNodesById[
+        useWorkspaceStore.getState().viewportSlotRootNodeId
+      ]
+    expect(nextRootNode?.kind).toBe('split')
+    expect(nextRootNode?.kind === 'split' ? nextRootNode.splitDockSide : null).toBe('top')
+    const secondChildNodeId =
+      nextRootNode?.kind === 'split' ? nextRootNode.secondChildId : null
+    const secondChildNode =
+      secondChildNodeId === null
+        ? null
+        : useWorkspaceStore.getState().viewportLayoutNodesById[secondChildNodeId]
+    expect(secondChildNode?.kind).toBe('split')
+  })
+
+  it('uses the outer right-edge band to commit a pane-local slot split instead of the whole-browser split path', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotBodyElement = primarySlotElement?.querySelector(
+      '.ViewportFrameBody',
+    ) as HTMLDivElement | null
+
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 0,
+      width: 544,
+      height: 900,
+    })
+    mockRect(primarySlotBodyElement, {
+      left: 320,
+      top: 38,
+      width: 544,
+      height: 862,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 320 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 846,
+          clientY: 260,
+        }),
+      )
+    })
+
+    const rightGhost = container?.querySelector('.ViewportSplitDockGhost.isDockRight') as
+      | HTMLDivElement
+      | null
+    expect(rightGhost).not.toBeNull()
+    expect(rightGhost?.dataset.splitPreviewScope).toBe('pane-local')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 846,
+          clientY: 260,
+        }),
+      )
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isViewportSplit).toBe(false)
+    const browserSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'browser',
+    )
+    expect(browserSlots.length).toBe(1)
+    expect(browserSlots[0]?.slotId).not.toBe(defaultPrimaryViewportSlotId)
+    expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
+  })
+
+  it('uses cursor position inside the viewport to show a top split ghost even when the floating browser frame is not flush to the top edge', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 520,
+          clientY: 8,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockTop')).not.toBeNull()
+  })
+
+  it('uses pane-local geometry in the outer right-edge band and whole-browser geometry in the inner right-edge band', async () => {
+    const rightBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'right',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+    const topBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'top',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+
+    expect(rightBrowserSlotId).toBeTruthy()
+    expect(topBrowserSlotId).toBeTruthy()
+
+    await renderHarness()
+    mockGeometry()
+
+    const topBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${topBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotBodyElement = primarySlotElement?.querySelector('.ViewportFrameBody') as HTMLDivElement | null
+    const rightBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${rightBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+
+    mockRect(topBrowserSlotElement, {
+      left: 320,
+      top: 0,
+      width: 360,
+      height: 220,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 220,
+      width: 360,
+      height: 680,
+    })
+    mockRect(primarySlotBodyElement, {
+      left: 320,
+      top: 258,
+      width: 360,
+      height: 642,
+    })
+    mockRect(rightBrowserSlotElement, {
+      left: 680,
+      top: 0,
+      width: 184,
+      height: 900,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 680 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return rightBrowserSlotElement !== null ? [rightBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 0 && clientY <= 220) {
+        return topBrowserSlotElement !== null ? [topBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 220 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 662,
+          clientY: 520,
+        }),
+      )
+    })
+
+    const rightGhost = container?.querySelector('.ViewportSplitDockGhost.isDockRight') as HTMLDivElement | null
+    expect(rightGhost).not.toBeNull()
+    expect(rightGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(rightGhost?.style.left).toBe('280px')
+    expect(rightGhost?.style.top).toBe('258px')
+    expect(rightGhost?.style.width).toBe('80px')
+    expect(rightGhost?.style.height).toBe('642px')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 670,
+          clientY: 520,
+        }),
+      )
+    })
+
+    const wholeBrowserRightGhost = container?.querySelector(
+      '.ViewportSplitDockGhost.isDockRight',
+    ) as HTMLDivElement | null
+    expect(wholeBrowserRightGhost).not.toBeNull()
+    expect(wholeBrowserRightGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserRightGhost?.style.left).toBe('418px')
+    expect(wholeBrowserRightGhost?.style.top).toBe('0px')
+    expect(wholeBrowserRightGhost?.style.width).toBe('126px')
+    expect(wholeBrowserRightGhost?.style.height).toBe('900px')
+  })
+
+  it('uses pane-local geometry in the outer left-edge band and whole-browser geometry in the inner left-edge band', async () => {
+    const rightBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'right',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+    const topBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'top',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+
+    expect(rightBrowserSlotId).toBeTruthy()
+    expect(topBrowserSlotId).toBeTruthy()
+
+    await renderHarness()
+    mockGeometry()
+
+    const topBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${topBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotBodyElement = primarySlotElement?.querySelector('.ViewportFrameBody') as HTMLDivElement | null
+    const rightBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${rightBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+
+    mockRect(topBrowserSlotElement, {
+      left: 320,
+      top: 0,
+      width: 360,
+      height: 220,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 220,
+      width: 360,
+      height: 680,
+    })
+    mockRect(primarySlotBodyElement, {
+      left: 320,
+      top: 258,
+      width: 360,
+      height: 642,
+    })
+    mockRect(rightBrowserSlotElement, {
+      left: 680,
+      top: 0,
+      width: 184,
+      height: 900,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 680 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return rightBrowserSlotElement !== null ? [rightBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 0 && clientY <= 220) {
+        return topBrowserSlotElement !== null ? [topBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 220 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 338,
+          clientY: 520,
+        }),
+      )
+    })
+
+    const leftGhost = container?.querySelector('.ViewportSplitDockGhost.isDockLeft') as HTMLDivElement | null
+    expect(leftGhost).not.toBeNull()
+    expect(leftGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(leftGhost?.style.left).toBe('0px')
+    expect(leftGhost?.style.top).toBe('258px')
+    expect(leftGhost?.style.width).toBe('80px')
+    expect(leftGhost?.style.height).toBe('642px')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 330,
+          clientY: 520,
+        }),
+      )
+    })
+
+    const wholeBrowserLeftGhost = container?.querySelector(
+      '.ViewportSplitDockGhost.isDockLeft',
+    ) as HTMLDivElement | null
+    expect(wholeBrowserLeftGhost).not.toBeNull()
+    expect(wholeBrowserLeftGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserLeftGhost?.classList.contains('isWholeBrowserScope')).toBe(true)
+    expect(wholeBrowserLeftGhost?.style.left).toBe('0px')
+    expect(wholeBrowserLeftGhost?.style.top).toBe('0px')
+    expect(wholeBrowserLeftGhost?.style.width).toBe('126px')
+    expect(wholeBrowserLeftGhost?.style.height).toBe('900px')
+  })
+
+  it('uses pane-local geometry in the outer top-edge band and whole-browser geometry in the inner top-edge band', async () => {
+    const rightBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'right',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+    const topBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'top',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+
+    expect(rightBrowserSlotId).toBeTruthy()
+    expect(topBrowserSlotId).toBeTruthy()
+
+    await renderHarness()
+    mockGeometry()
+
+    const topBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${topBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotBodyElement = primarySlotElement?.querySelector('.ViewportFrameBody') as HTMLDivElement | null
+    const rightBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${rightBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+
+    mockRect(topBrowserSlotElement, {
+      left: 320,
+      top: 0,
+      width: 360,
+      height: 220,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 220,
+      width: 360,
+      height: 680,
+    })
+    mockRect(primarySlotBodyElement, {
+      left: 320,
+      top: 258,
+      width: 360,
+      height: 642,
+    })
+    mockRect(rightBrowserSlotElement, {
+      left: 680,
+      top: 0,
+      width: 184,
+      height: 900,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 680 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return rightBrowserSlotElement !== null ? [rightBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 0 && clientY <= 220) {
+        return topBrowserSlotElement !== null ? [topBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 220 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 276,
+        }),
+      )
+    })
+
+    const topGhost = container?.querySelector('.ViewportSplitDockGhost.isDockTop') as HTMLDivElement | null
+    expect(topGhost).not.toBeNull()
+    expect(topGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(topGhost?.style.left).toBe('0px')
+    expect(topGhost?.style.top).toBe('258px')
+    expect(topGhost?.style.width).toBe('360px')
+    expect(topGhost?.style.height).not.toBe('')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 268,
+        }),
+      )
+    })
+
+    const wholeBrowserTopGhost = container?.querySelector(
+      '.ViewportSplitDockGhost.isDockTop',
+    ) as HTMLDivElement | null
+    expect(wholeBrowserTopGhost).not.toBeNull()
+    expect(wholeBrowserTopGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserTopGhost?.classList.contains('isWholeBrowserScope')).toBe(true)
+    expect(wholeBrowserTopGhost?.style.left).toBe('0px')
+    expect(wholeBrowserTopGhost?.style.top).toBe('0px')
+    expect(wholeBrowserTopGhost?.style.width).toBe('544px')
+    expect(wholeBrowserTopGhost?.style.height).not.toBe('')
+  })
+
+  it('uses pane-local geometry in the outer bottom-edge band and whole-browser geometry in the inner bottom-edge band', async () => {
+    const rightBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'right',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+    const topBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'top',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+
+    expect(rightBrowserSlotId).toBeTruthy()
+    expect(topBrowserSlotId).toBeTruthy()
+
+    await renderHarness()
+    mockGeometry()
+
+    const topBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${topBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotBodyElement = primarySlotElement?.querySelector('.ViewportFrameBody') as HTMLDivElement | null
+    const rightBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${rightBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+
+    mockRect(topBrowserSlotElement, {
+      left: 320,
+      top: 0,
+      width: 360,
+      height: 220,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 220,
+      width: 360,
+      height: 680,
+    })
+    mockRect(primarySlotBodyElement, {
+      left: 320,
+      top: 258,
+      width: 360,
+      height: 642,
+    })
+    mockRect(rightBrowserSlotElement, {
+      left: 680,
+      top: 0,
+      width: 184,
+      height: 900,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 680 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return rightBrowserSlotElement !== null ? [rightBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 0 && clientY <= 220) {
+        return topBrowserSlotElement !== null ? [topBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 220 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 882,
+        }),
+      )
+    })
+
+    const bottomGhost = container?.querySelector('.ViewportSplitDockGhost.isDockBottom') as HTMLDivElement | null
+    expect(bottomGhost).not.toBeNull()
+    expect(bottomGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(bottomGhost?.style.left).toBe('0px')
+    expect(bottomGhost?.style.width).toBe('360px')
+    expect(bottomGhost?.style.height).not.toBe('')
+    expect(bottomGhost?.style.top).not.toBe('0px')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 890,
+        }),
+      )
+    })
+
+    const wholeBrowserBottomGhost = container?.querySelector(
+      '.ViewportSplitDockGhost.isDockBottom',
+    ) as HTMLDivElement | null
+    expect(wholeBrowserBottomGhost).not.toBeNull()
+    expect(wholeBrowserBottomGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserBottomGhost?.classList.contains('isWholeBrowserScope')).toBe(true)
+    expect(wholeBrowserBottomGhost?.style.left).toBe('0px')
+    expect(wholeBrowserBottomGhost?.style.top).not.toBe('0px')
+    expect(wholeBrowserBottomGhost?.style.width).toBe('544px')
+    expect(wholeBrowserBottomGhost?.style.height).not.toBe('')
+  })
+
+  it('shows immediate nested dual ghosts over an already split pane and splits that hovered slot with Browser on release', async () => {
+    const consoleSlotId = useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
+      surfaceKind: 'console',
+    })
+    expect(consoleSlotId).toBeTruthy()
+
+    await renderHarness()
+    mockGeometry()
+
+    const consoleSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${consoleSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+
+    mockRect(consoleSlotElement, {
+      left: 320,
+      top: 0,
+      width: 544,
+      height: 220,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 220,
+      width: 544,
+      height: 680,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 320 && clientX <= 864 && clientY >= 0 && clientY <= 220) {
+        return consoleSlotElement !== null ? [consoleSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 864 && clientY >= 220 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 120,
+        }),
+      )
+    })
+
+    expect(
+      container?.querySelectorAll('.ViewportSplitDockGhost[data-split-preview-kind="nested"]').length,
+    ).toBe(2)
+    expect(
+      container?.querySelector(
+        '.ViewportSplitDockGhost[data-split-preview-kind="nested"][data-split-preview-side="left"][data-split-preview-active="true"]',
+      ),
+    ).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 120,
+        }),
+      )
+    })
+
+    const browserSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'browser',
+    )
+    expect(browserSlots.length).toBe(1)
+    expect(browserSlots[0]?.slotId).not.toBe(defaultPrimaryViewportSlotId)
+    expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
+  })
+
+  it('treats model pane interiors as plain floating space and only offers split previews at the edges', async () => {
+    const rightBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'right',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+    const topBrowserSlotId = useWorkspaceStore.getState().splitViewportSlot(
+      defaultPrimaryViewportSlotId,
+      'top',
+      {
+        surfaceKind: 'browser',
+      },
+    )
+
+    expect(rightBrowserSlotId).toBeTruthy()
+    expect(topBrowserSlotId).toBeTruthy()
+
+    await renderHarness()
+    mockGeometry()
+
+    const topBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${topBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+    const primarySlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${defaultPrimaryViewportSlotId}"]`,
+    ) as HTMLDivElement | null
+    const rightBrowserSlotElement = container?.querySelector(
+      `[data-workspace-slot-id="${rightBrowserSlotId}"]`,
+    ) as HTMLDivElement | null
+
+    mockRect(topBrowserSlotElement, {
+      left: 320,
+      top: 0,
+      width: 360,
+      height: 220,
+    })
+    mockRect(primarySlotElement, {
+      left: 320,
+      top: 220,
+      width: 360,
+      height: 680,
+    })
+    mockRect(rightBrowserSlotElement, {
+      left: 680,
+      top: 0,
+      width: 184,
+      height: 900,
+    })
+
+    document.elementsFromPoint = ((clientX: number, clientY: number) => {
+      if (clientX >= 680 && clientX <= 864 && clientY >= 0 && clientY <= 900) {
+        return rightBrowserSlotElement !== null ? [rightBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 0 && clientY <= 220) {
+        return topBrowserSlotElement !== null ? [topBrowserSlotElement] : []
+      }
+      if (clientX >= 320 && clientX <= 680 && clientY >= 220 && clientY <= 900) {
+        return primarySlotElement !== null ? [primarySlotElement] : []
+      }
+      return []
+    }) as typeof document.elementsFromPoint
+
+    const dockedTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-docked"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      dockedTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 40,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 72,
+          clientY: 156,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 280,
+          clientY: 120,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 520,
+        }),
+      )
+    })
+
+    expect(
+      container?.querySelector('.ViewportSplitDockGhost[data-split-preview-kind="float-drop"]'),
+    ).toBeNull()
+    expect(
+      container?.querySelectorAll('.ViewportSplitDockGhost[data-split-preview-kind="nested"]').length,
+    ).toBe(0)
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockTop')).toBeNull()
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockRight')).toBeNull()
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockBottom')).toBeNull()
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockLeft')).toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 520,
+        }),
+      )
+    })
+
+    const browserSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'browser',
+    )
+    expect(browserSlots.length).toBe(2)
+    expect(container?.querySelector('.BrowserFloatingWindow')).not.toBeNull()
   })
 
   it('opens a floating browser titlebar split menu and moves the browser into a left split', async () => {

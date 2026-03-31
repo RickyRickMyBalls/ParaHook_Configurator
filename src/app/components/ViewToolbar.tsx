@@ -11,6 +11,7 @@ import {
 } from '../parts/partKeyResolver'
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
   selectViewerTargetGraphAcceptedBuildOutputs,
   useSpaghettiStore,
@@ -136,7 +137,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const parts = viewerTargetParts
 
-  const view = useUiPrefsStore((state) => state.view)
+  const globalView = useUiPrefsStore((state) => state.view)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
   const selectLight = useUiPrefsStore((state) => state.selectLight)
   const addLight = useUiPrefsStore((state) => state.addLight)
@@ -149,11 +150,22 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const setUsePerPartMaterial = useUiPrefsStore((state) => state.setUsePerPartMaterial)
   const assignPartMaterial = useUiPrefsStore((state) => state.assignPartMaterial)
   const clearPartMaterial = useUiPrefsStore((state) => state.clearPartMaterial)
-  const viewToolbarOpen = useUiPrefsStore((state) => state.viewToolbarOpen)
-  const setViewToolbarOpen = useUiPrefsStore((state) => state.setViewToolbarOpen)
-  const viewToolbarExpandedAxisWidgetSize = useUiPrefsStore(
-    (state) => state.viewToolbarExpandedAxisWidgetSize,
+  const localViewState = useWorkspaceStore(
+    (state) =>
+      (viewportId !== undefined ? state.viewportChromeById[viewportId]?.localViewState : null) ?? null,
   )
+  const setViewportLocalViewState = useWorkspaceStore((state) => state.setViewportLocalViewState)
+
+  const view = useMemo(
+    () => ({
+      ...globalView,
+      projectionMode: localViewState?.projectionMode ?? globalView.projectionMode,
+      axisOverlayEnabled: localViewState?.axisOverlayEnabled ?? globalView.axisOverlayEnabled,
+    }),
+    [globalView, localViewState],
+  )
+  const viewToolbarOpen = localViewState?.viewToolbarOpen ?? false
+  const viewToolbarExpandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
 
   const [gizmoEnabled, setGizmoEnabled] = useState(false)
   const [activeCameraPreset, setActiveCameraPreset] = useState<CameraPreset>('iso')
@@ -179,7 +191,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   }, [view.materials.presets, view.materials.selectedPresetId])
 
   const withViewer = (callback: (viewer: NonNullable<ReturnType<typeof getViewer>>) => void) => {
-    const viewer = getViewer()
+    const viewer = getViewer(viewportId)
     if (viewer === null) {
       return
     }
@@ -220,7 +232,11 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             className="V15PanelTitle ViewToolbarToggle"
             onClick={(event) => {
               event.preventDefault()
-              setViewToolbarOpen(!viewToolbarOpen)
+              if (viewportId !== undefined) {
+                setViewportLocalViewState(viewportId, {
+                  viewToolbarOpen: !viewToolbarOpen,
+                })
+              }
             }}
           >
             View
@@ -235,7 +251,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 }`}
                 type="button"
                 aria-pressed={view.projectionMode === 'perspective'}
-                onClick={() => setProjectionModeCommand('perspective')}
+                onClick={() => setProjectionModeCommand('perspective', viewportId)}
               >
                 Perspective
               </button>
@@ -245,7 +261,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 }`}
                 type="button"
                 aria-pressed={view.projectionMode === 'orthographic'}
-                onClick={() => setProjectionModeCommand('orthographic')}
+                onClick={() => setProjectionModeCommand('orthographic', viewportId)}
               >
                 Orthographic
               </button>
@@ -258,7 +274,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   aria-pressed={activeCameraPreset === preset}
                   onClick={() => {
                     setActiveCameraPreset(preset)
-                    setCameraPresetCommand(preset)
+                    setCameraPresetCommand(preset, viewportId)
                   }}
                 >
                   {preset[0].toUpperCase() + preset.slice(1)}
@@ -268,14 +284,14 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               <button
                 className="CameraButton CameraActionButton"
                 type="button"
-                onClick={() => frameSelectedCommand(selectedPartKey)}
+                onClick={() => frameSelectedCommand(selectedPartKey, viewportId)}
               >
                 Frame
               </button>
               <button
                 className="CameraButton CameraActionButton"
                 type="button"
-                onClick={() => frameAllCommand()}
+                onClick={() => frameAllCommand(viewportId)}
               >
                 Frame All
               </button>
@@ -406,7 +422,15 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 <input
                   type="checkbox"
                   checked={view.axisOverlayEnabled}
-                  onChange={(event) => setViewKey('axisOverlayEnabled', event.target.checked)}
+                  onChange={(event) => {
+                    if (viewportId !== undefined) {
+                      setViewportLocalViewState(viewportId, {
+                        axisOverlayEnabled: event.target.checked,
+                      })
+                      return
+                    }
+                    setViewKey('axisOverlayEnabled', event.target.checked)
+                  }}
                 />
                 Axis Overlay
               </label>

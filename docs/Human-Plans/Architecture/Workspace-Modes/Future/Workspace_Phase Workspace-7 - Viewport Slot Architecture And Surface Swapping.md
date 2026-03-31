@@ -3,6 +3,17 @@
 ## Doc Header
 
 ### Doc History
+36. 2026-03-31 16:47: Added the native `Workspace 7.5` follow-on doc so the later workspace ladder now has one explicit post-`7.4` standardization phase for reusable surface host contracts, generic dock or toolbar ownership, and Browser-plus-Spaghetti shell convergence before more future windows are onboarded
+35. 2026-03-31 14:49: Marked `Workspace 7.3-1` as shipped, moved that first second-model-viewport record into `Workspace-Modes/Shipped/`, and advanced the umbrella `Workspace 7` ladder so `7.3-2` is now the active multiple-viewer follow-on for host-targeting and viewer-rehome parity
+34. 2026-03-31 14:23: Broke the native `Workspace 7.3` viewer-runtime widening lane into staged `7.3-1` and `7.3-2` subphase docs so the family now reads as second-model-viewport structural proof first and cross-viewport host-targeting parity second before the later `7.4` convergence cleanup
+33. 2026-03-31 14:18: Added the native `Workspace 7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity` planning doc under `Workspace-Modes/Future/`, turning the already-locked `7.3` umbrella scope into one dedicated next-lane surface for true multiple model viewports, per-viewport runtime targeting, and the first protected-viewer-assumption retirement pass after the Browser-first `7.2` cleanup family
+32. 2026-03-31 12:55: Re-homed the earlier post-`7.2e-2` dual-band edge-intent cleanup into a new `Workspace 7.2f` family, tightening the `Workspace 7` follow-on ladder so `7.2e` ends at pane-aware precision plus adaptive nested ghosts while `7.2f-1` and `7.2f-2` now own the later pane-local-versus-whole-browser split-scope signaling cleanup
+30. 2026-03-31 11:18: Tightened the `Workspace 7` follow-on ladder again by staging `Workspace 7.2e` into `7.2e-1` for cursor-driven four-way pane precision and `7.2e-2` for adaptive dual ghost nested suggestions before the later `Workspace 7.3` widening
+31. 2026-03-31 11:51: Re-pointed the `Workspace 7.2e` ladder wording away from width/height-driven axis switching so the pre-`7.3` split-preview follow-on now reads as fixed-direction pane-local preview cleanup plus richer nested directional suggestions instead of a pane-shape remapping pass
+29. 2026-03-31 11:13: Tightened the `Workspace 7` follow-on ladder again by adding the new `Workspace 7.2e` pane-aware split-preview pass, clarifying that adaptive dual ghost previews plus hovered-pane split targeting deserve their own pre-`7.3` authoring upgrade after the active `7.2d-2` Browser rehome parity cut
+28. 2026-03-31 11:02: Tightened the `Workspace 7` follow-on ladder again after shipping `7.2d-1`, clarifying that the Browser toolbar-ownership cleanup now has a concrete `7.2d-2` parity spec for quick-dock and left-toolbar claim consistency before the later `Workspace 7.3` multiple-model-viewport widening
+27. 2026-03-31 10:47: Tightened the `Workspace 7` follow-on ladder again after staging `Workspace 7.2d`, clarifying that the Browser toolbar-ownership cleanup should start with a structural `7.2d-1` owner-state and `AppShell` repoint cut before the later dock-left claim parity follow-on and the heavier `Workspace 7.3` viewer widening
+26. 2026-03-31 10:41: Added the new `Workspace 7.2d` follow-on read after the shipped `7.2c` left-dock-unification family, clarifying that explicit Browser toolbar ownership and deterministic left-dock rehoming now deserve their own cleanup slice before the heavier `Workspace 7.3` multiple-model-viewport widening
 25. 2026-03-30 16:31: Locked `Workspace 7` Questions `35` through `39`, clarifying the cleanup pass for `7.4`, when slot duplicate/close/merge actions should land, how `Pop Out` should mirror the float lifecycle under the slot model, how workspace persistence should store slot trees plus retained-surface host modes, and how the old Browser and Spaghetti split hosts should be retired after the slot system proves itself, while leaving `Question 40` open as a later advanced-feature bucket
 24. 2026-03-30 16:24: Locked the first `Workspace 7.3` scope question and added the first explicit remaining open-question list for the later `7.x` ladder, so the doc now shows both the locked foundation and the still-open follow-on decisions in one readable place instead of implying there are no questions left
 23. 2026-03-30 16:18: Locked the first `Workspace 7.2` scope question, clarifying that the second subphase after `7.1` should prove real duplicate `Browser`, `Console`, and `Spaghetti Editor` surfaces under the new slot model, widen host-mode parity across slotted, floating, and popout presentations, and begin retiring older special-case split hosts where the new slot system has already replaced them
@@ -787,12 +798,26 @@ A reasonable first shape is:
 - surface kind versus surface instance separation widened across Browser and Spaghetti slot hosting
 - honest host-mode transitions between slotted and floating
 
-3. `Workspace 7.3`
+3. `Workspace 7.2d`
+- explicit Browser toolbar ownership under the primary viewport left dock
+- deterministic Browser `dock left` rehoming without unrelated Browser slots suppressing that toolbar route
+- staged as a shipped `7.2d-1` owner-state plus `AppShell` repoint cut and an active `7.2d-2` parity follow-on for Browser claim behavior
+
+4. `Workspace 7.2e`
+- pane-aware split preview targeting that responds to the hovered pane instead of only the outer viewport edges
+- richer nested directional ghost suggestions that preserve the normal `top` / `right` / `bottom` / `left` split language
+- staged as `7.2e-1` for cursor-driven four-way pane precision and `7.2e-2` for adaptive nested dual ghost suggestions
+
+5. `Workspace 7.2f`
+- dual-band edge-intent scope signaling so one edge gesture can intentionally choose between pane-local and whole-browser split previews by depth into the edge band
+- staged as `7.2f-1` for explicit preview-scope state plus the right-side proof and `7.2f-2` for four-side expansion plus above-header whole-browser ghost layering
+
+6. `Workspace 7.3`
 - additional model viewport support
 - stronger viewport-local host targeting
 - deeper slot duplication and layout editing
 
-4. `Workspace 7.4`
+7. `Workspace 7.4`
 - further cleanup after the migration adapters are no longer needed
 - delete any surviving temporary split or floating special cases that block the honest end-state
 

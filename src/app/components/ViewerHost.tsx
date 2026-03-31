@@ -32,6 +32,8 @@ import {
   commitWorkspaceTargetSelection,
 } from '../store/workspaceSelectionCommands'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
+import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 import {
   selectSharedViewerComposition,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
@@ -157,7 +159,12 @@ const buildViewerTransformHistoryOverlayVm = (
   }
 }
 
-export function ViewerHost() {
+type ViewerHostProps = {
+  viewportId: WorkspaceViewportId
+}
+
+export function ViewerHost(props: ViewerHostProps) {
+  const { viewportId } = props
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)
@@ -193,7 +200,10 @@ export function ViewerHost() {
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
-  const view = useUiPrefsStore((state) => state.view)
+  const globalView = useUiPrefsStore((state) => state.view)
+  const viewportLocalViewState = useWorkspaceStore(
+    (state) => state.viewportChromeById[viewportId]?.localViewState ?? null,
+  )
   const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarGhostPlaneScale,
   )
@@ -242,6 +252,16 @@ export function ViewerHost() {
       (node) => node.nodeId === nodeId && node.type === 'Geometry/Sketch',
     ) ?? null
   })
+
+  const view = useMemo(
+    () => ({
+      ...globalView,
+      projectionMode: viewportLocalViewState?.projectionMode ?? globalView.projectionMode,
+      axisOverlayEnabled:
+        viewportLocalViewState?.axisOverlayEnabled ?? globalView.axisOverlayEnabled,
+    }),
+    [globalView, viewportId, viewportLocalViewState],
+  )
 
   const previewList = useMemo(
     () => {
@@ -764,15 +784,15 @@ export function ViewerHost() {
     isMountedRef.current = true
     const viewer = new Viewer(mountRef.current)
     viewerRef.current = viewer
-    setViewer(viewer)
+    setViewer(viewportId, viewer)
 
     return () => {
       isMountedRef.current = false
       viewer.dispose()
       viewerRef.current = null
-      setViewer(null)
+      setViewer(viewportId, null)
     }
-  }, [])
+  }, [viewportId])
 
   useEffect(() => {
     const viewer = viewerRef.current

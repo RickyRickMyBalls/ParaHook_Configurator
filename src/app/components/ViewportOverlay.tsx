@@ -11,6 +11,7 @@ import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
 import { useAppStore } from '../store/useAppStore'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { ParaSlider } from './ParaSlider'
 import { ParaSelect } from './ParaSelect'
 import { ParaVec2Slider } from './ParaVec2Slider'
@@ -512,14 +513,14 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     }
     endBrowserBuildInteraction(activeGraphDocumentId)
   }
-  const axisOverlayEnabled = useUiPrefsStore((state) => state.view.axisOverlayEnabled)
-  const viewToolbarOpen = useUiPrefsStore((state) => state.viewToolbarOpen)
-  const expandedAxisWidgetSize = useUiPrefsStore(
-    (state) => state.viewToolbarExpandedAxisWidgetSize,
+  const localViewState = useWorkspaceStore(
+    (state) =>
+      (viewportId !== undefined ? state.viewportChromeById[viewportId]?.localViewState : null) ?? null,
   )
-  const setExpandedAxisWidgetSize = useUiPrefsStore(
-    (state) => state.setViewToolbarExpandedAxisWidgetSize,
-  )
+  const setViewportLocalViewState = useWorkspaceStore((state) => state.setViewportLocalViewState)
+  const axisOverlayEnabled = localViewState?.axisOverlayEnabled ?? false
+  const viewToolbarOpen = localViewState?.viewToolbarOpen ?? false
+  const expandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
   const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarGhostPlaneScale,
   )
@@ -1035,7 +1036,11 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       const delta = Math.max(deltaX, deltaY)
       const next = Math.round(state.startSize + delta)
       const clamped = Math.min(Math.max(next, MIN_AXIS_WIDGET_SIZE), MAX_AXIS_WIDGET_SIZE)
-      setExpandedAxisWidgetSize(clamped)
+      if (viewportId !== undefined) {
+        setViewportLocalViewState(viewportId, {
+          viewToolbarExpandedAxisWidgetSize: clamped,
+        })
+      }
     }
 
     const stop = (stopEvent: PointerEvent): void => {
@@ -1074,16 +1079,16 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       attachedViewer.setAxisOverlayCanvas(canvas)
     }
 
-    attach(getViewer())
+    attach(getViewer(viewportId))
     const unsubscribe = subscribeViewer((viewer) => {
       attach(viewer)
-    })
+    }, viewportId)
 
     return () => {
       attachedViewer?.setAxisOverlayCanvas(null)
       unsubscribe()
     }
-  }, [axisOverlayEnabled])
+  }, [axisOverlayEnabled, viewportId])
 
   useEffect(() => {
     setAxisWidgetSize(resolvedAxisWidgetSize)

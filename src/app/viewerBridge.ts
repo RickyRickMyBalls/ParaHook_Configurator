@@ -279,23 +279,100 @@ export interface ViewerApi {
 }
 
 let viewer: ViewerApi | null = null
-const listeners = new Set<(viewer: ViewerApi | null) => void>()
+let activeViewerViewportId: string | null = null
+const viewerByViewportId = new Map<string, ViewerApi>()
+const activeListeners = new Set<(viewer: ViewerApi | null) => void>()
+const listenersByViewportId = new Map<string, Set<(viewer: ViewerApi | null) => void>>()
 
-export const setViewer = (nextViewer: ViewerApi | null): void => {
-  viewer = nextViewer
+const getViewportListeners = (viewportId: string): Set<(viewer: ViewerApi | null) => void> => {
+  const currentListeners = listenersByViewportId.get(viewportId)
+  if (currentListeners !== undefined) {
+    return currentListeners
+  }
+  const nextListeners = new Set<(viewer: ViewerApi | null) => void>()
+  listenersByViewportId.set(viewportId, nextListeners)
+  return nextListeners
+}
+
+const resolveActiveViewer = (): ViewerApi | null => {
+  if (activeViewerViewportId !== null) {
+    return viewerByViewportId.get(activeViewerViewportId) ?? null
+  }
+  return viewer
+}
+
+const notifyActiveViewerListeners = (): void => {
+  const nextViewer = resolveActiveViewer()
+  for (const listener of activeListeners) {
+    listener(nextViewer)
+  }
+}
+
+const notifyViewportViewerListeners = (viewportId: string): void => {
+  const listeners = listenersByViewportId.get(viewportId)
+  if (listeners === undefined) {
+    return
+  }
+  const nextViewer = viewerByViewportId.get(viewportId) ?? null
   for (const listener of listeners) {
     listener(nextViewer)
   }
 }
 
-export const getViewer = (): ViewerApi | null => viewer
+export const setViewer = (viewportIdOrViewer: string | ViewerApi | null, nextViewer?: ViewerApi | null): void => {
+  if (typeof viewportIdOrViewer === 'string') {
+    const viewportId = viewportIdOrViewer
+    if (nextViewer === null || nextViewer === undefined) {
+      viewerByViewportId.delete(viewportId)
+      if (activeViewerViewportId === viewportId) {
+        activeViewerViewportId = null
+      }
+    } else {
+      viewerByViewportId.set(viewportId, nextViewer)
+      if (activeViewerViewportId === null) {
+        activeViewerViewportId = viewportId
+      }
+    }
+    notifyViewportViewerListeners(viewportId)
+    notifyActiveViewerListeners()
+    return
+  }
+
+  viewer = viewportIdOrViewer
+  if (activeViewerViewportId === null) {
+    notifyActiveViewerListeners()
+  }
+}
+
+export const setActiveViewer = (viewportId: string | null): void => {
+  activeViewerViewportId = viewportId
+  notifyActiveViewerListeners()
+}
+
+export const getViewer = (viewportId?: string | null): ViewerApi | null => {
+  if (typeof viewportId === 'string') {
+    return viewerByViewportId.get(viewportId) ?? null
+  }
+  return resolveActiveViewer()
+}
 
 export const subscribeViewer = (
   listener: (viewer: ViewerApi | null) => void,
+  viewportId?: string | null,
 ): (() => void) => {
-  listeners.add(listener)
+  if (typeof viewportId === 'string') {
+    const listeners = getViewportListeners(viewportId)
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+      if (listeners.size === 0) {
+        listenersByViewportId.delete(viewportId)
+      }
+    }
+  }
+  activeListeners.add(listener)
   return () => {
-    listeners.delete(listener)
+    activeListeners.delete(listener)
   }
 }
 
@@ -303,46 +380,46 @@ export const beginViewerTemporaryOrbitDrag = (
   startClientX: number,
   startClientY: number,
 ): void => {
-  viewer?.beginTemporaryOrbitDrag(startClientX, startClientY)
+  getViewer()?.beginTemporaryOrbitDrag(startClientX, startClientY)
 }
 
 export const setViewerConsoleCameraMode = (mode: 'pan' | 'orbit' | 'zoom-window' | null): void => {
-  viewer?.setConsoleCameraMode(mode)
+  getViewer()?.setConsoleCameraMode(mode)
 }
 
 export const frameViewerPrevious = (): void => {
-  viewer?.framePrevious()
+  getViewer()?.framePrevious()
 }
 
 export const zoomViewerCameraByWheelDelta = (deltaY: number): void => {
-  viewer?.zoomCameraByWheelDelta(deltaY)
+  getViewer()?.zoomCameraByWheelDelta(deltaY)
 }
 
 export const beginViewerTemporaryPanDrag = (
   startClientX: number,
   startClientY: number,
 ): void => {
-  viewer?.beginTemporaryPanDrag(startClientX, startClientY)
+  getViewer()?.beginTemporaryPanDrag(startClientX, startClientY)
 }
 
 export const updateViewerTemporaryPanDrag = (
   clientX: number,
   clientY: number,
 ): void => {
-  viewer?.updateTemporaryPanDrag(clientX, clientY)
+  getViewer()?.updateTemporaryPanDrag(clientX, clientY)
 }
 
 export const endViewerTemporaryPanDrag = (): void => {
-  viewer?.endTemporaryPanDrag()
+  getViewer()?.endTemporaryPanDrag()
 }
 
 export const updateViewerTemporaryOrbitDrag = (
   clientX: number,
   clientY: number,
 ): void => {
-  viewer?.updateTemporaryOrbitDrag(clientX, clientY)
+  getViewer()?.updateTemporaryOrbitDrag(clientX, clientY)
 }
 
 export const endViewerTemporaryOrbitDrag = (): void => {
-  viewer?.endTemporaryOrbitDrag()
+  getViewer()?.endTemporaryOrbitDrag()
 }

@@ -955,32 +955,68 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   )
 
   const resolveSplitDockPreviewSide = useCallback(
-    (candidate: FloatingPosition, titleBarHeight: number): WorkspaceSplitDockSide | null => {
-      const frame = getFloatingShellFrame()
-      if (frame === null) {
+    (pointerClientX: number, pointerClientY: number): WorkspaceSplitDockSide | null => {
+      const viewportRect = viewportRef.current?.getBoundingClientRect()
+      const overshootThreshold = 120
+      if (
+        viewportRect === undefined ||
+        viewportRect.width <= 0 ||
+        viewportRect.height <= 0 ||
+        pointerClientX < viewportRect.left - overshootThreshold ||
+        pointerClientX > viewportRect.right + overshootThreshold ||
+        pointerClientY < viewportRect.top - overshootThreshold ||
+        pointerClientY > viewportRect.bottom + overshootThreshold
+      ) {
         return null
       }
-      const edgeThreshold = 20
-      const bodyTop = frame.bodyOffsetTop
-      const bodyBottom = frame.bodyOffsetTop + frame.bodyHeight
+      const hoveredPaneRect =
+        typeof document.elementsFromPoint === 'function'
+          ? document
+              .elementsFromPoint(pointerClientX, pointerClientY)
+              .map((element) =>
+                element instanceof HTMLElement
+                  ? element.closest('[data-workspace-slot-id]')
+                  : null,
+              )
+              .find(
+                (element): element is HTMLElement =>
+                  element instanceof HTMLElement && viewportRef.current?.contains(element) === true,
+              )
+              ?.getBoundingClientRect() ?? viewportRect
+          : viewportRect
+      const clampedPointerClientX = Math.min(
+        hoveredPaneRect.right,
+        Math.max(hoveredPaneRect.left, pointerClientX),
+      )
+      const clampedPointerClientY = Math.min(
+        hoveredPaneRect.bottom,
+        Math.max(hoveredPaneRect.top, pointerClientY),
+      )
+      const edgeThreshold = Math.min(
+        96,
+        Math.max(24, Math.round(Math.min(hoveredPaneRect.width, hoveredPaneRect.height) * 0.2)),
+      )
       const edgeDistances: Array<{ side: WorkspaceSplitDockSide; distance: number }> = [
-        { side: 'top', distance: Math.max(0, candidate.y - bodyTop) },
+        {
+          side: 'top',
+          distance: Math.max(0, clampedPointerClientY - hoveredPaneRect.top),
+        },
         {
           side: 'right',
-          distance: Math.max(0, frame.viewportWidth - (candidate.x + floatingSizeRef.current.width)),
+          distance: Math.max(0, hoveredPaneRect.right - clampedPointerClientX),
         },
         {
           side: 'bottom',
-          distance: Math.max(0, bodyBottom - (candidate.y + titleBarHeight)),
+          distance: Math.max(0, hoveredPaneRect.bottom - clampedPointerClientY),
         },
-        { side: 'left', distance: Math.max(0, candidate.x) },
+        { side: 'left', distance: Math.max(0, clampedPointerClientX - hoveredPaneRect.left) },
       ]
       const previewableEdge = edgeDistances
         .filter((entry) => entry.distance <= edgeThreshold)
         .sort((left, right) => left.distance - right.distance)[0]
       return previewableEdge?.side ?? null
     },
-    [getFloatingShellFrame],
+    [viewportRef],
   )
 
   useEffect(() => {
@@ -1193,7 +1229,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         setActiveLeftDockPreviewPanelId(nextDockPreviewPanelId)
         const nextSplitDockPreviewSide =
           nextDockPreviewPanelId === null
-            ? resolveSplitDockPreviewSide(clamped, dragState.titleBarHeight)
+            ? resolveSplitDockPreviewSide(moveEvent.clientX, moveEvent.clientY)
             : null
         splitDockPreviewSideRef.current = nextSplitDockPreviewSide
         setSplitDockPreviewSide(nextSplitDockPreviewSide)
@@ -1204,7 +1240,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         const nextSplitDockSide =
           splitDockPreviewSideRef.current ??
           (dragState !== null
-            ? resolveSplitDockPreviewSide(floatingPosRef.current, dragState.titleBarHeight)
+            ? resolveSplitDockPreviewSide(upEvent.clientX, upEvent.clientY)
             : null)
         const shouldDockToMeatball =
           resolveLeftDockPreviewPanelId('meatball-editor', upEvent.clientX, upEvent.clientY) ===

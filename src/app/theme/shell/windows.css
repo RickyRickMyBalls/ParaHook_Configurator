@@ -193,8 +193,8 @@
   justify-self: start;
 }
 
-.ViewportSplitLayout.isVertical .ViewportSplitDivider,
-.ViewportSplitLayout.isVertical .ViewportSplitDivider:hover {
+.ViewportSplitLayout.isVertical > .ViewportSplitDividerShell > .ViewportSplitDivider,
+.ViewportSplitLayout.isVertical > .ViewportSplitDividerShell > .ViewportSplitDivider:hover {
   width: 10px;
   min-width: 10px;
   height: 100%;

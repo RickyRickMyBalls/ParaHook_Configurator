@@ -7,6 +7,8 @@ import {
   type WorkspaceSplitDirection,
   type WorkspaceSplitPriority,
 } from './workspaceSplitTypes'
+import { DEFAULT_VIEW_SETTINGS } from '../../shared/viewSettingsTypes'
+import type { ProjectionMode } from '../../shared/viewSettingsTypes'
 
 export type LeftDockPanelId = 'browser' | 'meatball-editor'
 
@@ -140,6 +142,14 @@ export type WorkspaceEditorSurfaceBinding = {
 export type WorkspaceViewportChromeState = {
   viewportId: WorkspaceViewportId
   surfaceKind: 'modelViewer'
+  localViewState: WorkspaceViewportLocalViewState
+}
+
+export type WorkspaceViewportLocalViewState = {
+  projectionMode: ProjectionMode
+  axisOverlayEnabled: boolean
+  viewToolbarOpen: boolean
+  viewToolbarExpandedAxisWidgetSize: number | null
 }
 
 export type WorkspaceViewportSlot = {
@@ -155,7 +165,7 @@ export type WorkspaceViewportSlot = {
 export type WorkspaceDetachedSurfaceHostMode = Exclude<WorkspaceSurfaceHostMode, 'slotted'>
 
 export type WorkspaceDetachedSlotSurfaceState = {
-  surfaceKind: Exclude<WorkspaceSurfaceKind, 'modelViewer'>
+  surfaceKind: WorkspaceSurfaceKind
   surfaceInstanceId: WorkspaceSurfaceInstanceId
   hostMode: WorkspaceDetachedSurfaceHostMode
   hostViewportId: WorkspaceViewportId | null
@@ -185,7 +195,9 @@ export type PersistedWorkspaceLayout = {
   version: 1
   leftDockWidth: number
   isLeftDockViewportSplit: boolean
+  browserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId | null
   browserShell: BrowserShellState
+  activeViewerViewportId: WorkspaceViewportId
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
   viewportSlotRootNodeId: WorkspaceLayoutNodeId
@@ -209,6 +221,8 @@ export const defaultViewportLayoutRootNodeId: WorkspaceLayoutNodeId =
 export const defaultBrowserFloatingPosition: BrowserFloatingPosition = { x: 16, y: 96 }
 export const defaultBrowserFloatingSize: BrowserFloatingSize = { width: 320, height: 560 }
 export const defaultBrowserPresentationMode: BrowserPresentationMode = 'expanded'
+export const defaultBrowserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId =
+  'browser-left-dock-primary'
 export const defaultBrowserViewportSplitRatio = 0.5
 export const defaultBrowserViewportSplitDockSide: WorkspaceSplitDockSide = 'right'
 export const defaultBrowserPopoutState: WorkspacePopoutSurfaceState = {
@@ -260,7 +274,16 @@ export const createDefaultWorkspaceViewportChromeState = (
 ): WorkspaceViewportChromeState => ({
   viewportId,
   surfaceKind: 'modelViewer',
+  localViewState: createDefaultWorkspaceViewportLocalViewState(),
 })
+
+export const createDefaultWorkspaceViewportLocalViewState =
+  (): WorkspaceViewportLocalViewState => ({
+    projectionMode: DEFAULT_VIEW_SETTINGS.projectionMode,
+    axisOverlayEnabled: DEFAULT_VIEW_SETTINGS.axisOverlayEnabled,
+    viewToolbarOpen: false,
+    viewToolbarExpandedAxisWidgetSize: null,
+  })
 
 export const createWorkspaceSurfaceInstanceIdForSlot = (
   surfaceKind: WorkspaceSurfaceKind,

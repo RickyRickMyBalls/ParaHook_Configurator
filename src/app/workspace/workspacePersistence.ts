@@ -3,6 +3,7 @@ import {
   createDefaultWorkspaceSlotTree,
   createDefaultEditorPopoutState,
   defaultBrowserPresentationMode,
+  defaultBrowserToolbarOwnerSurfaceInstanceId,
   defaultBrowserViewportSplitDockSide,
   defaultBrowserViewportSplitRatio,
   createDefaultEditorWorkspaceSurfaceState,
@@ -40,7 +41,9 @@ export const workspaceLayoutStorageKey = 'parahook.workspace.lastLayout.v1'
 type WorkspacePersistenceSource = {
   leftDockWidth: number
   isLeftDockViewportSplit: boolean
+  browserToolbarOwnerSurfaceInstanceId: string | null
   browserShell: BrowserShellState
+  activeViewerViewportId: WorkspaceViewportId
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
   viewportSlotRootNodeId: WorkspaceLayoutNodeId
@@ -126,6 +129,20 @@ const cloneDetachedSlotSurfaceState = (
   lastSlotId: detachedSurface.lastSlotId,
   preferredSplitDockSide: detachedSurface.preferredSplitDockSide,
 })
+
+const cloneViewportChromeState = (
+  chrome: WorkspaceViewportChromeState,
+): WorkspaceViewportChromeState => {
+  const baseChrome = createDefaultWorkspaceViewportChromeState(chrome.viewportId)
+  return {
+    ...baseChrome,
+    ...chrome,
+    localViewState: {
+      ...baseChrome.localViewState,
+      ...(chrome.localViewState ?? {}),
+    },
+  }
+}
 
 const cloneEditorSurfacePlacement = (
   surface: EditorWorkspaceSurfaceState,
@@ -229,7 +246,32 @@ const normalizeViewportChromeRecord = (
     typeof value.viewportId === 'string' && value.viewportId.length > 0
       ? value.viewportId
       : fallbackViewportId
-  return createDefaultWorkspaceViewportChromeState(viewportId)
+  const baseChrome = createDefaultWorkspaceViewportChromeState(viewportId)
+  const localViewState = isRecord(value.localViewState) ? value.localViewState : null
+  return {
+    ...baseChrome,
+    localViewState: {
+      ...baseChrome.localViewState,
+      ...(localViewState?.projectionMode === 'orthographic'
+        ? { projectionMode: 'orthographic' as const }
+        : {}),
+      ...(typeof localViewState?.axisOverlayEnabled === 'boolean'
+        ? { axisOverlayEnabled: localViewState.axisOverlayEnabled }
+        : {}),
+      ...(typeof localViewState?.viewToolbarOpen === 'boolean'
+        ? { viewToolbarOpen: localViewState.viewToolbarOpen }
+        : {}),
+      ...(typeof localViewState?.viewToolbarExpandedAxisWidgetSize === 'number' &&
+      Number.isFinite(localViewState.viewToolbarExpandedAxisWidgetSize)
+        ? {
+            viewToolbarExpandedAxisWidgetSize:
+              localViewState.viewToolbarExpandedAxisWidgetSize,
+          }
+        : localViewState?.viewToolbarExpandedAxisWidgetSize === null
+          ? { viewToolbarExpandedAxisWidgetSize: null }
+          : {}),
+    },
+  }
 }
 
 const normalizeViewportSlotRecord = (
@@ -530,12 +572,14 @@ export const serializeWorkspaceLayout = (
   version: 1,
   leftDockWidth: roundNumber(state.leftDockWidth, defaultLeftDockWidth),
   isLeftDockViewportSplit: state.isLeftDockViewportSplit,
+  browserToolbarOwnerSurfaceInstanceId: state.browserToolbarOwnerSurfaceInstanceId,
   browserShell: cloneBrowserShellState(state.browserShell),
+  activeViewerViewportId: state.activeViewerViewportId,
   primaryViewportId: state.primaryViewportId,
   viewportChromeById: Object.fromEntries(
     Object.entries(state.viewportChromeById).map(([viewportId, chrome]) => [
       viewportId,
-      createDefaultWorkspaceViewportChromeState(chrome.viewportId),
+      cloneViewportChromeState(chrome),
     ]),
   ),
   viewportSlotRootNodeId: state.viewportSlotRootNodeId,
@@ -626,6 +670,7 @@ export const normalizePersistedWorkspaceLayout = (
             return null
           }
           const surfaceKind =
+            detachedSurface.surfaceKind === 'modelViewer' ||
             detachedSurface.surfaceKind === 'browser' ||
             detachedSurface.surfaceKind === 'console' ||
             detachedSurface.surfaceKind === 'spaghettiEditor'
@@ -675,6 +720,11 @@ export const normalizePersistedWorkspaceLayout = (
       defaultLeftDockWidth,
     ),
     isLeftDockViewportSplit: value.isLeftDockViewportSplit === true,
+    browserToolbarOwnerSurfaceInstanceId:
+      typeof value.browserToolbarOwnerSurfaceInstanceId === 'string' &&
+      value.browserToolbarOwnerSurfaceInstanceId.length > 0
+        ? value.browserToolbarOwnerSurfaceInstanceId
+        : defaultBrowserToolbarOwnerSurfaceInstanceId,
     browserShell: cloneBrowserShellState({
       isCollapsed: isRecord(value.browserShell) && value.browserShell.isCollapsed === true,
       presentationMode:
@@ -749,6 +799,10 @@ export const normalizePersistedWorkspaceLayout = (
             })
           : defaultBrowserPopoutState,
     }),
+    activeViewerViewportId:
+      typeof value.activeViewerViewportId === 'string' && value.activeViewerViewportId.length > 0
+        ? value.activeViewerViewportId
+        : primaryViewportId,
     primaryViewportId,
     viewportChromeById,
     viewportSlotRootNodeId:

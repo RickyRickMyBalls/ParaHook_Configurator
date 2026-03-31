@@ -65,6 +65,670 @@ Do not use it for:
 
 ## Doc Body
 
+### [829] - 2026-03-31 16:51 - `VR-SP - ViewerHost Test Prop Compatibility Fix`
+<!-- ENTRY 829 -->
+HUMAN SUMMARY: `The build was failing because \`ViewerHost\` now requires a \`viewportId\` prop while the existing component test suite still mounted it bare in dozens of cases. This updates the test renders to pass the primary viewer id explicitly so TypeScript and the production build succeed again without changing runtime behavior.`
+#### Scope / Constraints Honored
+- Kept the fix narrowly scoped to the failing test suite call sites.
+- Did not change `ViewerHost` runtime behavior or widen the viewer API again.
+- Used the existing primary viewer identity instead of inventing new test-only defaults.
+
+#### What Changed
+- Updated the `ViewerHost` component tests so each direct render now passes `viewportId="model-viewer-primary"`.
+- Left the component and production code untouched because the failure was only stale test usage after the required prop addition.
+
+#### Files Changed
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No runtime behavior changed.
+- The TypeScript build now accepts the `ViewerHost` tests again because they match the current required prop contract.
+
+#### Verification Steps
+- Ran `npm.cmd run build`
+- Result: `tsc -b` passed and `vite build` completed successfully.
+- Remaining notes: Vite still reports the existing `occt-import-js` browser externalization warnings and large-chunk warning during production build output.
+
+### [828] - 2026-03-31 15:52 - `VR-SP - Workspace 7.3-2 - Per-Viewport Host Targeting And Viewer Rehome Parity`
+<!-- ENTRY 828 -->
+HUMAN SUMMARY: `Detached non-primary Model Viewports now enter the shared detached-surface path instead of hitting the old protected-viewer block, and they can quick-dock back against their explicit host viewport. This also fixes workspace persistence so active viewer identity, detached viewer host targeting, and per-viewport local view state survive serialization instead of being rewritten back to primary-viewer defaults.`
+#### Scope / Constraints Honored
+- Kept the implementation focused on the `7.3-2` viewer host-targeting and restore-parity cut.
+- Widened detached-surface, redock, and persistence behavior for `modelViewer` without turning this into the broader `7.4` cleanup pass.
+- Left true viewer child-window popout behavior out of scope for this slice.
+
+#### What Changed
+- Widened `WorkspaceDetachedSlotSurfaceState` and the workspace persistence normalizer so detached `modelViewer` surfaces are now first-class workspace records instead of being filtered out by the old protected-viewer type guard.
+- Updated workspace store slot and redock logic so detached viewer surfaces preserve explicit host targeting, reuse that host when redocking, and only fall back to the primary viewer as a deterministic last resort.
+- Stopped persistence from wiping `viewportChromeById` back to default local view state and added `activeViewerViewportId` to serialized workspace layout so multi-viewport restore stays honest.
+- Added a detached floating viewer shell in `AppShell` with a quick-dock return path, while keeping secondary `modelViewer` popout disabled for now instead of pretending that child-window parity already exists.
+- Added focused store and shell coverage for detached viewer records, redock behavior, and persistence round-trips.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/workspaceShellTypes.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- A non-primary slotted `Model Viewport` can now detach into a floating viewer shell and quick-dock back to its host viewport.
+- Detached viewer records now persist their `hostViewportId` and survive workspace serialization.
+- Per-viewport local view state and active viewer identity now restore honestly instead of collapsing back to default primary-viewer state during persistence.
+
+#### Verification Steps
+- Ran `npm.cmd run test -- src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx`
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: `src/app/workspace/useWorkspaceStore.test.ts` passed, the new detached-viewer `AppShell` path passed, and TypeScript passed.
+- Remaining residue: the same focused `src/app/AppShell.test.tsx` run still contains 6 older pre-existing shell failures unrelated to the new `7.3-2` detached-viewer path.
+
+### [827] - 2026-03-31 14:46 - `VR-SP - Workspace 7.3-1 - Second Model Viewport Runtime And Slot Truth`
+<!-- ENTRY 827 -->
+HUMAN SUMMARY: `Workspace now supports a second honest slotted Model Viewport instead of falling back to the old placeholder path for non-primary viewer slots. This also widens the viewer bridge into per-viewport runtime registration and gives each viewport its own first local view-state seam for active viewer targeting, projection mode, axis overlay visibility, and toolbar-open chrome state.`
+#### Scope / Constraints Honored
+- Kept the implementation scoped to the `7.3-1` structural widening cut.
+- Left `modelViewer` floating, popout, restore, and rehome parity out of scope for the later `7.3-2` work.
+- Preserved the primary-only left dock attachment while widening viewer mounting for non-primary model-viewer slots.
+
+#### What Changed
+- Updated the workspace slot renderer so any slot with surface kind `modelViewer` mounts a real `ViewportWorkspaceHost`, while primary-only chrome such as the unified left dock still stays attached only to the primary viewer slot.
+- Reworked the viewer bridge so viewers can register by viewport id instead of fighting over one singleton registration, while still preserving the old active-viewer command seam for console and shared callers.
+- Added a first per-viewport local view-state seam in workspace chrome state for active viewer targeting, projection mode, axis overlay visibility, toolbar open state, and expanded axis widget size.
+- Routed viewer host registration, toolbar camera commands, and overlay axis-canvas attachment through that per-viewport identity seam.
+- Added coverage proving that a non-primary slot can become a real second model viewport and that per-viewport local view state stays separate.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/viewerBridge.ts`
+- `src/app/viewCommands.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+
+#### Behavior Changes
+- Splitting the workspace and changing a non-primary slot to `Model Viewport` now renders a real second viewer host instead of the old `Workspace 7.3` placeholder surface.
+- Camera commands can now target the active viewport viewer explicitly, and projection / axis-overlay / toolbar-open state can now diverge per viewport for the first `7.3-1` cut.
+
+#### Verification Steps
+- Ran `npm.cmd run test -- src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx src/app/viewCommands.test.ts`
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: targeted workspace-store and view-command tests passed, the new second-model-viewport `AppShell` test passed, and TypeScript passed.
+- Remaining residue: `src/app/AppShell.test.tsx` still has 6 failing older shell tests in this focused run that did not line up with the second-model-viewport path itself.
+
+### [826] - 2026-03-31 14:09 - `VR-SP - Workspace 7.2f - Nested Browser Split Divider Orientation Fix`
+<!-- ENTRY 826 -->
+HUMAN SUMMARY: `Nested Browser-on-Browser splits on the right no longer inherit the vertical divider styling from an ancestor vertical layout. That restores the correct horizontal resize bar appearance for top/bottom Browser splits inside the right column.`
+#### Scope / Constraints Honored
+- Kept the fix scoped to split-divider styling.
+- Left Browser split logic and workspace layout behavior unchanged.
+
+#### What Changed
+- Tightened the vertical divider CSS selector so it only targets the direct divider that belongs to a vertical split layout.
+- Prevented nested horizontal dividers inside a vertical parent split from accidentally inheriting the vertical divider appearance.
+
+#### Files Changed
+- `src/app/theme/shell/windows.css`
+
+#### Behavior Changes
+- Top/bottom Browser splits nested inside a right-side Browser column now render the correct horizontal resize bar instead of a squished vertical-looking strip.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [825] - 2026-03-31 13:42 - `VR-SP - Workspace 7.2f - Whole-Browser Drop Root Layout Commit`
+<!-- ENTRY 825 -->
+HUMAN SUMMARY: `Whole-browser Browser drops now commit against the live workspace root layout instead of falling back to the old model-viewport-only split shell. That makes the drop result finally match the widened whole-browser ghost, including the case where a new Browser should span across the entire top above an existing left Browser and model viewport row.`
+#### Scope / Constraints Honored
+- Kept the follow-up scoped to Browser whole-browser drop commits.
+- Left pane-local slot splits unchanged.
+- Preserved the existing Browser viewport-split shell for older legacy paths that still use it directly.
+
+#### What Changed
+- Added a new workspace-store root split action so a new surface can be inserted against the current layout root instead of only splitting a single hovered slot.
+- Rewired Browser whole-browser drag-drop commits in `BrowserDockHost` to use that root-layout split path instead of the older `isViewportSplit` host-mode fallback.
+- Updated the whole-browser commit path to keep the remembered Browser split ratio in sync with the committed root split.
+- Added focused Browser host coverage for the root-layout whole-browser right-drop path and the exact top-across-left-browser layout shown in the follow-up report.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+
+#### Behavior Changes
+- Whole-browser Browser drag drops now insert a new Browser slot around the full current workspace layout root.
+- A whole-browser `top` drop can now create a full-width top Browser row above an existing left Browser plus model viewport layout, matching the preview signal.
+
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "shows a right split ghost and moves the floating browser into viewport split on release|commits a whole-layout top split above an existing left browser and model viewport when the whole-browser top ghost is dropped|uses the outer right-edge band to commit a pane-local slot split instead of the whole-browser split path|uses pane-local geometry in the outer right-edge band and whole-browser geometry in the inner right-edge band|uses pane-local geometry in the outer left-edge band and whole-browser geometry in the inner left-edge band|uses pane-local geometry in the outer top-edge band and whole-browser geometry in the inner top-edge band|uses pane-local geometry in the outer bottom-edge band and whole-browser geometry in the inner bottom-edge band"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [824] - 2026-03-31 13:32 - `VR-SP - Workspace 7.2f-2 - Four-Side Dual-Band Split Scope And Whole-Browser Ghost Layering`
+<!-- ENTRY 824 -->
+HUMAN SUMMARY: `Browser floating drag now carries the dual-band split language across all four sides. Outer-band previews stay pane-local, inner-band and immediate outside-edge overshoot previews switch to whole-browser scope, and only whole-browser ghosts rise above viewport headers so the wider split intent reads clearly.`
+#### Scope / Constraints Honored
+- Kept the rollout Browser-only.
+- Expanded the dual-band contract to `left`, `top`, and `bottom` while preserving the earlier right-edge proof.
+- Left any non-Browser follow-through for later workspace cleanup work.
+
+#### What Changed
+- Extended `BrowserDockHost` so all four sides now resolve through the same dual-band preview-scope logic.
+- Added pane-local versus whole-browser scope metadata to the Browser split ghost classes/data so rendering can respond to preview intent instead of inferring it from rect size.
+- Preserved last-valid whole-browser edge intent through the immediate outside-edge overshoot zone on every side instead of falling back to unstable viewport-wide guesswork.
+- Kept pane-local commits targeting the hovered slot while whole-browser commits continue using the older viewport-wide split path.
+- Raised whole-browser split ghosts above viewport title bars while leaving pane-local ghosts in the lower in-pane layer.
+- Added focused Browser host coverage for left, top, and bottom outer-versus-inner band geometry alongside the existing right-edge proof.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/theme/foundation/base.css`
+
+#### Behavior Changes
+- Dragging a floating Browser to any viewport edge now has two explicit intent bands:
+  - `28px -> 14px` from the edge keeps the preview inside the hovered pane.
+  - `14px -> 0px` plus immediate outside-edge overshoot switches the preview to a whole-browser split signal.
+- Whole-browser ghosts now visually cover viewport headers instead of appearing behind them.
+
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "uses the outer right-edge band to commit a pane-local slot split instead of the whole-browser split path|uses pane-local geometry in the outer right-edge band and whole-browser geometry in the inner right-edge band|uses pane-local geometry in the outer left-edge band and whole-browser geometry in the inner left-edge band|uses pane-local geometry in the outer top-edge band and whole-browser geometry in the inner top-edge band|uses pane-local geometry in the outer bottom-edge band and whole-browser geometry in the inner bottom-edge band"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [823] - 2026-03-31 13:20 - `VR-SP - Workspace 7.2f-1 - Right-Edge Dual-Band Split Scope Proof`
+<!-- ENTRY 823 -->
+HUMAN SUMMARY: `Browser floating drag now proves the first dual-band right-edge split language. The outer right-edge band commits a pane-local slot split, while the inner right-edge band and immediate outside-right overshoot keep the older whole-browser split path with an explicit whole-browser preview scope.` 
+#### Scope / Constraints Honored
+- Kept the live proof scoped to the Browser right edge only.
+- Left the broader four-side rollout and above-header whole-browser ghost layering for the later `Workspace 7.2f-2` follow-through.
+
+#### What Changed
+- Extended the Browser split-preview state in `BrowserDockHost` so edge previews now carry an explicit preview scope plus a pane-local target slot id.
+- Added the first right-edge dual-band contract: `28px -> 14px` keeps the pane-local preview and `14px -> 0px` switches to a whole-browser preview.
+- Preserved the whole-browser preview through the immediate outside-right-edge overshoot zone by continuing the last valid right-edge intent instead of falling back to an unrelated rect source.
+- Updated pointer-up handling so pane-local right-edge previews commit through the slot-split path, while whole-browser right-edge previews still use the older whole-browser split route.
+- Added focused Browser host coverage for the new outer-band pane-local commit path and the outer-versus-inner right-edge preview geometry split.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- Dragging a floating Browser toward the right edge now has two explicit right-edge scopes instead of one accidental fallback seam.
+- The outer band creates a pane-local slot split, while the tighter inner band still signals and commits the whole-browser split path.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "shows a right split ghost and moves the floating browser into viewport split on release|uses the outer right-edge band to commit a pane-local slot split instead of the whole-browser split path|uses pane-local geometry in the outer right-edge band and whole-browser geometry in the inner right-edge band"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [822] - 2026-03-31 12:38 - `VR-SP - Workspace 7.2d-2 - Left-Docked Browser Constrained Stack Wheel Targeting`
+<!-- ENTRY 822 -->
+HUMAN SUMMARY: `The left-docked Browser wheel bridge now prefers the constrained left-toolbar stack as the scroll target before falling back to the Browser body, which better matches the squished-dock case where the visible scrollbar belongs to the outer dock stack. This should make the Browser content area behave like the title bar when the whole docked Browser card needs to scroll inside the constrained left toolbar.` 
+#### Scope / Constraints Honored
+- Kept the scroll-targeting change scoped to the left-docked Browser path only.
+- Preserved the Browser body fallback so docked Browser content can still scroll directly when the outer left-dock stack is not the active overflow owner.
+
+#### What Changed
+- Updated the docked Browser wheel forwarding helper in `BrowserDockHost` to prefer the nearest constrained `.PanelStack` scroll container before trying `.BrowserPanelBody`.
+- Adjusted the focused Browser host harness to include the real constrained left-dock `PanelStack` structure used by the app.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- In the constrained left-toolbar case, wheel input over the Browser content area should now scroll the same dock stack that the title bar already scrolls.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "forwards wheel scrolling from the whole left-docked browser surface into the browser body"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [821] - 2026-03-31 12:34 - `VR-SP - Workspace 7.2d-2 - Left-Docked Browser Global Wheel Capture Bridge`
+<!-- ENTRY 821 -->
+HUMAN SUMMARY: `The left-docked Browser now also uses a global capture-phase wheel bridge that checks whether the pointer is inside the docked Browser bounds and then forwards wheel delta into the Browser body before the model viewport can steal it. This is meant to cover the real app case where the Browser content area was still not scrolling even after the earlier dock-host and Browser-root wheel wiring.` 
+#### Scope / Constraints Honored
+- Kept the stronger wheel bridge scoped to the non-floating, non-split left-docked Browser path only.
+- Preserved the Browser body as the true scroll container and left split Browser behavior unchanged.
+
+#### What Changed
+- Added a reusable Browser-body wheel forwarding helper in `BrowserDockHost`.
+- Added a window-level capture-phase wheel listener that checks whether the pointer is inside the docked Browser root bounds and, if so, scrolls `.BrowserPanelBody` before the viewport can consume the wheel event.
+- Updated the Browser host mock to expose a real `.BrowserPanelRoot` for the focused docked-wheel regression.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- A left-docked Browser that is vertically squished should now be able to scroll from wheel input over the Browser content area even when the viewport/runtime layer would otherwise win that wheel event.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "forwards wheel scrolling from the whole left-docked browser surface into the browser body"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [820] - 2026-03-31 12:31 - `VR-SP - Workspace 7.2d-2 - Left-Docked Browser Capture-Phase Wheel Routing`
+<!-- ENTRY 820 -->
+HUMAN SUMMARY: `Left-docked Browser wheel forwarding now runs from the Browser root in capture phase, so wheel input over the Browser content and Graph Documents area reaches the Browser body scroll container instead of only feeling reliable over the title bar. Split Browser behavior remains unchanged.` 
+#### Scope / Constraints Honored
+- Kept this refinement left-dock-only so split Browser and other Browser hosts keep their current wheel behavior.
+- Preserved the Browser body as the actual scroll container and only changed where wheel intent is intercepted and forwarded.
+
+#### What Changed
+- Added an optional Browser root `onWheelCapture` hook so hosts can intercept wheel input at the panel boundary.
+- Moved the left-docked Browser wheel forwarding path from the dock target listener to the docked Browser root capture phase in `BrowserDockHost`.
+- Updated the focused Browser host regression to exercise the capture-phase docked Browser path.
+
+#### Files Changed
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- A left-docked Browser that is vertically squished should now respond to mouse-wheel scrolling over the Browser content surface, not just the title bar and scrollbar lane.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "forwards wheel scrolling from the whole left-docked browser surface into the browser body"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [819] - 2026-03-31 12:27 - `VR-SP - Workspace 7.2d-2 - Left-Docked Browser Wheel Scroll Forwarding`
+<!-- ENTRY 819 -->
+HUMAN SUMMARY: `The Browser docked under \`ParaHook Generator v20\` now scrolls from wheel input anywhere over the Browser surface instead of only reliably reacting when the pointer is over the title bar. Split-view Browser scrolling was left unchanged because that path was already working correctly.` 
+#### Scope / Constraints Honored
+- Scoped this fix to the left-docked Browser host so split Browser scrolling and other Browser hosts keep their current behavior.
+- Preserved the Browser body as the real scroll container and only forwarded wheel intent from the left-dock host into that body.
+
+#### What Changed
+- Added left-dock Browser wheel forwarding in `BrowserDockHost` so wheel events over the docked Browser host route into the `.BrowserPanelBody` scroll container.
+- Prevented the wheel event from falling through when the docked Browser body can still scroll in the requested direction.
+- Added a focused Browser host regression that verifies wheel input over the left-docked Browser surface updates the Browser body scroll position.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- A left-docked Browser that is vertically squished can now be scrolled with the mouse wheel from anywhere over the Browser panel surface, not just the title bar area.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "forwards wheel scrolling from the whole left-docked browser surface into the browser body"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [818] - 2026-03-31 12:23 - `VR-SP - Workspace 7.2d-2 - Browser Left-Dock Stack Gutter Width Parity`
+<!-- ENTRY 818 -->
+HUMAN SUMMARY: `The left toolbar stack no longer reserves stable scrollbar gutter width when it does not need to scroll, which was still making a re-docked Browser appear narrower than the viewport-local \`ParaHook Generator v20\` card. This keeps the Browser and status card aligned more closely when the left dock is not actually showing a stack scrollbar.` 
+#### Scope / Constraints Honored
+- Kept this fix targeted to the primary left toolbar so the shared constrained panel-stack behavior elsewhere stays unchanged.
+- Preserved the current left-dock scrolling behavior while removing the always-reserved gutter width when no stack scrollbar is present.
+
+#### What Changed
+- Added a primary-left-dock override so constrained `PanelStack` hosts use `scrollbar-gutter: auto` instead of always reserving stable gutter width.
+- Kept the left-dock Browser target and Browser root full-width sizing added in the previous Browser re-dock width pass.
+
+#### Files Changed
+- `src/app/theme/shell/docks.css`
+
+#### Behavior Changes
+- A left-docked Browser now stays closer to the same width as the `ParaHook Generator v20` status card when the left toolbar stack itself is not scrolling.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [817] - 2026-03-31 12:20 - `VR-SP - Workspace 7.2d-2 - Browser Left-Dock Scrollbar Gutter Width Parity`
+<!-- ENTRY 817 -->
+HUMAN SUMMARY: `The left-dock Browser no longer reserves scrollbar gutter width when it does not actually need to scroll, so it lines up more cleanly with the viewport-local \`ParaHook Generator v20\` card. If the Browser does need a scrollbar, it can still narrow slightly so the content remains contained under the title.` 
+#### Scope / Constraints Honored
+- Kept this polish to the left-dock Browser body so recent Browser drag, split, and re-dock behavior stays unchanged.
+- Preserved the existing Browser scrollbar styling and stable gutter behavior outside the left toolbar.
+
+#### What Changed
+- Added a left-dock-specific Browser body override so the Browser only reserves scrollbar gutter space when the scrollbar is actually present.
+- Left the shared Browser scrollbar visuals and overflow handling intact for split and other Browser hosts.
+
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- A left-docked Browser with no active vertical scrollbar now visually matches the width of the `ParaHook Generator v20` card more closely.
+- A left-docked Browser that does need a scrollbar can still render slightly narrower so the scroll lane stays contained inside the Browser body.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [816] - 2026-03-31 12:19 - `VR-SP - Workspace 7.2d-2 - Browser Left-Dock Width Re-Dock Parity`
+<!-- ENTRY 816 -->
+HUMAN SUMMARY: `The Browser now re-docks into the left toolbar at the same full width as the viewport-local \`ParaHook Generator v20\` card instead of sometimes coming back narrower after split -> float -> dock-left flows. This keeps the Browser dock chrome aligned with the established left-dock width on both initial load and later rehoming.` 
+#### Scope / Constraints Honored
+- Kept the fix to left-dock Browser sizing so it does not disturb the recent Browser drag/split behavior work.
+- Preserved the current Browser dock/rehome logic and corrected only the width-fill path that could shrink after re-docking.
+
+#### What Changed
+- Made the left-dock Browser portal target explicitly fill the available dock width.
+- Made the Browser panel root explicitly fill and clamp to its host width with border-box sizing.
+- Left the rest of the Browser panel layout, split behavior, and floating behavior unchanged.
+
+#### Files Changed
+- `src/app/theme/shell/docks.css`
+- `src/app/theme/surfaces/browser.css`
+
+#### Behavior Changes
+- Re-docked Browser panels now visually match the left-toolbar width used by the `ParaHook Generator v20` status card instead of sizing to a narrower content width.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [815] - 2026-03-31 12:13 - `VR-SP - Workspace 7.2e - Browser Split Trigger Band Matches Viewport Status Padding`
+<!-- ENTRY 815 -->
+HUMAN SUMMARY: `Browser split-preview activation is now much stricter: the edge trigger band uses the same \`14px\` inset as the viewport-local \`ParaHook Generator v20\` status card instead of the older generous geometry-scaled threshold. This should let the Browser float more naturally over the model viewport until the cursor intentionally enters the pane padding band.` 
+#### Scope / Constraints Honored
+- Kept this tweak Browser-only so you can evaluate the stricter trigger band before widening the same rule to other floating hosts.
+- Reused the existing viewport status-card inset number instead of inventing a new arbitrary split-trigger padding.
+- Left the rest of the Browser drag, nested preview, and split-commit logic unchanged.
+
+#### What Changed
+- Added a fixed Browser split-preview edge padding constant set to `14px`.
+- Replaced the old proportional Browser edge-threshold calculation with that fixed `14px` band so edge split mode only activates when the pointer enters the pane padding area.
+- Preserved the existing overshoot tolerance and the current nested/edge preview flow while narrowing the Browser edge activation zone itself.
+
+### [814] - 2026-03-31 12:10 - `VR-SP - Workspace 7.2e - Browser Model-Body Side Ghost Bounds`
+<!-- ENTRY 814 -->
+HUMAN SUMMARY: `Browser side-edge split ghosts now stay inside the actual model viewport body instead of overlapping the title bar or neighboring panes, and the left/right preview width is now capped to 25% so the side split reads more intentionally. Top and bottom ghosts also follow the model body bounds when that body is available.` 
+#### Scope / Constraints Honored
+- Kept this adjustment Browser-first inside the current `7.2e` drag-preview seam instead of widening the same render rule across every floating host.
+- Preserved the earlier model-pane interior rule that plain interior hover should keep the Browser floating and only edge hover should preview splits.
+- Limited the width clamp to the preview ghost so the live split commit path still uses the existing Browser split ratio behavior.
+
+#### What Changed
+- Updated the Browser edge-preview resolver to prefer the hovered `.ViewportFrameBody` rect for `modelViewer` slots when that body is available, so preview bounds match the actual model content area instead of the full framed slot.
+- Kept the edge ghost portal clipped to the hovered model body and no longer let left/right ghosts overlap the title bar or sibling panes.
+- Clamped Browser left/right preview ghosts to a 25% width read so side splits preview as a narrower column instead of mirroring the larger current Browser split ratio.
+- Added a focused Browser host regression that proves the top ghost starts below the title bar and the right ghost uses the model body height plus a 25% preview width in a three-pane layout.
+
+### [813] - 2026-03-31 12:05 - `VR-SP - Workspace 7.2e - Browser Model-Pane Edge Ghost Bounds`
+<!-- ENTRY 813 -->
+HUMAN SUMMARY: `When a floating Browser is dragged toward a model viewport edge, the split ghost now stays inside that hovered model pane instead of stretching across the entire viewport stack. This keeps the preview honest in multi-pane layouts where only the targeted model pane will actually be split.` 
+#### Scope / Constraints Honored
+- Kept this cleanup Browser-first inside the current `7.2e` drag-preview seam instead of widening the same render change across every floating host at once.
+- Preserved the existing split commit path and the earlier model-pane interior rule that plain interior hover should keep the Browser floating.
+- Limited the change to edge-ghost bounds so nested previews and non-model-pane behaviors remain on their existing paths.
+
+#### What Changed
+- Replaced the Browser edge-preview state with a hovered-pane-bounded preview object that carries both the split side and the local pane rectangle.
+- Updated the Browser edge ghost renderer so `top`, `right`, `bottom`, and `left` previews size themselves against the hovered pane rect instead of the full viewport host.
+- Kept edge drop commits on the same `top` / `right` / `bottom` / `left` split actions while making the visual preview match the actual pane that will be split.
+- Added a focused three-pane Browser regression that proves the top edge ghost is clipped to the bottom model pane bounds rather than spanning the entire viewport stack.
+
+### [812] - 2026-03-31 12:01 - `VR-SP - Workspace 7.2e - Browser Model-Pane Interior Drag Keeps Floating`
+<!-- ENTRY 812 -->
+HUMAN SUMMARY: `Dragging a floating Browser into the interior of a split \`modelViewer\` pane now behaves like normal floating space again instead of assuming the user wants another split. Split previews still appear when the cursor reaches the model pane edges, but interior hover no longer auto-branches into a nested Browser split.` 
+#### Scope / Constraints Honored
+- Kept this fix Browser-first inside the existing `7.2e` seam instead of widening the same rule across every floating host at once.
+- Preserved the pane-local `top` / `right` / `bottom` / `left` edge preview system and the existing nested split path for non-model panes.
+- Avoided reintroducing the earlier center-drop ghost special case and kept model-pane interior behavior as plain floating movement.
+
+#### What Changed
+- Tightened the Browser nested-preview resolver so `modelViewer` slots no longer produce nested interior split suggestions during Browser drag.
+- Restored the expected float-window feel over model-pane interiors by leaving interior hover preview-free unless the pointer actually reaches a pane edge.
+- Kept split previews available at the model pane edges, so `Split Top`, `Split Right`, `Split Bottom`, and `Split Left` still appear when the user intentionally drags toward those zones.
+- Replaced the focused Browser regression with a three-pane case that proves model-pane interior hover leaves the Browser floating and unchanged while the earlier nested and edge split paths still pass.
+
+### [811] - 2026-03-31 11:57 - `VR-SP - Workspace 7.2e - Browser Fixed-Direction Nested Preview Cleanup`
+<!-- ENTRY 811 -->
+HUMAN SUMMARY: `Browser drag previews now stay inside one normal directional split language: the temporary model-pane center "Float Here" ghost is gone, and nested Browser suggestions no longer switch axes from pane width and height. Dragging over an already split pane now resolves the nested pair from cursor direction instead of pane shape, so Browser previewing feels more predictable.` 
+#### Scope / Constraints Honored
+- Kept this live cleanup Browser-first inside the existing `7.2e` seam instead of widening the same behavior across every floating host at once.
+- Removed the temporary Browser-only model-pane center-drop special case rather than adding another exception on top of it.
+- Preserved the shipped `7.2e-1` pane-local single-ghost fallback and the existing deterministic split commit path.
+
+#### What Changed
+- Removed the temporary Browser model-pane center float-drop preview branch from the Browser drag loop and ghost renderer.
+- Updated the Browser nested preview helper so the candidate pair now comes from cursor direction relative to the hovered pane center instead of a width-versus-height pane-shape rule.
+- Kept nested commit behavior on the same deterministic `top` / `right` / `bottom` / `left` split actions while leaving the earlier pane-local edge preview intact when no nested suggestion is active.
+- Replaced the old Browser center-drop regression with a focused test that proves model-pane interior hover now resolves to a normal directional nested preview and commits a real split instead of preserving floating mode through a special ghost.
+
+### [810] - 2026-03-31 11:46 - `VR-SP - Workspace 7.2e-2 - Browser Model-Pane Center Float Drop Preview`
+<!-- ENTRY 810 -->
+HUMAN SUMMARY: `Dragging a floating Browser back over the interior of a \`modelViewer\` pane now shows a centered "Float Here" ghost, so users can intentionally drop it into that pane as a floating window instead of being forced into another split. This keeps the Browser floating and avoids accidentally creating an extra Browser slot during crowded multi-pane viewport layouts.` 
+#### Scope / Constraints Honored
+- Kept this cleanup Browser-only and layered on top of the shipped `7.2e-1` and Browser-first `7.2e-2` preview system instead of widening the behavior across every surface at once.
+- Preserved the existing left-dock, outer-edge split, and nested dual-ghost split paths by only activating the new center ghost for interior drops over `modelViewer` panes.
+- Treated the new center option as a no-op host decision, so the Browser stays floating rather than introducing a second commit model.
+
+#### What Changed
+- Added a Browser-only model-pane interior preview resolver that detects when the pointer is clearly inside a hovered `modelViewer` slot and far enough away from its edge bands.
+- Prioritized that center float-drop preview over nested dual ghosts and the older single split ghost whenever the Browser is intentionally hovering the middle of a model pane.
+- Wired pointer-up handling so dropping onto that centered preview keeps the Browser floating and prevents another Browser split from being created.
+- Added a focused Browser host regression that covers a three-pane layout with two split Browsers and one model pane, proving the middle drop path leaves the Browser floating and the slot count unchanged.
+
+### [809] - 2026-03-31 11:40 - `VR-SP - Workspace 7.2e-2 - Browser-First Immediate Dual Ghost Nested Slot Splits`
+<!-- ENTRY 809 -->
+HUMAN SUMMARY: `The first live \`Workspace 7.2e-2\` slice now gives Browser an immediate dual-ghost nested split preview when the cursor is inside an already split pane, and releasing the drag commits that exact hovered-slot split. Wide panes currently fall back to immediate nested \`left/right\` Browser suggestions while the older single-ghost path stays intact everywhere else.` 
+#### Scope / Constraints Honored
+- Kept this first `7.2e-2` implementation Browser-first, matching the locked phase question that Spaghetti should follow later.
+- Preserved the shipped `7.2e-1` single-ghost pane-local preview as the default fallback when the pointer is near an outer pane edge or not inside a nested-suggestion case.
+- Reused the existing deterministic `top` / `right` / `bottom` / `left` split actions instead of inventing a second commit path.
+
+#### What Changed
+- Added a Browser nested split preview mode that activates only when the cursor is inside an already split hovered slot and not near that pane's outer edge band.
+- Rendered two immediate nested ghost candidates for Browser inside the hovered pane, with the active candidate chosen directly by which half of the pane the cursor is currently over.
+- Wired nested Browser drop commit into `splitViewportSlot(...)` so the hovered slot is actually split on release, including support for detached Browser surfaces and for moving the floating left-toolbar Browser into the slot tree without reviving the dock route.
+- Added focused Browser host coverage for the new immediate dual-ghost preview and hovered-slot split commit behavior.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/theme/foundation/base.css`
+
+#### Behavior Changes
+- When Browser is floating over an already split pane and the cursor is in that pane's interior, Browser can now show two immediate nested ghost suggestions instead of only one outer-edge ghost.
+- Near-square panes currently fall back to nested `left` / `right` suggestions for this first Browser pass.
+- The existing single-ghost preview remains the fallback when the pointer is near the outer pane boundary or when no nested split suggestion is valid.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "uses cursor position inside the viewport to show a top split ghost even when the floating browser frame is not flush to the top edge|shows immediate nested dual ghosts over an already split pane and splits that hovered slot with Browser on release|shows a right split ghost and moves the floating browser into viewport split on release"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [808] - 2026-03-31 11:25 - `VR-SP - Workspace 7.2e-1 - Make Split Preview Follow Cursor Position Instead Of Floating Window Edge`
+<!-- ENTRY 808 -->
+HUMAN SUMMARY: `The first live \`Workspace 7.2e-1\` slice now makes the existing Browser and Spaghetti \`left/right/top/bottom\` split ghost follow the cursor position inside the target viewport area instead of the floating window edge. This fixes the top-split precision problem and keeps near-edge overshoot working so split placement still feels forgiving.` 
+#### Scope / Constraints Honored
+- Kept this slice focused on the existing four-way split-preview precision cleanup from `Workspace 7.2e-1`.
+- Did not widen into adaptive dual-ghost nested split suggestions yet.
+- Preserved the existing split-commit path so this change only alters preview-side resolution, not the underlying slot split actions.
+
+#### What Changed
+- Reworked `BrowserDockHost` split-preview resolution so it chooses `top`, `right`, `bottom`, or `left` from the pointer location inside the hovered viewport area instead of the floating Browser frame offsets.
+- Reworked `SpaghettiWindowHost` to use the same pointer-driven preview rule, including the same near-edge overshoot tolerance so dragging slightly beyond a viewport edge still yields the intended split side.
+- Added focused host regressions proving that a cursor in the top band now shows a top split ghost even when the floating Browser or Spaghetti frame itself is not flush to the top edge.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- Floating Browser split preview now follows cursor position inside the viewport target area rather than the dragged Browser window edge.
+- Floating Spaghetti split preview now follows cursor position inside the viewport target area rather than the dragged editor frame edge.
+- Dragging near a viewport edge can still overshoot that boundary slightly and keep the intended split-preview side active.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "shows a right split ghost and moves the floating browser into viewport split on release|uses cursor position inside the viewport to show a top split ghost even when the floating browser frame is not flush to the top edge"`
+- Ran `.\node_modules\.bin\vitest.cmd run src/app/hosts/SpaghettiWindowHost.test.tsx -t "shows a bottom split ghost and re-enters split view when the floating editor is dropped at the bottom edge|uses cursor position inside the viewport to show a top split ghost even when the floating editor frame is not flush to the top edge|uses right-edge drag to re-enter split view as a right-side vertical dock"`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [807] - 2026-03-31 11:06 - `VR-SP - Workspace 7.2d-2 - Make Detached Browser Rehome Paths Claim The Toolbar With The Chosen Surface`
+<!-- ENTRY 807 -->
+HUMAN SUMMARY: `The first \`Workspace 7.2d-2\` parity slice now makes the real detached Browser rehome paths claim the left toolbar with that chosen Browser surface id. Quick-docking or dragging a detached Browser back left no longer falls back to the generic toolbar owner; it now records which Browser actually reclaimed the toolbar.` 
+#### Scope / Constraints Honored
+- Kept this slice focused on the detached Browser rehome paths that already exist on top of the `7.2d-1` owner seam.
+- Left broader legacy-browser versus viewport-split identity cleanup out of scope for now.
+
+#### What Changed
+- Updated Browser quick-dock so when a detached Browser is reclaimed into the left toolbar it assigns `browserToolbarOwnerSurfaceInstanceId` to that detached Browser surface id before closing the floating host.
+- Updated drag-back-to-toolbar from the detached floating Browser path to claim the same explicit Browser surface id instead of falling back to the generic default owner.
+- Added AppShell regressions covering both detached quick-dock and detached drag-back ownership claims while preserving the earlier non-resurrection and non-suppression behavior.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "quick docks a detached floating browser back into the left toolbar instead of restoring its split slot|claims the toolbar with the detached Browser surface id when that Browser is dragged back left|does not resurrect a docked Browser after the toolbar Browser is undocked and turned into viewport Browser slots|keeps the primary left-toolbar Browser visible even when another Browser slot exists elsewhere"`
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "shows the left dock preview and docks a detached slotted browser back into the toolbar|re-docks a viewport-split browser back into the left toolbar even when the dock target is empty|shows separate quick dock and popout controls for a floating browser"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [806] - 2026-03-31 11:00 - `VR-SP - Workspace 7.2d-1 - Release Browser Toolbar Ownership When Undocking And Reclaim It Only On Real Dock-Back`
+<!-- ENTRY 806 -->
+HUMAN SUMMARY: `Dragging the Browser out of the primary left toolbar now releases that toolbar ownership instead of leaving a hidden docked Browser route behind. This stops the toolbar Browser from unexpectedly reappearing later when the user turns that same Browser into viewport splits, while still letting real dock-back actions reclaim the toolbar cleanly.` 
+#### Scope / Constraints Honored
+- Kept this cleanup focused on the Browser toolbar-owner lifecycle inside the new `7.2d-1` ownership model.
+- Preserved the existing quick-dock and drag-back-to-toolbar flows by reclaiming toolbar ownership only on actual dock-back actions.
+
+#### What Changed
+- Cleared Browser toolbar ownership when the user drags the Browser out of the left toolbar into floating mode so that Browser is no longer still counted as docked.
+- Restored Browser toolbar ownership only when the user quick-docks back left or drops the floating Browser onto the real left-dock target.
+- Added an AppShell regression proving that undocking the toolbar Browser and turning it into viewport Browser slots no longer resurrects a second docked Browser route.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "does not resurrect a docked Browser after the toolbar Browser is undocked and turned into viewport Browser slots|keeps the primary left-toolbar Browser visible even when another Browser slot exists elsewhere|shows a browser dock ghost and re-docks when the floating Browser is dragged back to its slot|undocks the Browser into a floating window when the docked titlebar is dragged"`
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "re-docks a viewport-split browser back into the left toolbar even when the dock target is empty|shows the left dock preview and docks a detached slotted browser back into the toolbar|shows separate quick dock and popout controls for a floating browser"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [805] - 2026-03-31 10:55 - `VR-SP - Workspace 7.2d-1 - Add Explicit Browser Toolbar Ownership And Remove Global Browser Slot Suppression`
+<!-- ENTRY 805 -->
+HUMAN SUMMARY: `This lands the first \`Workspace 7.2d\` cut by adding explicit Browser toolbar-owner state under workspace ownership and repointing \`AppShell\` away from the old global Browser-slot suppression rule. The primary left-toolbar Browser now stays visible even when another Browser slot exists elsewhere in the workspace.` 
+#### Scope / Constraints Honored
+- Kept this slice focused on the structural `7.2d-1` owner-state and `AppShell` repoint boundary.
+- Left the broader Browser dock-left claim and rehoming parity work for the later `7.2d-2` follow-on.
+
+#### What Changed
+- Added a persisted `browserToolbarOwnerSurfaceInstanceId` workspace field with a primary left-dock Browser default so Browser toolbar ownership now has one explicit home in workspace state.
+- Replaced the old `AppShell` docked-Browser suppression rule that hid the left-toolbar Browser whenever any Browser slot or detached Browser existed elsewhere.
+- Added focused regressions proving the toolbar owner state exists independently from slot surfaces and that a secondary Browser slot no longer suppresses the primary left-toolbar Browser.
+
+#### Files Touched
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts`
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "keeps the primary left-toolbar Browser visible even when another Browser slot exists elsewhere|quick docks a detached floating browser back into the left toolbar instead of restoring its split slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [804] - 2026-03-31 10:31 - `VR-SP - Workspace 7 - Keep Docked Browser Drag Working While A Popout Copy Is Open`
+<!-- ENTRY 804 -->
+HUMAN SUMMARY: `The original Browser docked under \`ParaHook Generator v20\` can now still be dragged out into a floating window even while a child-window Browser copy is already open. This removes another leftover singleton Browser seam from the old owner-transfer popout model.` 
+#### Scope / Constraints Honored
+- Kept this cleanup focused on docked Browser drag-out while Browser copy-popout is open.
+- Preserved the new copy-popout behavior and the existing dock/floating drag loop.
+
+#### What Changed
+- Removed the old Browser popout-state guard from the docked Browser drag-start path so a copied popout window no longer blocks the original docked Browser from detaching into floating mode.
+- Added a focused Browser host regression covering the docked Browser drag-out path while a Browser popout copy is already open.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "still lets the original docked browser drag into floating while a popout copy is open"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [803] - 2026-03-31 10:29 - `VR-SP - Workspace 7 - Keep Browser Copy-Popout Open While The Original Browser Changes Host Mode`
+<!-- ENTRY 803 -->
+HUMAN SUMMARY: `The new Browser child-window copy no longer depends on the original Browser staying in one host mode. Dragging a slotted Browser out into floating mode now leaves the popped-out Browser copy alive instead of clearing it because the old singleton Browser host flags treated float, split, and popout as mutually exclusive.` 
+#### Scope / Constraints Honored
+- Kept this fix focused on Browser host-mode independence after the earlier copy-popout change.
+- Left Console and Spaghetti host-mode ownership rules unchanged in this slice.
+
+#### What Changed
+- Decoupled Browser popout state from the legacy Browser floating and viewport-split toggles in the shared workspace store so the child-window Browser copy can remain open while the original Browser surface moves between slot, floating, and split hosts.
+- Added an AppShell regression covering the exact split-slot Browser -> popout copy -> drag original into floating sequence.
+
+#### Files Touched
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "keeps a browser popout copy open while the original slotted browser is dragged out into floating mode"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [802] - 2026-03-31 10:24 - `VR-SP - Workspace 7 - Make Browser Popout Open A Child-Window Copy Instead Of Moving The Surface`
+<!-- ENTRY 802 -->
+HUMAN SUMMARY: `Browser popout no longer steals the live Browser out of whatever dock, float, or slot it currently occupies. Clicking \`Pop Out\` now opens a child-window Browser copy while the original Browser stays where it is, so closing the original Browser host does not also kill the popped-out copy.` 
+#### Scope / Constraints Honored
+- Kept this semantic shift focused on Browser popout only.
+- Left Console and Spaghetti popout ownership rules unchanged in this slice.
+
+#### What Changed
+- Reworked Browser popout so docked, floating, and slotted Browser surfaces stay mounted while the child window renders an extra Browser copy.
+- Changed the Browser slot-header `Pop Out` path so it opens the Browser child window without detaching the slot surface first.
+- Kept the child-window Browser close path local to the popout copy instead of treating it as the main Browser owner.
+- Added focused Browser-host and AppShell regressions covering docked copy-popout plus a slotted Browser popout copy surviving after the original slot is removed.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/hosts/BrowserDockHost.test.tsx -t "keeps the docked browser visible while opening a child-window popout copy"`
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "keeps the Browser docked while opening a child-window popout copy from the popout toggle|keeps a browser popout copy open after the original slotted browser slot is removed"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [801] - 2026-03-31 10:14 - `VR-SP - Workspace 7 - Make Browser Quick-Dock Return Detached Floats To The Left Toolbar`
+<!-- ENTRY 801 -->
+HUMAN SUMMARY: `The floating Browser quick-dock button now always means “dock back under \`ParaHook Generator v20\`.” A Browser that originally came from a split slot no longer uses the old detached-slot restore path when you click \`<\`, so it returns to the left toolbar instead of recreating its prior split lane.` 
+#### Scope / Constraints Honored
+- Kept this cleanup focused on the floating Browser quick-dock action.
+- Preserved the existing detached-slot split redock behavior for edge-drop and explicit split actions.
+
+#### What Changed
+- Added a dedicated floating Browser quick-dock handler instead of reusing the generic floating toggle path.
+- Cleared detached Browser slot ownership before closing the floating shell so the AppShell detached-surface restore effect cannot recreate the prior split slot when the user explicitly chose left-toolbar dock.
+- Added an AppShell regression covering the detached split Browser -> floating -> quick-dock path.
+
+#### Files Touched
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Verification
+- `.\node_modules\.bin\vitest.cmd run src/app/AppShell.test.tsx -t "quick docks a detached floating browser back into the left toolbar instead of restoring its split slot"`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+### [800] - 2026-03-31 10:08 - `VR-SP - Workspace 7 - Add Internal Scroll To Slotted Browser Split Surfaces`
+<!-- ENTRY 800 -->
+HUMAN SUMMARY: `When Browser is slotted into a cramped top or bottom viewport split, its content no longer gets trapped in a clipped panel body. The slotted Browser host now fills the slot height correctly and the Browser body shows a real vertical scrollbar so the user can keep scrolling through the tree.` 
+#### Scope / Constraints Honored
+- Kept this cleanup focused on the slotted Browser split surface layout.
+- Preserved the existing Browser docked, floating, and popout ownership model.
+
+#### What Changed
+- Extended the slotted Browser host path so the headerless Browser panel fills the full slot height under the viewport frame instead of sizing to content.
+- Made the Browser body use explicit vertical scrolling with stable scrollbar gutter behavior when a top or bottom split constrains the available height.
+- Added Browser-specific scrollbar styling so the internal Browser scroller stays visible and consistent with the rest of the shell chrome.
+
+#### Files Touched
+- `src/app/theme/surfaces/browser.css`
+
+#### Verification
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
 ### [799] - 2026-03-31 09:54 - `VR-SP - Workspace 7 - Prevent Text Selection When Dragging Out From Viewport Headers`
 <!-- ENTRY 799 -->
 HUMAN SUMMARY: `Dragging a split Browser back into floating mode no longer starts a text-selection gesture through the shared viewport titlebar. The shared slot header now behaves like a true drag handle, which stops the model viewport labels and toolbar text from getting highlighted during Browser drag-out.` 

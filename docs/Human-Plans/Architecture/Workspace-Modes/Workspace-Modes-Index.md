@@ -3,6 +3,18 @@
 ## Doc Header
 
 ### Doc History
+81. 2026-03-31 16:47: Added the native `Workspace 7.5 - Surface Host Standardization And Reusable Window Contract` planning doc under `Workspace-Modes/Future/`, refreshed the `Workspace 7` family read so the later ladder now explicitly captures reusable Browser-plus-Spaghetti host standardization after the `7.4` convergence cleanup, and extended the workspace docs map so the new future phase appears beside the remaining live workspace planning surfaces
+80. 2026-03-31 16:20: Moved the shipped `Workspace 7.2c` through `Workspace 7.3-2` phase records out of `Workspace-Modes/Future/` and into `Workspace-Modes/Shipped/`, closed out their stale checklist states so the landed Browser, split-preview, and multi-viewport families no longer masquerade as open future work, and refreshed this family index so only genuinely pending workspace docs remain under `Future/`
+79. 2026-03-31 14:49: Moved the shipped `Workspace 7.3-1` plan record out of `Workspace-Modes/Future/` and into `Workspace-Modes/Shipped/`, refreshed the workspace-family read so the first second-model-viewport proof now counts as landed history, and advanced the active multiple-viewer execution surface to `Workspace 7.3-2`
+78. 2026-03-31 14:23: Broke the native `Workspace 7.3` planning lane into staged `7.3-1` and `7.3-2` subphase docs under `Workspace-Modes/Future/`, refreshed the workspace-family read so the next major viewer-runtime widening now lands as structural second-viewer proof first and host-targeting parity second, and kept the `Workspace 7` ladder aligned with that staged multiple-model-viewport plan
+77. 2026-03-31 14:18: Added the native `Workspace 7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity` planning doc under `Workspace-Modes/Future/`, refreshed the workspace-family read so the next major lane now points at a dedicated multiple-model-viewport widening surface instead of only the umbrella `Workspace 7` note, and kept the Browser-first `7.2` cleanup family positioned as the lead-in to that heavier viewer-runtime phase
+76. 2026-03-31 12:55: Re-homed the earlier `Workspace 7.2e-3` dual-band edge-intent follow-on into a new `Workspace 7.2f` family under `Workspace-Modes/Future/`, refreshed the workspace-family read so `7.2e` now stops at pane-local precision plus adaptive nested ghosts, and made `7.2f-1` plus `7.2f-2` the explicit post-`7.2e` Browser drag-language cleanup ladder before `Workspace 7.3`
+75. 2026-03-31 12:38: Added the native `Workspace 7.2e-3` split-preview follow-on under `Workspace-Modes/Future/`, refreshed the workspace-family read so the `7.2e` lane now explicitly includes a post-`7.2e-2` dual-band edge-intent cleanup for pane-local-versus-whole-browser split signaling before the later `Workspace 7.3` widening
+74. 2026-03-31 11:18: Broke `Workspace 7.2e` into staged pane-aware split-preview subphases by adding the native `7.2e-1` cursor-driven precision doc plus `7.2e-2` adaptive dual-ghost doc under `Workspace-Modes/Future/`, refreshed the workspace-family read so `7.2e-1` is now the active next follow-on after `7.2d-2`, and kept the later `Workspace 7.3` widening clearly separated
+73. 2026-03-31 11:13: Added the native `Workspace 7.2e` pane-aware split-preview doc under `Workspace-Modes/Future/`, refreshed the workspace-family read so the next post-`7.2d` follow-on now captures adaptive dual ghost previews and hovered-pane split targeting before the heavier `Workspace 7.3` widening, and kept `7.2d-2` as the active implementation lane
+72. 2026-03-31 11:02: Added the native `Workspace 7.2d-2` Browser-toolbar claim-parity doc under `Workspace-Modes/Future/`, refreshed the workspace-family read so shipped `7.2d-1` now records the structural owner-state win, and moved the active next execution surface forward to `7.2d-2` before `Workspace 7.3`
+71. 2026-03-31 10:47: Broke `Workspace 7.2d` into staged Browser-toolbar-ownership subphases, added the native `Workspace 7.2d-1` structural owner-state doc under `Workspace-Modes/Future/`, and tightened the workspace-family read so `7.2d-1` is now the active next execution surface before the later dock-left parity follow-on and `Workspace 7.3`
+70. 2026-03-31 10:41: Added the native `Workspace 7.2d` follow-on doc under `Workspace-Modes/Future/`, tightened the workspace-family read so the next cleanup slice now targets explicit Browser toolbar ownership and deterministic left-dock rehoming after shipped `7.2c`, and made `7.2d` the active next execution surface before `Workspace 7.3`
 69. 2026-03-31 00:36: Marked `Workspace 7.2c-3` as the shipped old-shell-retirement cleanup cut, updating the family read so the full `Workspace 7.2c` left-dock-unification ladder now counts as complete under `PrimaryViewportLeftDock` and the active `Workspace 7` execution lane now hands forward to `Workspace 7.3`
 68. 2026-03-31 00:11: Tightened the native `Workspace 7.2c-3` doc into an implementation-ready old-shell-retirement spec, locking the exact cleanup boundary, concrete code seams, first-cut sequence, and verification shape so the active `Workspace 7` execution lane now reads as the final left-dock-unification cleanup instead of a loose placeholder
 67. 2026-03-31 00:05: Marked `Workspace 7.2c-2` as the shipped live left-dock parity cut, updating the family read so Browser and Meatball preview, resize, split-toggle, and primary-only-attachment parity now count as landed under the new `PrimaryViewportLeftDock` host and `7.2c-3` is the active next cleanup lane
@@ -1423,13 +1435,31 @@ Current source doc:
 - `Workspace 7.2c-2` is now shipped as the live parity cut that proved Browser / Meatball preview, resize, split-toggle, and primary-only left-dock attachment on top of that new host
 - `Workspace 7.2c-3` is now shipped as the old-shell retirement cut that removed the remaining live `.LeftDock` selector and resize-menu assumptions once the new host fully owned the route
 - `Workspace 7.2c` now counts as complete
-- the first `Workspace 7.3` cut should then widen into true multiple `Model Viewport` surfaces, explicit cross-viewport floating-host targeting, and the start of deleting the remaining one-protected-viewer assumptions before the final cleanup and persistence follow-ons
+- `Workspace 7.2d` should now replace the remaining implicit Browser left-toolbar suppression with explicit toolbar-owner truth so any chosen Browser surface can claim the primary left dock without unrelated Browser slots elsewhere making that route disappear
+- `Workspace 7.2d-1` is now shipped as the structural owner-state cut, giving Browser one explicit toolbar owner and removing the broad global suppression seam from the primary left-toolbar route
+- `Workspace 7.2d-2` is now the active next cut for making Browser quick-dock, drag-back, and the remaining left-toolbar claim flows consistently rehome one chosen Browser surface on top of that owner seam
+- `Workspace 7.2e` is now shipped as the pane-aware split-authoring family that moved split-preview targeting onto the hovered pane and landed adaptive nested split suggestions on top of that precision seam
+- `Workspace 7.2e-1` shipped as the first pane-local precision fix so the existing `left` / `right` / `top` / `bottom` split preview follows cursor position inside the hovered pane
+- `Workspace 7.2e-2` shipped as the adaptive dual-ghost nested split suggestion follow-on on top of that pane-local seam
+- `Workspace 7.2f` is now shipped as the dual-band edge-intent cleanup that makes one directional edge gesture intentionally choose between pane-local and whole-browser split scope by depth into the edge band
+- `Workspace 7.2f-1` shipped as the explicit preview-scope and right-edge dual-band proof
+- `Workspace 7.2f-2` shipped as the all-sides follow-through plus whole-browser ghost layering cleanup
+- `Workspace 7.3` is now shipped as the multiple-`Model Viewport` runtime widening family that landed true additional viewer slots, explicit cross-viewport host targeting, and the first retirement pass for one-protected-viewer assumptions before the later convergence cleanup
+- `Workspace 7.3` should now stage as:
+  - `7.3-1` for the structural second-model-viewport runtime and slot-truth proof
+  - `7.3-2` for cross-viewport host targeting, viewer restore parity, and the first protected-viewer cleanup pass
+- `Workspace 7.3-1` is now shipped as the structural second-model-viewport runtime and slot-truth proof
+- `Workspace 7.3-2` is now shipped as the cross-viewport host targeting, viewer restore parity, and first protected-viewer cleanup pass
 - `Workspace 7.4` should then act as the convergence cleanup pass that deletes the remaining temporary split adapters, lands the deeper slot lifecycle actions once the tree rules are trustworthy, and keeps `Pop Out` fully parallel with `Float` under the same slot-based owner-transfer model
+- `Workspace 7.5` should then standardize one reusable surface host contract so Browser's landed shell cleanup and Spaghetti's richer placement model converge into one generic workspace-owned lifecycle that future windows can adopt without another Browser-only cleanup ladder
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
-- current active execution surface:
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity.md`
+- current remaining future workspace docs:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md`
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
@@ -1440,10 +1470,32 @@ Current source doc:
 - second follow-on:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
 - third follow-on:
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2c - Primary Viewport Left Dock Unification.md`
+- fourth follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2d - Explicit Browser Toolbar Ownership And Left-Dock Rehoming.md`
+- fifth follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2e - Adaptive Split Preview Ghosts And Pane-Aware Nested Docking.md`
+- staged `7.2e` subphases:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2e-1 - Cursor-Driven Pane Split Preview Precision.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2e-2 - Adaptive Dual Ghost Nested Split Suggestions.md`
+- sixth follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2f - Dual-Band Edge Intent And Whole-Browser Split Signaling.md`
+- staged `7.2f` subphases:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2f-1 - Dual-Band Edge Intent State And Right-Side Proof.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2f-2 - Four-Side Expansion And Whole-Browser Ghost Layering.md`
+- seventh follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity.md`
+- staged `7.3` subphases:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.3-1 - Second Model Viewport Runtime And Slot Truth.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.3-2 - Per-Viewport Host Targeting And Viewer Rehome Parity.md`
+- later standardization follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md`
+- staged `7.2d` subphases:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2d-1 - Browser Toolbar Owner State And AppShell Repoint.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2d-2 - Browser Toolbar Claim And Rehoming Parity.md`
 - staged `7.2c` subphases:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2c-1 - Primary Viewport Left Dock Host Extraction.md`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c-2 - Left Dock Ref Repoint And Behavior Parity.md`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2c-3 - Old Left Dock Shell Retirement And Cleanup.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2c-2 - Left Dock Ref Repoint And Behavior Parity.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2c-3 - Old Left Dock Shell Retirement And Cleanup.md`
 - vision grounding:
   - `docs/Human-Plans/Architecture/Workspace-Modes/vision1.md`

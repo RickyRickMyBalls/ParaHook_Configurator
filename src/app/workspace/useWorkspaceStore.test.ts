@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useWorkspaceStore } from './useWorkspaceStore'
+import { normalizePersistedWorkspaceLayout, serializeWorkspaceLayout } from './workspacePersistence'
 import {
+  defaultBrowserToolbarOwnerSurfaceInstanceId,
   defaultPrimaryViewportLeafNodeId,
   defaultPrimaryViewportSlotId,
   defaultSecondaryViewportSlotId,
@@ -22,6 +24,17 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(state.viewportSlotRootNodeId).toBe(defaultPrimaryViewportLeafNodeId)
     expect(state.viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind).toBe('modelViewer')
     expect(state.viewportSlotsById[defaultSecondaryViewportSlotId]).toBeUndefined()
+    expect(state.browserToolbarOwnerSurfaceInstanceId).toBe(
+      defaultBrowserToolbarOwnerSurfaceInstanceId,
+    )
+  })
+
+  it('tracks an explicit browser toolbar owner separately from slot surfaces', () => {
+    useWorkspaceStore.getState().setBrowserToolbarOwnerSurfaceInstanceId('browser-surface-1')
+
+    expect(useWorkspaceStore.getState().browserToolbarOwnerSurfaceInstanceId).toBe(
+      'browser-surface-1',
+    )
   })
 
   it('creates and dissolves the first secondary split slot', () => {
@@ -192,5 +205,117 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     state = useWorkspaceStore.getState()
     expect(state.browserShell.presentationMode).toBe('expanded')
     expect(state.browserShell.isCollapsed).toBe(false)
+  })
+
+  it('keeps per-viewport local view state separate for a second model viewport', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'modelViewer',
+      surfaceInstanceId: 'model-viewer-workspace-slot-2',
+    })
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-workspace-slot-2')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-workspace-slot-2', {
+      projectionMode: 'orthographic',
+      axisOverlayEnabled: false,
+      viewToolbarOpen: true,
+    })
+
+    const state = useWorkspaceStore.getState()
+    expect(state.viewportChromeById['model-viewer-primary']?.localViewState).toEqual(
+      expect.objectContaining({
+        projectionMode: 'perspective',
+        axisOverlayEnabled: true,
+        viewToolbarOpen: false,
+      }),
+    )
+    expect(state.viewportChromeById['model-viewer-workspace-slot-2']?.localViewState).toEqual(
+      expect.objectContaining({
+        projectionMode: 'orthographic',
+        axisOverlayEnabled: false,
+        viewToolbarOpen: true,
+      }),
+    )
+  })
+
+  it('detaches and redocks a non-primary model viewport against its explicit host viewport', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'modelViewer',
+      surfaceInstanceId: 'model-viewer-workspace-slot-2',
+    })
+
+    const secondarySlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlotId).toBeTruthy()
+
+    const detachedSurface = useWorkspaceStore
+      .getState()
+      .detachViewportSlotSurface(secondarySlotId ?? '', 'floating')
+
+    expect(detachedSurface).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-workspace-slot-2',
+        hostMode: 'floating',
+        hostViewportId: 'model-viewer-primary',
+      }),
+    )
+
+    const redockedSlotId = useWorkspaceStore
+      .getState()
+      .redockDetachedSurface('model-viewer-workspace-slot-2', 'left')
+    const redockedSlot =
+      (redockedSlotId !== null
+        ? useWorkspaceStore.getState().viewportSlotsById[redockedSlotId]
+        : null) ?? null
+
+    expect(redockedSlot?.surfaceKind).toBe('modelViewer')
+    expect(redockedSlot?.surfaceInstanceId).toBe('model-viewer-workspace-slot-2')
+    expect(redockedSlot?.hostViewportId).toBe('model-viewer-primary')
+    expect(
+      useWorkspaceStore.getState().detachedSlotSurfaceById['model-viewer-workspace-slot-2'],
+    ).toBeUndefined()
+  })
+
+  it('serializes and restores active viewer id, detached model viewers, and local viewport state', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'modelViewer',
+      surfaceInstanceId: 'model-viewer-workspace-slot-2',
+    })
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-workspace-slot-2')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-workspace-slot-2', {
+      projectionMode: 'orthographic',
+      axisOverlayEnabled: false,
+      viewToolbarOpen: true,
+    })
+    useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-workspace-slot-2')
+
+    const secondarySlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().detachViewportSlotSurface(secondarySlotId ?? '', 'floating')
+
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const normalized = normalizePersistedWorkspaceLayout(serialized)
+
+    expect(normalized?.activeViewerViewportId).toBe('model-viewer-workspace-slot-2')
+    expect(normalized?.detachedSlotSurfaceById['model-viewer-workspace-slot-2']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'modelViewer',
+        hostMode: 'floating',
+        hostViewportId: 'model-viewer-primary',
+      }),
+    )
+    expect(
+      normalized?.viewportChromeById['model-viewer-workspace-slot-2']?.localViewState,
+    ).toEqual(
+      expect.objectContaining({
+        projectionMode: 'orthographic',
+        axisOverlayEnabled: false,
+        viewToolbarOpen: true,
+      }),
+    )
   })
 })

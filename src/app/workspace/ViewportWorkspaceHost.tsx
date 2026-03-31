@@ -7,7 +7,7 @@ import type { WorkspaceViewportId } from './workspaceShellTypes'
 
 type ViewportWorkspaceHostProps = {
   viewportId: WorkspaceViewportId
-  onActivateViewerSurface: () => void
+  onActivateViewerSurface: (viewportId: WorkspaceViewportId) => void
 }
 
 export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
@@ -22,10 +22,10 @@ export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
     <div
       className="ViewportWorkspaceHost"
       data-workspace-viewport-id={viewportId}
-      onPointerDownCapture={onActivateViewerSurface}
+      onPointerDownCapture={() => onActivateViewerSurface(viewportId)}
     >
       <div className="ViewportViewerSurface" data-workspace-viewport-id={viewportId}>
-        <ViewerHost />
+        <ViewerHost viewportId={viewportId} />
       </div>
       <ViewportOverlay viewportId={viewportId} />
       <ViewToolbar viewportId={viewportId} />

@@ -600,6 +600,43 @@ describe('SpaghettiWindowHost', () => {
     )
   })
 
+  it('uses cursor position inside the viewport to show a top split ghost even when the floating editor frame is not flush to the top edge', async () => {
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 60,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 760,
+          clientY: 80,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockTop')).not.toBeNull()
+  })
+
   it('treats the left dock status bar as a meatball dock target for the floating editor', async () => {
     await renderHarness()
     mockGeometry()

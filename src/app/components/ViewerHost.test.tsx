@@ -498,7 +498,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(useAppStore.getState().referenceWorkspace.loadStateById['shoe:shoe-1']).toBe('loading')
@@ -536,7 +536,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     await act(async () => {
@@ -576,7 +576,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     await act(async () => {
@@ -619,7 +619,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
@@ -667,7 +667,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({
@@ -716,7 +716,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     await act(async () => {
@@ -756,7 +756,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(importedReferenceId).not.toBeNull()
@@ -782,7 +782,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetViewerTransformSession).toHaveBeenCalledWith({
@@ -814,7 +814,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const spaceChangeHandler = viewerSetOnViewerTransformSpaceChange.mock.calls.at(-1)?.[0] as
@@ -879,7 +879,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetContentObjectTransformGroups).toHaveBeenCalledWith([
@@ -932,7 +932,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const commitHandler = viewerSetOnViewerTransformCommit.mock.calls.at(-1)?.[0] as
@@ -1063,7 +1063,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetViewerTransformHistoryOverlay.mock.calls).toContainEqual([
@@ -1172,7 +1172,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetViewerTransformHistoryOverlay).toHaveBeenCalledWith({
@@ -1284,7 +1284,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetViewerTransformHistoryOverlay.mock.calls).toContainEqual([
@@ -1330,7 +1330,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const handleChangeHandler = viewerSetOnViewerTransformHandleChange.mock.calls.at(-1)?.[0] as
@@ -1365,7 +1365,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const handleChangeHandler = viewerSetOnViewerTransformHandleChange.mock.calls.at(-1)?.[0] as
@@ -1408,7 +1408,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetGizmoSnap).toHaveBeenCalledWith({
@@ -1461,7 +1461,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetGizmoSnap).toHaveBeenCalledWith({
@@ -1480,7 +1480,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetReferenceTransformMoveSnapDotVisibleRadiusMultiplier).toHaveBeenCalledWith(40)
@@ -1503,7 +1503,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetReferenceTransformMoveSnapDotsEnabled).toHaveBeenCalledWith(true)
@@ -1524,7 +1524,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetReferenceTransformPreviewLastMoveSnapDotsEnabled).toHaveBeenCalledWith(false)
@@ -1547,7 +1547,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetReferenceTransformRotateSnapPreviewEnabled).toHaveBeenCalledWith(true)
@@ -1568,7 +1568,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetReferenceTransformRotateSnapPreviewLineSize).toHaveBeenCalledWith(1)
@@ -1636,7 +1636,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetGeometrySketchOverlay).toHaveBeenCalledWith(
@@ -1740,7 +1740,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetGeometrySketchOverlay).toHaveBeenCalledWith(
@@ -1804,7 +1804,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetVisibleGeometrySketchOverlays).toHaveBeenCalledWith([
@@ -1960,7 +1960,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetHighlightedPartKeys).toHaveBeenCalledWith(
@@ -1993,7 +1993,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2182,7 +2182,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2258,7 +2258,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2335,7 +2335,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2380,7 +2380,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2425,7 +2425,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2526,7 +2526,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     const workspaceSelectionPickHandler = viewerSetOnWorkspaceSelectionPick.mock.calls.at(-1)?.[0] as
@@ -2582,7 +2582,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetHighlightedReferenceIds).toHaveBeenCalledWith(['shoe:shoe-1'])
@@ -2627,7 +2627,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetHighlightedReferenceIds).toHaveBeenCalledWith(['shoe:shoe-1', 'shoe:shoe-2'])
@@ -2676,7 +2676,7 @@ describe('ViewerHost reference loading', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewerHost />)
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
     })
 
     expect(viewerSetSketchPlanePickOverlay).toHaveBeenCalledWith(

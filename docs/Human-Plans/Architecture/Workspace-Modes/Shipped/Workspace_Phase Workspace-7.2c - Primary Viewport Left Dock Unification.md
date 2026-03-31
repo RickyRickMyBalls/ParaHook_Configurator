@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-03-31 16:20: Closed out this shipped `Workspace 7.2c` umbrella record so the family now points at its landed `Shipped/` history instead of a stale future execution surface, and marked the left-dock-unification phase ready to move out of `Future/`
 5. 2026-03-31 00:36: Updated `Workspace 7.2c` after shipping `7.2c-3`, so the umbrella checklist now records the old-shell retirement and cleanup lane as landed, the full left-dock-unification family as complete, and the next `Workspace 7` execution surface as `Workspace 7.3`
 4. 2026-03-31 00:05: Updated `Workspace 7.2c` after shipping `7.2c-2`, so the umbrella checklist now records the live Browser / Meatball preview, resize, split-toggle, and primary-only-attachment parity work as landed and moves the active execution lane forward to `7.2c-3` for old-shell retirement
 3. 2026-03-30 23:34: Updated `Workspace 7.2c` after shipping `7.2c-1`, so the umbrella checklist now records the structural extraction as landed, the Browser and Meatball refs as already re-pointed into the new host, and `7.2c-2` as the active next behavior-parity lane
@@ -75,7 +76,7 @@ Current progress read:
 - `Workspace 7.2c` is now complete
 
 Current active execution surface:
-- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity.md`
+- none inside `Workspace 7.2c`; this family is shipped and ready to live under `Workspace-Modes/Shipped/`
 
 Checklist:
 - [x] Add one viewport-local left dock host component for the primary model viewport

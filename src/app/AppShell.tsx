@@ -31,6 +31,7 @@ import {
   defaultBrowserFloatingSize,
   defaultPrimaryViewportSlotId,
 } from './workspace/workspaceShellTypes'
+import { setActiveViewer } from './viewerBridge'
 import {
   defaultWorkspaceSplitDirection,
   resolveDefaultWorkspaceSplitDockSide,
@@ -150,6 +151,7 @@ export function AppShell() {
   const redockDetachedSurface = useWorkspaceStore((state) => state.redockDetachedSurface)
   const setViewportSlotSurfaceKind = useWorkspaceStore((state) => state.setViewportSlotSurfaceKind)
   const setViewportLayoutSplitRatio = useWorkspaceStore((state) => state.setViewportLayoutSplitRatio)
+  const setActiveViewerViewportId = useWorkspaceStore((state) => state.setActiveViewerViewportId)
   const hydratePersistedWorkspaceLayout = useWorkspaceStore(
     (state) => state.hydratePersistedWorkspaceLayout,
   )
@@ -222,6 +224,9 @@ export function AppShell() {
     () => Object.values(viewportSlotsById).filter((slot) => slot.surfaceKind === 'console').length,
     [viewportSlotsById],
   )
+  const browserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
+    (state) => state.browserToolbarOwnerSurfaceInstanceId,
+  )
   const activeDetachedBrowserSurface = useMemo(
     () =>
       Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'browser') ?? null,
@@ -230,6 +235,13 @@ export function AppShell() {
   const activeDetachedConsoleSurface = useMemo(
     () =>
       Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'console') ?? null,
+    [detachedSlotSurfaceById],
+  )
+  const detachedViewerSurfaces = useMemo(
+    () =>
+      Object.values(detachedSlotSurfaceById).filter(
+        (surface) => surface.surfaceKind === 'modelViewer' && surface.hostMode === 'floating',
+      ),
     [detachedSlotSurfaceById],
   )
   const rootLeftSplitSlotIds = useMemo(() => {
@@ -242,7 +254,7 @@ export function AppShell() {
     )
   }, [viewportLayoutNodesById, viewportSlotRootNodeId])
   const consoleWindowMode = useConsoleStore((state) => state.windowMode)
-  const suppressLegacyDockedBrowserSurface = browserSlotCount > 0 || activeDetachedBrowserSurface !== null
+  const suppressLegacyDockedBrowserSurface = browserToolbarOwnerSurfaceInstanceId === null
   const suppressLegacyDockedConsoleSurface =
     consoleSlotCount > 0 || activeDetachedConsoleSurface !== null
   const primaryViewportSlotIsConstrained = useMemo(() => {
@@ -268,8 +280,10 @@ export function AppShell() {
     requestConsoleContextSync('surface-activation')
   }, [requestConsoleContextSync, setActiveSurface])
 
-  const handleActivateViewerSurface = useCallback(() => {
+  const handleActivateViewerSurface = useCallback((viewportId: string) => {
     setActiveFloatingShell(null)
+    setActiveViewerViewportId(viewportId)
+    setActiveViewer(viewportId)
     setActiveSurface('viewer')
     if (sketchPlanePickSession !== null) {
       return
@@ -280,6 +294,7 @@ export function AppShell() {
     requestConsoleContextSync('surface-clear')
   }, [
     requestConsoleContextSync,
+    setActiveViewerViewportId,
     setActiveSurface,
     sketchPlanePickSession,
     workspaceExplicitSelectedTargets.length,
@@ -644,6 +659,12 @@ export function AppShell() {
         useConsoleStore.getState().switchToFloating()
         return
       }
+      if (slot.surfaceKind === 'modelViewer') {
+        setActiveViewerViewportId(slot.surfaceInstanceId)
+        setActiveViewer(slot.surfaceInstanceId)
+        setActiveSurface('viewer')
+        return
+      }
       if (slot.surfaceKind === 'spaghettiEditor') {
         useSpaghettiStore.getState().setActiveEditorViewportId?.(slot.surfaceInstanceId)
         setEditorViewportWindowMode(slot.surfaceInstanceId, 'expanded')
@@ -653,6 +674,8 @@ export function AppShell() {
       browserSlotCount,
       detachViewportSlotSurface,
       setEditorViewportWindowMode,
+      setActiveSurface,
+      setActiveViewerViewportId,
       setIsBrowserFloating,
       setIsBrowserViewportSplit,
       viewportSlotsById,
@@ -723,14 +746,14 @@ export function AppShell() {
       if (slot === null || slotId === defaultPrimaryViewportSlotId) {
         return
       }
-      detachViewportSlotSurface(slotId, 'popout')
+      if (slot.surfaceKind === 'modelViewer') {
+        return
+      }
       if (slot.surfaceKind === 'browser') {
-        if (browserSlotCount <= 1) {
-          setIsBrowserViewportSplit(false)
-        }
         setIsBrowserPoppedOut(true)
         return
       }
+      detachViewportSlotSurface(slotId, 'popout')
       if (slot.surfaceKind === 'console') {
         useConsoleStore.getState().switchToPopout()
         return
@@ -741,11 +764,9 @@ export function AppShell() {
       }
     },
     [
-      browserSlotCount,
       detachViewportSlotSurface,
       setEditorViewportWindowMode,
       setIsBrowserPoppedOut,
-      setIsBrowserViewportSplit,
       viewportSlotsById,
     ],
   )
@@ -976,39 +997,45 @@ export function AppShell() {
           onSplitBottom={() => handleViewportSlotSplit(slot.slotId, 'bottom')}
           onSplitLeft={() => handleViewportSlotSplit(slot.slotId, 'left')}
           onFloat={isPrimarySlot ? undefined : () => handleViewportSlotFloat(slot.slotId)}
-          onPopOut={isPrimarySlot ? undefined : () => handleViewportSlotPopOut(slot.slotId)}
+          onPopOut={
+            isPrimarySlot || slot.surfaceKind === 'modelViewer'
+              ? undefined
+              : () => handleViewportSlotPopOut(slot.slotId)
+          }
           onHeaderDragOut={
             slot.surfaceKind === 'browser' && !isPrimarySlot
               ? (payload) => handleViewportSlotHeaderDragOut(slot.slotId, payload)
               : undefined
           }
         >
-          {slot.surfaceKind === 'modelViewer' && isPrimarySlot ? (
+          {slot.surfaceKind === 'modelViewer' ? (
             <>
-              <PrimaryViewportLeftDock
-                leftDockWidth={leftDockWidth}
-                bottomInset={
-                  showSplitLayout &&
-                  splitDirection === 'horizontal' &&
-                  splitDockSide === 'bottom' &&
-                  (!isLeftDockViewportSplit || splitPriority !== 'favorFirst')
-                    ? `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`
-                    : '0px'
-                }
-                isConstrained={primaryViewportSlotIsConstrained}
-                isViewportSplitHandleConstrained={isLeftDockViewportSplit && showSplitLayout}
-                isLeftDockViewportSplit={isLeftDockViewportSplit}
-                isBrowserDockPreviewActive={isBrowserDockPreviewActive}
-                isMeatballDockPreviewActive={isMeatballDockPreviewActive}
-                dockedBrowserHostRef={dockedBrowserHostRef}
-                dockedMeatballHostRef={dockedMeatballHostRef}
-                onResizeStart={handleLeftDockResizeStart}
-                onResizeContextMenu={handleLeftDockResizeContextMenu}
-                onSplitTogglePointerDown={handleLeftDockSplitTogglePointerDown}
-                onSplitToggleClick={handleLeftDockSplitToggleClick}
-              />
+              {isPrimarySlot ? (
+                <PrimaryViewportLeftDock
+                  leftDockWidth={leftDockWidth}
+                  bottomInset={
+                    showSplitLayout &&
+                    splitDirection === 'horizontal' &&
+                    splitDockSide === 'bottom' &&
+                    (!isLeftDockViewportSplit || splitPriority !== 'favorFirst')
+                      ? `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`
+                      : '0px'
+                  }
+                  isConstrained={primaryViewportSlotIsConstrained}
+                  isViewportSplitHandleConstrained={isLeftDockViewportSplit && showSplitLayout}
+                  isLeftDockViewportSplit={isLeftDockViewportSplit}
+                  isBrowserDockPreviewActive={isBrowserDockPreviewActive}
+                  isMeatballDockPreviewActive={isMeatballDockPreviewActive}
+                  dockedBrowserHostRef={dockedBrowserHostRef}
+                  dockedMeatballHostRef={dockedMeatballHostRef}
+                  onResizeStart={handleLeftDockResizeStart}
+                  onResizeContextMenu={handleLeftDockResizeContextMenu}
+                  onSplitTogglePointerDown={handleLeftDockSplitTogglePointerDown}
+                  onSplitToggleClick={handleLeftDockSplitToggleClick}
+                />
+              ) : null}
               <ViewportWorkspaceHost
-                viewportId={primaryViewportId}
+                viewportId={slot.surfaceInstanceId}
                 onActivateViewerSurface={handleActivateViewerSurface}
               />
             </>
@@ -1033,7 +1060,6 @@ export function AppShell() {
       handleViewportSlotSurfaceKindChange,
       browserPresentationMode,
       isBrowserCollapsed,
-      primaryViewportId,
       setBrowserPresentationMode,
       viewportSlotsById,
       leftDockWidth,
@@ -1145,6 +1171,84 @@ export function AppShell() {
   )
 
   const viewerSurface = renderViewportLayoutNode(viewportSlotRootNodeId)
+  const detachedViewerWindows = detachedViewerSurfaces.map((surface) => {
+    const viewportAreaRect = viewportRef.current?.getBoundingClientRect() ?? null
+    const targetHost =
+      appShellRef.current?.querySelector(
+        `.ViewportWorkspaceHost[data-workspace-viewport-id="${surface.hostViewportId ?? primaryViewportId}"]`,
+      ) ?? null
+    const targetRect =
+      targetHost instanceof HTMLElement ? targetHost.getBoundingClientRect() : viewportAreaRect
+    const left =
+      viewportAreaRect !== null && targetRect !== null
+        ? Math.max(12, Math.round(targetRect.left - viewportAreaRect.left + 24))
+        : 24
+    const top =
+      viewportAreaRect !== null && targetRect !== null
+        ? Math.max(12, Math.round(targetRect.top - viewportAreaRect.top + 24))
+        : 24
+    const width =
+      targetRect !== null ? Math.max(320, Math.min(720, Math.round(targetRect.width * 0.45))) : 420
+    const height =
+      targetRect !== null
+        ? Math.max(240, Math.min(520, Math.round(targetRect.height * 0.45)))
+        : 320
+    const hostViewportId = surface.hostViewportId ?? primaryViewportId
+
+    return (
+      <div
+        key={surface.surfaceInstanceId}
+        className="DetachedViewerFloatingWindow"
+        data-workspace-surface-instance-id={surface.surfaceInstanceId}
+        data-workspace-host-viewport-id={hostViewportId}
+        style={{
+          position: 'absolute',
+          left: `${left}px`,
+          top: `${top}px`,
+          width: `${width}px`,
+          height: `${height}px`,
+          zIndex: 18,
+          display: 'grid',
+          gridTemplateRows: '32px minmax(0, 1fr)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          background: 'rgba(7, 11, 18, 0.96)',
+          boxShadow: '0 18px 44px rgba(0, 0, 0, 0.4)',
+        }}
+      >
+        <div
+          className="DetachedViewerFloatingWindowHeader"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            padding: '0 10px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.04)',
+          }}
+        >
+          <span>Floating Model Viewport</span>
+          <button
+            type="button"
+            className="DetachedViewerFloatingWindowQuickDock"
+            onClick={() => {
+              redockDetachedSurface(surface.surfaceInstanceId)
+            }}
+          >
+            Quick Dock
+          </button>
+        </div>
+        <div style={{ position: 'relative', minHeight: 0 }}>
+          <ViewportWorkspaceHost
+            viewportId={surface.surfaceInstanceId}
+            onActivateViewerSurface={handleActivateViewerSurface}
+          />
+        </div>
+      </div>
+    )
+  })
 
   return (
     <div ref={appShellRef} className="AppShellRoot">
@@ -1152,6 +1256,7 @@ export function AppShell() {
         ref={viewportRef}
         className="ViewportArea"
       >
+        {detachedViewerWindows}
         <SpaghettiWindowHost
           appShellRef={appShellRef}
           viewportRef={viewportRef}

@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -16,9 +17,11 @@ import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
   defaultBrowserPopoutState,
   defaultBrowserFloatingSize,
+  defaultBrowserToolbarOwnerSurfaceInstanceId,
   type BrowserFloatingPosition,
   type BrowserFloatingSize,
   type LeftDockPanelId,
+  type WorkspaceViewportSlotId,
 } from '../workspace/workspaceShellTypes'
 import {
   type WorkspaceSplitDockSide,
@@ -29,12 +32,38 @@ const minBrowserFloatingHeight = 220
 const floatingEdgePadding = 12
 const browserPopoutBackground = 'rgb(11, 12, 16)'
 const browserSplitDividerSize = 10
+const browserSplitPreviewEdgePadding = 14
+const browserSplitPreviewOuterBandPadding = 28
 
 type BrowserFloatingFrame = {
   shellWidth: number
   shellHeight: number
   minY: number
   maxY: number
+}
+
+type BrowserNestedSplitPreview = {
+  targetSlotId: WorkspaceViewportSlotId
+  candidateSides: readonly [WorkspaceSplitDockSide, WorkspaceSplitDockSide]
+  activeSide: WorkspaceSplitDockSide
+  rect: {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
+}
+
+type BrowserSplitDockPreview = {
+  side: WorkspaceSplitDockSide
+  scope: 'pane-local' | 'whole-browser'
+  targetSlotId: WorkspaceViewportSlotId | null
+  rect: {
+    left: number
+    top: number
+    width: number
+    height: number
+  }
 }
 
 type BrowserDockHostProps = {
@@ -94,6 +123,9 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const setIsBrowserPoppedOut = useWorkspaceStore((state) => state.setBrowserPoppedOut)
   const isBrowserViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
   const setIsBrowserViewportSplit = useWorkspaceStore((state) => state.setBrowserViewportSplit)
+  const setBrowserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
+    (state) => state.setBrowserToolbarOwnerSurfaceInstanceId,
+  )
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const isBrowserCollapsed = useWorkspaceStore((state) => state.browserShell.isCollapsed)
   const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
@@ -116,6 +148,13 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const detachedSlotSurfaceById = useWorkspaceStore((state) => state.detachedSlotSurfaceById)
   const clearDetachedSlotSurface = useWorkspaceStore((state) => state.clearDetachedSlotSurface)
   const redockDetachedSurface = useWorkspaceStore((state) => state.redockDetachedSurface)
+  const splitViewportSlot = useWorkspaceStore((state) => state.splitViewportSlot)
+  const splitViewportRoot = useWorkspaceStore((state) => state.splitViewportRoot)
+  const viewportSlotsById = useWorkspaceStore((state) => state.viewportSlotsById)
+  const viewportLayoutNodesById = useWorkspaceStore((state) => state.viewportLayoutNodesById)
+  const browserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
+    (state) => state.browserToolbarOwnerSurfaceInstanceId,
+  )
   const browserFloatingWindowRef = useRef<HTMLDivElement | null>(null)
   const [browserViewportSplitPortalTarget, setBrowserViewportSplitPortalTarget] =
     useState<HTMLDivElement | null>(null)
@@ -140,12 +179,70 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         }
       | null
   } | null>(null)
-  const browserSplitDockPreviewSideRef = useRef<WorkspaceSplitDockSide | null>(null)
+  const browserSplitDockPreviewRef = useRef<BrowserSplitDockPreview | null>(null)
+  const browserNestedSplitPreviewRef = useRef<BrowserNestedSplitPreview | null>(null)
   const browserDragUserSelectRestoreRef = useRef<string | null>(null)
-  const [browserSplitDockPreviewSide, setBrowserSplitDockPreviewSide] =
-    useState<WorkspaceSplitDockSide | null>(null)
+  const [browserSplitDockPreview, setBrowserSplitDockPreview] =
+    useState<BrowserSplitDockPreview | null>(null)
+  const [browserNestedSplitPreview, setBrowserNestedSplitPreview] =
+    useState<BrowserNestedSplitPreview | null>(null)
   const activeDetachedBrowserSurface =
     Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'browser') ?? null
+
+  const forwardWheelIntoDockedBrowserScrollTarget = useCallback(
+    (browserRoot: HTMLElement, deltaY: number) => {
+      if (deltaY === 0) {
+        return false
+      }
+
+      const dockedPanelStack = browserRoot.closest('.PanelStack.isConstrained')
+      if (dockedPanelStack instanceof HTMLElement) {
+        const maxScrollTop = Math.max(
+          0,
+          dockedPanelStack.scrollHeight - dockedPanelStack.clientHeight,
+        )
+        if (maxScrollTop > 0) {
+          const nextScrollTop = Math.max(
+            0,
+            Math.min(maxScrollTop, dockedPanelStack.scrollTop + deltaY),
+          )
+          if (nextScrollTop !== dockedPanelStack.scrollTop) {
+            dockedPanelStack.scrollTop = nextScrollTop
+            return true
+          }
+        }
+      }
+
+      const browserBody = browserRoot.querySelector('.BrowserPanelBody')
+      if (!(browserBody instanceof HTMLElement)) {
+        return false
+      }
+      const maxScrollTop = Math.max(0, browserBody.scrollHeight - browserBody.clientHeight)
+      if (maxScrollTop <= 0) {
+        return false
+      }
+      const nextScrollTop = Math.max(0, Math.min(maxScrollTop, browserBody.scrollTop + deltaY))
+      if (nextScrollTop === browserBody.scrollTop) {
+        return false
+      }
+      browserBody.scrollTop = nextScrollTop
+      return true
+    },
+    [],
+  )
+
+  const handleDockedBrowserWheelCapture = useCallback((event: ReactWheelEvent<HTMLElement>) => {
+    const deltaY =
+      Math.abs(event.deltaY) >= Math.abs(event.deltaX) || event.deltaX === 0
+        ? event.deltaY
+        : event.deltaX
+    const didScroll = forwardWheelIntoDockedBrowserScrollTarget(event.currentTarget, deltaY)
+    if (!didScroll) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+  }, [forwardWheelIntoDockedBrowserScrollTarget])
 
   const lockBrowserDragTextSelection = useCallback(() => {
     if (typeof document === 'undefined') {
@@ -288,79 +385,282 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   )
 
   const resolveBrowserSplitDockPreviewSide = useCallback(
-    (
-      pointerClientX: number,
-      pointerClientY: number,
-      pointerOffsetX: number,
-      pointerOffsetY: number,
-      titleBarHeight: number,
-    ): WorkspaceSplitDockSide | null => {
+    (pointerClientX: number, pointerClientY: number): BrowserSplitDockPreview | null => {
       const viewportRect = viewportRef.current?.getBoundingClientRect()
       if (viewportRect === undefined || viewportRect.width <= 0 || viewportRect.height <= 0) {
         return null
       }
-      const edgeThreshold = 20
-      const candidateX = pointerClientX - viewportRect.left - pointerOffsetX
-      const candidateY = pointerClientY - viewportRect.top - pointerOffsetY
+      const overshootThreshold = 120
+      if (
+        pointerClientX < viewportRect.left - overshootThreshold ||
+        pointerClientX > viewportRect.right + overshootThreshold ||
+        pointerClientY < viewportRect.top - overshootThreshold ||
+        pointerClientY > viewportRect.bottom + overshootThreshold
+      ) {
+        return null
+      }
+      const hoveredSlotElement =
+        typeof document.elementsFromPoint === 'function'
+          ? document
+              .elementsFromPoint(pointerClientX, pointerClientY)
+              .map((element) =>
+                element instanceof HTMLElement
+                  ? element.closest('[data-workspace-slot-id]')
+                  : null,
+              )
+              .find(
+                (element): element is HTMLElement =>
+                  element instanceof HTMLElement && viewportRef.current?.contains(element) === true,
+              ) ?? null
+          : null
+      const overshootSide =
+        hoveredSlotElement !== null
+          ? null
+          : pointerClientX >= viewportRect.right &&
+              pointerClientX <= viewportRect.right + browserSplitPreviewEdgePadding &&
+              pointerClientY >= viewportRect.top &&
+              pointerClientY <= viewportRect.bottom
+            ? 'right'
+            : pointerClientX <= viewportRect.left &&
+                pointerClientX >= viewportRect.left - browserSplitPreviewEdgePadding &&
+                pointerClientY >= viewportRect.top &&
+                pointerClientY <= viewportRect.bottom
+              ? 'left'
+              : pointerClientY <= viewportRect.top &&
+                  pointerClientY >= viewportRect.top - browserSplitPreviewEdgePadding &&
+                  pointerClientX >= viewportRect.left &&
+                  pointerClientX <= viewportRect.right
+                ? 'top'
+                : pointerClientY >= viewportRect.bottom &&
+                    pointerClientY <= viewportRect.bottom + browserSplitPreviewEdgePadding &&
+                    pointerClientX >= viewportRect.left &&
+                    pointerClientX <= viewportRect.right
+                  ? 'bottom'
+                  : null
+      if (overshootSide !== null) {
+        const lastPreview = browserSplitDockPreviewRef.current
+        if (lastPreview?.side === overshootSide) {
+          return {
+            side: overshootSide,
+            scope: 'whole-browser',
+            targetSlotId: null,
+            rect: {
+              left: 0,
+              top: 0,
+              width: viewportRect.width,
+              height: viewportRect.height,
+            },
+          }
+        }
+      }
+      const hoveredPaneRect = hoveredSlotElement?.getBoundingClientRect() ?? viewportRect
+      const hoveredSlotId = hoveredSlotElement?.getAttribute('data-workspace-slot-id') ?? null
+      const hoveredSlot = hoveredSlotId === null ? null : viewportSlotsById[hoveredSlotId] ?? null
+      const modelViewportBodyRect =
+        hoveredSlot?.surfaceKind === 'modelViewer'
+          ? hoveredSlotElement?.querySelector('.ViewportFrameBody')?.getBoundingClientRect()
+          : null
+      const previewRect =
+        modelViewportBodyRect !== undefined &&
+        modelViewportBodyRect !== null &&
+        modelViewportBodyRect.width > 0 &&
+        modelViewportBodyRect.height > 0
+          ? modelViewportBodyRect
+          : hoveredPaneRect
+      const clampedPointerClientX = Math.min(
+        previewRect.right,
+        Math.max(previewRect.left, pointerClientX),
+      )
+      const clampedPointerClientY = Math.min(
+        previewRect.bottom,
+        Math.max(previewRect.top, pointerClientY),
+      )
+      const topEdgeDistance = Math.max(0, clampedPointerClientY - previewRect.top)
+      const rightEdgeDistance = Math.max(0, previewRect.right - clampedPointerClientX)
+      const bottomEdgeDistance = Math.max(0, previewRect.bottom - clampedPointerClientY)
+      const leftEdgeDistance = Math.max(0, clampedPointerClientX - previewRect.left)
       const edgeDistances: Array<{ side: WorkspaceSplitDockSide; distance: number }> = [
-        { side: 'top', distance: Math.max(0, candidateY) },
+        {
+          side: 'top',
+          distance: topEdgeDistance,
+        },
         {
           side: 'right',
-          distance: Math.max(
-            0,
-            viewportRect.width - (candidateX + browserFloatingSizeRef.current.width),
-          ),
+          distance: rightEdgeDistance,
         },
         {
           side: 'bottom',
-          distance: Math.max(0, viewportRect.height - (candidateY + titleBarHeight)),
+          distance: bottomEdgeDistance,
         },
-        { side: 'left', distance: Math.max(0, candidateX) },
+        { side: 'left', distance: leftEdgeDistance },
       ]
       const previewableEdge = edgeDistances
-        .filter((entry) => entry.distance <= edgeThreshold)
+        .filter((entry) =>
+          entry.distance <= browserSplitPreviewOuterBandPadding,
+        )
         .sort((left, right) => left.distance - right.distance)[0]
-      return previewableEdge?.side ?? null
+      if (previewableEdge === undefined) {
+        return null
+      }
+      const isWholeBrowserPreview =
+        previewableEdge.side === 'right'
+          ? rightEdgeDistance <= browserSplitPreviewEdgePadding
+          : previewableEdge.side === 'left'
+            ? leftEdgeDistance <= browserSplitPreviewEdgePadding
+            : previewableEdge.side === 'top'
+              ? topEdgeDistance <= browserSplitPreviewEdgePadding
+              : bottomEdgeDistance <= browserSplitPreviewEdgePadding
+      return {
+        side: previewableEdge.side,
+        scope: isWholeBrowserPreview ? 'whole-browser' : 'pane-local',
+        targetSlotId:
+          !isWholeBrowserPreview ? hoveredSlotId : null,
+        rect: isWholeBrowserPreview
+          ? {
+              left: 0,
+              top: 0,
+              width: viewportRect.width,
+              height: viewportRect.height,
+            }
+          : {
+              left: previewRect.left - viewportRect.left,
+              top: previewRect.top - viewportRect.top,
+              width: previewRect.width,
+              height: previewRect.height,
+            },
+      }
     },
-    [viewportRef],
+    [viewportRef, viewportSlotsById],
   )
 
-  const openBrowserFloatingFromDock = useCallback(() => {
-    const shellRect = appShellRef.current?.getBoundingClientRect()
-    const dockedRect = dockedBrowserHostRef.current?.getBoundingClientRect()
-    if (shellRect !== undefined && dockedRect !== undefined) {
-      const nextSize = clampBrowserFloatingSize({
-        width: dockedRect.width,
-        height: Math.min(dockedRect.height, browserFloatingSizeRef.current.height),
-      })
-      browserFloatingSizeRef.current = nextSize
-      setBrowserFloatingSize(nextSize)
-      const nextPos = clampBrowserFloatingPos({
-        x: dockedRect.left - shellRect.left,
-        y: dockedRect.top - shellRect.top,
-      })
-      browserFloatingPosRef.current = nextPos
-      setBrowserFloatingPos(nextPos)
-    }
-    setIsBrowserFloating(true)
-  }, [
-    appShellRef,
-    clampBrowserFloatingPos,
-    clampBrowserFloatingSize,
-    dockedBrowserHostRef,
-    setBrowserFloatingPos,
-    setBrowserFloatingSize,
-    setIsBrowserFloating,
-  ])
+  const findParentSplitNodeIdForLeaf = useCallback(
+    (leafNodeId: string): string | null => {
+      for (const [nodeId, node] of Object.entries(viewportLayoutNodesById)) {
+        if (
+          node.kind === 'split' &&
+          (node.firstChildId === leafNodeId || node.secondChildId === leafNodeId)
+        ) {
+          return nodeId
+        }
+      }
+      return null
+    },
+    [viewportLayoutNodesById],
+  )
 
-  const handleToggleBrowserFloating = useCallback(() => {
+  const resolveBrowserNestedSplitPreview = useCallback(
+    (pointerClientX: number, pointerClientY: number): BrowserNestedSplitPreview | null => {
+      const viewportRect = viewportRef.current?.getBoundingClientRect()
+      if (viewportRect === undefined || viewportRect.width <= 0 || viewportRect.height <= 0) {
+        return null
+      }
+      if (typeof document.elementsFromPoint !== 'function') {
+        return null
+      }
+      const hoveredSlotElement =
+        document
+          .elementsFromPoint(pointerClientX, pointerClientY)
+          .map((element) =>
+            element instanceof HTMLElement ? element.closest('[data-workspace-slot-id]') : null,
+          )
+          .find(
+            (element): element is HTMLElement =>
+              element instanceof HTMLElement &&
+              viewportRef.current?.contains(element) === true &&
+              element.getAttribute('data-workspace-slot-id') !== null,
+          ) ?? null
+      if (hoveredSlotElement === null) {
+        return null
+      }
+      const targetSlotId = hoveredSlotElement.getAttribute('data-workspace-slot-id')
+      if (targetSlotId === null) {
+        return null
+      }
+      const targetSlot = viewportSlotsById[targetSlotId]
+      if (targetSlot === undefined) {
+        return null
+      }
+      if (targetSlot.surfaceKind === 'modelViewer') {
+        return null
+      }
+      if (findParentSplitNodeIdForLeaf(targetSlot.leafNodeId) === null) {
+        return null
+      }
+
+      const hoveredPaneRect = hoveredSlotElement.getBoundingClientRect()
+      if (hoveredPaneRect.width <= 0 || hoveredPaneRect.height <= 0) {
+        return null
+      }
+      const edgeThreshold = Math.min(
+        96,
+        Math.max(24, Math.round(Math.min(hoveredPaneRect.width, hoveredPaneRect.height) * 0.2)),
+      )
+      if (
+        pointerClientX - hoveredPaneRect.left <= edgeThreshold ||
+        hoveredPaneRect.right - pointerClientX <= edgeThreshold ||
+        pointerClientY - hoveredPaneRect.top <= edgeThreshold ||
+        hoveredPaneRect.bottom - pointerClientY <= edgeThreshold
+      ) {
+        return null
+      }
+
+      const paneCenterX = hoveredPaneRect.left + hoveredPaneRect.width / 2
+      const paneCenterY = hoveredPaneRect.top + hoveredPaneRect.height / 2
+      const normalizedX =
+        hoveredPaneRect.width <= 0 ? 0 : (pointerClientX - paneCenterX) / (hoveredPaneRect.width / 2)
+      const normalizedY =
+        hoveredPaneRect.height <= 0
+          ? 0
+          : (pointerClientY - paneCenterY) / (hoveredPaneRect.height / 2)
+      const preferLeftRight = Math.abs(normalizedX) >= Math.abs(normalizedY)
+      const candidateSides = preferLeftRight
+        ? (['left', 'right'] as const)
+        : (['top', 'bottom'] as const)
+      const activeSide = preferLeftRight
+        ? pointerClientX <= paneCenterX
+          ? 'left'
+          : 'right'
+        : pointerClientY <= paneCenterY
+          ? 'top'
+          : 'bottom'
+
+      return {
+        targetSlotId,
+        candidateSides,
+        activeSide,
+        rect: {
+          left: hoveredPaneRect.left - viewportRect.left,
+          top: hoveredPaneRect.top - viewportRect.top,
+          width: hoveredPaneRect.width,
+          height: hoveredPaneRect.height,
+        },
+      }
+    },
+    [findParentSplitNodeIdForLeaf, viewportRef, viewportSlotsById],
+  )
+
+  const handleQuickDockBrowser = useCallback(() => {
+    setBrowserFloatingSplitMenu(null)
     setActiveLeftDockPreviewPanelId(null)
-    if (isBrowserFloating) {
-      setIsBrowserFloating(false)
-      return
+    setBrowserSplitDockPreview(null)
+    setBrowserNestedSplitPreview(null)
+    if (activeDetachedBrowserSurface !== null) {
+      clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
+      setBrowserToolbarOwnerSurfaceInstanceId(activeDetachedBrowserSurface.surfaceInstanceId)
+    } else {
+      setBrowserToolbarOwnerSurfaceInstanceId(defaultBrowserToolbarOwnerSurfaceInstanceId)
     }
-    openBrowserFloatingFromDock()
-  }, [isBrowserFloating, openBrowserFloatingFromDock, setActiveLeftDockPreviewPanelId])
+    setIsBrowserViewportSplit(false)
+    setIsBrowserFloating(false)
+  }, [
+    activeDetachedBrowserSurface,
+    clearDetachedSlotSurface,
+    setActiveLeftDockPreviewPanelId,
+    setBrowserNestedSplitPreview,
+    setBrowserToolbarOwnerSurfaceInstanceId,
+    setIsBrowserFloating,
+    setIsBrowserViewportSplit,
+  ])
 
   const handleCycleBrowserPresentationMode = useCallback(() => {
     setBrowserPresentationMode(
@@ -372,30 +672,29 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     )
   }, [browserPresentationMode, setBrowserPresentationMode])
 
-  const handleToggleBrowserPopout = useCallback(() => {
+  const handleOpenBrowserPopout = useCallback(() => {
     setActiveLeftDockPreviewPanelId(null)
-    setBrowserSplitDockPreviewSide(null)
-    if (isBrowserViewportSplit) {
-      setIsBrowserViewportSplit(false)
-      return
-    }
+    setBrowserSplitDockPreview(null)
+    setBrowserNestedSplitPreview(null)
     if (isBrowserPoppedOut) {
-      setIsBrowserPoppedOut(false)
+      browserPopoutWindow?.focus()
       return
     }
     setBrowserPopoutState(browserPopoutState ?? defaultBrowserPopoutState)
-    setIsBrowserFloating(false)
     setIsBrowserPoppedOut(true)
   }, [
+    browserPopoutWindow,
     browserPopoutState,
     setActiveLeftDockPreviewPanelId,
+    setBrowserNestedSplitPreview,
     setBrowserPopoutState,
-    setIsBrowserFloating,
     setIsBrowserPoppedOut,
-    setIsBrowserViewportSplit,
     isBrowserPoppedOut,
-    isBrowserViewportSplit,
   ])
+
+  const handleCloseBrowserPopout = useCallback(() => {
+    setIsBrowserPoppedOut(false)
+  }, [setIsBrowserPoppedOut])
 
   const handleOpenFloatingSplitMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -405,20 +704,26 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       event.preventDefault()
       event.stopPropagation()
       setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreviewSide(null)
+      setBrowserSplitDockPreview(null)
+      setBrowserNestedSplitPreview(null)
       setBrowserFloatingSplitMenu({
         x: event.clientX,
         y: event.clientY,
       })
     },
-    [isBrowserFloating, setActiveLeftDockPreviewPanelId],
+    [
+      isBrowserFloating,
+      setActiveLeftDockPreviewPanelId,
+      setBrowserNestedSplitPreview,
+    ],
   )
 
   const handleSelectFloatingSplitDockSide = useCallback(
     (splitDockSide: WorkspaceSplitDockSide) => {
       setBrowserFloatingSplitMenu(null)
       setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreviewSide(null)
+      setBrowserSplitDockPreview(null)
+      setBrowserNestedSplitPreview(null)
       setBrowserViewportSplitRatio(resolvePreferredBrowserViewportSplitRatio(splitDockSide))
       if (activeDetachedBrowserSurface !== null) {
         redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, splitDockSide)
@@ -436,8 +741,86 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       setActiveLeftDockPreviewPanelId,
       setIsBrowserFloating,
       setIsBrowserViewportSplit,
+      setBrowserNestedSplitPreview,
       setBrowserViewportSplitRatio,
       setBrowserViewportSplitDockSide,
+    ],
+  )
+
+  const commitBrowserSlotSplit = useCallback(
+    (targetSlotId: WorkspaceViewportSlotId, splitDockSide: WorkspaceSplitDockSide) => {
+      const preferredRatio = resolvePreferredBrowserViewportSplitRatio(splitDockSide)
+      if (activeDetachedBrowserSurface !== null) {
+        splitViewportSlot(targetSlotId, splitDockSide, {
+          surfaceKind: 'browser',
+          surfaceInstanceId: activeDetachedBrowserSurface.surfaceInstanceId,
+          preferredRatio,
+        })
+        clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
+        setIsBrowserFloating(false)
+        setIsBrowserViewportSplit(false)
+        return
+      }
+
+      splitViewportSlot(targetSlotId, splitDockSide, {
+        surfaceKind: 'browser',
+        surfaceInstanceId:
+          browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId,
+        preferredRatio,
+      })
+      setBrowserToolbarOwnerSurfaceInstanceId(null)
+      setIsBrowserFloating(false)
+      setIsBrowserViewportSplit(false)
+    },
+    [
+      activeDetachedBrowserSurface,
+      browserToolbarOwnerSurfaceInstanceId,
+      clearDetachedSlotSurface,
+      resolvePreferredBrowserViewportSplitRatio,
+      setBrowserToolbarOwnerSurfaceInstanceId,
+      setIsBrowserFloating,
+      setIsBrowserViewportSplit,
+      splitViewportSlot,
+    ],
+  )
+
+  const commitBrowserWholeLayoutSplit = useCallback(
+    (splitDockSide: WorkspaceSplitDockSide) => {
+      const preferredRatio = resolvePreferredBrowserViewportSplitRatio(splitDockSide)
+      setBrowserViewportSplitRatio(preferredRatio)
+      if (activeDetachedBrowserSurface !== null) {
+        splitViewportRoot(splitDockSide, {
+          surfaceKind: 'browser',
+          surfaceInstanceId: activeDetachedBrowserSurface.surfaceInstanceId,
+          preferredRatio,
+          hostViewportId: activeDetachedBrowserSurface.hostViewportId,
+        })
+        clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
+        setIsBrowserFloating(false)
+        setIsBrowserViewportSplit(false)
+        return
+      }
+
+      splitViewportRoot(splitDockSide, {
+        surfaceKind: 'browser',
+        surfaceInstanceId:
+          browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId,
+        preferredRatio,
+      })
+      setBrowserToolbarOwnerSurfaceInstanceId(null)
+      setIsBrowserFloating(false)
+      setIsBrowserViewportSplit(false)
+    },
+    [
+      activeDetachedBrowserSurface,
+      browserToolbarOwnerSurfaceInstanceId,
+      clearDetachedSlotSurface,
+      resolvePreferredBrowserViewportSplitRatio,
+      setBrowserViewportSplitRatio,
+      setBrowserToolbarOwnerSurfaceInstanceId,
+      setIsBrowserFloating,
+      setIsBrowserViewportSplit,
+      splitViewportRoot,
     ],
   )
 
@@ -447,7 +830,8 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         return
       }
       setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreviewSide(null)
+      setBrowserSplitDockPreview(null)
+      setBrowserNestedSplitPreview(null)
       const shellRect = appShellRef.current?.getBoundingClientRect()
       const titleBarRect = event.currentTarget.getBoundingClientRect()
       if (shellRect === undefined) {
@@ -464,12 +848,18 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       lockBrowserDragTextSelection()
       event.preventDefault()
     },
-    [appShellRef, isBrowserFloating, lockBrowserDragTextSelection, setActiveLeftDockPreviewPanelId],
+    [
+      appShellRef,
+      isBrowserFloating,
+      lockBrowserDragTextSelection,
+      setActiveLeftDockPreviewPanelId,
+      setBrowserNestedSplitPreview,
+    ],
   )
 
   const handleBrowserDockDragStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (event.button !== 0 || isBrowserFloating || isBrowserPoppedOut) {
+      if (event.button !== 0 || isBrowserFloating) {
         return
       }
       setActiveLeftDockPreviewPanelId(null)
@@ -494,6 +884,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       browserFloatingPosRef.current = nextPos
       setBrowserFloatingSize(nextSize)
       setBrowserFloatingPos(nextPos)
+      setBrowserToolbarOwnerSurfaceInstanceId(null)
       setIsBrowserFloating(true)
       browserDragRef.current = {
         pointerOffsetX,
@@ -516,10 +907,10 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       clampBrowserFloatingPos,
       clampBrowserFloatingSize,
       isBrowserFloating,
-      isBrowserPoppedOut,
       setActiveLeftDockPreviewPanelId,
       setBrowserFloatingPos,
       setBrowserFloatingSize,
+      setBrowserToolbarOwnerSurfaceInstanceId,
       setIsBrowserFloating,
       lockBrowserDragTextSelection,
     ],
@@ -644,8 +1035,8 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   }, [browserFloatingSize])
 
   useEffect(() => {
-    browserSplitDockPreviewSideRef.current = browserSplitDockPreviewSide
-  }, [browserSplitDockPreviewSide])
+    browserSplitDockPreviewRef.current = browserSplitDockPreview
+  }, [browserSplitDockPreview])
 
   useLayoutEffect(() => {
     if (!isBrowserFloating || slotHeaderDragSeed === null) {
@@ -748,10 +1139,20 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   }, [browserFloatingSplitMenu])
 
   useEffect(() => {
-    if (!isBrowserFloating && browserSplitDockPreviewSide !== null) {
-      setBrowserSplitDockPreviewSide(null)
+    if (!isBrowserFloating && browserSplitDockPreview !== null) {
+      setBrowserSplitDockPreview(null)
     }
-  }, [browserSplitDockPreviewSide, isBrowserFloating])
+  }, [browserSplitDockPreview, isBrowserFloating])
+
+  useEffect(() => {
+    browserNestedSplitPreviewRef.current = browserNestedSplitPreview
+  }, [browserNestedSplitPreview])
+
+  useEffect(() => {
+    if (!isBrowserFloating && browserNestedSplitPreview !== null) {
+      setBrowserNestedSplitPreview(null)
+    }
+  }, [browserNestedSplitPreview, isBrowserFloating])
 
   useEffect(() => {
     const handleResize = () => {
@@ -796,6 +1197,50 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   }, [browserPopoutWindow, onActivateBrowserFloatingWindow])
 
   useEffect(() => {
+    const handleGlobalWheelCapture = (event: WheelEvent) => {
+      if (isBrowserFloating || isBrowserViewportSplit) {
+        return
+      }
+      const browserRoot = dockedBrowserPortalTarget?.querySelector('.BrowserPanelRoot')
+      if (!(browserRoot instanceof HTMLElement)) {
+        return
+      }
+      const rootRect = browserRoot.getBoundingClientRect()
+      if (
+        event.clientX < rootRect.left ||
+        event.clientX > rootRect.right ||
+        event.clientY < rootRect.top ||
+        event.clientY > rootRect.bottom
+      ) {
+        return
+      }
+      const deltaY =
+        Math.abs(event.deltaY) >= Math.abs(event.deltaX) || event.deltaX === 0
+          ? event.deltaY
+          : event.deltaX
+      const didScroll = forwardWheelIntoDockedBrowserScrollTarget(browserRoot, deltaY)
+      if (!didScroll) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+    }
+
+    window.addEventListener('wheel', handleGlobalWheelCapture, {
+      capture: true,
+      passive: false,
+    })
+    return () => {
+      window.removeEventListener('wheel', handleGlobalWheelCapture, true)
+    }
+  }, [
+    dockedBrowserPortalTarget,
+    forwardWheelIntoDockedBrowserScrollTarget,
+    isBrowserFloating,
+    isBrowserViewportSplit,
+  ])
+
+  useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
       if (browserDragRef.current !== null) {
         if (
@@ -825,18 +1270,23 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
           ? resolveLeftDockPreviewPanelId('browser', event.clientX, event.clientY)
           : null
         setActiveLeftDockPreviewPanelId(nextDockPreviewPanelId)
-        const nextSplitDockPreviewSide =
+        const nextNestedSplitPreview =
           allowDockOrSplit && nextDockPreviewPanelId === null
+            ? resolveBrowserNestedSplitPreview(event.clientX, event.clientY)
+            : null
+        const nextSplitDockPreviewSide =
+          allowDockOrSplit &&
+          nextDockPreviewPanelId === null &&
+          nextNestedSplitPreview === null
             ? resolveBrowserSplitDockPreviewSide(
                 event.clientX,
                 event.clientY,
-                browserDragRef.current.pointerOffsetX,
-                browserDragRef.current.pointerOffsetY,
-                browserDragRef.current.titleBarHeight,
               )
             : null
-        browserSplitDockPreviewSideRef.current = nextSplitDockPreviewSide
-        setBrowserSplitDockPreviewSide(nextSplitDockPreviewSide)
+        browserNestedSplitPreviewRef.current = nextNestedSplitPreview
+        browserSplitDockPreviewRef.current = nextSplitDockPreviewSide
+        setBrowserNestedSplitPreview(nextNestedSplitPreview)
+        setBrowserSplitDockPreview(nextSplitDockPreviewSide)
       }
     }
 
@@ -848,36 +1298,42 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         allowDockOrSplit &&
         browserDragRef.current !== null &&
         resolveLeftDockPreviewPanelId('browser', event.clientX, event.clientY) === 'browser'
-      const nextSplitDockSide =
+      const nextNestedSplitPreview =
         !allowDockOrSplit || browserDragRef.current === null
           ? null
-          : browserSplitDockPreviewSideRef.current ??
-            resolveBrowserSplitDockPreviewSide(
-              event.clientX,
-              event.clientY,
-              browserDragRef.current.pointerOffsetX,
-              browserDragRef.current.pointerOffsetY,
-              browserDragRef.current.titleBarHeight,
-            )
+          : browserNestedSplitPreviewRef.current ??
+            resolveBrowserNestedSplitPreview(event.clientX, event.clientY)
+      const nextSplitDockPreview =
+        !allowDockOrSplit ||
+        browserDragRef.current === null ||
+        nextNestedSplitPreview !== null
+          ? null
+          : browserSplitDockPreviewRef.current ??
+            resolveBrowserSplitDockPreviewSide(event.clientX, event.clientY)
       browserDragRef.current = null
       unlockBrowserDragTextSelection()
       setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreviewSide(null)
+      setBrowserSplitDockPreview(null)
+      setBrowserNestedSplitPreview(null)
       if (shouldDockBrowser) {
         if (activeDetachedBrowserSurface !== null) {
           clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
+          setBrowserToolbarOwnerSurfaceInstanceId(activeDetachedBrowserSurface.surfaceInstanceId)
+        } else {
+          setBrowserToolbarOwnerSurfaceInstanceId(defaultBrowserToolbarOwnerSurfaceInstanceId)
         }
         setIsBrowserFloating(false)
-      } else if (nextSplitDockSide !== null) {
-        setBrowserViewportSplitRatio(resolvePreferredBrowserViewportSplitRatio(nextSplitDockSide))
-        if (activeDetachedBrowserSurface !== null) {
-          redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, nextSplitDockSide)
-          setIsBrowserFloating(false)
-          setIsBrowserViewportSplit(false)
-          return
+      } else if (nextNestedSplitPreview !== null) {
+        commitBrowserSlotSplit(nextNestedSplitPreview.targetSlotId, nextNestedSplitPreview.activeSide)
+      } else if (nextSplitDockPreview !== null) {
+        if (
+          nextSplitDockPreview.scope === 'pane-local' &&
+          nextSplitDockPreview.targetSlotId !== null
+        ) {
+          commitBrowserSlotSplit(nextSplitDockPreview.targetSlotId, nextSplitDockPreview.side)
+        } else {
+          commitBrowserWholeLayoutSplit(nextSplitDockPreview.side)
         }
-        setBrowserViewportSplitDockSide(nextSplitDockSide)
-        setIsBrowserViewportSplit(true)
       }
     }
 
@@ -890,21 +1346,22 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   }, [
     appShellRef,
     activeDetachedBrowserSurface,
+    commitBrowserSlotSplit,
+    commitBrowserWholeLayoutSplit,
     clearDetachedSlotSurface,
     clampBrowserFloatingPos,
     clampBrowserFloatingSize,
     isBrowserFloating,
-    redockDetachedSurface,
-    resolvePreferredBrowserViewportSplitRatio,
+    resolveBrowserNestedSplitPreview,
     resolveBrowserSplitDockPreviewSide,
     resolveLeftDockPreviewPanelId,
     setActiveLeftDockPreviewPanelId,
     setBrowserFloatingPos,
     setBrowserFloatingSize,
+    setBrowserNestedSplitPreview,
+    setBrowserSplitDockPreview,
+    setBrowserToolbarOwnerSurfaceInstanceId,
     setIsBrowserFloating,
-    setBrowserViewportSplitRatio,
-    setBrowserViewportSplitDockSide,
-    setIsBrowserViewportSplit,
     unlockBrowserDragTextSelection,
   ])
 
@@ -917,7 +1374,6 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       {dockedBrowserPortalTarget !== null &&
       !suppressDockedSurface &&
       !isBrowserFloating &&
-      !isBrowserPoppedOut &&
       !isBrowserViewportSplit
         ? createPortal(
             <BrowserPanel
@@ -925,8 +1381,9 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               onCyclePresentationMode={handleCycleBrowserPresentationMode}
               isCollapsed={isBrowserCollapsed}
               popoutButtonMode="popout"
-              onTogglePopout={handleToggleBrowserPopout}
+              onTogglePopout={handleOpenBrowserPopout}
               onTitleBarPointerDown={handleBrowserDockDragStart}
+              onWheelCapture={handleDockedBrowserWheelCapture}
               newEditorSpawnPosition={newEditorSpawnPosition}
             />,
             dockedBrowserPortalTarget,
@@ -941,7 +1398,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
                 isCollapsed={isBrowserCollapsed}
                 isPoppedOut
                 popoutButtonMode="dock"
-                onTogglePopout={handleToggleBrowserPopout}
+                onTogglePopout={handleCloseBrowserPopout}
                 newEditorSpawnPosition={newEditorSpawnPosition}
               />
             </div>,
@@ -955,8 +1412,8 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
                 presentationMode={browserPresentationMode}
                 onCyclePresentationMode={handleCycleBrowserPresentationMode}
                 isCollapsed={isBrowserCollapsed}
-                popoutButtonMode="dock"
-                onTogglePopout={handleToggleBrowserPopout}
+                popoutButtonMode="popout"
+                onTogglePopout={handleOpenBrowserPopout}
                 onTitleBarPointerDown={handleBrowserSplitDragStart}
                 newEditorSpawnPosition={newEditorSpawnPosition}
               />
@@ -985,8 +1442,8 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               isFloating
               popoutButtonMode="popout"
               showQuickDockButton
-              onQuickDock={handleToggleBrowserFloating}
-              onTogglePopout={handleToggleBrowserPopout}
+              onQuickDock={handleQuickDockBrowser}
+              onTogglePopout={handleOpenBrowserPopout}
               onTitleBarContextMenu={handleOpenFloatingSplitMenu}
               onTitleBarPointerDown={handleBrowserDragStart}
               newEditorSpawnPosition={newEditorSpawnPosition}
@@ -1044,37 +1501,121 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
           </button>
         </div>
       ) : null}
-      {browserSplitDockPreviewSide !== null && viewportRef.current !== null
+      {browserSplitDockPreview !== null && viewportRef.current !== null
         ? createPortal(
-            <div
-              className={`ViewportSplitDockGhost ${
-                browserSplitDockPreviewSide === 'left'
-                  ? 'isDockLeft'
-                  : browserSplitDockPreviewSide === 'right'
-                    ? 'isDockRight'
-                    : browserSplitDockPreviewSide === 'top'
-                      ? 'isDockTop'
-                      : 'isDockBottom'
-              }`}
-              style={
-                browserSplitDockPreviewSide === 'bottom'
-                  ? ({
-                      top: `calc(${((1 - browserViewportSplitRatio) * 100).toFixed(4)}% + 10px)`,
-                    } as CSSProperties)
-                  : browserSplitDockPreviewSide === 'top'
-                    ? ({
-                        bottom: `calc(${((1 - browserViewportSplitRatio) * 100).toFixed(4)}% + 10px)`,
-                      } as CSSProperties)
-                    : browserSplitDockPreviewSide === 'right'
+            (() => {
+              const horizontalPreviewRatio = 0.25
+              const verticalPreviewHeight = Math.max(
+                0,
+                browserSplitDockPreview.rect.height * browserViewportSplitRatio - 10,
+              )
+              const horizontalPreviewWidth = Math.max(
+                0,
+                browserSplitDockPreview.rect.width * horizontalPreviewRatio - 10,
+              )
+              return (
+                <div
+                  className={`ViewportSplitDockGhost ${
+                    browserSplitDockPreview.scope === 'whole-browser'
+                      ? 'isWholeBrowserScope'
+                      : 'isPaneLocalScope'
+                  } ${
+                    browserSplitDockPreview.side === 'left'
+                      ? 'isDockLeft'
+                      : browserSplitDockPreview.side === 'right'
+                        ? 'isDockRight'
+                        : browserSplitDockPreview.side === 'top'
+                          ? 'isDockTop'
+                          : 'isDockBottom'
+                  }`}
+                  data-split-preview-scope={browserSplitDockPreview.scope}
+                  style={
+                    browserSplitDockPreview.side === 'bottom'
                       ? ({
-                          left: `calc(${((1 - browserViewportSplitRatio) * 100).toFixed(4)}% + 10px)`,
+                          left: `${browserSplitDockPreview.rect.left}px`,
+                          top: `${browserSplitDockPreview.rect.top + browserSplitDockPreview.rect.height * (1 - browserViewportSplitRatio) + 10}px`,
+                          width: `${browserSplitDockPreview.rect.width}px`,
+                          height: `${verticalPreviewHeight}px`,
+                          right: 'auto',
+                          bottom: 'auto',
                         } as CSSProperties)
-                      : ({
-                          right: `calc(${((1 - browserViewportSplitRatio) * 100).toFixed(4)}% + 10px)`,
-                        } as CSSProperties)
-              }
-              aria-hidden="true"
-            />,
+                      : browserSplitDockPreview.side === 'top'
+                        ? ({
+                            left: `${browserSplitDockPreview.rect.left}px`,
+                            top: `${browserSplitDockPreview.rect.top}px`,
+                            width: `${browserSplitDockPreview.rect.width}px`,
+                            height: `${verticalPreviewHeight}px`,
+                            right: 'auto',
+                            bottom: 'auto',
+                          } as CSSProperties)
+                        : browserSplitDockPreview.side === 'right'
+                          ? ({
+                              left: `${browserSplitDockPreview.rect.left + browserSplitDockPreview.rect.width * (1 - horizontalPreviewRatio) + 10}px`,
+                              top: `${browserSplitDockPreview.rect.top}px`,
+                              width: `${horizontalPreviewWidth}px`,
+                              height: `${browserSplitDockPreview.rect.height}px`,
+                              right: 'auto',
+                              bottom: 'auto',
+                            } as CSSProperties)
+                          : ({
+                              left: `${browserSplitDockPreview.rect.left}px`,
+                              top: `${browserSplitDockPreview.rect.top}px`,
+                              width: `${horizontalPreviewWidth}px`,
+                              height: `${browserSplitDockPreview.rect.height}px`,
+                              right: 'auto',
+                              bottom: 'auto',
+                            } as CSSProperties)
+                  }
+                  aria-hidden="true"
+                />
+              )
+            })(),
+            viewportRef.current,
+          )
+        : null}
+      {browserNestedSplitPreview !== null && viewportRef.current !== null
+        ? createPortal(
+            <>
+              {browserNestedSplitPreview.candidateSides.map((side, index) => {
+                const isLeftRightPair = browserNestedSplitPreview.candidateSides[0] === 'left'
+                const candidateWidth = isLeftRightPair
+                  ? browserNestedSplitPreview.rect.width / 2
+                  : browserNestedSplitPreview.rect.width
+                const candidateHeight = isLeftRightPair
+                  ? browserNestedSplitPreview.rect.height
+                  : browserNestedSplitPreview.rect.height / 2
+                const left =
+                  isLeftRightPair && index === 1
+                    ? browserNestedSplitPreview.rect.left + candidateWidth
+                    : browserNestedSplitPreview.rect.left
+                const top =
+                  !isLeftRightPair && index === 1
+                    ? browserNestedSplitPreview.rect.top + candidateHeight
+                    : browserNestedSplitPreview.rect.top
+                const isActive = browserNestedSplitPreview.activeSide === side
+                return (
+                  <div
+                    key={side}
+                    className={`ViewportSplitDockGhost isNestedSuggestion ${
+                      isActive ? 'isActiveNestedSuggestion' : 'isInactiveNestedSuggestion'
+                    }`}
+                    data-split-preview-kind="nested"
+                    data-split-preview-side={side}
+                    data-split-preview-active={isActive ? 'true' : 'false'}
+                    style={{
+                      left: `${left}px`,
+                      top: `${top}px`,
+                      width: `${candidateWidth}px`,
+                      height: `${candidateHeight}px`,
+                      right: 'auto',
+                      bottom: 'auto',
+                      borderRadius: '12px',
+                    }}
+                    aria-hidden="true"
+                  />
+                )
+              })}
+            </>,
             viewportRef.current,
           )
         : null}
