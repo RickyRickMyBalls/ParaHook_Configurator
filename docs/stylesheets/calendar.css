@@ -9,6 +9,7 @@
   --phase-split-polish: #ef476f;
   --phase-parity: #f94144;
   --phase-build-fix: #90be6d;
+  --phase-quiet: #94a3b8;
 }
 
 [data-md-color-scheme="slate"] {
@@ -66,6 +67,86 @@
   margin: 0;
 }
 
+.calendar-month {
+  margin: 0 0 1rem;
+}
+
+.calendar-month > summary {
+  cursor: pointer;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-month[open] > summary {
+  margin-bottom: 1rem;
+}
+
+.calendar-nested-weeks {
+  margin-top: 1rem;
+}
+
+.calendar-week-details {
+  margin: 0 0 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--calendar-border);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--calendar-panel) 82%, transparent);
+}
+
+.calendar-week-details > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.calendar-week-details[open] > summary {
+  margin-bottom: 0.45rem;
+}
+
+.calendar-day-details {
+  margin: 0.35rem 0 0;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--calendar-border) 85%, transparent);
+  background: color-mix(in srgb, var(--md-default-bg-color) 88%, transparent);
+}
+
+.calendar-day-details > summary {
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.calendar-day-details[open] > summary {
+  margin-bottom: 0.28rem;
+}
+
+.calendar-day-details ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.calendar-day-details li {
+  margin: 0.08rem 0;
+  font-size: 0.72rem;
+}
+
+.calendar-day-git {
+  margin-top: 0.35rem;
+  font-size: 0.67rem;
+  color: var(--calendar-muted);
+}
+
+.calendar-commit-list {
+  margin-top: 0.25rem;
+  padding-left: 1rem;
+}
+
+.calendar-commit-list li {
+  margin: 0.08rem 0;
+  font-size: 0.66rem;
+}
+
 .month-shell {
   margin: 1.5rem 0 2rem;
   padding: 1rem;
@@ -88,6 +169,7 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.7rem;
+  align-items: start;
 }
 
 .weekday {
@@ -101,8 +183,8 @@
 }
 
 .day {
-  min-height: 9rem;
-  padding: 0.85rem;
+  min-height: 7rem;
+  padding: 2px;
   border-radius: 1rem;
   border: 1px solid var(--calendar-border);
   background:
@@ -132,31 +214,65 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  margin-bottom: 0.55rem;
-  border-radius: 0.7rem;
-  font-size: 0.9rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 2px 0 0 2px;
+  border-radius: 0.45rem;
+  font-size: 0.62rem;
   font-weight: 800;
   background: color-mix(in srgb, currentColor 16%, var(--md-default-bg-color));
 }
 
 .day-note {
-  font-size: 0.86rem;
+  font-size: 0.46rem;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.05;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.day-bullets {
+  margin: 2px 0 0 0;
+  padding-left: 0.5rem;
+  font-size: 0.38rem;
+  font-weight: 700;
+  line-height: 0.98;
+}
+
+.day-bullets li {
+  margin: 0 0 0.08rem;
+}
+
+.day-bullets li:last-child {
+  margin-bottom: 0;
 }
 
 .day-tag {
-  margin-top: 0.65rem;
-  font-size: 0.74rem;
+  margin-top: 0.16rem;
+  font-size: 0.43rem;
   color: var(--calendar-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.02;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  padding: 0 2px 2px;
+}
+
+.day-diff {
+  margin-top: 0.12rem;
+  padding: 0 2px;
+  font-size: 0.35rem;
+  line-height: 1;
+  text-align: center;
+  color: var(--calendar-muted);
 }
 
 .day.empty {
   min-height: 5rem;
+  max-height: 5rem;
   box-shadow: none;
   background: color-mix(in srgb, var(--md-default-bg-color) 92%, transparent);
 }
@@ -166,7 +282,7 @@
 }
 
 .day.empty .day-number {
-  margin-bottom: 0;
+  margin: 2px 0 0 2px;
   background: color-mix(in srgb, var(--md-default-fg-color) 8%, transparent);
 }
 
@@ -194,6 +310,10 @@
   color: var(--phase-build-fix);
 }
 
+.phase-quiet {
+  color: var(--phase-quiet);
+}
+
 @media (max-width: 900px) {
   .month-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -205,6 +325,6 @@
 
   .day,
   .day.empty {
-    min-height: 7rem;
+    min-height: 6.5rem;
   }
 }

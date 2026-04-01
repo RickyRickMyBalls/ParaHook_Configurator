@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-01 15:41: Tightened `Phase 10 - Final Confidence And Close-Out` into an implementation-ready final pass after the user confirmed the latest Browser duplication fix feels good, replacing the leftover earlier-phase residue in that section with a smaller close-out matrix centered on manual confidence, one narrow residue gate, honest deferred-work logging, and explicit criteria for when `Workspace 7.5-5` can be checked off without widening into a new cleanup phase
+1. 2026-04-01 15:33: Recorded the `Phase 9C` follow-up duplication fix after the live two-graph repro showed that Browser could still replay copied adopted content when top-level authored assemblies were being mirrored into the runtime root during project-content rebuild and saved child-order ids still carried duplicates, then noted that top-level assemblies now stay out of the runtime root and ordered Browser child ids now self-heal repeated entries instead of rendering copied assembly/component/object rows after sync
+1. 2026-04-01 15:20: Recorded the shipped `Phase 9C - Output Preview Ownership Alignment` slice after tightening `useAppStore` so Browser-facing component membership now follows actual object parentage first and empty runtime-backed published-component shells disappear once all of their published objects have been reorganized elsewhere, closing the narrow “Preview reads adopted Browser truth first” cut while explicitly leaving any future `Output Preview` authoring ambitions outside `Workspace 7.5-5`
+1. 2026-04-01 15:10: Reworked `Phase 9C` from a vague reserve cleanup bucket into an implementation-ready `Output Preview` ownership-alignment slice after the live user observation that preview is still implying stale graph-local component ownership even after Browser reorganization, locking the next cut as a narrow “Preview reads adopted Browser truth first” seam while explicitly pushing the bigger future “Output Preview also authors assemblies/components/objects” work out of `Workspace 7.5-5`
+1. 2026-04-01 15:03: Recorded the shipped `Phase 9B - ConsoleDock And Spaghetti Editor Context Sync Hardening` slice after tightening `ConsoleDock` graph, viewport, object, and reference context resolution around selected-target and staged-session truth, noting that graph-root and graph-canvas actions now prefer deliberate workspace context over ambient active-editor fallbacks while preserving the existing command surface and leaving `Phase 9C` as optional reserve cleanup only if it still earns itself
+1. 2026-04-01 14:32: Tightened `Phase 9B - ConsoleDock And Spaghetti Editor Context Sync Hardening` into an implementation-ready follow-on after a focused code read through `ConsoleDock` and the live `useSpaghettiStore` viewport selectors, locking that the remaining drift is a narrow context-resolution problem around local fallback chains such as `resolveSelectedObjectPartKeyForZoom(...)`, `resolveSelectionSetForZoom(...)`, `resolveEditorViewportIdForGraphDocument(...)`, and `ensureSpaghettiEditorVisibleForGraphRoot(...)`, and recording that the next cut should consolidate those paths onto one helper seam using the shipped `Phase 9A` rendered-project-parts truth plus per-viewport graph-selection selectors instead of ambient active-graph fallbacks
 1. 2026-04-01 14:29: Recorded the shipped `Phase 9A - Canonical Rendered Project Parts Truth` slice after adding `selectRenderedProjectPartSet(...)` in `useAppStore` and moving both Browser-facing current-project content rows plus shared `ViewerHost` composition onto that same selector-backed rendered truth, then tightened the remaining `Phase 9` read so shared model-viewer rendering now follows project-content adoption instead of parallel runtime-only derivation while `Phase 9B` stays the next narrow gated follow-on
 1. 2026-04-01 14:19: Tightened `Phase 9 - Supporting Refactor And Ownership Hardening` into a more implementation-ready and more responsibly chunked follow-on after Phase 8 closed green, splitting the remaining cleanup into an explicit first cut around one canonical rendered project-parts selector, a second narrow `ConsoleDock` plus `Spaghetti Editor` context-sync pass, and only then a reserve host-helper cleanup slice if the earlier two cuts still leave justified residue
 1. 2026-04-01 14:10: Recorded the shipped `Phase 8 - Build Failure Triage And Blocking Fixes` pass after `npm run build` triage proved the root blocker was a self-referential `useWorkspaceStore` typing collapse that was degrading workspace-shell selectors into `any` or `unknown`, then noted that the remaining error wall reduced to dead-local cleanup and stale `ConsoleDock` viewer-key expectations so the build and focused workspace-shell test slice are now green before the later Phase 9 ownership hardening
@@ -1083,6 +1089,25 @@ Current read after the shipped `Phase 9A` slice:
 - shared model-viewer rendering no longer gets to run ahead of current project-content adoption just because graph runtime already has build output
 - the next real follow-on is now `Phase 9B`, where `ConsoleDock` plus `Spaghetti Editor` context handoff can tighten against this clearer rendered ownership model instead of layering on more local exceptions
 
+Current read after the shipped `Phase 9B` slice:
+- `ConsoleDock` now resolves graph-root, graph-canvas, object-zoom, multi-select zoom, and reference zoom context through narrower shared graph and viewport fallback helpers instead of letting each command branch rebuild a different active-editor-biased chain
+- surface-driven console context sync now aligns `Spaghetti Editor` graph focus more deliberately to the graph implied by the selected workspace target or staged session when multiple editor viewports are open
+- the remaining `Phase 9` work is no longer generic reserve cleanup; the next justified seam is that `Output Preview` still implies graph-local component or object ownership even after Browser has already reorganized the same published content
+- the narrow follow-on is therefore `Phase 9C`, where preview should read adopted Browser or project-content ownership first instead of presenting a second authoritative tree for the same objects and components
+
+Current read after the shipped `Phase 9C` slice:
+- Browser-facing current-project content no longer trusts stale published-component membership snapshots after a move; component rows now derive their object membership from actual object parentage first
+- empty runtime-backed published-component shells now disappear once Browser truth has moved all of their published objects elsewhere, so the old graph-default grouping no longer survives as a misleading duplicate ownership story
+- top-level authored assemblies no longer get mirrored into the runtime root assembly during project-content rebuild, which was one of the remaining ways Browser could replay reorganized content as if it had been copied after a later Spaghetti sync
+- Browser tree ordering now self-heals duplicate child ids instead of replaying the same adopted assembly, component, or object row several times when saved Browser order drifted
+- the bigger future idea that `Output Preview` itself should become a real assembly or component authoring surface remains intentionally deferred outside `Workspace 7.5-5`
+
+Focused code-backed read for `Phase 9B`:
+- `ConsoleDock` still owns several local compatibility-shaped context resolvers, especially `resolveSelectedObjectPartKeyForZoom(...)`, `resolveSelectionSetForZoom(...)`, `resolveSelectedReferenceIdForZoom(...)`, `resolveEditorViewportIdForGraphDocument(...)`, and `ensureSpaghettiEditorVisibleForGraphRoot(...)`
+- those helpers currently mix `selectedPartKey`, `workspaceSelection.selectedTarget`, `workspaceSelection.explicitSelectedTargets`, `workspaceSelection.resolvedContentSelection`, `activeGraphDocumentId`, `activeEditorViewportId`, and global `selectedNodeId` in slightly different ways depending on the command path
+- the highest-risk remaining drift is no longer Browser or viewer identity; it is that `ConsoleDock` can still fall back to ambient active-editor or active-graph truth when the staged session or selected workspace target already names a more precise graph, object, or viewport
+- the safest next cut is therefore a narrow context-resolution consolidation, not a command redesign and not a broad host rewrite
+
 Phase 9 should execute in these responsible chunks:
 
 #### [x] Phase 9A - Canonical Rendered Project Parts Truth
@@ -1090,30 +1115,113 @@ Phase 9 should execute in these responsible chunks:
 - make Browser content and shared viewer composition consume that same rendered-project-parts truth instead of deriving overlapping answers from separate runtime, preview, and projection layers
 - keep this cut focused on the selector and consumer seam, not on general host cleanup
 
-#### Phase 9B - `ConsoleDock` And `Spaghetti Editor` Context Sync Hardening
+#### [x] Phase 9B - `ConsoleDock` And `Spaghetti Editor` Context Sync Hardening
 - tighten the selected-target, graph-focus, and viewer-selected-object handoff so console navigation is reading from the same deliberate ownership model instead of compatibility-shaped fallback chains
 - keep this cut behavior-preserving where possible and avoid widening it into command UX redesign
 - use the clearer rendered-project-parts seam from `Phase 9A` instead of adding new local viewer-or-Browser exceptions
 
-#### Phase 9C - Reserve Host Helper Cleanup
-- only if still justified after `Phase 9A` and `Phase 9B`, reduce repeated ownership lookup helpers or compatibility-only host branches in `AppShell`, Browser host, Spaghetti host, and shared workspace actions
-- if the earlier cuts already make the remaining structure readable enough, skip this reserve slice instead of inventing cleanup work
+Locked direction for `Phase 9B`:
+- do not redesign console commands, staged navigation shape, or radio-command identity
+- keep the change centered on one small helper or selector seam that resolves the console workspace context for graph, object, and reference actions
+- route existing zoom, graph-root reveal, and object-selection flows through that seam instead of letting each branch rebuild its own fallback chain
+- prefer per-viewport graph selection helpers from `useSpaghettiStore` over ambient global `selectedNodeId` or `activeGraphDocumentId` when a concrete graph or viewport is already known
+
+Likely `Phase 9B` files:
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+
+Highest-signal `Phase 9B` seams:
+- `src/app/console/ConsoleDock.tsx`
+  - `ensureSpaghettiEditorVisibleForGraphRoot(...)`
+  - `resolveSelectedObjectPartKeyForZoom(...)`
+  - `resolveSelectionSetForZoom(...)`
+  - `resolveSelectedReferenceIdForZoom(...)`
+  - `resolveEditorViewportIdForGraphDocument(...)`
+  - `executeCanvasZoomAction(...)`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+  - `selectEditorViewportSelectedNodeId(...)`
+  - `selectEditorViewportById(...)`
+  - `selectViewerTargetGraphDocumentId(...)`
+- `src/app/store/useAppStore.ts`
+  - `selectRenderedProjectPartSet(...)`
+  - workspace-selection selectors and content-selection helpers already feeding Browser and viewer ownership
+
+Concrete `Phase 9B` implementation cut:
+1. Lock the smallest helper seam that resolves the console action context for the currently selected graph, object, reference, and editor viewport.
+2. Move object zoom and multi-select zoom to that seam so object part-key and selection-set resolution stop rebuilding ad-hoc fallback chains inside `ConsoleDock`.
+3. Move graph-root reveal and graph canvas zoom onto that same seam so they use the selected or staged graph and the resolved editor viewport, not only ambient `activeGraphDocumentId`.
+4. When a graph canvas object action needs a node, use the resolved viewport-scoped node-selection selector instead of the global `selectedNodeId` fallback.
+5. Keep every command label and user-facing console flow behaviorally equivalent unless a stale fallback was provably wrong.
+
+#### [x] Phase 9C - `Output Preview` Ownership Alignment
+- make `Output Preview` read adopted Browser or project-content ownership first for published objects and components instead of implying a second graph-local authoritative tree
+- keep this cut narrow and read-oriented: align preview presentation with Browser truth without turning `Output Preview` into a full project organizer
+- use Browser or project-content parentage as the canonical answer for where a published object currently lives once the user has reorganized it
+
+Locked direction for `Phase 9C`:
+- do not make `Output Preview` a full assemblies/components/objects authoring surface inside `Workspace 7.5-5`
+- keep `Output Preview` responsible for graph provenance, published slot or output identity, and default fallback structure only when no adopted Browser mapping exists yet
+- make Browser or project content responsible for real assembly or component placement, parentage, and effective inherited build policy
+- stop `Output Preview` from implying `Object 1 -> Component 1` as authoritative after Browser has already moved that same published object under `Component 2` or `Component 3`
+
+Likely `Phase 9C` files:
+- `src/app/spaghetti/system/outputPreviewNode.ts`
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/spaghetti/system/outputPreviewNode.test.ts`
+- `src/app/store/useAppStore.test.ts`
+
+Highest-signal `Phase 9C` seams:
+- `src/app/spaghetti/system/outputPreviewNode.ts`
+  - default object and component identity
+  - preview tree row shaping
+  - any current graph-local component or object parent claims
+- `src/app/spaghetti/outputSurface.ts`
+  - published output projection into Browser or project-content adoption
+- `src/app/store/useAppStore.ts`
+  - adopted project-content objects and components
+  - preserved parentage and Browser-owned placement truth
+  - selectors that can map graph provenance back onto adopted Browser rows
+- `src/app/components/ViewerHost.tsx`
+  - keep rendered composition on the same adopted Browser truth instead of preview-local ownership hints
+
+Concrete `Phase 9C` implementation cut:
+1. Lock the smallest selector or helper seam that maps a graph-published preview object or component back to an adopted Browser or project-content row when one exists.
+2. Update `Output Preview` tree shaping so adopted Browser parentage wins over graph-local default component placement.
+3. Keep graph-local default preview structure only for outputs that have not yet been adopted into current project content.
+4. Make sure preview rendering and selection metadata point at the adopted Browser object or component identity instead of inventing a duplicate preview-owned tree row for the same published content.
+5. Preserve graph provenance fields so future preview authoring work can still know where the published content came from.
+
+Out of scope for `Phase 9C`:
+- creating, deleting, or reparenting assemblies and components directly from `Output Preview`
+- turning `Output Preview` into a second Browser
+- broader product UX for managing project organization from inside preview
+
+Deferred follow-on after `Workspace 7.5-5`:
+- if we still want `Output Preview` to author assemblies, components, and object placement directly, that should become a separate future phase after this one closes instead of being smuggled into `9C`
 
 Phase 9 execution order:
 1. Define and land the smallest useful rendered-project-parts selector or helper seam.
 2. Move shared viewer composition and Browser-facing rendered-content consumers onto that seam.
 3. Re-verify that multi-graph output, Browser visibility, and graph build-policy behavior still match the shipped Phase 7 and 8 behavior.
 4. Only then tighten `ConsoleDock` and `Spaghetti Editor` context handoff around the now-clearer ownership model.
-5. Only if residue is still directly justified, do one final host-helper cleanup slice and stop there.
+5. Then align `Output Preview` so it reads adopted Browser ownership truth instead of implying a second authoritative tree for reorganized published content.
+6. Any broader `Output Preview` authoring or organizer product work should move to a later follow-on phase after `Workspace 7.5-5`.
 
 ### Phase 9 Checklist
 
 - [x] Lock the exact smallest selector or helper seam that should become the canonical rendered project-parts truth
 - [x] Land `Phase 9A` first and make Browser plus shared viewer consume that same rendered-project-parts seam
 - [x] Re-verify shipped multi-graph, Browser-visibility, and build-policy behavior before widening into any second cleanup slice
-- [ ] Land `Phase 9B` as a narrow `ConsoleDock` plus `Spaghetti Editor` context-handoff hardening pass only after `Phase 9A` is stable
-- [ ] Keep helper extraction or type cleanup tied to proven pain points from the shipped parity work instead of using `Phase 9` as a broad architecture rewrite
-- [ ] Do `Phase 9C` only if the first two slices still leave directly justified repeated ownership logic or compatibility-only branches
+- [x] Lock the exact small `ConsoleDock` context-resolution seam for `Phase 9B` instead of treating the remaining drift as a broad console rewrite
+- [x] Land `Phase 9B` as a narrow `ConsoleDock` plus `Spaghetti Editor` context-handoff hardening pass only after `Phase 9A` is stable
+- [x] Keep helper extraction or type cleanup tied to proven pain points from the shipped parity work instead of using `Phase 9` as a broad architecture rewrite
+- [x] Lock the exact small `Output Preview` ownership-alignment seam for `Phase 9C` instead of treating the remaining preview drift as a broad feature rewrite
+- [x] Land `Phase 9C` as a narrow “Preview reads Browser truth first” pass without turning preview into a second Browser
+- [x] Push any bigger `Output Preview` authoring or organizer ambition into a later follow-on phase instead of widening `Workspace 7.5-5`
 - [ ] Leave the repo in a state where later workspace or Browser work does not need to untangle the same ownership path again
 
 ### Phase 9 Verification Shape
@@ -1124,43 +1232,60 @@ Minimum verification for `Phase 9` should cover:
 - Browser content and shared viewer composition now agreeing about what rendered project objects exist without needing separate bug-fix logic at each layer
 - the remaining surface area reading as deliberate structure instead of emergency carry cleanup
 
+Focused verification target for `Phase 9B`:
+- Browser-selected object targets still sync into object scope and keep object-local console summary truth when the selected object changes
+- object-local zoom still works when `selectedPartKey` is null by resolving through the current workspace selection and the shipped rendered-project-parts seam
+- graph-root or graph-canvas actions open or focus the correct graph editor based on the selected or staged graph, not only the ambient active graph
+- graph canvas object zoom uses the resolved viewport-scoped selected node for that graph instead of the global active-editor node fallback
+- existing `ConsoleDock` regressions around selected-object context and browser-to-console sync remain green without needing new Browser- or viewer-only exceptions
+
+Focused verification target for `Phase 9C`:
+- when the user moves a published object from Browser into `Component 2` or `Component 3`, `Output Preview` no longer shows that object as if it still lives under the old graph-local default component
+- reorganized published objects and components do not appear duplicated between Browser truth and preview-local default tree shaping
+- outputs with no adopted Browser mapping yet still show a sensible fallback preview structure so unadopted graphs remain understandable
+- viewer selection, Browser selection, and preview selection for the same published object all point at the same adopted project identity once that object has been reorganized in Browser
+
 Implementation-ready read:
 - `Phase 9A` is now shipped and should be treated as the canonical rendered-truth baseline for the rest of this phase.
-- `Phase 9B` is now the next required slice, but it should still stay narrow and only tighten `ConsoleDock` plus `Spaghetti Editor` context handoff against the new rendered-project-parts seam.
-- `Phase 9C` is explicitly optional reserve cleanup, not mandatory work.
+- `Phase 9B` is now shipped as the narrow console-context resolution follow-on over the locked helper seams above.
+- `Phase 9C` is now shipped as the narrow `Output Preview` ownership-alignment follow-on over the stale published-component seam.
+- broader `Output Preview` authoring or organizer work is explicitly deferred to a later phase after `Workspace 7.5-5`.
 
 ## [ ] Phase 10 - Final Confidence And Close-Out
 ### Header
 
 Purpose:
-- finish `Workspace 7.5-5` cleanly after the floating-shell, runtime-isolation, runtime/store ownership, Browser/viewer identity, build cleanup, and supporting refactor slices are stable
+- finish `Workspace 7.5-5` cleanly after the floating-shell, runtime-isolation, Browser/viewer ownership, build-green, and supporting hardening slices are now materially landed
 
 Main work:
-- trim any final active-editor-only residue that survives the earlier slices
-- tighten the end-state test matrix for floating, slotted, meatball, popout, and multi-graph output coexistence
-- document any intentional remaining compatibility seams if a small exception still has to survive
+- run one honest final confidence sweep across the now-shipped multi-surface and multi-graph behavior
+- allow at most one last narrow residue fix if the confidence sweep still finds a real bug-shaped seam
+- document what is intentionally deferred so `Workspace 7.5-5` can close without pretending it solved later product work
 
 Likely files:
 - `src/app/AppShell.tsx`
 - `src/app/hosts/SpaghettiWindowHost.tsx`
-- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/store/useAppStore.ts`
 - `src/app/AppShell.test.tsx`
 - `src/app/hosts/SpaghettiWindowHost.test.tsx`
 - `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/store/useAppStore.test.ts`
 - this phase doc
 
 Done shape:
-- `Workspace 7.5-5` reads as fully closed or leaves only explicitly documented intentional residue
-- the multi-editor and multi-graph output model is clear enough to build later UX work on top of it
-- the remaining store-versus-shell and runtime-versus-host mismatch is small, explicit, and no longer bug-shaped
+- `Workspace 7.5-5` reads as honestly closed, with only explicitly deferred future work left open
+- multi-surface `Spaghetti Editor` behavior and multi-graph Browser/output behavior are stable enough that later UX work does not need to rediscover hidden ownership seams
+- any remaining residue is either fixed now as one narrow final slice or documented as intentional follow-on work instead of being left vague
 
 ### Phase 10 Checklist
 
-- [ ] Trim any final active-editor-only residue that survives `Phases 3` through `9`
-- [ ] Tighten the final several-surface coexistence test matrix across floating, slotted, meatball, and popped-out host modes
-- [ ] Re-check distinct multi-graph output and Browser visibility behavior one final time with several live editor surfaces
-- [ ] Document any intentionally preserved compatibility seams if a small exception still has to survive
-- [ ] Mark `Workspace 7.5-5` fully closed only after the end-state confidence read matches the shipped behavior
+- [ ] Run the final manual confidence sweep across multi-surface editor behavior, Browser organization, and multi-graph output coexistence
+- [ ] Re-run the highest-signal focused automated checks that cover the shipped `Phase 7` through `Phase 9C` seams
+- [ ] Fix at most one last narrow residue bug only if the confidence sweep still proves a real issue
+- [ ] Record any intentionally deferred follow-on work instead of widening this phase into another general cleanup pass
+- [ ] Mark `Workspace 7.5-5` fully closed only when the confidence read matches the shipped behavior and the remaining deferred work is explicit
 
 ### Phase 10 Verification Shape
 
@@ -1168,50 +1293,32 @@ Minimum verification for `Phase 10` should cover:
 - several editor surfaces coexisting across floating, slotted, meatball, and popped-out host modes without stale ownership side effects
 - close, popout, dock-back, split, and restore behavior all staying attached to the targeted editor surface instance
 - separate graph documents keeping distinct output objects alive without Browser visibility aliasing
+- Browser-owned organization surviving editor reopen, graph rebuild, and policy toggles without duplicated assemblies, components, or objects
 - the remaining multi-editor shell and multi-graph runtime model being explicit enough that later UX work does not need to rediscover hidden ownership seams
 
-### Execution Checklist
+Focused manual confidence sweep:
+1. Keep two editor surfaces open on different graph documents, then switch focus, split, float, redock, and close one without disturbing the other.
+2. Keep two graphs publishing objects with overlapping output slot names and confirm Browser plus viewer still show them as distinct objects.
+3. Move graph-published objects into authored Browser components and assemblies, reopen or refocus the editor, and confirm Browser does not recreate copied rows.
+4. Toggle Browser build policy through `live`, `release`, `manual`, and `off` for graphs and adopted content, then confirm objects hide or return without teleporting or duplicating.
+5. Use Browser `Reveal`, selection, and viewer highlight on multiple graph outputs and confirm these presentation actions do not change ownership or loaded-graph truth.
 
-- [ ] Stabilize the multi-floating in-app shell so a second floating editor cannot blank or visually take over the app
-- [ ] Reproduce and lock the narrower different-graph floating blank-screen path as the canonical Phase 3 target
-- [ ] Audit remaining editor runtime paths that still behave as if one active editor implicitly owns shared UI state
-- [ ] Keep `activeEditorViewportId` as focus truth only instead of one-editor shell ownership truth
-- [ ] Verify that more than one editor surface can remain open across slotted, floating, meatball, and popped-out host modes without stale ownership side effects
-- [ ] Add focused regression coverage for the real blank-screen repro plus final several-surface coexistence confidence
+Focused automated confidence target:
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/store/useAppStore.test.ts`
 
-### Acceptance And Done Shape
+Locked residue gate:
+- if the confidence sweep is clean, close `Workspace 7.5-5` without inventing more cleanup
+- if one last bug appears, only fix it here if it is a narrow, clearly related residue seam
+- if the next issue is broader than one narrow residue fix, stop and spin it into a new future phase instead of widening `Phase 10`
 
-`Workspace 7.5-5` is done when:
-- more than one `Spaghetti Editor` surface can stay open honestly at once
-- shell actions target the exact editor surface the user interacted with
-- `activeEditorViewportId` no longer acts like the only real editor owner
-- floating, popout, split, redock, and close behavior stay correct per editor surface instance
-- opening additional floating editor surfaces does not blank or visually suppress the workspace shell
-- opening two floating editor surfaces on different graph documents does not blank or visually suppress the workspace shell
-- the store-versus-shell mismatch is materially reduced instead of merely hidden behind one more compatibility branch
-
-### Verification Shape
-
-Minimum verification for this phase should cover:
-- duplicate or second editor surfaces staying open at the same time
-- two floating editor surfaces bound to different graph documents coexisting in the model viewport without blanking the app
-- per-surface float and redock behavior
-- per-surface popout and dock-back behavior
-- split creation and split drag-out behavior when multiple editor surfaces exist
-- restore behavior that does not collapse several editor surfaces back into one active-owner shell
-- close behavior that only closes the targeted editor surface and leaves the others alive
-
-Phase-oriented read:
-- `Phase 1` should focus on per-surface action targeting proofs
-- `Phase 2` should focus on several-open-surfaces lifecycle and restore proofs
-- `Phase 3` should focus on floating-shell stability and the real blank-screen repro
-- `Phase 4` should focus on per-viewport runtime isolation inside the live editor subtree
-- `Phase 5` should focus on tracing the exact preview/output ownership collapse
-- `Phase 6` should stay as a reserve runtime/store lane only if a later repro proves another real pre-presentation ownership collapse
-- `Phase 7` is now the next implementation phase and should focus on Browser and viewer object identity cleanup plus any narrow reveal/hide sync carry that remains after the shipped Phase 5 fixes
-- `Phase 8` should focus on build-failure triage and blocking typed cleanup after the real parity seam is fixed
-- `Phase 9` should focus on supporting refactor and ownership hardening after behavior and build correctness are stable
-- `Phase 10` should focus on final confidence and close-out
+Explicit deferred work after close:
+- the larger AppShell architecture refactor stays out of `Workspace 7.5-5`
+- any future `Output Preview` authoring or organizer UX stays out of `Workspace 7.5-5`
+- any broader Browser/Console/AppShell product cleanup that is no longer directly bug-shaped should become its own later phase
 
 ### Phase 1 Checklist
 

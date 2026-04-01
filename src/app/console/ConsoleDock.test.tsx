@@ -3860,6 +3860,72 @@ describe('ConsoleDock', () => {
     })
   })
 
+  it('aligns the active graph to the selected targets fallback graph from content context', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+        {
+          schemaVersion: 1,
+          nodes: [],
+          edges: [],
+        },
+        'Graph 2',
+      )
+      useSpaghettiStore.setState((state) => ({
+        ...state,
+        activeGraphDocumentId: secondGraphId,
+      }))
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            ...state.projectContent.objectsById,
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useSpaghettiStore.getState().activeGraphDocumentId).toBe('graph-document-1')
+    expect(useConsoleStore.getState().stagedNavigationSession?.selections.graphDocumentId).toBe(
+      'graph-document-1',
+    )
+  })
+
   it('reopens the spaghetti editor when graph root is entered from meatball mode', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -10077,6 +10143,95 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Content > Object 1 > Choose next',
+    )
+  })
+
+  it('aligns the active viewport to the selected graph document when multiple graph editor viewports are open', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    let secondGraphId = ''
+    let secondViewportId = ''
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+        {
+          schemaVersion: 1,
+          nodes: [
+            {
+              nodeId: 'node-second-1',
+              type: 'Geometry/Sketch',
+              params: getDefaultNodeParams('Geometry/Sketch'),
+            },
+          ],
+          edges: [],
+        },
+        'Graph 2',
+      )
+      const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+      secondViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId) ?? ''
+      if (firstViewportId === null || secondViewportId.length === 0) {
+        throw new Error('Expected graph editor viewports to open')
+      }
+      useSpaghettiStore.setState((state) => ({
+        ...state,
+        activeGraphDocumentId: 'graph-document-1',
+        activeEditorViewportId: firstViewportId,
+        selectedNodeId: 'node-stale-active',
+        editorViewportSelectedNodeIdById: {
+          ...state.editorViewportSelectedNodeIdById,
+          [firstViewportId]: 'node-stale-active',
+          [secondViewportId]: 'node-second-1',
+        },
+      }))
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          objectsById: {
+            ...state.projectContent.objectsById,
+            'object-second-1': {
+              objectId: 'object-second-1',
+              ownerGraphDocumentId: secondGraphId,
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: secondGraphId,
+              sourceOutputEntryId: 'output-entry-second-1',
+              sourceNodeId: 'node-output-second-1',
+              slotId: 'slot-second-1',
+              label: 'Object Second 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-second-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-second-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-second-1',
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+    expect(form).not.toBeNull()
+    expect(useSpaghettiStore.getState().activeGraphDocumentId).toBe(secondGraphId)
+    expect(useSpaghettiStore.getState().activeEditorViewportId).toBe(secondViewportId)
+    expect(useConsoleStore.getState().stagedNavigationSession?.selections.graphDocumentId).toBe(
+      secondGraphId,
     )
   })
 

@@ -1801,15 +1801,30 @@ const buildDefaultContentOrderForParent = (
   return [...authoredChildIds, ...importedChildIds]
 }
 
+const dedupeOrderedRowIds = (orderedRowIds: readonly string[]): string[] => {
+  const seen = new Set<string>()
+  const deduped: string[] = []
+  orderedRowIds.forEach((rowId) => {
+    if (seen.has(rowId)) {
+      return
+    }
+    seen.add(rowId)
+    deduped.push(rowId)
+  })
+  return deduped
+}
+
 const normalizeContentOrder = (
   orderedRowIds: string[] | undefined,
   defaultRowIds: string[],
 ): string[] => {
   if (orderedRowIds === undefined) {
-    return [...defaultRowIds]
+    return dedupeOrderedRowIds(defaultRowIds)
   }
   const defaultRowIdSet = new Set(defaultRowIds)
-  const normalized = orderedRowIds.filter((rowId) => defaultRowIdSet.has(rowId))
+  const normalized = dedupeOrderedRowIds(
+    orderedRowIds.filter((rowId) => defaultRowIdSet.has(rowId)),
+  )
   defaultRowIds.forEach((rowId) => {
     if (!normalized.includes(rowId)) {
       normalized.push(rowId)
@@ -2067,10 +2082,10 @@ const moveOrderedIdAroundSibling = (
   targetId: string,
   position: Extract<ProjectContentDropPosition, 'before' | 'after'>,
 ): string[] => {
-  const filteredIds = siblingIds.filter((childId) => childId !== draggedId)
+  const filteredIds = dedupeOrderedRowIds(siblingIds).filter((childId) => childId !== draggedId)
   const targetIndex = filteredIds.indexOf(targetId)
   if (targetIndex < 0) {
-    return siblingIds
+    return dedupeOrderedRowIds(siblingIds)
   }
   const insertIndex = position === 'before' ? targetIndex : targetIndex + 1
   return [
@@ -3287,10 +3302,10 @@ const buildProjectContentDerivation = (
   }
   const orderByPreviousIds = (currentIds: string[], previousIds?: string[]): string[] => {
     if (previousIds === undefined) {
-      return [...currentIds]
+      return dedupeOrderedRowIds(currentIds)
     }
     const currentIdSet = new Set(currentIds)
-    const ordered = previousIds.filter((rowId) => currentIdSet.has(rowId))
+    const ordered = dedupeOrderedRowIds(previousIds.filter((rowId) => currentIdSet.has(rowId)))
     currentIds.forEach((rowId) => {
       if (!ordered.includes(rowId)) {
         ordered.push(rowId)
@@ -3530,9 +3545,21 @@ const buildProjectContentDerivation = (
     )
   })
 
+  Object.values(componentsById).forEach((component) => {
+    if (
+      component.componentSourceKind !== 'published-component' ||
+      component.childObjectIds.length > 0
+    ) {
+      return
+    }
+    delete componentsById[component.componentId]
+    delete nextRuntimePlacementByRowId[component.componentId]
+    validRuntimeRowIds.delete(component.componentId)
+  })
+
   Object.values(assembliesById).forEach((assembly) => {
     const childAssemblyIds = authoredAssemblies
-      .filter((candidate) => (candidate.parentAssemblyId ?? rootAssemblyId) === assembly.assemblyId)
+      .filter((candidate) => candidate.parentAssemblyId === assembly.assemblyId)
       .map((candidate) => candidate.assemblyId)
     const childComponentIds = Object.values(componentsById)
       .filter((component) => component.parentAssemblyId === assembly.assemblyId)
@@ -7197,10 +7224,22 @@ export const selectCurrentProjectTopLevelAssemblies = (
 const selectProjectObjectsForComponent = (
   state: Pick<AppState, 'projectContent'>,
   component: ProjectComponentRecord,
-): ProjectObjectRecord[] =>
-  component.childObjectIds
+): ProjectObjectRecord[] => {
+  const ownedObjects = Object.values(state.projectContent.objectsById).filter(
+    (objectRow) => objectRow.parentComponentId === component.componentId,
+  )
+  const orderedObjectIds = [
+    ...component.childObjectIds.filter((objectId) =>
+      ownedObjects.some((objectRow) => objectRow.objectId === objectId),
+    ),
+    ...ownedObjects
+      .map((objectRow) => objectRow.objectId)
+      .filter((objectId) => !component.childObjectIds.includes(objectId)),
+  ]
+  return orderedObjectIds
     .map((objectId) => state.projectContent.objectsById[objectId] ?? null)
     .filter((objectRow): objectRow is ProjectObjectRecord => objectRow !== null)
+}
 
 const selectGraphOwnedBuildState = (
   graphRuntimeByDocumentId: Record<string, GraphRuntimeState>,
@@ -7668,6 +7707,12 @@ export const selectCurrentProjectContentBrowserRows = (
       }
 
       const componentObjects = selectProjectObjectsForComponent(state, component)
+      if (
+        component.componentSourceKind === 'published-component' &&
+        componentObjects.length === 0
+      ) {
+        return
+      }
       const singleResolvedObject =
         componentObjects.length === 1 && componentObjects[0]?.resolutionState === 'resolved'
           ? componentObjects[0]

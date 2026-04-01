@@ -65,6 +65,91 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 858 -->
+### [858] - 2026-04-01 15:33 - `VR-SP - Workspace 7.5-5 Phase 9C - Keep Top-Level Assemblies Out Of Runtime Root`
+<!-- ENTRY 858 -->
+HUMAN SUMMARY: `Fixed the follow-up Browser duplication regression inside Phase 9C by stopping top-level authored assemblies from being mirrored back into the runtime root during project-content rebuild, and by making ordered child-id handling self-heal duplicate entries instead of replaying them forever. Reopening or re-syncing a multi-graph editor session no longer has a legit path to show the same adopted assembly, component, or object as a second Browser copy just because the rebuild or stored order arrays drifted.`  
+#### Scope / Constraints Honored
+- Kept this fix inside the same narrow `Phase 9C - Output Preview Ownership Alignment` lane instead of widening into a new Browser architecture phase.
+- Preserved the existing Browser organization model, top-level assembly semantics, and graph/runtime provenance while only correcting the rebuild and ordering seams that were duplicating adopted content.
+- Limited the implementation to store derivation, ordered-id normalization, and focused regression coverage tied directly to the user-reported multi-graph copy behavior.
+
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so authored assemblies with `parentAssemblyId = null` stay top-level during `buildProjectContentDerivation(...)` instead of being re-inserted as children of the runtime root assembly.
+- Updated `src/app/store/useAppStore.ts` so ordered child-id handling now dedupes repeated entries while normalizing saved content order, rebuilding previous child order, and reordering siblings.
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so Browser tree rendering also dedupes repeated stored child-order ids before expanding assembly or component children.
+- Added a focused regression in `src/app/store/useAppStore.test.ts` that reproduces the two-graph Browser-adoption flow, proves the runtime root no longer reclaims top-level authored assemblies on sync, and locks the deduped assembly/component/object tree rows after rebuild.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+
+#### Behavior Changes
+- Top-level authored assemblies no longer get mirrored into the runtime root assembly during Browser or Spaghetti sync rebuilds.
+- Browser tree expansion no longer replays repeated assembly, component, or object rows just because a saved child-order array contains duplicate ids.
+- The multi-graph "move outputs into their own components, reopen the editor, Browser shows copies" path now resolves back to one adopted row per real assembly, component, and object.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 857 -->
+### [857] - 2026-04-01 15:20 - `VR-SP - Workspace 7.5-5 Phase 9C - Drop Stale Published Component Shells`
+<!-- ENTRY 857 -->
+HUMAN SUMMARY: `Landed the narrow Phase 9C ownership-alignment slice by making Browser-backed project content stop carrying an empty graph-default published component after all of its published objects have been reorganized elsewhere. Browser rows now derive component membership from actual object parentage first, so the stale preview-owned shell disappears immediately after reparenting instead of surviving until a later sync and looking like a duplicate ownership story.`
+#### Scope / Constraints Honored
+- Kept this pass inside the narrow `Phase 9C - Output Preview Ownership Alignment` lane instead of turning `Output Preview` into a full assembly or component authoring surface.
+- Preserved graph provenance, published object identity, and existing Browser organization semantics while only removing the stale graph-default component shell when Browser truth no longer places any object under it.
+- Limited the change to current-project content derivation and Browser-facing component membership resolution so the fix stays small and directly tied to the observed duplication seam.
+
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so component Browser rows derive their object membership from actual `parentComponentId` ownership first, rather than trusting stale `childObjectIds` snapshots during the gap between a Browser move and the next full project-content sync.
+- Updated `src/app/store/useAppStore.ts` so empty runtime-backed `published-component` rows are dropped during project-content derivation, including their preserved placement overlay, once Browser truth has moved all of their published objects elsewhere.
+- Added a focused regression in `src/app/store/useAppStore.test.ts` that moves both published objects from the default graph component into authored components, asserts the stale published component row disappears immediately from Browser content rows, and then proves it stays gone after policy-driven sync.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- Browser content no longer shows an empty graph-default published component shell after the user has moved all of that component’s published objects into other authored components.
+- Component membership in Browser-facing rows now reflects current object parentage immediately after a move, instead of waiting for a later sync to repair stale `childObjectIds`.
+- Policy-driven sync now keeps that stale published component shell gone instead of recreating it as a misleading second ownership story.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 856 -->
+### [856] - 2026-04-01 15:03 - `VR-SP - Workspace 7.5-5 Phase 9B - Console Context Sync Hardening`
+<!-- ENTRY 856 -->
+HUMAN SUMMARY: `Landed the second Phase 9 slice by tightening how ConsoleDock resolves graph, viewport, object, and reference context before it opens graph-root flows or executes zoom actions. The console now prefers selected or staged workspace truth over ambient active-editor fallbacks, while keeping the existing command surface and user-facing flow intact and leaving the optional Phase 9C cleanup for later only if it still earns itself.`
+#### Scope / Constraints Honored
+- Kept this pass inside `Phase 9B - ConsoleDock And Spaghetti Editor Context Sync Hardening` instead of widening into a broader command redesign or reserve host-helper cleanup.
+- Preserved existing console command labels, staged navigation shape, and radio-command identity while only tightening the context-resolution seam behind them.
+- Reused the shipped `Phase 9A` rendered-project-parts baseline and existing viewport selectors instead of adding another parallel Browser-versus-viewer exception path.
+
+#### What Changed
+- Added narrower console action-context helpers in `src/app/console/ConsoleDock.tsx` so graph-root, graph-canvas, object-zoom, multi-select zoom, and reference zoom paths can resolve graph document, viewport, and selected-node ownership through one consistent fallback order.
+- Updated graph-root visibility and canvas zoom routing in `src/app/console/ConsoleDock.tsx` so they prefer staged graph selection, selected workspace targets, and viewport-scoped graph selection before falling back to ambient active-editor state.
+- Restored safe object and reference zoom fallback resolution in `src/app/console/ConsoleDock.tsx` so object-local zoom still works when `selectedPartKey` is null by resolving through current workspace selection and published object part keys.
+- Added focused regressions in `src/app/console/ConsoleDock.test.tsx` that lock the selected-target graph fallback sync and multi-viewport graph-alignment behavior without over-asserting unrelated node-selection side effects.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Console graph-root and graph-canvas actions now align to the selected or staged graph context more deliberately instead of leaning first on ambient active-graph state.
+- Console object and multi-select zoom flows keep working when direct viewer part selection is absent by resolving through current workspace content selection and stable published object part keys.
+- Surface-driven console context sync now better aligns `Spaghetti Editor` graph focus with the graph implied by the selected workspace target, which reduces graph drift when multiple editor viewports are open.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
 <!-- ENTRY 855 -->
 ### [855] - 2026-04-01 14:29 - `VR-SP - Workspace 7.5-5 Phase 9A - Canonical Rendered Project Parts Truth`
 <!-- ENTRY 855 -->

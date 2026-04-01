@@ -60,6 +60,7 @@ import type {
 import {
   type GeometrySketchDrawStage,
   type SketchPlaneCommand,
+  selectEditorViewportSelectedNodeId,
   selectGraphDocumentById,
   selectOrderedGraphDocuments,
   useSpaghettiStore,
@@ -1044,15 +1045,118 @@ type GraphRootEditorRevealRestore =
       previousActiveEditorViewportId: string
     }
 
-const ensureSpaghettiEditorVisibleForGraphRoot = (): GraphRootEditorRevealRestore | null => {
+type ConsoleActionContext = {
+  graphDocumentId: string | null
+  editorViewportId: string | null
+  selectedNodeId: string | null
+}
+
+const resolveEditorViewportIdForGraphDocumentFromState = (
+  spaghettiState: ReturnType<typeof useSpaghettiStore.getState>,
+  graphDocumentId: string,
+): string | null => {
+  const activeViewport =
+    spaghettiState.editorViewportsById[spaghettiState.activeEditorViewportId] ?? null
+  if (activeViewport?.graphDocumentId === graphDocumentId) {
+    return activeViewport.editorViewportId
+  }
+  return (
+    spaghettiState.editorViewportOrder.find((editorViewportId) => {
+      const viewport = spaghettiState.editorViewportsById[editorViewportId]
+      return viewport?.graphDocumentId === graphDocumentId
+    }) ?? null
+  )
+}
+
+const resolveConsoleGraphDocumentIdFromState = (
+  appState: ReturnType<typeof useAppStore.getState>,
+  spaghettiState: ReturnType<typeof useSpaghettiStore.getState>,
+  preferredGraphDocumentId: string | null = null,
+): string | null => {
+  if (
+    preferredGraphDocumentId !== null &&
+    spaghettiState.graphDocumentsById[preferredGraphDocumentId] !== undefined
+  ) {
+    return preferredGraphDocumentId
+  }
+  const workspaceContextTarget = selectConsoleWorkspaceContextTarget(appState)
+  if (
+    workspaceContextTarget?.kind === 'graph-document' ||
+    workspaceContextTarget?.kind === 'graph-node'
+  ) {
+    return workspaceContextTarget.graphDocumentId
+  }
+  if (
+    workspaceContextTarget?.fallbackGraphDocumentId !== null &&
+    workspaceContextTarget?.fallbackGraphDocumentId !== undefined &&
+    spaghettiState.graphDocumentsById[workspaceContextTarget.fallbackGraphDocumentId] !== undefined
+  ) {
+    return workspaceContextTarget.fallbackGraphDocumentId
+  }
+  const selectedContentOwnerTarget = resolveWorkspaceSelectedContentOwnerTarget(
+    appState,
+    appState.workspaceSelection.selectedTarget,
+  )
+  if (
+    selectedContentOwnerTarget?.fallbackGraphDocumentId !== null &&
+    selectedContentOwnerTarget?.fallbackGraphDocumentId !== undefined &&
+    spaghettiState.graphDocumentsById[selectedContentOwnerTarget.fallbackGraphDocumentId] !== undefined
+  ) {
+    return selectedContentOwnerTarget.fallbackGraphDocumentId
+  }
+  if (appState.workspaceSelection.selectedTarget?.kind === 'object') {
+    const objectRecord =
+      appState.projectContent.objectsById[appState.workspaceSelection.selectedTarget.objectId] ?? null
+    const objectGraphDocumentId =
+      objectRecord?.sourceGraphDocumentId ?? objectRecord?.ownerGraphDocumentId ?? null
+    if (
+      objectGraphDocumentId !== null &&
+      spaghettiState.graphDocumentsById[objectGraphDocumentId] !== undefined
+    ) {
+      return objectGraphDocumentId
+    }
+  }
+  return spaghettiState.activeGraphDocumentId.length > 0 ? spaghettiState.activeGraphDocumentId : null
+}
+
+const resolveConsoleActionContextFromState = (
+  preferredGraphDocumentId: string | null = null,
+): ConsoleActionContext => {
+  const spaghettiState = useSpaghettiStore.getState()
+  const appState = useAppStore.getState()
+  const graphDocumentId = resolveConsoleGraphDocumentIdFromState(
+    appState,
+    spaghettiState,
+    preferredGraphDocumentId,
+  )
+  const editorViewportId =
+    graphDocumentId === null
+      ? null
+      : resolveEditorViewportIdForGraphDocumentFromState(spaghettiState, graphDocumentId)
+  return {
+    graphDocumentId,
+    editorViewportId,
+    selectedNodeId:
+      editorViewportId === null
+        ? null
+        : selectEditorViewportSelectedNodeId(spaghettiState, editorViewportId),
+  }
+}
+
+const ensureSpaghettiEditorVisibleForGraphRoot = (
+  graphDocumentId: string | null,
+): GraphRootEditorRevealRestore | null => {
+  if (graphDocumentId === null) {
+    return null
+  }
   const spaghettiState = useSpaghettiStore.getState()
   const previousActiveEditorViewportId = spaghettiState.activeEditorViewportId
   const existingViewport =
     Object.values(spaghettiState.editorViewportsById).find(
-      (viewport) => viewport.graphDocumentId === spaghettiState.activeGraphDocumentId,
+      (viewport) => viewport.graphDocumentId === graphDocumentId,
     ) ?? null
   const viewportId =
-    spaghettiState.openGraphDocumentInViewport(spaghettiState.activeGraphDocumentId) ??
+    spaghettiState.openGraphDocumentInViewport(graphDocumentId) ??
     spaghettiState.activeEditorViewportId
   if (viewportId.length === 0) {
     return null
@@ -2375,6 +2479,12 @@ export function ConsoleDock({
     }
   }, [])
 
+  const resolveConsoleActionContext = useCallback(
+    (preferredGraphDocumentId: string | null = null): ConsoleActionContext =>
+      resolveConsoleActionContextFromState(preferredGraphDocumentId),
+    [],
+  )
+
   const resolveSelectedReferenceIdForZoom = useCallback((): string | null => {
     const appState = useAppStore.getState()
     const selectedTarget = appState.workspaceSelection.selectedTarget
@@ -2448,21 +2558,6 @@ export function ConsoleDock({
       partKeys,
       referenceIds,
     }
-  }, [])
-
-  const resolveEditorViewportIdForGraphDocument = useCallback((graphDocumentId: string): string | null => {
-    const spaghettiState = useSpaghettiStore.getState()
-    const activeViewport =
-      spaghettiState.editorViewportsById[spaghettiState.activeEditorViewportId] ?? null
-    if (activeViewport?.graphDocumentId === graphDocumentId) {
-      return activeViewport.editorViewportId
-    }
-    return (
-      spaghettiState.editorViewportOrder.find((editorViewportId) => {
-        const viewport = spaghettiState.editorViewportsById[editorViewportId]
-        return viewport?.graphDocumentId === graphDocumentId
-      }) ?? null
-    )
   }, [])
 
   const commitActiveReferenceTransformFromConsole = useCallback((rawToken: string) => {
@@ -3430,6 +3525,81 @@ export function ConsoleDock({
       if (shouldHandleAsStagedNavigation) {
         const rawToken = inputText.trim()
         const normalizedRawToken = normalizeRadioCommandIdentity(rawToken)
+        const appStateForGraphShortcut = useAppStore.getState()
+        const workspaceContextTargetForGraphShortcut =
+          selectConsoleWorkspaceContextTarget(appStateForGraphShortcut)
+        const contextFallbackGraphDocumentId =
+          workspaceContextTargetForGraphShortcut !== null &&
+          'fallbackGraphDocumentId' in workspaceContextTargetForGraphShortcut
+            ? workspaceContextTargetForGraphShortcut.fallbackGraphDocumentId ?? null
+            : null
+        const directGraphShortcutGraphDocumentId = resolveConsoleActionContext().graphDocumentId
+        const isContextScopedGraphShortcut =
+          activeStagedSession !== null &&
+          (activeStagedSession.scopeId.startsWith('content') ||
+            activeStagedSession.scopeId.startsWith('reference') ||
+            activeStagedSession.scopeId === 'referencesSelected' ||
+            activeStagedSession.scopeId === 'referenceCategorySelected' ||
+            activeStagedSession.scopeId === 'referenceSelected' ||
+            activeStagedSession.scopeId === 'multiSelectSelected')
+        const shouldDirectContextGraphSelection =
+          (normalizedRawToken === 'GRAPH' || normalizedRawToken === 'G') &&
+          (contextFallbackGraphDocumentId !== null || isContextScopedGraphShortcut) &&
+          directGraphShortcutGraphDocumentId !== null &&
+          activeStagedSession?.scopeId !== 'graphRoot' &&
+          activeStagedSession?.scopeId !== 'graphSelected'
+        if (shouldDirectContextGraphSelection) {
+          const commandIdentity = resolveConsoleRadioCommandIdentity({
+            kind: 'stagedAdvance',
+            activeScopeId: activeStagedSession?.scopeId ?? null,
+            matchedCanonicalToken: 'GRAPH',
+            matchedLabel: 'Graph',
+          })
+          trackRadioCommandIdentity(commandIdentity)
+          graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot(
+            directGraphShortcutGraphDocumentId,
+          )
+          activateGraphDocumentIntent(
+            buildWorkspaceIntentDepsFromStoreState(),
+            directGraphShortcutGraphDocumentId,
+            {
+              strategy: 'open-or-focus',
+            },
+          )
+          const directedGraphHandoff = resolveConsoleWorkspaceContextSync(
+            buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
+            {
+              graphDocumentId: directGraphShortcutGraphDocumentId,
+              nodeId: null,
+            },
+          ).session
+          appendConsoleEntry({
+            layer: 'Commands',
+            commandLineKind: 'user',
+            text: `> ${rawToken}`,
+          })
+          pushCommandHistory(rawToken)
+          if (directedGraphHandoff !== null) {
+            setStagedNavigationSession(directedGraphHandoff)
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(directedGraphHandoff.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(
+                directedGraphHandoff,
+                directedGraphHandoff.validChoices,
+              ),
+              source: 'console',
+              severity: 'info',
+            })
+          }
+          requestRadioBurst(commandIdentity, 'enter')
+          return
+        }
         if (
           (
             (activeStagedSession === null &&
@@ -3438,11 +3608,14 @@ export function ConsoleDock({
           ) &&
           (normalizedRawToken === 'GRAPH' || normalizedRawToken === 'G')
         ) {
-          graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot()
-          if (spaghettiState.activeGraphDocumentId.length > 0) {
+          const consoleActionContext = resolveConsoleActionContext()
+          graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot(
+            consoleActionContext.graphDocumentId,
+          )
+          if (consoleActionContext.graphDocumentId !== null) {
             activateGraphDocumentIntent(
               buildWorkspaceIntentDepsFromStoreState(),
-              spaghettiState.activeGraphDocumentId,
+              consoleActionContext.graphDocumentId,
               {
                 strategy: 'open-or-focus',
               },
@@ -4205,8 +4378,11 @@ export function ConsoleDock({
             stagedResult.actionId === 'zoom.canvas.object'
           ) {
             const viewer = getViewer()
-            const selectedReferenceId = resolveSelectedReferenceIdForZoom()
+            const consoleActionContext = resolveConsoleActionContext(
+              stagedResult.selections.graphDocumentId ?? null,
+            )
             const commandLabel = formatStagedBreadcrumb(stagedResult.breadcrumb)
+            const selectedReferenceId = resolveSelectedReferenceIdForZoom()
             const executeModelZoomObject = (): boolean => {
               if (stagedResult.session.scopeId === 'sketchDrawZoomRoot') {
                 return frameSelectedGeometrySketchCommand()
@@ -4253,7 +4429,18 @@ export function ConsoleDock({
             const executeCanvasZoomAction = (
               action: 'all' | 'extents' | 'previous' | 'window' | 'object',
             ): boolean => {
-              const graphDocumentId = stagedResult.selections.graphDocumentId
+              const workspaceSelectedTarget = useAppStore.getState().workspaceSelection.selectedTarget
+              const workspaceSelectedGraphDocumentId =
+                workspaceSelectedTarget?.kind === 'graph-document'
+                  ? workspaceSelectedTarget.graphDocumentId
+                  : workspaceSelectedTarget?.kind === 'graph-node'
+                    ? workspaceSelectedTarget.graphDocumentId
+                    : null
+              const graphDocumentId =
+                stagedResult.selections.graphDocumentId ??
+                workspaceSelectedGraphDocumentId ??
+                useConsoleStore.getState().stagedNavigationSession?.selections.graphDocumentId ??
+                consoleActionContext.graphDocumentId
               if (graphDocumentId === null) {
                 appendConsoleEntry({
                   layer: 'Diagnostics',
@@ -4263,7 +4450,10 @@ export function ConsoleDock({
                 })
                 return false
               }
-              const editorViewportId = resolveEditorViewportIdForGraphDocument(graphDocumentId)
+              const editorViewportId = resolveEditorViewportIdForGraphDocumentFromState(
+                useSpaghettiStore.getState(),
+                graphDocumentId,
+              )
               if (editorViewportId === null) {
                 appendConsoleEntry({
                   layer: 'Diagnostics',
@@ -4285,8 +4475,11 @@ export function ConsoleDock({
                 return true
               }
               if (action === 'object') {
-                const selectedNodeId = spaghettiState.selectedNodeId
-                const selectedGraph = selectGraphDocumentById(spaghettiState, graphDocumentId)?.graph ?? null
+                const selectedNodeId =
+                  stagedResult.selections.selectedNodeId ??
+                  selectEditorViewportSelectedNodeId(spaghettiState, editorViewportId)
+                const selectedGraph =
+                  selectGraphDocumentById(spaghettiState, graphDocumentId)?.graph ?? null
                 const selectedNodeExists =
                   selectedNodeId !== null &&
                   (selectedGraph?.nodes.some((node) => node.nodeId === selectedNodeId) ?? false)
@@ -5006,58 +5199,58 @@ export function ConsoleDock({
                     severity: 'warn',
                   })
                 } else {
-                const objectPartKey =
-                  appState.selectedPartKey ??
-                  (objectRecord !== null ? (buildObjectPartKeys(objectRecord)[0] ?? null) : null) ??
-                  resolveSingleTargetContentSelection(appState, selectedTarget)?.partKeys[0] ??
-                  null
-                const transformMode =
-                  stagedResult.actionId === 'content.transform.rotate'
-                    ? 'rotate'
-                    : stagedResult.actionId === 'content.transform.scale'
-                      ? 'scale'
-                      : 'translate'
-                if (objectPartKey === null) {
-                  appendConsoleEntry({
-                    layer: 'Transforms',
-                    text: 'Viewer Transform requires a resolved published object with visible viewer parts',
-                    source: 'console',
-                    severity: 'warn',
-                  })
-                } else {
-                  appState.beginContentObjectTransformShell(selectedTarget.objectId)
-                  appState.beginContentObjectTransformEntry(transformMode)
-                  appState.selectPart(objectPartKey)
-                  const nextSession =
-                    useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession
-                  const viewer = getViewer()
-                  viewer?.setSelectedPart?.(objectPartKey)
-                  viewer?.setContentObjectTransformSession?.({
-                    objectId: selectedTarget.objectId,
-                    mode: transformMode,
-                    space: nextSession?.space ?? 'local',
-                    entryOrigin: nextSession?.entryOrigin ?? null,
-                  })
-                  if (transformMode === 'rotate') {
-                    viewer?.activateRotateCenterHandle?.()
-                  } else if (transformMode === 'scale') {
-                    viewer?.activateScaleCenterHandle?.()
+                  const objectPartKey =
+                    appState.selectedPartKey ??
+                    (objectRecord !== null ? (buildObjectPartKeys(objectRecord)[0] ?? null) : null) ??
+                    resolveSingleTargetContentSelection(appState, selectedTarget)?.partKeys[0] ??
+                    null
+                  const transformMode =
+                    stagedResult.actionId === 'content.transform.rotate'
+                      ? 'rotate'
+                      : stagedResult.actionId === 'content.transform.scale'
+                        ? 'scale'
+                        : 'translate'
+                  if (objectPartKey === null) {
+                    appendConsoleEntry({
+                      layer: 'Transforms',
+                      text: 'Viewer Transform requires a resolved published object with visible viewer parts',
+                      source: 'console',
+                      severity: 'warn',
+                    })
                   } else {
-                    viewer?.activateTranslateCenterHandle?.()
+                    appState.beginContentObjectTransformShell(selectedTarget.objectId)
+                    appState.beginContentObjectTransformEntry(transformMode)
+                    appState.selectPart(objectPartKey)
+                    const nextSession =
+                      useAppStore.getState().referenceWorkspace.activeContentObjectTransformSession
+                    const viewer = getViewer()
+                    viewer?.setSelectedPart?.(objectPartKey)
+                    viewer?.setContentObjectTransformSession?.({
+                      objectId: selectedTarget.objectId,
+                      mode: transformMode,
+                      space: nextSession?.space ?? 'local',
+                      entryOrigin: nextSession?.entryOrigin ?? null,
+                    })
+                    if (transformMode === 'rotate') {
+                      viewer?.activateRotateCenterHandle?.()
+                    } else if (transformMode === 'scale') {
+                      viewer?.activateScaleCenterHandle?.()
+                    } else {
+                      viewer?.activateTranslateCenterHandle?.()
+                    }
+                    appendConsoleEntry({
+                      layer: 'Transforms',
+                      text: `${
+                        transformMode === 'rotate'
+                          ? 'Rotate'
+                          : transformMode === 'scale'
+                            ? 'Scale'
+                            : 'Move'
+                      } armed`,
+                      source: 'console',
+                      severity: 'info',
+                    })
                   }
-                  appendConsoleEntry({
-                    layer: 'Transforms',
-                    text: `${
-                      transformMode === 'rotate'
-                        ? 'Rotate'
-                        : transformMode === 'scale'
-                          ? 'Scale'
-                          : 'Move'
-                    } armed`,
-                    source: 'console',
-                    severity: 'info',
-                  })
-                }
                 }
               }
             }
@@ -5264,31 +5457,31 @@ export function ConsoleDock({
             // Let sketch-draw runtime commands like Enter/Status/Help continue through the
             // draw-session handler instead of treating them as staged-navigation errors.
           } else {
-          if (stagedResult.session !== null) {
-            setStagedNavigationSession(stagedResult.session)
-          }
-          appendConsoleEntry({
-            layer: 'Commands',
-            text:
-              stagedResult.breadcrumb.length === 0
-                ? 'Select'
-                : formatStagedBreadcrumb(stagedResult.breadcrumb),
-            source: 'console',
-            severity: 'info',
-          })
-          appendConsoleEntry({
-            layer: 'Diagnostics',
-            text: `Invalid token for current scope: ${rawToken}`,
-            source: 'console',
-            severity: 'warn',
-          })
-          appendConsoleEntry({
-            layer: 'Commands',
-            text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
-            source: 'console',
-            severity: 'info',
-          })
-          return
+            if (stagedResult.session !== null) {
+              setStagedNavigationSession(stagedResult.session)
+            }
+            appendConsoleEntry({
+              layer: 'Commands',
+              text:
+                stagedResult.breadcrumb.length === 0
+                  ? 'Select'
+                  : formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            appendConsoleEntry({
+              layer: 'Diagnostics',
+              text: `Invalid token for current scope: ${rawToken}`,
+              source: 'console',
+              severity: 'warn',
+            })
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: buildStagedPromptText(stagedResult.session, stagedResult.validChoices),
+              source: 'console',
+              severity: 'info',
+            })
+            return
           }
         }
       }
@@ -6398,10 +6591,10 @@ export function ConsoleDock({
       openReferenceTransformPlanePrompt,
       pushCommandHistory,
       requestRadioBurst,
-      resolveEditorViewportIdForGraphDocument,
-      resolveSelectionSetForZoom,
+      resolveConsoleActionContext,
       resolveSelectedObjectPartKeyForZoom,
       resolveSelectedReferenceIdForZoom,
+      resolveSelectionSetForZoom,
       setConsolePromptSession,
       setStagedNavigationSession,
       trackRadioCommandIdentity,
@@ -6543,6 +6736,26 @@ export function ConsoleDock({
             buildStagedNavigationContextFromStoreState(spaghettiState),
             resolvedTarget,
           )
+    const resolvedGraphDocumentId =
+      resolvedHandoff.session?.selections.graphDocumentId ??
+      (resolvedTarget !== null && 'graphDocumentId' in resolvedTarget
+        ? resolvedTarget.graphDocumentId ?? null
+        : resolvedTarget !== null && 'fallbackGraphDocumentId' in resolvedTarget
+          ? resolvedTarget.fallbackGraphDocumentId ?? null
+          : null)
+    if (
+      resolvedGraphDocumentId !== null &&
+      spaghettiState.graphDocumentsById[resolvedGraphDocumentId] !== undefined &&
+      spaghettiState.activeGraphDocumentId !== resolvedGraphDocumentId
+    ) {
+      activateGraphDocumentIntent(
+        buildWorkspaceIntentDepsFromStoreState(),
+        resolvedGraphDocumentId,
+        {
+          strategy: 'open-or-focus',
+        },
+      )
+    }
 
     const currentSession = useConsoleStore.getState().stagedNavigationSession
     const isForcedRootAvailabilitySync =

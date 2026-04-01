@@ -2546,6 +2546,281 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
   })
 
+  it('hides stale published component shells once Browser adoption moves all published objects elsewhere', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+      {
+        slotId: 'slot-toe-hook',
+        sourceNodeId: 'node-toehook-1',
+        sourcePartKey: 'toeHook#1',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact, toeHookArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact, toeHookArtifact],
+            publishedAtBuildSeq: 13,
+          }),
+        },
+      },
+    }))
+
+    const publishedComponentId = 'project-component:project-file-1:graph-document-1:published'
+    const firstObjectId = 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate'
+    const secondObjectId = 'project-object:project-file-1:graph-document-1:output-object:slot-toe-hook'
+    const assemblyId = useAppStore.getState().createProjectAssembly()
+    const firstAuthoredComponentId = useAppStore.getState().createProjectComponent(assemblyId)
+    const secondAuthoredComponentId = useAppStore.getState().createProjectComponent(assemblyId)
+
+    expect(firstAuthoredComponentId).toBeTruthy()
+    expect(secondAuthoredComponentId).toBeTruthy()
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: firstObjectId },
+        { kind: 'component', componentId: firstAuthoredComponentId!, position: 'into' },
+      ),
+    ).toBe(true)
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: secondObjectId },
+        { kind: 'component', componentId: secondAuthoredComponentId!, position: 'into' },
+      ),
+    ).toBe(true)
+
+    const immediateRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(
+      immediateRows.some(
+        (row) => row.kind === 'component' && row.rowId === publishedComponentId,
+      ),
+    ).toBe(false)
+    expect(immediateRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: firstObjectId,
+          parentComponentId: firstAuthoredComponentId,
+        }),
+        expect.objectContaining({
+          rowId: secondObjectId,
+          parentComponentId: secondAuthoredComponentId,
+        }),
+      ]),
+    )
+
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'release')
+
+    expect(useAppStore.getState().projectContent.componentsById[publishedComponentId]).toBeUndefined()
+    expect(useAppStore.getState().runtimeContentPlacementByRowId[publishedComponentId]).toBeUndefined()
+    expect(useAppStore.getState().projectContent.objectsById[firstObjectId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: firstAuthoredComponentId,
+    })
+    expect(useAppStore.getState().projectContent.objectsById[secondObjectId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: secondAuthoredComponentId,
+    })
+  })
+
+  it('keeps top-level authored assemblies out of the runtime root and heals duplicated child order after two-graph sync', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { selectBrowserTreeRows } = await import('../panels/selectBrowserTreeRows')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const secondGraphId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Graph 2')
+
+    const firstPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const secondPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-toe-hook',
+        sourceNodeId: 'node-toehook-2',
+        sourcePartKey: 'toeHook#1',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation: firstPreviewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation: firstPreviewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact],
+            publishedAtBuildSeq: 30,
+          }),
+        },
+        [secondGraphId]: {
+          ...state.graphRuntimeByDocumentId[secondGraphId],
+          previewPreparation: secondPreviewPreparation,
+          acceptedBuildOutputs: [toeHookArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: secondGraphId,
+            previewPreparation: secondPreviewPreparation,
+            acceptedBuildOutputs: [toeHookArtifact],
+            publishedAtBuildSeq: 31,
+          }),
+        },
+      },
+    }))
+
+    const firstAssemblyId = useAppStore.getState().createProjectAssembly()
+    const secondAssemblyId = useAppStore.getState().createProjectAssembly()
+    const firstComponentId = useAppStore.getState().createProjectComponent(firstAssemblyId)
+    const secondComponentId = useAppStore.getState().createProjectComponent(secondAssemblyId)
+    const firstObjectId = 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate'
+    const secondObjectId = `project-object:project-file-1:${secondGraphId}:output-object:slot-toe-hook`
+
+    expect(firstComponentId).toBeTruthy()
+    expect(secondComponentId).toBeTruthy()
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: firstObjectId },
+        { kind: 'component', componentId: firstComponentId!, position: 'into' },
+      ),
+    ).toBe(true)
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: secondObjectId },
+        { kind: 'component', componentId: secondComponentId!, position: 'into' },
+      ),
+    ).toBe(true)
+
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          ...state.projectContent.assembliesById,
+          [firstAssemblyId]: {
+            ...state.projectContent.assembliesById[firstAssemblyId],
+            childRowIds: [firstComponentId!, firstComponentId!],
+          },
+          [secondAssemblyId]: {
+            ...state.projectContent.assembliesById[secondAssemblyId],
+            childRowIds: [secondComponentId!, secondComponentId!],
+          },
+        },
+        componentsById: {
+          ...state.projectContent.componentsById,
+          [firstComponentId!]: {
+            ...state.projectContent.componentsById[firstComponentId!],
+            childObjectIds: [firstObjectId, firstObjectId],
+          },
+          [secondComponentId!]: {
+            ...state.projectContent.componentsById[secondComponentId!],
+            childObjectIds: [secondObjectId, secondObjectId],
+          },
+        },
+      },
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        contentOrderByParentKey: {
+          ...state.referenceWorkspace.contentOrderByParentKey,
+          [`assembly:${firstAssemblyId}`]: [firstComponentId!, firstComponentId!],
+          [`assembly:${secondAssemblyId}`]: [secondComponentId!, secondComponentId!],
+          [`component:${firstComponentId!}`]: [firstObjectId, firstObjectId],
+          [`component:${secondComponentId!}`]: [secondObjectId, secondObjectId],
+        },
+      },
+    }))
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+      },
+    }))
+
+    expect(useAppStore.getState().projectContent.assembliesById['assembly-root:project-file-1']?.childRowIds).toEqual([])
+    expect(useAppStore.getState().projectContent.assembliesById[firstAssemblyId]?.childRowIds).toEqual([
+      firstComponentId,
+    ])
+    expect(useAppStore.getState().projectContent.assembliesById[secondAssemblyId]?.childRowIds).toEqual([
+      secondComponentId,
+    ])
+    expect(useAppStore.getState().projectContent.componentsById[firstComponentId!]?.childObjectIds).toEqual([
+      firstObjectId,
+    ])
+    expect(useAppStore.getState().projectContent.componentsById[secondComponentId!]?.childObjectIds).toEqual([
+      secondObjectId,
+    ])
+
+    const contentRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+    const treeRows = selectBrowserTreeRows({
+      contentRows,
+      graphRows: [],
+      browserGraphBuildPolicyByGraphDocumentId:
+        useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId,
+      browserContentBuildPolicyByRowId: useAppStore.getState().browserContentBuildPolicyByRowId,
+      contentOrderByParentKey: useAppStore.getState().referenceWorkspace.contentOrderByParentKey,
+      editorViewports: [],
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      selectedRowId: null,
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(treeRows.contentRows.filter((row) => row.rowId === firstAssemblyId)).toHaveLength(1)
+    expect(treeRows.contentRows.filter((row) => row.rowId === secondAssemblyId)).toHaveLength(1)
+    expect(treeRows.contentRows.filter((row) => row.rowId === firstComponentId)).toHaveLength(1)
+    expect(treeRows.contentRows.filter((row) => row.rowId === secondComponentId)).toHaveLength(1)
+    expect(treeRows.contentRows.filter((row) => row.rowId === firstObjectId)).toHaveLength(1)
+    expect(treeRows.contentRows.filter((row) => row.rowId === secondObjectId)).toHaveLength(1)
+  })
+
   it('derives assembly, component, and object viewer visibility from part visibility', async () => {
     const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')

@@ -441,12 +441,26 @@ export const selectBrowserTreeRows = (options: {
   const selectedRowIdSet = new Set(selectedRowIds)
   const buildContentParentOrderKey = (kind: 'assembly' | 'component', id: string): string =>
     `${kind}:${id}`
+  const dedupeOrderedRowIds = (orderedRowIds: readonly string[]): string[] => {
+    const seen = new Set<string>()
+    const deduped: string[] = []
+    orderedRowIds.forEach((rowId) => {
+      if (seen.has(rowId)) {
+        return
+      }
+      seen.add(rowId)
+      deduped.push(rowId)
+    })
+    return deduped
+  }
   const normalizeOrderedRowIds = (orderedRowIds: string[] | undefined, defaultRowIds: string[]): string[] => {
     if (orderedRowIds === undefined) {
-      return [...defaultRowIds]
+      return dedupeOrderedRowIds(defaultRowIds)
     }
     const defaultRowIdSet = new Set(defaultRowIds)
-    const normalized = orderedRowIds.filter((rowId) => defaultRowIdSet.has(rowId))
+    const normalized = dedupeOrderedRowIds(
+      orderedRowIds.filter((rowId) => defaultRowIdSet.has(rowId)),
+    )
     defaultRowIds.forEach((rowId) => {
       if (!normalized.includes(rowId)) {
         normalized.push(rowId)
