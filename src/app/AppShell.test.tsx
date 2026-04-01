@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { act } from 'react'
+import { act, useLayoutEffect } from 'react'
+import { useRef } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useConsoleStore } from './console/useConsoleStore'
@@ -127,16 +128,96 @@ vi.mock('./console/ConsoleDock', async () => {
     ConsoleDock: ({
       listLeftOffset,
       suppressDockedSurface = false,
+      slotHeaderDragSeed = null,
+      onConsumeSlotHeaderDragSeed,
     }: {
       listLeftOffset: number
       suppressDockedSurface?: boolean
+      slotHeaderDragSeed?: {
+        pointerId: number
+        clientX: number
+        clientY: number
+        pointerOffsetX: number
+        pointerOffsetY: number
+        titleBarHeight: number
+      } | null
+      onConsumeSlotHeaderDragSeed?: () => void
     }) => {
       const isExpanded = useConsoleStore((state) => state.isExpanded)
       const isListMode = useConsoleStore((state) => state.isListMode)
       const windowMode = useConsoleStore((state) => state.windowMode)
       const entries = useConsoleStore((state) => state.entries)
       const toggleExpanded = useConsoleStore((state) => state.toggleExpanded)
+      const floatingRect = useConsoleStore((state) => state.floatingRect)
+      const setFloatingRect = useConsoleStore((state) => state.setFloatingRect)
+      const consumedSlotHeaderDragPointerIdRef = useRef<number | null>(null)
       const shouldRenderDockedSurface = !(suppressDockedSurface && windowMode === 'docked')
+      const resolveFloatingViewportSize = () => {
+        const dockElement = document.querySelector('.ConsoleDockMock') as HTMLDivElement | null
+        const width = dockElement?.clientWidth ?? 0
+        const height = dockElement?.clientHeight ?? 0
+        return {
+          width: width > 0 ? width : window.innerWidth,
+          height: height > 0 ? height : window.innerHeight,
+        }
+      }
+
+      useLayoutEffect(() => {
+        if (windowMode !== 'floating' || slotHeaderDragSeed === null) {
+          return
+        }
+        if (consumedSlotHeaderDragPointerIdRef.current === slotHeaderDragSeed.pointerId) {
+          return
+        }
+        consumedSlotHeaderDragPointerIdRef.current = slotHeaderDragSeed.pointerId
+
+        const seededRect = {
+          ...useConsoleStore.getState().floatingRect,
+          x: Math.round(slotHeaderDragSeed.clientX - slotHeaderDragSeed.pointerOffsetX),
+          y: Math.round(slotHeaderDragSeed.clientY - slotHeaderDragSeed.pointerOffsetY),
+        }
+        setFloatingRect(seededRect)
+
+        const move = (event: PointerEvent) => {
+          const viewportSize = resolveFloatingViewportSize()
+          setFloatingRect({
+            ...seededRect,
+            x: Math.max(
+              12,
+              Math.min(
+                Math.round(event.clientX - slotHeaderDragSeed.pointerOffsetX),
+                viewportSize.width - seededRect.width - 12,
+              ),
+            ),
+            y: Math.max(
+              12,
+              Math.min(
+                Math.round(event.clientY - slotHeaderDragSeed.pointerOffsetY),
+                viewportSize.height - seededRect.height - 12,
+              ),
+            ),
+          })
+        }
+        const stop = () => {
+          window.removeEventListener('pointermove', move)
+          window.removeEventListener('pointerup', stop)
+          window.removeEventListener('pointercancel', stop)
+        }
+
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', stop)
+        window.addEventListener('pointercancel', stop)
+        onConsumeSlotHeaderDragSeed?.()
+
+        return () => {
+          stop()
+        }
+      }, [
+        onConsumeSlotHeaderDragSeed,
+        setFloatingRect,
+        slotHeaderDragSeed,
+        windowMode,
+      ])
 
       if (!shouldRenderDockedSurface) {
         return null
@@ -163,6 +244,19 @@ vi.mock('./console/ConsoleDock', async () => {
             </div>
           ) : null}
           {isExpanded && shouldRenderDockedSurface ? <div className="ConsolePanel">Console Panel</div> : null}
+          {windowMode === 'floating' ? (
+            <div
+              className="ConsoleFloatingWindow"
+              style={{
+                left: `${floatingRect.x}px`,
+                top: `${floatingRect.y}px`,
+                width: `${floatingRect.width}px`,
+                height: `${floatingRect.height}px`,
+              }}
+            >
+              Console Floating
+            </div>
+          ) : null}
         </div>
       )
     },
@@ -573,6 +667,16 @@ describe('AppShell', () => {
         currentSpaghettiState.editorViewportsById[editorViewportId] = {
           ...currentViewport,
           windowMode,
+        }
+      }),
+      restoreEditorViewportFromSeparateWindow: vi.fn((editorViewportId: string) => {
+        const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+        if (currentViewport === undefined || currentViewport.windowMode !== 'separateWindow') {
+          return
+        }
+        currentSpaghettiState.editorViewportsById[editorViewportId] = {
+          ...currentViewport,
+          windowMode: 'expanded',
         }
       }),
       setEditorViewportHeaderCollapsed: vi.fn((editorViewportId: string, collapsed: boolean) => {
@@ -1398,10 +1502,210 @@ describe('AppShell', () => {
     })
 
     expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(true)
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'browser',
+      ),
+    ).toHaveLength(0)
     const browserShell = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
     expect(browserShell).not.toBeNull()
+    expect(
+      container?.querySelector('.ViewportFrame[data-workspace-surface-kind="browser"]'),
+    ).toBeNull()
     expect(browserShell?.style.width).toBe('320px')
     expect(useWorkspaceStore.getState().browserShell.position.x).toBeGreaterThan(0)
+  })
+
+  it('drags a slotted spaghetti editor out from the viewport header into floating mode', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'spaghettiEditor',
+        surfaceInstanceId: 'editor-viewport-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'spaghettiEditor',
+    ) as HTMLDivElement | undefined
+    const header = slotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+    expect(slotFrame).not.toBeUndefined()
+    expect(header).not.toBeNull()
+
+    mockShellGeometry(container)
+    mockRect(slotFrame, {
+      left: 920,
+      top: 0,
+      width: 520,
+      height: 900,
+    })
+    mockElementSize(slotFrame, {
+      width: 520,
+      height: 900,
+    })
+    mockRect(header, {
+      left: 920,
+      top: 0,
+      width: 520,
+      height: 40,
+    })
+
+    await act(async () => {
+      header?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 1,
+          clientX: 980,
+          clientY: 24,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 1020,
+          clientY: 72,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 800,
+          clientY: 140,
+        }),
+      )
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 800,
+          clientY: 140,
+        }),
+      )
+    })
+
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'spaghettiEditor',
+      ),
+    ).toHaveLength(0)
+    expect(
+      container?.querySelector('.ViewportFrame[data-workspace-surface-kind="spaghettiEditor"]'),
+    ).toBeNull()
+    expect(container?.querySelector('.SpaghettiFloatingWindow')).not.toBeNull()
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.windowMode).toBe(
+      'expanded',
+    )
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.position.x).toBeGreaterThan(
+      300,
+    )
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.position.y).toBeGreaterThan(
+      30,
+    )
+  })
+
+  it('drags a slotted console out from the viewport header into a live floating window', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'console',
+    ) as HTMLDivElement | undefined
+    const header = slotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+    expect(slotFrame).not.toBeUndefined()
+    expect(header).not.toBeNull()
+
+    mockShellGeometry(container)
+    mockRect(slotFrame, {
+      left: 920,
+      top: 0,
+      width: 520,
+      height: 900,
+    })
+    mockElementSize(slotFrame, {
+      width: 520,
+      height: 900,
+    })
+    mockRect(header, {
+      left: 920,
+      top: 0,
+      width: 520,
+      height: 40,
+    })
+
+    await act(async () => {
+      header?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 1,
+          clientX: 980,
+          clientY: 24,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 1020,
+          clientY: 72,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 800,
+          clientY: 140,
+        }),
+      )
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 800,
+          clientY: 140,
+        }),
+      )
+    })
+
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'console',
+      ),
+    ).toHaveLength(0)
+    expect(container?.querySelector('.ViewportFrame[data-workspace-surface-kind="console"]')).toBeNull()
+    expect(container?.querySelector('.ConsoleFloatingWindow')).not.toBeNull()
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+    expect(useConsoleStore.getState().floatingRect.x).toBeGreaterThan(300)
+    expect(useConsoleStore.getState().floatingRect.y).toBeGreaterThan(30)
   })
 
   it('suppresses the old docked console host while a console surface is already hosted in the slot tree', async () => {
@@ -1551,7 +1855,7 @@ describe('AppShell', () => {
     )
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
-      persistedEditorSurface.windowMode,
+      'expanded',
     )
   })
 
@@ -1973,7 +2277,7 @@ describe('AppShell', () => {
     expect(splitLayout?.style.gridTemplateColumns).toContain('0.6fr 10px 0.4fr')
   })
 
-  it('opens the divider context menu and lets split view change priority mode', async () => {
+  it('does not expose the old split-priority divider menu after split view migrates to the workspace tree', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
 
     ;({ container, root } = await renderAppShell())
@@ -1985,25 +2289,11 @@ describe('AppShell', () => {
       divider?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const priorityButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
-      (button) => button.textContent === 'Favor Second Pane',
-    )
-    expect(priorityButton).not.toBeNull()
-
-    await act(async () => {
-      priorityButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    })
-
-    expect(currentSpaghettiState.setEditorViewportSplitPriority).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      'favorSecond',
-    )
-    expect(container?.querySelector('.ViewportSplitLayout')?.classList.contains('isFavorSecond')).toBe(
-      true,
-    )
+    expect(container?.querySelector('.WorkspaceSplitMenu')).toBeNull()
+    expect(currentSpaghettiState.setEditorViewportSplitPriority).not.toHaveBeenCalled()
   })
 
-  it('opens the floating spaghetti titlebar context menu and creates a vertical split', async () => {
+  it('opens the floating spaghetti titlebar context menu and creates a real vertical workspace split', async () => {
     ;({ container, root } = await renderAppShell())
 
     const floatingTitleBar = container?.querySelector(
@@ -2030,101 +2320,48 @@ describe('AppShell', () => {
     )
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
-      'split view',
+      'expanded',
     )
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === 'editor-viewport-1',
+      ),
+    ).toBe(true)
   })
 
-  it('resets the split ratio from the divider context menu', async () => {
+  it('migrates split view compatibility state onto a generic workspace divider instead of the old split shell', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
 
     ;({ container, root } = await renderAppShell())
 
     const divider = container?.querySelector('.ViewportSplitDivider') as HTMLButtonElement | null
     expect(divider).not.toBeNull()
-
-    await act(async () => {
-      divider?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
-    })
-
-    const resetButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
-      (button) => button.textContent === 'Reset Ratio',
-    )
-    expect(resetButton).not.toBeNull()
-
-    await act(async () => {
-      resetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    })
-
-    expect(currentSpaghettiState.setEditorViewportSplitRatio).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      0.5,
-    )
+    expect(container?.querySelector('.SpaghettiSplitWindow')).toBeNull()
   })
 
-  it('ctrl-clicking the split spaghetti title bar detaches back to the floating editor', async () => {
+  it('does not revive the old split spaghetti title bar from compatibility state', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
 
     ;({ container, root } = await renderAppShell())
 
     const splitTitleBar = container?.querySelector('.SpaghettiSplitWindow .SpaghettiFloatingHandle')
-    expect(splitTitleBar).not.toBeNull()
-
-    await act(async () => {
-      splitTitleBar?.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true }))
-    })
-
-    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      'expanded',
-    )
+    expect(splitTitleBar).toBeNull()
   })
 
-  it('ctrl-dragging the split spaghetti title bar hands off into a live floating drag', async () => {
+  it('migrates split view compatibility state without exposing the old draggable split title bar', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('split view')
 
     ;({ container, root } = await renderAppShell())
-    mockShellGeometry(container)
-
     const splitTitleBar = container?.querySelector('.SpaghettiSplitWindow .SpaghettiFloatingHandle')
-    expect(splitTitleBar).not.toBeNull()
-
-    await act(async () => {
-      splitTitleBar?.dispatchEvent(
-        new PointerEvent('pointerdown', {
-          bubbles: true,
-          cancelable: true,
-          button: 0,
-          ctrlKey: true,
-          clientX: 520,
-          clientY: 620,
-        }),
-      )
-      window.dispatchEvent(
-        new PointerEvent('pointermove', {
-          bubbles: true,
-          cancelable: true,
-          clientX: 620,
-          clientY: 700,
-        }),
-      )
-      window.dispatchEvent(
-        new PointerEvent('pointerup', {
-          bubbles: true,
-          cancelable: true,
-          clientX: 620,
-          clientY: 700,
-        }),
-      )
-    })
-
-    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      'expanded',
-    )
-    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalled()
+    expect(splitTitleBar).toBeNull()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === 'editor-viewport-1',
+      ),
+    ).toBe(true)
   })
 
-  it('shows a bottom split ghost and docks the floating spaghetti editor into split view on release', async () => {
+  it('shows a bottom split ghost and docks the floating spaghetti editor into the workspace slot tree on release', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
     mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
@@ -2172,10 +2409,15 @@ describe('AppShell', () => {
       )
     })
 
-  expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
-      'split view',
+      'expanded',
     )
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === 'editor-viewport-1',
+      ),
+    ).toBe(true)
   })
 
   it('uses the full viewport width for the bottom split ghost even when left dock split is active', async () => {
@@ -2515,7 +2757,15 @@ describe('AppShell', () => {
 
     expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(true)
     expect(useWorkspaceStore.getState().browserShell.isPoppedOut).toBe(true)
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'browser',
+      ),
+    ).toHaveLength(0)
     expect(container?.querySelector('.BrowserFloatingWindow')).not.toBeNull()
+    expect(
+      container?.querySelector('.ViewportFrame[data-workspace-surface-kind="browser"]'),
+    ).toBeNull()
     expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
   })
 

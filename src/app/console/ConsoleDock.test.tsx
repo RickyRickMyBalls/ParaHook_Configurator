@@ -7,6 +7,7 @@ import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { useConsoleStore } from './useConsoleStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -48,6 +49,7 @@ describe('ConsoleDock', () => {
   beforeEach(async () => {
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     resetAudioSamplerStore()
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     window.open = originalWindowOpen
@@ -1297,6 +1299,116 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleDock--floatingOwner > .ConsolePanel')).toBeNull()
   })
 
+  it('uses the shared workspace float action when a real console slot is hosted in the workspace tree', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      useWorkspaceStore.getState().showViewportSplitSlot('console', 'right')
+      root?.render(<ConsoleDock />)
+    })
+
+    const expand = container.querySelector(
+      'button[aria-label="Expand console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      expand?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const floatButton = container.querySelector(
+      'button[aria-label="Float console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      floatButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+    expect(
+      Object.values(useWorkspaceStore.getState().detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'console' && surface.hostMode === 'floating',
+      ),
+    ).toBe(true)
+  })
+
+  it('keeps a slot-header seeded floating console attached to the pointer until release', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const consumeSeed = vi.fn()
+
+    await act(async () => {
+      useConsoleStore.getState().switchToFloating()
+      useConsoleStore.getState().setFloatingRect({
+        x: 64,
+        y: 64,
+        width: 720,
+        height: 420,
+      })
+      root?.render(
+        <ConsoleDock
+          slotHeaderDragSeed={{
+            pointerId: 1,
+            clientX: 320,
+            clientY: 180,
+            pointerOffsetX: 120,
+            pointerOffsetY: 24,
+            titleBarHeight: 32,
+          }}
+          onConsumeSlotHeaderDragSeed={consumeSeed}
+        />,
+      )
+    })
+
+    expect(consumeSeed).toHaveBeenCalledTimes(1)
+    expect(useConsoleStore.getState().floatingRect).toMatchObject({
+      x: 200,
+      y: 156,
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 250,
+        }),
+      )
+    })
+
+    expect(useConsoleStore.getState().floatingRect).toMatchObject({
+      x: 292,
+      y: 226,
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 250,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 520,
+          clientY: 320,
+        }),
+      )
+    })
+
+    expect(useConsoleStore.getState().floatingRect).toMatchObject({
+      x: 292,
+      y: 226,
+    })
+  })
+
   it('opens pop-out mode and keeps only the collapsed row in the main shell', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -1355,6 +1467,55 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().windowMode).toBe('docked')
     expect(useConsoleStore.getState().isExpanded).toBe(false)
+  })
+
+  it('uses the shared workspace popout action when a real console slot is hosted in the workspace tree', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    const popoutDocument = document.implementation.createHTMLDocument('Console Workspace Popout')
+    const popoutWindow = {
+      get closed() {
+        return false
+      },
+      document: popoutDocument,
+      focus: () => undefined,
+      close: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    } as unknown as Window
+
+    window.open = (() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      useWorkspaceStore.getState().showViewportSplitSlot('console', 'right')
+      root?.render(<ConsoleDock />)
+    })
+
+    const expand = container.querySelector(
+      'button[aria-label="Expand console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      expand?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const popButton = container.querySelector(
+      'button[aria-label="Pop out console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      popButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().windowMode).toBe('popout')
+    expect(
+      Object.values(useWorkspaceStore.getState().detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'console' && surface.hostMode === 'popout',
+      ),
+    ).toBe(true)
+    expect(popoutDocument.querySelector('.ConsoleDock--popoutSurface')).not.toBeNull()
   })
 
   it('switches on the list overlay without collapsing an already-expanded docked console', async () => {

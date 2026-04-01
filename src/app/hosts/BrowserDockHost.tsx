@@ -12,9 +12,16 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { BrowserPanel } from '../panels/BrowserPanel'
+import {
+  commitWorkspaceSurfaceRootSplit,
+  commitWorkspaceSurfaceSlotSplit,
+  redockWorkspaceSurface,
+  splitWorkspaceSurfaceToSide,
+} from '../workspace/workspaceSurfaceActions'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
+  defaultBrowserHostRouteId,
   defaultBrowserPopoutState,
   defaultBrowserFloatingSize,
   defaultBrowserToolbarOwnerSurfaceInstanceId,
@@ -123,9 +130,8 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const setIsBrowserPoppedOut = useWorkspaceStore((state) => state.setBrowserPoppedOut)
   const isBrowserViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
   const setIsBrowserViewportSplit = useWorkspaceStore((state) => state.setBrowserViewportSplit)
-  const setBrowserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
-    (state) => state.setBrowserToolbarOwnerSurfaceInstanceId,
-  )
+  const claimHostRoute = useWorkspaceStore((state) => state.claimHostRoute)
+  const releaseHostRoute = useWorkspaceStore((state) => state.releaseHostRoute)
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const isBrowserCollapsed = useWorkspaceStore((state) => state.browserShell.isCollapsed)
   const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
@@ -152,8 +158,9 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const splitViewportRoot = useWorkspaceStore((state) => state.splitViewportRoot)
   const viewportSlotsById = useWorkspaceStore((state) => state.viewportSlotsById)
   const viewportLayoutNodesById = useWorkspaceStore((state) => state.viewportLayoutNodesById)
+  const primaryViewportId = useWorkspaceStore((state) => state.primaryViewportId)
   const browserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
-    (state) => state.browserToolbarOwnerSurfaceInstanceId,
+    (state) => state.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]?.surfaceInstanceId ?? null,
   )
   const browserFloatingWindowRef = useRef<HTMLDivElement | null>(null)
   const [browserViewportSplitPortalTarget, setBrowserViewportSplitPortalTarget] =
@@ -188,6 +195,20 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     useState<BrowserNestedSplitPreview | null>(null)
   const activeDetachedBrowserSurface =
     Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'browser') ?? null
+
+  const resolveActiveBrowserSurfaceInstanceId = useCallback(
+    () =>
+      activeDetachedBrowserSurface?.surfaceInstanceId ??
+      (browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId),
+    [activeDetachedBrowserSurface, browserToolbarOwnerSurfaceInstanceId],
+  )
+
+  const clearBrowserDockCommitPreviewState = useCallback(() => {
+    setBrowserFloatingSplitMenu(null)
+    setActiveLeftDockPreviewPanelId(null)
+    setBrowserSplitDockPreview(null)
+    setBrowserNestedSplitPreview(null)
+  }, [setActiveLeftDockPreviewPanelId])
 
   const forwardWheelIntoDockedBrowserScrollTarget = useCallback(
     (browserRoot: HTMLElement, deltaY: number) => {
@@ -640,26 +661,14 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   )
 
   const handleQuickDockBrowser = useCallback(() => {
-    setBrowserFloatingSplitMenu(null)
-    setActiveLeftDockPreviewPanelId(null)
-    setBrowserSplitDockPreview(null)
-    setBrowserNestedSplitPreview(null)
-    if (activeDetachedBrowserSurface !== null) {
-      clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
-      setBrowserToolbarOwnerSurfaceInstanceId(activeDetachedBrowserSurface.surfaceInstanceId)
-    } else {
-      setBrowserToolbarOwnerSurfaceInstanceId(defaultBrowserToolbarOwnerSurfaceInstanceId)
-    }
-    setIsBrowserViewportSplit(false)
-    setIsBrowserFloating(false)
+    clearBrowserDockCommitPreviewState()
+    redockWorkspaceSurface(resolveActiveBrowserSurfaceInstanceId(), {
+      routeId: defaultBrowserHostRouteId,
+    })
   }, [
-    activeDetachedBrowserSurface,
-    clearDetachedSlotSurface,
-    setActiveLeftDockPreviewPanelId,
-    setBrowserNestedSplitPreview,
-    setBrowserToolbarOwnerSurfaceInstanceId,
-    setIsBrowserFloating,
-    setIsBrowserViewportSplit,
+    clearBrowserDockCommitPreviewState,
+    redockWorkspaceSurface,
+    resolveActiveBrowserSurfaceInstanceId,
   ])
 
   const handleCycleBrowserPresentationMode = useCallback(() => {
@@ -703,84 +712,48 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       }
       event.preventDefault()
       event.stopPropagation()
-      setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreview(null)
-      setBrowserNestedSplitPreview(null)
+      clearBrowserDockCommitPreviewState()
       setBrowserFloatingSplitMenu({
         x: event.clientX,
         y: event.clientY,
       })
     },
     [
+      clearBrowserDockCommitPreviewState,
       isBrowserFloating,
-      setActiveLeftDockPreviewPanelId,
-      setBrowserNestedSplitPreview,
     ],
   )
 
   const handleSelectFloatingSplitDockSide = useCallback(
     (splitDockSide: WorkspaceSplitDockSide) => {
-      setBrowserFloatingSplitMenu(null)
-      setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreview(null)
-      setBrowserNestedSplitPreview(null)
-      setBrowserViewportSplitRatio(resolvePreferredBrowserViewportSplitRatio(splitDockSide))
-      if (activeDetachedBrowserSurface !== null) {
-        redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, splitDockSide)
-        setIsBrowserFloating(false)
-        setIsBrowserViewportSplit(false)
-        return
-      }
-      setBrowserViewportSplitDockSide(splitDockSide)
-      setIsBrowserViewportSplit(true)
+      clearBrowserDockCommitPreviewState()
+      splitWorkspaceSurfaceToSide(resolveActiveBrowserSurfaceInstanceId(), splitDockSide, {
+        preferredRatio: resolvePreferredBrowserViewportSplitRatio(splitDockSide),
+      })
     },
     [
-      activeDetachedBrowserSurface,
-      redockDetachedSurface,
+      clearBrowserDockCommitPreviewState,
       resolvePreferredBrowserViewportSplitRatio,
-      setActiveLeftDockPreviewPanelId,
-      setIsBrowserFloating,
-      setIsBrowserViewportSplit,
-      setBrowserNestedSplitPreview,
-      setBrowserViewportSplitRatio,
-      setBrowserViewportSplitDockSide,
+      resolveActiveBrowserSurfaceInstanceId,
+      splitWorkspaceSurfaceToSide,
     ],
   )
 
   const commitBrowserSlotSplit = useCallback(
     (targetSlotId: WorkspaceViewportSlotId, splitDockSide: WorkspaceSplitDockSide) => {
-      const preferredRatio = resolvePreferredBrowserViewportSplitRatio(splitDockSide)
-      if (activeDetachedBrowserSurface !== null) {
-        splitViewportSlot(targetSlotId, splitDockSide, {
-          surfaceKind: 'browser',
-          surfaceInstanceId: activeDetachedBrowserSurface.surfaceInstanceId,
-          preferredRatio,
-        })
-        clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
-        setIsBrowserFloating(false)
-        setIsBrowserViewportSplit(false)
-        return
-      }
-
-      splitViewportSlot(targetSlotId, splitDockSide, {
-        surfaceKind: 'browser',
-        surfaceInstanceId:
-          browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId,
-        preferredRatio,
-      })
-      setBrowserToolbarOwnerSurfaceInstanceId(null)
-      setIsBrowserFloating(false)
-      setIsBrowserViewportSplit(false)
+      commitWorkspaceSurfaceSlotSplit(
+        resolveActiveBrowserSurfaceInstanceId(),
+        targetSlotId,
+        splitDockSide,
+        {
+          preferredRatio: resolvePreferredBrowserViewportSplitRatio(splitDockSide),
+        },
+      )
     },
     [
-      activeDetachedBrowserSurface,
-      browserToolbarOwnerSurfaceInstanceId,
-      clearDetachedSlotSurface,
+      commitWorkspaceSurfaceSlotSplit,
+      resolveActiveBrowserSurfaceInstanceId,
       resolvePreferredBrowserViewportSplitRatio,
-      setBrowserToolbarOwnerSurfaceInstanceId,
-      setIsBrowserFloating,
-      setIsBrowserViewportSplit,
-      splitViewportSlot,
     ],
   )
 
@@ -788,39 +761,17 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     (splitDockSide: WorkspaceSplitDockSide) => {
       const preferredRatio = resolvePreferredBrowserViewportSplitRatio(splitDockSide)
       setBrowserViewportSplitRatio(preferredRatio)
-      if (activeDetachedBrowserSurface !== null) {
-        splitViewportRoot(splitDockSide, {
-          surfaceKind: 'browser',
-          surfaceInstanceId: activeDetachedBrowserSurface.surfaceInstanceId,
-          preferredRatio,
-          hostViewportId: activeDetachedBrowserSurface.hostViewportId,
-        })
-        clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
-        setIsBrowserFloating(false)
-        setIsBrowserViewportSplit(false)
-        return
-      }
-
-      splitViewportRoot(splitDockSide, {
-        surfaceKind: 'browser',
-        surfaceInstanceId:
-          browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId,
-        preferredRatio,
-      })
-      setBrowserToolbarOwnerSurfaceInstanceId(null)
-      setIsBrowserFloating(false)
-      setIsBrowserViewportSplit(false)
+      commitWorkspaceSurfaceRootSplit(
+        resolveActiveBrowserSurfaceInstanceId(),
+        splitDockSide,
+        { preferredRatio },
+      )
     },
     [
-      activeDetachedBrowserSurface,
-      browserToolbarOwnerSurfaceInstanceId,
-      clearDetachedSlotSurface,
+      commitWorkspaceSurfaceRootSplit,
+      resolveActiveBrowserSurfaceInstanceId,
       resolvePreferredBrowserViewportSplitRatio,
       setBrowserViewportSplitRatio,
-      setBrowserToolbarOwnerSurfaceInstanceId,
-      setIsBrowserFloating,
-      setIsBrowserViewportSplit,
-      splitViewportRoot,
     ],
   )
 
@@ -829,9 +780,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       if (event.button !== 0 || !isBrowserFloating) {
         return
       }
-      setActiveLeftDockPreviewPanelId(null)
-      setBrowserSplitDockPreview(null)
-      setBrowserNestedSplitPreview(null)
+      clearBrowserDockCommitPreviewState()
       const shellRect = appShellRef.current?.getBoundingClientRect()
       const titleBarRect = event.currentTarget.getBoundingClientRect()
       if (shellRect === undefined) {
@@ -850,10 +799,9 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     },
     [
       appShellRef,
+      clearBrowserDockCommitPreviewState,
       isBrowserFloating,
       lockBrowserDragTextSelection,
-      setActiveLeftDockPreviewPanelId,
-      setBrowserNestedSplitPreview,
     ],
   )
 
@@ -862,7 +810,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       if (event.button !== 0 || isBrowserFloating) {
         return
       }
-      setActiveLeftDockPreviewPanelId(null)
+      clearBrowserDockCommitPreviewState()
       const shellRect = appShellRef.current?.getBoundingClientRect()
       const panelElement = event.currentTarget.parentElement
       const panelRect = panelElement?.getBoundingClientRect()
@@ -884,7 +832,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       browserFloatingPosRef.current = nextPos
       setBrowserFloatingSize(nextSize)
       setBrowserFloatingPos(nextPos)
-      setBrowserToolbarOwnerSurfaceInstanceId(null)
+      releaseHostRoute(defaultBrowserHostRouteId)
       setIsBrowserFloating(true)
       browserDragRef.current = {
         pointerOffsetX,
@@ -906,11 +854,11 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       appShellRef,
       clampBrowserFloatingPos,
       clampBrowserFloatingSize,
+      clearBrowserDockCommitPreviewState,
       isBrowserFloating,
-      setActiveLeftDockPreviewPanelId,
       setBrowserFloatingPos,
       setBrowserFloatingSize,
-      setBrowserToolbarOwnerSurfaceInstanceId,
+      releaseHostRoute,
       setIsBrowserFloating,
       lockBrowserDragTextSelection,
     ],
@@ -1316,13 +1264,9 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       setBrowserSplitDockPreview(null)
       setBrowserNestedSplitPreview(null)
       if (shouldDockBrowser) {
-        if (activeDetachedBrowserSurface !== null) {
-          clearDetachedSlotSurface(activeDetachedBrowserSurface.surfaceInstanceId)
-          setBrowserToolbarOwnerSurfaceInstanceId(activeDetachedBrowserSurface.surfaceInstanceId)
-        } else {
-          setBrowserToolbarOwnerSurfaceInstanceId(defaultBrowserToolbarOwnerSurfaceInstanceId)
-        }
-        setIsBrowserFloating(false)
+        redockWorkspaceSurface(resolveActiveBrowserSurfaceInstanceId(), {
+          routeId: defaultBrowserHostRouteId,
+        })
       } else if (nextNestedSplitPreview !== null) {
         commitBrowserSlotSplit(nextNestedSplitPreview.targetSlotId, nextNestedSplitPreview.activeSide)
       } else if (nextSplitDockPreview !== null) {
@@ -1345,23 +1289,21 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     }
   }, [
     appShellRef,
-    activeDetachedBrowserSurface,
     commitBrowserSlotSplit,
     commitBrowserWholeLayoutSplit,
-    clearDetachedSlotSurface,
     clampBrowserFloatingPos,
     clampBrowserFloatingSize,
     isBrowserFloating,
+    redockWorkspaceSurface,
     resolveBrowserNestedSplitPreview,
     resolveBrowserSplitDockPreviewSide,
     resolveLeftDockPreviewPanelId,
+    resolveActiveBrowserSurfaceInstanceId,
     setActiveLeftDockPreviewPanelId,
     setBrowserFloatingPos,
     setBrowserFloatingSize,
     setBrowserNestedSplitPreview,
     setBrowserSplitDockPreview,
-    setBrowserToolbarOwnerSurfaceInstanceId,
-    setIsBrowserFloating,
     unlockBrowserDragTextSelection,
   ])
 

@@ -607,6 +607,7 @@ export type SpaghettiStoreState = {
     editorViewportId: string,
     windowMode: EditorViewport['windowMode'],
   ) => void
+  restoreEditorViewportFromSeparateWindow: (editorViewportId: string) => void
   setEditorViewportHeaderCollapsed: (editorViewportId: string, collapsed: boolean) => void
   setEditorViewportCanvasToolbarVisible: (editorViewportId: string, visible: boolean) => void
   setEditorViewportPresentationMode: (
@@ -6210,6 +6211,60 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       )) {
         workspaceState.setEditorSurfacePlacement(currentViewportId, placement)
       }
+    }
+  },
+  restoreEditorViewportFromSeparateWindow: (editorViewportId) => {
+    let nextPlacement: EditorWorkspaceSurfaceState | null = null
+    set((state) => {
+      const viewport = state.editorViewportsById[editorViewportId]
+      if (viewport === undefined) {
+        return state
+      }
+      const currentSurface = readEditorWorkspaceSurfaceState(viewport)
+      if (currentSurface.windowMode !== 'separateWindow') {
+        return state
+      }
+      const restore = currentSurface.restoreFromSeparateWindow ?? null
+      const popoutState = currentSurface.popoutState ?? createDefaultEditorPopoutState(editorViewportId)
+      nextPlacement =
+        restore === null
+          ? {
+              ...currentSurface,
+              windowMode: 'expanded',
+              position: defaultViewportPosition,
+              size: defaultViewportSize,
+              presentationMode: 'windowed',
+              popoutState: {
+                ...popoutState,
+                owner: 'main-app',
+              },
+              restoreFromSeparateWindow: null,
+            }
+          : {
+              ...currentSurface,
+              windowMode: restore.windowMode,
+              position: restore.position ?? currentSurface.position,
+              size: restore.size ?? currentSurface.size,
+              splitRatio: restore.splitRatio ?? currentSurface.splitRatio,
+              splitDirection: restore.splitDirection ?? currentSurface.splitDirection,
+              splitDockSide: restore.splitDockSide ?? currentSurface.splitDockSide,
+              splitPriority: restore.splitPriority ?? currentSurface.splitPriority,
+              presentationMode: resolveWorkspacePresentationMode(restore.windowMode),
+              popoutState: {
+                ...popoutState,
+                owner: 'main-app',
+              },
+              restoreFromSeparateWindow: null,
+            }
+      return withBrowserViewportState(state, {
+        editorViewportsById: {
+          ...state.editorViewportsById,
+          [editorViewportId]: applyEditorWorkspaceSurfaceStateToViewport(viewport, nextPlacement),
+        },
+      })
+    })
+    if (nextPlacement !== null) {
+      useWorkspaceStore.getState().setEditorSurfacePlacement(editorViewportId, nextPlacement)
     }
   },
   setEditorViewportHeaderCollapsed: (editorViewportId, collapsed) => {

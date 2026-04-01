@@ -54,12 +54,14 @@ export type WorkspaceSurfaceInstanceId = string
 export type WorkspaceViewportId = WorkspaceSurfaceInstanceId
 export type WorkspaceViewportSlotId = string
 export type WorkspaceLayoutNodeId = string
+export type WorkspaceHostRouteId = 'left-dock-browser'
 export type WorkspaceRetainedSurfaceInstanceIdsByKind = Partial<
   Record<WorkspaceSurfaceKind, WorkspaceSurfaceInstanceId>
 >
 
 export type WorkspacePresentationMode = 'windowed' | 'tiled'
 export type WorkspaceSurfaceHostMode = 'slotted' | 'floating' | 'popout'
+export type WorkspaceSurfacePlacementHostMode = WorkspaceSurfaceHostMode | 'docked'
 
 export type WorkspaceHostedSurfaceWindowOwner = 'main-app' | 'child-window'
 export type WorkspaceChildWindowId = string
@@ -73,6 +75,41 @@ export type WorkspaceChildWindowSpec = {
 
 export type WorkspacePopoutSurfaceState = WorkspaceChildWindowSpec & {
   owner: WorkspaceHostedSurfaceWindowOwner
+}
+
+export type WorkspaceFloatingRect = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type WorkspaceSurfaceRestoreTarget = {
+  slotId?: WorkspaceViewportSlotId
+  preferredSplitDockSide?: WorkspaceSplitDockSide
+}
+
+export type WorkspaceHostRouteOwnership = {
+  routeId: WorkspaceHostRouteId
+  surfaceKind: WorkspaceSurfaceKind
+  surfaceInstanceId: WorkspaceSurfaceInstanceId
+  hostViewportId: WorkspaceViewportId | null
+}
+
+export type WorkspaceHostRouteOwnershipByRouteId = Partial<
+  Record<WorkspaceHostRouteId, WorkspaceHostRouteOwnership>
+>
+
+export type WorkspaceSurfacePlacementState = {
+  surfaceKind: WorkspaceSurfaceKind
+  surfaceInstanceId: WorkspaceSurfaceInstanceId
+  hostMode: WorkspaceSurfacePlacementHostMode
+  hostViewportId: WorkspaceViewportId | null
+  slotId?: WorkspaceViewportSlotId
+  floatingRect?: WorkspaceFloatingRect
+  popoutState?: WorkspacePopoutSurfaceState | null
+  restoreTarget?: WorkspaceSurfaceRestoreTarget | null
+  namedHostRouteId?: WorkspaceHostRouteId
 }
 
 export type EditorSurfaceWindowMode =
@@ -197,6 +234,8 @@ export type PersistedWorkspaceLayout = {
   isLeftDockViewportSplit: boolean
   browserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId | null
   browserShell: BrowserShellState
+  hostRouteOwnershipByRouteId: WorkspaceHostRouteOwnershipByRouteId
+  surfacePlacementById: Record<string, WorkspaceSurfacePlacementState>
   activeViewerViewportId: WorkspaceViewportId
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
@@ -223,6 +262,7 @@ export const defaultBrowserFloatingSize: BrowserFloatingSize = { width: 320, hei
 export const defaultBrowserPresentationMode: BrowserPresentationMode = 'expanded'
 export const defaultBrowserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId =
   'browser-left-dock-primary'
+export const defaultBrowserHostRouteId: WorkspaceHostRouteId = 'left-dock-browser'
 export const defaultBrowserViewportSplitRatio = 0.5
 export const defaultBrowserViewportSplitDockSide: WorkspaceSplitDockSide = 'right'
 export const defaultBrowserPopoutState: WorkspacePopoutSurfaceState = {

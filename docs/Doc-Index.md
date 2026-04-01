@@ -4,6 +4,10 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+191. 2026-04-01 02:03: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7.5` read so the host-standardization ladder now hands forward into one explicit parity-cleanup lane after the main `7.5-3` close-out, and kept the workspace subtree aligned with that new cleanup surface
+190. 2026-04-01 00:57: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize.md` as shipped after re-checking its landed workspace split-truth migration, moved that phase record into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7` and `Workspace 7.5` docs so the `7.5` ladder now treats `7.5-2` as completed history, and updated this docs map so `7.5-3` remains the only still-open `7.5` subphase under `Future/`
+189. 2026-04-01 00:51: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-1 - Shared Surface Placement Contract And Host Route Ownership.md` as shipped after re-checking its landed contract-extraction work, moved that phase record into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7` and `Workspace 7.5` docs so the `7.5` ladder now treats `7.5-1` as completed history, and updated this docs map so only the still-open `7.5-2` and `7.5-3` slices remain under `Future/`
+188. 2026-03-31 23:13: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-1 - Shared Surface Placement Contract And Host Route Ownership.md`, `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize.md`, and `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the later `Workspace 7` ladder now reads as staged `7.5` subphases, and updated the umbrella `Workspace 7` plus `Workspace 7.5` planning docs so the Spaghetti drag-to-edge split hybrid is captured as an explicit cleanup lane instead of only an implied residue note
 187. 2026-03-31 16:47: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the later `Workspace 7` ladder now explicitly includes reusable Browser-plus-Spaghetti host standardization after `7.4`, and updated the umbrella `Workspace 7` planning doc so that new post-convergence follow-on has a canonical workspace-family home
 186. 2026-03-31 16:20: Moved the shipped `Workspace 7.2c` through `Workspace 7.3-2` records out of `docs/Human-Plans/Architecture/Workspace-Modes/Future/` and into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so only genuinely open workspace docs remain in the future lane, and updated this docs map so the workspace subtree matches that cleanup
 185. 2026-03-31 14:49: Moved `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.3-1 - Second Model Viewport Runtime And Slot Truth.md` into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7` and `Workspace 7.3` planning docs so `7.3-1` now reads as shipped history, and advanced the active multiple-viewer workspace lane to `Workspace 7.3-2`
@@ -550,12 +554,14 @@ Rule notes:
         - `v15Theme.md`
         - `Worker/Worker.md`
         - `Workspace-Modes/Workspace-Modes-Index.md`
-#### -------Workspace-Modes
+        #### -------Workspace-Modes
             - `Workspace-Modes-Index.md`
             - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
             - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
             - `Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
             - `Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md`
+            - `Future/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md`
+            - `Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
             - `Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
             - `Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
             - `Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
@@ -582,6 +588,8 @@ Rule notes:
             - `Shipped/Workspace_Phase Workspace-7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity.md`
             - `Shipped/Workspace_Phase Workspace-7.3-1 - Second Model Viewport Runtime And Slot Truth.md`
             - `Shipped/Workspace_Phase Workspace-7.3-2 - Per-Viewport Host Targeting And Viewer Rehome Parity.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-1 - Shared Surface Placement Contract And Host Route Ownership.md`
+            - `Shipped/Workspace_Phase Workspace-7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize.md`
 #### -------AppShell
             - `AppShell-Index.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`

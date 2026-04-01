@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import { normalizePersistedWorkspaceLayout, serializeWorkspaceLayout } from './workspacePersistence'
 import {
+  defaultBrowserHostRouteId,
   defaultBrowserToolbarOwnerSurfaceInstanceId,
   defaultPrimaryViewportLeafNodeId,
   defaultPrimaryViewportSlotId,
@@ -27,6 +28,21 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(state.browserToolbarOwnerSurfaceInstanceId).toBe(
       defaultBrowserToolbarOwnerSurfaceInstanceId,
     )
+    expect(state.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]).toEqual(
+      expect.objectContaining({
+        routeId: defaultBrowserHostRouteId,
+        surfaceKind: 'browser',
+        surfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
+      }),
+    )
+    expect(state.surfacePlacementById[defaultBrowserToolbarOwnerSurfaceInstanceId]).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'browser',
+        surfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
+        hostMode: 'docked',
+        namedHostRouteId: defaultBrowserHostRouteId,
+      }),
+    )
   })
 
   it('tracks an explicit browser toolbar owner separately from slot surfaces', () => {
@@ -34,6 +50,11 @@ describe('useWorkspaceStore viewport slot foundation', () => {
 
     expect(useWorkspaceStore.getState().browserToolbarOwnerSurfaceInstanceId).toBe(
       'browser-surface-1',
+    )
+    expect(useWorkspaceStore.getState().hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]).toEqual(
+      expect.objectContaining({
+        surfaceInstanceId: 'browser-surface-1',
+      }),
     )
   })
 
@@ -207,6 +228,32 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(state.browserShell.isCollapsed).toBe(false)
   })
 
+  it('mirrors browser floating compatibility state into the generic placement contract', () => {
+    useWorkspaceStore.getState().setBrowserToolbarOwnerSurfaceInstanceId(null)
+    useWorkspaceStore.getState().setBrowserFloating(true)
+    useWorkspaceStore.getState().setBrowserFloatingPosition({ x: 73, y: 128 })
+    useWorkspaceStore.getState().setBrowserFloatingSize({ width: 340, height: 600 })
+
+    expect(
+      useWorkspaceStore.getState().surfacePlacementById[defaultBrowserToolbarOwnerSurfaceInstanceId],
+    ).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'browser',
+        surfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
+        hostMode: 'floating',
+        floatingRect: {
+          x: 73,
+          y: 128,
+          width: 340,
+          height: 600,
+        },
+      }),
+    )
+    expect(
+      useWorkspaceStore.getState().hostRouteOwnershipByRouteId[defaultBrowserHostRouteId],
+    ).toBeUndefined()
+  })
+
   it('keeps per-viewport local view state separate for a second model viewport', () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
       surfaceKind: 'modelViewer',
@@ -315,6 +362,16 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+      }),
+    )
+    expect(normalized?.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]).toEqual(
+      expect.objectContaining({
+        surfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
+      }),
+    )
+    expect(normalized?.surfacePlacementById[defaultBrowserToolbarOwnerSurfaceInstanceId]).toEqual(
+      expect.objectContaining({
+        hostMode: 'docked',
       }),
     )
   })

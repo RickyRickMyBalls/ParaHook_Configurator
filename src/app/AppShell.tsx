@@ -22,11 +22,18 @@ import { ViewportFrame } from './workspace/ViewportFrame'
 import { ViewportSurfaceRegistry } from './workspace/ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
 import {
+  floatWorkspaceSurface,
+  popoutWorkspaceSurface,
+  restoreDetachedSurfaceByKind,
+  splitWorkspaceSurfaceToSide,
+} from './workspace/workspaceSurfaceActions'
+import {
   readPersistedWorkspaceLayout,
   serializeWorkspaceLayout,
   writePersistedWorkspaceLayout,
 } from './workspace/workspacePersistence'
 import {
+  defaultBrowserHostRouteId,
   defaultBrowserFloatingPosition,
   defaultBrowserFloatingSize,
   defaultPrimaryViewportSlotId,
@@ -158,7 +165,33 @@ export function AppShell() {
   const activeEditorSurface = useWorkspaceStore((state) =>
     activeEditorViewportId.length > 0 ? state.editorSurfacePlacementById[activeEditorViewportId] ?? null : null,
   )
+  const activeEditorSlot = useMemo(
+    () =>
+      activeEditorViewportId.length > 0
+        ? Object.values(viewportSlotsById).find(
+            (slot) =>
+              slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === activeEditorViewportId,
+          ) ?? null
+        : null,
+    [activeEditorViewportId, viewportSlotsById],
+  )
   const [browserSlotHeaderDragSeed, setBrowserSlotHeaderDragSeed] = useState<{
+    pointerId: number
+    clientX: number
+    clientY: number
+    pointerOffsetX: number
+    pointerOffsetY: number
+    titleBarHeight: number
+  } | null>(null)
+  const [spaghettiSlotHeaderDragSeed, setSpaghettiSlotHeaderDragSeed] = useState<{
+    pointerId: number
+    clientX: number
+    clientY: number
+    pointerOffsetX: number
+    pointerOffsetY: number
+    titleBarHeight: number
+  } | null>(null)
+  const [consoleSlotHeaderDragSeed, setConsoleSlotHeaderDragSeed] = useState<{
     pointerId: number
     clientX: number
     clientY: number
@@ -197,10 +230,10 @@ export function AppShell() {
   const showEditorSurface = activeEditorViewport !== null
   const showFloatingShell =
     showEditorSurface &&
+    activeEditorSlot === null &&
     (activeWindowMode === 'expanded' ||
       activeWindowMode === 'maximized' ||
       activeWindowMode === 'collapsed')
-  const showSplitLayout = showEditorSurface && activeWindowMode === 'split view'
   const splitRatio = activeEditorSurface?.splitRatio ?? activeEditorViewport?.splitRatio ?? 0.5
   const splitDirection =
     activeEditorSurface?.splitDirection ??
@@ -225,7 +258,7 @@ export function AppShell() {
     [viewportSlotsById],
   )
   const browserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
-    (state) => state.browserToolbarOwnerSurfaceInstanceId,
+    (state) => state.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]?.surfaceInstanceId ?? null,
   )
   const activeDetachedBrowserSurface = useMemo(
     () =>
@@ -260,14 +293,50 @@ export function AppShell() {
   const primaryViewportSlotIsConstrained = useMemo(() => {
     const primarySlot = viewportSlotsById[defaultPrimaryViewportSlotId] ?? null
     if (primarySlot === null) {
-      return isLeftDockViewportSplit || showSplitLayout
+      return isLeftDockViewportSplit
     }
     return (
       isLeftDockViewportSplit ||
-      showSplitLayout ||
       findParentSplitNodeIdForLayoutNode(primarySlot.leafNodeId, viewportLayoutNodesById) !== null
     )
-  }, [isLeftDockViewportSplit, showSplitLayout, viewportLayoutNodesById, viewportSlotsById])
+  }, [isLeftDockViewportSplit, viewportLayoutNodesById, viewportSlotsById])
+
+  const resolvePreferredEditorSplitDockSide = useCallback(
+    (nextDirection: WorkspaceSplitDirection) =>
+      nextDirection === 'vertical'
+        ? splitDockSide === 'left' || splitDockSide === 'right'
+          ? splitDockSide
+          : 'right'
+        : splitDockSide === 'top' || splitDockSide === 'bottom'
+          ? splitDockSide
+          : 'bottom',
+    [splitDockSide],
+  )
+
+  const resolveViewerTargetSlotId = useCallback(() => {
+    const targetViewerSlot =
+      Object.values(viewportSlotsById).find(
+        (slot) => slot.surfaceKind === 'modelViewer' && slot.surfaceInstanceId === primaryViewportId,
+      ) ?? viewportSlotsById[defaultPrimaryViewportSlotId]
+    return targetViewerSlot?.slotId ?? defaultPrimaryViewportSlotId
+  }, [primaryViewportId, viewportSlotsById])
+
+  const ensureLegacySplitViewMigrated = useCallback(
+    (editorViewportId: string, splitDockSideForMigration: 'top' | 'right' | 'bottom' | 'left', ratio: number) => {
+      const existingSlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+        (slot) =>
+          slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === editorViewportId,
+      )
+      if (existingSlot === undefined) {
+        splitWorkspaceSurfaceToSide(editorViewportId, splitDockSideForMigration, {
+          preferredRatio: ratio,
+          targetSlotId: resolveViewerTargetSlotId(),
+        })
+      }
+      useSpaghettiStore.getState().setEditorViewportWindowMode(editorViewportId, 'expanded')
+    },
+    [resolveViewerTargetSlotId],
+  )
 
   const handleActivateSpaghettiFloatingWindow = useCallback(() => {
     setActiveFloatingShell('spaghetti')
@@ -385,6 +454,11 @@ export function AppShell() {
       if (shouldRestorePersistedLayout) {
         hydratePersistedWorkspaceLayout(persistedLayout)
         const spaghettiState = useSpaghettiStore.getState()
+        const legacySplitPlacements: Array<{
+          editorViewportId: string
+          splitDockSide: 'top' | 'right' | 'bottom' | 'left'
+          splitRatio: number
+        }> = []
         for (const [editorViewportId, placement] of Object.entries(
           persistedLayout.editorSurfacePlacementById,
         )) {
@@ -397,12 +471,38 @@ export function AppShell() {
           spaghettiState.setEditorViewportSplitDirection(editorViewportId, placement.splitDirection)
           spaghettiState.setEditorViewportSplitDockSide(editorViewportId, placement.splitDockSide)
           spaghettiState.setEditorViewportSplitPriority(editorViewportId, placement.splitPriority)
+          if (placement.windowMode === 'split view') {
+            legacySplitPlacements.push({
+              editorViewportId,
+              splitDockSide: placement.splitDockSide,
+              splitRatio: placement.splitRatio,
+            })
+            spaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
+            continue
+          }
           spaghettiState.setEditorViewportWindowMode(editorViewportId, placement.windowMode)
+        }
+        for (const placement of legacySplitPlacements) {
+          ensureLegacySplitViewMigrated(
+            placement.editorViewportId,
+            placement.splitDockSide,
+            placement.splitRatio,
+          )
         }
       }
     }
     writePersistedWorkspaceLayout(serializeWorkspaceLayout(useWorkspaceStore.getState()))
-  }, [hydratePersistedWorkspaceLayout])
+  }, [ensureLegacySplitViewMigrated, hydratePersistedWorkspaceLayout])
+
+  useEffect(() => {
+    const spaghettiState = useSpaghettiStore.getState()
+    for (const [editorViewportId, viewport] of Object.entries(spaghettiState.editorViewportsById ?? {})) {
+      if (viewport.windowMode !== 'split view') {
+        continue
+      }
+      ensureLegacySplitViewMigrated(editorViewportId, viewport.splitDockSide ?? 'bottom', viewport.splitRatio ?? 0.5)
+    }
+  }, [ensureLegacySplitViewMigrated, viewportSlotsById])
 
   useEffect(() => {
     const unsubscribe = useWorkspaceStore.subscribe((state) => {
@@ -419,7 +519,9 @@ export function AppShell() {
       return
     }
     if (activeDetachedBrowserSurface !== null) {
-      redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, browserViewportSplitDockSide)
+      restoreDetachedSurfaceByKind('browser', {
+        splitDockSide: browserViewportSplitDockSide,
+      })
       setIsBrowserViewportSplit(false)
       return
     }
@@ -433,7 +535,7 @@ export function AppShell() {
     browserViewportSplitDockSide,
     browserViewportSplitRatio,
     isBrowserViewportSplit,
-    redockDetachedSurface,
+    restoreDetachedSurfaceByKind,
     setIsBrowserViewportSplit,
     splitViewportSlot,
   ])
@@ -448,32 +550,26 @@ export function AppShell() {
     ) {
       return
     }
-    redockDetachedSurface(
-      activeDetachedBrowserSurface.surfaceInstanceId,
-      activeDetachedBrowserSurface.preferredSplitDockSide,
-    )
+    restoreDetachedSurfaceByKind('browser')
   }, [
     activeDetachedBrowserSurface,
     browserSlotCount,
     isBrowserFloating,
     isBrowserPoppedOut,
     isBrowserViewportSplit,
-    redockDetachedSurface,
+    restoreDetachedSurfaceByKind,
   ])
 
   useEffect(() => {
     if (activeDetachedConsoleSurface === null || consoleWindowMode !== 'docked' || consoleSlotCount > 0) {
       return
     }
-    redockDetachedSurface(
-      activeDetachedConsoleSurface.surfaceInstanceId,
-      activeDetachedConsoleSurface.preferredSplitDockSide,
-    )
-  }, [activeDetachedConsoleSurface, consoleSlotCount, consoleWindowMode, redockDetachedSurface])
+    restoreDetachedSurfaceByKind('console')
+  }, [activeDetachedConsoleSurface, consoleSlotCount, consoleWindowMode, restoreDetachedSurfaceByKind])
 
   const handleFloatingSplitMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (activeEditorViewport === null || activeWindowMode === 'split view') {
+      if (activeEditorViewport === null) {
         return
       }
       event.preventDefault()
@@ -484,18 +580,8 @@ export function AppShell() {
         scope: 'floating-titlebar',
       })
     },
-    [activeEditorViewport, activeWindowMode],
+    [activeEditorViewport],
   )
-
-  const handleDividerSplitMenu = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    setWorkspaceSplitMenu({
-      x: event.clientX,
-      y: event.clientY,
-      scope: 'divider',
-    })
-  }, [])
 
   const handleSetSplitDirection = useCallback(
     (nextDirection: WorkspaceSplitDirection) => {
@@ -503,17 +589,25 @@ export function AppShell() {
         return
       }
       const editorViewportId = activeEditorViewport.editorViewportId
+      const nextSplitDockSide = resolvePreferredEditorSplitDockSide(nextDirection)
       setEditorViewportSplitDirection(editorViewportId, nextDirection)
-      if (activeWindowMode !== 'split view') {
-        setEditorViewportWindowMode(editorViewportId, 'split view')
+      if (activeEditorSlot === null) {
+        splitWorkspaceSurfaceToSide(editorViewportId, nextSplitDockSide, {
+          preferredRatio: splitRatio,
+          targetSlotId: resolveViewerTargetSlotId(),
+        })
       }
+      setEditorViewportWindowMode(editorViewportId, 'expanded')
       setWorkspaceSplitMenu(null)
     },
     [
+      activeEditorSlot,
       activeEditorViewport,
-      activeWindowMode,
+      resolvePreferredEditorSplitDockSide,
+      resolveViewerTargetSlotId,
       setEditorViewportSplitDirection,
       setEditorViewportWindowMode,
+      splitRatio,
     ],
   )
 
@@ -521,9 +615,25 @@ export function AppShell() {
     if (activeEditorViewport === null) {
       return
     }
-    setEditorViewportSplitRatio(activeEditorViewport.editorViewportId, 0.5)
+    if (activeEditorSlot !== null) {
+      const parentSplitNodeId = findParentSplitNodeIdForLayoutNode(
+        activeEditorSlot.leafNodeId,
+        viewportLayoutNodesById,
+      )
+      if (parentSplitNodeId !== null) {
+        setViewportLayoutSplitRatio(parentSplitNodeId, 0.5)
+      }
+    } else {
+      setEditorViewportSplitRatio(activeEditorViewport.editorViewportId, 0.5)
+    }
     setWorkspaceSplitMenu(null)
-  }, [activeEditorViewport, setEditorViewportSplitRatio])
+  }, [
+    activeEditorSlot,
+    activeEditorViewport,
+    setEditorViewportSplitRatio,
+    setViewportLayoutSplitRatio,
+    viewportLayoutNodesById,
+  ])
 
   const handleSetSplitPriority = useCallback(
     (nextPriority: WorkspaceSplitPriority) => {
@@ -537,12 +647,15 @@ export function AppShell() {
   )
 
   const handleCloseSplitFromMenu = useCallback(() => {
-    if (activeEditorViewport === null || activeWindowMode !== 'split view') {
+    if (activeEditorViewport === null) {
       return
     }
-    setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'split view')
+    if (activeEditorSlot !== null) {
+      removeViewportSlot(activeEditorSlot.slotId)
+    }
+    setEditorViewportWindowMode(activeEditorViewport.editorViewportId, 'expanded')
     setWorkspaceSplitMenu(null)
-  }, [activeEditorViewport, activeWindowMode, setEditorViewportWindowMode])
+  }, [activeEditorSlot, activeEditorViewport, removeViewportSlot, setEditorViewportWindowMode])
 
   const createDuplicatedEditorSurfaceInstanceId = useCallback(
     (sourceSurfaceInstanceId?: string | null) => {
@@ -643,7 +756,6 @@ export function AppShell() {
       if (slot === null || slotId === defaultPrimaryViewportSlotId) {
         return
       }
-      detachViewportSlotSurface(slotId, 'floating')
       if (slot.surfaceKind === 'browser') {
         if (browserSlotCount <= 1) {
           setIsBrowserViewportSplit(false)
@@ -652,31 +764,24 @@ export function AppShell() {
           setBrowserFloatingSize(defaultBrowserFloatingSize)
           setBrowserFloatingPosition(defaultBrowserFloatingPosition)
         }
-        setIsBrowserFloating(true)
-        return
-      }
-      if (slot.surfaceKind === 'console') {
-        useConsoleStore.getState().switchToFloating()
+        floatWorkspaceSurface(slot.surfaceInstanceId)
         return
       }
       if (slot.surfaceKind === 'modelViewer') {
+        detachViewportSlotSurface(slotId, 'floating')
         setActiveViewerViewportId(slot.surfaceInstanceId)
         setActiveViewer(slot.surfaceInstanceId)
         setActiveSurface('viewer')
         return
       }
-      if (slot.surfaceKind === 'spaghettiEditor') {
-        useSpaghettiStore.getState().setActiveEditorViewportId?.(slot.surfaceInstanceId)
-        setEditorViewportWindowMode(slot.surfaceInstanceId, 'expanded')
-      }
+      floatWorkspaceSurface(slot.surfaceInstanceId)
     },
     [
       browserSlotCount,
       detachViewportSlotSurface,
-      setEditorViewportWindowMode,
+      floatWorkspaceSurface,
       setActiveSurface,
       setActiveViewerViewportId,
-      setIsBrowserFloating,
       setIsBrowserViewportSplit,
       viewportSlotsById,
     ],
@@ -725,6 +830,47 @@ export function AppShell() {
           pointerOffsetY,
           titleBarHeight: Math.max(1, Math.round(payload.headerRect.height)),
         })
+      } else if (slot.surfaceKind === 'spaghettiEditor') {
+        const spaghettiViewport =
+          useSpaghettiStore.getState().editorViewportsById[slot.surfaceInstanceId] ?? null
+        const floatingSize = spaghettiViewport?.size ?? {
+          width: Math.max(1, Math.round(payload.frameRect.width)),
+          height: Math.max(1, Math.round(payload.frameRect.height)),
+        }
+        const pointerOffsetX = Math.min(
+          Math.max(16, Math.round(payload.clientX - payload.frameRect.left)),
+          Math.max(16, floatingSize.width - 16),
+        )
+        const pointerOffsetY = Math.min(
+          Math.max(0, Math.round(payload.clientY - payload.frameRect.top)),
+          Math.max(1, Math.round(payload.headerRect.height)) - 1,
+        )
+        setSpaghettiSlotHeaderDragSeed({
+          pointerId: payload.pointerId,
+          clientX: payload.clientX,
+          clientY: payload.clientY,
+          pointerOffsetX,
+          pointerOffsetY,
+          titleBarHeight: Math.max(1, Math.round(payload.headerRect.height)),
+        })
+      } else if (slot.surfaceKind === 'console') {
+        const floatingRect = useConsoleStore.getState().floatingRect
+        const pointerOffsetX = Math.min(
+          Math.max(16, Math.round(payload.clientX - payload.frameRect.left)),
+          Math.max(16, floatingRect.width - 16),
+        )
+        const pointerOffsetY = Math.min(
+          Math.max(0, Math.round(payload.clientY - payload.frameRect.top)),
+          Math.max(1, Math.round(payload.headerRect.height)) - 1,
+        )
+        setConsoleSlotHeaderDragSeed({
+          pointerId: payload.pointerId,
+          clientX: payload.clientX,
+          clientY: payload.clientY,
+          pointerOffsetX,
+          pointerOffsetY,
+          titleBarHeight: Math.max(1, Math.round(payload.headerRect.height)),
+        })
       }
       handleViewportSlotFloat(slotId, {
         preserveBrowserFloatingShell: slot.surfaceKind === 'browser',
@@ -736,6 +882,8 @@ export function AppShell() {
       setBrowserFloatingPosition,
       setBrowserFloatingSize,
       setBrowserSlotHeaderDragSeed,
+      setConsoleSlotHeaderDragSeed,
+      setSpaghettiSlotHeaderDragSeed,
       viewportSlotsById,
     ],
   )
@@ -753,19 +901,10 @@ export function AppShell() {
         setIsBrowserPoppedOut(true)
         return
       }
-      detachViewportSlotSurface(slotId, 'popout')
-      if (slot.surfaceKind === 'console') {
-        useConsoleStore.getState().switchToPopout()
-        return
-      }
-      if (slot.surfaceKind === 'spaghettiEditor') {
-        useSpaghettiStore.getState().setActiveEditorViewportId?.(slot.surfaceInstanceId)
-        setEditorViewportWindowMode(slot.surfaceInstanceId, 'separateWindow')
-      }
+      popoutWorkspaceSurface(slot.surfaceInstanceId)
     },
     [
-      detachViewportSlotSurface,
-      setEditorViewportWindowMode,
+      popoutWorkspaceSurface,
       setIsBrowserPoppedOut,
       viewportSlotsById,
     ],
@@ -813,7 +952,9 @@ export function AppShell() {
       if (preferredPrimaryBrowserSideSplitRatio !== undefined) {
         setBrowserViewportSplitRatio(preferredPrimaryBrowserSideSplitRatio)
       }
-      redockDetachedSurface(activeDetachedBrowserSurface.surfaceInstanceId, 'left')
+      restoreDetachedSurfaceByKind('browser', {
+        splitDockSide: 'left',
+      })
     } else {
       splitViewportSlot(defaultPrimaryViewportSlotId, 'left', {
         surfaceKind: 'browser',
@@ -827,7 +968,7 @@ export function AppShell() {
   }, [
     activeDetachedBrowserSurface,
     isLeftDockViewportSplit,
-    redockDetachedSurface,
+    restoreDetachedSurfaceByKind,
     removeViewportSlot,
     rootLeftSplitSlotIds,
     setBrowserViewportSplitRatio,
@@ -1003,7 +1144,7 @@ export function AppShell() {
               : () => handleViewportSlotPopOut(slot.slotId)
           }
           onHeaderDragOut={
-            slot.surfaceKind === 'browser' && !isPrimarySlot
+            !isPrimarySlot && slot.surfaceKind !== 'modelViewer'
               ? (payload) => handleViewportSlotHeaderDragOut(slot.slotId, payload)
               : undefined
           }
@@ -1013,16 +1154,9 @@ export function AppShell() {
               {isPrimarySlot ? (
                 <PrimaryViewportLeftDock
                   leftDockWidth={leftDockWidth}
-                  bottomInset={
-                    showSplitLayout &&
-                    splitDirection === 'horizontal' &&
-                    splitDockSide === 'bottom' &&
-                    (!isLeftDockViewportSplit || splitPriority !== 'favorFirst')
-                      ? `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`
-                      : '0px'
-                  }
+                  bottomInset="0px"
                   isConstrained={primaryViewportSlotIsConstrained}
-                  isViewportSplitHandleConstrained={isLeftDockViewportSplit && showSplitLayout}
+                  isViewportSplitHandleConstrained={false}
                   isLeftDockViewportSplit={isLeftDockViewportSplit}
                   isBrowserDockPreviewActive={isBrowserDockPreviewActive}
                   isMeatballDockPreviewActive={isMeatballDockPreviewActive}
@@ -1063,11 +1197,6 @@ export function AppShell() {
       setBrowserPresentationMode,
       viewportSlotsById,
       leftDockWidth,
-      showSplitLayout,
-      splitDirection,
-      splitDockSide,
-      splitPriority,
-      splitRatio,
       isLeftDockViewportSplit,
       isBrowserDockPreviewActive,
       isMeatballDockPreviewActive,
@@ -1268,16 +1397,18 @@ export function AppShell() {
           resolveLeftDockPreviewPanelId={resolveLeftDockPreviewPanelId}
           viewerSurface={viewerSurface}
           workspaceActiveSurface={workspaceActiveSurface}
+          slotHeaderDragSeed={spaghettiSlotHeaderDragSeed}
+          onConsumeSlotHeaderDragSeed={() => setSpaghettiSlotHeaderDragSeed(null)}
           onActivateSpaghettiSurface={handleActivateSpaghettiSurface}
           onActivateSpaghettiFloatingWindow={handleActivateSpaghettiFloatingWindow}
           onOpenFloatingSplitMenu={handleFloatingSplitMenu}
-          onOpenDividerSplitMenu={handleDividerSplitMenu}
-          onResetSplitRatio={handleResetSplitRatio}
           leftDockWidthPreviewHandlerRef={leftDockWidthPreviewHandlerRef}
         />
         <ConsoleDock
           listLeftOffset={consoleListLeftOffset}
           suppressDockedSurface={suppressLegacyDockedConsoleSurface}
+          slotHeaderDragSeed={consoleSlotHeaderDragSeed}
+          onConsumeSlotHeaderDragSeed={() => setConsoleSlotHeaderDragSeed(null)}
         />
       </section>
       <BrowserDockHost

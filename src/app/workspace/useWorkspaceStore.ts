@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   defaultBrowserPresentationMode,
+  defaultBrowserHostRouteId,
   defaultBrowserToolbarOwnerSurfaceInstanceId,
   createNextWorkspaceGeneratedId,
   createDefaultWorkspaceLayoutSplitNode,
@@ -25,6 +26,10 @@ import {
   type BrowserFloatingPosition,
   type BrowserFloatingSize,
   type EditorWorkspaceSurfaceState,
+  type WorkspaceFloatingRect,
+  type WorkspaceHostRouteId,
+  type WorkspaceHostRouteOwnership,
+  type WorkspaceHostRouteOwnershipByRouteId,
   type WorkspaceDetachedSlotSurfaceState,
   type WorkspaceEditorSurfaceBinding,
   type WorkspaceLayoutNode,
@@ -40,6 +45,7 @@ import {
   type WorkspaceViewportLocalViewState,
   type WorkspaceViewportId,
   type WorkspaceSplitMenuState,
+  type WorkspaceSurfacePlacementState,
   type WorkspaceSurfaceInstanceId,
 } from './workspaceShellTypes'
 import {
@@ -55,6 +61,8 @@ type WorkspaceStoreState = {
   workspaceSplitMenu: WorkspaceSplitMenuState | null
   browserToolbarOwnerSurfaceInstanceId: WorkspaceSurfaceInstanceId | null
   browserShell: BrowserShellState
+  hostRouteOwnershipByRouteId: WorkspaceHostRouteOwnershipByRouteId
+  surfacePlacementById: Record<string, WorkspaceSurfacePlacementState>
   activeViewerViewportId: WorkspaceViewportId
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
@@ -69,9 +77,25 @@ type WorkspaceStoreState = {
   setActiveLeftDockPreviewPanelId: (panelId: LeftDockPanelId | null) => void
   setLeftDockResizeMenu: (menu: LeftDockResizeMenuState | null) => void
   setWorkspaceSplitMenu: (menu: WorkspaceSplitMenuState | null) => void
+  claimHostRoute: (ownership: WorkspaceHostRouteOwnership) => void
+  releaseHostRoute: (routeId: WorkspaceHostRouteId) => void
   setBrowserToolbarOwnerSurfaceInstanceId: (
     surfaceInstanceId: WorkspaceSurfaceInstanceId | null,
   ) => void
+  focusSurface: (surfaceInstanceId: WorkspaceSurfaceInstanceId) => void
+  floatSurface: (surfaceInstanceId: WorkspaceSurfaceInstanceId) => void
+  popoutSurface: (surfaceInstanceId: WorkspaceSurfaceInstanceId) => void
+  redockSurface: (
+    surfaceInstanceId: WorkspaceSurfaceInstanceId,
+    options?: {
+      routeId?: WorkspaceHostRouteId
+      splitDockSide?: WorkspaceSplitDockSide
+    },
+  ) => WorkspaceViewportSlotId | null
+  splitSurfaceToSide: (
+    surfaceInstanceId: WorkspaceSurfaceInstanceId,
+    splitDockSide: WorkspaceSplitDockSide,
+  ) => WorkspaceViewportSlotId | null
   setBrowserCollapsed: (isCollapsed: boolean) => void
   setBrowserPresentationMode: (presentationMode: BrowserPresentationMode) => void
   setBrowserFloating: (isFloating: boolean) => void
@@ -150,7 +174,14 @@ const createInitialState = (): Omit<
   | 'setActiveLeftDockPreviewPanelId'
   | 'setLeftDockResizeMenu'
   | 'setWorkspaceSplitMenu'
+  | 'claimHostRoute'
+  | 'releaseHostRoute'
   | 'setBrowserToolbarOwnerSurfaceInstanceId'
+  | 'focusSurface'
+  | 'floatSurface'
+  | 'popoutSurface'
+  | 'redockSurface'
+  | 'splitSurfaceToSide'
   | 'setBrowserCollapsed'
   | 'setBrowserPresentationMode'
   | 'setBrowserFloating'
@@ -180,36 +211,43 @@ const createInitialState = (): Omit<
   | 'removeEditorSurfaceBinding'
   | 'setEditorSurfacePlacement'
   | 'removeEditorSurfacePlacement'
-> => ({
-  leftDockWidth: defaultLeftDockWidth,
-  isLeftDockViewportSplit: false,
-  activeLeftDockPreviewPanelId: null,
-  leftDockResizeMenu: null,
-  workspaceSplitMenu: null,
-  browserToolbarOwnerSurfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
-  browserShell: {
-    presentationMode: defaultBrowserPresentationMode,
-    isCollapsed: false,
-    isFloating: false,
-    isPoppedOut: false,
-    isViewportSplit: false,
-    position: defaultBrowserFloatingPosition,
-    size: defaultBrowserFloatingSize,
-    viewportSplitRatio: defaultBrowserViewportSplitRatio,
-    viewportSplitDockSide: defaultBrowserViewportSplitDockSide,
-    popoutState: defaultBrowserPopoutState,
-  },
-  activeViewerViewportId: defaultPrimaryWorkspaceViewportId,
-  primaryViewportId: defaultPrimaryWorkspaceViewportId,
-  viewportChromeById: {
-    [defaultPrimaryWorkspaceViewportId]:
-      createDefaultWorkspaceViewportChromeState(defaultPrimaryWorkspaceViewportId),
-  },
-  ...createDefaultWorkspaceSlotTree(),
-  detachedSlotSurfaceById: {},
-  editorSurfacePlacementById: {},
-  editorSurfaceBindingById: {},
-})
+> => {
+  const baseState = {
+    leftDockWidth: defaultLeftDockWidth,
+    isLeftDockViewportSplit: false,
+    activeLeftDockPreviewPanelId: null,
+    leftDockResizeMenu: null,
+    workspaceSplitMenu: null,
+    browserToolbarOwnerSurfaceInstanceId: defaultBrowserToolbarOwnerSurfaceInstanceId,
+    browserShell: {
+      presentationMode: defaultBrowserPresentationMode,
+      isCollapsed: false,
+      isFloating: false,
+      isPoppedOut: false,
+      isViewportSplit: false,
+      position: defaultBrowserFloatingPosition,
+      size: defaultBrowserFloatingSize,
+      viewportSplitRatio: defaultBrowserViewportSplitRatio,
+      viewportSplitDockSide: defaultBrowserViewportSplitDockSide,
+      popoutState: defaultBrowserPopoutState,
+    },
+    activeViewerViewportId: defaultPrimaryWorkspaceViewportId,
+    primaryViewportId: defaultPrimaryWorkspaceViewportId,
+    viewportChromeById: {
+      [defaultPrimaryWorkspaceViewportId]:
+        createDefaultWorkspaceViewportChromeState(defaultPrimaryWorkspaceViewportId),
+    },
+    ...createDefaultWorkspaceSlotTree(),
+    detachedSlotSurfaceById: {},
+    editorSurfacePlacementById: {},
+    editorSurfaceBindingById: {},
+  }
+
+  return {
+    ...baseState,
+    ...deriveBrowserContractState(baseState),
+  }
+}
 
 const findParentSplitNodeId = (
   viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>,
@@ -276,6 +314,118 @@ const resolveSlotPreferredSplitDockSide = (
 
 const clampWorkspaceSplitRatio = (ratio: number): number => Math.min(0.85, Math.max(0.15, ratio))
 
+type BrowserCompatibilitySnapshot = Pick<
+  WorkspaceStoreState,
+  | 'browserToolbarOwnerSurfaceInstanceId'
+  | 'browserShell'
+  | 'primaryViewportId'
+  | 'viewportSlotsById'
+  | 'detachedSlotSurfaceById'
+>
+
+const buildBrowserFloatingRect = (
+  position: BrowserFloatingPosition,
+  size: BrowserFloatingSize,
+): WorkspaceFloatingRect => ({
+  x: Math.round(position.x),
+  y: Math.round(position.y),
+  width: Math.round(size.width),
+  height: Math.round(size.height),
+})
+
+const deriveBrowserContractState = (
+  state: BrowserCompatibilitySnapshot,
+): Pick<WorkspaceStoreState, 'hostRouteOwnershipByRouteId' | 'surfacePlacementById'> => {
+  const hostRouteOwnershipByRouteId: WorkspaceHostRouteOwnershipByRouteId = {}
+  const surfacePlacementById: Record<string, WorkspaceSurfacePlacementState> = {}
+
+  for (const slot of Object.values(state.viewportSlotsById)) {
+    if (slot.surfaceKind !== 'browser') {
+      continue
+    }
+    surfacePlacementById[slot.surfaceInstanceId] = {
+      surfaceKind: 'browser',
+      surfaceInstanceId: slot.surfaceInstanceId,
+      hostMode: 'slotted',
+      hostViewportId: slot.hostViewportId,
+      slotId: slot.slotId,
+    }
+  }
+
+  for (const detachedSurface of Object.values(state.detachedSlotSurfaceById)) {
+    if (detachedSurface.surfaceKind !== 'browser') {
+      continue
+    }
+    surfacePlacementById[detachedSurface.surfaceInstanceId] = {
+      surfaceKind: 'browser',
+      surfaceInstanceId: detachedSurface.surfaceInstanceId,
+      hostMode: detachedSurface.hostMode,
+      hostViewportId: detachedSurface.hostViewportId,
+      restoreTarget: {
+        slotId: detachedSurface.lastSlotId,
+        preferredSplitDockSide: detachedSurface.preferredSplitDockSide,
+      },
+    }
+  }
+
+  if (state.browserToolbarOwnerSurfaceInstanceId !== null) {
+    hostRouteOwnershipByRouteId[defaultBrowserHostRouteId] = {
+      routeId: defaultBrowserHostRouteId,
+      surfaceKind: 'browser',
+      surfaceInstanceId: state.browserToolbarOwnerSurfaceInstanceId,
+      hostViewportId: state.primaryViewportId,
+    }
+  }
+
+  const shellSurfaceInstanceId =
+    state.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId
+
+  if (surfacePlacementById[shellSurfaceInstanceId] === undefined) {
+    surfacePlacementById[shellSurfaceInstanceId] = {
+      surfaceKind: 'browser',
+      surfaceInstanceId: shellSurfaceInstanceId,
+      hostMode:
+        state.browserShell.isPoppedOut
+          ? 'popout'
+          : state.browserShell.isFloating
+            ? 'floating'
+            : 'docked',
+      hostViewportId: state.primaryViewportId,
+      floatingRect:
+        state.browserShell.isFloating
+          ? buildBrowserFloatingRect(state.browserShell.position, state.browserShell.size)
+          : undefined,
+      popoutState: state.browserShell.popoutState,
+      namedHostRouteId:
+        state.browserToolbarOwnerSurfaceInstanceId !== null ? defaultBrowserHostRouteId : undefined,
+    }
+  }
+
+  return {
+    hostRouteOwnershipByRouteId,
+    surfacePlacementById,
+  }
+}
+
+const withDerivedBrowserContract = <T extends Partial<WorkspaceStoreState>>(
+  currentState: WorkspaceStoreState,
+  patch: T,
+): T &
+  Pick<WorkspaceStoreState, 'hostRouteOwnershipByRouteId' | 'surfacePlacementById'> => {
+  const nextBrowserState: BrowserCompatibilitySnapshot = {
+    browserToolbarOwnerSurfaceInstanceId:
+      patch.browserToolbarOwnerSurfaceInstanceId ?? currentState.browserToolbarOwnerSurfaceInstanceId,
+    browserShell: patch.browserShell ?? currentState.browserShell,
+    primaryViewportId: patch.primaryViewportId ?? currentState.primaryViewportId,
+    viewportSlotsById: patch.viewportSlotsById ?? currentState.viewportSlotsById,
+    detachedSlotSurfaceById: patch.detachedSlotSurfaceById ?? currentState.detachedSlotSurfaceById,
+  }
+  return {
+    ...patch,
+    ...deriveBrowserContractState(nextBrowserState),
+  }
+}
+
 export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
   ...createInitialState(),
   setLeftDockWidth: (leftDockWidth) => {
@@ -303,103 +453,222 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       workspaceSplitMenu,
     })
   },
+  claimHostRoute: (ownership) => {
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserToolbarOwnerSurfaceInstanceId:
+          ownership.routeId === defaultBrowserHostRouteId && ownership.surfaceKind === 'browser'
+            ? ownership.surfaceInstanceId
+            : state.browserToolbarOwnerSurfaceInstanceId,
+      }),
+    )
+  },
+  releaseHostRoute: (routeId) => {
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserToolbarOwnerSurfaceInstanceId:
+          routeId === defaultBrowserHostRouteId ? null : state.browserToolbarOwnerSurfaceInstanceId,
+      }),
+    )
+  },
   setBrowserToolbarOwnerSurfaceInstanceId: (browserToolbarOwnerSurfaceInstanceId) => {
-    set({
-      browserToolbarOwnerSurfaceInstanceId,
+    set((state) => withDerivedBrowserContract(state, { browserToolbarOwnerSurfaceInstanceId }))
+  },
+  focusSurface: (surfaceInstanceId) => {
+    set((state) => {
+      const routeOwner = state.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]
+      if (
+        routeOwner?.surfaceInstanceId === surfaceInstanceId &&
+        routeOwner.surfaceKind === 'browser'
+      ) {
+        return withDerivedBrowserContract(state, {
+          browserToolbarOwnerSurfaceInstanceId: surfaceInstanceId,
+        })
+      }
+      return state
     })
   },
+  floatSurface: (surfaceInstanceId) => {
+    set((state) => {
+      const currentBrowserSurfaceInstanceId =
+        state.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId
+      if (surfaceInstanceId !== currentBrowserSurfaceInstanceId) {
+        return state
+      }
+      return withDerivedBrowserContract(state, {
+        browserToolbarOwnerSurfaceInstanceId: null,
+        browserShell: {
+          ...state.browserShell,
+          isFloating: true,
+          isViewportSplit: false,
+        },
+      })
+    })
+  },
+  popoutSurface: (surfaceInstanceId) => {
+    set((state) => {
+      const currentBrowserSurfaceInstanceId =
+        state.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId
+      if (surfaceInstanceId !== currentBrowserSurfaceInstanceId) {
+        return state
+      }
+      return withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          isPoppedOut: true,
+          popoutState: state.browserShell.popoutState ?? defaultBrowserPopoutState,
+        },
+      })
+    })
+  },
+  redockSurface: (surfaceInstanceId, options) => {
+    if (options?.routeId === defaultBrowserHostRouteId) {
+      set((state) =>
+        withDerivedBrowserContract(state, {
+          browserToolbarOwnerSurfaceInstanceId: surfaceInstanceId,
+          detachedSlotSurfaceById:
+            state.detachedSlotSurfaceById[surfaceInstanceId] === undefined
+              ? state.detachedSlotSurfaceById
+              : Object.fromEntries(
+                  Object.entries(state.detachedSlotSurfaceById).filter(
+                    ([currentSurfaceInstanceId]) => currentSurfaceInstanceId !== surfaceInstanceId,
+                  ),
+                ),
+          browserShell: {
+            ...state.browserShell,
+            isFloating: false,
+            isViewportSplit: false,
+          },
+        }),
+      )
+      return null
+    }
+    return useWorkspaceStore.getState().redockDetachedSurface(surfaceInstanceId, options?.splitDockSide)
+  },
+  splitSurfaceToSide: (surfaceInstanceId, splitDockSide) => {
+    const state = useWorkspaceStore.getState()
+    const currentBrowserSurfaceInstanceId =
+      state.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId
+    if (surfaceInstanceId !== currentBrowserSurfaceInstanceId) {
+      return null
+    }
+    state.setBrowserViewportSplitDockSide(splitDockSide)
+    state.setBrowserViewportSplitRatio(defaultBrowserViewportSplitRatio)
+    state.setBrowserViewportSplit(true)
+    return null
+  },
   setBrowserCollapsed: (isCollapsed) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        presentationMode: isCollapsed ? 'collapsed' : 'expanded',
-        isCollapsed,
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          presentationMode: isCollapsed ? 'collapsed' : 'expanded',
+          isCollapsed,
+        },
+      }),
+    )
   },
   setBrowserPresentationMode: (presentationMode) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        presentationMode,
-        isCollapsed: presentationMode === 'collapsed',
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          presentationMode,
+          isCollapsed: presentationMode === 'collapsed',
+        },
+      }),
+    )
   },
   setBrowserFloating: (isFloating) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        isFloating,
-        isViewportSplit: isFloating ? false : state.browserShell.isViewportSplit,
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          isFloating,
+          isViewportSplit: isFloating ? false : state.browserShell.isViewportSplit,
+        },
+      }),
+    )
   },
   setBrowserPoppedOut: (isPoppedOut) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        isPoppedOut,
-        popoutState: isPoppedOut
-          ? state.browserShell.popoutState ?? defaultBrowserPopoutState
-          : state.browserShell.popoutState,
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          isPoppedOut,
+          popoutState: isPoppedOut
+            ? state.browserShell.popoutState ?? defaultBrowserPopoutState
+            : state.browserShell.popoutState,
+        },
+      }),
+    )
   },
   setBrowserViewportSplit: (isViewportSplit) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        isFloating: isViewportSplit ? false : state.browserShell.isFloating,
-        isViewportSplit,
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          isFloating: isViewportSplit ? false : state.browserShell.isFloating,
+          isViewportSplit,
+        },
+      }),
+    )
   },
   setBrowserFloatingPosition: (position) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        position: {
-          x: Math.round(position.x),
-          y: Math.round(position.y),
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          position: {
+            x: Math.round(position.x),
+            y: Math.round(position.y),
+          },
         },
-      },
-    }))
+      }),
+    )
   },
   setBrowserFloatingSize: (size) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        size: {
-          width: Math.round(size.width),
-          height: Math.round(size.height),
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          size: {
+            width: Math.round(size.width),
+            height: Math.round(size.height),
+          },
         },
-      },
-    }))
+      }),
+    )
   },
   setBrowserViewportSplitRatio: (viewportSplitRatio) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        viewportSplitRatio: Math.min(0.85, Math.max(0.15, viewportSplitRatio)),
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          viewportSplitRatio: Math.min(0.85, Math.max(0.15, viewportSplitRatio)),
+        },
+      }),
+    )
   },
   setBrowserViewportSplitDockSide: (viewportSplitDockSide) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        viewportSplitDockSide,
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          viewportSplitDockSide,
+        },
+      }),
+    )
   },
   setBrowserPopoutState: (popoutState) => {
-    set((state) => ({
-      browserShell: {
-        ...state.browserShell,
-        popoutState,
-      },
-    }))
+    set((state) =>
+      withDerivedBrowserContract(state, {
+        browserShell: {
+          ...state.browserShell,
+          popoutState,
+        },
+      }),
+    )
   },
   showViewportSplitSlot: (surfaceKind, splitDockSide) => {
     set((state) => {
@@ -423,7 +692,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
           ),
         },
       }
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotRootNodeId: 'workspace-slot-split-root',
         viewportSlotsById: {
           [defaultPrimaryViewportSlotId]: nextPrimarySlot,
@@ -447,7 +716,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
               : defaultBrowserViewportSplitRatio,
           ),
         },
-      }
+      })
     })
   },
   hideViewportSplitSlot: () => {
@@ -455,12 +724,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       const primarySlot =
         state.viewportSlotsById[defaultPrimaryViewportSlotId] ??
         createDefaultWorkspaceSlotTree().viewportSlotsById[defaultPrimaryViewportSlotId]
-      return {
+      return withDerivedBrowserContract(state, {
         ...createDefaultWorkspaceSlotTree(),
         viewportSlotsById: {
           [defaultPrimaryViewportSlotId]: primarySlot,
         },
-      }
+      })
     })
   },
   splitViewportSlot: (slotId, splitDockSide, options) => {
@@ -557,14 +826,14 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       }
 
       createdSlotId = nextSlotId
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotRootNodeId: nextViewportSlotRootNodeId,
         viewportSlotsById: {
           ...state.viewportSlotsById,
           [nextSlotId]: nextSlot,
         },
         viewportLayoutNodesById: nextViewportLayoutNodesById,
-      }
+      })
     })
     return createdSlotId
   },
@@ -625,7 +894,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       }
 
       createdSlotId = nextSlotId
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotRootNodeId: nextSplitNodeId,
         viewportSlotsById: {
           ...state.viewportSlotsById,
@@ -636,7 +905,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
           [nextLeafNodeId]: nextLeafNode,
           [nextSplitNodeId]: nextSplitNode,
         },
-      }
+      })
     })
     return createdSlotId
   },
@@ -709,11 +978,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         }
       }
 
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotRootNodeId: nextViewportSlotRootNodeId,
         viewportSlotsById: nextViewportSlotsById,
         viewportLayoutNodesById: nextViewportLayoutNodesById,
-      }
+      })
     })
   },
   detachViewportSlotSurface: (slotId, hostMode) => {
@@ -784,7 +1053,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         ),
       }
 
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotRootNodeId: nextViewportSlotRootNodeId,
         viewportSlotsById: nextViewportSlotsById,
         viewportLayoutNodesById: nextViewportLayoutNodesById,
@@ -792,7 +1061,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
           ...state.detachedSlotSurfaceById,
           [currentSlot.surfaceInstanceId]: detachedSurface,
         },
-      }
+      })
     })
     return detachedSurface
   },
@@ -803,9 +1072,9 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       }
       const nextDetachedSlotSurfaceById = { ...state.detachedSlotSurfaceById }
       delete nextDetachedSlotSurfaceById[surfaceInstanceId]
-      return {
+      return withDerivedBrowserContract(state, {
         detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
-      }
+      })
     })
   },
   redockDetachedSurface: (surfaceInstanceId, splitDockSide) => {
@@ -914,7 +1183,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       const nextDetachedSlotSurfaceById = { ...state.detachedSlotSurfaceById }
       delete nextDetachedSlotSurfaceById[surfaceInstanceId]
       createdSlotId = nextSlotId
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotRootNodeId: nextViewportSlotRootNodeId,
         viewportSlotsById: {
           ...state.viewportSlotsById,
@@ -922,7 +1191,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         },
         viewportLayoutNodesById: nextViewportLayoutNodesById,
         detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
-      }
+      })
     })
     return createdSlotId
   },
@@ -940,7 +1209,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         options?.surfaceInstanceId ??
         nextRetainedSurfaceInstanceIdsByKind[surfaceKind] ??
         createWorkspaceSurfaceInstanceIdForSlot(surfaceKind, slotId)
-      return {
+      return withDerivedBrowserContract(state, {
         viewportSlotsById: {
           ...state.viewportSlotsById,
           [slotId]: {
@@ -962,7 +1231,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         state.activeViewerViewportId === currentSlot.surfaceInstanceId
           ? { activeViewerViewportId: state.primaryViewportId }
           : {}),
-      }
+      })
     })
   },
   hydratePersistedWorkspaceLayout: (layout) => {
@@ -979,7 +1248,8 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
         },
       ]),
     )
-    set({
+    set((state) =>
+      withDerivedBrowserContract(state, {
       leftDockWidth: Math.round(layout.leftDockWidth),
       isLeftDockViewportSplit: layout.isLeftDockViewportSplit,
       browserToolbarOwnerSurfaceInstanceId:
@@ -1033,7 +1303,8 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       editorSurfacePlacementById: {
         ...layout.editorSurfacePlacementById,
       },
-    })
+      }),
+    )
   },
   setActiveViewerViewportId: (activeViewerViewportId) => {
     set({

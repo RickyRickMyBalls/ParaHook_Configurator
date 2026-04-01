@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+29. 2026-04-01 01:00: Added canonical newer-architecture changelog prefixes for `BR`, `CN`, `WS`, `LY`, `EH`, `TR`, `RA`, `VT`, `WK`, and `SH`, plus a compact adoption rule so newer architecture-family docs no longer need to be forced back into older `GE` / `VR` / `SP` style buckets just to choose a valid changelog prefix
 28. 2026-03-16 13:35: Marked `AS - Phase 5` and `AS - Phase 6` complete in the canonical phase inventory so the setup doc now matches the shipped Browser-facing content-structure and content build/control surface work that landed in the real roadmap/task/docs flow
 27. 2026-03-11 12:23: Updated the future `AS`, `VR`, and `GE` ladder entries so the canonical phase setup now matches the newer roadmap carry-forward naming for Browser-facing output structure, project-content inspection/build-control work, richer viewer/browser controls, and the fuller `GE - Phase 12` ownership direction
 26. 2026-03-08 00:00: Added the short ownership labels back to the `Future Legacy Updates` reminder list so the compact existing-prefix guidance still says what `VR`, `DBG`, `DOC`, and `LEG` actually mean
@@ -158,10 +159,58 @@ This is the complete active prefix list currently needed to describe the repo lo
 12. `EX` Output/export layer
 13. `ADV` Future systems layer
 
+### Canonical Newer Architecture Family Prefixes
+
+These are active canonical prefixes too.
+
+Use them when the newer architecture-family docs are the real source of truth and forcing the work back into an older family would make the changelog less honest.
+
+14. `BR` Browser family
+15. `CN` Console family
+16. `WS` Workspace modes family
+17. `LY` Layers family
+18. `EH` Edit history family
+19. `TR` Transform family
+20. `RA` Radio family
+21. `VT` View toolbar family
+22. `WK` Worker family
+23. `SH` AppShell family
+
+### Newer Prefix Adoption Rule
+
+Use these newer canonical prefixes when the main planning home lives under:
+- `docs/Human-Plans/Architecture/Browser/`
+- `docs/Human-Plans/Architecture/Console/`
+- `docs/Human-Plans/Architecture/Workspace-Modes/`
+- `docs/Human-Plans/Architecture/Layers/`
+- `docs/Human-Plans/Architecture/Edit-History/`
+- `docs/Human-Plans/Architecture/Transform/`
+- `docs/Human-Plans/Architecture/Radio/`
+- `docs/Human-Plans/Architecture/View-Toolbar/`
+- `docs/Human-Plans/Architecture/Worker/`
+- `docs/Human-Plans/Architecture/AppShell/`
+
+Compatibility / parent-lineage reminder:
+- `BR` often overlaps older `VR` / `AS` space, but Browser-led work should now prefer `BR`
+- `CN` often overlaps older `DBG` / `SP` / `VR` space, but Console-led work should now prefer `CN`
+- `WS` often overlaps older `VR` / `SP` space, but workspace-hosting and surface-placement work should now prefer `WS`
+- `LY` is a cross-cutting authored-content system and should not be forced into one older single-owner family
+- `EH` is a cross-cutting authored-history system and should not be forced into one older single-owner family
+- `TR` often overlaps older `VR` / `DR` space, but transform-shell / target / history work should now prefer `TR`
+- `RA` replaces the old habit of treating newer radio work as only a `VR - Phase 4` carry-forward
+- `VT` replaces the old habit of burying view-toolbar work inside broad `VR` notes
+- `WK` replaces the older habit of treating worker-cleanup-only work as generic `GE` follow-through
+- `SH` replaces the older habit of treating AppShell cleanup as only an unnamed bridge inside broader workspace phases
+
+Practical changelog rule:
+- prefer the newer family prefix when the newer family doc is the planning truth
+- keep using older prefixes when the work is still genuinely owned by the older canonical family
+- do not dual-tag one changelog bullet unless a note truly needs to explain cross-family coordination
+
 ### Canonical Meta / Docs Prefixe
 
-14. `DOC` Operations / docs meta
-15. `LEG` Legacy removal / retirement planning
+24. `DOC` Operations / docs meta
+25. `LEG` Legacy removal / retirement planning
 
 ### Future Legacy Updates
 
@@ -181,7 +230,7 @@ Only promote one of these if the work grows large enough to justify its own real
 1. `REF` Reference workspace / comparison environment
 
 Current total prefix count across all repo history coverage:
-- `15`
+- `25`
 
 ### Phase Setup CheckList
 

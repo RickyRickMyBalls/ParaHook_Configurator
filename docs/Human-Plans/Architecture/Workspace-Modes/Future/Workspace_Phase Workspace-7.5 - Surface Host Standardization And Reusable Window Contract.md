@@ -3,7 +3,13 @@
 ## Doc Header
 
 ### Doc History
-1. 2026-03-31 16:47: Added this native `Workspace 7.5` future phase doc to turn the Browser-versus-Spaghetti cleanup comparison into one implementation-ready standardization lane for reusable surface host contracts, shared shell verbs, and a generic dock or toolbar ownership model that future workspace windows can adopt without re-running the Browser cleanup ladder surface by surface
+1. 2026-04-01 02:03: Added `Workspace 7.5-4` as a native cleanup follow-on after the shipped `7.5-3` host-contract close-out so the umbrella `7.5` ladder now has one explicit parity-and-carry-forward lane for remaining Browser-versus-Spaghetti shell cleanup instead of implying the standardization work ends with no cleanup log or post-close-out carry surface
+1. 2026-04-01 00:57: Marked `Workspace 7.5-2` as shipped in this umbrella `Workspace 7.5` read after re-checking the landed Spaghetti split-migration work, so the staged family ladder now treats `7.5-2` as completed workspace split-truth migration and leaves `7.5-3` as the remaining open adapter-retirement plus onboarding cleanup
+1. 2026-04-01 00:51: Marked `Workspace 7.5-1` as shipped in this umbrella `Workspace 7.5` read after re-checking the landed generic placement, host-route ownership, Browser repoint, and persistence migration work, so the staged family ladder now treats `7.5-1` as completed contract extraction and leaves `7.5-2` plus `7.5-3` as the remaining open cleanup cuts
+1. 2026-03-31 23:21: Locked the open `7.5-1` contract questions in this umbrella `Workspace 7.5` doc and aligned the phase read with those answers, clarifying the exact first-cut host-route ownership shape, the minimum generic placement-record shape, the first shared workspace action set, the shell-versus-feature boundary, the Browser-first migration order, and the persistence compatibility rule before tightening the `7.5-1` subphase into an implementation-ready spec
+2. 2026-03-31 23:20: Added a focused `7.5-1` question list to this umbrella `Workspace 7.5` doc so the next contract-extraction cut now has one explicit set of still-to-lock implementation questions around generic placement shape, host-route ownership shape, shared workspace actions, feature-local boundaries, and Browser migration order instead of leaving those details implied across the broader standardization read
+3. 2026-03-31 23:13: Broke `Workspace 7.5` into staged `7.5-1` through `7.5-3` subphases after a read-only code pass on the live Browser-versus-Spaghetti shell seams, adding the specific finding that Spaghetti drag-to-edge split is still a hybrid between shared detached-surface redock and editor-owned `split view`, and tightening the umbrella `7.5` phase so shared shell contract extraction, Spaghetti split-truth migration, and later adapter retirement now read as separate implementation cuts instead of one broad cleanup bucket
+4. 2026-03-31 16:47: Added this native `Workspace 7.5` future phase doc to turn the Browser-versus-Spaghetti cleanup comparison into one implementation-ready standardization lane for reusable surface host contracts, shared shell verbs, and a generic dock or toolbar ownership model that future workspace windows can adopt without re-running the Browser cleanup ladder surface by surface
 
 ### Purpose
 
@@ -45,6 +51,12 @@ Practical read:
 - Browser already proved several good cleanup ideas
 - Spaghetti already proved a richer per-surface placement record
 - `7.5` should combine those wins into one reusable contract instead of leaving Browser and Spaghetti as two different shell languages
+
+This umbrella should now be read as a staged family:
+- `7.5-1` is now shipped as the shared shell contract and generic host-route ownership extraction cut
+- `7.5-2` is now shipped as the Spaghetti drag-to-edge split-truth migration onto the shared workspace slot and split tree
+- `7.5-3` is now functionally shipped as the host-adapter retirement and future-surface onboarding close-out
+- `7.5-4` is the new parity-cleanup and carry-forward lane for the remaining Browser-versus-Spaghetti shell mismatches and later toolbar carry rules
 
 ### Locked Direction
 
@@ -100,6 +112,10 @@ Current Spaghetti residue:
 - `SpaghettiWindowHost` still owns too many shell decisions directly
 - `useSpaghettiStore` still carries shell window modes that should increasingly become workspace-owned truth
 - Meatball, split view, floating, and popout all still speak one editor-specific shell dialect instead of one reusable workspace shell contract
+- the drag-to-edge split path is still hybrid:
+  - if the editor surface is already detached, edge drop uses the shared `redockDetachedSurface(...)` path
+  - otherwise the same edge gesture falls back to editor-owned `setEditorViewportSplitDockSide(...)` plus `setEditorViewportWindowMode(..., 'split view')`
+  - the visible split container and resize loop still live inside `SpaghettiWindowHost` instead of the shared workspace slot tree
 
 ### Locked Outcome
 
@@ -126,6 +142,10 @@ Important current mismatch:
 - `Browser` still leans on `browserShell` plus `browserToolbarOwnerSurfaceInstanceId`
 - `Spaghetti Editor` already uses `editorSurfacePlacementById`, but the live shell behavior still routes through editor-specific window modes
 - both surfaces already use the shared detached-surface seam, but they do not yet consume one unified shell contract on top of it
+- the drag-to-side Spaghetti split specifically is not fully on the new system yet:
+  - edge drop can enter shared rehome or old editor-local split depending on current host state
+  - split resize still writes editor-local `splitRatio`
+  - `SpaghettiWindowHost` still renders a bespoke `viewer + divider + editor` split layout branch
 
 ### Locked Questions / Decisions
 
@@ -224,17 +244,144 @@ Important rule:
 
 ### First Implementation Cut
 
-`Workspace 7.5` should land in the smallest safe sequence:
+`Workspace 7.5` should land as staged subphases:
 
-1. define the generic workspace surface placement and host-route ownership types
-2. identify the minimum shared shell action set and centralize those workspace actions
-3. adapt Browser to consume the generic types without changing visible behavior first
-4. adapt Spaghetti to the same contract, deleting the most obvious editor-only shell duplication
-5. prove at least one future-ready non-Browser surface can adopt the same host contract without another Browser-style cleanup ladder
+1. `Workspace 7.5-1`
+- shipped
+- landed the generic workspace surface placement and host-route ownership types
+- centralized the first shared workspace actions and moved Browser onto that contract without visible behavior change
+
+2. `Workspace 7.5-2`
+- shipped
+- migrated the Spaghetti drag-to-edge split path so the edge gesture always resolves through the shared workspace split tree
+- removed the bespoke `SpaghettiWindowHost` split-container branch and demoted `split view` to compatibility-only input for the migrated path
+
+3. `Workspace 7.5-3`
+- delete the remaining Browser-only and Spaghetti-only adapter residue after the shared contract proves itself
+- prove at least one additional future-ready surface can adopt the same host contract without another Browser-style or editor-style cleanup ladder
+
+4. `Workspace 7.5-4`
+- clean up the remaining Browser-versus-Spaghetti shell mismatches after the main contract work is already landed
+- keep one explicit running cleanup log for the parity fixes and carry-forward rules that later toolbars or windows should inherit
 
 Implementation boundary:
 - first prove the shared contract with Browser plus Spaghetti
 - do not promise every future surface conversion in the same cut
+
+### Staged Read
+
+`Workspace 7.5` now breaks into:
+
+1. `Workspace 7.5-1 - Shared Surface Placement Contract And Host Route Ownership`
+- contract extraction first
+- Browser-first migration onto generic seams
+
+2. `Workspace 7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize`
+- direct cleanup of the current drag-to-edge split hybrid
+- workspace tree becomes the only shell truth for that gesture
+
+3. `Workspace 7.5-3 - Host Adapter Retirement And Future Surface Onboarding`
+- delete the leftover compatibility paths
+- prove that future surfaces can adopt the reusable contract directly
+
+### 7.5-1 Questions To Lock
+
+These are the main questions that should be answered while tightening `Workspace 7.5-1` into a fully implementation-ready cut:
+
+#### [x] Workspace 7.5 - 7.5-1 Question 1 - What is the exact generic replacement for `browserToolbarOwnerSurfaceInstanceId`?
+
+##### Locked Answer
+- one `WorkspaceHostRouteOwnershipByRouteId` record keyed by named route id
+- each route should store a richer ownership object with:
+  - `surfaceKind`
+  - `surfaceInstanceId`
+  - optional `hostViewportId`
+- the first cut should model only routes that already exist in live behavior, starting with the Browser-owned left dock or toolbar route instead of inventing speculative route types
+
+##### Why
+- route ownership is the reusable concept
+- `surfaceInstanceId` alone is not descriptive enough once multiple surface kinds can claim named hosts
+- the first cut should generalize real existing behavior, not over-model future hosts prematurely
+
+#### [x] Workspace 7.5 - 7.5-1 Question 2 - What is the minimum stable shape of `WorkspaceSurfacePlacementState`?
+
+##### Locked Answer
+- the minimum stable generic placement record should carry:
+  - `surfaceKind`
+  - `surfaceInstanceId`
+  - `hostMode`
+  - `hostViewportId?`
+  - `slotId?`
+  - `floatingRect?`
+  - `popoutState?`
+  - `restoreTarget?`
+  - `namedHostRouteId?`
+- Browser-only and Spaghetti-only fields that are not required for the first shared contract should stay optional or remain in compatibility records for later subphases
+- host affinity and restore metadata should stay top-level on the placement record in the first cut so the contract stays easy to read and migrate
+
+##### Why
+- `7.5-1` needs one readable contract shape that can already express Browser and later Spaghetti placement truth
+- deeply nested sub-objects would add migration overhead before the contract has proven itself
+
+#### [x] Workspace 7.5 - 7.5-1 Question 3 - Which shell actions must move into `useWorkspaceStore` in the first cut?
+
+##### Locked Answer
+- `7.5-1` should centralize these first shared workspace actions:
+  - `focusSurface`
+  - `floatSurface`
+  - `popoutSurface`
+  - `redockSurface`
+  - `splitSurfaceToSide`
+  - `claimHostRoute`
+  - `releaseHostRoute`
+- Browser dock-left, float, popout, and redock actions are mature enough to lift in the first cut
+- Spaghetti split-specific and resize-specific actions should stay behind adapters until `7.5-2`
+
+##### Why
+- Browser already proves these host transitions cleanly
+- Spaghetti split truth is still hybrid, so forcing that migration into `7.5-1` would blur the boundary between contract extraction and split-truth cleanup
+
+#### [x] Workspace 7.5 - 7.5-1 Question 4 - What is explicitly feature-local and should not be standardized in `7.5-1`?
+
+##### Locked Answer
+- shell ownership includes:
+  - focus
+  - float
+  - popout
+  - redock
+  - split-side placement
+  - named-host claim or release
+- feature-local behavior includes:
+  - Browser tree actions, project browsing actions, and content controls
+  - Spaghetti graph, panel, and editor-session actions
+  - viewer tool behavior
+- the contract boundary should be documented in `Workspace 7.5` and concretized in the `7.5-1` subphase doc so later surface phases can inherit the same rule
+
+##### Why
+- `7.5-1` is about standardizing host lifecycle, not flattening all titlebars or feature actions into one UI model
+
+#### [x] Workspace 7.5 - 7.5-1 Question 5 - What is the Browser-first migration order?
+
+##### Locked Answer
+- move Browser in this order:
+  1. land generic types and route-ownership naming
+  2. add the first shared workspace actions
+  3. repoint Browser host code to those actions
+  4. leave visible Browser behavior unchanged while the ownership model changes underneath
+- types should land before or alongside action migration, but Browser host rewiring should not begin until the generic types and action names are stable enough to avoid churn
+
+##### Why
+- Browser is the safest proof surface for the contract, but the goal is contract extraction, not Browser UX change
+
+#### [x] Workspace 7.5 - 7.5-1 Question 6 - How should persistence represent the new generic contract in the first cut?
+
+##### Locked Answer
+- `workspacePersistence` should serialize the new generic placement record directly where possible
+- Browser-specific persisted state should be read through a compatibility path for one cut and re-saved in the generic shape on the next write
+- `7.5-1` should prefer additive migration over destructive persistence cleanup
+
+##### Why
+- the safest first cut preserves existing layouts while shifting the write-side truth to the new generic contract
 
 ### Likely Files
 

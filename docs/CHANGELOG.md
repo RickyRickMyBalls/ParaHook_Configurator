@@ -65,6 +65,416 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 841 -->
+### [841] - 2026-04-01 02:30 - `VR-SP - Workspace 7.5-4 - Console And Spaghetti Split Drag-Out Smoothness`
+<!-- ENTRY 841 -->
+HUMAN SUMMARY: `Finished the next `Workspace 7.5-4` parity cleanup by making slotted `Spaghetti Editor` and `Console` split-header drag-out stay attached to the pointer like Browser does. Both surfaces now keep moving as live floating windows until mouse-up instead of snapping into place as soon as they leave the split slot.` 
+#### Scope / Constraints Honored
+- Kept this cleanup tightly focused on split-to-float drag smoothness for `Spaghetti` and `Console`.
+- Reused the existing floating drag systems instead of inventing another feature-local drag path.
+- Preserved the already-working Browser behavior and kept the change within the active `7.5-4` parity lane.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so slot-header drag seeds now enter the real floating Spaghetti drag loop instead of only seeding one position update.
+- Added split-header drag seeding for `console` in `src/app/AppShell.tsx` and passed that seed into `src/app/console/ConsoleDock.tsx`.
+- Added one-shot seeded drag consumption plus safer viewport-size fallback logic in `src/app/console/ConsoleDock.tsx`, so the floating console keeps following the pointer even if the dock host has not reported a usable size yet.
+- Added focused regression coverage in `src/app/AppShell.test.tsx` and `src/app/console/ConsoleDock.test.tsx`.
+- Logged the landed cleanup in the running `Workspace 7.5-4` parity doc.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dragging a slotted `Spaghetti Editor` out from a split header now stays in live drag until the mouse is released.
+- Dragging a slotted `Console` out from a split header now behaves like Browser instead of becoming a stuck floating window.
+- Seeded floating console drag now falls back to the window viewport when the dock host temporarily reports zero size, which prevents top-left snapping during the handoff.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx -t "keeps a slot-header seeded floating console attached to the pointer until release|uses the shared workspace float action when a real console slot is hosted in the workspace tree|switches into floating mode from the header float button"`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "drags a slotted spaghetti editor out from the viewport header into floating mode|drags a slotted console out from the viewport header into a live floating window|drags a slotted browser out from the viewport header into floating mode|keeps a browser popout copy open while the original slotted browser is dragged out into floating mode"`
+- Result: passed.
+
+<!-- ENTRY 840 -->
+### [840] - 2026-04-01 02:16 - `VR-SP - Workspace 7.5-4 - Spaghetti Slot Drag-Out Keeps Live Pointer Handoff`
+<!-- ENTRY 840 -->
+HUMAN SUMMARY: `Improved the new `Workspace 7.5-4` Spaghetti drag-out parity by giving slotted editor header drag-out the same live pointer handoff that Browser already uses. After leaving a split slot, the floating Spaghetti window now keeps following the pointer until mouse-up instead of appearing and immediately sticking in place.` 
+#### Scope / Constraints Honored
+- Kept this cleanup tightly focused on the drag-handoff feel after split-to-float for Spaghetti.
+- Reused the existing floating Spaghetti drag loop instead of inventing another one-off drag system.
+- Preserved the earlier Browser slot-header drag-out behavior and verified it still works after widening the shared handoff path.
+
+#### What Changed
+- Added a slot-header drag seed in `src/app/AppShell.tsx` for slotted `Spaghetti Editor` surfaces so header drag-out can carry pointer offsets into the floating host.
+- Added matching `slotHeaderDragSeed` consumption in `src/app/hosts/SpaghettiWindowHost.tsx`, where the host now starts its normal floating drag loop immediately after the editor leaves the split slot.
+- Tightened the focused AppShell regression so the Spaghetti drag-out path now proves real pointer-follow movement before mouse-up instead of only asserting that the floating shell appears.
+- Recorded the smoother drag-handoff cleanup in the running `Workspace 7.5-4` cleanup log.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dragging a slotted Spaghetti editor out from a split header now keeps the floating editor attached to the pointer until the user releases the mouse.
+- The Spaghetti split-to-float handoff now feels closer to Browser instead of snapping into a floating shell that immediately stops moving.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "drags a slotted spaghetti editor out from the viewport header into floating mode|drags a slotted browser out from the viewport header into floating mode|keeps a browser popout copy open while the original slotted browser is dragged out into floating mode"`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Result: passed.
+
+<!-- ENTRY 839 -->
+### [839] - 2026-04-01 02:10 - `VR-SP - Workspace 7.5-4 - Slotted Surface Drag-Out Consumes Source Split`
+<!-- ENTRY 839 -->
+HUMAN SUMMARY: `Started the `Workspace 7.5-4` parity-cleanup lane by widening slot-header drag-out from Browser-only to the other non-primary non-viewer workspace surfaces. A slotted Spaghetti editor dragged out of a split now consumes that split slot and reopens as a floating window over the model viewport instead of leaving the old split host behind.` 
+#### Scope / Constraints Honored
+- Kept this cleanup focused on shared shell drag-out parity instead of widening into titlebar redesign or broader Spaghetti behavior changes.
+- Reused the existing generic slot-header drag handler instead of adding another feature-specific drag path.
+- Preserved Browser drag-out behavior and verified it still consumes the source slot after the widening.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so `ViewportFrame` header drag-out is enabled for every non-primary non-viewer slotted surface, not just Browser.
+- Added a focused `src/app/AppShell.test.tsx` regression proving a slotted `Spaghetti Editor` dragged out from a split slot removes the old slot and reopens as the floating editor shell.
+- Recorded this first parity cleanup in the running `Workspace 7.5-4` cleanup log.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Slotted non-primary workspace surfaces now share the same header drag-out affordance instead of Browser being the only split-slot surface that can drag back into floating mode from the slot header.
+- Dragging a slotted Spaghetti editor out into the model viewport now consumes the source split slot and reopens the same editor surface as a floating window.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "drags a slotted browser out from the viewport header into floating mode|drags a slotted spaghetti editor out from the viewport header into floating mode|keeps a browser popout copy open while the original slotted browser is dragged out into floating mode"`
+- Result: passed.
+
+<!-- ENTRY 838 -->
+### [838] - 2026-04-01 01:58 - `VR-SP - Workspace 7.5-3 Part 6 - AppShell Close-Out And Onboarding Recipe`
+<!-- ENTRY 838 -->
+HUMAN SUMMARY: `Finished the final `Workspace 7.5-3` close-out slice by moving detached Browser and Console restore lookup behind the shared `workspaceSurfaceActions.ts` seam instead of letting `AppShell` hand-orchestrate that feature-specific rehome path. This also closes the loop on `7.5` by making the onboarding recipe explicit in the phase doc so later surfaces can follow the shared contract instead of replaying Browser cleanup history.` 
+#### Scope / Constraints Honored
+- Kept this slice intentionally small and close-out focused instead of opening another migration lane.
+- Avoided widening Browser popout or adding a new proof surface beyond the already-proven Console path.
+- Trimmed `AppShell` glue only where the shared workspace action seam could already own the behavior honestly.
+
+#### What Changed
+- Added `restoreDetachedSurfaceByKind(...)` to `src/app/workspace/workspaceSurfaceActions.ts` so shared host actions can resolve and redock the current detached surface for a given surface kind without pushing that lookup back into `AppShell`.
+- Repointed the remaining detached Browser and Console auto-redock paths in `src/app/AppShell.tsx` to use that shared helper, including Browser viewport-split restore and Browser left-dock split re-entry.
+- Closed `Part 6` in the live `Workspace 7.5-3` phase doc and wrote the explicit future-surface onboarding recipe covering shared verbs, workspace-owned shell state, feature-local boundaries, and the list of shell behaviors future surfaces must not re-own locally.
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/AppShell.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Browser and Console detached restore flows still behave the same for users, but `AppShell` no longer hand-resolves those feature-specific rehome lookups itself.
+- `Workspace 7.5-3` now has an explicit onboarding recipe for later surfaces instead of leaving the shared contract implied across Browser, Spaghetti, and Console code.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "redocks a detached browser slot surface back into the slot tree when the compatibility host re-enters viewport split|redocks a detached console slot surface back into the slot tree when the compatibility host docks"`
+- Result: passed.
+
+<!-- ENTRY 837 -->
+### [837] - 2026-04-01 01:47 - `VR-SP - Workspace 7.5-3 Part 5 - Spaghetti Compatibility Retirement`
+<!-- ENTRY 837 -->
+HUMAN SUMMARY: `Implemented the `Workspace 7.5-3` part-5 Spaghetti cleanup by demoting more `split view` and `separateWindow` behavior into compatibility-only bridges instead of letting hosts keep re-authoring those shell modes directly. AppShell now normalizes persisted legacy `split view` through migration instead of restoring it as live runtime state, and Spaghetti popout dock-back uses a dedicated restore helper instead of toggling `separateWindow` through the generic window-mode setter.`
+#### Scope / Constraints Honored
+- Kept this slice focused on Spaghetti compatibility retirement rather than redesigning meatball behavior or broad editor UX.
+- Preserved shared workspace split/popout ownership and avoided widening Browser or Console work in the same patch.
+- Narrowed compatibility paths without deleting the restore bridge that older Spaghetti states still need.
+
+#### What Changed
+- Added `restoreEditorViewportFromSeparateWindow(...)` to `useSpaghettiStore` so Spaghetti popout dock-back can restore from the compatibility bridge explicitly instead of reusing `setEditorViewportWindowMode(..., 'separateWindow')` as a toggle.
+- Repointed `SpaghettiWindowHost` popout dock-back handling to that explicit restore helper before shared workspace redock, which removes one more host-local authored `separateWindow` path.
+- Updated `AppShell` hydration so persisted legacy `split view` placements are normalized through `ensureLegacySplitViewMigrated(...)` and `expanded` runtime state instead of being restored as a live second shell model.
+- Updated the Spaghetti and AppShell test mocks plus focused assertions to match the narrower compatibility behavior.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Persisted legacy Spaghetti `split view` now migrates back into workspace-owned split layout during restore instead of being re-authored as live runtime window mode.
+- Spaghetti popout close and dock-back flows now restore from the separate-window compatibility bridge explicitly rather than toggling the same `windowMode` value again to escape it.
+- The remaining Spaghetti compatibility state is narrower and more clearly bridge-only, while split and popout behavior for users stays the same.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx -t "moves the editor into a child-window popout owner and docks it back when the popout closes|redocks a detached slotted editor from popout back into the workspace slot tree|does not render the old bespoke split divider when split view state is present|treats split view as compatibility-only and does not revive the old split titlebar|keeps the viewer surface mounted while legacy split view state is being phased out|shows a bottom split ghost and docks the floating editor into the workspace slot tree on release|uses right-edge drag to create a right-side workspace split for the editor"`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "restores a saved workspace layout on startup|migrates split view compatibility state without exposing the old draggable split title bar|does not revive the old split spaghetti title bar|keeps a browser popout copy open while the original slotted browser is dragged out into floating mode"`
+- Result: passed.
+
+<!-- ENTRY 836 -->
+### [836] - 2026-04-01 01:37 - `VR-SP - Workspace 7.5-3 Part 4 - Browser Preview Versus Commit Cleanup`
+<!-- ENTRY 836 -->
+HUMAN SUMMARY: `Implemented the `Workspace 7.5-3` part-4 Browser cleanup by pushing more quick-dock and split commit ownership through the shared workspace surface-action seam while leaving Browser preview geometry and ghost derivation local to `BrowserDockHost`. The result is a thinner Browser host with focused regressions covering detached quick-dock, detached floating split-menu redock, edge-drop split commit, and split-to-float handoff behavior.`
+#### Scope / Constraints Honored
+- Kept Browser preview math, nested split ghost derivation, and drag-preview UI state local to `BrowserDockHost`.
+- Avoided widening Browser popout behavior or introducing a generic preview abstraction that would not buy real ownership cleanup.
+- Focused this slice on Browser commit ownership rather than trying to finish the remaining Spaghetti or AppShell work in the same change.
+
+#### What Changed
+- Extended `splitWorkspaceSurfaceToSide(...)` in `src/app/workspace/workspaceSurfaceActions.ts` so detached Browser surfaces can use the same shared split commit path and preserve the preferred Browser split ratio through that helper.
+- Simplified `BrowserDockHost` by centralizing active Browser surface resolution and drag-preview state clearing, then routing quick-dock, floating split-menu commit, and floating drop-to-toolbar commit through shared workspace actions instead of host-local detached-versus-toolbar branches.
+- Added focused Browser host regressions covering detached quick-dock and detached floating split-menu redock alongside the existing floating split-menu, edge-drop, and split-to-float coverage.
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Floating Browser quick-dock and floating split-menu commit paths now rely more directly on the shared workspace surface-action seam instead of BrowserDockHost-specific commit branching.
+- Detached Browser surfaces now keep their intended Browser split ratio when the floating split menu redocks them into the slot tree.
+- Browser preview geometry, ghost rendering, and hover-intent logic remain local to `BrowserDockHost`, which keeps the preview-versus-commit boundary cleaner.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/BrowserDockHost.test.tsx -t "quick-docks a detached slotted browser back into the toolbar through the shared route path|uses the floating split menu to redock a detached slotted browser into the slot tree|shows separate quick dock and popout controls for a floating browser|opens a floating browser titlebar split menu and moves the browser into a left split|redocks a detached slotted browser directly into the slot tree when edge-dropped from floating|shows the left dock preview and docks a detached slotted browser back into the toolbar|drags the viewport-split browser titlebar back into a floating browser window"`
+- Result: passed.
+
+<!-- ENTRY 835 -->
+### [835] - 2026-04-01 01:29 - `VR-SP - Browser Slotted Drag-Out Float Consumes Source Slot`
+<!-- ENTRY 835 -->
+HUMAN SUMMARY: `Fixed a Browser workspace regression where dragging a slotted Browser out into floating mode could leave the old split slot behind if that Browser surface shared the current toolbar-owner id. The shared Browser float path now always detaches the slotted source first, and the AppShell regression tests now explicitly prove the old Browser slot disappears in both normal and popout-copy drag-out flows.`
+#### Scope / Constraints Honored
+- Fixed the slotted Browser drag-out regression without widening Browser popout behavior or changing unrelated host flows.
+- Kept the change inside the shared workspace surface-action seam and focused AppShell regression coverage.
+
+#### What Changed
+- Updated `floatWorkspaceSurface(...)` in `src/app/workspace/workspaceSurfaceActions.ts` so a slotted Browser always detaches its source slot before entering floating mode.
+- Removed the old Browser owner-id shortcut in that slotted float path, which was letting the floating shell appear without consuming the originating viewport split slot.
+- Tightened the existing AppShell Browser drag-out regression tests so they now assert the old Browser slot is actually removed after the drag completes.
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Dragging a slotted Browser out from the viewport header into floating mode now consumes the original Browser slot instead of leaving a duplicate split Browser behind.
+- The same slot-consumption rule now stays true even when a Browser popout copy is already open.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "drags a slotted browser out from the viewport header into floating mode|keeps a browser popout copy open while the original slotted browser is dragged out into floating mode"`
+- Result: passed.
+
+### [834] - 2026-04-01 01:20 - `VR-SP - Workspace 7.5-3 Part 3 - Browser Split Commit Delegation And AppShell Redock Cleanup`
+<!-- ENTRY 834 -->
+HUMAN SUMMARY: `Implemented the next `7.5-3` part-3 slice by moving more Browser split-commit lifecycle ownership into the shared workspace action seam and trimming a bit more AppShell redock glue on top of it. TypeScript passes, the focused Browser/Spaghetti/Console host suites pass, and the targeted AppShell contract checks still pass after the cleanup.`
+#### Scope / Constraints Honored
+- Kept Browser popout on its compatibility path and avoided rewriting preview-only Browser drag geometry just for symmetry.
+- Focused this slice on the last obvious Browser split-commit residue and small AppShell cleanup instead of pretending the entire remaining `7.5-3` lane is finished.
+- Preserved the already-shipped Console and Spaghetti shared-host behavior while tightening the shared action seam further.
+
+#### What Changed
+- Extended `workspaceSurfaceActions.ts` with shared split-commit helpers for slot-targeted and whole-layout Browser placement so more of the committed Browser split lifecycle now lives in the shared workspace seam instead of `BrowserDockHost`.
+- Repointed `BrowserDockHost` slot-split and whole-layout split commits to those shared helpers, removing more adapter-local shell ownership from the Browser host.
+- Repointed `AppShell` detached Browser and detached Console re-dock restore effects to the shared `redockWorkspaceSurface(...)` seam instead of directly calling detached-surface store helpers.
+- Kept the previously shipped Console explicit shared-host proof and Spaghetti shared-host paths intact while tightening the shared helper layer underneath them.
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser split commits now route through the shared workspace action seam in more cases instead of being finalized entirely inside `BrowserDockHost`.
+- AppShell auto-redock effects for detached Browser and Console surfaces now delegate through the same shared redock path used elsewhere in the standardized host contract.
+- User-facing Browser, Console, and Spaghetti behavior for the covered paths remains the same while more lifecycle ownership moves out of adapters.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "split-priority divider menu|floating spaghetti titlebar context menu|generic workspace divider|does not revive the old split spaghetti title bar|migrates split view compatibility state without exposing the old draggable split title bar|bottom split ghost|browser slot header|popout"`
+- Result: passed.
+
+### [833] - 2026-04-01 01:07 - `VR-SP - Workspace 7.5-3 Part 2 - Shared Host Actions For Console And Further Adapter Thinning`
+<!-- ENTRY 833 -->
+HUMAN SUMMARY: `Implemented the next `7.5-3` part-2 slice by pushing more Browser and Spaghetti host transitions onto the shared workspace action seam and making ConsoleDock explicitly use that same seam when a real workspace console surface exists. TypeScript passes, the Browser/Spaghetti/Console host suites pass, and the focused AppShell contract checks still pass for the migrated split and popout paths.`
+#### Scope / Constraints Honored
+- Kept Browser popout on its existing compatibility path instead of forcing it onto the generic seam and risking regressions.
+- Focused this slice on low-risk host-action delegation wins across Browser, Spaghetti, and Console rather than attempting a full adapter rewrite in one pass.
+- Used Console as the first explicit proof surface for the shared host-action seam without redesigning the broader Console UI.
+
+#### What Changed
+- Extended `workspaceSurfaceActions.ts` with a reusable slotted-surface lookup helper and widened the shared Browser split helper so it now understands the toolbar-owned Browser shell as well as slotted or detached Browser surfaces.
+- Repointed `ConsoleDock` float and popout toggles to use shared workspace host actions whenever a real slotted console surface exists, while keeping the old local-store fallback for non-workspace console usage.
+- Repointed Browser floating split-menu selection onto the shared `splitWorkspaceSurfaceToSide(...)` seam for the toolbar-owned Browser path.
+- Repointed Spaghetti slotted popout and detached popout dock-back flows onto shared workspace host actions so fewer shell transitions are authored directly inside `SpaghettiWindowHost`.
+- Added focused ConsoleDock coverage proving that a slotted console surface now reaches floating and popout host modes through the shared workspace seam.
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- A console surface hosted in the workspace slot tree now uses the shared workspace host-action seam for visible float and popout transitions.
+- Browser floating split-menu actions now delegate through the shared split action for the toolbar-owned Browser case instead of staying purely host-local.
+- Spaghetti slotted popout and detached popout dock-back flows now rely more directly on shared workspace host verbs instead of only editor-host-local transition code.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "split-priority divider menu|floating spaghetti titlebar context menu|generic workspace divider|does not revive the old split spaghetti title bar|migrates split view compatibility state without exposing the old draggable split title bar|bottom split ghost|browser slot header|popout"`
+- Result: passed.
+
+### [832] - 2026-04-01 00:49 - `VR-SP - Workspace 7.5-3 - Host Adapter Retirement And Future Surface Onboarding`
+<!-- ENTRY 832 -->
+HUMAN SUMMARY: `Locked the first `7.5-3` runtime slice into code by introducing shared workspace surface host verbs, then repointing AppShell, BrowserDockHost, and SpaghettiWindowHost onto that seam where it was safe. TypeScript passes, the Browser and Spaghetti host suites pass, and the focused AppShell shell-contract checks pass for the migrated split and popout paths.`
+#### Scope / Constraints Honored
+- Kept this cut centered on the first reusable host-action seam instead of trying to fully rewrite BrowserDockHost, SpaghettiWindowHost, or AppShell in one pass.
+- Preserved Browser popout's compatibility-shell behavior while still moving quick-dock and split-oriented transitions toward shared workspace verbs.
+- Treated Console as part of the shared action surface through the new helper without forcing a broad console-host UI rewrite in the same patch.
+
+#### What Changed
+- Added `workspaceSurfaceActions.ts` as a shared host-action seam for float, popout, redock, and split-to-side transitions across Browser, Console, Spaghetti, and viewer-backed workspace surfaces.
+- Repointed AppShell slot float, slot popout, legacy Spaghetti split migration, and floating split-menu actions onto the shared surface-action helpers where those paths now belong to workspace shell truth.
+- Reworked BrowserDockHost quick-dock to use the generic browser route redock seam instead of manually rebuilding toolbar ownership at the host level.
+- Reworked SpaghettiWindowHost edge-dock split handoff to use the shared split action so floating editor edge-drops and compatibility split migration now pass through one workspace-owned path.
+- Tightened the shared split helper so a floating Spaghetti editor is recognized even before it owns a workspace slot, preserving edge-dock behavior while removing duplicated host logic.
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Shared workspace host verbs now own more of the slot float, split, and redock lifecycle instead of each host component reinventing those transitions locally.
+- Browser quick-dock now routes through the generic host-route redock seam while Browser popout intentionally stays on its compatibility shell path.
+- Spaghetti edge-dock and legacy split migration now use the same shared split action, so floating editor split behavior and compatibility restore no longer depend on duplicate host-local logic.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "split-priority divider menu|floating spaghetti titlebar context menu|generic workspace divider|does not revive the old split spaghetti title bar|migrates split view compatibility state without exposing the old draggable split title bar|bottom split ghost|browser slot header|popout"`
+- Result: passed.
+
+### [831] - 2026-04-01 00:23 - `VR-SP - Workspace 7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize`
+<!-- ENTRY 831 -->
+HUMAN SUMMARY: `Moved the Spaghetti drag-to-edge split path onto the shared workspace slot tree so the editor now docks into a real workspace split instead of reviving the bespoke `split view` shell. TypeScript passes, the full Spaghetti host suite passes, and the focused AppShell split-migration checks pass while broader historical AppShell residue still remains outside this cut.`
+#### Scope / Constraints Honored
+- Kept the work centered on `7.5-2` by migrating the Spaghetti edge-dock split path and its immediate shell ownership seams without attempting the broader host-adapter retirement planned for `7.5-3`.
+- Preserved the visible drag-to-edge gesture and split-toggle affordance while changing the runtime truth underneath to the shared workspace slot tree.
+- Left `windowMode: 'split view'` alive only as compatibility input that now migrates into workspace slot truth instead of continuing to own rendering.
+
+#### What Changed
+- Reworked `SpaghettiWindowHost` so edge-drop and the split toggle now create or rehome a real `spaghettiEditor` workspace slot split, and the floating shell hides whenever that editor surface is already slotted.
+- Removed the bespoke in-host `SpaghettiSplitWindow` render branch so the shared workspace slot tree and generic viewport divider own the visible split layout.
+- Added an AppShell migration bridge that converts legacy Spaghetti `split view` state into a real workspace slot split on restore or compatibility render instead of reviving the old split shell.
+- Repointed the floating Spaghetti split menu actions to create or close real workspace splits, and reset split ratio through workspace layout truth when the editor is already slotted.
+- Updated Spaghetti host and focused AppShell tests to assert the new workspace-owned split behavior rather than the retired bespoke split shell.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dragging the floating Spaghetti editor to a viewport edge now always lands in a real workspace slot split.
+- The Spaghetti split button now toggles workspace slot ownership instead of entering or leaving the old bespoke `split view` container.
+- Legacy `split view` restore state now migrates into a shared workspace split with the generic viewport divider instead of reopening the retired split shell.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/AppShell.test.tsx -t "split-priority divider menu|floating spaghetti titlebar context menu|generic workspace divider|does not revive the old split spaghetti title bar|migrates split view compatibility state without exposing the old draggable split title bar|bottom split ghost"`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- Result: the full Spaghetti host suite passed, while `AppShell.test.tsx` still reports broader historical failures outside this focused `7.5-2` migration slice.
+
+### [830] - 2026-03-31 23:21 - `VR-SP - Workspace 7.5-1 - Shared Surface Placement Contract And Host Route Ownership`
+<!-- ENTRY 830 -->
+HUMAN SUMMARY: `Added the first live \`Workspace 7.5-1\` contract layer by introducing generic workspace surface placement and named host-route ownership records, then repointing Browser host ownership onto that generic seam without changing Browser UX. TypeScript passes, the focused workspace-store and Browser-host tests pass, and the remaining failures are the same broader AppShell residue outside this contract-extraction cut.`
+#### Scope / Constraints Honored
+- Kept the work inside the `7.5-1` contract-extraction boundary instead of pulling in the later Spaghetti split-truth migration from `7.5-2`.
+- Preserved current Browser behavior while extracting reusable host-route ownership and placement truth underneath it.
+- Kept legacy Browser fields alive as compatibility seams so the rest of the shell does not need to migrate all at once.
+
+#### What Changed
+- Added generic `WorkspaceHostRouteOwnership` and `WorkspaceSurfacePlacementState` types to the workspace shell model.
+- Expanded `useWorkspaceStore` with derived `hostRouteOwnershipByRouteId` and `surfacePlacementById` records plus first shared host actions such as `claimHostRoute`, `releaseHostRoute`, `floatSurface`, `popoutSurface`, `redockSurface`, and `splitSurfaceToSide`.
+- Repointed Browser route-ownership reads and writes in `BrowserDockHost` and `AppShell` to the generic left-dock host-route seam instead of only the Browser-specific owner field.
+- Extended workspace persistence to serialize the new generic route-ownership and surface-placement records while keeping compatibility with the legacy Browser shape.
+- Added focused store coverage for the new generic Browser contract mirroring behavior.
+
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/AppShell.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser route ownership now has a generic workspace-owned representation alongside the legacy Browser compatibility field.
+- Browser surface placement now has a first generic workspace representation that mirrors docked, floating, popped-out, slotted, and detached Browser states.
+- No intended Browser UX change shipped in this cut; the new contract is an ownership and persistence extraction layer.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd --noEmit`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/workspace/useWorkspaceStore.test.ts src/app/hosts/BrowserDockHost.test.tsx`
+- Result: passed.
+- Ran `npm.cmd run test -- src/app/workspace/useWorkspaceStore.test.ts src/app/hosts/BrowserDockHost.test.tsx src/app/AppShell.test.tsx`
+- Result: the workspace-store and Browser-host suites passed, while `AppShell.test.tsx` still reports the same 6 broader shell failures outside this `7.5-1` contract-extraction cut.
+
 ### [829] - 2026-03-31 16:51 - `VR-SP - ViewerHost Test Prop Compatibility Fix`
 <!-- ENTRY 829 -->
 HUMAN SUMMARY: `The build was failing because \`ViewerHost\` now requires a \`viewportId\` prop while the existing component test suite still mounted it bare in dozens of cases. This updates the test renders to pass the primary viewer id explicitly so TypeScript and the production build succeed again without changing runtime behavior.`

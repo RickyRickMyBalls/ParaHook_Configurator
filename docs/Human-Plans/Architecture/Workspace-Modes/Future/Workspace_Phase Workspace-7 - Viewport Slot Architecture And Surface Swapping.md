@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+40. 2026-04-01 02:03: Added the native `Workspace 7.5-4` cleanup follow-on to this umbrella `Workspace 7` ladder so the later host-standardization family now reads as contract extraction shipped, Spaghetti split-truth migration shipped, main host-adapter retirement closed, and one explicit Browser-versus-Spaghetti shell-parity cleanup lane still open for the remaining carry-forward cleanup
+39. 2026-04-01 00:57: Marked `Workspace 7.5-2` as shipped in this umbrella `Workspace 7` ladder after re-checking the landed Spaghetti workspace split-truth migration, so the later `7.5` family now reads as contract extraction shipped first, split-truth migration shipped second, and only the adapter-retirement plus future-surface onboarding cleanup still open
+38. 2026-04-01 00:51: Marked `Workspace 7.5-1` as shipped in this umbrella `Workspace 7` ladder after re-checking the landed generic host-contract extraction work, so the later `7.5` family now reads as contract extraction completed first, with Spaghetti split-truth migration and the remaining adapter-retirement plus onboarding cleanup still open after it
+37. 2026-03-31 23:13: Broke the later `Workspace 7.5` host-standardization lane into staged `7.5-1` through `7.5-3` subphase docs after a read-only shell audit confirmed that the Spaghetti drag-to-edge split path is still a hybrid between shared detached-surface redock and editor-owned `split view`, so the umbrella ladder now calls out shared contract extraction first, Spaghetti split-truth migration second, and adapter-retirement plus future-surface onboarding third
 36. 2026-03-31 16:47: Added the native `Workspace 7.5` follow-on doc so the later workspace ladder now has one explicit post-`7.4` standardization phase for reusable surface host contracts, generic dock or toolbar ownership, and Browser-plus-Spaghetti shell convergence before more future windows are onboarded
 35. 2026-03-31 14:49: Marked `Workspace 7.3-1` as shipped, moved that first second-model-viewport record into `Workspace-Modes/Shipped/`, and advanced the umbrella `Workspace 7` ladder so `7.3-2` is now the active multiple-viewer follow-on for host-targeting and viewer-rehome parity
 34. 2026-03-31 14:23: Broke the native `Workspace 7.3` viewer-runtime widening lane into staged `7.3-1` and `7.3-2` subphase docs so the family now reads as second-model-viewport structural proof first and cross-viewport host-targeting parity second before the later `7.4` convergence cleanup
@@ -820,6 +824,14 @@ A reasonable first shape is:
 7. `Workspace 7.4`
 - further cleanup after the migration adapters are no longer needed
 - delete any surviving temporary split or floating special cases that block the honest end-state
+
+8. `Workspace 7.5`
+- reusable surface host standardization and one shared shell contract after the `7.4` cleanup proves the slot model is honest
+- staged as:
+  - `7.5-1` shipped shared surface placement contract plus generic host-route ownership
+  - `7.5-2` shipped Spaghetti drag-to-edge split-truth migration onto the workspace split tree
+  - `7.5-3` closed the main host-adapter retirement plus future-surface onboarding lane
+  - `7.5-4` is the open parity-cleanup and carry-forward lane for the remaining Browser-versus-Spaghetti shell mismatches
 
 ### Likely Files
 

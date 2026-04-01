@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type CSSProperties,
@@ -35,6 +36,11 @@ import {
 } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
+import {
+  findSlottedSurfaceInstanceIdByKind,
+  floatWorkspaceSurface,
+  popoutWorkspaceSurface,
+} from '../workspace/workspaceSurfaceActions'
 import {
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
@@ -126,6 +132,15 @@ const CONSOLE_POPOUT_SPEC = {
 type ConsoleDockProps = {
   listLeftOffset?: number
   suppressDockedSurface?: boolean
+  slotHeaderDragSeed?: {
+    pointerId: number
+    clientX: number
+    clientY: number
+    pointerOffsetX: number
+    pointerOffsetY: number
+    titleBarHeight: number
+  } | null
+  onConsumeSlotHeaderDragSeed?: () => void
 }
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
@@ -1300,9 +1315,12 @@ const buildDefaultCreatedSketchPosition = (graph: SpaghettiGraph): GraphNodePos 
 export function ConsoleDock({
   listLeftOffset = 0,
   suppressDockedSurface = false,
+  slotHeaderDragSeed = null,
+  onConsumeSlotHeaderDragSeed,
 }: ConsoleDockProps) {
   const dockRef = useRef<HTMLDivElement | null>(null)
   const floatingWindowRef = useRef<HTMLDivElement | null>(null)
+  const consumedSlotHeaderDragPointerIdRef = useRef<number | null>(null)
   const dockedInputRef = useRef<HTMLInputElement | null>(null)
   const floatingInputRef = useRef<HTMLInputElement | null>(null)
   const popoutInputRef = useRef<HTMLInputElement | null>(null)
@@ -1316,6 +1334,14 @@ export function ConsoleDock({
     ReturnType<typeof useSpaghettiStore.getState>['sketchPlanePickSession']
   >(null)
   const previousSketchDrawIdleRef = useRef(false)
+  const resolveFloatingViewportSize = useCallback(() => {
+    const dockWidth = dockRef.current?.clientWidth ?? 0
+    const dockHeight = dockRef.current?.clientHeight ?? 0
+    return {
+      width: dockWidth > 0 ? dockWidth : window.innerWidth,
+      height: dockHeight > 0 ? dockHeight : window.innerHeight,
+    }
+  }, [])
   const appendEscUserEntry = useCallback(() => {
     appendConsoleEntry({
       layer: 'Commands',
@@ -6685,9 +6711,8 @@ export function ConsoleDock({
     if (windowMode !== 'floating') {
       return
     }
-    const viewportWidth = dockRef.current?.clientWidth ?? window.innerWidth
-    const viewportHeight = dockRef.current?.clientHeight ?? window.innerHeight
-    const clamped = clampFloatingRect(floatingRect, viewportWidth, viewportHeight)
+    const viewportSize = resolveFloatingViewportSize()
+    const clamped = clampFloatingRect(floatingRect, viewportSize.width, viewportSize.height)
     if (
       clamped.x !== floatingRect.x ||
       clamped.y !== floatingRect.y ||
@@ -6696,7 +6721,7 @@ export function ConsoleDock({
     ) {
       setFloatingRect(clamped)
     }
-  }, [floatingRect, setFloatingRect, windowMode])
+  }, [floatingRect, resolveFloatingViewportSize, setFloatingRect, windowMode])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -7101,6 +7126,42 @@ export function ConsoleDock({
     stagedChoiceIndex,
   ])
 
+  const beginFloatingHeaderDrag = useCallback(
+    (
+      startRect: ConsoleFloatingRect,
+      seed: {
+        clientX: number
+        clientY: number
+        pointerOffsetX: number
+        pointerOffsetY: number
+      },
+    ) => {
+      const move = (moveEvent: PointerEvent) => {
+        const viewportSize = resolveFloatingViewportSize()
+        setFloatingRect(
+          clampFloatingRect(
+            {
+              ...startRect,
+              x: moveEvent.clientX - seed.pointerOffsetX,
+              y: moveEvent.clientY - seed.pointerOffsetY,
+            },
+            viewportSize.width,
+            viewportSize.height,
+          ),
+        )
+      }
+      const stop = () => {
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', stop)
+        window.removeEventListener('pointercancel', stop)
+      }
+      window.addEventListener('pointermove', move)
+      window.addEventListener('pointerup', stop)
+      window.addEventListener('pointercancel', stop)
+    },
+    [resolveFloatingViewportSize, setFloatingRect],
+  )
+
   const handleFloatingHeaderPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null
     if (target?.closest('button, input, select') !== null) {
@@ -7108,33 +7169,43 @@ export function ConsoleDock({
     }
     event.preventDefault()
     event.stopPropagation()
-    const startX = event.clientX
-    const startY = event.clientY
-    const startRect = floatingRect
-    const move = (moveEvent: PointerEvent) => {
-      const viewportWidth = dockRef.current?.clientWidth ?? window.innerWidth
-      const viewportHeight = dockRef.current?.clientHeight ?? window.innerHeight
-      setFloatingRect(
-        clampFloatingRect(
-          {
-            ...startRect,
-            x: startRect.x + (moveEvent.clientX - startX),
-            y: startRect.y + (moveEvent.clientY - startY),
-          },
-          viewportWidth,
-          viewportHeight,
-        ),
-      )
-    }
-    const stop = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', stop)
-      window.removeEventListener('pointercancel', stop)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', stop)
-    window.addEventListener('pointercancel', stop)
+    beginFloatingHeaderDrag(floatingRect, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      pointerOffsetX: event.clientX - floatingRect.x,
+      pointerOffsetY: event.clientY - floatingRect.y,
+    })
   }
+
+  useLayoutEffect(() => {
+    if (windowMode !== 'floating' || slotHeaderDragSeed === null) {
+      return
+    }
+    if (consumedSlotHeaderDragPointerIdRef.current === slotHeaderDragSeed.pointerId) {
+      return
+    }
+    consumedSlotHeaderDragPointerIdRef.current = slotHeaderDragSeed.pointerId
+    const viewportSize = resolveFloatingViewportSize()
+    const seededRect = clampFloatingRect(
+      {
+        ...floatingRect,
+        x: slotHeaderDragSeed.clientX - slotHeaderDragSeed.pointerOffsetX,
+        y: slotHeaderDragSeed.clientY - slotHeaderDragSeed.pointerOffsetY,
+      },
+      viewportSize.width,
+      viewportSize.height,
+    )
+    setFloatingRect(seededRect)
+    beginFloatingHeaderDrag(seededRect, slotHeaderDragSeed)
+    onConsumeSlotHeaderDragSeed?.()
+  }, [
+    beginFloatingHeaderDrag,
+    onConsumeSlotHeaderDragSeed,
+    resolveFloatingViewportSize,
+    setFloatingRect,
+    slotHeaderDragSeed,
+    windowMode,
+  ])
 
   const handleFloatingResizePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>,
@@ -7165,9 +7236,8 @@ export function ConsoleDock({
         nextRect.height = startRect.height - deltaY
       }
 
-      const viewportWidth = dockRef.current?.clientWidth ?? window.innerWidth
-      const viewportHeight = dockRef.current?.clientHeight ?? window.innerHeight
-      setFloatingRect(clampFloatingRect(nextRect, viewportWidth, viewportHeight))
+      const viewportSize = resolveFloatingViewportSize()
+      setFloatingRect(clampFloatingRect(nextRect, viewportSize.width, viewportSize.height))
     }
     const stop = () => {
       window.removeEventListener('pointermove', move)
@@ -7184,12 +7254,22 @@ export function ConsoleDock({
       switchToDocked(true)
       return
     }
+    const slottedConsoleSurfaceInstanceId = findSlottedSurfaceInstanceIdByKind('console')
+    if (slottedConsoleSurfaceInstanceId !== null) {
+      floatWorkspaceSurface(slottedConsoleSurfaceInstanceId)
+      return
+    }
     switchToFloating()
   }
 
   const handlePopoutToggle = () => {
     if (windowMode === 'popout') {
       switchToDocked(false)
+      return
+    }
+    const slottedConsoleSurfaceInstanceId = findSlottedSurfaceInstanceIdByKind('console')
+    if (slottedConsoleSurfaceInstanceId !== null) {
+      popoutWorkspaceSurface(slottedConsoleSurfaceInstanceId)
       return
     }
     switchToPopout()

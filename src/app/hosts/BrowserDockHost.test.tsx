@@ -655,6 +655,40 @@ describe('BrowserDockHost', () => {
     expect(container?.textContent).toContain('Browser Panel docked expanded')
   })
 
+  it('quick-docks a detached slotted browser back into the toolbar through the shared route path', async () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'browser',
+      surfaceInstanceId: 'browser-surface-1',
+    })
+
+    const detachedSlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(detachedSlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().detachViewportSlotSurface(detachedSlotId ?? '', 'floating')
+    useWorkspaceStore.getState().setBrowserFloating(true)
+
+    await renderHarness()
+    mockGeometry()
+
+    const quickDockButton = container?.querySelector(
+      'button[aria-label="Mock browser quick dock"]',
+    ) as HTMLButtonElement | null
+
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['browser-surface-1']).toBeUndefined()
+    expect(useWorkspaceStore.getState().browserToolbarOwnerSurfaceInstanceId).toBe('browser-surface-1')
+    expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(false)
+    expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
   it('shows a right split ghost and moves the floating browser into viewport split on release', async () => {
     await renderHarness()
     mockGeometry()
@@ -1965,6 +1999,60 @@ describe('BrowserDockHost', () => {
     )
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
     expect(container?.querySelector('.BrowserViewportSplitWindow')).not.toBeNull()
+  })
+
+  it('uses the floating split menu to redock a detached slotted browser into the slot tree', async () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'browser',
+      surfaceInstanceId: 'browser-surface-1',
+    })
+
+    const detachedSlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(detachedSlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().detachViewportSlotSurface(detachedSlotId ?? '', 'floating')
+    useWorkspaceStore.getState().setBrowserFloating(true)
+    useWorkspaceStore.getState().setBrowserViewportSplitRatio(320 / 544)
+
+    await renderHarness()
+    mockGeometry()
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 180,
+        }),
+      )
+    })
+
+    const splitLeftButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Split Left') as HTMLButtonElement | undefined
+
+    expect(splitLeftButton).not.toBeUndefined()
+
+    await act(async () => {
+      splitLeftButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const browserSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'browser',
+    )
+    expect(browserSlots).toHaveLength(1)
+    expect(browserSlots[0]?.surfaceInstanceId).toBe('browser-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['browser-surface-1']).toBeUndefined()
+    expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(false)
+    expect(useWorkspaceStore.getState().browserShell.isViewportSplit).toBe(false)
+    expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
   })
 
   it('locks text selection while dragging a viewport-split browser back into floating mode', async () => {

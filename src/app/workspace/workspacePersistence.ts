@@ -1,4 +1,5 @@
 import {
+  defaultBrowserHostRouteId,
   createDefaultWorkspaceLayoutLeafNode,
   createDefaultWorkspaceSlotTree,
   createDefaultEditorPopoutState,
@@ -21,11 +22,14 @@ import {
   type BrowserPresentationMode,
   type EditorWorkspaceSurfaceState,
   type WorkspaceDetachedSlotSurfaceState,
+  type WorkspaceHostRouteOwnership,
+  type WorkspaceHostRouteOwnershipByRouteId,
   type WorkspaceLayoutNode,
   type WorkspaceLayoutNodeId,
   type PersistedWorkspaceLayout,
   type WorkspacePopoutSurfaceState,
   type WorkspaceSurfaceKind,
+  type WorkspaceSurfacePlacementState,
   type WorkspaceRetainedSurfaceInstanceIdsByKind,
   type WorkspaceViewportSlot,
   type WorkspaceViewportChromeState,
@@ -43,6 +47,8 @@ type WorkspacePersistenceSource = {
   isLeftDockViewportSplit: boolean
   browserToolbarOwnerSurfaceInstanceId: string | null
   browserShell: BrowserShellState
+  hostRouteOwnershipByRouteId: WorkspaceHostRouteOwnershipByRouteId
+  surfacePlacementById: Record<string, WorkspaceSurfacePlacementState>
   activeViewerViewportId: WorkspaceViewportId
   primaryViewportId: WorkspaceViewportId
   viewportChromeById: Record<string, WorkspaceViewportChromeState>
@@ -117,6 +123,42 @@ const cloneWorkspacePopoutSurfaceState = (
     typeof popoutState.windowFeatures === 'string' && popoutState.windowFeatures.length > 0
       ? popoutState.windowFeatures
       : defaultBrowserPopoutState.windowFeatures,
+})
+
+const cloneWorkspaceHostRouteOwnership = (
+  ownership: WorkspaceHostRouteOwnership,
+): WorkspaceHostRouteOwnership => ({
+  routeId: ownership.routeId,
+  surfaceKind: ownership.surfaceKind,
+  surfaceInstanceId: ownership.surfaceInstanceId,
+  hostViewportId: ownership.hostViewportId,
+})
+
+const cloneWorkspaceSurfacePlacement = (
+  placement: WorkspaceSurfacePlacementState,
+): WorkspaceSurfacePlacementState => ({
+  ...placement,
+  hostMode: placement.hostMode,
+  hostViewportId: placement.hostViewportId,
+  floatingRect:
+    placement.floatingRect === undefined
+      ? undefined
+      : {
+          x: roundNumber(placement.floatingRect.x, 16),
+          y: roundNumber(placement.floatingRect.y, 96),
+          width: roundNumber(placement.floatingRect.width, 320),
+          height: roundNumber(placement.floatingRect.height, 560),
+        },
+  popoutState:
+    placement.popoutState === undefined || placement.popoutState === null
+      ? placement.popoutState
+      : cloneWorkspacePopoutSurfaceState(placement.popoutState),
+  restoreTarget:
+    placement.restoreTarget === undefined || placement.restoreTarget === null
+      ? placement.restoreTarget
+      : {
+          ...placement.restoreTarget,
+        },
 })
 
 const cloneDetachedSlotSurfaceState = (
@@ -566,6 +608,117 @@ const normalizeEditorSurfacePlacement = (
   return cloneEditorSurfacePlacement(normalized)
 }
 
+const normalizeWorkspaceHostRouteOwnership = (
+  routeId: string,
+  value: unknown,
+  primaryViewportId: WorkspaceViewportId,
+): WorkspaceHostRouteOwnership | null => {
+  if (!isRecord(value) || routeId !== defaultBrowserHostRouteId) {
+    return null
+  }
+  const surfaceKind = value.surfaceKind === 'browser' ? 'browser' : null
+  if (surfaceKind === null) {
+    return null
+  }
+  return cloneWorkspaceHostRouteOwnership({
+    routeId: defaultBrowserHostRouteId,
+    surfaceKind,
+    surfaceInstanceId:
+      typeof value.surfaceInstanceId === 'string' && value.surfaceInstanceId.length > 0
+        ? value.surfaceInstanceId
+        : defaultBrowserToolbarOwnerSurfaceInstanceId,
+    hostViewportId:
+      typeof value.hostViewportId === 'string' && value.hostViewportId.length > 0
+        ? value.hostViewportId
+        : primaryViewportId,
+  })
+}
+
+const normalizeWorkspaceSurfacePlacement = (
+  surfaceInstanceId: string,
+  value: unknown,
+  primaryViewportId: WorkspaceViewportId,
+): WorkspaceSurfacePlacementState | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const surfaceKind: WorkspaceSurfaceKind =
+    value.surfaceKind === 'browser' ||
+    value.surfaceKind === 'console' ||
+    value.surfaceKind === 'spaghettiEditor' ||
+    value.surfaceKind === 'modelViewer'
+      ? value.surfaceKind
+      : 'browser'
+  const hostMode =
+    value.hostMode === 'slotted' ||
+    value.hostMode === 'floating' ||
+    value.hostMode === 'popout' ||
+    value.hostMode === 'docked'
+      ? value.hostMode
+      : 'docked'
+  return cloneWorkspaceSurfacePlacement({
+    surfaceKind,
+    surfaceInstanceId,
+    hostMode,
+    hostViewportId:
+      typeof value.hostViewportId === 'string' && value.hostViewportId.length > 0
+        ? value.hostViewportId
+        : primaryViewportId,
+    slotId:
+      typeof value.slotId === 'string' && value.slotId.length > 0 ? value.slotId : undefined,
+    floatingRect: isRecord(value.floatingRect)
+      ? {
+          x: roundNumber(Number(value.floatingRect.x), 16),
+          y: roundNumber(Number(value.floatingRect.y), 96),
+          width: roundNumber(Number(value.floatingRect.width), 320),
+          height: roundNumber(Number(value.floatingRect.height), 560),
+        }
+      : undefined,
+    popoutState:
+      isRecord(value.popoutState) || value.popoutState === null
+        ? value.popoutState === null
+          ? null
+          : cloneWorkspacePopoutSurfaceState({
+              childWindowId:
+                typeof value.popoutState.childWindowId === 'string'
+                  ? value.popoutState.childWindowId
+                  : defaultBrowserPopoutState.childWindowId,
+              owner: value.popoutState.owner === 'main-app' ? 'main-app' : 'child-window',
+              windowName:
+                typeof value.popoutState.windowName === 'string'
+                  ? value.popoutState.windowName
+                  : defaultBrowserPopoutState.windowName,
+              windowTitle:
+                typeof value.popoutState.windowTitle === 'string'
+                  ? value.popoutState.windowTitle
+                  : defaultBrowserPopoutState.windowTitle,
+              windowFeatures:
+                typeof value.popoutState.windowFeatures === 'string'
+                  ? value.popoutState.windowFeatures
+                  : defaultBrowserPopoutState.windowFeatures,
+            })
+        : undefined,
+    restoreTarget: isRecord(value.restoreTarget)
+      ? {
+          slotId:
+            typeof value.restoreTarget.slotId === 'string' && value.restoreTarget.slotId.length > 0
+              ? value.restoreTarget.slotId
+              : undefined,
+          preferredSplitDockSide:
+            value.restoreTarget.preferredSplitDockSide === 'top' ||
+            value.restoreTarget.preferredSplitDockSide === 'right' ||
+            value.restoreTarget.preferredSplitDockSide === 'bottom' ||
+            value.restoreTarget.preferredSplitDockSide === 'left'
+              ? value.restoreTarget.preferredSplitDockSide
+              : undefined,
+        }
+      : value.restoreTarget === null
+        ? null
+        : undefined,
+    namedHostRouteId: value.namedHostRouteId === defaultBrowserHostRouteId ? defaultBrowserHostRouteId : undefined,
+  })
+}
+
 export const serializeWorkspaceLayout = (
   state: WorkspacePersistenceSource,
 ): PersistedWorkspaceLayout => ({
@@ -574,6 +727,18 @@ export const serializeWorkspaceLayout = (
   isLeftDockViewportSplit: state.isLeftDockViewportSplit,
   browserToolbarOwnerSurfaceInstanceId: state.browserToolbarOwnerSurfaceInstanceId,
   browserShell: cloneBrowserShellState(state.browserShell),
+  hostRouteOwnershipByRouteId: Object.fromEntries(
+    Object.entries(state.hostRouteOwnershipByRouteId).map(([routeId, ownership]) => [
+      routeId,
+      cloneWorkspaceHostRouteOwnership(ownership),
+    ]),
+  ),
+  surfacePlacementById: Object.fromEntries(
+    Object.entries(state.surfacePlacementById).map(([surfaceInstanceId, placement]) => [
+      surfaceInstanceId,
+      cloneWorkspaceSurfacePlacement(placement),
+    ]),
+  ),
   activeViewerViewportId: state.activeViewerViewportId,
   primaryViewportId: state.primaryViewportId,
   viewportChromeById: Object.fromEntries(
@@ -645,6 +810,22 @@ export const normalizePersistedWorkspaceLayout = (
           normalizeEditorSurfacePlacement(surfaceInstanceId, surface),
         ] as const)
         .filter((entry): entry is readonly [string, EditorWorkspaceSurfaceState] => entry[1] !== null)
+    : []
+  const hostRouteOwnershipEntries = isRecord(value.hostRouteOwnershipByRouteId)
+    ? Object.entries(value.hostRouteOwnershipByRouteId)
+        .map(([routeId, ownership]) => [
+          routeId,
+          normalizeWorkspaceHostRouteOwnership(routeId, ownership, primaryViewportId),
+        ] as const)
+        .filter((entry): entry is readonly [string, WorkspaceHostRouteOwnership] => entry[1] !== null)
+    : []
+  const surfacePlacementEntries = isRecord(value.surfacePlacementById)
+    ? Object.entries(value.surfacePlacementById)
+        .map(([surfaceInstanceId, placement]) => [
+          surfaceInstanceId,
+          normalizeWorkspaceSurfacePlacement(surfaceInstanceId, placement, primaryViewportId),
+        ] as const)
+        .filter((entry): entry is readonly [string, WorkspaceSurfacePlacementState] => entry[1] !== null)
     : []
   const defaultSlotTree = createDefaultWorkspaceSlotTree()
   const viewportSlotEntries = isRecord(value.viewportSlotsById)
@@ -803,6 +984,8 @@ export const normalizePersistedWorkspaceLayout = (
       typeof value.activeViewerViewportId === 'string' && value.activeViewerViewportId.length > 0
         ? value.activeViewerViewportId
         : primaryViewportId,
+    hostRouteOwnershipByRouteId: Object.fromEntries(hostRouteOwnershipEntries),
+    surfacePlacementById: Object.fromEntries(surfacePlacementEntries),
     primaryViewportId,
     viewportChromeById,
     viewportSlotRootNodeId:
