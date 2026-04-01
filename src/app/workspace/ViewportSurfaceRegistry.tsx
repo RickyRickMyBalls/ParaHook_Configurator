@@ -10,10 +10,17 @@ type ViewportSurfaceRegistryProps = {
   surfaceKind: WorkspaceSurfaceKind
   surfaceInstanceId: string
   onActivateSpaghettiSurface: () => void
+  spaghettiWindowSettingsOpen?: boolean
 }
 
 export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
-  const { slotId, surfaceKind, surfaceInstanceId, onActivateSpaghettiSurface } = props
+  const {
+    slotId,
+    surfaceKind,
+    surfaceInstanceId,
+    onActivateSpaghettiSurface,
+    spaghettiWindowSettingsOpen = false,
+  } = props
   const editorViewport = useSpaghettiStore((state) =>
     selectEditorViewportById(state, surfaceInstanceId),
   )
@@ -65,7 +72,10 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         onPointerDownCapture={onActivateSpaghettiSurface}
       >
         {editorViewport !== null ? (
-          <SpaghettiPanel editorViewportId={editorViewport.editorViewportId} />
+          <SpaghettiPanel
+            editorViewportId={editorViewport.editorViewportId}
+            isWindowSettingsOpen={spaghettiWindowSettingsOpen}
+          />
         ) : (
           <div className="WorkspaceViewportSlotPlaceholder">
             No editor surface is bound to this slot yet.

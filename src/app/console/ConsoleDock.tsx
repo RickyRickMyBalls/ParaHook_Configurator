@@ -1264,6 +1264,7 @@ const buildWorkspaceIntentDepsFromStoreState = (): WorkspaceIntentDeps => {
       activeEditorViewportId: spaghettiState.activeEditorViewportId,
       editorViewportsById: spaghettiState.editorViewportsById,
       openGraphDocumentInViewport: spaghettiState.openGraphDocumentInViewport,
+      openGraphDocumentInNewViewport: spaghettiState.openGraphDocumentInNewViewport,
       swapFocusedEditorViewportToGraphDocument:
         spaghettiState.swapFocusedEditorViewportToGraphDocument,
       setActiveEditorViewportId: spaghettiState.setActiveEditorViewportId,

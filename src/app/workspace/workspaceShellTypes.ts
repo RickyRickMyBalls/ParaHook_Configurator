@@ -21,6 +21,7 @@ export type WorkspaceSplitMenuState = {
   x: number
   y: number
   scope: 'floating-titlebar' | 'divider'
+  targetSurfaceInstanceId?: string | null
 }
 
 export type BrowserFloatingPosition = {

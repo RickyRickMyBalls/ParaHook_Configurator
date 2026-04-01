@@ -230,6 +230,11 @@ export type ProjectContentState = {
   objectsById: Record<string, ProjectObjectRecord>
 }
 
+export type RuntimeContentPlacementRecord = {
+  parentAssemblyId: string | null
+  parentComponentId: string | null
+}
+
 export type ProjectContentBrowserRowVm =
   | {
       rowId: string
@@ -722,6 +727,7 @@ export type AppState = {
   pendingBuildAfterRelease: boolean
   currentProject: ProjectFile
   projectContent: ProjectContentState
+  runtimeContentPlacementByRowId: Record<string, RuntimeContentPlacementRecord>
   referenceWorkspace: ReferenceWorkspaceState
   sketchVisibilityByRowId: Record<string, boolean>
   workspaceSelection: WorkspaceSelectionState
@@ -1533,7 +1539,7 @@ export const resolveWorkspaceSelectedContentOwnerTarget = (
 export const buildObjectPartKeys = (objectRecord: ProjectObjectRecord): string[] =>
   objectRecord.slotId === null
     ? []
-    : [objectRecord.slotId, `${objectRecord.ownerGraphDocumentId}:${objectRecord.slotId}`]
+    : [`${objectRecord.ownerGraphDocumentId}:${objectRecord.slotId}`]
 
 export const resolveOwnedContentSelection = (
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
@@ -3078,6 +3084,11 @@ const buildProjectObjectId = (
   objectId: string,
 ): string => `project-object:${projectFileId}:${graphDocumentId}:${objectId}`
 
+const buildGraphViewerPartKey = (
+  graphDocumentId: string,
+  slotId: string | null,
+): string | null => (slotId === null ? null : `${graphDocumentId}:${slotId}`)
+
 const buildProjectReceiveObjectId = (
   projectFileId: string,
   ownerGraphDocumentId: string,
@@ -3085,6 +3096,60 @@ const buildProjectReceiveObjectId = (
 ): string => `project-object:${projectFileId}:receive:${ownerGraphDocumentId}:${receiveId}`
 
 const normalizeProjectContentLabel = (label: string): string => label.trim().replace(/\s+/g, ' ')
+
+const isRuntimeBackedComponentRecord = (component: ProjectComponentRecord): boolean =>
+  component.ownerGraphDocumentId !== null && component.componentSourceKind !== 'authored'
+
+const isRuntimeBackedObjectRecord = (objectRow: ProjectObjectRecord): boolean =>
+  objectRow.ownerGraphDocumentId !== null
+
+const deriveRuntimeContentPlacementOverlay = (
+  projectContent: ProjectContentState,
+): Record<string, RuntimeContentPlacementRecord> => {
+  const runtimeContentPlacementByRowId: Record<string, RuntimeContentPlacementRecord> = {}
+
+  Object.values(projectContent.componentsById).forEach((component) => {
+    if (!isRuntimeBackedComponentRecord(component)) {
+      return
+    }
+    runtimeContentPlacementByRowId[component.componentId] = {
+      parentAssemblyId: component.parentAssemblyId ?? null,
+      parentComponentId: null,
+    }
+  })
+
+  Object.values(projectContent.objectsById).forEach((objectRow) => {
+    if (!isRuntimeBackedObjectRecord(objectRow)) {
+      return
+    }
+    runtimeContentPlacementByRowId[objectRow.objectId] = {
+      parentAssemblyId: objectRow.parentAssemblyId ?? null,
+      parentComponentId: objectRow.parentComponentId ?? null,
+    }
+  })
+
+  return runtimeContentPlacementByRowId
+}
+
+const areRuntimeContentPlacementOverlaysEqual = (
+  left: Record<string, RuntimeContentPlacementRecord>,
+  right: Record<string, RuntimeContentPlacementRecord>,
+): boolean => {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    areOrderedStringArraysEqual(leftKeys, rightKeys) &&
+    leftKeys.every((rowId) => {
+      const other = right[rowId]
+      const entry = left[rowId]
+      return (
+        other !== undefined &&
+        entry.parentAssemblyId === other.parentAssemblyId &&
+        entry.parentComponentId === other.parentComponentId
+      )
+    })
+  )
+}
 
 const buildNextOrdinalLabel = (
   existingLabels: string[],
@@ -3130,7 +3195,7 @@ const createInitialProjectFile = (): ProjectFile => ({
   rootAssemblyId: buildRootAssemblyId(INITIAL_PROJECT_FILE_ID),
 })
 
-const buildProjectContentState = (
+const buildProjectContentDerivation = (
   project: ProjectFile,
   spaghettiState: Pick<
     SpaghettiStoreState,
@@ -3140,16 +3205,28 @@ const buildProjectContentState = (
     AppState,
     | 'currentProject'
     | 'projectContent'
+    | 'runtimeContentPlacementByRowId'
     | 'browserGraphBuildPolicyByGraphDocumentId'
     | 'browserContentBuildPolicyByRowId'
   >,
-): ProjectContentState => {
+): {
+  projectContent: ProjectContentState
+  runtimeContentPlacementByRowId: Record<string, RuntimeContentPlacementRecord>
+} => {
   const rootAssemblyId = project.rootAssemblyId ?? buildRootAssemblyId(project.projectFileId)
   const previousAssemblies = browserPolicyState?.projectContent.assembliesById ?? {}
   const previousComponents = browserPolicyState?.projectContent.componentsById ?? {}
-  const runtimeChildRowIds: string[] = []
+  const previousObjects = browserPolicyState?.projectContent.objectsById ?? {}
+  const previousPlacementOverlay = {
+    ...(browserPolicyState?.projectContent === undefined
+      ? {}
+      : deriveRuntimeContentPlacementOverlay(browserPolicyState.projectContent)),
+    ...(browserPolicyState?.runtimeContentPlacementByRowId ?? {}),
+  }
   const componentsById: Record<string, ProjectComponentRecord> = {}
   const objectsById: Record<string, ProjectObjectRecord> = {}
+  const nextRuntimePlacementByRowId: Record<string, RuntimeContentPlacementRecord> = {}
+  const validRuntimeRowIds = new Set<string>()
   const authoredAssemblies = Object.values(previousAssemblies).filter(
     (assembly) =>
       assembly.assemblyId !== rootAssemblyId && (assembly.assemblySourceKind ?? 'authored') === 'authored',
@@ -3158,9 +3235,82 @@ const buildProjectContentState = (
     (component) => component.componentSourceKind === 'authored',
   )
   let publishedComponentOrdinal = 0
+  const resolveRuntimePlacement = (
+    rowId: string,
+    defaultParentAssemblyId: string | null,
+    defaultParentComponentId: string | null,
+  ): RuntimeContentPlacementRecord => {
+    const overlayPlacement = previousPlacementOverlay[rowId]
+    if (overlayPlacement !== undefined) {
+      return overlayPlacement
+    }
+    const previousComponent = previousComponents[rowId]
+    if (previousComponent !== undefined && isRuntimeBackedComponentRecord(previousComponent)) {
+      return {
+        parentAssemblyId: previousComponent.parentAssemblyId ?? defaultParentAssemblyId,
+        parentComponentId: null,
+      }
+    }
+    const previousObject = previousObjects[rowId]
+    if (previousObject !== undefined && isRuntimeBackedObjectRecord(previousObject)) {
+      return {
+        parentAssemblyId: previousObject.parentAssemblyId ?? defaultParentAssemblyId,
+        parentComponentId: previousObject.parentComponentId ?? defaultParentComponentId,
+      }
+    }
+    return {
+      parentAssemblyId: defaultParentAssemblyId,
+      parentComponentId: defaultParentComponentId,
+    }
+  }
+  const orderByPreviousIds = (currentIds: string[], previousIds?: string[]): string[] => {
+    if (previousIds === undefined) {
+      return [...currentIds]
+    }
+    const currentIdSet = new Set(currentIds)
+    const ordered = previousIds.filter((rowId) => currentIdSet.has(rowId))
+    currentIds.forEach((rowId) => {
+      if (!ordered.includes(rowId)) {
+        ordered.push(rowId)
+      }
+    })
+    return ordered
+  }
 
   for (const documentEntry of project.graphDocuments) {
     const graphDocument = spaghettiState.graphDocumentsById[documentEntry.graphDocumentId]
+    const fullOutputSurface =
+      selectGraphRuntimeByDocumentId(spaghettiState, documentEntry.graphDocumentId)?.outputSurface ?? null
+    const fullPublishedContentSurface =
+      graphDocument === undefined
+        ? null
+        : buildGraphPublishedContentSurface({
+            graphDocumentId: documentEntry.graphDocumentId,
+            graph: graphDocument.graph,
+            outputSurface: fullOutputSurface,
+          })
+    if (fullPublishedContentSurface !== null && fullOutputSurface !== null) {
+      for (const publishedRow of fullPublishedContentSurface.rows) {
+        if (publishedRow.kind === 'object') {
+          validRuntimeRowIds.add(
+            buildProjectObjectId(
+              project.projectFileId,
+              documentEntry.graphDocumentId,
+              publishedRow.object.objectId,
+            ),
+          )
+          continue
+        }
+        validRuntimeRowIds.add(
+          buildProjectPublishedComponentId(project.projectFileId, documentEntry.graphDocumentId),
+        )
+        publishedRow.objects.forEach((objectRow) => {
+          validRuntimeRowIds.add(
+            buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+          )
+        })
+      }
+    }
     const suppressRuntimeOutput =
       browserPolicyState === undefined
         ? false
@@ -3170,15 +3320,8 @@ const buildProjectContentState = (
           )
     const outputSurface = suppressRuntimeOutput
       ? null
-      : selectGraphRuntimeByDocumentId(spaghettiState, documentEntry.graphDocumentId)?.outputSurface
-    const publishedContentSurface =
-      graphDocument === undefined
-        ? null
-        : buildGraphPublishedContentSurface({
-            graphDocumentId: documentEntry.graphDocumentId,
-            graph: graphDocument.graph,
-            outputSurface,
-          })
+      : fullOutputSurface
+    const publishedContentSurface = suppressRuntimeOutput ? null : fullPublishedContentSurface
 
     if (
       publishedContentSurface !== null &&
@@ -3193,12 +3336,13 @@ const buildProjectContentState = (
             documentEntry.graphDocumentId,
             objectRow.objectId,
           )
-          runtimeChildRowIds.push(objectId)
+          const placement = resolveRuntimePlacement(objectId, rootAssemblyId, null)
+          nextRuntimePlacementByRowId[objectId] = placement
           objectsById[objectId] = {
             objectId,
             ownerGraphDocumentId: documentEntry.graphDocumentId,
-            parentAssemblyId: rootAssemblyId,
-            parentComponentId: null,
+            parentAssemblyId: placement.parentAssemblyId,
+            parentComponentId: placement.parentComponentId,
             objectSourceKind: 'published-object',
             sourceGraphDocumentId: documentEntry.graphDocumentId,
             sourceOutputEntryId: objectRow.outputEntryId,
@@ -3218,13 +3362,14 @@ const buildProjectContentState = (
         const childObjectIds = publishedRow.objects.map((objectRow) =>
           buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
         )
+        const componentPlacement = resolveRuntimePlacement(componentId, rootAssemblyId, null)
+        nextRuntimePlacementByRowId[componentId] = componentPlacement
         const resolutionState = publishedRow.objects.some((objectRow) => objectRow.state === 'resolved')
           ? 'resolved'
           : 'unresolved'
-        runtimeChildRowIds.push(componentId)
         componentsById[componentId] = {
           componentId,
-          parentAssemblyId: rootAssemblyId,
+          parentAssemblyId: componentPlacement.parentAssemblyId,
           ownerGraphDocumentId: documentEntry.graphDocumentId,
           sourceGraphDocumentId: documentEntry.graphDocumentId,
           sourceOutputEntryId: null,
@@ -3243,11 +3388,17 @@ const buildProjectContentState = (
           if (objectId === undefined) {
             return
           }
+          const objectPlacement = resolveRuntimePlacement(
+            objectId,
+            componentPlacement.parentAssemblyId,
+            componentId,
+          )
+          nextRuntimePlacementByRowId[objectId] = objectPlacement
           objectsById[objectId] = {
             objectId,
             ownerGraphDocumentId: documentEntry.graphDocumentId,
-            parentAssemblyId: rootAssemblyId,
-            parentComponentId: componentId,
+            parentAssemblyId: objectPlacement.parentAssemblyId,
+            parentComponentId: objectPlacement.parentComponentId,
             objectSourceKind: 'published-object',
             sourceGraphDocumentId: documentEntry.graphDocumentId,
             sourceOutputEntryId: objectRow.outputEntryId,
@@ -3269,13 +3420,15 @@ const buildProjectContentState = (
         documentEntry.graphDocumentId,
         receiveReference.receiveId,
       )
+      validRuntimeRowIds.add(objectId)
+      const placement = resolveRuntimePlacement(objectId, rootAssemblyId, null)
+      nextRuntimePlacementByRowId[objectId] = placement
       const label = receiveReference.sourceEntry?.label ?? receiveReference.sourceOutputEntryId
-      runtimeChildRowIds.push(objectId)
       objectsById[objectId] = {
         objectId,
         ownerGraphDocumentId: documentEntry.graphDocumentId,
-        parentAssemblyId: rootAssemblyId,
-        parentComponentId: null,
+        parentAssemblyId: placement.parentAssemblyId,
+        parentComponentId: placement.parentComponentId,
         objectSourceKind: 'receive-link',
         sourceGraphDocumentId: receiveReference.sourceGraphDocumentId,
         sourceOutputEntryId: receiveReference.sourceOutputEntryId,
@@ -3304,12 +3457,7 @@ const buildProjectContentState = (
       label: previousAssemblies[rootAssemblyId]?.label ?? ROOT_ASSEMBLY_LABEL,
       parentAssemblyId: null,
       assemblySourceKind: 'runtime-root',
-      childRowIds: [
-        ...runtimeChildRowIds,
-        ...authoredComponents
-          .filter((component) => component.parentAssemblyId === rootAssemblyId)
-          .map((component) => component.componentId),
-      ],
+      childRowIds: [],
     },
   }
 
@@ -3319,22 +3467,89 @@ const buildProjectContentState = (
       label: assembly.label,
       parentAssemblyId: assembly.parentAssemblyId,
       assemblySourceKind: 'authored',
-      childRowIds: authoredComponents
-        .filter((component) => component.parentAssemblyId === assembly.assemblyId)
-        .map((component) => component.componentId),
+      childRowIds: [],
+    }
+  })
+
+  Object.values(componentsById).forEach((component) => {
+    if (component.parentAssemblyId === null || component.parentAssemblyId === undefined) {
+      component.parentAssemblyId = rootAssemblyId
+    }
+    if (!(component.parentAssemblyId in assembliesById)) {
+      component.parentAssemblyId = rootAssemblyId
+    }
+  })
+
+  Object.values(objectsById).forEach((objectRow) => {
+    if (
+      objectRow.parentComponentId !== null &&
+      componentsById[objectRow.parentComponentId] === undefined
+    ) {
+      objectRow.parentComponentId = null
+    }
+    if (objectRow.parentComponentId !== null) {
+      objectRow.parentAssemblyId =
+        componentsById[objectRow.parentComponentId]?.parentAssemblyId ?? rootAssemblyId
+    } else if (
+      objectRow.parentAssemblyId === null ||
+      objectRow.parentAssemblyId === undefined ||
+      assembliesById[objectRow.parentAssemblyId] === undefined
+    ) {
+      objectRow.parentAssemblyId = rootAssemblyId
+    }
+  })
+
+  Object.values(componentsById).forEach((component) => {
+    component.childObjectIds = orderByPreviousIds(
+      Object.values(objectsById)
+        .filter((objectRow) => objectRow.parentComponentId === component.componentId)
+        .map((objectRow) => objectRow.objectId),
+      previousComponents[component.componentId]?.childObjectIds,
+    )
+  })
+
+  Object.values(assembliesById).forEach((assembly) => {
+    const childAssemblyIds = authoredAssemblies
+      .filter((candidate) => (candidate.parentAssemblyId ?? rootAssemblyId) === assembly.assemblyId)
+      .map((candidate) => candidate.assemblyId)
+    const childComponentIds = Object.values(componentsById)
+      .filter((component) => component.parentAssemblyId === assembly.assemblyId)
+      .map((component) => component.componentId)
+    const looseObjectIds = Object.values(objectsById)
+      .filter(
+        (objectRow) =>
+          objectRow.parentComponentId === null && objectRow.parentAssemblyId === assembly.assemblyId,
+      )
+      .map((objectRow) => objectRow.objectId)
+    assembly.childRowIds = orderByPreviousIds(
+      [...childAssemblyIds, ...childComponentIds, ...looseObjectIds],
+      previousAssemblies[assembly.assemblyId]?.childRowIds,
+    )
+  })
+
+  validRuntimeRowIds.forEach((rowId) => {
+    if (nextRuntimePlacementByRowId[rowId] !== undefined) {
+      return
+    }
+    const previousPlacement = previousPlacementOverlay[rowId]
+    if (previousPlacement !== undefined) {
+      nextRuntimePlacementByRowId[rowId] = previousPlacement
     }
   })
 
   return {
-    assembliesById,
-    componentsById,
-    objectsById,
+    projectContent: {
+      assembliesById,
+      componentsById,
+      objectsById,
+    },
+    runtimeContentPlacementByRowId: nextRuntimePlacementByRowId,
   }
 }
 
 const createInitialProjectContentState = (): ProjectContentState => {
   const initialProject = createInitialProjectFile()
-  return buildProjectContentState(initialProject, useSpaghettiStore.getState())
+  return buildProjectContentDerivation(initialProject, useSpaghettiStore.getState()).projectContent
 }
 
 const areProjectGraphDocumentsEqual = (
@@ -3594,9 +3809,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingBuildAfterRelease: false,
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
-    referenceWorkspace: createInitialReferenceWorkspaceState(),
-    sketchVisibilityByRowId: {},
-    workspaceSelection: {
+  runtimeContentPlacementByRowId: {},
+  referenceWorkspace: createInitialReferenceWorkspaceState(),
+  sketchVisibilityByRowId: {},
+  workspaceSelection: {
       selectedTarget: null,
       explicitSelectedTargets: [],
       selectionAnchorTarget: null,
@@ -4698,6 +4914,29 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       }
 
+      const nextRuntimeContentPlacementByRowId = { ...state.runtimeContentPlacementByRowId }
+      if (draggedRecord.kind === 'component') {
+        const component = nextProjectContent.componentsById[draggedRecord.ownerId]
+        if (component !== undefined && isRuntimeBackedComponentRecord(component)) {
+          nextRuntimeContentPlacementByRowId[draggedRecord.ownerId] = {
+            parentAssemblyId: component.parentAssemblyId ?? null,
+            parentComponentId: null,
+          }
+        } else {
+          delete nextRuntimeContentPlacementByRowId[draggedRecord.ownerId]
+        }
+      } else if (draggedRecord.kind === 'object') {
+        const objectRow = nextProjectContent.objectsById[draggedRecord.ownerId]
+        if (objectRow !== undefined && isRuntimeBackedObjectRecord(objectRow)) {
+          nextRuntimeContentPlacementByRowId[draggedRecord.ownerId] = {
+            parentAssemblyId: objectRow.parentAssemblyId ?? null,
+            parentComponentId: objectRow.parentComponentId,
+          }
+        } else {
+          delete nextRuntimeContentPlacementByRowId[draggedRecord.ownerId]
+        }
+      }
+
       nextReferenceWorkspace = {
         ...nextReferenceWorkspace,
         contentOrderByParentKey: {
@@ -4715,6 +4954,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       moved = true
       return {
         projectContent: nextProjectContent,
+        runtimeContentPlacementByRowId: nextRuntimeContentPlacementByRowId,
         referenceWorkspace: nextReferenceWorkspace,
         workspaceSelection: nextWorkspaceSelection,
       }
@@ -7036,8 +7276,10 @@ export const selectCurrentProjectContentBrowserRows = (
   const buildViewerVisibilityPartKeys = (
     graphDocumentId: string,
     slotId: string | null,
-  ): string[] =>
-    slotId === null ? [] : [slotId, `${graphDocumentId}:${slotId}`]
+  ): string[] => {
+    const viewerPartKey = buildGraphViewerPartKey(graphDocumentId, slotId)
+    return viewerPartKey === null ? [] : [viewerPartKey]
+  }
   const resolveContentVisibility = (partKeys: readonly string[]): boolean =>
     partKeys.length > 0 && partKeys.some((partKey) => partsVisibility[partKey] ?? true)
   const topLevelAssemblies = selectCurrentProjectTopLevelAssemblies(state).filter(
@@ -7304,7 +7546,10 @@ export const selectCurrentProjectContentBrowserRows = (
           slotId: objectRow.slotId,
           sourceNodeId: objectRow.sourceNodeId,
           resolutionState: objectRow.resolutionState,
-          highlightViewerKey: objectRow.resolutionState === 'resolved' ? objectRow.slotId : null,
+          highlightViewerKey:
+            objectRow.resolutionState === 'resolved'
+              ? buildGraphViewerPartKey(objectRow.ownerGraphDocumentId, objectRow.slotId)
+              : null,
           authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
           authoringNodeId: objectRow.sourceNodeId,
         })
@@ -7414,8 +7659,15 @@ export const selectCurrentProjectContentBrowserRows = (
         sourceNodeId,
         highlightViewerKey:
           component.componentSourceKind === 'published-component'
-            ? singleResolvedObject?.slotId ?? null
-            : slotId,
+            ? (singleResolvedObject === null
+                ? null
+                : buildGraphViewerPartKey(
+                    singleResolvedObject.ownerGraphDocumentId,
+                    singleResolvedObject.slotId,
+                  ))
+            : component.ownerGraphDocumentId === null
+              ? null
+              : buildGraphViewerPartKey(component.ownerGraphDocumentId, slotId),
         authoringGraphDocumentId: component.sourceGraphDocumentId,
         authoringNodeId:
           component.componentSourceKind === 'published-component'
@@ -7463,7 +7715,10 @@ export const selectCurrentProjectContentBrowserRows = (
           slotId: objectRow.slotId,
           sourceNodeId: objectRow.sourceNodeId,
           resolutionState: objectRow.resolutionState,
-          highlightViewerKey: objectRow.resolutionState === 'resolved' ? objectRow.slotId : null,
+          highlightViewerKey:
+            objectRow.resolutionState === 'resolved'
+              ? buildGraphViewerPartKey(objectRow.ownerGraphDocumentId, objectRow.slotId)
+              : null,
           authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
           authoringNodeId: objectRow.sourceNodeId,
         })
@@ -8059,23 +8314,30 @@ const syncCurrentProjectFromSpaghetti = (
           rootAssemblyId: nextRootAssemblyId,
         }
       : state.currentProject
-    const nextProjectContent = buildProjectContentState(nextCurrentProject, spaghettiState, {
+    const nextDerivation = buildProjectContentDerivation(nextCurrentProject, spaghettiState, {
       currentProject: nextCurrentProject,
       projectContent: state.projectContent,
+      runtimeContentPlacementByRowId: state.runtimeContentPlacementByRowId,
       browserGraphBuildPolicyByGraphDocumentId:
         state.browserGraphBuildPolicyByGraphDocumentId,
       browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId,
     })
+    const nextProjectContent = nextDerivation.projectContent
 
     if (
       nextCurrentProject === state.currentProject &&
-      areProjectContentStatesEqual(state.projectContent, nextProjectContent)
+      areProjectContentStatesEqual(state.projectContent, nextProjectContent) &&
+      areRuntimeContentPlacementOverlaysEqual(
+        state.runtimeContentPlacementByRowId,
+        nextDerivation.runtimeContentPlacementByRowId,
+      )
     ) {
       return state
     }
     return {
       currentProject: nextCurrentProject,
       projectContent: nextProjectContent,
+      runtimeContentPlacementByRowId: nextDerivation.runtimeContentPlacementByRowId,
     }
   })
 }

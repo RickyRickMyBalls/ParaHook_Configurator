@@ -1,7 +1,9 @@
 import type { GraphDocument } from '../spaghetti/schema/spaghettiTypes'
 import {
+  activateSurfaceIntent,
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
+  selectTargetIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
 import { getViewer } from '../viewerBridge'
@@ -383,19 +385,18 @@ export const createBrowserRowInteractionHandlers = (
     if (row.rowKind !== 'graph-document') {
       return
     }
-    const editorViewportId = activateGraphDocumentIntent(deps.workspaceIntentDeps, row.graphDocumentId, {
-      strategy: 'swap-focused-or-open',
-      spawnPosition: deps.newEditorSpawnPosition,
-    }).editorViewportId
-    if (editorViewportId !== null) {
-      deps.appendBrowserEntry(`Opened ${describeBrowserRow(row)}`)
-    }
+    deps.appendBrowserEntry(`Selected ${describeBrowserRow(row)}`)
+    selectTargetIntent(deps.workspaceIntentDeps, {
+      kind: 'graph-document',
+      graphDocumentId: row.graphDocumentId,
+    })
+    activateSurfaceIntent(deps.workspaceIntentDeps, 'browser')
   }
 
   const handleDoubleSelectBrowserRow = (row: BrowserRenderableRowVm) => {
     if (row.rowKind === 'graph-document') {
       activateGraphDocumentIntent(deps.workspaceIntentDeps, row.graphDocumentId, {
-        strategy: 'open-or-focus',
+        strategy: 'open-new',
         spawnPosition: deps.newEditorSpawnPosition,
       })
       return

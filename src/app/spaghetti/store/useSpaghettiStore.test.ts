@@ -15,6 +15,9 @@ import {
   selectCachedGraphEntryById,
   selectActiveGraphDocument,
   selectActiveGraphRuntime,
+  selectEditorViewportConsolePreviewNodeId,
+  selectEditorViewportSelectedEdgeId,
+  selectEditorViewportSelectedNodeId,
   selectGraphAcceptedBuildOutputsByDocumentId,
   selectGraphOutputSurfaceByDocumentId,
   selectOrderedCachedGraphEntries,
@@ -330,6 +333,11 @@ describe('useSpaghettiStore graph normalization', () => {
       'graph-document-1',
       'graph-document-1',
     ])
+    expect(orderedViewports[0]?.position).toEqual(defaultViewportPosition)
+    expect(orderedViewports[1]?.position).toEqual({
+      x: defaultViewportPosition.x + 32,
+      y: defaultViewportPosition.y + 32,
+    })
     expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(secondViewportId)
     expect(state.activeGraphDocumentId).toBe('graph-document-1')
   })
@@ -362,6 +370,89 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(selectActiveEditorViewport(state)?.graphDocumentId).toBe(secondGraphId)
     expect(state.activeGraphDocumentId).toBe(secondGraphId)
     expect(state.graph).toEqual(selectGraphByDocumentId(state, secondGraphId))
+  })
+
+  it('keeps node and preview selection local to each editor viewport while mirroring the active viewport globally', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+    const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInNewViewport(secondGraphId)
+
+    expect(firstViewportId).not.toBeNull()
+    expect(secondViewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportSelectedNodeId(firstViewportId ?? '', 'node-1')
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportConsolePreviewNodeId(firstViewportId ?? '', 'node-1')
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportSelectedNodeId(secondViewportId ?? '', 'node-second-1')
+    useSpaghettiStore
+      .getState()
+      .setEditorViewportConsolePreviewNodeId(secondViewportId ?? '', 'node-second-1')
+
+    useSpaghettiStore.getState().setActiveEditorViewportId(firstViewportId ?? '')
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-1')
+    expect(useSpaghettiStore.getState().consolePreviewNodeId).toBe('node-1')
+
+    useSpaghettiStore.getState().setActiveEditorViewportId(secondViewportId ?? '')
+
+    const state = useSpaghettiStore.getState()
+    expect(state.selectedNodeId).toBe('node-second-1')
+    expect(state.consolePreviewNodeId).toBe('node-second-1')
+    expect(selectEditorViewportSelectedNodeId(state, firstViewportId ?? '')).toBe('node-1')
+    expect(selectEditorViewportSelectedNodeId(state, secondViewportId ?? '')).toBe('node-second-1')
+    expect(selectEditorViewportConsolePreviewNodeId(state, firstViewportId ?? '')).toBe('node-1')
+    expect(selectEditorViewportConsolePreviewNodeId(state, secondViewportId ?? '')).toBe(
+      'node-second-1',
+    )
+  })
+
+  it('bindEditorViewportToGraphDocument clears the rebound viewport local node edge and preview selection', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Baseplate',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+
+    expect(viewportId).not.toBeNull()
+
+    useSpaghettiStore.getState().setEditorViewportSelectedNodeId(viewportId ?? '', 'node-1')
+    useSpaghettiStore.getState().setEditorViewportSelectedEdgeId(viewportId ?? '', 'edge-1')
+    useSpaghettiStore.getState().setEditorViewportConsolePreviewNodeId(viewportId ?? '', 'node-1')
+
+    useSpaghettiStore.getState().bindEditorViewportToGraphDocument(viewportId ?? '', secondGraphId)
+
+    const state = useSpaghettiStore.getState()
+    expect(selectEditorViewportSelectedNodeId(state, viewportId ?? '')).toBeNull()
+    expect(selectEditorViewportSelectedEdgeId(state, viewportId ?? '')).toBeNull()
+    expect(selectEditorViewportConsolePreviewNodeId(state, viewportId ?? '')).toBeNull()
+    expect(state.selectedNodeId).toBeNull()
+    expect(state.selectedEdgeId).toBeNull()
+    expect(state.consolePreviewNodeId).toBeNull()
   })
 
   it('swapFocusedEditorViewportToGraphDocument rebinds only the focused viewport', () => {

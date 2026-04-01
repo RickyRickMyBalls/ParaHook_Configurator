@@ -32,6 +32,7 @@ type WorkspaceIntentSpaghettiDeps = {
   activeEditorViewportId: string
   editorViewportsById: Record<string, EditorViewportRecord>
   openGraphDocumentInViewport: (graphDocumentId: string) => string | null
+  openGraphDocumentInNewViewport: (graphDocumentId: string) => string | null
   swapFocusedEditorViewportToGraphDocument: (graphDocumentId: string) => string | null
   setActiveEditorViewportId: (editorViewportId: string) => void
   setEditorViewportPosition: (editorViewportId: string, position: ViewportPosition) => void
@@ -46,7 +47,10 @@ export type WorkspaceIntentDeps = {
   spaghetti: WorkspaceIntentSpaghettiDeps
 }
 
-export type OpenGraphDocumentIntentStrategy = 'open-or-focus' | 'swap-focused-or-open'
+export type OpenGraphDocumentIntentStrategy =
+  | 'open-or-focus'
+  | 'swap-focused-or-open'
+  | 'open-new'
 
 export type OpenGraphDocumentIntentOptions = {
   strategy?: OpenGraphDocumentIntentStrategy
@@ -122,6 +126,18 @@ export const openGraphDocumentIntent = (
     deps.spaghetti.editorViewportsById,
     graphDocumentId,
   )
+
+  if (strategy === 'open-new') {
+    const editorViewportId = deps.spaghetti.openGraphDocumentInNewViewport(graphDocumentId)
+    if (editorViewportId !== null && options.spawnPosition !== undefined) {
+      deps.spaghetti.setEditorViewportPosition(editorViewportId, options.spawnPosition)
+    }
+    return {
+      graphDocumentId,
+      editorViewportId,
+      createdNewViewport: editorViewportId !== null,
+    }
+  }
 
   if (strategy === 'swap-focused-or-open' && deps.spaghetti.activeEditorViewportId.length > 0) {
     const swappedViewportId = deps.spaghetti.swapFocusedEditorViewportToGraphDocument(graphDocumentId)

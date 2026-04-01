@@ -5,6 +5,7 @@ import { ExpandedEditor } from './ExpandedEditor'
 type SpaghettiEditorViewMode = 'expanded' | 'essentials' | 'collapsed'
 
 type SpaghettiEditorProps = {
+  editorViewportId: string
   graphDocumentId: string
   viewMode: SpaghettiEditorViewMode
   focusNodeId: string | null
@@ -17,6 +18,7 @@ type SpaghettiEditorProps = {
 }
 
 export function SpaghettiEditor({
+  editorViewportId,
   graphDocumentId,
   viewMode,
   focusNodeId,
@@ -50,6 +52,7 @@ export function SpaghettiEditor({
             />
           ) : (
             <ExpandedEditor
+              editorViewportId={editorViewportId}
               graphDocumentId={graphDocumentId}
               fitCanvasRequestKey={fitCanvasRequestKey}
               fitNodeId={fitNodeId}

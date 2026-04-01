@@ -1291,6 +1291,84 @@ describe('BrowserPanel', () => {
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
 
+  it('reveals a graph row by framing that graphs currently rendered parts in the viewer', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-2:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-a',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-a',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-2:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-2',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-2',
+          sourceOutputEntryId: 'output-entry:s001:node-b',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-b',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-2:slot-b',
+          authoringGraphDocumentId: 'graph-document-2',
+          authoringNodeId: 'node-b',
+        },
+      ],
+    }
+
+    ;({ container, root } = await renderBrowserPanel())
+
+    const graphRow = findRowMainByLabel('Graph 1')
+    expect(graphRow).not.toBeNull()
+
+    await contextMenu(graphRow!)
+    expect(findButtonByLabel('Reveal')).not.toBeNull()
+
+    await click(findButtonByLabel('Reveal')!)
+
+    expect(viewerFrameSelectionSetMock).toHaveBeenCalledWith(['graph-document-1:slot-a'], [])
+    expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
+  })
+
   it('keeps graph rows document-oriented and shows the first build-policy chip on content rows', async () => {
     currentAppState = {
       ...currentAppState,
@@ -1545,7 +1623,7 @@ describe('BrowserPanel', () => {
     expect(findButtonByLabel('Graph save options for Graph 1')).toBeNull()
   })
 
-  it('clicking a graph row selects it and routes the focused editor to that graph', async () => {
+  it('clicking a graph row selects it without swapping the focused editor', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       graphDocumentsById: {
@@ -1595,15 +1673,13 @@ describe('BrowserPanel', () => {
 
     await click(graphTwoRow!)
 
-    expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).toHaveBeenCalledWith(
-      'graph-document-2',
-    )
+    expect(currentSpaghettiState.swapFocusedEditorViewportToGraphDocument).not.toHaveBeenCalled()
     expect(currentSpaghettiState.openGraphDocumentInViewport).not.toHaveBeenCalled()
     expect(graphTwoRow?.getAttribute('aria-pressed')).toBe('true')
 
     const graphTwoShell = graphTwoRow?.closest('.BrowserTreeRow')
-    expect(graphTwoShell?.classList.contains('isOpen')).toBe(true)
-    expect(graphTwoShell?.classList.contains('isActiveEditor')).toBe(true)
+    expect(graphTwoShell?.classList.contains('isOpen')).toBe(false)
+    expect(graphTwoShell?.classList.contains('isActiveEditor')).toBe(false)
     expect(container?.querySelectorAll('.BrowserTreeRow.isOpen')).toHaveLength(1)
   })
 
@@ -1626,13 +1702,12 @@ describe('BrowserPanel', () => {
     })
   })
 
-  it('uses the provided spawn anchor when a graph row opens a new editor without an active editor', async () => {
+  it('single-clicking a graph row selects it without opening an editor', async () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       activeEditorViewportId: '',
       editorViewportsById: {},
       editorViewportOrder: [],
-      openGraphDocumentInViewport: vi.fn(() => 'editor-viewport-2'),
     }
 
     ;({ root } = await renderBrowserPanel({
@@ -1644,7 +1719,32 @@ describe('BrowserPanel', () => {
 
     await click(graphRow!)
 
-    expect(currentSpaghettiState.openGraphDocumentInViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.openGraphDocumentInViewport).not.toHaveBeenCalled()
+    expect(currentSpaghettiState.openGraphDocumentInNewViewport).not.toHaveBeenCalled()
+    expect(graphRow?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('double-clicking a graph row opens a new editor at the provided spawn anchor', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: '',
+      editorViewportsById: {},
+      editorViewportOrder: [],
+      openGraphDocumentInNewViewport: vi.fn(() => 'editor-viewport-2'),
+    }
+
+    ;({ root } = await renderBrowserPanel({
+      newEditorSpawnPosition: { x: 405, y: 16 },
+    }))
+
+    const graphRow = findRowMainByLabel('Graph 1')
+    expect(graphRow).not.toBeNull()
+
+    await doubleClick(graphRow!)
+
+    expect(currentSpaghettiState.openGraphDocumentInNewViewport).toHaveBeenCalledWith(
+      'graph-document-1',
+    )
     expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalledWith('editor-viewport-2', {
       x: 405,
       y: 16,

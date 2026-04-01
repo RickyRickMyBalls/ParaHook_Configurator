@@ -31,9 +31,7 @@ export const runBrowserRowAction = (
       return
     }
     if (action.actionId === 'reveal') {
-      if (!handlers.sharedViewerCompositionActive) {
-        handlers.onRevealGraph(row.graphDocumentId)
-      }
+      handlers.onRevealGraph(row.graphDocumentId)
       return
     }
     if (action.actionId === 'new-editor') {

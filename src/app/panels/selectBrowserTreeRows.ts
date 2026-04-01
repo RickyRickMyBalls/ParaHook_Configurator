@@ -435,7 +435,6 @@ export const selectBrowserTreeRows = (options: {
     collapsedContentRowIds,
     selectedRowId,
     selectedRowIds = selectedRowId === null ? [] : [selectedRowId],
-    sharedViewerCompositionActive,
     sharedViewerCompositionGraphDocumentIds,
   } = options
   const groupedSelectedRowIdSet = new Set(groupedSelectedRowIds)
@@ -1561,7 +1560,8 @@ export const selectBrowserTreeRows = (options: {
             actionId: 'reveal',
             label: 'Reveal',
             ariaLabel: `Reveal ${row.label} in viewer`,
-            disabled: sharedViewerCompositionActive,
+            disabled:
+              (browserGraphBuildPolicyByGraphDocumentId[row.graphDocumentId] ?? 'live') === 'off',
           },
           {
             actionId: 'new-editor',

@@ -406,6 +406,9 @@ export type SpaghettiStoreState = {
   activeEditorViewportId: string
   editorViewportHeaderCollapsedById: Record<string, boolean>
   editorViewportCanvasToolbarVisibleById: Record<string, boolean>
+  editorViewportSelectedNodeIdById: Record<string, string | null>
+  editorViewportSelectedEdgeIdById: Record<string, string | null>
+  editorViewportConsolePreviewNodeIdById: Record<string, string | null>
   partFeatureStackIrByPartKey: FeatureStackIrParts
   partKeyByNodeId: Record<string, string>
   edgeWaypoints: Record<string, EdgeWaypoint[]>
@@ -434,10 +437,13 @@ export type SpaghettiStoreState = {
   toggleEdgeWaypointSide1: (edgeId: string, waypointId: string) => void
   toggleEdgeWaypointSide2: (edgeId: string, waypointId: string) => void
   setSelectedNodeId: (nodeId: string | null) => void
+  setEditorViewportSelectedNodeId: (editorViewportId: string, nodeId: string | null) => void
   setConsolePreviewNodeId: (nodeId: string | null) => void
+  setEditorViewportConsolePreviewNodeId: (editorViewportId: string, nodeId: string | null) => void
   requestEditorViewportNodeFit: (editorViewportId: string, nodeId: string) => void
   requestEditorViewportCanvasFit: (editorViewportId: string) => void
   setSelectedEdgeId: (edgeId: string | null) => void
+  setEditorViewportSelectedEdgeId: (editorViewportId: string, edgeId: string | null) => void
   setHoveredEdgeId: (edgeId: string | null) => void
   setConnectionDrag: (drag: ConnectionDragState | null) => void
   clearConnectionDrag: () => void
@@ -2492,12 +2498,28 @@ type BrowserViewportState = Pick<
   | 'activeEditorViewportId'
   | 'editorViewportHeaderCollapsedById'
   | 'editorViewportCanvasToolbarVisibleById'
+  | 'editorViewportSelectedNodeIdById'
+  | 'editorViewportSelectedEdgeIdById'
+  | 'editorViewportConsolePreviewNodeIdById'
+  | 'selectedNodeId'
+  | 'selectedEdgeId'
+  | 'consolePreviewNodeId'
 >
 
 const pruneViewportBooleanRecord = (
   record: Record<string, boolean> | undefined,
   editorViewportsById: Record<string, EditorViewport>,
 ): Record<string, boolean> =>
+  Object.fromEntries(
+    Object.entries(record ?? {}).filter(
+      ([editorViewportId]) => editorViewportsById[editorViewportId] !== undefined,
+    ),
+  )
+
+const pruneViewportNullableStringRecord = (
+  record: Record<string, string | null> | undefined,
+  editorViewportsById: Record<string, EditorViewport>,
+): Record<string, string | null> =>
   Object.fromEntries(
     Object.entries(record ?? {}).filter(
       ([editorViewportId]) => editorViewportsById[editorViewportId] !== undefined,
@@ -2533,10 +2555,25 @@ const withBrowserViewportState = (
     activeEditorViewportId?: string
     editorViewportHeaderCollapsedById?: Record<string, boolean>
     editorViewportCanvasToolbarVisibleById?: Record<string, boolean>
+    editorViewportSelectedNodeIdById?: Record<string, string | null>
+    editorViewportSelectedEdgeIdById?: Record<string, string | null>
+    editorViewportConsolePreviewNodeIdById?: Record<string, string | null>
     viewerTargetGraphDocumentId?: string | null
     fallbackGraphDocumentId?: string
   },
-): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
+): GraphDocumentStateSlice &
+  CachedGraphStateSlice &
+  ViewportStateSlice &
+  FeatureStackIrCacheSlice &
+  Pick<
+    SpaghettiStoreState,
+    | 'editorViewportSelectedNodeIdById'
+    | 'editorViewportSelectedEdgeIdById'
+    | 'editorViewportConsolePreviewNodeIdById'
+    | 'selectedNodeId'
+    | 'selectedEdgeId'
+    | 'consolePreviewNodeId'
+  > => {
   const graphDocumentsById = next.graphDocumentsById ?? state.graphDocumentsById
   const graphDocumentOrder = next.graphDocumentOrder ?? state.graphDocumentOrder
   const graphRuntimeByDocumentId = next.graphRuntimeByDocumentId ?? state.graphRuntimeByDocumentId
@@ -2556,6 +2593,42 @@ const withBrowserViewportState = (
   const editorViewportCanvasToolbarVisibleById = pruneViewportBooleanRecord(
     next.editorViewportCanvasToolbarVisibleById ?? state.editorViewportCanvasToolbarVisibleById,
     editorViewportsById,
+  )
+  const editorViewportSelectedNodeIdById = pruneViewportNullableStringRecord(
+    next.editorViewportSelectedNodeIdById ?? state.editorViewportSelectedNodeIdById,
+    editorViewportsById,
+  )
+  const editorViewportSelectedEdgeIdById = pruneViewportNullableStringRecord(
+    next.editorViewportSelectedEdgeIdById ?? state.editorViewportSelectedEdgeIdById,
+    editorViewportsById,
+  )
+  const editorViewportConsolePreviewNodeIdById = pruneViewportNullableStringRecord(
+    next.editorViewportConsolePreviewNodeIdById ?? state.editorViewportConsolePreviewNodeIdById,
+    editorViewportsById,
+  )
+  const selectedNodeId = selectEditorViewportSelectedNodeId(
+    {
+      editorViewportSelectedNodeIdById,
+      activeEditorViewportId,
+      selectedNodeId: state.selectedNodeId,
+    },
+    activeEditorViewportId,
+  )
+  const selectedEdgeId = selectEditorViewportSelectedEdgeId(
+    {
+      editorViewportSelectedEdgeIdById,
+      activeEditorViewportId,
+      selectedEdgeId: state.selectedEdgeId,
+    },
+    activeEditorViewportId,
+  )
+  const consolePreviewNodeId = selectEditorViewportConsolePreviewNodeId(
+    {
+      editorViewportConsolePreviewNodeIdById,
+      activeEditorViewportId,
+      consolePreviewNodeId: state.consolePreviewNodeId,
+    },
+    activeEditorViewportId,
   )
   const activeDocument =
     getGraphDocumentForViewportBridge(
@@ -2595,11 +2668,33 @@ const withBrowserViewportState = (
     activeEditorViewportId,
     editorViewportHeaderCollapsedById,
     editorViewportCanvasToolbarVisibleById,
+    editorViewportSelectedNodeIdById,
+    editorViewportSelectedEdgeIdById,
+    editorViewportConsolePreviewNodeIdById,
+    selectedNodeId,
+    selectedEdgeId,
+    consolePreviewNodeId,
   }
 }
 
 const getMaxViewportZOrder = (editorViewportsById: Record<string, EditorViewport>): number =>
   Object.values(editorViewportsById).reduce((maxValue, viewport) => Math.max(maxValue, viewport.zOrder), 0)
+
+const floatingViewportSpawnCascadeOffset = 32
+
+const resolveNextViewportSpawnPosition = (
+  editorViewportsById: Record<string, EditorViewport>,
+): EditorViewportPosition => {
+  const highestZViewport =
+    [...Object.values(editorViewportsById)].sort((left, right) => right.zOrder - left.zOrder)[0] ?? null
+  if (highestZViewport === null) {
+    return defaultViewportPosition
+  }
+  return {
+    x: highestZViewport.position.x + floatingViewportSpawnCascadeOffset,
+    y: highestZViewport.position.y + floatingViewportSpawnCascadeOffset,
+  }
+}
 
 const focusViewportCollection = (
   editorViewportsById: Record<string, EditorViewport>,
@@ -2647,6 +2742,7 @@ const appendFocusedViewport = (
   const nextViewport = createEditorViewport(graphDocumentId, {
     editorViewportId,
     isFocused: true,
+    position: resolveNextViewportSpawnPosition(state.editorViewportsById),
     zOrder: getMaxViewportZOrder(state.editorViewportsById) + 1,
   })
   return {
@@ -2690,6 +2786,12 @@ const withInitialGraphDocumentState = (
       activeEditorViewportId: '',
       editorViewportHeaderCollapsedById: {},
       editorViewportCanvasToolbarVisibleById: {},
+      editorViewportSelectedNodeIdById: {},
+      editorViewportSelectedEdgeIdById: {},
+      editorViewportConsolePreviewNodeIdById: {},
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      consolePreviewNodeId: null,
     },
     {
       fallbackGraphDocumentId: document.graphDocumentId,
@@ -2714,6 +2816,12 @@ const withUpdatedActiveGraphDocumentState = (
     | 'activeEditorViewportId'
     | 'editorViewportHeaderCollapsedById'
     | 'editorViewportCanvasToolbarVisibleById'
+    | 'editorViewportSelectedNodeIdById'
+    | 'editorViewportSelectedEdgeIdById'
+    | 'editorViewportConsolePreviewNodeIdById'
+    | 'selectedNodeId'
+    | 'selectedEdgeId'
+    | 'consolePreviewNodeId'
   >,
   graph: SpaghettiGraph,
 ): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
@@ -2737,6 +2845,12 @@ const withUpdatedGraphDocumentState = (
     | 'activeEditorViewportId'
     | 'editorViewportHeaderCollapsedById'
     | 'editorViewportCanvasToolbarVisibleById'
+    | 'editorViewportSelectedNodeIdById'
+    | 'editorViewportSelectedEdgeIdById'
+    | 'editorViewportConsolePreviewNodeIdById'
+    | 'selectedNodeId'
+    | 'selectedEdgeId'
+    | 'consolePreviewNodeId'
   >,
   graphDocumentId: string,
   graph: SpaghettiGraph,
@@ -2983,6 +3097,48 @@ export const selectEditorViewportById = (
   editorViewportId: string,
 ): EditorViewport | null => state.editorViewportsById[editorViewportId] ?? null
 
+export const selectEditorViewportSelectedNodeId = (
+  state: Pick<
+    SpaghettiStoreState,
+    'editorViewportSelectedNodeIdById' | 'activeEditorViewportId' | 'selectedNodeId'
+  >,
+  editorViewportId: string,
+): string | null =>
+  Object.prototype.hasOwnProperty.call(state.editorViewportSelectedNodeIdById, editorViewportId)
+    ? state.editorViewportSelectedNodeIdById[editorViewportId] ?? null
+    : state.activeEditorViewportId === editorViewportId
+      ? state.selectedNodeId
+      : null
+
+export const selectEditorViewportSelectedEdgeId = (
+  state: Pick<
+    SpaghettiStoreState,
+    'editorViewportSelectedEdgeIdById' | 'activeEditorViewportId' | 'selectedEdgeId'
+  >,
+  editorViewportId: string,
+): string | null =>
+  Object.prototype.hasOwnProperty.call(state.editorViewportSelectedEdgeIdById, editorViewportId)
+    ? state.editorViewportSelectedEdgeIdById[editorViewportId] ?? null
+    : state.activeEditorViewportId === editorViewportId
+      ? state.selectedEdgeId
+      : null
+
+export const selectEditorViewportConsolePreviewNodeId = (
+  state: Pick<
+    SpaghettiStoreState,
+    'editorViewportConsolePreviewNodeIdById' | 'activeEditorViewportId' | 'consolePreviewNodeId'
+  >,
+  editorViewportId: string,
+): string | null =>
+  Object.prototype.hasOwnProperty.call(
+    state.editorViewportConsolePreviewNodeIdById,
+    editorViewportId,
+  )
+    ? state.editorViewportConsolePreviewNodeIdById[editorViewportId] ?? null
+    : state.activeEditorViewportId === editorViewportId
+      ? state.consolePreviewNodeId
+      : null
+
 export const selectActiveEditorViewport = (
   state: Pick<SpaghettiStoreState, 'editorViewportsById' | 'activeEditorViewportId'>,
 ): EditorViewport | null => selectEditorViewportById(state, state.activeEditorViewportId)
@@ -3007,6 +3163,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   editorViewportCanvasFitRequest: null,
   editorViewportHeaderCollapsedById: {},
   editorViewportCanvasToolbarVisibleById: {},
+  editorViewportSelectedNodeIdById: {},
+  editorViewportSelectedEdgeIdById: {},
+  editorViewportConsolePreviewNodeIdById: {},
   selectedEdgeId: null,
   hoveredEdgeId: null,
   connectionDrag: null,
@@ -3016,11 +3175,26 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   setGraph: (next) => {
     const nextGraph = normalizeGraphForStoreCommit(next)
     set((state) => {
-      return {
+      const nextState = {
+        ...state,
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
-        selectedNodeId: null,
-        consolePreviewNodeId: null,
-        selectedEdgeId: null,
+      }
+      return {
+        ...nextState,
+        ...withBrowserViewportState(nextState, {
+          editorViewportSelectedNodeIdById: {
+            ...nextState.editorViewportSelectedNodeIdById,
+            [nextState.activeEditorViewportId]: null,
+          },
+          editorViewportSelectedEdgeIdById: {
+            ...nextState.editorViewportSelectedEdgeIdById,
+            [nextState.activeEditorViewportId]: null,
+          },
+          editorViewportConsolePreviewNodeIdById: {
+            ...nextState.editorViewportConsolePreviewNodeIdById,
+            [nextState.activeEditorViewportId]: null,
+          },
+        }),
         hoveredEdgeId: null,
         connectionDrag: null,
         sketchPlanePickSession: pruneSketchPlanePickSession(nextGraph, state.sketchPlanePickSession),
@@ -3107,10 +3281,24 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       const nextGraph = normalizeGraphForStoreCommit(removeEdgeCommand(edgeId)(state.graph))
       const nextWaypoints = { ...state.edgeWaypoints }
       delete nextWaypoints[edgeId]
-      return {
+      const nextState = {
+        ...state,
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+      }
+      const activeSelectedEdgeId = selectEditorViewportSelectedEdgeId(
+        nextState,
+        nextState.activeEditorViewportId,
+      )
+      return {
+        ...nextState,
         edgeWaypoints: nextWaypoints,
-        selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
+        ...withBrowserViewportState(nextState, {
+          editorViewportSelectedEdgeIdById: {
+            ...nextState.editorViewportSelectedEdgeIdById,
+            [nextState.activeEditorViewportId]:
+              activeSelectedEdgeId === edgeId ? null : activeSelectedEdgeId,
+          },
+        }),
         hoveredEdgeId: state.hoveredEdgeId === edgeId ? null : state.hoveredEdgeId,
       }
     })
@@ -3259,10 +3447,50 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
   },
   setSelectedNodeId: (selectedNodeId) => {
-    set({ selectedNodeId })
+    set((state) =>
+      withBrowserViewportState(state, {
+        editorViewportSelectedNodeIdById: {
+          ...state.editorViewportSelectedNodeIdById,
+          [state.activeEditorViewportId]: selectedNodeId,
+        },
+      }),
+    )
+  },
+  setEditorViewportSelectedNodeId: (editorViewportId, selectedNodeId) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return withBrowserViewportState(state, {
+        editorViewportSelectedNodeIdById: {
+          ...state.editorViewportSelectedNodeIdById,
+          [editorViewportId]: selectedNodeId,
+        },
+      })
+    })
   },
   setConsolePreviewNodeId: (consolePreviewNodeId) => {
-    set({ consolePreviewNodeId })
+    set((state) =>
+      withBrowserViewportState(state, {
+        editorViewportConsolePreviewNodeIdById: {
+          ...state.editorViewportConsolePreviewNodeIdById,
+          [state.activeEditorViewportId]: consolePreviewNodeId,
+        },
+      }),
+    )
+  },
+  setEditorViewportConsolePreviewNodeId: (editorViewportId, consolePreviewNodeId) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return withBrowserViewportState(state, {
+        editorViewportConsolePreviewNodeIdById: {
+          ...state.editorViewportConsolePreviewNodeIdById,
+          [editorViewportId]: consolePreviewNodeId,
+        },
+      })
+    })
   },
   requestEditorViewportNodeFit: (editorViewportId, nodeId) => {
     set((state) => ({
@@ -3282,7 +3510,27 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     }))
   },
   setSelectedEdgeId: (selectedEdgeId) => {
-    set({ selectedEdgeId })
+    set((state) =>
+      withBrowserViewportState(state, {
+        editorViewportSelectedEdgeIdById: {
+          ...state.editorViewportSelectedEdgeIdById,
+          [state.activeEditorViewportId]: selectedEdgeId,
+        },
+      }),
+    )
+  },
+  setEditorViewportSelectedEdgeId: (editorViewportId, selectedEdgeId) => {
+    set((state) => {
+      if (state.editorViewportsById[editorViewportId] === undefined) {
+        return state
+      }
+      return withBrowserViewportState(state, {
+        editorViewportSelectedEdgeIdById: {
+          ...state.editorViewportSelectedEdgeIdById,
+          [editorViewportId]: selectedEdgeId,
+        },
+      })
+    })
   },
   setHoveredEdgeId: (hoveredEdgeId) => {
     set({ hoveredEdgeId })
@@ -5711,6 +5959,22 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportsById: nextViewportState.editorViewportsById,
         editorViewportOrder: nextViewportState.editorViewportOrder,
         activeEditorViewportId: nextViewportState.editorViewportId,
+        editorViewportSelectedNodeIdById: {
+          ...current.editorViewportSelectedNodeIdById,
+          [nextViewportState.editorViewportId]:
+            current.editorViewportSelectedNodeIdById[nextViewportState.editorViewportId] ?? null,
+        },
+        editorViewportSelectedEdgeIdById: {
+          ...current.editorViewportSelectedEdgeIdById,
+          [nextViewportState.editorViewportId]:
+            current.editorViewportSelectedEdgeIdById[nextViewportState.editorViewportId] ?? null,
+        },
+        editorViewportConsolePreviewNodeIdById: {
+          ...current.editorViewportConsolePreviewNodeIdById,
+          [nextViewportState.editorViewportId]:
+            current.editorViewportConsolePreviewNodeIdById[nextViewportState.editorViewportId] ??
+            null,
+        },
       })
     })
     const nextViewport = nextViewportState.editorViewportsById[nextViewportState.editorViewportId]
@@ -5738,6 +6002,22 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportsById: nextViewportState.editorViewportsById,
         editorViewportOrder: nextViewportState.editorViewportOrder,
         activeEditorViewportId: nextViewportState.editorViewportId,
+        editorViewportSelectedNodeIdById: {
+          ...current.editorViewportSelectedNodeIdById,
+          [nextViewportState.editorViewportId]:
+            current.editorViewportSelectedNodeIdById[nextViewportState.editorViewportId] ?? null,
+        },
+        editorViewportSelectedEdgeIdById: {
+          ...current.editorViewportSelectedEdgeIdById,
+          [nextViewportState.editorViewportId]:
+            current.editorViewportSelectedEdgeIdById[nextViewportState.editorViewportId] ?? null,
+        },
+        editorViewportConsolePreviewNodeIdById: {
+          ...current.editorViewportConsolePreviewNodeIdById,
+          [nextViewportState.editorViewportId]:
+            current.editorViewportConsolePreviewNodeIdById[nextViewportState.editorViewportId] ??
+            null,
+        },
       }),
     )
     const nextViewport = nextViewportState.editorViewportsById[nextViewportState.editorViewportId]
@@ -5775,6 +6055,18 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return withBrowserViewportState(state, {
         editorViewportsById: nextViewportsById,
         activeEditorViewportId: editorViewportId,
+        editorViewportSelectedNodeIdById: {
+          ...state.editorViewportSelectedNodeIdById,
+          [editorViewportId]: null,
+        },
+        editorViewportSelectedEdgeIdById: {
+          ...state.editorViewportSelectedEdgeIdById,
+          [editorViewportId]: null,
+        },
+        editorViewportConsolePreviewNodeIdById: {
+          ...state.editorViewportConsolePreviewNodeIdById,
+          [editorViewportId]: null,
+        },
       })
     })
     if (nextGraphDocumentId !== null) {
@@ -5881,6 +6173,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       return withBrowserViewportState(state, {
         editorViewportsById: nextViewportsById,
         activeEditorViewportId: editorViewportId,
+        editorViewportSelectedNodeIdById: {
+          ...state.editorViewportSelectedNodeIdById,
+          [editorViewportId]: state.editorViewportSelectedNodeIdById[editorViewportId] ?? null,
+        },
+        editorViewportSelectedEdgeIdById: {
+          ...state.editorViewportSelectedEdgeIdById,
+          [editorViewportId]: state.editorViewportSelectedEdgeIdById[editorViewportId] ?? null,
+        },
+        editorViewportConsolePreviewNodeIdById: {
+          ...state.editorViewportConsolePreviewNodeIdById,
+          [editorViewportId]:
+            state.editorViewportConsolePreviewNodeIdById[editorViewportId] ?? null,
+        },
       })
     })
   },

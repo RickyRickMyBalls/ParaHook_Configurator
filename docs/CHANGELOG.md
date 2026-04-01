@@ -65,6 +65,365 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 854 -->
+### [854] - 2026-04-01 14:10 - `VR-SP - Workspace 7.5-5 Phase 8 - Restore Build Green And Workspace Host Typing`
+<!-- ENTRY 854 -->
+HUMAN SUMMARY: `Closed the dedicated Phase 8 build-cleanup lane by fixing the root workspace-store typing collapse that was turning host and test selectors into \`any\` or \`unknown\`, trimming the resulting dead locals, and updating stale \`ConsoleDock\` viewer-key expectations so the repo is back to a green \`npm run build\` with the touched workspace-shell test slice passing again.`
+#### Scope / Constraints Honored
+- Kept this pass inside the explicit `Phase 8 - Build Failure Triage And Blocking Fixes` lane instead of widening into a new Browser or viewer architecture rewrite.
+- Fixed the smallest parity-blocking compile seam first by addressing the `useWorkspaceStore` self-reference that was poisoning downstream selector inference.
+- Limited follow-on cleanup to build-driven residue in the same touched workspace shell area and one stale test expectation cluster caused by the already-shipped graph-qualified viewer-key behavior.
+
+#### What Changed
+- Updated `src/app/workspace/useWorkspaceStore.ts` so the store initializer uses `get()` instead of referencing `useWorkspaceStore.getState()` during creation, which restores stable `WorkspaceStoreState` inference throughout workspace shell consumers.
+- Removed the now-exposed unused locals in `src/app/AppShell.tsx`, `src/app/hosts/BrowserDockHost.tsx`, `src/app/hosts/SpaghettiWindowHost.tsx`, and `src/app/panels/selectBrowserTreeRows.ts` that `noUnusedLocals` was correctly flagging once the store hook typed cleanly again.
+- Refreshed `src/app/console/ConsoleDock.test.tsx` so object and assembly zoom assertions follow the current graph-qualified viewer-part identity contract instead of expecting older bare slot ids.
+
+#### Files Changed
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- No intended runtime behavior changed in this slice; the shipped effect is that the workspace shell area now compiles cleanly again under the current type rules.
+- Focused console zoom tests now assert the already-landed graph-qualified viewer-key behavior explicitly.
+
+#### Verification Steps
+- `npm.cmd run build`
+- `npm.cmd test -- --run src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+
+<!-- ENTRY 853 -->
+### [853] - 2026-04-01 14:01 - `VR-SP - Workspace 7.5-5 Phase 7 - Use Published Runtime Output For Shared Viewer Composition`
+<!-- ENTRY 853 -->
+HUMAN SUMMARY: `Fixed the new-graph first-publish regression where Browser could show a freshly published `Graph 2` object while the main viewer still rendered only `Graph 1`. Shared multi-graph viewer composition in \`ViewerHost\` now follows published runtime output instead of preview-only output, so newly published graphs appear immediately without needing a later focus or policy nudge.`
+#### Scope / Constraints Honored
+- Kept the fix inside the `Workspace 7.5-5` viewer-composition seam instead of widening into Browser tree generation, graph membership sync, or a new identity pass.
+- Preserved the split between shared Browser-owned viewer composition and the explicit single-graph preview fallback path.
+- Kept graph-qualified viewer keys and Browser policy suppression behavior unchanged.
+
+#### What Changed
+- Updated `src/app/components/ViewerHost.tsx` so the shared multi-graph composition branches now feed `selectSharedPreviewRenderVm(...)` with `acceptedBuildOutputs` instead of `acceptedPreviewBuildOutputs`.
+- Left the explicit single-target preview fallback on the preview-oriented path, so editor preview behavior stays separate from Browser-owned project composition.
+- Added a focused regression in `src/app/components/ViewerHost.test.tsx` proving a newly added graph renders its first published object immediately even when preview outputs lag behind runtime output.
+- Updated existing ViewerHost selection/composition fixtures so shared viewer tests seed runtime and preview output truth consistently.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- A newly created graph with published runtime output now appears in the main viewer immediately once it joins the current project graph set.
+- Shared viewer composition now follows the same published/runtime output truth that Browser content uses, instead of depending on preview-output timing.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/selectBrowserGraphRows.test.ts`
+
+<!-- ENTRY 852 -->
+### [852] - 2026-04-01 13:46 - `VR-SP - Workspace 7.5-5 Phase 7 - Preserve Runtime Placement Across Browser Policy Sync`
+<!-- ENTRY 852 -->
+HUMAN SUMMARY: `Fixed the Browser policy sync regression where moved graph-backed objects or components could snap back to root-owned placement when \`syncCurrentProjectFromSpaghetti()\` rebuilt project content. Runtime-backed Browser rows now preserve user-authored assembly or component placement separately from graph provenance, so policy toggles can hide or rebuild content without erasing where the user put it.`
+#### Scope / Constraints Honored
+- Kept the fix inside the `Workspace 7.5-5` Browser and project-content ownership seam instead of widening into a broader `AppShell` or graph-runtime refactor.
+- Preserved the current suppression model so Browser policy can still remove runtime output from the live content projection when appropriate, while ensuring parentage survives and comes back correctly later.
+- Left Browser policy inheritance semantics intact so explicit object policy still wins over inherited component, assembly, and graph policy.
+
+#### What Changed
+- Added a small persisted runtime-content placement overlay in `src/app/store/useAppStore.ts` so graph-backed objects and components can remember their adopted `parentAssemblyId` and `parentComponentId` outside the transient `projectContent` rebuild output.
+- Updated the project-content rebuild path to reapply preserved placement when recreating published objects, published components, and receive-link objects, while still rebuilding provenance and runtime traits from live graph output.
+- Reworked assembly and component child membership reconstruction so rebuilt containers derive their children from actual current parentage rather than assuming every runtime row belongs back under the root assembly.
+- Updated the shared content move seam to keep the overlay in sync whenever a runtime-backed object or component is reparented.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- Moving a graph-backed Browser object into an authored assembly or component now survives Browser build-policy sync instead of snapping back to a root or graph-default location.
+- Runtime placement survives temporary hide or suppression cycles and restores correctly when the graph-backed content returns.
+- Published component placement is now preserved through policy-driven project-content rebuilds when placement has been recorded in the runtime overlay.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- Ran `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/selectBrowserGraphRows.test.ts src/app/components/ViewerHost.test.tsx`
+
+<!-- ENTRY 851 -->
+### [851] - 2026-04-01 13:30 - `VR-SP - Workspace 7.5-5 Phase 7 - Browser Reveal Frames Rendered Graph Parts`
+<!-- ENTRY 851 -->
+HUMAN SUMMARY: `Started the real `Workspace 7.5-5` Phase 7 presentation-cleanup lane by changing graph-row `Reveal` from a pseudo viewer-target owner switch into a Browser-layer frame action over the graph’s currently rendered parts. Reveal now stays useful even during shared viewer composition, while Browser build policy remains the truth for whether a graph is actually loaded in the viewer.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-5` Phase 7 Browser/viewer presentation slice instead of widening into runtime ownership refactors, `AppShell` cleanup, or the later `ConsoleDock` sync pass.
+- Preserved the new Browser-owned multi-graph viewer composition rule so render presence still follows Browser build policy rather than focused editor state.
+- Limited behavior changes to graph-row reveal semantics and the Browser row affordance around that action.
+
+#### What Changed
+- Updated `src/app/panels/useBrowserPanelController.ts` so graph-row reveal now gathers the target graph’s currently visible Browser-owned part keys and frames them in the viewer, instead of only retargeting `viewerTargetGraphDocumentId`.
+- Kept a narrow fallback to graph targeting only when no rendered graph parts are available and explicit shared viewer composition is not active.
+- Updated `src/app/panels/browserRowActions.ts` so graph reveal always routes through the reveal handler, even when shared viewer composition is active.
+- Updated `src/app/panels/selectBrowserTreeRows.ts` so graph-row `Reveal` is no longer disabled by shared composition alone and is instead disabled only when the graph’s own Browser build policy is `off`.
+- Added focused coverage in `src/app/panels/browserRowActions.test.ts`, `src/app/panels/selectBrowserTreeRows.test.ts`, and `src/app/panels/BrowserPanel.test.tsx` to lock the new reveal behavior and affordance.
+
+#### Behavior Changes
+- Graph-row `Reveal` now frames the graph’s currently rendered viewer parts instead of acting like it owns what the viewer loads.
+- Shared viewer composition no longer disables graph reveal when the graph is still Browser-enabled and has rendered content to frame.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/browserRowActions.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx src/app/panels/browserInteractions.test.ts src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts`
+
+<!-- ENTRY 850 -->
+### [850] - 2026-04-01 13:20 - `VR-SP - Workspace 7.5-5 Phase 5 - Browser-Owned Multi-Graph Viewer Composition`
+<!-- ENTRY 850 -->
+HUMAN SUMMARY: `Adjusted the `Workspace 7.5-5` viewer composition rule so Browser-enabled graph outputs stay loaded in the model viewer even when their Spaghetti editor is not the focused surface. The viewer now composes all current-project graphs whose Browser build policy is not `off`, and a new regression test locks that behavior in.`
+#### Scope / Constraints Honored
+- Kept this inside the live `Workspace 7.5-5` multi-graph output lane instead of widening into `AppShell`, editor host, or broader build-failure cleanup.
+- Honored the product rule that Browser build policy, not editor focus, decides whether a graph's output is rendered unless that graph is explicitly suppressed.
+- Limited the implementation to `ViewerHost` composition behavior plus focused regression coverage.
+
+#### What Changed
+- Updated `src/app/components/ViewerHost.tsx` so the non-shared viewer path now composes preview parts from every graph in `currentProject.graphDocuments` whose Browser build policy is still enabled, instead of rendering only the currently targeted graph by editor focus.
+- Preserved the existing explicit shared-composition path, while using the all-enabled current-project graph composition as the default fallback when no explicit shared viewer composition is active.
+- Added a focused regression in `src/app/components/ViewerHost.test.tsx` that proves a second graph's output still renders when it is not the focused editor graph and disappears only after its Browser build policy is set to `off`.
+
+#### Behavior Changes
+- Model-viewer output presence no longer depends on which `Spaghetti Editor` surface is currently highlighted when the graph is still Browser-enabled.
+- A graph's output now drops from the viewer only when Browser suppression says it should, such as when that graph's build policy is `off`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts src/app/panels/selectBrowserGraphRows.test.ts`
+
+<!-- ENTRY 849 -->
+### [849] - 2026-04-01 13:10 - `VR-SP - Workspace 7.5-5 Phase 5 - Graph-Qualified Output Viewer Identity`
+<!-- ENTRY 849 -->
+HUMAN SUMMARY: `Closed the real `Workspace 7.5-5` Phase 5 seam by proving the multi-graph output collapse was happening in Browser and viewer part identity, then qualifying viewer-facing output keys by `graphDocumentId` so separate graphs no longer alias one shared bare-slot visibility owner. The store, Browser rows, and single-viewer host path now agree on the same graph-qualified part-key contract.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-5` Phase 5 slice centered on the proven multi-graph output identity seam instead of widening into a broad runtime-store rewrite, `AppShell` refactor, or unrelated build cleanup.
+- Preserved the existing graph-level runtime and project-content ownership model once the trace showed those layers were already distinct enough by `graphDocumentId`.
+- Limited the implementation to the viewer-facing identity contract that actually drove the "hide one object and both disappear" collapse.
+
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so Browser-facing content visibility keys, object part keys, grouped-content selection payloads, and object or component highlight keys now publish only graph-qualified viewer identity in the shape `${graphDocumentId}:${slotId}`.
+- Updated `src/app/panels/selectBrowserGraphRows.ts` so published graph output rows no longer emit bare slot ids as `highlightViewerKey` and instead use the same graph-qualified viewer-key contract as the rest of the app-store visibility layer.
+- Updated `src/app/components/ViewerHost.tsx` so the single-viewer preview path qualifies `viewerParts` and picked item keys with `graphDocumentId`, matching the already-graph-qualified shared viewer composition path.
+- Refreshed the focused expectations in `src/app/store/useAppStore.test.ts`, `src/app/panels/selectBrowserGraphRows.test.ts`, and `src/app/components/ViewerHost.test.tsx` so the regression suite locks the new viewer identity contract instead of the old mixed bare-slot plus graph-qualified behavior.
+
+#### Behavior Changes
+- Separate graph documents that reuse the same output slot ids now keep distinct Browser and viewer visibility identity instead of colliding through shared bare slot keys.
+- Grouped content selection, object highlight routing, and viewer transform-group targeting now follow one graph-qualified part-key contract in the affected Browser and viewer paths.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/selectBrowserGraphRows.test.ts src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx`
+
+<!-- ENTRY 848 -->
+### [848] - 2026-04-01 12:25 - `VR-SP - Workspace 7.5-5 Phase 4 - Viewport-Local Editor Runtime Selection`
+<!-- ENTRY 848 -->
+HUMAN SUMMARY: `Started the real `Workspace 7.5-5` Phase 4 runtime-isolation work by moving live `Spaghetti Editor` node, edge, and preview selection ownership onto concrete editor viewports instead of one shared active-editor runtime path. `SpaghettiPanel` and `SpaghettiCanvas` now read and write selection through `editorViewportId`, while the store mirrors the active viewport back into the old global fields so Console and other older callers keep working during the transition.`
+#### Scope / Constraints Honored
+- Kept this as a focused `Workspace 7.5-5` Phase 4 runtime-isolation slice instead of widening into Browser UX, shell-host redesign, or a new session model.
+- Preserved `activeEditorViewportId` as global focus truth only while moving editor-local selection behavior behind concrete viewport ids.
+- Avoided redesigning the full preview/output pipeline; the distinct output-preview object carry remains for later follow-through if it is still needed.
+
+#### What Changed
+- Extended `src/app/spaghetti/store/useSpaghettiStore.ts` with per-viewport node, edge, and console-preview selection maps plus explicit viewport-scoped setters, and taught the browser-viewport bridge to prune those maps and mirror the active viewport back into the legacy global selection fields.
+- Updated viewport lifecycle paths in `useSpaghettiStore` so newly opened, focused, rebound, and closed editor surfaces keep their own local selection slots instead of inheriting the previously active editor's runtime selection.
+- Repointed `src/app/panels/SpaghettiPanel.tsx`, `src/app/spaghetti/ui/SpaghettiEditor.tsx`, `src/app/spaghetti/ui/ExpandedEditor.tsx`, and `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` so the live editor subtree now reads and writes node or edge selection through the concrete `editorViewportId`.
+- Added focused regressions in `src/app/spaghetti/store/useSpaghettiStore.test.ts` and `src/app/panels/SpaghettiPanel.test.tsx` proving viewport-local selection survives active-focus flips, rebound viewports clear their own local selection state, and inactive editor surfaces no longer borrow another viewport's selected-node UI.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/spaghetti/ui/SpaghettiEditor.tsx`
+- `src/app/spaghetti/ui/ExpandedEditor.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+
+#### Behavior Changes
+- A live `Spaghetti Editor` surface now keeps its own selected node and selected edge state instead of silently borrowing whichever editor viewport was active last.
+- Switching focus between editor surfaces now mirrors the newly active viewport's local selection into the legacy global fields instead of rewriting another surface's local runtime ownership.
+- Rebinding a viewport to a different graph document clears that viewport's local node, edge, and preview selection instead of leaking the previous graph's runtime target into the new binding.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 847 -->
+### [847] - 2026-04-01 12:04 - `VR-SP - Workspace 7.5-5 Phase 3 - Per-Viewport Floating Host Stability`
+<!-- ENTRY 847 -->
+HUMAN SUMMARY: `Tightened the next `Workspace 7.5-5` Phase 3 floating-host seam by removing the last active-viewport fallback from the in-app floating geometry helpers and by treating floating-shell presence as "any floating editor exists" instead of "the active editor is floating." This keeps multiple floating `Spaghetti Editor` windows on different graph documents pinned to their own frame truth while the focused host regression now proves that flipping active focus no longer rewrites a sibling floating window's geometry.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-5` Phase 3 host-side stability slice.
+- Preserved `activeEditorViewportId` as focus truth only and avoided widening into Phase 4 output-preview or broader runtime-isolation redesign.
+- Left Browser, Console, persisted schema, and session-model behavior unchanged.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so `getFloatingSizeForViewport(...)` and `getFloatingPosForViewport(...)` no longer fall back through `activeViewportState`, which means a non-active floating editor now resolves its geometry only from its own viewport state and persisted per-viewport refs.
+- Tightened the host-level floating presence cleanup so split-preview and dock-lock cleanup now key off whether any in-app floating editor exists, instead of assuming the active editor is the only meaningful floating shell.
+- Added a focused regression in `src/app/hosts/SpaghettiWindowHost.test.tsx` that renders two floating editor windows on different graph documents, flips active focus between them, and proves each floating shell keeps its own left/top/width/height values.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- Changing the active floating editor no longer gives another floating editor an implicit geometry fallback through the active viewport path.
+- Host-level cleanup for floating split-preview and floating dock lock now stays alive as long as any in-app floating editor exists, instead of collapsing early when the active viewport is not itself the floating owner.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 846 -->
+### [846] - 2026-04-01 11:37 - `VR-SP - Workspace 7.5-5 Phase 3 - Cross-Graph Floating Selection Sync Guard`
+<!-- ENTRY 846 -->
+HUMAN SUMMARY: `Started the real `Workspace 7.5-5` Phase 3 stability repair by preventing inactive `Spaghetti Editor` panels from overwriting the shared workspace graph target while another editor surface is actually focused. This directly targets the newly clarified cross-graph floating failure, where two floating windows on different graph documents were more suspicious than simple multi-window geometry alone.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-5` Phase 3 slice aimed at the corrected cross-graph floating repro.
+- Preserved `activeEditorViewportId` as focus truth and used it to stop inactive panels from re-owning shared workspace selection.
+- Avoided widening into broader `SpaghettiPanel` runtime redesign or Phase 4 per-viewport state isolation work.
+
+#### What Changed
+- Updated `src/app/panels/SpaghettiPanel.tsx` so the shared workspace target-sync effect now runs only for the active editor viewport instead of every rendered `SpaghettiPanel`.
+- This prevents two live panels on different graph documents from fighting over the global workspace graph target whenever `workspaceActiveSurface === 'spaghetti'`.
+- Added focused coverage in `src/app/panels/SpaghettiPanel.test.tsx` proving an inactive editor viewport no longer overwrites the shared workspace target.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+
+#### Behavior Changes
+- Only the focused `Spaghetti Editor` panel now synchronizes graph or node target ownership into the shared workspace selection state.
+- Inactive floating editor panels no longer push competing graph-document selection updates just because they are rendered.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/panels/SpaghettiPanel.test.tsx`
+
+<!-- ENTRY 845 -->
+### [845] - 2026-04-01 11:03 - `VR-SP - Workspace 7.5-5 Phase 3 - Browser Graph Open Intent Cleanup`
+<!-- ENTRY 845 -->
+HUMAN SUMMARY: `Cleaned up the Browser graph-open flow so single-clicking a graph now selects and focuses it for Browser and Console context without opening an editor as a side effect, while double-clicking explicitly opens that graph in a brand-new floating `Spaghetti Editor` window. This keeps graph browsing lightweight and makes new-window creation an intentional second-step action instead of an accidental single-click open.` 
+#### Scope / Constraints Honored
+- Kept this as a small `Workspace 7.5-5` Phase 3 cleanup focused on Browser graph-opening behavior.
+- Preserved the shared workspace intent seam instead of reintroducing Browser-local editor-opening logic.
+- Avoided widening into `ConsoleDock` behavior changes beyond the minimal shared intent dependency update required for type safety.
+
+#### What Changed
+- Extended `src/app/store/workspaceIntents.ts` with an explicit `'open-new'` graph-document strategy so callers can intentionally open a brand-new editor viewport and still apply the standard spawn anchor logic.
+- Updated `src/app/panels/browserInteractions.ts` so single-clicking a graph row now commits graph-document selection plus Browser surface activation without opening an editor, while double-clicking the same row opens the graph in a new editor window.
+- Wired the new intent capability through `src/app/panels/useBrowserPanelController.ts` and the shared `buildWorkspaceIntentDepsFromStoreState()` seam in `src/app/console/ConsoleDock.tsx`.
+- Added focused regression coverage in `src/app/store/workspaceIntents.test.ts`, `src/app/panels/browserInteractions.test.ts`, and `src/app/panels/BrowserPanel.test.tsx`.
+
+#### Files Changed
+- `src/app/store/workspaceIntents.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Single-clicking a Browser graph row now selects that graph and updates Browser and Console context without opening or swapping an editor viewport.
+- Double-clicking a Browser graph row now opens that graph in a new floating `Spaghetti Editor` viewport at the provided spawn anchor.
+- The old single-click `swap-focused-or-open` path for Browser graph rows is no longer used.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/store/workspaceIntents.test.ts`
+- `npm.cmd run test -- src/app/panels/browserInteractions.test.ts`
+- `npm.cmd run test -- src/app/panels/BrowserPanel.test.tsx`
+
+<!-- ENTRY 844 -->
+### [844] - 2026-04-01 10:42 - `VR-SP - Workspace 7.5-5 Phase 3 - Floating Spawn Overlap Cleanup`
+<!-- ENTRY 844 -->
+HUMAN SUMMARY: `Started the `Workspace 7.5-5` Phase 3 cleanup pass by fixing the ugly overlap case where opening a second floating `Spaghetti Editor` could perfectly cover the first one. New floating editor viewports now spawn in a small cascade instead of sharing the exact same screen position, so several open editor windows stay visibly discoverable.` 
+#### Scope / Constraints Honored
+- Kept this as a small Phase 3 cleanup instead of reopening the broader Phase 2 lifecycle work.
+- Preserved the existing multi-surface model and only adjusted floating spawn placement for newly opened editor viewports.
+- Avoided widening into a larger window-tiling or auto-layout system.
+
+#### What Changed
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so `openGraphDocumentInNewViewport(...)` derives a cascaded spawn position from the highest-z existing editor viewport instead of always using the same default floating coordinates.
+- Updated the mocked duplicate-viewport path in `src/app/AppShell.test.tsx` so the UI regression tests match the real runtime spawn behavior.
+- Added focused regression coverage in `src/app/spaghetti/store/useSpaghettiStore.test.ts` and `src/app/AppShell.test.tsx` proving a second floating editor now spawns offset from the first and remains visually distinct.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Opening another floating `Spaghetti Editor` now offsets it from the current top editor window instead of placing it at the exact same coordinates.
+- Several floating editor windows are easier to discover because a newly opened one no longer perfectly covers the previous floating surface.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 843 -->
+### [843] - 2026-04-01 10:26 - `VR-SP - Workspace 7.5-5 Phase 2 - Multi-Surface Lifecycle Parity`
+<!-- ENTRY 843 -->
+HUMAN SUMMARY: `Implemented `Workspace 7.5-5` Phase 2 by making live `Spaghetti Editor` lifecycle behavior derive from per-viewport placement truth instead of one active-editor shell owner. Multiple editor surfaces can now stay alive honestly across floating, slotted, meatball, and popped-out host modes, while split-view compatibility migration and in-app shell presence checks no longer collapse surviving editor surfaces back toward one active viewport.` 
+#### Scope / Constraints Honored
+- Kept this slice inside `Workspace 7.5-5` Phase 2 multi-surface lifecycle parity.
+- Preserved `activeEditorViewportId` as focus truth instead of introducing another editor placement model.
+- Avoided widening into `Open Editors` UX or broad Browser and Console redesign beyond the minimum shared-shell safety touch.
+
+#### What Changed
+- Reworked `src/app/hosts/SpaghettiWindowHost.tsx` so in-app `Spaghetti Editor` shells render per concrete viewport placement instead of deriving one live shell from `activeEditorViewportId`, while detached popouts continue to render per viewport and dock-back keeps the targeted editor surface identity.
+- Updated `src/app/AppShell.tsx` so visible in-app Spaghetti shell presence derives from any live in-app editor surface, split-view compatibility migration preserves the correct fallback dock side and left-dock inset shape, and runtime browser-host suppression no longer hides restored toolbar Browser layouts by mistake.
+- Bridged viewport-scoped window-settings state through `src/app/AppShell.tsx` into `src/app/workspace/ViewportSurfaceRegistry.tsx` so the same editor viewport keeps its settings panel state after moving from floating into slotted or meatball-backed presentation modes.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+
+#### Behavior Changes
+- Multiple `Spaghetti Editor` surfaces can now remain alive together across in-app floating, slot-tree, meatball, and detached popout host modes without the shell silently collapsing back to one active owner.
+- Closing, dragging, resizing, popout docking, and split compatibility migration now stay attached to the targeted editor viewport instance instead of relying on ambient active-editor ownership.
+- Window-settings state now follows the same editor viewport across floating, split-migrated, and meatball-backed render paths.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run test -- src/app/AppShell.test.tsx`
+
+<!-- ENTRY 842 -->
+### [842] - 2026-04-01 09:06 - `VR-SP - Workspace 7.5-5 - Per-Surface Spaghetti Shell Targeting`
+<!-- ENTRY 842 -->
+HUMAN SUMMARY: `Implemented `Workspace 7.5-5` Phase 1 by repointing the floating `Spaghetti Editor` split menu and main shell titlebar actions to the concrete editor surface instance instead of ambient active-editor state. The shared split menu now remembers which editor opened it, so a later active-editor change does not redirect split actions to the wrong surface.` 
+#### Scope / Constraints Honored
+- Kept this slice narrowly inside `Workspace 7.5-5` Phase 1 per-surface shell targeting.
+- Avoided widening into full multi-surface lifecycle and restore work, which stays in later `7.5-5` phases.
+- Reused the existing shared workspace split-menu seam instead of inventing another editor-local menu path.
+
+#### What Changed
+- Extended `src/app/workspace/workspaceShellTypes.ts` so the shared `workspaceSplitMenu` state can carry the surface instance id that opened the floating menu.
+- Updated `src/app/AppShell.tsx` so floating Spaghetti split-menu actions resolve against that stored editor surface id instead of whichever editor is globally active when the user clicks a menu action.
+- Repointed `src/app/hosts/SpaghettiWindowHost.tsx` main shell split, popout, and close actions through concrete `editorViewportId` targeting rather than active-editor-only ownership assumptions.
+- Added a focused regression in `src/app/AppShell.test.tsx` that opens the floating Spaghetti split menu, switches `activeEditorViewportId`, and proves the clicked menu action still applies to the editor that opened the menu.
+
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Floating Spaghetti split-menu actions now stay attached to the editor surface that opened the menu even if global active-editor focus changes before the action is clicked.
+- Main floating Spaghetti shell split, popout, and close actions now resolve through explicit editor viewport targeting instead of ambient active-editor ownership.
+
+#### Verification Steps
+- `.\node_modules\.bin\tsc.cmd --noEmit`
+- `npm.cmd run test -- src/app/AppShell.test.tsx -t "opens the floating spaghetti titlebar context menu and creates a real vertical workspace split|keeps the floating spaghetti split menu targeted at the editor that opened it even if the active editor changes"`
+- `npm.cmd run test -- src/app/hosts/SpaghettiWindowHost.test.tsx`
+
 <!-- ENTRY 841 -->
 ### [841] - 2026-04-01 02:30 - `VR-SP - Workspace 7.5-4 - Console And Spaghetti Split Drag-Out Smoothness`
 <!-- ENTRY 841 -->

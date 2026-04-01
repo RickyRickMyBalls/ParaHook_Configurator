@@ -20,6 +20,9 @@ import type {
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
 import {
+  selectEditorViewportConsolePreviewNodeId,
+  selectEditorViewportSelectedEdgeId,
+  selectEditorViewportSelectedNodeId,
   selectGraphByDocumentId,
   selectNodeMode,
   useSpaghettiStore,
@@ -417,6 +420,7 @@ const DEV_PROBE_NODE_ID_KEY = '__SP_PROBE_NODE_ID'
 type DevProbeWindow = Window & { [DEV_PROBE_NODE_ID_KEY]?: string }
 
 type SpaghettiCanvasProps = {
+  editorViewportId: string
   graphDocumentId: string
   fitCanvasRequestKey?: number
   fitNodeId?: string | null
@@ -428,6 +432,7 @@ type SpaghettiCanvasProps = {
 }
 
 export function SpaghettiCanvas({
+  editorViewportId,
   graphDocumentId,
   fitCanvasRequestKey = 0,
   fitNodeId = null,
@@ -438,9 +443,15 @@ export function SpaghettiCanvas({
   onSetViewMode,
 }: SpaghettiCanvasProps) {
   const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
-  const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
-  const consolePreviewNodeId = useSpaghettiStore((state) => state.consolePreviewNodeId)
-  const selectedEdgeId = useSpaghettiStore((state) => state.selectedEdgeId)
+  const selectedNodeId = useSpaghettiStore((state) =>
+    selectEditorViewportSelectedNodeId(state, editorViewportId),
+  )
+  const consolePreviewNodeId = useSpaghettiStore((state) =>
+    selectEditorViewportConsolePreviewNodeId(state, editorViewportId),
+  )
+  const selectedEdgeId = useSpaghettiStore((state) =>
+    selectEditorViewportSelectedEdgeId(state, editorViewportId),
+  )
   const hoveredEdgeId = useSpaghettiStore((state) => state.hoveredEdgeId)
   const connectionDrag = useSpaghettiStore((state) => state.connectionDrag)
   const uiMessage = useSpaghettiStore((state) => state.uiMessage)
@@ -454,8 +465,12 @@ export function SpaghettiCanvas({
   const removeEdgeWaypoint = useSpaghettiStore((state) => state.removeEdgeWaypoint)
   const toggleEdgeWaypointSide1 = useSpaghettiStore((state) => state.toggleEdgeWaypointSide1)
   const toggleEdgeWaypointSide2 = useSpaghettiStore((state) => state.toggleEdgeWaypointSide2)
-  const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
-  const setSelectedEdgeId = useSpaghettiStore((state) => state.setSelectedEdgeId)
+  const setEditorViewportSelectedNodeId = useSpaghettiStore(
+    (state) => state.setEditorViewportSelectedNodeId,
+  )
+  const setEditorViewportSelectedEdgeId = useSpaghettiStore(
+    (state) => state.setEditorViewportSelectedEdgeId,
+  )
   const setHoveredEdgeId = useSpaghettiStore((state) => state.setHoveredEdgeId)
   const setConnectionDrag = useSpaghettiStore((state) => state.setConnectionDrag)
   const clearConnectionDrag = useSpaghettiStore((state) => state.clearConnectionDrag)
@@ -464,6 +479,18 @@ export function SpaghettiCanvas({
   const setExtrudeDepth = useSpaghettiStore((state) => state.setExtrudeDepth)
   const setNodeMode = useSpaghettiStore((state) => state.setNodeMode)
   const supportsOverlayCanvasMode = viewMode !== 'collapsed'
+  const setSelectedNodeId = useCallback(
+    (nodeId: string | null) => {
+      setEditorViewportSelectedNodeId(editorViewportId, nodeId)
+    },
+    [editorViewportId, setEditorViewportSelectedNodeId],
+  )
+  const setSelectedEdgeId = useCallback(
+    (edgeId: string | null) => {
+      setEditorViewportSelectedEdgeId(editorViewportId, edgeId)
+    },
+    [editorViewportId, setEditorViewportSelectedEdgeId],
+  )
 
   const stageRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)

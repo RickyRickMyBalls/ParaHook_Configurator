@@ -458,7 +458,7 @@ describe('selectBrowserTreeRows', () => {
       actions: expect.arrayContaining([
         expect.objectContaining({
           actionId: 'reveal',
-          disabled: true,
+          disabled: false,
         }),
       ]),
     })

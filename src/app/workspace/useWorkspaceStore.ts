@@ -426,7 +426,7 @@ const withDerivedBrowserContract = <T extends Partial<WorkspaceStoreState>>(
   }
 }
 
-export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
+export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
   ...createInitialState(),
   setLeftDockWidth: (leftDockWidth) => {
     set({
@@ -543,10 +543,10 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       )
       return null
     }
-    return useWorkspaceStore.getState().redockDetachedSurface(surfaceInstanceId, options?.splitDockSide)
+    return get().redockDetachedSurface(surfaceInstanceId, options?.splitDockSide)
   },
   splitSurfaceToSide: (surfaceInstanceId, splitDockSide) => {
-    const state = useWorkspaceStore.getState()
+    const state = get()
     const currentBrowserSurfaceInstanceId =
       state.browserToolbarOwnerSurfaceInstanceId ?? defaultBrowserToolbarOwnerSurfaceInstanceId
     if (surfaceInstanceId !== currentBrowserSurfaceInstanceId) {

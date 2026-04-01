@@ -1037,11 +1037,8 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       rootRowId: 'object:object-3',
       rootKind: 'multi-select',
       partKeys: [
-        'slot-a',
         'graph-document-1:slot-a',
-        'slot-b',
         'graph-document-1:slot-b',
-        'slot-c',
         'graph-document-1:slot-c',
       ],
       groupedRowIds: ['object-1', 'object-2'],
@@ -1118,9 +1115,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       rootRowId: 'object:linked-object-2',
       rootKind: 'multi-select',
       partKeys: [
-        'slot-linked-a',
         'graph-document-1:slot-linked-a',
-        'slot-linked-b',
         'graph-document-1:slot-linked-b',
       ],
       groupedRowIds: [],
@@ -1411,9 +1406,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           meta: '',
           isVisible: true,
           visibilityPartKeys: [
-            'slot-baseplate',
             'graph-document-1:slot-baseplate',
-            'slot-toe-hook',
             'graph-document-1:slot-toe-hook',
           ],
           buildState: 'rebuild',
@@ -1430,9 +1423,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           meta: 'Graph 1',
           isVisible: true,
           visibilityPartKeys: [
-            'slot-baseplate',
             'graph-document-1:slot-baseplate',
-            'slot-toe-hook',
             'graph-document-1:slot-toe-hook',
           ],
           buildState: 'rebuild',
@@ -1460,7 +1451,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           label: 'Object 1',
           meta: '',
           isVisible: true,
-          visibilityPartKeys: ['slot-baseplate', 'graph-document-1:slot-baseplate'],
+          visibilityPartKeys: ['graph-document-1:slot-baseplate'],
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -1474,7 +1465,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         slotId: 'slot-baseplate',
         sourceNodeId: 'node-baseplate-1',
         resolutionState: 'resolved',
-        highlightViewerKey: 'slot-baseplate',
+        highlightViewerKey: 'graph-document-1:slot-baseplate',
         authoringGraphDocumentId: 'graph-document-1',
         authoringNodeId: 'node-baseplate-1',
       },
@@ -1485,7 +1476,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           label: 'Object 2',
           meta: '',
           isVisible: true,
-          visibilityPartKeys: ['slot-toe-hook', 'graph-document-1:slot-toe-hook'],
+          visibilityPartKeys: ['graph-document-1:slot-toe-hook'],
           buildState: 'rebuild',
           buildStateLabel: 'Rebuild',
           rebuildGraphDocumentIds: ['graph-document-1'],
@@ -1499,7 +1490,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         slotId: 'slot-toe-hook',
         sourceNodeId: 'node-toehook-1',
         resolutionState: 'resolved',
-        highlightViewerKey: 'slot-toe-hook',
+        highlightViewerKey: 'graph-document-1:slot-toe-hook',
         authoringGraphDocumentId: 'graph-document-1',
         authoringNodeId: 'node-toehook-1',
       },
@@ -1598,7 +1589,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           slotId: 'slot-linked',
           sourceNodeId: 'node-baseplate-2',
           resolutionState: 'resolved',
-          highlightViewerKey: 'slot-linked',
+          highlightViewerKey: `${secondGraphId}:slot-linked`,
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: 'node-baseplate-2',
         }),
@@ -1617,7 +1608,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           slotId: 'slot-linked',
           sourceNodeId: 'node-baseplate-2',
           resolutionState: 'resolved',
-          highlightViewerKey: 'slot-linked',
+          highlightViewerKey: 'graph-document-1:slot-linked',
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: 'node-baseplate-2',
         }),
@@ -2135,6 +2126,320 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('preserves moved published object parentage across assembly policy sync and graph suppression', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact],
+            publishedAtBuildSeq: 10,
+          }),
+        },
+      },
+    }))
+
+    const listRows = () =>
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      })
+
+    const objectRow = listRows().find(
+      (row) => row.kind === 'object' && row.ownerGraphDocumentId === 'graph-document-1',
+    )
+    expect(objectRow?.rowId).toBeTruthy()
+
+    const assemblyId = useAppStore.getState().createProjectAssembly()
+    const componentId = useAppStore.getState().createProjectComponent(assemblyId)
+    expect(componentId).toBeTruthy()
+
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: objectRow!.rowId },
+        { kind: 'component', componentId: componentId!, position: 'into' },
+      ),
+    ).toBe(true)
+
+    expect(useAppStore.getState().projectContent.objectsById[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'release')
+    expect(useAppStore.getState().projectContent.objectsById[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'off')
+    expect(useAppStore.getState().runtimeContentPlacementByRowId[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+    expect(useAppStore.getState().projectContent.objectsById[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+
+    useAppStore.getState().clearBrowserContentBuildPolicy(assemblyId)
+    expect(useAppStore.getState().projectContent.objectsById[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+    expect(
+      listRows().some(
+        (row) =>
+          row.kind === 'object' &&
+          row.rowId === objectRow!.rowId &&
+          row.parentComponentId === componentId,
+      ),
+    ).toBe(true)
+  })
+
+  it('preserves moved loose published objects under authored assemblies across policy-driven sync', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact],
+            publishedAtBuildSeq: 11,
+          }),
+        },
+      },
+    }))
+
+    const listRows = () =>
+      selectCurrentProjectContentBrowserRows({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      })
+
+    const objectRow = listRows().find(
+      (row) => row.kind === 'object' && row.ownerGraphDocumentId === 'graph-document-1',
+    )
+    expect(objectRow?.rowId).toBeTruthy()
+
+    const assemblyId = useAppStore.getState().createProjectAssembly()
+    expect(
+      useAppStore.getState().moveProjectContentOwner(
+        { kind: 'object', objectId: objectRow!.rowId },
+        { kind: 'assembly', assemblyId, position: 'into' },
+      ),
+    ).toBe(true)
+
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'release')
+    expect(useAppStore.getState().projectContent.objectsById[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: null,
+    })
+
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'off')
+    expect(useAppStore.getState().runtimeContentPlacementByRowId[objectRow!.rowId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: null,
+    })
+
+    useAppStore.getState().clearBrowserContentBuildPolicy(assemblyId)
+    expect(
+      listRows().some(
+        (row) =>
+          row.kind === 'object' &&
+          row.rowId === objectRow!.rowId &&
+          row.parentAssemblyId === assemblyId &&
+          row.parentComponentId === null,
+      ),
+    ).toBe(true)
+  })
+
+  it('preserves published component placement and keeps explicit object policy overrides above parent policy', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { selectBrowserTreeRows } = await import('../panels/selectBrowserTreeRows')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+      {
+        slotId: 'slot-toe-hook',
+        sourceNodeId: 'node-toehook-1',
+        sourcePartKey: 'toeHook#1',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [baseplateArtifact, toeHookArtifact],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [baseplateArtifact, toeHookArtifact],
+            publishedAtBuildSeq: 12,
+          }),
+        },
+      },
+    }))
+
+    const assemblyId = useAppStore.getState().createProjectAssembly()
+    const componentId = 'project-component:project-file-1:graph-document-1:published'
+    const objectId = 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate'
+    useAppStore.setState((state) => ({
+      ...state,
+      runtimeContentPlacementByRowId: {
+        ...state.runtimeContentPlacementByRowId,
+        [componentId]: {
+          parentAssemblyId: assemblyId,
+          parentComponentId: null,
+        },
+        [objectId]: {
+          parentAssemblyId: assemblyId,
+          parentComponentId: componentId,
+        },
+      },
+    }))
+
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          ...state.projectContent.assembliesById,
+          [assemblyId]: {
+            assemblyId,
+            label: state.projectContent.assembliesById[assemblyId]?.label ?? 'Assembly 2',
+            parentAssemblyId: 'assembly-root:project-file-1',
+            assemblySourceKind: 'authored',
+            childRowIds: [componentId],
+          },
+          'assembly-root:project-file-1': {
+            ...state.projectContent.assembliesById['assembly-root:project-file-1'],
+            childRowIds: state.projectContent.assembliesById['assembly-root:project-file-1'].childRowIds.filter(
+              (rowId) => rowId !== componentId,
+            ),
+          },
+        },
+        componentsById: {
+          ...state.projectContent.componentsById,
+          [componentId]: {
+            ...state.projectContent.componentsById[componentId],
+            parentAssemblyId: assemblyId,
+          },
+        },
+        objectsById: {
+          ...state.projectContent.objectsById,
+          [objectId]: {
+            ...state.projectContent.objectsById[objectId],
+            parentAssemblyId: assemblyId,
+            parentComponentId: componentId,
+          },
+        },
+      },
+    }))
+
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'off')
+    useAppStore.getState().clearBrowserContentBuildPolicy(assemblyId)
+
+    expect(useAppStore.getState().projectContent.componentsById[componentId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+    })
+    expect(useAppStore.getState().projectContent.objectsById[objectId]).toMatchObject({
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+
+    useAppStore.getState().setBrowserContentBuildPolicy(objectId, 'manual')
+    useAppStore.getState().setBrowserContentBuildPolicy(assemblyId, 'off')
+
+    const contentRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+    const treeRows = selectBrowserTreeRows({
+      contentRows,
+      graphRows: [],
+      browserGraphBuildPolicyByGraphDocumentId:
+        useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId,
+      browserContentBuildPolicyByRowId: useAppStore.getState().browserContentBuildPolicyByRowId,
+      editorViewports: [],
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      selectedRowId: objectId,
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+    const objectTreeRow = treeRows.contentRows.find(
+      (row) => row.rowKind === 'object' && row.rowId === objectId,
+    )
+
+    expect(objectTreeRow).toMatchObject({
+      effectiveBrowserBuildPolicy: 'manual',
+      effectiveBrowserBuildPolicySource: 'self',
+    })
+  })
+
   it('derives assembly, component, and object viewer visibility from part visibility', async () => {
     const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
@@ -2182,17 +2487,16 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         expect.objectContaining({
           kind: 'assembly',
           isVisible: true,
-          visibilityPartKeys: ['slot-baseplate', 'graph-document-1:slot-baseplate'],
+          visibilityPartKeys: ['graph-document-1:slot-baseplate'],
         }),
         expect.objectContaining({
           kind: 'object',
           isVisible: true,
-          visibilityPartKeys: ['slot-baseplate', 'graph-document-1:slot-baseplate'],
+          visibilityPartKeys: ['graph-document-1:slot-baseplate'],
         }),
       ]),
     )
 
-    useAppStore.getState().setPartVisibility('slot-baseplate', false)
     useAppStore.getState().setPartVisibility('graph-document-1:slot-baseplate', false)
 
     expect(listRows()).toEqual(

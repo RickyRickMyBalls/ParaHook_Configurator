@@ -21,6 +21,7 @@ import { SpaghettiEditor } from '../spaghetti/ui/SpaghettiEditor'
 import { SpaghettiEditorBoundary } from '../spaghetti/ui/SpaghettiEditorBoundary'
 import {
   selectEditorViewportById,
+  selectEditorViewportSelectedNodeId,
   selectGraphByDocumentId,
   selectGraphCompileResultByDocumentId,
   selectSharedViewerComposition,
@@ -204,12 +205,15 @@ export function SpaghettiPanel({
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
   const uiMessage = useSpaghettiStore((state) => state.uiMessage)
   const viewport = useSpaghettiStore((state) => selectEditorViewportById(state, editorViewportId))
+  const activeEditorViewportId = useSpaghettiStore((state) => state.activeEditorViewportId)
   const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
   const graphDocumentOrder = useSpaghettiStore((state) => state.graphDocumentOrder)
   const graph = useSpaghettiStore((state) =>
     viewport === null ? null : selectGraphByDocumentId(state, viewport.graphDocumentId),
   )
-  const selectedNodeId = useSpaghettiStore((state) => state.selectedNodeId)
+  const selectedNodeId = useSpaghettiStore((state) =>
+    selectEditorViewportSelectedNodeId(state, editorViewportId),
+  )
   const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
   const createGraphDocument = useSpaghettiStore((state) => state.createGraphDocument)
   const bindEditorViewportToGraphDocument = useSpaghettiStore(
@@ -223,7 +227,9 @@ export function SpaghettiPanel({
     (state) => state.removeEditorViewportGraphFromSharedViewerComposition,
   )
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
-  const setSelectedNodeId = useSpaghettiStore((state) => state.setSelectedNodeId)
+  const setEditorViewportSelectedNodeId = useSpaghettiStore(
+    (state) => state.setEditorViewportSelectedNodeId,
+  )
   const editorViewportNodeFitRequest = useSpaghettiStore((state) => state.editorViewportNodeFitRequest)
   const editorViewportCanvasFitRequest = useSpaghettiStore(
     (state) => state.editorViewportCanvasFitRequest,
@@ -247,6 +253,7 @@ export function SpaghettiPanel({
     [],
   )
   const graphDocumentId = viewport?.graphDocumentId ?? null
+  const isActiveEditorViewport = activeEditorViewportId === editorViewportId
   const spaghettiLastCompile = useSpaghettiStore((state) =>
     graphDocumentId === null ? null : selectGraphCompileResultByDocumentId(state, graphDocumentId),
   )
@@ -453,7 +460,11 @@ export function SpaghettiPanel({
   }, [availableNodeIds, selectedNodeId])
 
   useEffect(() => {
-    if (graphDocumentId === null || workspaceActiveSurface !== 'spaghetti') {
+    if (
+      graphDocumentId === null ||
+      workspaceActiveSurface !== 'spaghetti' ||
+      !isActiveEditorViewport
+    ) {
       return
     }
     const nextTarget =
@@ -482,6 +493,7 @@ export function SpaghettiPanel({
     requestConsoleContextSync('target-selection')
   }, [
     graphDocumentId,
+    isActiveEditorViewport,
     requestConsoleContextSync,
     selectedNodeId,
     setWorkspaceSelectedTarget,
@@ -772,7 +784,7 @@ export function SpaghettiPanel({
         },
       }),
     )
-    setSelectedNodeId(nodeId)
+    setEditorViewportSelectedNodeId(editorViewportId, nodeId)
     setFocusNodeId(nodeId)
     setUiMessage({
       level: 'info',
@@ -782,7 +794,7 @@ export function SpaghettiPanel({
 
   const handleFocusNodeChange = (nextNodeId: string | null) => {
     setFocusNodeId(nextNodeId)
-    setSelectedNodeId(nextNodeId)
+    setEditorViewportSelectedNodeId(editorViewportId, nextNodeId)
     if (graphDocumentId !== null) {
       setWorkspaceSelectedTarget(
         nextNodeId === null
@@ -1393,6 +1405,7 @@ export function SpaghettiPanel({
             <div className="V15Error">Viewport graph binding is missing.</div>
           ) : (
             <SpaghettiEditor
+              editorViewportId={editorViewportId}
               graphDocumentId={graphDocumentId}
               viewMode={effectiveViewMode}
               focusNodeId={focusNodeId}

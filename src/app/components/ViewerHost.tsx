@@ -112,6 +112,9 @@ const buildReferenceTransformIdentity = () => ({
   scale: { x: 1, y: 1, z: 1 },
 })
 
+const qualifyViewerKey = (graphDocumentId: string, viewerKey: string): string =>
+  `${graphDocumentId}:${viewerKey}`
+
 const buildViewerTransformHistoryOverlayVm = (
   target: ViewerTransformTarget,
   entries: readonly ReferenceTransformHistoryEntry[],
@@ -281,14 +284,37 @@ export function ViewerHost(props: ViewerHostProps) {
                 graphDocumentId,
               )
                 ? []
-                : graphRuntimeByDocumentId[graphDocumentId]?.acceptedPreviewBuildOutputs ?? [],
+                : graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildOutputs ?? [],
+          })),
+        )
+      }
+      const currentProjectGraphDocumentIds = currentProject.graphDocuments
+        .map((document) => document.graphDocumentId)
+        .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined)
+      if (currentProjectGraphDocumentIds.length > 0) {
+        return selectSharedPreviewRenderVm(
+          currentProjectGraphDocumentIds.map((graphDocumentId) => ({
+            graphDocumentId,
+            previewPreparation: graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
+            buildOutputs:
+              selectShouldSuppressBrowserGraphRuntimeOutput(
+                {
+                  currentProject,
+                  projectContent,
+                  browserGraphBuildPolicyByGraphDocumentId,
+                  browserContentBuildPolicyByRowId,
+                },
+                graphDocumentId,
+              )
+                ? []
+                : graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildOutputs ?? [],
           })),
         )
       }
       if (viewerTargetPreviewPreparation === null) {
         return EMPTY_PREVIEW_LIST
       }
-      return selectPreviewRenderVmFromPreparation(
+      const previewVm = selectPreviewRenderVmFromPreparation(
         viewerTargetPreviewPreparation,
         viewerTargetGraphDocumentId !== null &&
           selectShouldSuppressBrowserGraphRuntimeOutput(
@@ -303,11 +329,35 @@ export function ViewerHost(props: ViewerHostProps) {
           ? []
           : viewerTargetBuildOutputs,
       )
+      if (viewerTargetGraphDocumentId === null) {
+        return previewVm
+      }
+      return {
+        items: previewVm.items.map((item) => {
+          const viewerKey = qualifyViewerKey(viewerTargetGraphDocumentId, item.viewerKey)
+          return {
+            ...item,
+            viewerKey,
+            viewerPart:
+              item.viewerPart === null
+                ? null
+                : {
+                    ...item.viewerPart,
+                    viewerKey,
+                  },
+          }
+        }),
+        viewerParts: previewVm.viewerParts.map((viewerPart) => ({
+          ...viewerPart,
+          viewerKey: qualifyViewerKey(viewerTargetGraphDocumentId, viewerPart.viewerKey),
+        })),
+      }
     },
     [
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
+      graphDocumentsById,
       graphRuntimeByDocumentId,
       projectContent,
       sharedViewerComposition,

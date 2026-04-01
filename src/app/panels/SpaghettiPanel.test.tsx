@@ -15,6 +15,12 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
   useSpaghettiStore: (selector: (state: any) => unknown) => selector(currentSpaghettiState),
   selectEditorViewportById: (state: any, editorViewportId: string) =>
     state.editorViewportsById[editorViewportId] ?? null,
+  selectEditorViewportSelectedNodeId: (state: any, editorViewportId: string) =>
+    Object.prototype.hasOwnProperty.call(state.editorViewportSelectedNodeIdById ?? {}, editorViewportId)
+      ? state.editorViewportSelectedNodeIdById[editorViewportId] ?? null
+      : state.activeEditorViewportId === editorViewportId
+        ? state.selectedNodeId
+        : null,
   selectGraphByDocumentId: (state: any, graphDocumentId: string) =>
     state.graphDocumentsById[graphDocumentId]?.graph ?? null,
   selectGraphCompileResultByDocumentId: () => null,
@@ -70,6 +76,7 @@ describe('SpaghettiPanel', () => {
 
   beforeEach(() => {
     currentSpaghettiState = {
+      activeEditorViewportId: 'editor-viewport-1',
       uiMessage: null,
       graphDocumentsById: {
         'graph-document-1': {
@@ -94,6 +101,9 @@ describe('SpaghettiPanel', () => {
       },
       graphDocumentOrder: ['graph-document-1', 'graph-document-2'],
       selectedNodeId: 'node-1',
+      editorViewportSelectedNodeIdById: {
+        'editor-viewport-1': 'node-1',
+      },
       editorViewportNodeFitRequest: null,
       editorViewportsById: {
         'editor-viewport-1': {
@@ -117,7 +127,7 @@ describe('SpaghettiPanel', () => {
       addEditorViewportGraphToSharedViewerComposition: vi.fn(),
       removeEditorViewportGraphFromSharedViewerComposition: vi.fn(),
       saveFocusedEditorViewportGraphToFile: vi.fn(async () => {}),
-      setSelectedNodeId: vi.fn(),
+      setEditorViewportSelectedNodeId: vi.fn(),
       setUiMessage: vi.fn(),
     }
 
@@ -329,6 +339,10 @@ describe('SpaghettiPanel', () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       selectedNodeId: null,
+      editorViewportSelectedNodeIdById: {
+        ...currentSpaghettiState.editorViewportSelectedNodeIdById,
+        'editor-viewport-1': null,
+      },
     }
 
     await act(async () => {
@@ -344,6 +358,10 @@ describe('SpaghettiPanel', () => {
     currentSpaghettiState = {
       ...currentSpaghettiState,
       selectedNodeId: 'node-2',
+      editorViewportSelectedNodeIdById: {
+        ...currentSpaghettiState.editorViewportSelectedNodeIdById,
+        'editor-viewport-1': 'node-2',
+      },
     }
 
     await act(async () => {
@@ -357,6 +375,39 @@ describe('SpaghettiPanel', () => {
     })
     expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
     expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-2 no-fit 0')
+  })
+
+  it('does not let an inactive editor viewport overwrite the shared workspace target', async () => {
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      activeEditorViewportId: 'editor-viewport-2',
+      editorViewportsById: {
+        ...currentSpaghettiState.editorViewportsById,
+        'editor-viewport-2': {
+          editorViewportId: 'editor-viewport-2',
+          graphDocumentId: 'graph-document-2',
+          isFocused: true,
+          windowMode: 'expanded',
+          position: { x: 48, y: 32 },
+          size: { width: 800, height: 600 },
+          splitRatio: 0.5,
+          restoreFromCollapsed: null,
+          restoreFromSplit: null,
+          zOrder: 2,
+        },
+      },
+      selectedNodeId: 'node-2',
+      editorViewportSelectedNodeIdById: {
+        'editor-viewport-1': 'node-1',
+        'editor-viewport-2': 'node-2',
+      },
+    }
+
+    ;({ container, root } = await renderSpaghettiPanel())
+
+    expect(currentAppState.workspaceSelection.selectedTarget).toBeNull()
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalled()
+    expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-1 no-fit 0')
   })
 
   it('keeps the focus node row outside the scrollable toolbar block', async () => {

@@ -165,7 +165,7 @@ const handlers = (sharedViewerCompositionActive = false) => ({
 })
 
 describe('runBrowserRowAction', () => {
-  it('reveals a graph row by reusing graph-scoped viewer targeting when shared composition is not active', () => {
+  it('reveals a graph row through the graph reveal handler when shared composition is not active', () => {
     const nextHandlers = handlers(false)
 
     runBrowserRowAction(graphRow, action('reveal'), nextHandlers)
@@ -189,12 +189,12 @@ describe('runBrowserRowAction', () => {
     expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
   })
 
-  it('does not retarget viewer reveal while shared composition is active', () => {
+  it('still routes reveal through the graph reveal handler while shared composition is active', () => {
     const nextHandlers = handlers(true)
 
     runBrowserRowAction(graphRow, action('reveal'), nextHandlers)
 
-    expect(nextHandlers.onRevealGraph).not.toHaveBeenCalled()
+    expect(nextHandlers.onRevealGraph).toHaveBeenCalledWith('graph-document-1')
   })
 
   it('routes content trace actions through view-in-graph instead of reveal targeting', () => {

@@ -895,6 +895,66 @@ describe('SpaghettiWindowHost', () => {
     expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-2')
   })
 
+  it('keeps two floating editor windows on different graphs pinned to their own geometry when active focus changes', async () => {
+    currentSpaghettiState.activeEditorViewportId = 'editor-viewport-2'
+    currentSpaghettiState.editorViewportOrder = ['editor-viewport-1', 'editor-viewport-2']
+    currentSpaghettiState.editorViewportsById = {
+      'editor-viewport-1': {
+        ...viewport('expanded'),
+        editorViewportId: 'editor-viewport-1',
+        graphDocumentId: 'graph-document-1',
+        position: { x: 24, y: 28 },
+        size: { width: 800, height: 600 },
+        zOrder: 4,
+      },
+      'editor-viewport-2': {
+        ...viewport('expanded'),
+        editorViewportId: 'editor-viewport-2',
+        graphDocumentId: 'graph-document-2',
+        position: { x: 196, y: 112 },
+        size: { width: 620, height: 420 },
+        zOrder: 7,
+      },
+    }
+
+    await renderHarness()
+    mockGeometry()
+    await rerenderHarness()
+
+    let floatingWindows = Array.from(
+      container?.querySelectorAll('.SpaghettiFloatingWindow') ?? [],
+    ) as HTMLDivElement[]
+    expect(floatingWindows).toHaveLength(2)
+    expect(floatingWindows[0]?.textContent).toContain('editor-viewport-1')
+    expect(floatingWindows[1]?.textContent).toContain('editor-viewport-2')
+    expect(floatingWindows[0]?.style.left).toBe('344px')
+    expect(floatingWindows[0]?.style.top).toBe('28px')
+    expect(floatingWindows[0]?.style.width).toBe('800px')
+    expect(floatingWindows[0]?.style.height).toBe('600px')
+    expect(floatingWindows[1]?.style.left).toBe('516px')
+    expect(floatingWindows[1]?.style.top).toBe('112px')
+    expect(floatingWindows[1]?.style.width).toBe('620px')
+    expect(floatingWindows[1]?.style.height).toBe('420px')
+
+    await act(async () => {
+      currentSpaghettiState.setActiveEditorViewportId('editor-viewport-1')
+    })
+    await rerenderHarness()
+
+    floatingWindows = Array.from(
+      container?.querySelectorAll('.SpaghettiFloatingWindow') ?? [],
+    ) as HTMLDivElement[]
+    expect(floatingWindows).toHaveLength(2)
+    expect(floatingWindows[0]?.style.left).toBe('344px')
+    expect(floatingWindows[0]?.style.top).toBe('28px')
+    expect(floatingWindows[0]?.style.width).toBe('800px')
+    expect(floatingWindows[0]?.style.height).toBe('600px')
+    expect(floatingWindows[1]?.style.left).toBe('516px')
+    expect(floatingWindows[1]?.style.top).toBe('112px')
+    expect(floatingWindows[1]?.style.width).toBe('620px')
+    expect(floatingWindows[1]?.style.height).toBe('420px')
+  })
+
   it('renders a detached editor popup from workspace placement even if the old viewport order no longer carries it', async () => {
     currentSpaghettiState.activeEditorViewportId = 'editor-viewport-2'
     currentSpaghettiState.editorViewportOrder = ['editor-viewport-2']

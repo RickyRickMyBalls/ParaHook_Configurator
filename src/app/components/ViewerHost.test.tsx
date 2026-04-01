@@ -48,6 +48,7 @@ let viewerSetReferenceTransformRotateSnapPreviewRadiusDeg: ReturnType<typeof vi.
 let viewerSetReferenceTransformRotateSnapPreviewDelayMs: ReturnType<typeof vi.fn>
 let viewerSetGeometrySketchOverlay: ReturnType<typeof vi.fn>
 let viewerSetVisibleGeometrySketchOverlays: ReturnType<typeof vi.fn>
+let viewerSetParts: ReturnType<typeof vi.fn>
 let viewerSetHighlightedPartKeys: ReturnType<typeof vi.fn>
 let viewerSetHighlightedReferenceIds: ReturnType<typeof vi.fn>
 let viewerSetSketchPlanePickOverlay: ReturnType<typeof vi.fn>
@@ -72,7 +73,7 @@ vi.mock('../../viewer/Viewer', () => ({
   Viewer: class MockViewer {
     public constructor(_container: HTMLElement) {}
     public dispose(): void {}
-    public setParts(): void {}
+    public setParts = (...args: unknown[]) => viewerSetParts(...args)
     public setSelectedPart(): void {}
     public setHighlightedPartKeys = (...args: unknown[]) => viewerSetHighlightedPartKeys(...args)
     public setHighlightedReferenceIds = (...args: unknown[]) =>
@@ -307,6 +308,14 @@ const seedViewportObjectSelectionGraph = async (
         'graph-document-1': {
           ...state.graphRuntimeByDocumentId['graph-document-1'],
           previewPreparation,
+          acceptedBuildOutputs: slots.map((slot, index) => ({
+            id: `artifact-${index + 1}`,
+            kind: 'box',
+            label: slot.label,
+            partKeyStr: slot.sourcePartKey,
+            partKey: { id: slot.sourcePartKey, instance: null },
+            params: { width: 10, length: 20, height: 5 },
+          })),
           acceptedPreviewBuildOutputs: slots.map((slot, index) => ({
             id: `artifact-${index + 1}`,
             kind: 'box',
@@ -438,6 +447,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetReferenceTransformRotateSnapPreviewDelayMs = vi.fn()
     viewerSetGeometrySketchOverlay = vi.fn()
     viewerSetVisibleGeometrySketchOverlays = vi.fn()
+    viewerSetParts = vi.fn()
     viewerSetHighlightedPartKeys = vi.fn()
     viewerSetHighlightedReferenceIds = vi.fn()
     viewerSetSketchPlanePickOverlay = vi.fn()
@@ -598,6 +608,327 @@ describe('ViewerHost reference loading', () => {
     expect(useAppStore.getState().referenceWorkspace.loadStateById['hook:large']).toBe('loaded')
     expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(2)
     expect(viewerSetReferenceVisible).toHaveBeenCalledWith('hook:large', true)
+  })
+
+  it('renders Browser-enabled graph outputs even when they are not the focused editor graph', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { buildGraphOutputSurface } = await import('../spaghetti/outputSurface')
+
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Cube',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const firstPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const secondPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-cube',
+        sourceNodeId: 'node-second-1',
+        sourcePartKey: 'cube',
+      },
+    ])
+
+    act(() => {
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation: firstPreviewPreparation,
+            acceptedPreviewBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: 'graph-document-1',
+              previewPreparation: firstPreviewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-1',
+                  kind: 'box',
+                  label: 'Baseplate',
+                  partKeyStr: 'baseplate',
+                  partKey: { id: 'baseplate', instance: null },
+                  params: { width: 10, length: 20, height: 5 },
+                },
+              ],
+              publishedAtBuildSeq: 1,
+            }),
+          },
+          [secondGraphId]: {
+            ...state.graphRuntimeByDocumentId[secondGraphId],
+            previewPreparation: secondPreviewPreparation,
+            acceptedPreviewBuildOutputs: [
+              {
+                id: 'artifact-2',
+                kind: 'box',
+                label: 'Cube',
+                partKeyStr: 'cube',
+                partKey: { id: 'cube', instance: null },
+                params: { width: 4, length: 4, height: 4 },
+              },
+            ],
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-2',
+                kind: 'box',
+                label: 'Cube',
+                partKeyStr: 'cube',
+                partKey: { id: 'cube', instance: null },
+                params: { width: 4, length: 4, height: 4 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: secondGraphId,
+              previewPreparation: secondPreviewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-2',
+                  kind: 'box',
+                  label: 'Cube',
+                  partKeyStr: 'cube',
+                  partKey: { id: 'cube', instance: null },
+                  params: { width: 4, length: 4, height: 4 },
+                },
+              ],
+              publishedAtBuildSeq: 2,
+            }),
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [
+            {
+              graphDocumentId: 'graph-document-1',
+              label: 'Graph 1',
+              sourceFilePath: null,
+              orderIndex: 0,
+            },
+            {
+              graphDocumentId: secondGraphId,
+              label: 'Graph 2',
+              sourceFilePath: null,
+              orderIndex: 1,
+            },
+          ],
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const initialParts = (viewerSetParts.mock.calls.at(-1)?.[0] ?? []) as Array<{ viewerKey: string }>
+    expect(initialParts.map((part) => part.viewerKey)).toEqual([
+      'graph-document-1:slot-baseplate',
+      `${secondGraphId}:slot-cube`,
+    ])
+
+    act(() => {
+      useAppStore.setState((state) => ({
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          [secondGraphId]: 'off',
+        },
+      }))
+    })
+
+    const partsAfterSuppressingSecondGraph = (viewerSetParts.mock.calls.at(-1)?.[0] ?? []) as Array<{
+      viewerKey: string
+    }>
+    expect(partsAfterSuppressingSecondGraph.map((part) => part.viewerKey)).toEqual([
+      'graph-document-1:slot-baseplate',
+    ])
+  })
+
+  it('renders a new graphs first published output immediately even when preview outputs lag behind', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { buildGraphOutputSurface } = await import('../spaghetti/outputSurface')
+
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Cube',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const firstPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const secondPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-cube',
+        sourceNodeId: 'node-second-1',
+        sourcePartKey: 'cube',
+      },
+    ])
+
+    act(() => {
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation: firstPreviewPreparation,
+            acceptedPreviewBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: 'graph-document-1',
+              previewPreparation: firstPreviewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-1',
+                  kind: 'box',
+                  label: 'Baseplate',
+                  partKeyStr: 'baseplate',
+                  partKey: { id: 'baseplate', instance: null },
+                  params: { width: 10, length: 20, height: 5 },
+                },
+              ],
+              publishedAtBuildSeq: 1,
+            }),
+          },
+          [secondGraphId]: {
+            ...state.graphRuntimeByDocumentId[secondGraphId],
+            previewPreparation: secondPreviewPreparation,
+            acceptedPreviewBuildOutputs: [],
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-2',
+                kind: 'box',
+                label: 'Cube',
+                partKeyStr: 'cube',
+                partKey: { id: 'cube', instance: null },
+                params: { width: 4, length: 4, height: 4 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: secondGraphId,
+              previewPreparation: secondPreviewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-2',
+                  kind: 'box',
+                  label: 'Cube',
+                  partKeyStr: 'cube',
+                  partKey: { id: 'cube', instance: null },
+                  params: { width: 4, length: 4, height: 4 },
+                },
+              ],
+              publishedAtBuildSeq: 2,
+            }),
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [
+            {
+              graphDocumentId: 'graph-document-1',
+              label: 'Graph 1',
+              sourceFilePath: null,
+              orderIndex: 0,
+            },
+            {
+              graphDocumentId: secondGraphId,
+              label: 'Graph 2',
+              sourceFilePath: null,
+              orderIndex: 1,
+            },
+          ],
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const initialParts = (viewerSetParts.mock.calls.at(-1)?.[0] ?? []) as Array<{ viewerKey: string }>
+    expect(initialParts.map((part) => part.viewerKey)).toEqual([
+      'graph-document-1:slot-baseplate',
+      `${secondGraphId}:slot-cube`,
+    ])
   })
 
   it('loads a reference batch one item at a time in queue order', async () => {
@@ -883,8 +1214,8 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(viewerSetContentObjectTransformGroups).toHaveBeenCalledWith([
-      { objectId: 'object-a', partKeys: ['slot-a', 'graph-document-1:slot-a'] },
-      { objectId: 'object-b', partKeys: ['slot-b', 'graph-document-1:slot-b'] },
+      { objectId: 'object-a', partKeys: ['graph-document-1:slot-a'] },
+      { objectId: 'object-b', partKeys: ['graph-document-1:slot-b'] },
     ])
     expect(viewerSetViewerTransformSession).toHaveBeenCalledWith({
       targetKind: 'content-object',
@@ -1880,6 +2211,16 @@ describe('ViewerHost reference loading', () => {
                 params: { width: 10, length: 20, height: 5 },
               },
             ],
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
             outputSurface: buildGraphOutputSurface({
               graphDocumentId: 'graph-document-1',
               previewPreparation,
@@ -1964,7 +2305,7 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(viewerSetHighlightedPartKeys).toHaveBeenCalledWith(
-      expect.arrayContaining(['slot-baseplate']),
+      expect.arrayContaining(['graph-document-1:slot-baseplate']),
     )
   })
 
@@ -2005,7 +2346,7 @@ describe('ViewerHost reference loading', () => {
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-baseplate',
+            partKey: 'graph-document-1:slot-baseplate',
           },
         ],
         ctrlKey: false,
@@ -2031,11 +2372,11 @@ describe('ViewerHost reference loading', () => {
       resolvedContentSelection: {
         rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
         rootKind: 'object',
-        partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
+        partKeys: expect.arrayContaining(['graph-document-1:slot-baseplate']),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-baseplate')
     expect(useAppStore.getState().consoleContextSyncRequest?.reason).toBe('target-selection')
 
     act(() => {
@@ -2043,7 +2384,7 @@ describe('ViewerHost reference loading', () => {
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-cover',
+            partKey: 'graph-document-1:slot-cover',
           },
         ],
         ctrlKey: true,
@@ -2074,22 +2415,20 @@ describe('ViewerHost reference loading', () => {
         rootRowId: 'object:project-object:project-file-1:graph-document-1:output-object-1',
         rootKind: 'multi-select',
         partKeys: expect.arrayContaining([
-          'slot-baseplate',
           'graph-document-1:slot-baseplate',
-          'slot-cover',
           'graph-document-1:slot-cover',
         ]),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-baseplate')
 
     act(() => {
       workspaceSelectionPickHandler?.({
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-cover',
+            partKey: 'graph-document-1:slot-cover',
           },
         ],
         ctrlKey: true,
@@ -2115,18 +2454,18 @@ describe('ViewerHost reference loading', () => {
       resolvedContentSelection: {
         rootRowId: 'project-object:project-file-1:graph-document-1:output-object-1',
         rootKind: 'object',
-        partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
+        partKeys: expect.arrayContaining(['graph-document-1:slot-baseplate']),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-baseplate')
 
     act(() => {
       workspaceSelectionPickHandler?.({
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-baseplate',
+            partKey: 'graph-document-1:slot-baseplate',
           },
         ],
         ctrlKey: true,
@@ -2194,11 +2533,11 @@ describe('ViewerHost reference loading', () => {
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-baseplate',
+            partKey: 'graph-document-1:slot-baseplate',
           },
           {
             kind: 'part',
-            partKey: 'slot-cover',
+            partKey: 'graph-document-1:slot-cover',
           },
         ],
         ctrlKey: false,
@@ -2229,15 +2568,13 @@ describe('ViewerHost reference loading', () => {
         rootRowId: 'object:project-object:project-file-1:graph-document-1:output-object-2',
         rootKind: 'multi-select',
         partKeys: expect.arrayContaining([
-          'slot-baseplate',
           'graph-document-1:slot-baseplate',
-          'slot-cover',
           'graph-document-1:slot-cover',
         ]),
         groupedRowIds: [],
       },
     })
-    expect(useAppStore.getState().selectedPartKey).toBe('slot-cover')
+    expect(useAppStore.getState().selectedPartKey).toBe('graph-document-1:slot-cover')
   })
 
   it('commits mixed viewport marquee batches for objects and references through shared explicit selection', async () => {
@@ -2270,7 +2607,7 @@ describe('ViewerHost reference loading', () => {
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-baseplate',
+            partKey: 'graph-document-1:slot-baseplate',
           },
           {
             kind: 'reference-item',
@@ -2304,7 +2641,7 @@ describe('ViewerHost reference loading', () => {
       resolvedContentSelection: {
         rootRowId: 'object:reference-item-row:shoe:shoe-1',
         rootKind: 'multi-select',
-        partKeys: expect.arrayContaining(['slot-baseplate', 'graph-document-1:slot-baseplate']),
+        partKeys: expect.arrayContaining(['graph-document-1:slot-baseplate']),
         groupedRowIds: [],
       },
     })
@@ -2347,7 +2684,7 @@ describe('ViewerHost reference loading', () => {
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-baseplate',
+            partKey: 'graph-document-1:slot-baseplate',
           },
         ],
         ctrlKey: false,
@@ -2359,7 +2696,7 @@ describe('ViewerHost reference loading', () => {
         picks: [
           {
             kind: 'part',
-            partKey: 'slot-cover',
+            partKey: 'graph-document-1:slot-cover',
           },
         ],
         ctrlKey: true,
@@ -2367,7 +2704,7 @@ describe('ViewerHost reference loading', () => {
     })
 
     expect(viewerSetHighlightedPartKeys).toHaveBeenLastCalledWith(
-      expect.arrayContaining(['slot-baseplate', 'slot-cover']),
+      expect.arrayContaining(['graph-document-1:slot-baseplate', 'graph-document-1:slot-cover']),
     )
   })
 

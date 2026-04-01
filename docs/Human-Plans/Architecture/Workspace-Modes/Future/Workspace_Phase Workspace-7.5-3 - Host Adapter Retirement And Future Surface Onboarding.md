@@ -316,12 +316,12 @@ Part 2 is out of scope for:
 
 ### Part 2 Checklist
 
-- [ ] Repoint the next tier of Browser titlebar and split-menu actions onto shared workspace verbs where behavior is already equivalent
-- [ ] Repoint the next tier of Spaghetti titlebar, popout, and meatball rehome actions onto shared workspace verbs where behavior is already equivalent
-- [ ] Use `ConsoleDock` as the first explicit future-surface contract proof by routing at least one visible host-mode transition through the shared host-action seam instead of only local store verbs
-- [ ] Reduce remaining `AppShell` compatibility glue that only exists because hosts are still partially authoring shell transitions
-- [ ] Further demote leftover Spaghetti compatibility state until it is clearly migration-only or safely removable
-- [ ] Add focused tests proving the part-2 contract path across Browser, Spaghetti, and Console
+- [x] Repoint the next tier of Browser titlebar and split-menu actions onto shared workspace verbs where behavior is already equivalent
+- [x] Repoint the next tier of Spaghetti titlebar, popout, and meatball rehome actions onto shared workspace verbs where behavior is already equivalent
+- [x] Use `ConsoleDock` as the first explicit future-surface contract proof by routing at least one visible host-mode transition through the shared host-action seam instead of only local store verbs
+- [x] Reduce remaining `AppShell` compatibility glue that only exists because hosts are still partially authoring shell transitions
+- [x] Further demote leftover Spaghetti compatibility state until it is clearly migration-only or safely removable
+- [x] Add focused tests proving the part-2 contract path across Browser, Spaghetti, and Console
 
 ### Part 2 Verification Shape
 
@@ -414,11 +414,11 @@ Part 3 is out of scope for:
 
 ### Part 3 Checklist
 
-- [ ] Remove or shrink the remaining Browser adapter-owned shell orchestration that still duplicates shared commit behavior
-- [ ] Further demote leftover Spaghetti compatibility state until `split view` and related window-mode residue are clearly migration-only or safely removable
-- [ ] Remove the remaining `AppShell` glue that only exists because those older Browser or Spaghetti compatibility seams are still present
-- [ ] Add or update focused tests proving the final covered Browser and Spaghetti transitions no longer depend on adapter-local lifecycle truth
-- [ ] Write down the code-facing future-surface onboarding recipe using the now-proven shared host-action seam
+- [x] Remove or shrink the remaining Browser adapter-owned shell orchestration that still duplicates shared commit behavior
+- [x] Further demote leftover Spaghetti compatibility state until `split view` and related window-mode residue are clearly migration-only or safely removable
+- [x] Remove the remaining `AppShell` glue that only exists because those older Browser or Spaghetti compatibility seams are still present
+- [x] Add or update focused tests proving the final covered Browser and Spaghetti transitions no longer depend on adapter-local lifecycle truth
+- [x] Write down the code-facing future-surface onboarding recipe using the now-proven shared host-action seam
 
 ### Part 3 Verification Shape
 

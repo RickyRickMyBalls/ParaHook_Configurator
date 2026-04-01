@@ -4704,7 +4704,7 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some((entry) => entry.text === 'Select > Content > Assembly 1 > Component 1 > Object 1 > Zoom'),
     ).toBe(true)
-    expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:slot-a')
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Content > Assembly 1 > Component 1 > Object 1 > Choose next',
@@ -4883,7 +4883,7 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['slot-a', 'graph-document-1:slot-a'], [])
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['graph-document-1:slot-a'], [])
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentAssemblySelected')
   })
 
@@ -9987,7 +9987,7 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:slot-a')
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Content > Object 1 > Choose next',
@@ -10068,7 +10068,7 @@ describe('ConsoleDock', () => {
         (entry) => entry.text === 'Select > Content > Object 1 > Zoom',
       ),
     ).toBe(true)
-    expect(viewerFrameSelected).toHaveBeenCalledWith('slot-a')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:slot-a')
     expect(
       useConsoleStore.getState().entries.some(
         (entry) => entry.text === 'Zoom Object requires a selected part, object, or reference',

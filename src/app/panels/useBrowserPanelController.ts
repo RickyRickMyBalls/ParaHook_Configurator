@@ -10,6 +10,7 @@ import {
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import { importReferenceFileFromDisk } from '../references/importReferenceFile'
 import type { ReferenceFileType } from '../references/referenceManifest'
+import { getViewer } from '../viewerBridge'
 import {
   defaultViewportPosition,
   selectSharedViewerComposition,
@@ -367,6 +368,7 @@ export function useBrowserPanelController(
         activeEditorViewportId,
         editorViewportsById,
         openGraphDocumentInViewport,
+        openGraphDocumentInNewViewport,
         swapFocusedEditorViewportToGraphDocument,
         setActiveEditorViewportId,
         setEditorViewportPosition,
@@ -379,6 +381,7 @@ export function useBrowserPanelController(
       beginReferenceTransformShell,
       editorViewportsById,
       openGraphDocumentInViewport,
+      openGraphDocumentInNewViewport,
       requestConsoleContextSync,
       requestEditorViewportNodeFit,
       requestFloatingShellActivation,
@@ -1125,12 +1128,48 @@ export function useBrowserPanelController(
 
   const handleRevealGraph = useCallback(
     (graphDocumentId: string) => {
+      if (
+        selectShouldSuppressBrowserGraphRuntimeOutput(
+          {
+            currentProject,
+            projectContent,
+            browserGraphBuildPolicyByGraphDocumentId,
+            browserContentBuildPolicyByRowId,
+          },
+          graphDocumentId,
+        )
+      ) {
+        return
+      }
+      const visiblePartKeys = [
+        ...new Set(
+          projectContentRows.flatMap((row) =>
+            row.kind === 'object' &&
+            row.ownerGraphDocumentId === graphDocumentId &&
+            row.isVisible
+              ? (row.visibilityPartKeys ?? []).filter((partKey) => partKey.length > 0)
+              : [],
+          ),
+        ),
+      ]
+      if (visiblePartKeys.length > 0) {
+        getViewer()?.frameSelectionSet(visiblePartKeys, [])
+        return
+      }
       if (sharedViewerComposition !== null) {
         return
       }
       setViewerTargetGraphDocumentId(graphDocumentId)
     },
-    [setViewerTargetGraphDocumentId, sharedViewerComposition],
+    [
+      browserContentBuildPolicyByRowId,
+      browserGraphBuildPolicyByGraphDocumentId,
+      currentProject,
+      projectContent,
+      projectContentRows,
+      setViewerTargetGraphDocumentId,
+      sharedViewerComposition,
+    ],
   )
 
   const handleViewInGraph = useCallback(

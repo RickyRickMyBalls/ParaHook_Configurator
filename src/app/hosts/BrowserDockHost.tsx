@@ -130,7 +130,6 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const setIsBrowserPoppedOut = useWorkspaceStore((state) => state.setBrowserPoppedOut)
   const isBrowserViewportSplit = useWorkspaceStore((state) => state.browserShell.isViewportSplit)
   const setIsBrowserViewportSplit = useWorkspaceStore((state) => state.setBrowserViewportSplit)
-  const claimHostRoute = useWorkspaceStore((state) => state.claimHostRoute)
   const releaseHostRoute = useWorkspaceStore((state) => state.releaseHostRoute)
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const isBrowserCollapsed = useWorkspaceStore((state) => state.browserShell.isCollapsed)
@@ -146,19 +145,11 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   const browserViewportSplitDockSide = useWorkspaceStore(
     (state) => state.browserShell.viewportSplitDockSide,
   )
-  const setBrowserViewportSplitDockSide = useWorkspaceStore(
-    (state) => state.setBrowserViewportSplitDockSide,
-  )
   const browserPopoutState = useWorkspaceStore((state) => state.browserShell.popoutState)
   const setBrowserPopoutState = useWorkspaceStore((state) => state.setBrowserPopoutState)
   const detachedSlotSurfaceById = useWorkspaceStore((state) => state.detachedSlotSurfaceById)
-  const clearDetachedSlotSurface = useWorkspaceStore((state) => state.clearDetachedSlotSurface)
-  const redockDetachedSurface = useWorkspaceStore((state) => state.redockDetachedSurface)
-  const splitViewportSlot = useWorkspaceStore((state) => state.splitViewportSlot)
-  const splitViewportRoot = useWorkspaceStore((state) => state.splitViewportRoot)
   const viewportSlotsById = useWorkspaceStore((state) => state.viewportSlotsById)
   const viewportLayoutNodesById = useWorkspaceStore((state) => state.viewportLayoutNodesById)
-  const primaryViewportId = useWorkspaceStore((state) => state.primaryViewportId)
   const browserToolbarOwnerSurfaceInstanceId = useWorkspaceStore(
     (state) => state.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]?.surfaceInstanceId ?? null,
   )

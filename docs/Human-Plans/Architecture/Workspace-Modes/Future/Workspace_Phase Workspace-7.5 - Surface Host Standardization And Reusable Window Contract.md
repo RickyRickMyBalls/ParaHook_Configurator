@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-01 08:35: Added the native `Workspace 7.5-5` follow-on under the umbrella `7.5` family so the next `Spaghetti Editor` multi-surface parity task now has its own dedicated planning surface instead of living only as a carry note inside `7.5-4`, and clarified that the open follow-on is specifically about making multiple editor surfaces stay honest at the shell layer while keeping `activeEditorViewportId` as focus truth only
+1. 2026-04-01 02:36: Added the next open carry item to the umbrella `Workspace 7.5` read after a code check on `Spaghetti Editor` surface identity, recording that the data layer already supports multiple editor viewport records but the shell still treats one active editor as the main floating owner in several places, so true multi-editor shell parity remains an explicit follow-on concern under `7.5-4`
 1. 2026-04-01 02:03: Added `Workspace 7.5-4` as a native cleanup follow-on after the shipped `7.5-3` host-contract close-out so the umbrella `7.5` ladder now has one explicit parity-and-carry-forward lane for remaining Browser-versus-Spaghetti shell cleanup instead of implying the standardization work ends with no cleanup log or post-close-out carry surface
 1. 2026-04-01 00:57: Marked `Workspace 7.5-2` as shipped in this umbrella `Workspace 7.5` read after re-checking the landed Spaghetti split-migration work, so the staged family ladder now treats `7.5-2` as completed workspace split-truth migration and leaves `7.5-3` as the remaining open adapter-retirement plus onboarding cleanup
 1. 2026-04-01 00:51: Marked `Workspace 7.5-1` as shipped in this umbrella `Workspace 7.5` read after re-checking the landed generic placement, host-route ownership, Browser repoint, and persistence migration work, so the staged family ladder now treats `7.5-1` as completed contract extraction and leaves `7.5-2` plus `7.5-3` as the remaining open cleanup cuts
@@ -57,6 +59,8 @@ This umbrella should now be read as a staged family:
 - `7.5-2` is now shipped as the Spaghetti drag-to-edge split-truth migration onto the shared workspace slot and split tree
 - `7.5-3` is now functionally shipped as the host-adapter retirement and future-surface onboarding close-out
 - `7.5-4` is the new parity-cleanup and carry-forward lane for the remaining Browser-versus-Spaghetti shell mismatches and later toolbar carry rules
+- `7.5-5` is the new dedicated multi-`Spaghetti Editor` surface parity lane after the shell-parity cleanup work in `7.5-4`
+- `7.5-5` should allow more than one editor surface to stay open as a first-class workspace behavior while keeping `activeEditorViewportId` as focus truth only
 
 ### Locked Direction
 
@@ -112,6 +116,7 @@ Current Spaghetti residue:
 - `SpaghettiWindowHost` still owns too many shell decisions directly
 - `useSpaghettiStore` still carries shell window modes that should increasingly become workspace-owned truth
 - Meatball, split view, floating, and popout all still speak one editor-specific shell dialect instead of one reusable workspace shell contract
+- the shell still leans on one `activeEditorViewportId` in ways that make multiple open editor surfaces less honest than the underlying store model already allows
 - the drag-to-edge split path is still hybrid:
   - if the editor surface is already detached, edge drop uses the shared `redockDetachedSurface(...)` path
   - otherwise the same edge gesture falls back to editor-owned `setEditorViewportSplitDockSide(...)` plus `setEditorViewportWindowMode(..., 'split view')`

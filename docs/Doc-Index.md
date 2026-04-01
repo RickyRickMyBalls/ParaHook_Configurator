@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+1. 2026-04-01 08:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7.5` and active `Workspace 7.5-4` docs so the open multi-editor-shell work now has its own dedicated planning surface instead of living only as a carry item inside `7.5-4`
 191. 2026-04-01 02:03: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md` to the workspace docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7.5` read so the host-standardization ladder now hands forward into one explicit parity-cleanup lane after the main `7.5-3` close-out, and kept the workspace subtree aligned with that new cleanup surface
 190. 2026-04-01 00:57: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize.md` as shipped after re-checking its landed workspace split-truth migration, moved that phase record into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7` and `Workspace 7.5` docs so the `7.5` ladder now treats `7.5-2` as completed history, and updated this docs map so `7.5-3` remains the only still-open `7.5` subphase under `Future/`
 189. 2026-04-01 00:51: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-1 - Shared Surface Placement Contract And Host Route Ownership.md` as shipped after re-checking its landed contract-extraction work, moved that phase record into `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` plus the umbrella `Workspace 7` and `Workspace 7.5` docs so the `7.5` ladder now treats `7.5-1` as completed history, and updated this docs map so only the still-open `7.5-2` and `7.5-3` slices remain under `Future/`
@@ -562,6 +563,7 @@ Rule notes:
             - `Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md`
             - `Future/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md`
             - `Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
+            - `Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md`
             - `Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
             - `Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
             - `Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
@@ -711,6 +713,7 @@ Rule notes:
         - `8_Workspace-5.2-SpaghettiWindowHost-OrderedViewport-Selector-BlackScreen.md`
         - `9_Workspace-5.2-SpaghettiEditor-Detached-Popup-Blank.md`
         - `10_Workspace-5.2-SpaghettiPopup-Mixed-Ownership-Vs-Console.md`
+        - `11_Workspace-7.5-5-Multi-Floating-Spaghetti-Blank-Screen.md`
 ### ----roadmap
         - `roadmap.md`
         - `Architecture-roadmap.md`

@@ -12,17 +12,26 @@ import type {
 } from './selectBrowserTreeRows'
 import type { BrowserRowInteractionDeps } from './browserInteractions'
 
-const { activateGraphDocumentIntentMock, activateGraphNodeIntentMock } = vi.hoisted(() => ({
+const {
+  activateGraphDocumentIntentMock,
+  activateGraphNodeIntentMock,
+  activateSurfaceIntentMock,
+  selectTargetIntentMock,
+} = vi.hoisted(() => ({
   activateGraphDocumentIntentMock: vi.fn(() => ({ editorViewportId: 'editor-viewport-1' })),
   activateGraphNodeIntentMock: vi.fn(() => ({ editorViewportId: 'editor-viewport-1' })),
+  activateSurfaceIntentMock: vi.fn(),
+  selectTargetIntentMock: vi.fn(),
 }))
 const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
   viewerFrameSelectionSetMock: vi.fn(),
 }))
 
 vi.mock('../store/workspaceIntents', () => ({
+  activateSurfaceIntent: activateSurfaceIntentMock,
   activateGraphDocumentIntent: activateGraphDocumentIntentMock,
   activateGraphNodeIntent: activateGraphNodeIntentMock,
+  selectTargetIntent: selectTargetIntentMock,
 }))
 
 vi.mock('../viewerBridge', () => ({
@@ -261,6 +270,8 @@ describe('createBrowserRowInteractionHandlers', () => {
   beforeEach(() => {
     activateGraphDocumentIntentMock.mockReset()
     activateGraphNodeIntentMock.mockReset()
+    activateSurfaceIntentMock.mockReset()
+    selectTargetIntentMock.mockReset()
     activateGraphDocumentIntentMock.mockReturnValue({ editorViewportId: 'editor-viewport-1' })
     activateGraphNodeIntentMock.mockReturnValue({ editorViewportId: 'editor-viewport-1' })
     viewerFrameSelectionSetMock.mockReset()
@@ -408,7 +419,7 @@ describe('createBrowserRowInteractionHandlers', () => {
     })
   })
 
-  it('routes graph and sketch selection through the workspace intent seam', () => {
+  it('selects graph rows without opening them and still routes sketch selection through the workspace intent seam', () => {
     const nextGraphRow = graphRow()
     const nextSketchRow = sketchRow()
     const deps = createDeps()
@@ -417,14 +428,15 @@ describe('createBrowserRowInteractionHandlers', () => {
     handlers.handleSelectBrowserRow(nextGraphRow)
     handlers.handleSelectBrowserRow(nextSketchRow)
 
-    expect(activateGraphDocumentIntentMock).toHaveBeenCalledWith(
+    expect(selectTargetIntentMock).toHaveBeenCalledWith(
       deps.workspaceIntentDeps,
-      'graph-document-1',
       {
-        strategy: 'swap-focused-or-open',
-        spawnPosition: { x: 100, y: 200 },
+        kind: 'graph-document',
+        graphDocumentId: 'graph-document-1',
       },
     )
+    expect(activateSurfaceIntentMock).toHaveBeenCalledWith(deps.workspaceIntentDeps, 'browser')
+    expect(activateGraphDocumentIntentMock).not.toHaveBeenCalled()
     expect(activateGraphNodeIntentMock).toHaveBeenCalledWith(
       deps.workspaceIntentDeps,
       'graph-document-1',
@@ -433,6 +445,23 @@ describe('createBrowserRowInteractionHandlers', () => {
         strategy: 'open-or-focus',
         spawnPosition: { x: 100, y: 200 },
         fitNodeInViewport: true,
+      },
+    )
+  })
+
+  it('routes graph-document double select into a brand-new editor viewport', () => {
+    const row = graphRow()
+    const deps = createDeps()
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleDoubleSelectBrowserRow(row)
+
+    expect(activateGraphDocumentIntentMock).toHaveBeenCalledWith(
+      deps.workspaceIntentDeps,
+      'graph-document-1',
+      {
+        strategy: 'open-new',
+        spawnPosition: { x: 100, y: 200 },
       },
     )
   })

@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+24. 2026-04-01 13:36: Added the shipped `App Shell` ladder into the `### Suggested Working Order` section after that checklist was reformatted into numbered `####` family blocks, keeping the earlier shell groundwork visible in-sequence instead of only down in shipped reference
+23. 2026-04-01 13:31: Normalized the visible roadmap checklist naming toward family-first architecture labels such as `Workspace 1`, `Layers 1`, `View Toolbar 1`, and `App Shell 1`, while keeping older bracketed or dashed ids only as secondary references in parentheses so the working order reads more like the newer family docs
+22. 2026-04-01 13:25: Reworked the roadmap `## To do` section into a cleaner grouped sequence after comparing it against the newer workspace and family docs, keeping shipped items visible, pulling `Layers` into the near-term open-family ladder, and demoting stale standalone backlog shorthand like a future `AppShell` refactor or vague worker follow-on until those become real source-doc phases
 21. 2026-03-31 11:05: Added `Workspace Modes` into this cross-family roadmap and rebuilt the `## To do` checklist from the live family docs, so the roadmap now reflects the shipped `Workspace 0.1` through `Workspace 6` work plus the active `Workspace 5.3` and `Workspace 7.x` follow-ons instead of the stale older shorthand list
 20. 2026-03-28 14:06: Refreshed the source-doc pointers in this cross-family roadmap after a docs audit by replacing stale `Layers.md` and archived Spaghetti explainer paths with the real live family index docs, so the roadmap now points at the current umbrella files that actually exist in the repo
 19. 2026-03-28 13:19: Reordered the roadmap `## To do` list so the new `Edit History` groundwork now sits ahead of later `Pasta Path` sync, and replaced the old roadmap-only `PastaPath-1` placeholder with a descriptive `PastaPath-first-standalone-phase-doc` checklist item so the near-term sequence stays aligned with the current family source docs
@@ -505,50 +508,9 @@ This checklist should mirror the live family sections above.
 
 Keep shipped items visible when they are part of a family that was previously stale in this file, so recent completed work does not disappear during roadmap cleanup.
 
-- [x] `Browser-1`
-- [x] `Browser-2`
-- [x] `Browser-3`
-- [x] `Browser-4`
-- [x] `Browser-5`
-- [x] `Browser-5.1`
-- [x] `Browser-5.2`
-- [x] `Browser-5.3`
-- [x] `Browser-5.4`
-- [x] `Browser-5.5`
-- [x] `Browser-6`
-- [ ] `Browser-7`
-- [~] `[4.1I]`
-- [ ] `Edit History 1`
-- [ ] `Edit History 2`
-- [ ] `Edit History 3`
-- [ ] `Edit History 4`
-- [ ] `Edit History 5`
-- [~] `Pasta Path - Umbrella Concept And First Questions`
-- [ ] `Layers-1`
-- [ ] `Layers-2`
-- [ ] `Layers-3`
-- [ ] `Layers-4`
-- [ ] `Export-1`
-- [ ] `Export-2`
-- [ ] `Export-3`
-- [ ] `Export-4`
-- [ ] `Radio Phase 8`
-- [ ] `Radio Phase 11`
-- [x] `[5.0F]`
-- [x] `[5.0F-1]`
-- [x] `[5.0F-2]`
-- [x] `[5.3A-1]`
-- [x] `[5.3A-2]`
-- [x] `[5.3A-3]`
-- [x] `[5.3A-4]`
-- [x] `[5.3A-5]`
-- [x] `[5.3A-6]`
-- [x] `[5.3A-7]`
-- [ ] `[5.0H-5]`
-- [ ] `[5.0I-1]`
-- [ ] `[5.0I-2]`
-- [ ] `[5.0I-3]`
-- [ ] `[5.0I-4]`
+### Suggested Working Order
+
+#### [~] - 1 - Workspace-Modes
 - [x] `Workspace 0.1`
 - [x] `Workspace 1`
 - [x] `Workspace 2`
@@ -560,23 +522,90 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Workspace 5.3`
 - [x] `Workspace 6`
 - [ ] `Workspace 7`
-- [ ] `Master Spaghetti-1`
-- [ ] `[3.2A-1]`
-- [ ] `[3.2A-2]`
-- [ ] `[3.2A-3]`
-- [ ] `[3.2A-4]`
-- [ ] `[3.2B-SketchPlane-2]`
-- [ ] `[3.2B-SketchPlane-2-Cleanup]`
-- [ ] `[3.2B-SketchPlane-3]`
-- [ ] `[3.2B-S8]`
-- [ ] `[3.2B-Console-2]`
-- [ ] `[3.2B-Console-3]`
-- [ ] `[3.2B-DrawSketch-6]`
-- [ ] `[3.2B-DrawSketch-7]`
-- [ ] `[3.2B-4]`
-- [ ] `[3.2B-5]`
-- [~] `[3.2B-6]`
-- [ ] `Extrude-1`
+
+#### [x] - 2 - App Shell
+- [x] `App Shell 1` (`[5.0F]`)
+- [x] `App Shell 2` (`[5.0F-1]`)
+- [x] `App Shell 3` (`[5.0F-2]`)
+
+#### [ ] - 3 - View Toolbar
+- [ ] `View Toolbar 1` (`[5.0I-1]`)
+- [ ] `View Toolbar 2` (`[5.0I-2]`)
+- [ ] `View Toolbar 3` (`[5.0I-3]`)
+- [ ] `View Toolbar 4` (`[5.0I-4]`)
+
+#### [ ] - 4 - Sketch
+- [ ] `Sketch 1` (`[3.2A-1]`)
+- [ ] `Sketch 2` (`[3.2A-2]`)
+- [ ] `Sketch 3` (`[3.2A-3]`)
+- [ ] `Sketch 4` (`[3.2A-4]`)
+- [ ] `SketchPlane 2` (`[3.2B-SketchPlane-2]`)
+- [ ] `SketchPlane 2 Cleanup` (`[3.2B-SketchPlane-2-Cleanup]`)
+- [ ] `SketchPlane 3` (`[3.2B-SketchPlane-3]`)
+- [ ] `Sketch S8` (`[3.2B-S8]`)
+- [ ] `Sketch Console 2` (`[3.2B-Console-2]`)
+- [ ] `Sketch Console 3` (`[3.2B-Console-3]`)
+- [ ] `Draw Sketch 6` (`[3.2B-DrawSketch-6]`)
+- [ ] `Draw Sketch 7` (`[3.2B-DrawSketch-7]`)
+- [ ] `Sketch 4` (`[3.2B-4]`)
+- [ ] `Sketch 5` (`[3.2B-5]`)
+- [~] `Sketch 6` (`[3.2B-6]`)
+
+#### [ ] - 5 - Extrude
+- [ ] `Extrude 1`
+
+#### [ ] - 6 - Layers
+- [ ] `Layers 1`
+- [ ] `Layers 2`
+- [ ] `Layers 3`
+- [ ] `Layers 4`
+
+#### [ ] - 7 - Edit History
+- [ ] `Edit History 1`
+- [ ] `Edit History 2`
+- [ ] `Edit History 3`
+- [ ] `Edit History 4`
+- [ ] `Edit History 5`
+
+#### [ ] - 8 - Export
+- [ ] `Export 1`
+- [ ] `Export 2`
+- [ ] `Export 3`
+- [ ] `Export 4`
+- [ ] `Master Spaghetti 1`
+
+### Other Open Families
+
+- [ ] `Browser 7`
+- [~] `Console 4.1I`
+- [ ] `Camera Controls 5` (`[5.0H-5]`)
+- [ ] `Radio 8`
+- [ ] `Radio 11`
+- [~] `Pasta Path - Umbrella Concept And First Questions`
+
+### Shipped Reference
+
+- [x] `Browser 1`
+- [x] `Browser 2`
+- [x] `Browser 3`
+- [x] `Browser 4`
+- [x] `Browser 5`
+- [x] `Browser 5.1`
+- [x] `Browser 5.2`
+- [x] `Browser 5.3`
+- [x] `Browser 5.4`
+- [x] `Browser 5.5`
+- [x] `Browser 6`
+- [x] `App Shell 1` (`[5.0F]`)
+- [x] `App Shell 2` (`[5.0F-1]`)
+- [x] `App Shell 3` (`[5.0F-2]`)
+- [x] `Worker 1` (`[5.3A-1]`)
+- [x] `Worker 2` (`[5.3A-2]`)
+- [x] `Worker 3` (`[5.3A-3]`)
+- [x] `Worker 4` (`[5.3A-4]`)
+- [x] `Worker 5` (`[5.3A-5]`)
+- [x] `Worker 6` (`[5.3A-6]`)
+- [x] `Worker 7` (`[5.3A-7]`)
 
 ## Next Cleanup
 

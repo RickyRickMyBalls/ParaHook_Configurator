@@ -84,6 +84,43 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().floatingShellActivationRequest?.target).toBe('spaghetti')
   })
 
+  it('can open a graph document in a brand-new viewport through the shared workspace intent seam', async () => {
+    const { activateGraphDocumentIntent } = await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const firstViewportId = useSpaghettiStore.getState().activeEditorViewportId
+
+    const result = activateGraphDocumentIntent(
+      {
+        app: useAppStore.getState(),
+        spaghetti: useSpaghettiStore.getState(),
+      },
+      'graph-document-1',
+      {
+        strategy: 'open-new',
+        spawnPosition: { x: 512, y: 48 },
+      },
+    )
+
+    expect(result.graphDocumentId).toBe('graph-document-1')
+    expect(result.editorViewportId).not.toBeNull()
+    expect(result.editorViewportId).not.toBe(firstViewportId)
+    expect(result.createdNewViewport).toBe(true)
+    expect(useSpaghettiStore.getState().editorViewportsById[result.editorViewportId!]?.position).toMatchObject({
+      x: 512,
+      y: 48,
+    })
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-document',
+      graphDocumentId: 'graph-document-1',
+    })
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
+  })
+
   it('activates a graph node through the same shared workspace intent seam', async () => {
     const { activateGraphNodeIntent } = await import('./workspaceIntents')
     const { useAppStore } = await import('./useAppStore')

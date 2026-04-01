@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-01 09:18: Refreshed this index after a live post-`Workspace 7.x` shell review, corrected the stale post-`5.0F-2` read so `AppShell` now honestly records its newer workspace-slot, persistence, detached-surface, and split-policy overload, and added a first future AppShell phase ladder for reorganizing workspace-mode host ownership without pretending the bridge cleanup fully solved the shell
 5. 2026-03-22 14:12: Marked `[5.0F-2]` complete after shipping `BrowserDockHost`, `SpaghettiWindowHost`, and `useAppShellDockController`, closed the parent `[5.0F]` family, and updated this index to point at the moved shipped phase record instead of the earlier future plan
 4. 2026-03-22 13:28: Refreshed this index after the shipped `5.0F-1` runtime-host extraction, removed stale radio-runtime leakage language, and linked the new standalone `5.0F-2` future phase doc so the remaining browser/editor shell-controller work now has an implementation-ready planning surface
 3. 2026-03-22 13:10: Marked `[5.0F-1]` complete after shipping the new `RadioRuntimeHost` seam, updated the family index to point at the moved shipped phase record, and left `[5.0F]` open only for the later browser/editor shell-controller extraction
@@ -39,6 +40,11 @@ Current roadmap home:
 - `[5.0F]` AppShell Cleanup And Host Seam Extraction
 - `[5.0F-1]` AppShell Runtime Host Extraction
 - `[5.0F-2]` AppShell Window And Dock Host Extraction
+- later follow-on ladder:
+  - `[5.0G]` AppShell Workspace Host Rebalancing
+  - `[5.0G-1]` Workspace Persistence And Legacy Migration Host Extraction
+  - `[5.0G-2]` Viewport Slot Tree Host Extraction
+  - `[5.0G-3]` Workspace Surface Interaction And Shell Menu Host Extraction
 
 ### Why This Doc Exists
 
@@ -53,9 +59,18 @@ Some of that is correct shell ownership.
 
 Some of it is feature logic that happened to land in the shell because it needed one app-level host.
 
-After shipped `[5.0F-1]`, the runtime-host seam is no longer the biggest problem.
+The original `5.0F` bridge work did reduce the older browser/editor/runtime leakage.
 
-The remaining overload is now the browser/editor window and dock controller layer that still lives inline in `AppShell.tsx`.
+But the later `Workspace 7.x` family widened the shell from a different direction.
+
+The current overload is no longer mainly the old browser/editor inline controller layer.
+
+The live overload is now the growing workspace-mode host layer:
+- viewport-slot layout rendering
+- slot split / float / popout policy
+- workspace persistence hydration and save writes
+- legacy split migration and detached-surface restore
+- shell-wide workspace interaction glue and split-menu targeting
 
 This doc exists so `AppShell` can stop being described only as "the big file" and instead get a durable architecture read:
 - current state
@@ -86,7 +101,7 @@ Standalone execution details belong in `Future/` docs when the family needs them
 
 Right now `AppShell` is both:
 - the real workspace composition root
-- a spillover host for the remaining browser/editor window-management systems
+- the live host for much of the workspace-slot system and its recovery / interaction glue
 
 That is why it feels larger than a normal shell.
 
@@ -95,17 +110,25 @@ The target direction should keep `AppShell` as:
 - the place that mounts major surfaces
 - the place that coordinates high-level workspace selection
 
-But it should stop being the place that directly owns large amounts of feature-specific runtime behavior and inline window-controller logic.
-After `[5.0F-1]`, the remaining problem is mostly the inline window-controller logic.
+But it should stop being the place that directly owns large amounts of workspace-policy, layout-tree, persistence, and shell-interaction behavior.
+
+The older browser/editor inline controller problem is no longer the most important read.
+
+The more honest current concern is that `Workspace 7.x` has turned `AppShell` into the root implementation host for the workspace-slot system.
 
 ### Current State
 
 `AppShell` currently lives at `src/app/AppShell.tsx` and is the live host for:
 - viewer / viewport composition
+- viewport-slot tree rendering and split-divider interaction
+- slot split / float / popout / kind-swap actions
 - spaghetti editor window rendering
 - browser dock and browser floating window behavior
 - left-dock sizing and split behavior
 - workspace split menus and active-surface coordination
+- workspace persistence hydration and save writes
+- legacy split-view migration and detached-surface restore
+- detached viewer floating-window rendering
 - console placement
 - `RadioPanel` visibility
 - mounted `RadioRuntimeHost`
@@ -117,12 +140,13 @@ In practice this means one file is mixing three different responsibility classes
   - deciding where major panes live
   - exposing the active workspace shell
 
-- window-manager behavior
-  - floating drag
-  - resize
-  - dock previews
+- workspace host behavior
+  - viewport-slot tree rendering
+  - split, float, popout, and restore policy
+  - detached-surface recovery
+  - workspace persistence and migration
   - split resizing
-  - surface activation
+  - surface activation and interaction routing
 
 - mounted host seams
   - `RadioRuntimeHost`
@@ -276,7 +300,7 @@ The goal is clearer ownership.
 
 ### Roadmap Family Index
 
-## [x] `[5.0F]` - `AppShell Cleanup And Host Seam Extraction`
+## [x] Appshell 1 - `[5.0F]` - `AppShell Cleanup And Host Seam Extraction`
 
 This bridge family exists to reduce `AppShell` overload before `[5.1] Workspace Modes` asks the same area to become a broader workspace host.
 
@@ -286,7 +310,7 @@ Family focus:
 - separate browser/editor shell-control mechanics from the top-level shell body
 - keep the cleanup preparatory rather than turning it into the final workspace architecture
 
-## [x] `[5.0F-1]` - `AppShell Runtime Host Extraction`
+## [x] Appshell 2 - `[5.0F-1]` - `AppShell Runtime Host Extraction`
 
 This is the first real cut.
 
@@ -303,7 +327,7 @@ Target result:
 - `AppShell` no longer directly owns the radio/sampler runtime transitions
 - the hidden SoundCloud bridge no longer lives directly in the shell body
 
-## [x] `[5.0F-2]` - `AppShell Window And Dock Host Extraction`
+## [x] Appshell 3 - `[5.0F-2]` - `AppShell Window And Dock Host Extraction`
 
 This is the shipped second bridge cut after the runtime host landed.
 

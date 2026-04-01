@@ -38,6 +38,11 @@ export type BrowserGraphRowVm = {
   publishedOutputRows: BrowserPublishedGraphOutputRowVm[]
 }
 
+const buildGraphViewerPartKey = (
+  graphDocumentId: string,
+  slotId: string,
+): string => `${graphDocumentId}:${slotId}`
+
 const describePublishedOutputMeta = (
   outputSurface: GraphOutputSurface | null,
   entry: GraphOutputSurface['entries'][number],
@@ -140,7 +145,7 @@ export const selectBrowserGraphRows = (options: {
         label: publishedEntry.label,
         meta: describePublishedOutputMeta(outputSurface, publishedEntry),
         state: publishedEntry.state,
-        highlightViewerKey: publishedEntry.slotId,
+        highlightViewerKey: buildGraphViewerPartKey(document.graphDocumentId, publishedEntry.slotId),
         authoringGraphDocumentId: document.graphDocumentId,
         authoringNodeId: publishedEntry.sourceNodeId.length > 0 ? publishedEntry.sourceNodeId : null,
       }))

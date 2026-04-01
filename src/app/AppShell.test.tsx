@@ -634,11 +634,22 @@ describe('AppShell', () => {
       }),
       openGraphDocumentInNewViewport: vi.fn((graphDocumentId: string) => {
         const nextViewportId = `editor-viewport-${currentSpaghettiState.editorViewportOrder.length + 1}`
+        const lastViewportId =
+          currentSpaghettiState.editorViewportOrder[currentSpaghettiState.editorViewportOrder.length - 1]
+        const lastViewport =
+          lastViewportId !== undefined ? currentSpaghettiState.editorViewportsById[lastViewportId] : null
         currentSpaghettiState.editorViewportsById[nextViewportId] = {
           ...viewport('expanded'),
           editorViewportId: nextViewportId,
           graphDocumentId,
           isFocused: false,
+          position:
+            lastViewport === null
+              ? { ...viewport('expanded').position }
+              : {
+                  x: lastViewport.position.x + 32,
+                  y: lastViewport.position.y + 32,
+                },
           zOrder: currentSpaghettiState.editorViewportOrder.length + 5,
         }
         currentSpaghettiState.editorViewportOrder = [
@@ -1024,6 +1035,28 @@ describe('AppShell', () => {
     expect(container?.querySelectorAll('.ViewportFrame').length).toBe(3)
     expect(container?.querySelectorAll('.ConsoleDockMock').length).toBe(1)
     expect(container?.textContent).toContain(`Spaghetti Panel ${duplicatedEditorViewportId}`)
+  })
+
+  it('stagger-spawns a second floating spaghetti editor instead of perfectly covering the first', async () => {
+    const duplicatedEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport('graph-document-1')
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    await rerenderAppShell(root!)
+
+    const floatingWindows = Array.from(container?.querySelectorAll('.SpaghettiFloatingWindow') ?? [])
+    const firstWindow = floatingWindows.find((element) =>
+      element.textContent?.includes('Spaghetti Panel editor-viewport-1'),
+    ) as HTMLDivElement | undefined
+    const secondWindow = floatingWindows.find((element) =>
+      element.textContent?.includes(`Spaghetti Panel ${duplicatedEditorViewportId}`),
+    ) as HTMLDivElement | undefined
+
+    expect(firstWindow).toBeTruthy()
+    expect(secondWindow).toBeTruthy()
+    expect(firstWindow?.style.left).not.toBe(secondWindow?.style.left)
+    expect(firstWindow?.style.top).not.toBe(secondWindow?.style.top)
   })
 
   it('renders a real second model viewport host when a non-primary slot becomes modelViewer', async () => {
@@ -2327,6 +2360,56 @@ describe('AppShell', () => {
         (slot) => slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === 'editor-viewport-1',
       ),
     ).toBe(true)
+  })
+
+  it('keeps the floating spaghetti split menu targeted at the editor that opened it even if the active editor changes', async () => {
+    currentSpaghettiState.editorViewportOrder = ['editor-viewport-1', 'editor-viewport-2']
+    currentSpaghettiState.editorViewportsById['editor-viewport-2'] = {
+      ...viewport('expanded'),
+      editorViewportId: 'editor-viewport-2',
+      graphDocumentId: 'graph-document-1',
+      isFocused: false,
+      zOrder: 6,
+      splitPriority: 'favorSecond',
+    }
+
+    ;({ container, root } = await renderAppShell())
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+    expect(floatingTitleBar).not.toBeNull()
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      currentSpaghettiState.setActiveEditorViewportId('editor-viewport-2')
+      await rerenderAppShell(root!)
+    })
+
+    const splitVerticalButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
+      (button) => button.textContent === 'Split Vertical',
+    )
+    expect(splitVerticalButton).not.toBeNull()
+
+    await act(async () => {
+      splitVerticalButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSplitDirection).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'vertical',
+    )
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'expanded',
+    )
+    expect(currentSpaghettiState.setEditorViewportSplitDirection).not.toHaveBeenCalledWith(
+      'editor-viewport-2',
+      'vertical',
+    )
   })
 
   it('migrates split view compatibility state onto a generic workspace divider instead of the old split shell', async () => {

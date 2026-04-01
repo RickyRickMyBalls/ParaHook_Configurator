@@ -3,6 +3,7 @@ import { SpaghettiCanvas } from '../canvas/SpaghettiCanvas'
 type SpaghettiEditorViewMode = 'expanded' | 'essentials' | 'collapsed'
 
 type ExpandedEditorProps = {
+  editorViewportId: string
   graphDocumentId: string
   fitCanvasRequestKey: number
   fitNodeId: string | null
@@ -14,6 +15,7 @@ type ExpandedEditorProps = {
 }
 
 export function ExpandedEditor({
+  editorViewportId,
   graphDocumentId,
   fitCanvasRequestKey,
   fitNodeId,
@@ -26,6 +28,7 @@ export function ExpandedEditor({
   return (
     <div className="spaghettiCanvasHost">
       <SpaghettiCanvas
+        editorViewportId={editorViewportId}
         graphDocumentId={graphDocumentId}
         fitCanvasRequestKey={fitCanvasRequestKey}
         fitNodeId={fitNodeId}
