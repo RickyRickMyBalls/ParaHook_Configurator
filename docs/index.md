@@ -68,6 +68,14 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   [Open CHANGELOG](CHANGELOG.md)
 
+- __Work Calandar__
+
+  ---
+
+  Visual month-view summary of the main work lanes, grouped by day and color-coded by phase.
+
+  [Open Work Calandar](Calandar/index.md)
+
 - __Doc Log__
 
   ---

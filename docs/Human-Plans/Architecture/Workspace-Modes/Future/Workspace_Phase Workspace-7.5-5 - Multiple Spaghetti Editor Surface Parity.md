@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-01 14:29: Recorded the shipped `Phase 9A - Canonical Rendered Project Parts Truth` slice after adding `selectRenderedProjectPartSet(...)` in `useAppStore` and moving both Browser-facing current-project content rows plus shared `ViewerHost` composition onto that same selector-backed rendered truth, then tightened the remaining `Phase 9` read so shared model-viewer rendering now follows project-content adoption instead of parallel runtime-only derivation while `Phase 9B` stays the next narrow gated follow-on
+1. 2026-04-01 14:19: Tightened `Phase 9 - Supporting Refactor And Ownership Hardening` into a more implementation-ready and more responsibly chunked follow-on after Phase 8 closed green, splitting the remaining cleanup into an explicit first cut around one canonical rendered project-parts selector, a second narrow `ConsoleDock` plus `Spaghetti Editor` context-sync pass, and only then a reserve host-helper cleanup slice if the earlier two cuts still leave justified residue
 1. 2026-04-01 14:10: Recorded the shipped `Phase 8 - Build Failure Triage And Blocking Fixes` pass after `npm run build` triage proved the root blocker was a self-referential `useWorkspaceStore` typing collapse that was degrading workspace-shell selectors into `any` or `unknown`, then noted that the remaining error wall reduced to dead-local cleanup and stale `ConsoleDock` viewer-key expectations so the build and focused workspace-shell test slice are now green before the later Phase 9 ownership hardening
 1. 2026-04-01 14:04: Tightened the later close-out ladder after the recent Phase 7 regressions, turning `Phase 8 - Build Failure Triage And Blocking Fixes` into a more implementation-ready build-cleanup slice with a concrete classify-first execution order and adding an explicit `Phase 9 - Supporting Refactor And Ownership Hardening` carry note that Browser, project-content, and shared viewer composition still need one canonical rendered project-parts truth instead of several overlapping preview, runtime, and content projections
 1. 2026-04-01 14:01: Recorded the next `Phase 7 - Browser And Viewer Object Identity Cleanup` implementation slice after fixing the new-graph first-publish regression, noting that shared multi-graph `ViewerHost` composition now uses published runtime output instead of preview-only output so Browser content and the main model viewer stay aligned when a newly added graph publishes its first object
@@ -1070,13 +1072,48 @@ Done shape:
 - shared model-viewer composition no longer has to guess between preview truth, runtime truth, and Browser projection truth for the same rendered object set
 - only final confidence and explicit documentation residue remain
 
+Locked direction for `Phase 9`:
+- do not try to land all supporting cleanup in one refactor pass
+- make one canonical rendered project-parts seam first because that is the highest-value repeated ambiguity left after `Phases 5` through `8`
+- keep `ConsoleDock` plus `Spaghetti Editor` sync cleanup as a second narrow pass on top of that clearer rendered-truth seam
+- leave broad host-helper cleanup as a reserve third cut only if the first two slices still leave directly justified residue
+
+Current read after the shipped `Phase 9A` slice:
+- `useAppStore` now owns a canonical `selectRenderedProjectPartSet(...)` seam for current-project rendered parts, and both Browser content rows plus shared `ViewerHost` composition now consume it
+- shared model-viewer rendering no longer gets to run ahead of current project-content adoption just because graph runtime already has build output
+- the next real follow-on is now `Phase 9B`, where `ConsoleDock` plus `Spaghetti Editor` context handoff can tighten against this clearer rendered ownership model instead of layering on more local exceptions
+
+Phase 9 should execute in these responsible chunks:
+
+#### [x] Phase 9A - Canonical Rendered Project Parts Truth
+- create one clearer selector or helper seam that answers which rendered project parts currently exist, are viewer-addressable, and are Browser-visible
+- make Browser content and shared viewer composition consume that same rendered-project-parts truth instead of deriving overlapping answers from separate runtime, preview, and projection layers
+- keep this cut focused on the selector and consumer seam, not on general host cleanup
+
+#### Phase 9B - `ConsoleDock` And `Spaghetti Editor` Context Sync Hardening
+- tighten the selected-target, graph-focus, and viewer-selected-object handoff so console navigation is reading from the same deliberate ownership model instead of compatibility-shaped fallback chains
+- keep this cut behavior-preserving where possible and avoid widening it into command UX redesign
+- use the clearer rendered-project-parts seam from `Phase 9A` instead of adding new local viewer-or-Browser exceptions
+
+#### Phase 9C - Reserve Host Helper Cleanup
+- only if still justified after `Phase 9A` and `Phase 9B`, reduce repeated ownership lookup helpers or compatibility-only host branches in `AppShell`, Browser host, Spaghetti host, and shared workspace actions
+- if the earlier cuts already make the remaining structure readable enough, skip this reserve slice instead of inventing cleanup work
+
+Phase 9 execution order:
+1. Define and land the smallest useful rendered-project-parts selector or helper seam.
+2. Move shared viewer composition and Browser-facing rendered-content consumers onto that seam.
+3. Re-verify that multi-graph output, Browser visibility, and graph build-policy behavior still match the shipped Phase 7 and 8 behavior.
+4. Only then tighten `ConsoleDock` and `Spaghetti Editor` context handoff around the now-clearer ownership model.
+5. Only if residue is still directly justified, do one final host-helper cleanup slice and stop there.
+
 ### Phase 9 Checklist
 
-- [ ] Identify the smallest directly justified refactor seams exposed by `Phases 5` through `8`
-- [ ] Reduce repeated ownership logic or compatibility-only branching where it still obscures the real surface owner
-- [ ] Keep helper extraction or type cleanup tied to proven pain points from the shipped parity work
-- [ ] Sync `ConsoleDock` and `Spaghetti Editor` context ownership a little better where the current behavior is correct but the handoff still feels more compatibility-shaped than deliberate
-- [ ] Add one clearer selector or helper seam for rendered project parts so Browser and the shared viewer do not keep deriving the same visible object set from different source layers
+- [x] Lock the exact smallest selector or helper seam that should become the canonical rendered project-parts truth
+- [x] Land `Phase 9A` first and make Browser plus shared viewer consume that same rendered-project-parts seam
+- [x] Re-verify shipped multi-graph, Browser-visibility, and build-policy behavior before widening into any second cleanup slice
+- [ ] Land `Phase 9B` as a narrow `ConsoleDock` plus `Spaghetti Editor` context-handoff hardening pass only after `Phase 9A` is stable
+- [ ] Keep helper extraction or type cleanup tied to proven pain points from the shipped parity work instead of using `Phase 9` as a broad architecture rewrite
+- [ ] Do `Phase 9C` only if the first two slices still leave directly justified repeated ownership logic or compatibility-only branches
 - [ ] Leave the repo in a state where later workspace or Browser work does not need to untangle the same ownership path again
 
 ### Phase 9 Verification Shape
@@ -1086,6 +1123,11 @@ Minimum verification for `Phase 9` should cover:
 - the earlier multi-surface, multi-graph, and build-fix gains staying green after seam hardening
 - Browser content and shared viewer composition now agreeing about what rendered project objects exist without needing separate bug-fix logic at each layer
 - the remaining surface area reading as deliberate structure instead of emergency carry cleanup
+
+Implementation-ready read:
+- `Phase 9A` is now shipped and should be treated as the canonical rendered-truth baseline for the rest of this phase.
+- `Phase 9B` is now the next required slice, but it should still stay narrow and only tighten `ConsoleDock` plus `Spaghetti Editor` context handoff against the new rendered-project-parts seam.
+- `Phase 9C` is explicitly optional reserve cleanup, not mandatory work.
 
 ## [ ] Phase 10 - Final Confidence And Close-Out
 ### Header

@@ -15,11 +15,12 @@ import {
   compileSpaghettiGraph,
   type CompileSpaghettiGraphResult,
 } from '../spaghetti/compiler/compileGraph'
+import { selectSharedPreviewRenderVm } from '../spaghetti/selectors/selectSharedPreviewRenderVm'
 import { sketchFeatureSchema } from '../spaghetti/features/featureSchema'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
 import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
-import type { BuildResult } from '../../shared/buildTypes'
+import type { BuildResult, ViewerRenderablePart } from '../../shared/buildTypes'
 import { newId } from '../spaghetti/utils/id'
 import {
   REFERENCE_MANIFEST_CATEGORIES,
@@ -457,6 +458,27 @@ export type ReferenceWorkspaceBrowserTreeVm = {
   label: string
   isExpanded: boolean
   categories: ReferenceWorkspaceBrowserCategoryVm[]
+}
+
+export type RenderedProjectPartVm = {
+  objectId: string
+  parentAssemblyId: string | null
+  parentComponentId: string | null
+  ownerGraphDocumentId: string
+  sourceGraphDocumentId: string
+  sourceOutputEntryId: string
+  sourceNodeId: string | null
+  slotId: string
+  label: string
+  viewerKey: string
+  viewerPart: ViewerRenderablePart
+  isVisible: boolean
+}
+
+export type RenderedProjectPartSetVm = {
+  parts: RenderedProjectPartVm[]
+  viewerParts: ViewerRenderablePart[]
+  contributingGraphDocumentIds: string[]
 }
 
 const REFERENCE_MANIFEST_ITEM_BY_ID = Object.fromEntries(
@@ -7245,6 +7267,87 @@ const selectProjectContentBuildState = (options: {
   }
 }
 
+export const selectRenderedProjectPartSet = (
+  state: Pick<AppState, 'currentProject' | 'projectContent'> & {
+    graphRuntimeByDocumentId: Record<string, GraphRuntimeState>
+    graphDocumentsById: Record<string, GraphDocument>
+    browserGraphBuildPolicyByGraphDocumentId?: Record<string, BrowserBuildPolicy>
+    browserContentBuildPolicyByRowId?: Record<string, BrowserBuildPolicy>
+    partsVisibility?: PartsVisibility
+    graphDocumentIds?: readonly string[]
+  },
+): RenderedProjectPartSetVm => {
+  const candidateGraphDocumentIds = [
+    ...new Set(
+      (state.graphDocumentIds ?? state.currentProject.graphDocuments.map((document) => document.graphDocumentId))
+        .filter((graphDocumentId) => state.graphDocumentsById[graphDocumentId] !== undefined),
+    ),
+  ]
+
+  const sharedRenderVm = selectSharedPreviewRenderVm(
+    candidateGraphDocumentIds.map((graphDocumentId) => ({
+      graphDocumentId,
+      previewPreparation: state.graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
+      buildOutputs:
+        selectShouldSuppressBrowserGraphRuntimeOutput(
+          {
+            currentProject: state.currentProject,
+            projectContent: state.projectContent,
+            browserGraphBuildPolicyByGraphDocumentId:
+              state.browserGraphBuildPolicyByGraphDocumentId ?? {},
+            browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId ?? {},
+          },
+          graphDocumentId,
+        )
+          ? []
+          : state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildOutputs ?? [],
+    })),
+  )
+  const viewerPartByKey = new Map(
+    sharedRenderVm.viewerParts.map((viewerPart) => [viewerPart.viewerKey, viewerPart] as const),
+  )
+  const partsVisibility = state.partsVisibility ?? {}
+  const renderedParts = Object.values(state.projectContent.objectsById).flatMap((objectRow) => {
+    if (
+      objectRow.resolutionState !== 'resolved' ||
+      objectRow.slotId === null ||
+      !candidateGraphDocumentIds.includes(objectRow.ownerGraphDocumentId)
+    ) {
+      return []
+    }
+    const viewerKey = buildGraphViewerPartKey(objectRow.ownerGraphDocumentId, objectRow.slotId)
+    if (viewerKey === null) {
+      return []
+    }
+    const viewerPart = viewerPartByKey.get(viewerKey)
+    if (viewerPart === undefined) {
+      return []
+    }
+    return [
+      {
+        objectId: objectRow.objectId,
+        parentAssemblyId: objectRow.parentAssemblyId ?? null,
+        parentComponentId: objectRow.parentComponentId,
+        ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
+        sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
+        sourceOutputEntryId: objectRow.sourceOutputEntryId,
+        sourceNodeId: objectRow.sourceNodeId,
+        slotId: objectRow.slotId,
+        label: objectRow.label,
+        viewerKey,
+        viewerPart,
+        isVisible: partsVisibility[viewerKey] ?? true,
+      } satisfies RenderedProjectPartVm,
+    ]
+  })
+
+  return {
+    parts: renderedParts,
+    viewerParts: [...new Map(renderedParts.map((part) => [part.viewerKey, part.viewerPart])).values()],
+    contributingGraphDocumentIds: [...new Set(renderedParts.map((part) => part.ownerGraphDocumentId))],
+  }
+}
+
 export const selectCurrentProjectContentBrowserRows = (
   state: Pick<AppState, 'currentProject' | 'projectContent' | 'sketchVisibilityByRowId'> & {
     referenceWorkspace?: Pick<
@@ -7263,6 +7366,24 @@ export const selectCurrentProjectContentBrowserRows = (
   },
 ): ProjectContentBrowserRowVm[] => {
   const partsVisibility = state.partsVisibility ?? {}
+  const renderedProjectPartSet = selectRenderedProjectPartSet({
+    currentProject: state.currentProject,
+    projectContent: state.projectContent,
+    graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+    graphDocumentsById: state.graphDocumentsById,
+    partsVisibility,
+  })
+  const renderedPartsByObjectId = new Map<string, RenderedProjectPartVm[]>()
+  renderedProjectPartSet.parts.forEach((part) => {
+    const currentParts = renderedPartsByObjectId.get(part.objectId) ?? []
+    currentParts.push(part)
+    renderedPartsByObjectId.set(part.objectId, currentParts)
+  })
+  const visibleRenderedProjectPartKeySet = new Set(
+    renderedProjectPartSet.parts
+      .filter((part) => part.isVisible)
+      .map((part) => part.viewerKey),
+  )
   const includeReferenceHierarchy = state.referenceWorkspace !== undefined
   const referenceWorkspace = state.referenceWorkspace ?? {
     importedReferencesById: {},
@@ -7273,15 +7394,10 @@ export const selectCurrentProjectContentBrowserRows = (
     partRowsByReferenceId: {},
     transformOverrideById: {},
   }
-  const buildViewerVisibilityPartKeys = (
-    graphDocumentId: string,
-    slotId: string | null,
-  ): string[] => {
-    const viewerPartKey = buildGraphViewerPartKey(graphDocumentId, slotId)
-    return viewerPartKey === null ? [] : [viewerPartKey]
-  }
-  const resolveContentVisibility = (partKeys: readonly string[]): boolean =>
-    partKeys.length > 0 && partKeys.some((partKey) => partsVisibility[partKey] ?? true)
+  const resolveRenderedVisibility = (partKeys: readonly string[]): boolean =>
+    partKeys.length > 0 && partKeys.some((partKey) => visibleRenderedProjectPartKeySet.has(partKey))
+  const getRenderedPartsForObject = (objectId: string): RenderedProjectPartVm[] =>
+    renderedPartsByObjectId.get(objectId) ?? []
   const topLevelAssemblies = selectCurrentProjectTopLevelAssemblies(state).filter(
     (assembly) => assembly.assemblyId !== REFERENCE_ROOT_ROW_ID,
   )
@@ -7512,10 +7628,8 @@ export const selectCurrentProjectContentBrowserRows = (
         if (objectBuildState.buildState === 'rebuild') {
           assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
         }
-        const objectVisibilityPartKeys = buildViewerVisibilityPartKeys(
-          objectRow.ownerGraphDocumentId,
-          objectRow.slotId,
-        )
+        const objectRenderedParts = getRenderedPartsForObject(objectRow.objectId)
+        const objectVisibilityPartKeys = objectRenderedParts.map((part) => part.viewerKey)
         rows.push({
           rowId: objectRow.objectId,
           kind: 'object',
@@ -7529,7 +7643,7 @@ export const selectCurrentProjectContentBrowserRows = (
           parentAssemblyId: objectRow.parentAssemblyId,
           isVisible:
             objectRow.resolutionState === 'resolved' &&
-            resolveContentVisibility(objectVisibilityPartKeys),
+            resolveRenderedVisibility(objectVisibilityPartKeys),
           visibilityPartKeys:
             objectRow.resolutionState === 'resolved' ? objectVisibilityPartKeys : [],
           buildState: objectBuildState.buildState,
@@ -7546,10 +7660,7 @@ export const selectCurrentProjectContentBrowserRows = (
           slotId: objectRow.slotId,
           sourceNodeId: objectRow.sourceNodeId,
           resolutionState: objectRow.resolutionState,
-          highlightViewerKey:
-            objectRow.resolutionState === 'resolved'
-              ? buildGraphViewerPartKey(objectRow.ownerGraphDocumentId, objectRow.slotId)
-              : null,
+          highlightViewerKey: objectRenderedParts[0]?.viewerKey ?? null,
           authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
           authoringNodeId: objectRow.sourceNodeId,
         })
@@ -7579,11 +7690,9 @@ export const selectCurrentProjectContentBrowserRows = (
         component.sourceGraphDocumentId === null
           ? 'Component'
           : graphLabelByDocumentId.get(component.sourceGraphDocumentId) ?? component.sourceGraphDocumentId
-      const componentVisibilityPartKeys = componentObjects
-        .filter((objectRow) => objectRow.resolutionState === 'resolved' && objectRow.slotId !== null)
-        .flatMap((objectRow) =>
-          buildViewerVisibilityPartKeys(objectRow.ownerGraphDocumentId, objectRow.slotId),
-        )
+      const componentVisibilityPartKeys = componentObjects.flatMap((objectRow) =>
+        getRenderedPartsForObject(objectRow.objectId).map((part) => part.viewerKey),
+      )
       const componentHasUnresolvedObject = componentObjects.some(
         (objectRow) => objectRow.resolutionState !== 'resolved',
       )
@@ -7638,7 +7747,7 @@ export const selectCurrentProjectContentBrowserRows = (
               : 'Unresolved Link'
             : sourceGraphLabel,
         parentAssemblyId: component.parentAssemblyId,
-        isVisible: resolveContentVisibility(componentVisibilityPartKeys),
+        isVisible: resolveRenderedVisibility(componentVisibilityPartKeys),
         visibilityPartKeys: componentVisibilityPartKeys,
         buildState: componentBuildState.buildState,
         buildStateLabel: componentBuildState.buildStateLabel,
@@ -7661,13 +7770,10 @@ export const selectCurrentProjectContentBrowserRows = (
           component.componentSourceKind === 'published-component'
             ? (singleResolvedObject === null
                 ? null
-                : buildGraphViewerPartKey(
-                    singleResolvedObject.ownerGraphDocumentId,
-                    singleResolvedObject.slotId,
-                  ))
-            : component.ownerGraphDocumentId === null
-              ? null
-              : buildGraphViewerPartKey(component.ownerGraphDocumentId, slotId),
+                : getRenderedPartsForObject(singleResolvedObject.objectId)[0]?.viewerKey ?? null)
+            : componentObjects.flatMap((objectRow) =>
+                getRenderedPartsForObject(objectRow.objectId).map((part) => part.viewerKey),
+              )[0] ?? null,
         authoringGraphDocumentId: component.sourceGraphDocumentId,
         authoringNodeId:
           component.componentSourceKind === 'published-component'
@@ -7686,10 +7792,8 @@ export const selectCurrentProjectContentBrowserRows = (
         if (objectBuildState.buildState === 'rebuild') {
           assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
         }
-        const objectVisibilityPartKeys = buildViewerVisibilityPartKeys(
-          objectRow.ownerGraphDocumentId,
-          objectRow.slotId,
-        )
+        const objectRenderedParts = getRenderedPartsForObject(objectRow.objectId)
+        const objectVisibilityPartKeys = objectRenderedParts.map((part) => part.viewerKey)
         rows.push({
           rowId: objectRow.objectId,
           kind: 'object',
@@ -7698,7 +7802,7 @@ export const selectCurrentProjectContentBrowserRows = (
           parentAssemblyId: objectRow.parentAssemblyId,
           isVisible:
             objectRow.resolutionState === 'resolved' &&
-            resolveContentVisibility(objectVisibilityPartKeys),
+            resolveRenderedVisibility(objectVisibilityPartKeys),
           visibilityPartKeys:
             objectRow.resolutionState === 'resolved' ? objectVisibilityPartKeys : [],
           buildState: objectBuildState.buildState,
@@ -7715,10 +7819,7 @@ export const selectCurrentProjectContentBrowserRows = (
           slotId: objectRow.slotId,
           sourceNodeId: objectRow.sourceNodeId,
           resolutionState: objectRow.resolutionState,
-          highlightViewerKey:
-            objectRow.resolutionState === 'resolved'
-              ? buildGraphViewerPartKey(objectRow.ownerGraphDocumentId, objectRow.slotId)
-              : null,
+          highlightViewerKey: objectRenderedParts[0]?.viewerKey ?? null,
           authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
           authoringNodeId: objectRow.sourceNodeId,
         })
@@ -7755,7 +7856,7 @@ export const selectCurrentProjectContentBrowserRows = (
     })
     rows[assemblyStartIndex] = {
       ...(rows[assemblyStartIndex] as Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }>),
-      isVisible: resolveContentVisibility(assemblyVisibilityPartKeys),
+      isVisible: resolveRenderedVisibility(assemblyVisibilityPartKeys),
       visibilityPartKeys: [...new Set(assemblyVisibilityPartKeys)],
       buildState: assemblyBuildState.buildState,
       buildStateLabel: assemblyBuildState.buildStateLabel,

@@ -65,6 +65,37 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 855 -->
+### [855] - 2026-04-01 14:29 - `VR-SP - Workspace 7.5-5 Phase 9A - Canonical Rendered Project Parts Truth`
+<!-- ENTRY 855 -->
+HUMAN SUMMARY: `Landed the first Phase 9 supporting-hardening slice by adding one canonical rendered-project-parts selector and moving both Browser-facing project rows and shared ViewerHost composition onto that same truth. Shared model-viewer rendering now follows current project content adoption instead of letting runtime-only parts drift ahead of Browser ownership, which reduces the remaining multi-graph ambiguity without widening into the later Console or host cleanup slices.`
+#### Scope / Constraints Honored
+- Kept this pass inside `Phase 9A - Canonical Rendered Project Parts Truth` instead of widening into the later `ConsoleDock` sync or reserve host-helper cleanup work.
+- Preserved the explicit single-graph preview fallback path while only changing the shared Browser-owned rendered-project composition seam.
+- Tightened the canonical truth around project-backed rendered parts without introducing a new public API or changing graph-qualified viewer-key semantics.
+
+#### What Changed
+- Added `selectRenderedProjectPartSet(...)` in `src/app/store/useAppStore.ts` so one selector now answers which current-project objects are both runtime-renderable and actually adopted into project content, including their graph-qualified viewer keys and visibility.
+- Updated `selectCurrentProjectContentBrowserRows(...)` in `src/app/store/useAppStore.ts` so object, component, and assembly Browser rows derive rendered visibility, highlight keys, and aggregated viewer-part membership from that new selector instead of reconstructing overlapping answers locally.
+- Updated `src/app/components/ViewerHost.tsx` so shared multi-graph viewer composition, rendered object lookup, and transform grouping now consume the same rendered-project-parts seam Browser uses, while leaving the explicit single-target preview fallback on the preview path.
+- Added focused regressions in `src/app/components/ViewerHost.test.tsx` and `src/app/store/useAppStore.test.ts` that prove shared viewer composition now stays aligned with current project content and does not render runtime-only extra graph output until project content actually owns it.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- Browser content rows and shared viewer composition now agree on the rendered project object set through one selector-backed seam instead of parallel runtime-versus-projection derivations.
+- Shared viewer composition no longer renders a graph output part unless the current project content also has the corresponding adopted object row, which keeps Browser ownership and viewer rendering in sync.
+- Receive-link or unresolved content without a live rendered project part now reports no highlight key until an actual rendered part exists, reducing false Browser-to-viewer identity claims.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx`
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/store/useAppStore.test.ts src/app/components/ViewerHost.test.tsx`
+- `npm.cmd run build`
+
 <!-- ENTRY 854 -->
 ### [854] - 2026-04-01 14:10 - `VR-SP - Workspace 7.5-5 Phase 8 - Restore Build Green And Workspace Host Typing`
 <!-- ENTRY 854 -->

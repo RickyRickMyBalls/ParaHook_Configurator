@@ -748,6 +748,46 @@ describe('ViewerHost reference loading', () => {
               orderIndex: 1,
             },
           ],
+          rootAssemblyId: 'assembly-root:project-file-1',
+        },
+        projectContent: {
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: [
+                'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+                `project-object:project-file-1:${secondGraphId}:output-object:slot-cube`,
+              ],
+            },
+          },
+          componentsById: {},
+          objectsById: {
+            'project-object:project-file-1:graph-document-1:output-object:slot-baseplate': {
+              objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+              slotId: 'slot-baseplate',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+            [`project-object:project-file-1:${secondGraphId}:output-object:slot-cube`]: {
+              objectId: `project-object:project-file-1:${secondGraphId}:output-object:slot-cube`,
+              ownerGraphDocumentId: secondGraphId,
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: secondGraphId,
+              sourceOutputEntryId: 'output-entry:slot-cube:node-second-1',
+              sourceNodeId: 'node-second-1',
+              slotId: 'slot-cube',
+              label: 'Object 2',
+              resolutionState: 'resolved',
+            },
+          },
         },
       }))
     })
@@ -912,6 +952,46 @@ describe('ViewerHost reference loading', () => {
               orderIndex: 1,
             },
           ],
+          rootAssemblyId: 'assembly-root:project-file-1',
+        },
+        projectContent: {
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: [
+                'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+                `project-object:project-file-1:${secondGraphId}:output-object:slot-cube`,
+              ],
+            },
+          },
+          componentsById: {},
+          objectsById: {
+            'project-object:project-file-1:graph-document-1:output-object:slot-baseplate': {
+              objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+              slotId: 'slot-baseplate',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+            [`project-object:project-file-1:${secondGraphId}:output-object:slot-cube`]: {
+              objectId: `project-object:project-file-1:${secondGraphId}:output-object:slot-cube`,
+              ownerGraphDocumentId: secondGraphId,
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: secondGraphId,
+              sourceOutputEntryId: 'output-entry:slot-cube:node-second-1',
+              sourceNodeId: 'node-second-1',
+              slotId: 'slot-cube',
+              label: 'Object 2',
+              resolutionState: 'resolved',
+            },
+          },
         },
       }))
     })
@@ -929,6 +1009,165 @@ describe('ViewerHost reference loading', () => {
       'graph-document-1:slot-baseplate',
       `${secondGraphId}:slot-cube`,
     ])
+  })
+
+  it('only renders shared viewer parts that are backed by current project content rows', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { buildGraphOutputSurface } = await import('../spaghetti/outputSurface')
+
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-second-1',
+            type: 'Part/Cube',
+            params: {},
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const firstPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const secondPreviewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-cube',
+        sourceNodeId: 'node-second-1',
+        sourcePartKey: 'cube',
+      },
+    ])
+
+    act(() => {
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation: firstPreviewPreparation,
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: 'graph-document-1',
+              previewPreparation: firstPreviewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-1',
+                  kind: 'box',
+                  label: 'Baseplate',
+                  partKeyStr: 'baseplate',
+                  partKey: { id: 'baseplate', instance: null },
+                  params: { width: 10, length: 20, height: 5 },
+                },
+              ],
+              publishedAtBuildSeq: 1,
+            }),
+          },
+          [secondGraphId]: {
+            ...state.graphRuntimeByDocumentId[secondGraphId],
+            previewPreparation: secondPreviewPreparation,
+            acceptedBuildOutputs: [
+              {
+                id: 'artifact-2',
+                kind: 'box',
+                label: 'Cube',
+                partKeyStr: 'cube',
+                partKey: { id: 'cube', instance: null },
+                params: { width: 4, length: 4, height: 4 },
+              },
+            ],
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId: secondGraphId,
+              previewPreparation: secondPreviewPreparation,
+              acceptedBuildOutputs: [
+                {
+                  id: 'artifact-2',
+                  kind: 'box',
+                  label: 'Cube',
+                  partKeyStr: 'cube',
+                  partKey: { id: 'cube', instance: null },
+                  params: { width: 4, length: 4, height: 4 },
+                },
+              ],
+              publishedAtBuildSeq: 2,
+            }),
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [
+            {
+              graphDocumentId: 'graph-document-1',
+              label: 'Graph 1',
+              sourceFilePath: null,
+              orderIndex: 0,
+            },
+            {
+              graphDocumentId: secondGraphId,
+              label: 'Graph 2',
+              sourceFilePath: null,
+              orderIndex: 1,
+            },
+          ],
+          rootAssemblyId: 'assembly-root:project-file-1',
+        },
+        projectContent: {
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['project-object:project-file-1:graph-document-1:output-object:slot-baseplate'],
+            },
+          },
+          componentsById: {},
+          objectsById: {
+            'project-object:project-file-1:graph-document-1:output-object:slot-baseplate': {
+              objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+              slotId: 'slot-baseplate',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const initialParts = (viewerSetParts.mock.calls.at(-1)?.[0] ?? []) as Array<{ viewerKey: string }>
+    expect(initialParts.map((part) => part.viewerKey)).toEqual(['graph-document-1:slot-baseplate'])
   })
 
   it('loads a reference batch one item at a time in queue order', async () => {

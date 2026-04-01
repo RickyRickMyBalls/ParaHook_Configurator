@@ -1608,12 +1608,118 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           slotId: 'slot-linked',
           sourceNodeId: 'node-baseplate-2',
           resolutionState: 'resolved',
-          highlightViewerKey: 'graph-document-1:slot-linked',
+          highlightViewerKey: null,
           authoringGraphDocumentId: secondGraphId,
           authoringNodeId: 'node-baseplate-2',
         }),
       ]),
     )
+  })
+
+  it('derives rendered project parts from the same current project object truth Browser rows use', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      selectRenderedProjectPartSet,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildOutputs: [],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBuildOutputs: [],
+            publishedAtBuildSeq: null,
+          }),
+        },
+      },
+    }))
+
+    useAppStore.setState((state) => ({
+      ...state,
+      currentProject: {
+        ...state.currentProject,
+        rootAssemblyId: 'assembly-root:project-file-1',
+      },
+      projectContent: {
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['project-object:project-file-1:graph-document-1:output-object:slot-baseplate'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'project-object:project-file-1:graph-document-1:output-object:slot-baseplate': {
+            objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+            sourceNodeId: 'node-baseplate-1',
+            slotId: 'slot-baseplate',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    expect(
+      selectRenderedProjectPartSet({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual({
+      parts: [],
+      viewerParts: [],
+      contributingGraphDocumentIds: [],
+    })
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows).toEqual([
+      expect.objectContaining({
+        rowId: 'assembly-root:project-file-1',
+        kind: 'assembly',
+        isVisible: false,
+        visibilityPartKeys: [],
+      }),
+      expect.objectContaining({
+        rowId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+        kind: 'object',
+        isVisible: false,
+        visibilityPartKeys: [],
+        highlightViewerKey: null,
+      }),
+    ])
   })
 
   it('keeps missing linked source publication visible as an unresolved receive-link object', async () => {

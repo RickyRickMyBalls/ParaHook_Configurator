@@ -16,6 +16,7 @@ import {
   getReferenceTransformHistoryEntriesThroughScrubIndex,
   resolveReferenceRuntimeTraits,
   resolveReferenceIdsForWorkspaceTarget,
+  selectRenderedProjectPartSet,
   selectActiveViewerTransformHistoryEntries,
   selectActiveViewerTransformSession,
   selectActiveViewerTransformTarget,
@@ -45,7 +46,6 @@ import {
   selectPreviewRenderVmFromPreparation,
   type PreviewRenderVm,
 } from '../spaghetti/selectors/selectPreviewRenderVm'
-import { selectSharedPreviewRenderVm } from '../spaghetti/selectors/selectSharedPreviewRenderVm'
 import {
   evaluateReferenceTimelineChannelValue,
   evaluateReferenceTransformOverrideWithTimelines,
@@ -266,50 +266,46 @@ export function ViewerHost(props: ViewerHostProps) {
     [globalView, viewportId, viewportLocalViewState],
   )
 
+  const renderedProjectPartSet = useMemo(
+    () =>
+      selectRenderedProjectPartSet({
+        currentProject,
+        projectContent,
+        graphRuntimeByDocumentId,
+        graphDocumentsById,
+        browserGraphBuildPolicyByGraphDocumentId,
+        browserContentBuildPolicyByRowId,
+        partsVisibility,
+        graphDocumentIds: sharedViewerComposition?.graphDocumentIds,
+      }),
+    [
+      browserContentBuildPolicyByRowId,
+      browserGraphBuildPolicyByGraphDocumentId,
+      currentProject,
+      graphDocumentsById,
+      graphRuntimeByDocumentId,
+      partsVisibility,
+      projectContent,
+      sharedViewerComposition,
+    ],
+  )
+
   const previewList = useMemo(
     () => {
       if (sharedViewerComposition !== null) {
-        return selectSharedPreviewRenderVm(
-          sharedViewerComposition.graphDocumentIds.map((graphDocumentId) => ({
-            graphDocumentId,
-            previewPreparation: graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
-            buildOutputs:
-              selectShouldSuppressBrowserGraphRuntimeOutput(
-                {
-                  currentProject,
-                  projectContent,
-                  browserGraphBuildPolicyByGraphDocumentId,
-                  browserContentBuildPolicyByRowId,
-                },
-                graphDocumentId,
-              )
-                ? []
-                : graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildOutputs ?? [],
-          })),
-        )
+        return {
+          items: [],
+          viewerParts: renderedProjectPartSet.viewerParts,
+        }
       }
       const currentProjectGraphDocumentIds = currentProject.graphDocuments
         .map((document) => document.graphDocumentId)
         .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined)
       if (currentProjectGraphDocumentIds.length > 0) {
-        return selectSharedPreviewRenderVm(
-          currentProjectGraphDocumentIds.map((graphDocumentId) => ({
-            graphDocumentId,
-            previewPreparation: graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
-            buildOutputs:
-              selectShouldSuppressBrowserGraphRuntimeOutput(
-                {
-                  currentProject,
-                  projectContent,
-                  browserGraphBuildPolicyByGraphDocumentId,
-                  browserContentBuildPolicyByRowId,
-                },
-                graphDocumentId,
-              )
-                ? []
-                : graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildOutputs ?? [],
-          })),
-        )
+        return {
+          items: [],
+          viewerParts: renderedProjectPartSet.viewerParts,
+        }
       }
       if (viewerTargetPreviewPreparation === null) {
         return EMPTY_PREVIEW_LIST
@@ -354,12 +350,10 @@ export function ViewerHost(props: ViewerHostProps) {
       }
     },
     [
-      browserContentBuildPolicyByRowId,
-      browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
       graphDocumentsById,
       graphRuntimeByDocumentId,
-      projectContent,
+      renderedProjectPartSet,
       sharedViewerComposition,
       viewerTargetGraphDocumentId,
       viewerTargetBuildOutputs,
@@ -388,22 +382,15 @@ export function ViewerHost(props: ViewerHostProps) {
   )
 
   const contentObjectRowByViewerPartKey = useMemo(() => {
-    const nextRowsByViewerPartKey = new Map<
-      string,
-      Extract<(typeof projectContentRows)[number], { kind: 'object' }>
-    >()
-    for (const row of projectContentRows) {
-      if (row.kind !== 'object') {
-        continue
-      }
-      for (const partKey of row.visibilityPartKeys ?? []) {
-        if (!nextRowsByViewerPartKey.has(partKey)) {
-          nextRowsByViewerPartKey.set(partKey, row)
-        }
-      }
-    }
-    return nextRowsByViewerPartKey
-  }, [projectContentRows])
+    return new Map(
+      renderedProjectPartSet.parts.map((part) => [
+        part.viewerKey,
+        {
+          rowId: part.objectId,
+        },
+      ] as const),
+    )
+  }, [renderedProjectPartSet])
 
   const highlightedPartKeys = useMemo(() => {
     type HighlightableContentRow = Extract<
@@ -690,21 +677,19 @@ export function ViewerHost(props: ViewerHostProps) {
     }
   }, [referenceWorkspace])
   const contentObjectTransformGroups = useMemo(
-    () =>
-      projectContentRows
-        .filter(
-          (
-            row,
-          ): row is Extract<(typeof projectContentRows)[number], { kind: 'object' }> =>
-            row.kind === 'object' &&
-            row.objectSourceKind === 'published-object' &&
-            (row.visibilityPartKeys?.length ?? 0) > 0,
-        )
-        .map((row) => ({
-          objectId: row.rowId,
-          partKeys: [...new Set(row.visibilityPartKeys ?? [])],
-        })),
-    [projectContentRows],
+    () => {
+      const partKeysByObjectId = new Map<string, Set<string>>()
+      renderedProjectPartSet.parts.forEach((part) => {
+        const currentPartKeys = partKeysByObjectId.get(part.objectId) ?? new Set<string>()
+        currentPartKeys.add(part.viewerKey)
+        partKeysByObjectId.set(part.objectId, currentPartKeys)
+      })
+      return [...partKeysByObjectId.entries()].map(([objectId, partKeys]) => ({
+        objectId,
+        partKeys: [...partKeys],
+      }))
+    },
+    [renderedProjectPartSet],
   )
   const activeViewerTransformHistoryOverlay = useMemo<ViewerTransformHistoryOverlayVm | null>(() => {
     const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
