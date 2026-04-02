@@ -191,6 +191,17 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
       reason: 'target-selection',
     })
+    expect(useAppStore.getState().consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId('shoe:shoe-1'),
+      },
+    })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('browser')
     expect(useAppStore.getState().referenceWorkspace.visibilityById['shoe:shoe-1']).toBe(false)
     expect(useAppStore.getState().referenceWorkspace.activeReferenceTransformSession).toBeNull()
@@ -249,6 +260,17 @@ describe('workspaceIntents', () => {
     })
     expect(useAppStore.getState().consoleContextSyncRequest).toMatchObject({
       reason: 'target-selection',
+    })
+    expect(useAppStore.getState().consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+      },
     })
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('browser')
     expect(useAppStore.getState().selectedPartKey).toBe('slot-baseplate')

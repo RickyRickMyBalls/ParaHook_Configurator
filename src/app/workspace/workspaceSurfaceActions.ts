@@ -297,10 +297,20 @@ export function commitWorkspaceSurfaceRootSplit(
   },
 ) {
   const workspaceState = useWorkspaceStore.getState()
+  const spaghettiState = useSpaghettiStore.getState()
+  const slottedSurface = findSlotBySurfaceInstanceId(surfaceInstanceId)
   const detachedSurface = workspaceState.detachedSlotSurfaceById[surfaceInstanceId] ?? null
   const surfaceKind = resolveSurfaceKindForAction(surfaceInstanceId)
-  if (surfaceKind !== 'browser') {
+  if (surfaceKind !== 'browser' && surfaceKind !== 'spaghettiEditor') {
     return null
+  }
+  if (surfaceKind !== 'browser' && slottedSurface !== null && detachedSurface === null) {
+    return null
+  }
+  if (surfaceKind === 'spaghettiEditor') {
+    spaghettiState.setActiveEditorViewportId?.(surfaceInstanceId)
+    spaghettiState.setEditorViewportSplitDockSide(surfaceInstanceId, splitDockSide)
+    spaghettiState.setEditorViewportWindowMode(surfaceInstanceId, 'expanded')
   }
   if (detachedSurface !== null) {
     workspaceState.splitViewportRoot(splitDockSide, {
@@ -310,8 +320,10 @@ export function commitWorkspaceSurfaceRootSplit(
       hostViewportId: detachedSurface.hostViewportId,
     })
     workspaceState.clearDetachedSlotSurface(surfaceInstanceId)
-    workspaceState.setBrowserFloating(false)
-    workspaceState.setBrowserViewportSplit(false)
+    if (surfaceKind === 'browser') {
+      workspaceState.setBrowserFloating(false)
+      workspaceState.setBrowserViewportSplit(false)
+    }
     return null
   }
   workspaceState.splitViewportRoot(splitDockSide, {
@@ -319,8 +331,10 @@ export function commitWorkspaceSurfaceRootSplit(
     surfaceInstanceId,
     preferredRatio: options?.preferredRatio,
   })
-  workspaceState.releaseHostRoute(defaultBrowserHostRouteId)
-  workspaceState.setBrowserFloating(false)
-  workspaceState.setBrowserViewportSplit(false)
+  if (surfaceKind === 'browser') {
+    workspaceState.releaseHostRoute(defaultBrowserHostRouteId)
+    workspaceState.setBrowserFloating(false)
+    workspaceState.setBrowserViewportSplit(false)
+  }
   return null
 }

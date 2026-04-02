@@ -151,6 +151,15 @@ type WindowSettingsSectionId = 'titlebar' | 'body' | 'text'
 
 type SpaghettiPanelProps = {
   editorViewportId: string
+  onActivateEditorContext?: (
+    editorViewportId: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => void
+  activateOnPointerDownCapture?: boolean
   isEssentials?: boolean
   isWindowSettingsOpen?: boolean
   isClampEditing?: boolean
@@ -166,6 +175,8 @@ type SpaghettiPanelProps = {
 
 export function SpaghettiPanel({
   editorViewportId,
+  onActivateEditorContext,
+  activateOnPointerDownCapture = false,
   isEssentials = false,
   isWindowSettingsOpen = false,
   isClampEditing = false,
@@ -258,6 +269,16 @@ export function SpaghettiPanel({
     graphDocumentId === null ? null : selectGraphCompileResultByDocumentId(state, graphDocumentId),
   )
   const sortedNodes = useMemo(() => [...(graph?.nodes ?? [])].sort(compareNodes), [graph?.nodes])
+  const activateEditorContext = useCallback(() => {
+    if (viewport === null) {
+      return
+    }
+    if (onActivateEditorContext !== undefined) {
+      onActivateEditorContext(viewport.editorViewportId)
+      return
+    }
+    setActiveEditorViewportId(viewport.editorViewportId)
+  }, [onActivateEditorContext, setActiveEditorViewportId, viewport])
   const orderedGraphDocuments = useMemo(
     () =>
       graphDocumentOrder
@@ -461,6 +482,7 @@ export function SpaghettiPanel({
 
   useEffect(() => {
     if (
+      onActivateEditorContext !== undefined ||
       graphDocumentId === null ||
       workspaceActiveSurface !== 'spaghetti' ||
       !isActiveEditorViewport
@@ -499,6 +521,7 @@ export function SpaghettiPanel({
     setWorkspaceSelectedTarget,
     workspaceActiveSurface,
     workspaceSelectedTarget,
+    onActivateEditorContext,
   ])
 
   useEffect(() => {
@@ -756,7 +779,7 @@ export function SpaghettiPanel({
     if (viewport === null) {
       return
     }
-    setActiveEditorViewportId(viewport.editorViewportId)
+    activateEditorContext()
     void saveFocusedEditorViewportGraphToFile().catch((error: unknown) => {
       console.error('Failed to save focused editor graph.', error)
     })
@@ -793,6 +816,15 @@ export function SpaghettiPanel({
   }
 
   const handleFocusNodeChange = (nextNodeId: string | null) => {
+    if (viewport !== null && onActivateEditorContext !== undefined) {
+      onActivateEditorContext(viewport.editorViewportId, {
+        graphDocumentId,
+        nodeId: nextNodeId,
+        mode: nextNodeId === null ? 'graph' : 'node',
+      })
+    } else {
+      activateEditorContext()
+    }
     setFocusNodeId(nextNodeId)
     setEditorViewportSelectedNodeId(editorViewportId, nextNodeId)
     if (graphDocumentId !== null) {
@@ -808,7 +840,9 @@ export function SpaghettiPanel({
               nodeId: nextNodeId,
             },
       )
-      requestConsoleContextSync('target-selection')
+      if (onActivateEditorContext === undefined) {
+        requestConsoleContextSync('target-selection')
+      }
     }
     setFitNodeRequest((current) => ({
       nodeId: nextNodeId,
@@ -820,7 +854,15 @@ export function SpaghettiPanel({
     if (viewport === null || nextGraphDocumentId.length === 0) {
       return
     }
-    setActiveEditorViewportId(viewport.editorViewportId)
+    if (onActivateEditorContext !== undefined) {
+      onActivateEditorContext(viewport.editorViewportId, {
+        graphDocumentId: nextGraphDocumentId,
+        nodeId: null,
+        mode: 'graph',
+      })
+    } else {
+      activateEditorContext()
+    }
     bindEditorViewportToGraphDocument(viewport.editorViewportId, nextGraphDocumentId)
   }
 
@@ -829,7 +871,15 @@ export function SpaghettiPanel({
       return
     }
     const nextGraphDocumentId = createGraphDocument()
-    setActiveEditorViewportId(viewport.editorViewportId)
+    if (onActivateEditorContext !== undefined) {
+      onActivateEditorContext(viewport.editorViewportId, {
+        graphDocumentId: nextGraphDocumentId,
+        nodeId: null,
+        mode: 'graph',
+      })
+    } else {
+      activateEditorContext()
+    }
     bindEditorViewportToGraphDocument(viewport.editorViewportId, nextGraphDocumentId)
   }
 
@@ -868,6 +918,13 @@ export function SpaghettiPanel({
       className={`V15Panel SpaghettiPanelRoot ${isEssentials ? 'isEssentials' : ''}`}
       data-editor-viewport-id={editorViewportId}
       data-graph-document-id={graphDocumentId ?? ''}
+      onPointerDownCapture={
+        activateOnPointerDownCapture
+          ? () => {
+              activateEditorContext()
+            }
+          : undefined
+      }
     >
       {!isEssentials ? (
         <div ref={titleRef} className="SpaghettiPanelHeaderShell">

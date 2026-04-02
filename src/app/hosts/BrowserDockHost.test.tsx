@@ -879,7 +879,7 @@ describe('BrowserDockHost', () => {
     const topGhost = container?.querySelector('.ViewportSplitDockGhost.isDockTop') as
       | HTMLDivElement
       | null
-    expect(topGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(topGhost?.dataset.splitPreviewScope).toBe('global')
 
     await act(async () => {
       window.dispatchEvent(
@@ -998,7 +998,7 @@ describe('BrowserDockHost', () => {
       | HTMLDivElement
       | null
     expect(rightGhost).not.toBeNull()
-    expect(rightGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(rightGhost?.dataset.splitPreviewScope).toBe('local')
 
     await act(async () => {
       window.dispatchEvent(
@@ -1198,7 +1198,7 @@ describe('BrowserDockHost', () => {
 
     const rightGhost = container?.querySelector('.ViewportSplitDockGhost.isDockRight') as HTMLDivElement | null
     expect(rightGhost).not.toBeNull()
-    expect(rightGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(rightGhost?.dataset.splitPreviewScope).toBe('local')
     expect(rightGhost?.style.left).toBe('280px')
     expect(rightGhost?.style.top).toBe('258px')
     expect(rightGhost?.style.width).toBe('80px')
@@ -1219,7 +1219,7 @@ describe('BrowserDockHost', () => {
       '.ViewportSplitDockGhost.isDockRight',
     ) as HTMLDivElement | null
     expect(wholeBrowserRightGhost).not.toBeNull()
-    expect(wholeBrowserRightGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserRightGhost?.dataset.splitPreviewScope).toBe('global')
     expect(wholeBrowserRightGhost?.style.left).toBe('418px')
     expect(wholeBrowserRightGhost?.style.top).toBe('0px')
     expect(wholeBrowserRightGhost?.style.width).toBe('126px')
@@ -1348,7 +1348,7 @@ describe('BrowserDockHost', () => {
 
     const leftGhost = container?.querySelector('.ViewportSplitDockGhost.isDockLeft') as HTMLDivElement | null
     expect(leftGhost).not.toBeNull()
-    expect(leftGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(leftGhost?.dataset.splitPreviewScope).toBe('local')
     expect(leftGhost?.style.left).toBe('0px')
     expect(leftGhost?.style.top).toBe('258px')
     expect(leftGhost?.style.width).toBe('80px')
@@ -1369,7 +1369,7 @@ describe('BrowserDockHost', () => {
       '.ViewportSplitDockGhost.isDockLeft',
     ) as HTMLDivElement | null
     expect(wholeBrowserLeftGhost).not.toBeNull()
-    expect(wholeBrowserLeftGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserLeftGhost?.dataset.splitPreviewScope).toBe('global')
     expect(wholeBrowserLeftGhost?.classList.contains('isWholeBrowserScope')).toBe(true)
     expect(wholeBrowserLeftGhost?.style.left).toBe('0px')
     expect(wholeBrowserLeftGhost?.style.top).toBe('0px')
@@ -1499,7 +1499,7 @@ describe('BrowserDockHost', () => {
 
     const topGhost = container?.querySelector('.ViewportSplitDockGhost.isDockTop') as HTMLDivElement | null
     expect(topGhost).not.toBeNull()
-    expect(topGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(topGhost?.dataset.splitPreviewScope).toBe('local')
     expect(topGhost?.style.left).toBe('0px')
     expect(topGhost?.style.top).toBe('258px')
     expect(topGhost?.style.width).toBe('360px')
@@ -1520,7 +1520,7 @@ describe('BrowserDockHost', () => {
       '.ViewportSplitDockGhost.isDockTop',
     ) as HTMLDivElement | null
     expect(wholeBrowserTopGhost).not.toBeNull()
-    expect(wholeBrowserTopGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserTopGhost?.dataset.splitPreviewScope).toBe('global')
     expect(wholeBrowserTopGhost?.classList.contains('isWholeBrowserScope')).toBe(true)
     expect(wholeBrowserTopGhost?.style.left).toBe('0px')
     expect(wholeBrowserTopGhost?.style.top).toBe('0px')
@@ -1650,7 +1650,7 @@ describe('BrowserDockHost', () => {
 
     const bottomGhost = container?.querySelector('.ViewportSplitDockGhost.isDockBottom') as HTMLDivElement | null
     expect(bottomGhost).not.toBeNull()
-    expect(bottomGhost?.dataset.splitPreviewScope).toBe('pane-local')
+    expect(bottomGhost?.dataset.splitPreviewScope).toBe('local')
     expect(bottomGhost?.style.left).toBe('0px')
     expect(bottomGhost?.style.width).toBe('360px')
     expect(bottomGhost?.style.height).not.toBe('')
@@ -1671,7 +1671,7 @@ describe('BrowserDockHost', () => {
       '.ViewportSplitDockGhost.isDockBottom',
     ) as HTMLDivElement | null
     expect(wholeBrowserBottomGhost).not.toBeNull()
-    expect(wholeBrowserBottomGhost?.dataset.splitPreviewScope).toBe('whole-browser')
+    expect(wholeBrowserBottomGhost?.dataset.splitPreviewScope).toBe('global')
     expect(wholeBrowserBottomGhost?.classList.contains('isWholeBrowserScope')).toBe(true)
     expect(wholeBrowserBottomGhost?.style.left).toBe('0px')
     expect(wholeBrowserBottomGhost?.style.top).not.toBe('0px')

@@ -4219,6 +4219,9 @@ describe('ConsoleDock', () => {
         (entry) => entry.text === 'Sketch > Choose next [Sketch Plane, Sketch Draw, Delete, Back]',
       ),
     ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Graph Documents > Graph 1 > Sketch > sketch_[1] > Choose next',
+    )
   })
 
   it('creates an extrude node when graph extrude scope is empty and continues into that node', async () => {
@@ -10374,6 +10377,240 @@ describe('ConsoleDock', () => {
     ).toBe(true)
   })
 
+  it('prefers the active spaghetti graph on surface-activation even when a stale selected target exists', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: 'object-1',
+      })
+      useAppStore.getState().setActiveSurface('spaghetti')
+      useAppStore.getState().requestConsoleContextSync('surface-activation')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Graph Documents > Graph 1 > Choose next',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).not.toContain('Object 1')
+  })
+
+  it('prefers an explicit viewer-root handoff over stale selected-target compatibility', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'footpad:pubpad-full-assembly',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+
+    await act(async () => {
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'viewer',
+        mode: 'root',
+        graphDocumentId: null,
+        nodeId: null,
+        editorViewportId: null,
+        selectedTarget: useAppStore.getState().workspaceSelection.selectedTarget,
+      })
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('root')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain('Root > Choose next')
+  })
+
+  it('prefers an explicit spaghetti graph handoff over stale selected-target compatibility', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'reference-item',
+        referenceId: 'footpad:pubpad-full-assembly',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+
+    await act(async () => {
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'spaghetti',
+        mode: 'graph',
+        graphDocumentId: 'graph-document-1',
+        nodeId: null,
+        editorViewportId: 'editor-viewport-1',
+        selectedTarget: useAppStore.getState().workspaceSelection.selectedTarget,
+      })
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Graph Documents > Graph 1 > Choose next',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).not.toContain('Premade')
+  })
+
+  it('does not replay legacy target-selection after an explicit browser selection handoff', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'references-root',
+      })
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'browser',
+        mode: 'selection',
+        graphDocumentId: null,
+        nodeId: null,
+        editorViewportId: null,
+        selectedTarget: {
+          kind: 'references-root',
+        },
+      })
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referencesSelected')
+    expect(
+      useConsoleStore.getState().entries.filter((entry) => entry.text === 'Select > References'),
+    ).toHaveLength(1)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.filter((entry) => entry.text.includes('References > Choose next [')),
+    ).toHaveLength(1)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
+    ).toBe(false)
+  })
+
+  it('ignores a stale surface-clear replay while spaghetti remains the active surface', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setActiveSurface('spaghetti')
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'spaghetti',
+        mode: 'graph',
+        graphDocumentId: 'graph-document-1',
+        nodeId: null,
+        editorViewportId: 'editor-viewport-1',
+        selectedTarget: null,
+      })
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+
+    await act(async () => {
+      useAppStore.getState().requestConsoleContextSync('surface-clear')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Graph Documents > Graph 1 > Choose next',
+    )
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Returned to root'),
+    ).toBe(false)
+  })
+
+  it('treats repeated explicit spaghetti graph handoffs as meaningful even when scope repeats', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'spaghetti',
+        mode: 'graph',
+        graphDocumentId: 'graph-document-1',
+        nodeId: null,
+        editorViewportId: 'editor-viewport-1',
+        selectedTarget: null,
+      })
+    })
+
+    const firstGraphPromptCount = useConsoleStore
+      .getState()
+      .entries.filter((entry) => entry.text.includes('Graph > Choose next')).length
+
+    await act(async () => {
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'spaghetti',
+        mode: 'graph',
+        graphDocumentId: 'graph-document-1',
+        nodeId: null,
+        editorViewportId: 'editor-viewport-1',
+        selectedTarget: null,
+      })
+    })
+
+    const secondGraphPromptCount = useConsoleStore
+      .getState()
+      .entries.filter((entry) => entry.text.includes('Graph > Choose next')).length
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(secondGraphPromptCount).toBeGreaterThan(firstGraphPromptCount)
+  })
+
+  it('uses the existing node-selected console path for an explicit spaghetti node handoff', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-cube-1',
+            type: 'Part/Cube',
+            params: getDefaultNodeParams('Part/Cube'),
+          },
+        ],
+        edges: [],
+      })
+      useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'spaghetti',
+        mode: 'node',
+        graphDocumentId: 'graph-document-1',
+        nodeId: 'node-cube-1',
+        editorViewportId: 'editor-viewport-1',
+        selectedTarget: null,
+      })
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphNodeSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Graph Documents > Graph 1 > Focus Node > node_[1] Cube > Choose next',
+    )
+  })
+
   it('returns to root on surface-clear even when a graph node remains selected', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -10985,7 +11222,7 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Graph > Choose next',
+      'Root > Graph Documents > Graph 1 > Choose next',
     )
   })
 
@@ -12124,7 +12361,7 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
     expect(useConsoleStore.getState().inputText).toBe('Sketch')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
-      'Graph > Choose next',
+      'Root > Graph Documents > Graph 1 > Choose next',
     )
     expect(
       container.querySelector('.ConsoleBarSummaryChoice.isActive')?.textContent,

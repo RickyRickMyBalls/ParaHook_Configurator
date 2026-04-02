@@ -724,8 +724,28 @@ export type ConsoleContextSyncReason =
   | 'target-selection'
   | 'surface-clear'
 
+export type ConsoleContextSyncSource =
+  | 'legacy'
+  | 'viewer-activation'
+  | 'global-outside-click'
+  | 'lost-spaghetti-visibility'
+  | 'console-selection-clear'
+
 export type ConsoleContextSyncRequest = {
   reason: ConsoleContextSyncReason
+  source: ConsoleContextSyncSource
+  seq: number
+}
+
+export type ConsoleWorkspaceContextHandoffMode = 'root' | 'graph' | 'node' | 'selection'
+
+export type ConsoleWorkspaceContextHandoff = {
+  sourceSurface: WorkspaceSurface | null
+  mode: ConsoleWorkspaceContextHandoffMode
+  graphDocumentId: string | null
+  nodeId: string | null
+  editorViewportId: string | null
+  selectedTarget: WorkspaceSelectedTarget | null
   seq: number
 }
 
@@ -755,6 +775,7 @@ export type AppState = {
   workspaceSelection: WorkspaceSelectionState
   floatingShellActivationRequest: FloatingShellActivationRequest | null
   consoleContextSyncRequest: ConsoleContextSyncRequest | null
+  consoleWorkspaceContextHandoff: ConsoleWorkspaceContextHandoff | null
   referenceTransformShellExitRequest: ReferenceTransformShellExitRequest | null
   workerError: string | null
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
@@ -1021,7 +1042,13 @@ export type AppState = {
     selection: WorkspaceResolvedContentSelection | null,
   ) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
-  requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
+  requestConsoleContextSync: (
+    reason: ConsoleContextSyncReason,
+    source?: ConsoleContextSyncSource,
+  ) => void
+  requestConsoleWorkspaceContextHandoff: (
+    handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
+  ) => void
   requestReferenceTransformShellExit: (
     source: ReferenceTransformShellExitRequest['source'],
   ) => void
@@ -3870,6 +3897,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   floatingShellActivationRequest: null,
   consoleContextSyncRequest: null,
+  consoleWorkspaceContextHandoff: null,
   referenceTransformShellExitRequest: null,
   workerError: null,
   setSpaghettiGraph: (graph) => {
@@ -7085,11 +7113,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
     }
   },
-  requestConsoleContextSync: (reason) => {
+  requestConsoleContextSync: (reason, source = 'legacy') => {
     set((state) => ({
       consoleContextSyncRequest: {
         reason,
+        source,
         seq: (state.consoleContextSyncRequest?.seq ?? 0) + 1,
+      },
+    }))
+  },
+  requestConsoleWorkspaceContextHandoff: (handoff) => {
+    set((state) => ({
+      consoleWorkspaceContextHandoff: {
+        ...handoff,
+        seq: (state.consoleWorkspaceContextHandoff?.seq ?? 0) + 1,
       },
     }))
   },
@@ -7141,6 +7178,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   selectPart: (partKeyStr) => {
+    if (get().selectedPartKey === partKeyStr) {
+      return
+    }
     set({ selectedPartKey: partKeyStr })
     appendConsoleEntry({
       layer: 'Selection',

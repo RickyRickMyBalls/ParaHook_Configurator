@@ -145,6 +145,7 @@ type WorkspaceStoreState = {
     surfaceKind: WorkspaceSurfaceKind,
     options?: {
       surfaceInstanceId?: string
+      discardRetainedSurfaceKinds?: WorkspaceSurfaceKind[]
     },
   ) => void
   hydratePersistedWorkspaceLayout: (layout: PersistedWorkspaceLayout) => void
@@ -1201,9 +1202,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
       if (currentSlot === undefined || currentSlot.surfaceKind === surfaceKind) {
         return state
       }
-      const nextRetainedSurfaceInstanceIdsByKind = {
+      const nextRetainedSurfaceInstanceIdsByKind: Partial<Record<WorkspaceSurfaceKind, string>> = {
         ...currentSlot.retainedSurfaceInstanceIdsByKind,
         [currentSlot.surfaceKind]: currentSlot.surfaceInstanceId,
+      }
+      for (const retainedSurfaceKind of options?.discardRetainedSurfaceKinds ?? []) {
+        delete nextRetainedSurfaceInstanceIdsByKind[retainedSurfaceKind]
       }
       const nextSurfaceInstanceId =
         options?.surfaceInstanceId ??

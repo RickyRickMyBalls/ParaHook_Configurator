@@ -458,9 +458,6 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
             shiftKey: event.shiftKey,
           })
         }}
-        onPointerUp={(event) => {
-          delete event.currentTarget.dataset.browserPointerSelectionHandled
-        }}
         onPointerCancel={(event) => {
           delete event.currentTarget.dataset.browserPointerSelectionHandled
         }}

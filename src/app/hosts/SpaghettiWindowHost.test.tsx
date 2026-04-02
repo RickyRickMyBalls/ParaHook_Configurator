@@ -44,16 +44,37 @@ vi.mock('../store/useAppStore', () => ({
 vi.mock('../panels/SpaghettiPanel', () => ({
   SpaghettiPanel: ({
     editorViewportId,
+    onActivateEditorContext,
+    activateOnPointerDownCapture,
     isHeaderCollapsed,
     isCanvasToolbarVisible,
     isWindowSettingsOpen,
   }: {
     editorViewportId: string
+    onActivateEditorContext?: (
+      editorViewportId: string,
+      target?: {
+        graphDocumentId?: string | null
+        nodeId?: string | null
+        mode?: 'graph' | 'node'
+      },
+    ) => void
+    activateOnPointerDownCapture?: boolean
     isHeaderCollapsed?: boolean
     isCanvasToolbarVisible?: boolean
     isWindowSettingsOpen?: boolean
   }) => (
-    <div>{`Spaghetti Panel ${editorViewportId} ${
+    <div
+      className="MockSpaghettiPanel"
+      data-editor-viewport-id={editorViewportId}
+      onPointerDownCapture={
+        activateOnPointerDownCapture
+          ? () => {
+              onActivateEditorContext?.(editorViewportId)
+            }
+          : undefined
+      }
+    >{`Spaghetti Panel ${editorViewportId} ${
       isHeaderCollapsed === true ? 'header-collapsed' : 'header-expanded'
     } ${isCanvasToolbarVisible === false ? 'canvas-toolbar-hidden' : 'canvas-toolbar-visible'} ${
       isWindowSettingsOpen === true ? 'window-settings-open' : 'window-settings-closed'
@@ -565,7 +586,7 @@ describe('SpaghettiWindowHost', () => {
           bubbles: true,
           cancelable: true,
           clientX: 760,
-          clientY: 80,
+          clientY: 8,
         }),
       )
     })
@@ -668,7 +689,11 @@ describe('SpaghettiWindowHost', () => {
       )
     })
 
-    expect(container?.querySelector('.ViewportSplitDockGhost.isDockRight')).not.toBeNull()
+    const rightGhost = container?.querySelector('.ViewportSplitDockGhost.isDockRight') as
+      | HTMLDivElement
+      | null
+    expect(rightGhost).not.toBeNull()
+    expect(rightGhost?.dataset.splitPreviewScope).toBe('global')
 
     await act(async () => {
       window.dispatchEvent(
@@ -694,6 +719,47 @@ describe('SpaghettiWindowHost', () => {
         (slot) => slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === 'editor-viewport-1',
       ),
     ).toBe(true)
+  })
+
+  it('uses the inner right-edge band to show a local split preview for the floating editor', async () => {
+    await renderHarness()
+    mockGeometry()
+    mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
+      left: 420,
+      top: 40,
+      width: 340,
+      height: 48,
+    })
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 520,
+          clientY: 60,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1420,
+          clientY: 360,
+        }),
+      )
+    })
+
+    const rightGhost = container?.querySelector('.ViewportSplitDockGhost.isDockRight') as
+      | HTMLDivElement
+      | null
+    expect(rightGhost).not.toBeNull()
+    expect(rightGhost?.dataset.splitPreviewScope).toBe('local')
   })
 
   it('redocks a detached slotted editor back into the workspace slot tree when it hits a viewport edge', async () => {

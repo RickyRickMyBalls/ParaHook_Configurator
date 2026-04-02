@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+26. 2026-04-01 18:03: Promoted `Pasta Path` out of the catch-all open-family list into the main `### Suggested Working Order`, placing it after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork while also tightening the family read so it now describes a scrub-friendly derived CAD-command diff surface rather than a second undo/history system
+25. 2026-04-01 17:59: Reordered the roadmap `### Suggested Working Order` so the live `Workspace 7.5-7` through `Workspace 7.5-11` cleanup ladder now sits explicitly ahead of `Workspace 5.3`, removed the already-shipped `App Shell` ladder from the active queue, and added one deferred later `AppShell` cleanup follow-on after the current workspace cleanup stack instead of leaving that future pass implicit
 24. 2026-04-01 13:36: Added the shipped `App Shell` ladder into the `### Suggested Working Order` section after that checklist was reformatted into numbered `####` family blocks, keeping the earlier shell groundwork visible in-sequence instead of only down in shipped reference
 23. 2026-04-01 13:31: Normalized the visible roadmap checklist naming toward family-first architecture labels such as `Workspace 1`, `Layers 1`, `View Toolbar 1`, and `App Shell 1`, while keeping older bracketed or dashed ids only as secondary references in parentheses so the working order reads more like the newer family docs
 22. 2026-04-01 13:25: Reworked the roadmap `## To do` section into a cleaner grouped sequence after comparing it against the newer workspace and family docs, keeping shipped items visible, pulling `Layers` into the near-term open-family ladder, and demoting stale standalone backlog shorthand like a future `AppShell` refactor or vague worker follow-on until those become real source-doc phases
@@ -274,7 +276,14 @@ Current read:
   - placement recommendation
   - first constraints
   - open `q1` through `q6`
-- the next cleanup for this family is probably to branch the first actual execution phase into `Future/` once the first honest read-only scrub slice is chosen
+- the concept should be read as:
+  - a derived scrub-friendly CAD-command / transform-diff surface
+  - not a replacement for `Spaghetti`
+  - not the same thing as `Edit History`
+- the likely dependency order is:
+  - current workspace cleanup first so the slim timeline surface has a stable home
+  - earlier `Edit History` groundwork next so the timeline can consume a canonical committed-diff seam without becoming the undo/history system itself
+- the next cleanup for this family is still probably to branch the first real standalone phase doc into `Future/` once the first honest read-only scrub slice is tightened around that narrower role
 
 ### [~] Pasta Path - Umbrella Concept And First Questions
 
@@ -361,10 +370,14 @@ Current read:
 - the shipped workspace groundwork now includes:
   - `Workspace 0.1` through `Workspace 5.2`
   - `Workspace 6`
-  - the shipped `Workspace 7.1`, `Workspace 7.2`, and `Workspace 7.2c` slot-foundation cuts recorded in the family index
+  - the shipped `Workspace 7.1` through `Workspace 7.5-6` slot, host-contract, multi-editor, replacement, and first split-plus-console groundwork recorded in the family index
 - the main remaining open follow-ons are now:
+  - `Workspace 7.5-7`
+  - `Workspace 7.5-8`
+  - `Workspace 7.5-9`
+  - `Workspace 7.5-10`
+  - `Workspace 7.5-11`
   - `Workspace 5.3`
-  - `Workspace 7`, with the next active handoff explicitly reading as `Workspace 7.3`
 - the family no longer reads like early extraction work is still pending:
   - `Workspace 1`
   - `Workspace 2`
@@ -497,6 +510,7 @@ Source doc:
 Current read:
 - the current dedicated `AppShell` family is fully shipped for its local `[5.0F]` cleanup ladder
 - there is no open `5.0F` follow-on left inside the current AppShell family doc
+- if a later `AppShell` cleanup returns, it should be treated as a new workspace-driven follow-on after the current `Workspace 7.5-7` through `Workspace 7.5-11` ladder and `Workspace 5.3`, not as a reopening of the shipped `[5.0F]` family
 
 ### [x] [5.0F] AppShell Cleanup And Host Seam Extraction
 ### [x] [5.0F-1] AppShell Runtime Host Extraction
@@ -519,14 +533,16 @@ Keep shipped items visible when they are part of a family that was previously st
 - [x] `Workspace 5`
 - [x] `Workspace 5.1`
 - [x] `Workspace 5.2`
-- [ ] `Workspace 5.3`
 - [x] `Workspace 6`
-- [ ] `Workspace 7`
+- [ ] `Workspace 7.5-7`
+- [ ] `Workspace 7.5-8`
+- [ ] `Workspace 7.5-9`
+- [ ] `Workspace 7.5-10`
+- [ ] `Workspace 7.5-11`
+- [ ] `Workspace 5.3`
 
-#### [x] - 2 - App Shell
-- [x] `App Shell 1` (`[5.0F]`)
-- [x] `App Shell 2` (`[5.0F-1]`)
-- [x] `App Shell 3` (`[5.0F-2]`)
+#### [ ] - 2 - Later AppShell Cleanup
+- [ ] `AppShell - Later Workspace Cleanup Follow-On`
 
 #### [ ] - 3 - View Toolbar
 - [ ] `View Toolbar 1` (`[5.0I-1]`)
@@ -567,7 +583,10 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Edit History 4`
 - [ ] `Edit History 5`
 
-#### [ ] - 8 - Export
+#### [~] - 8 - Pasta Path
+- [~] `Pasta Path - Umbrella Concept And First Questions`
+
+#### [ ] - 9 - Export
 - [ ] `Export 1`
 - [ ] `Export 2`
 - [ ] `Export 3`
@@ -581,7 +600,6 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Camera Controls 5` (`[5.0H-5]`)
 - [ ] `Radio 8`
 - [ ] `Radio 11`
-- [~] `Pasta Path - Umbrella Concept And First Questions`
 
 ### Shipped Reference
 

@@ -48,3 +48,6 @@ plugins:
 
 extra_css:
   - stylesheets/calendar.css
+
+extra_javascript:
+  - javascripts/calendar.js

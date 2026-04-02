@@ -252,6 +252,7 @@ const createDeps = (
   setActiveSurface: vi.fn(),
   selectPart: vi.fn(),
   requestConsoleContextSync: vi.fn(),
+  requestConsoleWorkspaceContextHandoff: vi.fn(),
   setActiveEditorViewportId: vi.fn(),
   toggleReferenceWorkspaceExpanded: vi.fn(),
   toggleReferenceCategoryExpanded: vi.fn(),
@@ -286,6 +287,14 @@ describe('createBrowserRowInteractionHandlers', () => {
     expect(deps.setLocalSelectedBrowserRowId).toHaveBeenCalledWith(null)
     expect(deps.setWorkspaceSelectedTarget).toHaveBeenCalledWith(null)
     expect(deps.selectPart).toHaveBeenCalledWith(null)
+    expect(deps.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: null,
+    })
     expect(deps.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
   })
 
@@ -307,7 +316,16 @@ describe('createBrowserRowInteractionHandlers', () => {
       selectionAnchorTarget: { kind: 'object', objectId: 'object-1' },
     })
     expect(deps.setActiveSurface).toHaveBeenCalledWith('browser')
+    expect(deps.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: { kind: 'object', objectId: 'object-1' },
+    })
     expect(deps.selectPart).toHaveBeenCalledWith('part:object-1')
+    expect(deps.appendBrowserEntry).not.toHaveBeenCalled()
   })
 
   it('keeps converged reference container rows on owner targets instead of legacy reference targets', () => {
@@ -436,6 +454,19 @@ describe('createBrowserRowInteractionHandlers', () => {
       },
     )
     expect(activateSurfaceIntentMock).toHaveBeenCalledWith(deps.workspaceIntentDeps, 'browser')
+    expect(deps.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: 'graph-document-1',
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'graph-document',
+        graphDocumentId: 'graph-document-1',
+      },
+    })
+    expect(deps.appendBrowserEntry).toHaveBeenCalledTimes(1)
+    expect(deps.appendBrowserEntry).toHaveBeenCalledWith('Focused Sketch Sketch 1')
     expect(activateGraphDocumentIntentMock).not.toHaveBeenCalled()
     expect(activateGraphNodeIntentMock).toHaveBeenCalledWith(
       deps.workspaceIntentDeps,

@@ -11,6 +11,7 @@ describe('workspaceSelectionCommands', () => {
     const selectPart = vi.fn()
     const setActiveSurface = vi.fn()
     const requestConsoleContextSync = vi.fn()
+    const requestConsoleWorkspaceContextHandoff = vi.fn()
 
     commitWorkspaceTargetSelection(
       {
@@ -18,6 +19,7 @@ describe('workspaceSelectionCommands', () => {
         selectPart,
         setActiveSurface,
         requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
       },
       {
         kind: 'reference-item',
@@ -35,6 +37,17 @@ describe('workspaceSelectionCommands', () => {
     })
     expect(selectPart).toHaveBeenCalledWith(null)
     expect(setActiveSurface).toHaveBeenCalledWith('browser')
+    expect(requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe:shoe-1',
+      },
+    })
     expect(requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
   })
 
@@ -43,6 +56,7 @@ describe('workspaceSelectionCommands', () => {
     const selectPart = vi.fn()
     const setActiveSurface = vi.fn()
     const requestConsoleContextSync = vi.fn()
+    const requestConsoleWorkspaceContextHandoff = vi.fn()
 
     commitWorkspaceExplicitSelection(
       {
@@ -50,6 +64,7 @@ describe('workspaceSelectionCommands', () => {
         selectPart,
         setActiveSurface,
         requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
       },
       {
         selectedTarget: { kind: 'object', objectId: 'object-2' },
@@ -75,6 +90,14 @@ describe('workspaceSelectionCommands', () => {
     })
     expect(selectPart).toHaveBeenCalledWith('part:object-2')
     expect(setActiveSurface).toHaveBeenCalledWith('viewer')
+    expect(requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'viewer',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: { kind: 'object', objectId: 'object-2' },
+    })
     expect(requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
   })
 
@@ -82,12 +105,14 @@ describe('workspaceSelectionCommands', () => {
     const setWorkspaceSelectedTarget = vi.fn()
     const selectPart = vi.fn()
     const requestConsoleContextSync = vi.fn()
+    const requestConsoleWorkspaceContextHandoff = vi.fn()
 
     clearWorkspaceTargetSelection(
       {
         setWorkspaceSelectedTarget,
         selectPart,
         requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
       },
       {
         syncReason: 'surface-clear',
@@ -96,6 +121,14 @@ describe('workspaceSelectionCommands', () => {
 
     expect(setWorkspaceSelectedTarget).toHaveBeenCalledWith(null)
     expect(selectPart).toHaveBeenCalledWith(null)
+    expect(requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: null,
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: null,
+    })
     expect(requestConsoleContextSync).toHaveBeenCalledWith('surface-clear')
   })
 })

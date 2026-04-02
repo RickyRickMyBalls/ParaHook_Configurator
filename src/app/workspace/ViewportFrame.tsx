@@ -21,6 +21,7 @@ type ViewportFrameProps = {
   slotId: WorkspaceViewportSlotId
   surfaceKind: WorkspaceSurfaceKind
   isPrimary?: boolean
+  onActivateSurface?: () => void
   onPrimaryButtonClick?: () => void
   primaryButtonLabel?: string
   primaryButtonAriaLabel?: string
@@ -60,6 +61,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
     slotId,
     surfaceKind,
     isPrimary = false,
+    onActivateSurface,
     onPrimaryButtonClick,
     onRequestSurfaceKind,
     onSplitTop,
@@ -265,6 +267,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
       className={`ViewportFrame ViewportFrame--${surfaceKind} ${isPrimary ? 'isPrimarySlot' : ''}`}
       data-workspace-slot-id={slotId}
       data-workspace-surface-kind={surfaceKind}
+      onPointerDownCapture={onActivateSurface}
     >
       <div
         className="ViewportFrameHeader"

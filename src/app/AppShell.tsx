@@ -13,15 +13,21 @@ import { RadioRuntimeHost } from './hosts/RadioRuntimeHost'
 import { SpaghettiWindowHost } from './hosts/SpaghettiWindowHost'
 import { useAppShellDockController } from './hosts/useAppShellDockController'
 import { RadioPanel } from './panels/RadioPanel'
-import { selectActiveEditorViewport, useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
+import {
+  selectActiveEditorViewport,
+  selectEditorViewportSelectedNodeId,
+  useSpaghettiStore,
+} from './spaghetti/store/useSpaghettiStore'
 import { useAudioSamplerStore } from './store/audioSamplerStore'
-import { useAppStore } from './store/useAppStore'
+import { useAppStore, type ConsoleContextSyncSource } from './store/useAppStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { PrimaryViewportLeftDock } from './workspace/PrimaryViewportLeftDock'
 import { ViewportFrame } from './workspace/ViewportFrame'
 import { ViewportSurfaceRegistry } from './workspace/ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
 import {
+  commitWorkspaceSurfaceRootSplit,
+  commitWorkspaceSurfaceSlotSplit,
   floatWorkspaceSurface,
   popoutWorkspaceSurface,
   restoreDetachedSurfaceByKind,
@@ -40,11 +46,10 @@ import {
 } from './workspace/workspaceShellTypes'
 import { setActiveViewer } from './viewerBridge'
 import {
-  defaultWorkspaceSplitDirection,
-  resolveDefaultWorkspaceSplitDockSide,
   defaultWorkspaceSplitPriority,
-  type WorkspaceSplitDirection,
+  resolveWorkspaceSplitDirectionForDockSide,
   type WorkspaceSplitPriority,
+  type WorkspaceSplitDockSide,
 } from './workspace/workspaceSplitTypes'
 
 const floatingDockLockGap = 25
@@ -89,8 +94,10 @@ export function AppShell() {
   const activeEditorViewport = useSpaghettiStore(selectActiveEditorViewport)
   const editorViewportsById = useSpaghettiStore((state) => state.editorViewportsById)
   const activeEditorViewportId = useSpaghettiStore((state) => state.activeEditorViewportId)
+  const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession ?? null)
   const setEditorViewportWindowMode = useSpaghettiStore((state) => state.setEditorViewportWindowMode)
+  const closeEditorViewport = useSpaghettiStore((state) => state.closeEditorViewport)
   const setEditorViewportSplitDirection = useSpaghettiStore(
     (state) => state.setEditorViewportSplitDirection,
   )
@@ -101,12 +108,12 @@ export function AppShell() {
   const isRadioToolbarOpen = useAudioSamplerStore((state) => state.isRadioToolbarOpen)
   const floatingShellActivationRequest = useAppStore((state) => state.floatingShellActivationRequest)
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
-  const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
-  const workspaceExplicitSelectedTargets = useAppStore(
-    (state) => state.workspaceSelection.explicitSelectedTargets ?? [],
-  )
   const setActiveSurface = useAppStore((state) => state.setActiveSurface)
+  const setWorkspaceSelectedTarget = useAppStore((state) => state.setWorkspaceSelectedTarget)
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
+  const requestConsoleWorkspaceContextHandoff = useAppStore(
+    (state) => state.requestConsoleWorkspaceContextHandoff,
+  )
   const appShellRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLElement | null>(null)
   const browserViewportSplitHostRef = useRef<HTMLDivElement | null>(null)
@@ -247,6 +254,29 @@ export function AppShell() {
       }),
     [editorSurfacePlacementById, editorViewportsById, viewportSlotsById],
   )
+  const hasSlottedSpaghettiSurface = useMemo(
+    () => Object.values(viewportSlotsById).some((slot) => slot.surfaceKind === 'spaghettiEditor'),
+    [viewportSlotsById],
+  )
+  const hasDetachedSpaghettiSurface = useMemo(
+    () =>
+      Object.values(detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'spaghettiEditor',
+      ),
+    [detachedSlotSurfaceById],
+  )
+  const hasPopoutSpaghettiSurface = useMemo(
+    () =>
+      Object.values(editorViewportsById).some(
+        (viewport) => (viewport.windowMode ?? '') === 'separateWindow',
+      ),
+    [editorViewportsById],
+  )
+  const hasFocusableSpaghettiSurface =
+    hasVisibleSpaghettiInAppShell ||
+    hasSlottedSpaghettiSurface ||
+    hasDetachedSpaghettiSurface ||
+    hasPopoutSpaghettiSurface
   const editorViewportSplitViewSignature = Object.values(editorViewportsById)
     .map((viewport) =>
       [
@@ -259,14 +289,6 @@ export function AppShell() {
     )
     .join('|')
   const splitRatio = activeEditorSurface?.splitRatio ?? activeEditorViewport?.splitRatio ?? 0.5
-  const splitDirection =
-    activeEditorSurface?.splitDirection ??
-    activeEditorViewport?.splitDirection ??
-    defaultWorkspaceSplitDirection
-  const splitDockSide =
-    activeEditorSurface?.splitDockSide ??
-    activeEditorViewport?.splitDockSide ??
-    resolveDefaultWorkspaceSplitDockSide(splitDirection)
   const splitPriority =
     activeEditorSurface?.splitPriority ??
     activeEditorViewport?.splitPriority ??
@@ -359,18 +381,6 @@ export function AppShell() {
     )
   }, [isLeftDockViewportSplit, viewportLayoutNodesById, viewportSlotsById])
 
-  const resolvePreferredEditorSplitDockSide = useCallback(
-    (nextDirection: WorkspaceSplitDirection) =>
-      nextDirection === 'vertical'
-        ? splitDockSide === 'left' || splitDockSide === 'right'
-          ? splitDockSide
-          : 'right'
-        : splitDockSide === 'top' || splitDockSide === 'bottom'
-          ? splitDockSide
-          : 'bottom',
-    [splitDockSide],
-  )
-
   const resolveViewerTargetSlotId = useCallback(() => {
     const targetViewerSlot =
       Object.values(viewportSlotsById).find(
@@ -410,36 +420,125 @@ export function AppShell() {
     browserSlotCountRef.current = browserSlotCount
   }, [browserSlotCount, browserToolbarOwnerSurfaceInstanceId])
 
-  const handleActivateSpaghettiFloatingWindow = useCallback(() => {
-    setActiveFloatingShell('spaghetti')
-    setActiveSurface('spaghetti')
-    requestConsoleContextSync('surface-activation')
-  }, [requestConsoleContextSync, setActiveSurface])
+  const activateSpaghettiWorkspaceContext = useCallback(
+    (
+      editorViewportId?: string,
+      options?: {
+        floatingShell?: boolean
+        graphDocumentId?: string | null
+        nodeId?: string | null
+        mode?: 'graph' | 'node'
+      },
+    ) => {
+      const nextEditorViewportId =
+        editorViewportId !== undefined && editorViewportId.length > 0 ? editorViewportId : null
+      if (nextEditorViewportId !== null) {
+        setActiveEditorViewportId(nextEditorViewportId)
+      }
+      const spaghettiState = useSpaghettiStore.getState()
+      const appState = useAppStore.getState()
+      const targetEditorViewportId =
+        nextEditorViewportId ??
+        (spaghettiState.activeEditorViewportId.length > 0 ? spaghettiState.activeEditorViewportId : null)
+      const targetViewport =
+        targetEditorViewportId === null
+          ? null
+          : spaghettiState.editorViewportsById[targetEditorViewportId] ?? null
+      const resolvedGraphDocumentId =
+        options?.graphDocumentId !== undefined
+          ? options.graphDocumentId
+          : targetViewport?.graphDocumentId ?? null
+      const resolvedNodeId =
+        options?.nodeId !== undefined
+          ? options.nodeId
+          : targetEditorViewportId === null
+            ? null
+            : selectEditorViewportSelectedNodeId(spaghettiState, targetEditorViewportId)
+      const resolvedMode = options?.mode ?? (resolvedNodeId === null ? 'graph' : 'node')
+      if (options?.floatingShell === true) {
+        setActiveFloatingShell('spaghetti')
+      }
+      setActiveSurface('spaghetti')
+      if (resolvedGraphDocumentId !== null) {
+        setWorkspaceSelectedTarget(
+          resolvedNodeId === null
+            ? {
+                kind: 'graph-document',
+                graphDocumentId: resolvedGraphDocumentId,
+              }
+            : {
+                kind: 'graph-node',
+                graphDocumentId: resolvedGraphDocumentId,
+                nodeId: resolvedNodeId,
+              },
+        )
+      }
+      requestConsoleWorkspaceContextHandoff({
+        sourceSurface: 'spaghetti',
+        mode: resolvedMode,
+        graphDocumentId: resolvedGraphDocumentId,
+        nodeId: resolvedNodeId,
+        editorViewportId: targetEditorViewportId,
+        selectedTarget: appState.workspaceSelection.selectedTarget,
+      })
+      requestConsoleContextSync('surface-activation')
+    },
+    [
+      requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff,
+      setWorkspaceSelectedTarget,
+      setActiveEditorViewportId,
+      setActiveFloatingShell,
+      setActiveSurface,
+    ],
+  )
 
-  const handleActivateSpaghettiSurface = useCallback(() => {
-    setActiveSurface('spaghetti')
-    requestConsoleContextSync('surface-activation')
-  }, [requestConsoleContextSync, setActiveSurface])
+  const handleActivateSpaghettiFloatingWindow = useCallback((
+    editorViewportId?: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => {
+    activateSpaghettiWorkspaceContext(editorViewportId, { floatingShell: true, ...target })
+  }, [activateSpaghettiWorkspaceContext])
+
+  const handleActivateSpaghettiSurface = useCallback((
+    editorViewportId?: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => {
+    activateSpaghettiWorkspaceContext(editorViewportId, target)
+  }, [activateSpaghettiWorkspaceContext])
 
   const handleActivateViewerSurface = useCallback((viewportId: string) => {
     setActiveFloatingShell(null)
     setActiveViewerViewportId(viewportId)
     setActiveViewer(viewportId)
     setActiveSurface('viewer')
+    const appState = useAppStore.getState()
+    requestConsoleWorkspaceContextHandoff({
+      sourceSurface: 'viewer',
+      mode: 'root',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: appState.workspaceSelection.selectedTarget,
+    })
     if (sketchPlanePickSession !== null) {
       return
     }
-    if (workspaceSelectedTarget !== null || workspaceExplicitSelectedTargets.length > 0) {
-      return
-    }
-    requestConsoleContextSync('surface-clear')
+    requestConsoleContextSync('surface-clear', 'viewer-activation')
   }, [
     requestConsoleContextSync,
+    requestConsoleWorkspaceContextHandoff,
     setActiveViewerViewportId,
     setActiveSurface,
     sketchPlanePickSession,
-    workspaceExplicitSelectedTargets.length,
-    workspaceSelectedTarget,
   ])
 
   const handleActivateBrowserFloatingWindow = useCallback(() => {
@@ -447,18 +546,20 @@ export function AppShell() {
     setActiveSurface('browser')
   }, [setActiveSurface])
 
-  useEffect(() => {
-    if (!hasVisibleSpaghettiInAppShell && workspaceActiveSurface === 'spaghetti') {
+  const requestAppShellSurfaceClear = useCallback(
+    (source: ConsoleContextSyncSource) => {
       setActiveFloatingShell(null)
       setActiveSurface(null)
-      requestConsoleContextSync('surface-clear')
+      requestConsoleContextSync('surface-clear', source)
+    },
+    [requestConsoleContextSync, setActiveSurface],
+  )
+
+  useEffect(() => {
+    if (!hasFocusableSpaghettiSurface && workspaceActiveSurface === 'spaghetti') {
+      requestAppShellSurfaceClear('lost-spaghetti-visibility')
     }
-  }, [
-    hasVisibleSpaghettiInAppShell,
-    requestConsoleContextSync,
-    setActiveSurface,
-    workspaceActiveSurface,
-  ])
+  }, [hasFocusableSpaghettiSurface, requestAppShellSurfaceClear, workspaceActiveSurface])
 
   useEffect(() => {
     if (!isBrowserFloating && !isBrowserPoppedOut && workspaceActiveSurface === 'browser') {
@@ -499,16 +600,21 @@ export function AppShell() {
       if (
         target instanceof Element &&
         (target.closest('.SpaghettiFloatingWindow') !== null ||
+          target.closest('.ViewportFrame--spaghettiEditor') !== null ||
+          target.closest('.WorkspaceViewportSlotSurface--spaghetti') !== null ||
           target.closest('.BrowserFloatingWindow') !== null ||
+          target.closest('.ViewportFrame--browser') !== null ||
+          target.closest('.WorkspaceViewportSlotSurface--browser') !== null ||
+          target.closest('.BrowserPanelRoot') !== null ||
+          target.closest('.BrowserPanelBody') !== null ||
+          target.closest('.BrowserTree') !== null ||
           target.closest('.ViewportWorkspaceHost') !== null ||
           target.closest('.ViewportViewerSurface') !== null)
       ) {
         return
       }
       if (workspaceActiveSurface === 'spaghetti' || workspaceActiveSurface === 'browser') {
-        setActiveFloatingShell(null)
-        setActiveSurface(null)
-        requestConsoleContextSync('surface-clear')
+        requestAppShellSurfaceClear('global-outside-click')
       }
     }
 
@@ -516,7 +622,7 @@ export function AppShell() {
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown)
     }
-  }, [requestConsoleContextSync, setActiveSurface, workspaceActiveSurface])
+  }, [requestAppShellSurfaceClear, workspaceActiveSurface])
 
   useEffect(() => {
     if (hasHydratedWorkspacePersistenceRef.current) {
@@ -682,35 +788,48 @@ export function AppShell() {
     [editorViewportsById, setWorkspaceSplitMenu],
   )
 
-  const handleSetSplitDirection = useCallback(
-    (nextDirection: WorkspaceSplitDirection) => {
+  const handleCommitFloatingSurfaceSplit = useCallback(
+    (
+      splitDockSide: WorkspaceSplitDockSide,
+      scope: 'local' | 'global',
+    ) => {
       if (workspaceSplitMenuTargetEditorViewport === null) {
         return
       }
       const editorViewportId = workspaceSplitMenuTargetEditorViewport.editorViewportId
-      const nextSplitDockSide = resolvePreferredEditorSplitDockSide(nextDirection)
-      setEditorViewportSplitDirection(editorViewportId, nextDirection)
-      if (workspaceSplitMenuTargetEditorSlot === null) {
-        splitWorkspaceSurfaceToSide(editorViewportId, nextSplitDockSide, {
-          preferredRatio:
-            workspaceSplitMenuTargetEditorSurface?.splitRatio ??
-            workspaceSplitMenuTargetEditorViewport.splitRatio ??
-            splitRatio,
-          targetSlotId: resolveViewerTargetSlotId(),
+      const preferredRatio =
+        workspaceSplitMenuTargetEditorSurface?.splitRatio ??
+        workspaceSplitMenuTargetEditorViewport.splitRatio ??
+        splitRatio
+      setEditorViewportSplitDirection(
+        editorViewportId,
+        resolveWorkspaceSplitDirectionForDockSide(splitDockSide),
+      )
+      if (scope === 'local') {
+        commitWorkspaceSurfaceSlotSplit(
+          editorViewportId,
+          resolveViewerTargetSlotId(),
+          splitDockSide,
+          {
+            preferredRatio,
+          },
+        )
+      } else {
+        commitWorkspaceSurfaceRootSplit(editorViewportId, splitDockSide, {
+          preferredRatio,
         })
       }
       setEditorViewportWindowMode(editorViewportId, 'expanded')
       setWorkspaceSplitMenu(null)
     },
     [
-      resolvePreferredEditorSplitDockSide,
+      commitWorkspaceSurfaceRootSplit,
+      commitWorkspaceSurfaceSlotSplit,
       resolveViewerTargetSlotId,
       setEditorViewportSplitDirection,
       setEditorViewportWindowMode,
       setWorkspaceSplitMenu,
       splitRatio,
-      splitWorkspaceSurfaceToSide,
-      workspaceSplitMenuTargetEditorSlot,
       workspaceSplitMenuTargetEditorSurface,
       workspaceSplitMenuTargetEditorViewport,
     ],
@@ -788,6 +907,53 @@ export function AppShell() {
     [activeEditorViewport?.graphDocumentId, editorSurfaceBindingById],
   )
 
+  const resolveEditorSurfaceInstanceIdForSlotSwitch = useCallback(
+    (currentSlot: {
+      surfaceInstanceId: string
+      retainedSurfaceInstanceIdsByKind: Partial<Record<'modelViewer' | 'browser' | 'console' | 'spaghettiEditor', string>>
+    }) => {
+      const isReusableUnboundEditorViewport = (editorViewportId: string) => {
+        const viewport = editorViewportsById[editorViewportId] ?? null
+        if (viewport === null) {
+          return false
+        }
+        const isSlotted = Object.values(viewportSlotsById).some(
+          (slot) =>
+            slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === editorViewportId,
+        )
+        if (isSlotted) {
+          return false
+        }
+        const placement = editorSurfacePlacementById[editorViewportId] ?? null
+        const windowMode = viewport.windowMode ?? placement?.windowMode
+        return !(
+          windowMode === 'expanded' ||
+          windowMode === 'maximized' ||
+          windowMode === 'collapsed' ||
+          windowMode === 'meatball editor view' ||
+          windowMode === 'separateWindow'
+        )
+      }
+
+      const retainedEditorViewportId =
+        currentSlot.retainedSurfaceInstanceIdsByKind.spaghettiEditor ?? null
+      if (
+        retainedEditorViewportId !== null &&
+        isReusableUnboundEditorViewport(retainedEditorViewportId)
+      ) {
+        return retainedEditorViewportId
+      }
+
+      return createDuplicatedEditorSurfaceInstanceId(currentSlot.surfaceInstanceId)
+    },
+    [
+      createDuplicatedEditorSurfaceInstanceId,
+      editorSurfacePlacementById,
+      editorViewportsById,
+      viewportSlotsById,
+    ],
+  )
+
   const handleViewportSlotSplit = useCallback(
     (slotId: string, splitDockSide: 'top' | 'right' | 'bottom' | 'left') => {
       const sourceSlot = viewportSlotsById[slotId] ?? null
@@ -836,21 +1002,29 @@ export function AppShell() {
         return
       }
       const nextSurfaceInstanceId =
-        nextSurfaceKind === 'spaghettiEditor' &&
-        currentSlot.retainedSurfaceInstanceIdsByKind.spaghettiEditor === undefined
-          ? createDuplicatedEditorSurfaceInstanceId(currentSlot.surfaceInstanceId)
+        nextSurfaceKind === 'spaghettiEditor'
+          ? resolveEditorSurfaceInstanceIdForSlotSwitch(currentSlot)
           : null
+      const isDestructiveSpaghettiReplace =
+        currentSlot.surfaceKind === 'spaghettiEditor' && nextSurfaceKind !== 'spaghettiEditor'
       setViewportSlotSurfaceKind(slotId, nextSurfaceKind, {
         ...(nextSurfaceInstanceId === null ? {} : { surfaceInstanceId: nextSurfaceInstanceId }),
+        ...(isDestructiveSpaghettiReplace
+          ? { discardRetainedSurfaceKinds: ['spaghettiEditor' as const] }
+          : {}),
       })
+      if (isDestructiveSpaghettiReplace) {
+        closeEditorViewport(currentSlot.surfaceInstanceId)
+      }
       if (currentSlot.surfaceKind === 'browser' && browserSlotCount <= 1 && isBrowserViewportSplit) {
         setIsBrowserViewportSplit(false)
       }
     },
     [
       browserSlotCount,
-      createDuplicatedEditorSurfaceInstanceId,
+      closeEditorViewport,
       isBrowserViewportSplit,
+      resolveEditorSurfaceInstanceIdForSlotSwitch,
       setIsBrowserViewportSplit,
       setViewportSlotSurfaceKind,
       viewportSlotsById,
@@ -1202,6 +1376,11 @@ export function AppShell() {
           slotId={slot.slotId}
           surfaceKind={slot.surfaceKind}
           isPrimary={isPrimarySlot}
+          onActivateSurface={
+            slot.surfaceKind === 'spaghettiEditor'
+              ? () => handleActivateSpaghettiSurface(slot.surfaceInstanceId)
+              : undefined
+          }
           onPrimaryButtonClick={
             slot.surfaceKind === 'browser'
               ? () =>
@@ -1583,20 +1762,24 @@ export function AppShell() {
           className="WorkspaceSplitMenu PrimaryViewportLeftDockResizeMenu"
           style={workspaceSplitMenuStyle}
         >
-          <button
-            type="button"
-            className="PrimaryViewportLeftDockResizeMenuAction"
-            onClick={() => handleSetSplitDirection('horizontal')}
-          >
-            Split Horizontal
-          </button>
-          <button
-            type="button"
-            className="PrimaryViewportLeftDockResizeMenuAction"
-            onClick={() => handleSetSplitDirection('vertical')}
-          >
-            Split Vertical
-          </button>
+          {workspaceSplitMenu.scope === 'floating-titlebar' ? (
+            <>
+              <button
+                type="button"
+                className="PrimaryViewportLeftDockResizeMenuAction"
+                onClick={() => handleCommitFloatingSurfaceSplit('right', 'local')}
+              >
+                Split Right Locally
+              </button>
+              <button
+                type="button"
+                className="PrimaryViewportLeftDockResizeMenuAction"
+                onClick={() => handleCommitFloatingSurfaceSplit('right', 'global')}
+              >
+                Split Right Globally
+              </button>
+            </>
+          ) : null}
           {workspaceSplitMenu.scope === 'divider' ? (
             <>
               <button

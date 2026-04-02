@@ -191,6 +191,9 @@ export function useBrowserPanelController(
   const setWorkspaceExplicitSelection = useAppStore((state) => state.setWorkspaceExplicitSelection)
   const setActiveSurface = useAppStore((state) => state.setActiveSurface)
   const requestConsoleContextSync = useAppStore((state) => state.requestConsoleContextSync)
+  const requestConsoleWorkspaceContextHandoff = useAppStore(
+    (state) => state.requestConsoleWorkspaceContextHandoff,
+  )
   const requestFloatingShellActivation = useAppStore(
     (state) => state.requestFloatingShellActivation,
   )
@@ -360,6 +363,7 @@ export function useBrowserPanelController(
         setActiveSurface,
         requestFloatingShellActivation,
         requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
         setReferenceItemVisibility,
         beginReferenceTransform: beginReferenceTransformShell,
         selectPart,
@@ -383,6 +387,7 @@ export function useBrowserPanelController(
       openGraphDocumentInViewport,
       openGraphDocumentInNewViewport,
       requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff,
       requestEditorViewportNodeFit,
       requestFloatingShellActivation,
       selectPart,
@@ -1030,6 +1035,7 @@ export function useBrowserPanelController(
         setActiveSurface,
         selectPart,
         requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
         setActiveEditorViewportId,
         toggleReferenceWorkspaceExpanded,
         toggleReferenceCategoryExpanded,
@@ -1049,6 +1055,7 @@ export function useBrowserPanelController(
       graphDocumentsById,
       newEditorSpawnPosition,
       requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff,
       selectPart,
       setActiveEditorViewportId,
       setActiveSurface,
@@ -1254,7 +1261,11 @@ export function useBrowserPanelController(
       )
       requestConsoleContextSync('target-selection')
     },
-    [appendBrowserEntry, renameProjectContentOwner, requestConsoleContextSync],
+    [
+      appendBrowserEntry,
+      renameProjectContentOwner,
+      requestConsoleContextSync,
+    ],
   )
 
   const handleCreateAssembly = useCallback(() => {

@@ -1,5 +1,6 @@
 import type {
   ConsoleContextSyncReason,
+  ConsoleWorkspaceContextHandoff,
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from './useAppStore'
@@ -9,6 +10,9 @@ export type WorkspaceTargetSelectionCommandDeps = {
   selectPart?: (partKey: string | null) => void
   setActiveSurface?: (surface: WorkspaceSurface | null) => void
   requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
+  requestConsoleWorkspaceContextHandoff?: (
+    handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
+  ) => void
 }
 
 export type WorkspaceExplicitSelectionCommit = {
@@ -22,6 +26,9 @@ export type WorkspaceExplicitSelectionCommandDeps = {
   selectPart?: (partKey: string | null) => void
   setActiveSurface?: (surface: WorkspaceSurface | null) => void
   requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
+  requestConsoleWorkspaceContextHandoff?: (
+    handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
+  ) => void
 }
 
 type WorkspaceSelectionCommandOptions = {
@@ -35,7 +42,11 @@ const applySharedWorkspaceSelectionSideEffects = (
     selectPart?: (partKey: string | null) => void
     setActiveSurface?: (surface: WorkspaceSurface | null) => void
     requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
+    requestConsoleWorkspaceContextHandoff?: (
+      handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
+    ) => void
   },
+  target: WorkspaceSelectedTarget | null,
   options: WorkspaceSelectionCommandOptions,
 ): void => {
   if (options.activeSurface !== undefined) {
@@ -44,6 +55,17 @@ const applySharedWorkspaceSelectionSideEffects = (
   if (options.selectedPartKey !== undefined) {
     deps.selectPart?.(options.selectedPartKey)
   }
+  deps.requestConsoleWorkspaceContextHandoff?.({
+    sourceSurface: options.activeSurface ?? null,
+    mode: 'selection',
+    graphDocumentId:
+      target?.kind === 'graph-document' || target?.kind === 'graph-node'
+        ? target.graphDocumentId
+        : null,
+    nodeId: target?.kind === 'graph-node' ? target.nodeId : null,
+    editorViewportId: null,
+    selectedTarget: target,
+  })
   deps.requestConsoleContextSync?.(options.syncReason ?? 'target-selection')
 }
 
@@ -53,7 +75,7 @@ export const commitWorkspaceTargetSelection = (
   options: WorkspaceSelectionCommandOptions = {},
 ): WorkspaceSelectedTarget | null => {
   deps.setWorkspaceSelectedTarget(target)
-  applySharedWorkspaceSelectionSideEffects(deps, options)
+  applySharedWorkspaceSelectionSideEffects(deps, target, options)
   return target
 }
 
@@ -72,6 +94,6 @@ export const commitWorkspaceExplicitSelection = (
   options: WorkspaceSelectionCommandOptions = {},
 ): WorkspaceSelectedTarget | null => {
   deps.setWorkspaceExplicitSelection(selection)
-  applySharedWorkspaceSelectionSideEffects(deps, options)
+  applySharedWorkspaceSelectionSideEffects(deps, selection.selectedTarget, options)
   return selection.selectedTarget
 }

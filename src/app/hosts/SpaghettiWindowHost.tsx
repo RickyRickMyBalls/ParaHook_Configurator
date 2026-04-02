@@ -33,7 +33,6 @@ import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import {
   defaultWorkspaceSplitDirection,
   resolveDefaultWorkspaceSplitDockSide,
-  type WorkspaceSplitDockSide,
 } from '../workspace/workspaceSplitTypes'
 import {
   createDefaultEditorPopoutState,
@@ -44,9 +43,14 @@ import {
 } from '../workspace/workspaceShellTypes'
 import {
   popoutWorkspaceSurface,
+  commitWorkspaceSurfaceRootSplit,
+  commitWorkspaceSurfaceSlotSplit,
   redockWorkspaceSurface,
-  splitWorkspaceSurfaceToSide,
 } from '../workspace/workspaceSurfaceActions'
+import {
+  resolveWorkspaceSplitDockPreview,
+  type WorkspaceSplitDockPreview,
+} from '../workspace/workspaceSplitPreview'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 
 type FloatingPosition = {
@@ -379,9 +383,15 @@ function SpaghettiPopoutSurfaceHost(props: {
   editorViewportId: string
   popoutState: ReturnType<typeof createDefaultEditorPopoutState>
   workspaceActiveSurface: WorkspaceSurface
-  onActivateSpaghettiSurface: () => void
   onActivateViewport: (editorViewportId: string) => void
-  onActivateSpaghettiFloatingWindow: () => void
+  onActivateSpaghettiFloatingWindow: (
+    editorViewportId?: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => void
   claimPendingWindow?: (editorViewportId: string) => Window | null
   onClosed: (editorViewportId: string) => void
   onBlocked: (editorViewportId: string) => void
@@ -391,7 +401,6 @@ function SpaghettiPopoutSurfaceHost(props: {
     editorViewportId,
     popoutState,
     workspaceActiveSurface,
-    onActivateSpaghettiSurface,
     onActivateViewport,
     onActivateSpaghettiFloatingWindow,
     claimPendingWindow,
@@ -427,7 +436,7 @@ function SpaghettiPopoutSurfaceHost(props: {
     }
     const handleFocus = () => {
       onActivateViewport(editorViewportId)
-      onActivateSpaghettiFloatingWindow()
+      onActivateSpaghettiFloatingWindow(editorViewportId)
     }
     childWindow.addEventListener('focus', handleFocus)
     return () => {
@@ -435,17 +444,21 @@ function SpaghettiPopoutSurfaceHost(props: {
     }
   }, [childWindow, editorViewportId, onActivateSpaghettiFloatingWindow, onActivateViewport])
 
+  const handlePopoutPointerDown = useCallback(() => {
+    onActivateSpaghettiFloatingWindow(editorViewportId)
+  }, [editorViewportId, onActivateSpaghettiFloatingWindow])
+
   if (host === null) {
     return null
   }
 
   return createPortal(
-    <div className="SpaghettiPopoutSurface" onPointerDownCapture={onActivateSpaghettiSurface}>
+    <div className="SpaghettiPopoutSurface">
       <div
         className={`SpaghettiPopoutWindow SpaghettiWindowShell ${
           workspaceActiveSurface === 'spaghetti' ? 'isActiveWindow' : ''
         }`}
-        onPointerDown={() => onActivateViewport(editorViewportId)}
+        onPointerDown={handlePopoutPointerDown}
       >
         {children}
       </div>
@@ -478,8 +491,22 @@ type SpaghettiWindowHostProps = {
     titleBarHeight: number
   } | null
   onConsumeSlotHeaderDragSeed: () => void
-  onActivateSpaghettiSurface: () => void
-  onActivateSpaghettiFloatingWindow: () => void
+  onActivateSpaghettiSurface: (
+    editorViewportId?: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => void
+  onActivateSpaghettiFloatingWindow: (
+    editorViewportId?: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => void
   onOpenFloatingSplitMenu: (
     editorViewportId: string,
     event: ReactMouseEvent<HTMLDivElement>,
@@ -570,10 +597,10 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   const [headerToggleRevisionByViewportId, setHeaderToggleRevisionByViewportId] = useState<
     Record<string, number>
   >({})
-  const [splitDockPreviewSide, setSplitDockPreviewSide] = useState<WorkspaceSplitDockSide | null>(null)
+  const [splitDockPreview, setSplitDockPreview] = useState<WorkspaceSplitDockPreview | null>(null)
   const floatingPosByViewportIdRef = useRef<Record<string, FloatingPosition>>({})
   const floatingSizeByViewportIdRef = useRef<Record<string, FloatingSize>>({})
-  const splitDockPreviewSideRef = useRef<WorkspaceSplitDockSide | null>(null)
+  const splitDockPreviewRef = useRef<WorkspaceSplitDockPreview | null>(null)
   const floatingDockLockRef = useRef<{
     editorViewportId: string
   } | null>(null)
@@ -685,7 +712,6 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     activeWindowMode === 'expanded' || activeWindowMode === 'collapsed'
   const canResizeFloatingWindow = activeWindowMode === 'expanded'
   const activeEditorSize = activeViewportState?.size ?? defaultEditorSurfaceSize
-  const splitRatio = activeViewportState?.splitRatio ?? 0.5
   const splitDirection = activeViewportState?.splitDirection ?? defaultWorkspaceSplitDirection
   const splitDockSide =
     activeViewportState?.splitDockSide ?? resolveDefaultWorkspaceSplitDockSide(splitDirection)
@@ -995,115 +1021,48 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     [clampFloatingPos, getFloatingPosForViewport, getFloatingSizeForViewport, orderedViewportStates, viewportRef],
   )
 
-  const resolveSplitDockPreviewSide = useCallback(
-    (pointerClientX: number, pointerClientY: number): WorkspaceSplitDockSide | null => {
-      const viewportRect = viewportRef.current?.getBoundingClientRect()
-      const overshootThreshold = 120
-      if (
-        viewportRect === undefined ||
-        viewportRect.width <= 0 ||
-        viewportRect.height <= 0 ||
-        pointerClientX < viewportRect.left - overshootThreshold ||
-        pointerClientX > viewportRect.right + overshootThreshold ||
-        pointerClientY < viewportRect.top - overshootThreshold ||
-        pointerClientY > viewportRect.bottom + overshootThreshold
-      ) {
-        return null
-      }
-      const hoveredPaneRect =
-        typeof document.elementsFromPoint === 'function'
-          ? document
-              .elementsFromPoint(pointerClientX, pointerClientY)
-              .map((element) =>
-                element instanceof HTMLElement
-                  ? element.closest('[data-workspace-slot-id]')
-                  : null,
-              )
-              .find(
-                (element): element is HTMLElement =>
-                  element instanceof HTMLElement && viewportRef.current?.contains(element) === true,
-              )
-              ?.getBoundingClientRect() ?? viewportRect
-          : viewportRect
-      const clampedPointerClientX = Math.min(
-        hoveredPaneRect.right,
-        Math.max(hoveredPaneRect.left, pointerClientX),
-      )
-      const clampedPointerClientY = Math.min(
-        hoveredPaneRect.bottom,
-        Math.max(hoveredPaneRect.top, pointerClientY),
-      )
-      const edgeThreshold = Math.min(
-        96,
-        Math.max(24, Math.round(Math.min(hoveredPaneRect.width, hoveredPaneRect.height) * 0.2)),
-      )
-      const edgeDistances: Array<{ side: WorkspaceSplitDockSide; distance: number }> = [
-        {
-          side: 'top',
-          distance: Math.max(0, clampedPointerClientY - hoveredPaneRect.top),
-        },
-        {
-          side: 'right',
-          distance: Math.max(0, hoveredPaneRect.right - clampedPointerClientX),
-        },
-        {
-          side: 'bottom',
-          distance: Math.max(0, hoveredPaneRect.bottom - clampedPointerClientY),
-        },
-        { side: 'left', distance: Math.max(0, clampedPointerClientX - hoveredPaneRect.left) },
-      ]
-      const previewableEdge = edgeDistances
-        .filter((entry) => entry.distance <= edgeThreshold)
-        .sort((left, right) => left.distance - right.distance)[0]
-      return previewableEdge?.side ?? null
-    },
-    [viewportRef],
-  )
-
-  const resolveTargetSlotIdForPointer = useCallback(
-    (pointerClientX: number, pointerClientY: number): string => {
-      if (typeof document.elementsFromPoint !== 'function') {
-        return defaultPrimaryViewportSlotId
-      }
-      const hoveredSlot = document
-        .elementsFromPoint(pointerClientX, pointerClientY)
-        .map((element) =>
-          element instanceof HTMLElement ? element.closest('[data-workspace-slot-id]') : null,
-        )
-        .find(
-          (element): element is HTMLElement =>
-            element instanceof HTMLElement && viewportRef.current?.contains(element) === true,
-        )
-      const slotId = hoveredSlot?.getAttribute('data-workspace-slot-id')
-      return slotId !== null && slotId !== undefined && viewportSlotsById[slotId] !== undefined
-        ? slotId
-        : defaultPrimaryViewportSlotId
-    },
+  const resolveSplitDockPreview = useCallback(
+    (pointerClientX: number, pointerClientY: number): WorkspaceSplitDockPreview | null =>
+      resolveWorkspaceSplitDockPreview(
+        viewportRef.current,
+        viewportSlotsById,
+        pointerClientX,
+        pointerClientY,
+      ),
     [viewportRef, viewportSlotsById],
   )
 
   const dockEditorViewportIntoWorkspaceSplit = useCallback(
     (
       editorViewportId: string,
-      splitDockSide: WorkspaceSplitDockSide,
-      pointerClientX?: number,
-      pointerClientY?: number,
+      splitPreview: WorkspaceSplitDockPreview,
     ) => {
+      const splitDockSide = splitPreview.side
+      const preferredRatio = orderedViewportStates.find(
+        (currentViewport) => currentViewport.viewport.editorViewportId === editorViewportId,
+      )?.splitRatio
+      setActiveEditorViewportId(editorViewportId)
+      useSpaghettiStore.getState().setEditorViewportSplitDockSide(editorViewportId, splitDockSide)
+      useSpaghettiStore.getState().setEditorViewportWindowMode(editorViewportId, 'expanded')
+      if (splitPreview.scope === 'global') {
+        commitWorkspaceSurfaceRootSplit(editorViewportId, splitDockSide, {
+          preferredRatio,
+        })
+        return
+      }
       const targetSlotId =
-        pointerClientX !== undefined && pointerClientY !== undefined
-          ? resolveTargetSlotIdForPointer(pointerClientX, pointerClientY)
-          : viewportSlotByEditorViewportId[editorViewportId]?.slotId ?? defaultPrimaryViewportSlotId
-      splitWorkspaceSurfaceToSide(editorViewportId, splitDockSide, {
-        preferredRatio:
-          orderedViewportStates.find(
-            (currentViewport) => currentViewport.viewport.editorViewportId === editorViewportId,
-          )?.splitRatio,
-        targetSlotId,
+        splitPreview.targetSlotId ??
+        viewportSlotByEditorViewportId[editorViewportId]?.slotId ??
+        defaultPrimaryViewportSlotId
+      commitWorkspaceSurfaceSlotSplit(editorViewportId, targetSlotId, splitDockSide, {
+        preferredRatio,
       })
     },
     [
+      commitWorkspaceSurfaceRootSplit,
+      commitWorkspaceSurfaceSlotSplit,
       orderedViewportStates,
-      resolveTargetSlotIdForPointer,
+      setActiveEditorViewportId,
       viewportSlotByEditorViewportId,
     ],
   )
@@ -1124,8 +1083,8 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   }, [orderedViewportStates])
 
   useEffect(() => {
-    splitDockPreviewSideRef.current = splitDockPreviewSide
-  }, [splitDockPreviewSide])
+    splitDockPreviewRef.current = splitDockPreview
+  }, [splitDockPreview])
 
   useEffect(() => {
     if (
@@ -1139,10 +1098,10 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   }, [activeLeftDockPreviewPanelId, activeWindowMode, setActiveLeftDockPreviewPanelId])
 
   useEffect(() => {
-    if (!hasFloatingViewportInApp && splitDockPreviewSide !== null) {
-      setSplitDockPreviewSide(null)
+    if (!hasFloatingViewportInApp && splitDockPreview !== null) {
+      setSplitDockPreview(null)
     }
-  }, [hasFloatingViewportInApp, splitDockPreviewSide])
+  }, [hasFloatingViewportInApp, splitDockPreview])
 
   useEffect(() => {
     if (!hasFloatingViewportInApp) {
@@ -1306,7 +1265,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     ) => {
       floatingDockLockRef.current = null
       setActiveLeftDockPreviewPanelId(null)
-      setSplitDockPreviewSide(null)
+      setSplitDockPreview(null)
       setActiveEditorViewportId(editorViewportId)
       dragRef.current = {
         editorViewportId,
@@ -1342,39 +1301,37 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
           moveEvent.clientY,
         )
         setActiveLeftDockPreviewPanelId(nextDockPreviewPanelId)
-        const nextSplitDockPreviewSide =
+        const nextSplitDockPreview =
           nextDockPreviewPanelId === null
-            ? resolveSplitDockPreviewSide(moveEvent.clientX, moveEvent.clientY)
+            ? resolveSplitDockPreview(moveEvent.clientX, moveEvent.clientY)
             : null
-        splitDockPreviewSideRef.current = nextSplitDockPreviewSide
-        setSplitDockPreviewSide(nextSplitDockPreviewSide)
+        splitDockPreviewRef.current = nextSplitDockPreview
+        setSplitDockPreview(nextSplitDockPreview)
       }
 
       const handleUp = (upEvent: PointerEvent) => {
         const dragState = dragRef.current
-        const nextSplitDockSide =
-          splitDockPreviewSideRef.current ??
+        const nextSplitDockPreview =
+          splitDockPreviewRef.current ??
           (dragState !== null
-            ? resolveSplitDockPreviewSide(upEvent.clientX, upEvent.clientY)
+            ? resolveSplitDockPreview(upEvent.clientX, upEvent.clientY)
             : null)
         const shouldDockToMeatball =
           resolveLeftDockPreviewPanelId('meatball-editor', upEvent.clientX, upEvent.clientY) ===
           'meatball-editor'
         dragRef.current = null
         setActiveLeftDockPreviewPanelId(null)
-        setSplitDockPreviewSide(null)
+        setSplitDockPreview(null)
         if (shouldDockToMeatball) {
           setEditorViewportHeaderCollapsed(dragState?.editorViewportId ?? editorViewportId, true)
           setEditorViewportWindowMode(
             dragState?.editorViewportId ?? editorViewportId,
             'meatball editor view',
           )
-        } else if (nextSplitDockSide !== null) {
+        } else if (nextSplitDockPreview !== null) {
           dockEditorViewportIntoWorkspaceSplit(
             dragState?.editorViewportId ?? editorViewportId,
-            nextSplitDockSide,
-            upEvent.clientX,
-            upEvent.clientY,
+            nextSplitDockPreview,
           )
         }
         window.removeEventListener('pointermove', handleMove)
@@ -1395,7 +1352,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       setEditorViewportHeaderCollapsed,
       setEditorViewportPosition,
       setEditorViewportWindowMode,
-      resolveSplitDockPreviewSide,
+      resolveSplitDockPreview,
       viewportRef,
     ],
   )
@@ -2006,13 +1963,25 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         setEditorViewportWindowMode(editorViewportId, 'expanded')
         return
       }
-      dockEditorViewportIntoWorkspaceSplit(editorViewportId, splitDockSide)
+      dockEditorViewportIntoWorkspaceSplit(editorViewportId, {
+        side: splitDockSide,
+        scope: 'local',
+        targetSlotId:
+          viewportSlotByEditorViewportId[editorViewportId]?.slotId ?? defaultPrimaryViewportSlotId,
+        rect: {
+          left: 0,
+          top: 0,
+          width: 0,
+          height: 0,
+        },
+      })
     },
     [
       dockEditorViewportIntoWorkspaceSplit,
       removeViewportSlot,
       setEditorViewportWindowMode,
       splitDockSide,
+      viewportSlotByEditorViewportId,
       viewportSlotsById,
     ],
   )
@@ -2043,7 +2012,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
 
   const handleToggleViewportPopout = useCallback((editorViewportId: string) => {
     setActiveLeftDockPreviewPanelId(null)
-    setSplitDockPreviewSide(null)
+    setSplitDockPreview(null)
     preopenViewportPopoutWindow(editorViewportId)
     const slot = viewportSlotByEditorViewportId[editorViewportId]
     if (slot !== undefined) {
@@ -2084,7 +2053,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         return
       }
       setActiveLeftDockPreviewPanelId(null)
-      setSplitDockPreviewSide(null)
+      setSplitDockPreview(null)
       restoreEditorViewportFromSeparateWindow(editorViewportId)
     },
     [
@@ -2112,28 +2081,57 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   }, [activeEditorViewport, handleViewportCloseEditor])
 
   const splitDockGhostStyle = useMemo(() => {
-    if (splitDockPreviewSide === null) {
+    if (splitDockPreview === null) {
       return null
     }
-    if (splitDockPreviewSide === 'bottom') {
+    const previewRatio = 0.25
+    const horizontalPreviewWidth = Math.max(
+      0,
+      splitDockPreview.rect.width * previewRatio - splitDividerHeight,
+    )
+    const verticalPreviewHeight = Math.max(
+      0,
+      splitDockPreview.rect.height * previewRatio - splitDividerHeight,
+    )
+    if (splitDockPreview.side === 'bottom') {
       return {
-        top: `calc(${(splitRatio * 100).toFixed(4)}% + ${splitDividerHeight}px)`,
+        left: `${splitDockPreview.rect.left}px`,
+        top: `${splitDockPreview.rect.top + splitDockPreview.rect.height * (1 - previewRatio) + splitDividerHeight}px`,
+        width: `${splitDockPreview.rect.width}px`,
+        height: `${verticalPreviewHeight}px`,
+        right: 'auto',
+        bottom: 'auto',
       } as CSSProperties
     }
-    if (splitDockPreviewSide === 'top') {
+    if (splitDockPreview.side === 'top') {
       return {
-        bottom: `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`,
+        left: `${splitDockPreview.rect.left}px`,
+        top: `${splitDockPreview.rect.top}px`,
+        width: `${splitDockPreview.rect.width}px`,
+        height: `${verticalPreviewHeight}px`,
+        right: 'auto',
+        bottom: 'auto',
       } as CSSProperties
     }
-    if (splitDockPreviewSide === 'right') {
+    if (splitDockPreview.side === 'right') {
       return {
-        left: `calc(${(splitRatio * 100).toFixed(4)}% + ${splitDividerHeight}px)`,
+        left: `${splitDockPreview.rect.left + splitDockPreview.rect.width * (1 - previewRatio) + splitDividerHeight}px`,
+        top: `${splitDockPreview.rect.top}px`,
+        width: `${horizontalPreviewWidth}px`,
+        height: `${splitDockPreview.rect.height}px`,
+        right: 'auto',
+        bottom: 'auto',
       } as CSSProperties
     }
     return {
-      right: `calc(${((1 - splitRatio) * 100).toFixed(4)}% + ${splitDividerHeight}px)`,
+      left: `${splitDockPreview.rect.left}px`,
+      top: `${splitDockPreview.rect.top}px`,
+      width: `${horizontalPreviewWidth}px`,
+      height: `${splitDockPreview.rect.height}px`,
+      right: 'auto',
+      bottom: 'auto',
     } as CSSProperties
-  }, [splitDockPreviewSide, splitRatio])
+  }, [splitDockPreview])
 
   const detachedEditorViewportIds = useMemo(() => {
     const orderedDetachedViewportIds = orderedEditorViewports
@@ -2166,8 +2164,9 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     meatballViewportState !== null ? (
       <div
         className="SpaghettiMeatballHost SpaghettiWindowShell"
-        onPointerDown={() => handleActivateViewport(meatballViewportState.viewport.editorViewportId)}
-        onPointerDownCapture={onActivateSpaghettiSurface}
+        onPointerDown={() =>
+          onActivateSpaghettiSurface(meatballViewportState.viewport.editorViewportId)
+        }
         style={getWindowAppearanceStyle(meatballViewportState.windowAppearance)}
       >
         <SpaghettiWindowTitleBar
@@ -2240,6 +2239,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         />
         <SpaghettiPanel
           editorViewportId={meatballViewportState.viewport.editorViewportId}
+          onActivateEditorContext={onActivateSpaghettiSurface}
           isEssentials={meatballViewportState.isEssentials}
           isWindowSettingsOpen={meatballViewportState.isWindowSettingsOpen}
           isClampEditing={meatballViewportState.isWindowClampEditing}
@@ -2278,17 +2278,22 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         : null}
       <>
         {viewerSurface}
-        {splitDockPreviewSide !== null && splitDockGhostStyle !== null ? (
+        {splitDockPreview !== null && splitDockGhostStyle !== null ? (
           <div
             className={`ViewportSplitDockGhost ${
-              splitDockPreviewSide === 'left'
+              splitDockPreview.scope === 'global'
+                ? 'isWholeBrowserScope'
+                : 'isPaneLocalScope'
+            } ${
+              splitDockPreview.side === 'left'
                 ? 'isDockLeft'
-                : splitDockPreviewSide === 'right'
+                : splitDockPreview.side === 'right'
                   ? 'isDockRight'
-                  : splitDockPreviewSide === 'top'
+                  : splitDockPreview.side === 'top'
                     ? 'isDockTop'
                     : 'isDockBottom'
             }`}
+            data-split-preview-scope={splitDockPreview.scope}
             style={splitDockGhostStyle}
             aria-hidden="true"
           />
@@ -2318,11 +2323,11 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                           ? 'isActiveWindow'
                           : ''
                       }`}
-                      onPointerDown={() => {
-                        handleActivateViewport(viewportState.viewport.editorViewportId)
-                        onActivateSpaghettiFloatingWindow()
-                      }}
-                      onPointerDownCapture={onActivateSpaghettiSurface}
+                      onPointerDown={() =>
+                        onActivateSpaghettiFloatingWindow(
+                          viewportState.viewport.editorViewportId,
+                        )
+                      }
                       style={{
                         left: `${
                           viewportState.windowMode === 'maximized'
@@ -2437,6 +2442,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                         >
                           <SpaghettiPanel
                             editorViewportId={viewportState.viewport.editorViewportId}
+                            onActivateEditorContext={onActivateSpaghettiSurface}
                             isEssentials={viewportState.isEssentials}
                             isWindowSettingsOpen={viewportState.isWindowSettingsOpen}
                             isClampEditing={viewportState.isWindowClampEditing}
@@ -2521,7 +2527,6 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
             editorViewportId={editorViewportId}
             popoutState={popoutState}
             workspaceActiveSurface={workspaceActiveSurface}
-            onActivateSpaghettiSurface={onActivateSpaghettiSurface}
             onActivateViewport={handleActivateViewport}
             onActivateSpaghettiFloatingWindow={onActivateSpaghettiFloatingWindow}
             claimPendingWindow={claimPendingViewportPopoutWindow}
@@ -2565,6 +2570,7 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                 <div className={`SpaghettiFloatingBody ${viewportIsEssentials ? 'isEssentials' : ''}`}>
                   <SpaghettiPanel
                     editorViewportId={editorViewportId}
+                    onActivateEditorContext={onActivateSpaghettiSurface}
                     isEssentials={viewportIsEssentials}
                     isWindowSettingsOpen={viewportWindowSettingsOpen}
                     isClampEditing={viewportClampEditing}

@@ -145,6 +145,21 @@ export function ConsoleBar({
     })
   }
 
+  const formatGraphBreadcrumbLabel = (graphLabel: string): string => {
+    const matchedGraphIndex = graphLabel.match(/^graph_\[(\d+)\]$/i)
+    if (matchedGraphIndex === null) {
+      return graphLabel
+    }
+    return `Graph ${matchedGraphIndex[1]}`
+  }
+
+  const formatGraphSessionBreadcrumb = (breadcrumb: string[]): string[] => {
+    if (breadcrumb.length >= 3 && breadcrumb[0] === 'Select' && breadcrumb[1] === 'Graph') {
+      return ['Root', 'Graph Documents', formatGraphBreadcrumbLabel(breadcrumb[2] ?? 'Graph'), ...breadcrumb.slice(3)]
+    }
+    return breadcrumb
+  }
+
   const buildStagedSummaryBreadcrumb = (session: ConsoleStagedNavigationSession): string[] => {
     switch (session.scopeId) {
       case 'root':
@@ -154,22 +169,27 @@ export function ConsoleBar({
       case 'sketchDrawZoomRoot':
         return ['Graph', 'Sketch', 'Sketch Draw', 'Zoom']
       case 'graphRoot':
+        return ['Root', 'Graph Documents']
       case 'graphSelected':
-        return ['Graph']
+        return [
+          'Root',
+          'Graph Documents',
+          formatGraphBreadcrumbLabel(session.breadcrumb.at(-1) ?? 'Graph'),
+        ]
       case 'radioRoot':
         return ['Radio']
       case 'graphNodeList':
       case 'graphNodeSelected':
-        return ['Graph', 'Focus Node']
       case 'graphSketchList':
       case 'graphSketchSelected':
-        return ['Graph', 'Sketch']
       case 'graphExtrudeList':
       case 'graphExtrudeSelected':
-        return ['Graph', 'Extrude']
       case 'graphOutputPreviewList':
       case 'graphOutputPreviewSelected':
-        return ['Graph', 'Output Preview']
+      case 'graphZoomRoot':
+      case 'graphZoomCanvas':
+      case 'graphZoomModelViewport':
+        return formatGraphSessionBreadcrumb(session.breadcrumb)
       case 'contentAssemblySelected':
       case 'contentAssemblyZoomRoot':
       case 'contentComponentSelected':

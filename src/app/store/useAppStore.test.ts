@@ -167,6 +167,71 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(useAppStore.getState().selectedPartKey).toBeNull()
   })
 
+  it('stores an explicit console workspace handoff with a fresh sequence on repeated publishes', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+      sourceSurface: 'viewer',
+      mode: 'root',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: null,
+    })
+
+    expect(useAppStore.getState().consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'viewer',
+      mode: 'root',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: null,
+      seq: 1,
+    })
+
+    useAppStore.getState().requestConsoleWorkspaceContextHandoff({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: 'graph-document-1',
+      nodeId: null,
+      editorViewportId: 'editor-viewport-1',
+      selectedTarget: {
+        kind: 'graph-document',
+        graphDocumentId: 'graph-document-1',
+      },
+    })
+
+    expect(useAppStore.getState().consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: 'graph-document-1',
+      nodeId: null,
+      editorViewportId: 'editor-viewport-1',
+      selectedTarget: {
+        kind: 'graph-document',
+        graphDocumentId: 'graph-document-1',
+      },
+      seq: 2,
+    })
+  })
+
+  it('does not log a duplicate selection-clear entry when part selection was already empty', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useConsoleStore } = await import('../console/useConsoleStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+
+    useAppStore.getState().selectPart(null)
+
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Selection cleared'),
+    ).toBe(false)
+  })
+
   it('owns a first workspace-selection seam for shared target and active-surface truth', async () => {
     const {
       selectActiveWorkspaceSurface,

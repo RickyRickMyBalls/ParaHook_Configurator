@@ -192,6 +192,34 @@ describe('SpaghettiPanel', () => {
     expect(container?.textContent).toContain('number')
   })
 
+  it('publishes editor-context activation from the panel root when requested', async () => {
+    const onActivateEditorContext = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          onActivateEditorContext={onActivateEditorContext}
+          activateOnPointerDownCapture
+        />,
+      )
+    })
+
+    const panelRoot = container.querySelector('.SpaghettiPanelRoot') as HTMLElement | null
+    expect(panelRoot).not.toBeNull()
+
+    await act(async () => {
+      panelRoot?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(onActivateEditorContext).toHaveBeenCalledWith('editor-viewport-1')
+  })
+
   it('uses the default expanded toolbar height on first render so the toolbar scroll area is bounded', async () => {
     ;({ container, root } = await renderSpaghettiPanel())
 
@@ -375,6 +403,43 @@ describe('SpaghettiPanel', () => {
     })
     expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
     expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-2 no-fit 0')
+  })
+
+  it('does not request legacy console target sync when a host-owned activation handler is present', async () => {
+    const onActivateEditorContext = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          onActivateEditorContext={onActivateEditorContext}
+        />,
+      )
+    })
+
+    currentSpaghettiState = {
+      ...currentSpaghettiState,
+      selectedNodeId: 'node-2',
+      editorViewportSelectedNodeIdById: {
+        ...currentSpaghettiState.editorViewportSelectedNodeIdById,
+        'editor-viewport-1': 'node-2',
+      },
+    }
+
+    await act(async () => {
+      root?.render(
+        <SpaghettiPanel
+          editorViewportId="editor-viewport-1"
+          onActivateEditorContext={onActivateEditorContext}
+        />,
+      )
+    })
+
+    expect(currentAppState.workspaceSelection.selectedTarget).toBeNull()
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalled()
   })
 
   it('does not let an inactive editor viewport overwrite the shared workspace target', async () => {

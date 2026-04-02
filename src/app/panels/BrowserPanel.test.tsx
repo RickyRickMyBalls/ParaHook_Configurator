@@ -983,6 +983,7 @@ describe('BrowserPanel', () => {
         }
       }),
       requestConsoleContextSync: vi.fn(),
+      requestConsoleWorkspaceContextHandoff: vi.fn(),
       requestFloatingShellActivation: vi.fn(),
       buildPolicy: 'live',
       setBrowserGraphBuildPolicy: vi.fn((graphDocumentId: string, policy: string) => {
@@ -1876,6 +1877,17 @@ describe('BrowserPanel', () => {
         componentId: 'project-component:project-file-1:graph-document-1:published',
       },
     })
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'component',
+        componentId: 'project-component:project-file-1:graph-document-1:published',
+      },
+    })
     expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
     expect(currentAppState.selectPart).toHaveBeenCalledWith(null)
     expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
@@ -2420,6 +2432,17 @@ describe('BrowserPanel', () => {
         },
       ],
       selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
+      },
+    })
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
         kind: 'object',
         objectId: 'project-object:project-file-1:graph-document-1:pedal-body',
       },
@@ -3569,6 +3592,17 @@ describe('BrowserPanel', () => {
         },
       ],
       selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'reference-item-row:footpad:pubpad-full-assembly',
+      },
+    })
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
         kind: 'object',
         objectId: 'reference-item-row:footpad:pubpad-full-assembly',
       },

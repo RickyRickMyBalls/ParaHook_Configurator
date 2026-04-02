@@ -8,7 +8,11 @@ import { useConsoleStore } from './console/useConsoleStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from './store/audioSamplerStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { workspaceLayoutStorageKey } from './workspace/workspacePersistence'
-import { createDefaultEditorWorkspaceSurfaceState } from './workspace/workspaceShellTypes'
+import { splitWorkspaceSurfaceToSide } from './workspace/workspaceSurfaceActions'
+import {
+  createDefaultEditorWorkspaceSurfaceState,
+  defaultPrimaryViewportSlotId,
+} from './workspace/workspaceShellTypes'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -60,6 +64,15 @@ vi.mock('./spaghetti/store/useSpaghettiStore', () => {
       state.editorViewportsById[state.activeEditorViewportId] ?? null,
     selectEditorViewportById: (state: any, editorViewportId: string) =>
       state.editorViewportsById[editorViewportId] ?? null,
+    selectEditorViewportSelectedNodeId: (state: any, editorViewportId: string) =>
+      Object.prototype.hasOwnProperty.call(
+        state.editorViewportSelectedNodeIdById ?? {},
+        editorViewportId,
+      )
+        ? state.editorViewportSelectedNodeIdById?.[editorViewportId] ?? null
+        : state.activeEditorViewportId === editorViewportId
+          ? state.selectedNodeId ?? null
+          : null,
     selectOrderedGraphDocuments: (state: any) =>
       (state.graphDocumentOrder ?? [])
         .map((graphDocumentId: string) => state.graphDocumentsById[graphDocumentId] ?? null)
@@ -329,18 +342,39 @@ vi.mock('./panels/BrowserPanel', () => ({
 vi.mock('./panels/SpaghettiPanel', () => ({
   SpaghettiPanel: ({
     editorViewportId,
+    onActivateEditorContext,
+    activateOnPointerDownCapture,
     isHeaderCollapsed,
     isCanvasToolbarVisible,
     isWindowSettingsOpen,
     windowAppearance,
   }: {
     editorViewportId: string
+    onActivateEditorContext?: (
+      editorViewportId: string,
+      target?: {
+        graphDocumentId?: string | null
+        nodeId?: string | null
+        mode?: 'graph' | 'node'
+      },
+    ) => void
+    activateOnPointerDownCapture?: boolean
     isHeaderCollapsed?: boolean
     isCanvasToolbarVisible?: boolean
     isWindowSettingsOpen?: boolean
     windowAppearance?: { fontScale?: string }
   }) => (
-    <div>{`Spaghetti Panel ${editorViewportId} ${
+    <div
+      className="MockSpaghettiPanel"
+      data-editor-viewport-id={editorViewportId}
+      onPointerDownCapture={
+        activateOnPointerDownCapture
+          ? () => {
+              onActivateEditorContext?.(editorViewportId)
+            }
+          : undefined
+      }
+    >{`Spaghetti Panel ${editorViewportId} ${
       isHeaderCollapsed === true ? 'header-collapsed' : 'header-expanded'
     } ${isCanvasToolbarVisible === false ? 'canvas-toolbar-hidden' : 'canvas-toolbar-visible'} ${
       isWindowSettingsOpen === true ? 'window-settings-open' : 'window-settings-closed'
@@ -588,6 +622,7 @@ describe('AppShell', () => {
       editorViewportsById: {
         'editor-viewport-1': viewport('expanded'),
       },
+      editorViewportSelectedNodeIdById: {},
       editorViewportHeaderCollapsedById: {},
       editorViewportCanvasToolbarVisibleById: {},
       setConsolePreviewNodeId: vi.fn((nodeId: string | null) => {
@@ -627,10 +662,12 @@ describe('AppShell', () => {
         return nextGraphDocumentId
       }),
       setActiveEditorViewportId: vi.fn((editorViewportId: string) => {
-        if (currentSpaghettiState.editorViewportsById[editorViewportId] === undefined) {
+        const nextViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+        if (nextViewport === undefined) {
           return
         }
         currentSpaghettiState.activeEditorViewportId = editorViewportId
+        currentSpaghettiState.activeGraphDocumentId = nextViewport.graphDocumentId
       }),
       openGraphDocumentInNewViewport: vi.fn((graphDocumentId: string) => {
         const nextViewportId = `editor-viewport-${currentSpaghettiState.editorViewportOrder.length + 1}`
@@ -656,6 +693,10 @@ describe('AppShell', () => {
           ...currentSpaghettiState.editorViewportOrder,
           nextViewportId,
         ]
+        currentSpaghettiState.editorViewportSelectedNodeIdById = {
+          ...currentSpaghettiState.editorViewportSelectedNodeIdById,
+          [nextViewportId]: null,
+        }
         return nextViewportId
       }),
       bindEditorViewportToGraphDocument: vi.fn(
@@ -758,7 +799,21 @@ describe('AppShell', () => {
           splitPriority,
         }
       }),
-      closeEditorViewport: vi.fn(),
+      closeEditorViewport: vi.fn((editorViewportId: string) => {
+        if (currentSpaghettiState.editorViewportsById[editorViewportId] === undefined) {
+          return
+        }
+        const nextEditorViewportsById = { ...currentSpaghettiState.editorViewportsById }
+        delete nextEditorViewportsById[editorViewportId]
+        currentSpaghettiState.editorViewportsById = nextEditorViewportsById
+        currentSpaghettiState.editorViewportOrder = currentSpaghettiState.editorViewportOrder.filter(
+          (candidateViewportId: string) => candidateViewportId !== editorViewportId,
+        )
+        if (currentSpaghettiState.activeEditorViewportId === editorViewportId) {
+          currentSpaghettiState.activeEditorViewportId =
+            currentSpaghettiState.editorViewportOrder[0] ?? null
+        }
+      }),
       setEditorViewportPosition: vi.fn((editorViewportId: string, position: { x: number; y: number }) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
         if (currentViewport === undefined) {
@@ -788,6 +843,7 @@ describe('AppShell', () => {
       },
       floatingShellActivationRequest: null,
       consoleContextSyncRequest: null,
+      consoleWorkspaceContextHandoff: null,
       setWorkspaceSelectedTarget: vi.fn((target: unknown) => {
         currentAppState = {
           ...currentAppState,
@@ -806,12 +862,22 @@ describe('AppShell', () => {
           },
         }
       }),
-      requestConsoleContextSync: vi.fn((reason: string) => {
+      requestConsoleContextSync: vi.fn((reason: string, source = 'legacy') => {
         currentAppState = {
           ...currentAppState,
           consoleContextSyncRequest: {
             reason,
+            source,
             seq: (currentAppState.consoleContextSyncRequest?.seq ?? 0) + 1,
+          },
+        }
+      }),
+      requestConsoleWorkspaceContextHandoff: vi.fn((handoff: Record<string, unknown>) => {
+        currentAppState = {
+          ...currentAppState,
+          consoleWorkspaceContextHandoff: {
+            ...handoff,
+            seq: (currentAppState.consoleWorkspaceContextHandoff?.seq ?? 0) + 1,
           },
         }
       }),
@@ -1035,6 +1101,205 @@ describe('AppShell', () => {
     expect(container?.querySelectorAll('.ViewportFrame').length).toBe(3)
     expect(container?.querySelectorAll('.ConsoleDockMock').length).toBe(1)
     expect(container?.textContent).toContain(`Spaghetti Panel ${duplicatedEditorViewportId}`)
+  })
+
+  it('treats split-slot editor to browser replacement as a true close instead of auto-floating the editor', async () => {
+    const duplicatedEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport('graph-document-1')
+
+    ;({ container, root } = await renderAppShell())
+
+    let spaghettiSlotId: string | null = null
+    await act(async () => {
+      spaghettiSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'spaghettiEditor',
+        surfaceInstanceId: 'editor-viewport-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === spaghettiSlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'spaghettiEditor',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(slotFrame).not.toBeUndefined()
+    expect(modeButton).not.toBeNull()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const browserAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Browser') as HTMLButtonElement | undefined
+
+    expect(browserAction).not.toBeUndefined()
+
+    await act(async () => {
+      browserAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await rerenderAppShell(root!)
+
+    const workspaceState = useWorkspaceStore.getState()
+    const replacedSlot = spaghettiSlotId === null ? null : workspaceState.viewportSlotsById[spaghettiSlotId]
+
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-1')
+    expect(replacedSlot?.surfaceKind).toBe('browser')
+    expect(replacedSlot?.retainedSurfaceInstanceIdsByKind.spaghettiEditor).toBeUndefined()
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']).toBeUndefined()
+    expect(container?.textContent).not.toContain('Spaghetti Panel editor-viewport-1')
+    expect(container?.textContent).toContain(`Spaghetti Panel ${duplicatedEditorViewportId}`)
+    expect(container?.querySelector('.SpaghettiFloatingWindow')?.textContent ?? '').not.toContain(
+      'editor-viewport-1',
+    )
+  })
+
+  it('switches a browser slot to spaghetti by creating a live editor when the retained editor id is stale', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let browserSlotId: string | null = null
+    await act(async () => {
+      browserSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    await act(async () => {
+      useWorkspaceStore.setState((state) => ({
+        viewportSlotsById: {
+          ...state.viewportSlotsById,
+          ...(browserSlotId === null
+            ? {}
+            : {
+                [browserSlotId]: {
+                  ...state.viewportSlotsById[browserSlotId],
+                  retainedSurfaceInstanceIdsByKind: {
+                    ...state.viewportSlotsById[browserSlotId].retainedSurfaceInstanceIdsByKind,
+                    spaghettiEditor: 'editor-viewport-stale',
+                  },
+                },
+              }),
+        },
+      }))
+    })
+    await rerenderAppShell(root!)
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === browserSlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton).not.toBeNull()
+    currentSpaghettiState.openGraphDocumentInNewViewport.mockClear()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const spaghettiAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Spaghetti Editor') as
+      | HTMLButtonElement
+      | undefined
+
+    expect(spaghettiAction).not.toBeUndefined()
+
+    await act(async () => {
+      spaghettiAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await rerenderAppShell(root!)
+
+    const workspaceState = useWorkspaceStore.getState()
+    const replacedSlot = browserSlotId === null ? null : workspaceState.viewportSlotsById[browserSlotId]
+
+    expect(currentSpaghettiState.openGraphDocumentInNewViewport).toHaveBeenCalled()
+    expect(replacedSlot?.surfaceKind).toBe('spaghettiEditor')
+    expect(replacedSlot?.surfaceInstanceId).toBe('editor-viewport-2')
+    expect(replacedSlot?.surfaceInstanceId).not.toBe('editor-viewport-stale')
+    expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-2')
+  })
+
+  it('opens a new editor instead of stealing another visible editor when switching a browser slot to spaghetti', async () => {
+    currentSpaghettiState.editorViewportOrder = ['editor-viewport-1', 'editor-viewport-2']
+    currentSpaghettiState.editorViewportsById['editor-viewport-2'] = {
+      ...viewport('expanded'),
+      editorViewportId: 'editor-viewport-2',
+      windowMode: 'expanded',
+      graphDocumentId: 'graph-document-1',
+    }
+
+    ;({ container, root } = await renderAppShell())
+
+    let browserSlotId: string | null = null
+    await act(async () => {
+      browserSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === browserSlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton).not.toBeNull()
+    currentSpaghettiState.openGraphDocumentInNewViewport.mockClear()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const spaghettiAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Spaghetti Editor') as
+      | HTMLButtonElement
+      | undefined
+
+    expect(spaghettiAction).not.toBeUndefined()
+
+    await act(async () => {
+      spaghettiAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await rerenderAppShell(root!)
+
+    const workspaceState = useWorkspaceStore.getState()
+    const replacedSlot = browserSlotId === null ? null : workspaceState.viewportSlotsById[browserSlotId]
+
+    expect(replacedSlot?.surfaceKind).toBe('spaghettiEditor')
+    expect(replacedSlot?.surfaceInstanceId).toBe('editor-viewport-3')
+    expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-2')
+    expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-3')
   })
 
   it('stagger-spawns a second floating spaghetti editor instead of perfectly covering the first', async () => {
@@ -2005,6 +2270,41 @@ describe('AppShell', () => {
     expect(floatingShell?.classList.contains('isActiveWindow')).toBe(false)
   })
 
+  it('publishes one spaghetti console handoff for a floating-shell click', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const floatingShell = container?.querySelector('.SpaghettiFloatingWindow') as HTMLDivElement | null
+    expect(floatingShell).not.toBeNull()
+
+    currentAppState.requestConsoleWorkspaceContextHandoff.mockClear()
+    currentAppState.requestConsoleContextSync.mockClear()
+    currentSpaghettiState.setActiveEditorViewportId.mockClear()
+
+    await act(async () => {
+      floatingShell?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledTimes(1)
+    expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledWith('editor-viewport-1')
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledTimes(1)
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: 'graph-document-1',
+      nodeId: null,
+      editorViewportId: 'editor-viewport-1',
+      selectedTarget: null,
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledTimes(1)
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('surface-activation')
+  })
+
   it('highlights the floating browser window and hands active highlight off from spaghetti', async () => {
     ;({ container, root } = await renderAppShell())
 
@@ -2104,11 +2404,32 @@ describe('AppShell', () => {
     })
 
     expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
-    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('surface-clear')
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'viewer',
+      mode: 'root',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: null,
+    })
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'viewer',
+      mode: 'root',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: null,
+      seq: 1,
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith(
+      'surface-clear',
+      'viewer-activation',
+    )
     expect(currentAppState.consoleContextSyncRequest?.reason).toBe('surface-clear')
+    expect(currentAppState.consoleContextSyncRequest?.source).toBe('viewer-activation')
   })
 
-  it('does not request console root sync from a viewport click when a shared selection already exists', async () => {
+  it('requests console root sync from a viewport click even when a shared selection already exists', async () => {
     ;({ container, root } = await renderAppShell())
 
     await act(async () => {
@@ -2128,8 +2449,12 @@ describe('AppShell', () => {
     })
 
     expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
-    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
-    expect(currentAppState.consoleContextSyncRequest?.reason).not.toBe('surface-clear')
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith(
+      'surface-clear',
+      'viewer-activation',
+    )
+    expect(currentAppState.consoleContextSyncRequest?.reason).toBe('surface-clear')
+    expect(currentAppState.consoleContextSyncRequest?.source).toBe('viewer-activation')
   })
 
   it('does not request console root sync from a viewport click while sketch-plane pick is active', async () => {
@@ -2179,6 +2504,350 @@ describe('AppShell', () => {
 
     expect(currentAppState.workspaceSelection.activeSurface).toBe('browser')
     expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
+  })
+
+  it('does not request global-outside-click clear when clicking inside the docked browser panel', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      currentAppState.setActiveSurface('browser')
+      await rerenderAppShell(root!)
+    })
+
+    currentAppState.requestConsoleContextSync.mockClear()
+    const browserPanelRoot = document.createElement('div')
+    browserPanelRoot.className = 'BrowserPanelRoot'
+    const browserPanelBody = document.createElement('div')
+    browserPanelBody.className = 'BrowserPanelBody'
+    browserPanelRoot.appendChild(browserPanelBody)
+    document.body.appendChild(browserPanelRoot)
+
+    await act(async () => {
+      browserPanelBody.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('browser')
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith(
+      'surface-clear',
+      'global-outside-click',
+    )
+    expect(currentAppState.consoleContextSyncRequest?.source).not.toBe('global-outside-click')
+
+    browserPanelRoot.remove()
+  })
+
+  it('treats a split-host spaghetti click as activation of that editor viewport for console sync', async () => {
+    const secondGraphDocumentId = currentSpaghettiState.createGraphDocument()
+    const secondEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport(secondGraphDocumentId)
+
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'spaghettiEditor',
+        surfaceInstanceId: secondEditorViewportId,
+      })
+    })
+
+    currentSpaghettiState.setActiveEditorViewportId.mockClear()
+    currentAppState.requestConsoleContextSync.mockClear()
+
+    const splitSpaghettiSurface = container?.querySelector(
+      `.WorkspaceViewportSlotSurface--spaghetti[data-workspace-surface-instance-id="${secondEditorViewportId}"]`,
+    ) as HTMLDivElement | null
+
+    expect(splitSpaghettiSurface).not.toBeNull()
+
+    await act(async () => {
+      splitSpaghettiSurface?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentSpaghettiState.setActiveEditorViewportId).toHaveBeenCalledWith(secondEditorViewportId)
+    expect(currentSpaghettiState.activeEditorViewportId).toBe(secondEditorViewportId)
+    expect(currentSpaghettiState.activeGraphDocumentId).toBe(secondGraphDocumentId)
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('spaghetti')
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'graph-document',
+      graphDocumentId: secondGraphDocumentId,
+    })
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: null,
+      editorViewportId: secondEditorViewportId,
+      selectedTarget: null,
+    })
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: null,
+      editorViewportId: secondEditorViewportId,
+      selectedTarget: null,
+      seq: 1,
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('surface-activation')
+    expect(currentAppState.consoleContextSyncRequest?.reason).toBe('surface-activation')
+  })
+
+  it('resolves a split-host spaghetti click to the clicked viewport graph instead of stale ambient graph state', async () => {
+    const secondGraphDocumentId = currentSpaghettiState.createGraphDocument()
+    const secondEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport(secondGraphDocumentId)
+
+    currentSpaghettiState.activeGraphDocumentId = 'graph-document-1'
+    currentSpaghettiState.setActiveEditorViewportId = vi.fn((editorViewportId: string) => {
+      const nextViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+      if (nextViewport === undefined) {
+        return
+      }
+      currentSpaghettiState.activeEditorViewportId = editorViewportId
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      splitWorkspaceSurfaceToSide(secondEditorViewportId, 'right', {
+        targetSlotId: defaultPrimaryViewportSlotId,
+      })
+    })
+
+    await rerenderAppShell(root!)
+
+    const rightSpaghettiSurface = container?.querySelector(
+      `.WorkspaceViewportSlotSurface--spaghetti[data-workspace-surface-instance-id="${secondEditorViewportId}"]`,
+    ) as HTMLDivElement | null
+
+    expect(rightSpaghettiSurface).not.toBeNull()
+
+    await act(async () => {
+      rightSpaghettiSurface?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: null,
+      editorViewportId: secondEditorViewportId,
+    })
+  })
+
+  it('publishes a node-target spaghetti handoff from the clicked viewport when that viewport has a selected node', async () => {
+    const secondGraphDocumentId = currentSpaghettiState.createGraphDocument()
+    const secondEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport(secondGraphDocumentId)
+    currentSpaghettiState.editorViewportSelectedNodeIdById = {
+      ...currentSpaghettiState.editorViewportSelectedNodeIdById,
+      [secondEditorViewportId]: 'node-2',
+    }
+
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      splitWorkspaceSurfaceToSide(secondEditorViewportId, 'right', {
+        targetSlotId: defaultPrimaryViewportSlotId,
+      })
+    })
+
+    await rerenderAppShell(root!)
+
+    const rightSpaghettiSurface = container?.querySelector(
+      `.WorkspaceViewportSlotSurface--spaghetti[data-workspace-surface-instance-id="${secondEditorViewportId}"]`,
+    ) as HTMLDivElement | null
+
+    expect(rightSpaghettiSurface).not.toBeNull()
+
+    await act(async () => {
+      rightSpaghettiSurface?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'spaghetti',
+      mode: 'node',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: 'node-2',
+      editorViewportId: secondEditorViewportId,
+    })
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'graph-node',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: 'node-2',
+    })
+  })
+
+  it('re-publishes split-host spaghetti activation from the frame header after docking into split mode', async () => {
+    const secondGraphDocumentId = currentSpaghettiState.createGraphDocument()
+    const secondEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport(secondGraphDocumentId)
+
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      splitWorkspaceSurfaceToSide(secondEditorViewportId, 'right', {
+        targetSlotId: defaultPrimaryViewportSlotId,
+      })
+    })
+
+    await rerenderAppShell(root!)
+
+    const rightSpaghettiSurface = container?.querySelector(
+      `.WorkspaceViewportSlotSurface--spaghetti[data-workspace-surface-instance-id="${secondEditorViewportId}"]`,
+    ) as HTMLDivElement | null
+    const rightSpaghettiHeader = rightSpaghettiSurface?.closest('.ViewportFrame')?.querySelector(
+      '.ViewportFrameHeader',
+    ) as HTMLDivElement | null
+
+    expect(rightSpaghettiSurface).not.toBeNull()
+    expect(rightSpaghettiHeader).not.toBeNull()
+
+    currentAppState.requestConsoleWorkspaceContextHandoff.mockClear()
+    currentAppState.requestConsoleContextSync.mockClear()
+
+    await act(async () => {
+      rightSpaghettiHeader?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentSpaghettiState.activeEditorViewportId).toBe(secondEditorViewportId)
+    expect(currentSpaghettiState.activeGraphDocumentId).toBe(secondGraphDocumentId)
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('spaghetti')
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: null,
+      editorViewportId: secondEditorViewportId,
+      seq: 1,
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('surface-activation')
+
+    await act(async () => {
+      rightSpaghettiHeader?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledTimes(2)
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: null,
+      editorViewportId: secondEditorViewportId,
+      seq: 2,
+    })
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith('surface-clear')
+  })
+
+  it('does not request lost-spaghetti-visibility clear while a split-host spaghetti surface still exists', async () => {
+    const secondGraphDocumentId = currentSpaghettiState.createGraphDocument()
+    const secondEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport(secondGraphDocumentId)
+
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      splitWorkspaceSurfaceToSide(secondEditorViewportId, 'right', {
+        targetSlotId: defaultPrimaryViewportSlotId,
+      })
+      currentAppState.setActiveSurface('spaghetti')
+      await rerenderAppShell(root!)
+    })
+
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) =>
+          slot.surfaceKind === 'spaghettiEditor' &&
+          slot.surfaceInstanceId === secondEditorViewportId,
+      ),
+    ).toBe(true)
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('spaghetti')
+    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalledWith(
+      'surface-clear',
+      'lost-spaghetti-visibility',
+    )
+  })
+
+  it('re-publishes spaghetti console handoff from a nested split-host panel click after viewer activation', async () => {
+    const secondGraphDocumentId = currentSpaghettiState.createGraphDocument()
+    const secondEditorViewportId =
+      currentSpaghettiState.openGraphDocumentInNewViewport(secondGraphDocumentId)
+
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'spaghettiEditor',
+        surfaceInstanceId: secondEditorViewportId,
+      })
+    })
+
+    const viewerSurface = container?.querySelector('.ViewportViewerSurface') as HTMLDivElement | null
+    const splitSpaghettiPanel = container?.querySelector(
+      `.MockSpaghettiPanel[data-editor-viewport-id="${secondEditorViewportId}"]`,
+    ) as HTMLDivElement | null
+
+    expect(viewerSurface).not.toBeNull()
+    expect(splitSpaghettiPanel).not.toBeNull()
+
+    await act(async () => {
+      viewerSurface?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    })
+
+    currentAppState.requestConsoleWorkspaceContextHandoff.mockClear()
+    currentAppState.requestConsoleContextSync.mockClear()
+
+    await act(async () => {
+      splitSpaghettiPanel?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'spaghetti',
+      mode: 'graph',
+      graphDocumentId: secondGraphDocumentId,
+      nodeId: null,
+      editorViewportId: secondEditorViewportId,
+      selectedTarget: null,
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('surface-activation')
+  })
+
+  it('publishes a fresh explicit console workspace handoff on repeated viewer clicks', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const viewerSurface = container?.querySelector('.ViewportViewerSurface') as HTMLDivElement | null
+    expect(viewerSurface).not.toBeNull()
+
+    await act(async () => {
+      viewerSurface?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentAppState.consoleWorkspaceContextHandoff?.seq).toBe(1)
+
+    await act(async () => {
+      viewerSurface?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentAppState.requestConsoleWorkspaceContextHandoff).toHaveBeenCalledTimes(2)
+    expect(currentAppState.consoleWorkspaceContextHandoff).toMatchObject({
+      sourceSurface: 'viewer',
+      mode: 'root',
+      seq: 2,
+    })
   })
 
   it('keeps the floating browser wrapper width pinned when the browser is undocked', async () => {
@@ -2326,7 +2995,7 @@ describe('AppShell', () => {
     expect(currentSpaghettiState.setEditorViewportSplitPriority).not.toHaveBeenCalled()
   })
 
-  it('opens the floating spaghetti titlebar context menu and creates a real vertical workspace split', async () => {
+  it('opens the floating spaghetti titlebar context menu and creates a local right workspace split', async () => {
     ;({ container, root } = await renderAppShell())
 
     const floatingTitleBar = container?.querySelector(
@@ -2338,13 +3007,15 @@ describe('AppShell', () => {
       floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const splitVerticalButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
-      (button) => button.textContent === 'Split Vertical',
+    const splitRightLocallyButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right Locally',
     )
-    expect(splitVerticalButton).not.toBeNull()
+    expect(splitRightLocallyButton).not.toBeNull()
 
     await act(async () => {
-      splitVerticalButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      splitRightLocallyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(currentSpaghettiState.setEditorViewportSplitDirection).toHaveBeenCalledWith(
@@ -2389,13 +3060,15 @@ describe('AppShell', () => {
       await rerenderAppShell(root!)
     })
 
-    const splitVerticalButton = Array.from(container?.querySelectorAll('.WorkspaceSplitMenu button') ?? []).find(
-      (button) => button.textContent === 'Split Vertical',
+    const splitRightLocallyButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right Locally',
     )
-    expect(splitVerticalButton).not.toBeNull()
+    expect(splitRightLocallyButton).not.toBeNull()
 
     await act(async () => {
-      splitVerticalButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      splitRightLocallyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(currentSpaghettiState.setEditorViewportSplitDirection).toHaveBeenCalledWith(
@@ -2410,6 +3083,86 @@ describe('AppShell', () => {
       'editor-viewport-2',
       'vertical',
     )
+  })
+
+  it('uses Split Right Locally to keep a top-level console split intact while splitting only the model viewport pane', async () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
+      surfaceKind: 'console',
+      surfaceInstanceId: 'console-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+    expect(floatingTitleBar).not.toBeNull()
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightLocallyButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right Locally',
+    )
+    expect(splitRightLocallyButton).not.toBeNull()
+
+    await act(async () => {
+      splitRightLocallyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const workspaceState = useWorkspaceStore.getState()
+    const rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    const splitNodes = Object.values(workspaceState.viewportLayoutNodesById).filter(
+      (node): node is Extract<(typeof workspaceState.viewportLayoutNodesById)[string], { kind: 'split' }> =>
+        node.kind === 'split',
+    )
+
+    expect(rootNode?.kind).toBe('split')
+    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('top')
+    expect(splitNodes.filter((node) => node.splitDockSide === 'right')).toHaveLength(1)
+  })
+
+  it('uses Split Right Globally to create a new right root column across the whole workspace layout', async () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
+      surfaceKind: 'console',
+      surfaceInstanceId: 'console-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+    expect(floatingTitleBar).not.toBeNull()
+
+    await act(async () => {
+      floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightGloballyButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right Globally',
+    )
+    expect(splitRightGloballyButton).not.toBeNull()
+
+    await act(async () => {
+      splitRightGloballyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const workspaceState = useWorkspaceStore.getState()
+    const rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    const splitNodes = Object.values(workspaceState.viewportLayoutNodesById).filter(
+      (node): node is Extract<(typeof workspaceState.viewportLayoutNodesById)[string], { kind: 'split' }> =>
+        node.kind === 'split',
+    )
+
+    expect(rootNode?.kind).toBe('split')
+    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('right')
+    expect(splitNodes.filter((node) => node.splitDockSide === 'top')).toHaveLength(1)
   })
 
   it('migrates split view compatibility state onto a generic workspace divider instead of the old split shell', async () => {

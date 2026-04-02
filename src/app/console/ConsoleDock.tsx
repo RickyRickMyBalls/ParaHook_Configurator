@@ -1433,6 +1433,7 @@ export function ConsoleDock({
   const graphRootEditorRevealRestoreRef = useRef<GraphRootEditorRevealRestore | null>(null)
   const rootGuidedOptOutRef = useRef(false)
   const lastHandledConsoleContextSyncSeqRef = useRef(0)
+  const lastHandledConsoleWorkspaceContextHandoffSeqRef = useRef(0)
   const lastHandledReferenceTransformShellExitSeqRef = useRef(0)
   const suppressNextReferenceTransformShellExitRef = useRef(false)
   const previousSketchPlanePickSessionRef = useRef<
@@ -1498,6 +1499,9 @@ export function ConsoleDock({
   const workspaceSelectedTarget = useAppStore((state) => state.workspaceSelection.selectedTarget)
   const workspaceActiveSurface = useAppStore((state) => state.workspaceSelection.activeSurface)
   const consoleContextSyncRequest = useAppStore((state) => state.consoleContextSyncRequest)
+  const consoleWorkspaceContextHandoff = useAppStore(
+    (state) => state.consoleWorkspaceContextHandoff,
+  )
   const referenceTransformShellExitRequest = useAppStore(
     (state) => state.referenceTransformShellExitRequest,
   )
@@ -6699,32 +6703,91 @@ export function ConsoleDock({
   }, [exitActiveReferenceTransformShell, referenceTransformShellExitRequest])
 
   useEffect(() => {
-    if (consoleContextSyncRequest === null) {
-      return
-    }
-    if (consoleContextSyncRequest.seq === lastHandledConsoleContextSyncSeqRef.current) {
-      return
-    }
-    lastHandledConsoleContextSyncSeqRef.current = consoleContextSyncRequest.seq
+    const hasNewExplicitWorkspaceHandoff =
+      consoleWorkspaceContextHandoff !== null &&
+      consoleWorkspaceContextHandoff.seq !== lastHandledConsoleWorkspaceContextHandoffSeqRef.current
+    const hasNewLegacyContextSync =
+      consoleContextSyncRequest !== null &&
+      consoleContextSyncRequest.seq !== lastHandledConsoleContextSyncSeqRef.current
 
-    const isForcedRootSync = consoleContextSyncRequest.reason === 'surface-clear'
+    if (!hasNewExplicitWorkspaceHandoff && !hasNewLegacyContextSync) {
+      return
+    }
+
     const spaghettiState = useSpaghettiStore.getState()
     const appState = useAppStore.getState()
-    const workspaceContextTarget = selectConsoleWorkspaceContextTarget(appState)
-    const resolvedTarget =
-      isForcedRootSync
-        ? null
-        : workspaceContextTarget !== null
-        ? workspaceContextTarget
-        : workspaceActiveSurface === 'spaghetti'
-        ? {
-            graphDocumentId:
-              spaghettiState.activeGraphDocumentId.length > 0
-                ? spaghettiState.activeGraphDocumentId
-                : null,
-            nodeId: spaghettiState.selectedNodeId,
-          }
-        : null
+    let isForcedRootSync = false
+    let isExplicitWorkspaceHandoff = false
+    let resolvedTarget:
+      | {
+          graphDocumentId: string | null
+          nodeId: string | null
+        }
+      | ReturnType<typeof selectConsoleWorkspaceContextTarget>
+      | null = null
+
+    if (hasNewExplicitWorkspaceHandoff && consoleWorkspaceContextHandoff !== null) {
+      lastHandledConsoleWorkspaceContextHandoffSeqRef.current = consoleWorkspaceContextHandoff.seq
+      isExplicitWorkspaceHandoff = true
+      if (
+        hasNewLegacyContextSync &&
+        consoleContextSyncRequest !== null &&
+        (consoleContextSyncRequest.reason === 'surface-activation' ||
+          consoleContextSyncRequest.reason === 'surface-clear' ||
+          consoleContextSyncRequest.reason === 'target-selection')
+      ) {
+        lastHandledConsoleContextSyncSeqRef.current = consoleContextSyncRequest.seq
+      }
+      if (consoleWorkspaceContextHandoff.mode === 'root') {
+        isForcedRootSync = true
+        resolvedTarget = null
+      } else if (
+        (consoleWorkspaceContextHandoff.mode === 'graph' ||
+          consoleWorkspaceContextHandoff.mode === 'node') &&
+        consoleWorkspaceContextHandoff.graphDocumentId !== null
+      ) {
+        resolvedTarget = {
+          graphDocumentId: consoleWorkspaceContextHandoff.graphDocumentId,
+          nodeId:
+            consoleWorkspaceContextHandoff.mode === 'node'
+              ? consoleWorkspaceContextHandoff.nodeId ?? null
+              : null,
+        }
+      } else if (consoleWorkspaceContextHandoff.mode === 'selection') {
+        resolvedTarget = selectConsoleWorkspaceContextTarget(appState)
+      }
+    } else if (hasNewLegacyContextSync && consoleContextSyncRequest !== null) {
+      lastHandledConsoleContextSyncSeqRef.current = consoleContextSyncRequest.seq
+      const isSurfaceActivationSync = consoleContextSyncRequest.reason === 'surface-activation'
+      const workspaceContextTarget = selectConsoleWorkspaceContextTarget(appState)
+      isForcedRootSync =
+        consoleContextSyncRequest.reason === 'surface-clear' &&
+        workspaceActiveSurface !== 'spaghetti'
+      resolvedTarget =
+        isForcedRootSync
+          ? null
+          : isSurfaceActivationSync
+          ? workspaceActiveSurface === 'spaghetti'
+            ? {
+                graphDocumentId:
+                  spaghettiState.activeGraphDocumentId.length > 0
+                    ? spaghettiState.activeGraphDocumentId
+                    : null,
+                nodeId: spaghettiState.selectedNodeId,
+              }
+            : null
+          : workspaceContextTarget !== null
+          ? workspaceContextTarget
+          : workspaceActiveSurface === 'spaghetti'
+          ? {
+              graphDocumentId:
+                spaghettiState.activeGraphDocumentId.length > 0
+                  ? spaghettiState.activeGraphDocumentId
+                  : null,
+              nodeId: spaghettiState.selectedNodeId,
+            }
+          : null
+    }
 
     const resolvedHandoff =
       resolvedTarget === null
@@ -6762,6 +6825,7 @@ export function ConsoleDock({
       isForcedRootSync && currentSession === null && resolvedHandoff.session === null
 
     if (
+      !isExplicitWorkspaceHandoff &&
       areConsoleStagedNavigationSessionsEqual(currentSession, resolvedHandoff.session) &&
       !isForcedRootAvailabilitySync
     ) {
@@ -6774,6 +6838,8 @@ export function ConsoleDock({
       }
 
       if (
+        !isForcedRootSync &&
+        !isExplicitWorkspaceHandoff &&
         currentSession !== null &&
         (currentSession.scopeId === 'contentAssemblySelected' ||
           currentSession.scopeId === 'contentComponentSelected' ||
@@ -6820,9 +6886,12 @@ export function ConsoleDock({
       }
 
       if (rootGuidedOptOutRef.current) {
-        if (currentSession === null && isForcedRootAvailabilitySync) {
+        if (
+          isExplicitWorkspaceHandoff ||
+          (currentSession === null && isForcedRootAvailabilitySync)
+        ) {
           const lastEntry = useConsoleStore.getState().entries.at(-1)
-          if (lastEntry?.text !== ROOT_PROMPT_TEXT) {
+          if (isExplicitWorkspaceHandoff || lastEntry?.text !== ROOT_PROMPT_TEXT) {
             appendConsoleEntry({
               layer: 'Commands',
               text: ROOT_PROMPT_TEXT,
@@ -6835,9 +6904,9 @@ export function ConsoleDock({
       }
 
       if (currentSession?.scopeId === 'root') {
-        if (isForcedRootAvailabilitySync) {
+        if (isExplicitWorkspaceHandoff || isForcedRootAvailabilitySync) {
           const lastEntry = useConsoleStore.getState().entries.at(-1)
-          if (lastEntry?.text !== ROOT_PROMPT_TEXT) {
+          if (isExplicitWorkspaceHandoff || lastEntry?.text !== ROOT_PROMPT_TEXT) {
             appendConsoleEntry({
               layer: 'Commands',
               text: ROOT_PROMPT_TEXT,
@@ -6891,6 +6960,7 @@ export function ConsoleDock({
       severity: 'info',
     })
   }, [
+    consoleWorkspaceContextHandoff,
     consoleContextSyncRequest,
     enterGuidedRootSession,
     setStagedNavigationSession,

@@ -1,5 +1,6 @@
 import type {
   ConsoleContextSyncReason,
+  ConsoleWorkspaceContextHandoff,
   FloatingShellActivationTarget,
   WorkspaceSelectedTarget,
   WorkspaceSurface,
@@ -22,6 +23,9 @@ type WorkspaceIntentAppDeps = {
   setActiveSurface: (surface: WorkspaceSurface | null) => void
   requestFloatingShellActivation: (target: FloatingShellActivationTarget) => void
   requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
+  requestConsoleWorkspaceContextHandoff?: (
+    handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
+  ) => void
   setReferenceItemVisibility?: (referenceId: string, visible: boolean) => void
   beginReferenceTransform?: (referenceId: string) => void
   beginReferenceTransformShell?: (referenceId: string) => void
@@ -234,12 +238,14 @@ export const activateReferenceItemIntent = (
       setWorkspaceSelectedTarget: deps.app.setWorkspaceSelectedTarget,
       selectPart: deps.app.selectPart,
       requestConsoleContextSync: deps.app.requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff: deps.app.requestConsoleWorkspaceContextHandoff,
     },
     {
       kind: 'object',
       objectId: buildImportedReferenceRowId(referenceId),
     },
     {
+      activeSurface: 'browser',
       selectedPartKey: null,
     },
   )
@@ -263,12 +269,14 @@ export const activateObjectIntent = (
       setWorkspaceSelectedTarget: deps.app.setWorkspaceSelectedTarget,
       selectPart: deps.app.selectPart,
       requestConsoleContextSync: deps.app.requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff: deps.app.requestConsoleWorkspaceContextHandoff,
     },
     {
       kind: 'object',
       objectId,
     },
     {
+      activeSurface: 'browser',
       selectedPartKey: options.partKey,
     },
   )

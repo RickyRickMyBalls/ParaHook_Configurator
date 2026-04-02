@@ -13,6 +13,7 @@ import {
 } from '../store/workspaceSelectionCommands'
 import type {
   ConsoleContextSyncReason,
+  ConsoleWorkspaceContextHandoff,
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from '../store/useAppStore'
@@ -70,6 +71,9 @@ export type BrowserRowInteractionDeps = {
   setActiveSurface: (surface: WorkspaceSurface | null) => void
   selectPart: (partKey: string | null) => void
   requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
+  requestConsoleWorkspaceContextHandoff: (
+    handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
+  ) => void
   setActiveEditorViewportId: (editorViewportId: string) => void
   toggleReferenceWorkspaceExpanded: () => void
   toggleReferenceCategoryExpanded: (categoryId: ReferenceCategoryId) => void
@@ -193,6 +197,7 @@ export const createBrowserRowInteractionHandlers = (
         setActiveSurface: deps.setActiveSurface,
         selectPart: deps.selectPart,
         requestConsoleContextSync: deps.requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff: deps.requestConsoleWorkspaceContextHandoff,
       },
       {
         selectedTarget,
@@ -218,8 +223,10 @@ export const createBrowserRowInteractionHandlers = (
         setWorkspaceSelectedTarget: deps.setWorkspaceSelectedTarget,
         selectPart: deps.selectPart,
         requestConsoleContextSync: deps.requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff: deps.requestConsoleWorkspaceContextHandoff,
       },
       {
+        activeSurface: 'browser',
         syncReason: 'target-selection',
       },
     )
@@ -263,7 +270,6 @@ export const createBrowserRowInteractionHandlers = (
               .slice(Math.min(anchorIndex, clickedIndex), Math.max(anchorIndex, clickedIndex) + 1)
               .map((sectionRow) => buildExplicitSelectionTargetFromRow(sectionRow))
               .filter((target): target is WorkspaceSelectedTarget => target !== null)
-            deps.appendBrowserEntry(`Selected ${describeBrowserRow(row)}`)
             commitExplicitSelectionTargets(
               rangeTargets,
               explicitSelectionTarget,
@@ -277,7 +283,6 @@ export const createBrowserRowInteractionHandlers = (
             (target) =>
               getWorkspaceTargetKey(target) === getWorkspaceTargetKey(explicitSelectionTarget),
           )
-          deps.appendBrowserEntry(`Selected ${describeBrowserRow(row)}`)
           if (existingIndex === -1) {
             commitExplicitSelectionTargets(
               [...currentExplicitTargets, explicitSelectionTarget],
@@ -299,6 +304,8 @@ export const createBrowserRowInteractionHandlers = (
                 setActiveSurface: deps.setActiveSurface,
                 selectPart: deps.selectPart,
                 requestConsoleContextSync: deps.requestConsoleContextSync,
+                requestConsoleWorkspaceContextHandoff:
+                  deps.requestConsoleWorkspaceContextHandoff,
               },
               {
                 selectedTarget: null,
@@ -333,7 +340,6 @@ export const createBrowserRowInteractionHandlers = (
           return
         }
 
-        deps.appendBrowserEntry(`Selected ${describeBrowserRow(row)}`)
         commitExplicitSelectionTargets(
           [explicitSelectionTarget],
           explicitSelectionTarget,
@@ -385,12 +391,22 @@ export const createBrowserRowInteractionHandlers = (
     if (row.rowKind !== 'graph-document') {
       return
     }
-    deps.appendBrowserEntry(`Selected ${describeBrowserRow(row)}`)
     selectTargetIntent(deps.workspaceIntentDeps, {
       kind: 'graph-document',
       graphDocumentId: row.graphDocumentId,
     })
     activateSurfaceIntent(deps.workspaceIntentDeps, 'browser')
+    deps.requestConsoleWorkspaceContextHandoff({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: row.graphDocumentId,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'graph-document',
+        graphDocumentId: row.graphDocumentId,
+      },
+    })
   }
 
   const handleDoubleSelectBrowserRow = (row: BrowserRenderableRowVm) => {

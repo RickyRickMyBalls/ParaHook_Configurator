@@ -65,6 +65,739 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 882 -->
+### [882] - 2026-04-02 08:16 - `Workspace 7.5-8 - Phase 2 - Shared Global And Local Split Ghost Preview Contract`
+<!-- ENTRY 882 -->
+HUMAN SUMMARY: `Shipped the second `Workspace 7.5-8` slice by moving Browser and `Spaghetti Editor` onto one shared split-ghost preview resolver, normalizing the preview scope language to `global` and `local`, and proving through focused host coverage that the outer edge band now means workspace-root `global` preview while the next inward band means pane-scoped `local` preview.` 
+#### Scope / Constraints Honored
+- Kept this as a shared preview-contract cleanup instead of a wider AppShell rewrite.
+- Reused Browser's existing preview owner as the first shared seam and adopted the same contract in `Spaghetti Editor` rather than inventing spaghetti-only drag code.
+- Limited the shipped rollout to the corrected preview semantics and first-adopter validation path without expanding into later presentation or polish tasks.
+
+#### What Changed
+- Added `src/app/workspace/workspaceSplitPreview.ts` as the shared helper that resolves split-dock preview side, scope, target slot, and preview bounds from pointer position using the locked `outer = global` and `next inward = local` contract.
+- Updated `src/app/hosts/BrowserDockHost.tsx` so Browser drag previews now resolve through that shared helper, keep their existing ghost geometry owner, and commit `local` versus `global` split results from the normalized preview scope instead of the older Browser-only naming.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so floating spaghetti drag preview now uses the same shared preview object, renders scope-aware ghost bounds, and routes `local` versus `global` drop commits through the already-shipped shared split helpers.
+- Updated `src/app/hosts/BrowserDockHost.test.tsx` and `src/app/hosts/SpaghettiWindowHost.test.tsx` so focused host coverage now proves the normalized `local` versus `global` preview scopes and the right-edge first Spaghetti adoption path.
+
+#### Files Changed
+- `src/app/workspace/workspaceSplitPreview.ts`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 881 -->
+### [881] - 2026-04-02 08:00 - `Workspace 7.5-8 - Phase 1 - Shared Local And Global Spaghetti Split Commands`
+<!-- ENTRY 881 -->
+HUMAN SUMMARY: `Shipped the first `Workspace 7.5-8` implementation slice by turning floating `Spaghetti Editor` split actions into explicit shared `Split Right Locally` versus `Split Right Globally` commands, wiring those commands through the shared workspace split helpers, and proving in focused `AppShell` coverage that the two commands now produce different layout results in the same `Console top / Model Viewport bottom` workspace.` 
+#### Scope / Constraints Honored
+- Kept this as the first adopter slice for `Spaghetti Editor` instead of rewriting the whole Browser ghost system in the same change.
+- Reused the shared workspace split helper seam rather than adding a spaghetti-only root-split branch.
+- Limited the shipped command surface to the right-side local-versus-global pair that `Phase 1` explicitly locked as the first validation path.
+
+#### What Changed
+- Updated `src/app/workspace/workspaceSurfaceActions.ts` so `commitWorkspaceSurfaceRootSplit(...)` now accepts `spaghettiEditor` as the first non-Browser adopter, preserving Browser-specific cleanup while activating the editor viewport and committing a real workspace-root split for floating spaghetti surfaces.
+- Updated `src/app/AppShell.tsx` so the floating spaghetti split menu now exposes explicit `Split Right Locally` and `Split Right Globally` commands instead of the older generic horizontal/vertical pair, and routes those actions through `commitWorkspaceSurfaceSlotSplit(...)` and `commitWorkspaceSurfaceRootSplit(...)`.
+- Expanded `src/app/AppShell.test.tsx` so focused coverage now proves:
+  - `Split Right Locally` keeps a `Console top / Model Viewport bottom` root layout intact while only splitting the model viewport pane
+  - `Split Right Globally` creates a new right workspace-root column across that same layout
+  - the floating spaghetti split menu still stays targeted at the editor that opened it
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Floating `Spaghetti Editor` now exposes explicit shared split commands for the first `7.5-8` adopter path:
+  - `Split Right Locally`
+  - `Split Right Globally`
+- `Split Right Locally` now commits a slot-scoped split through the shared workspace helper path.
+- `Split Right Globally` now commits a workspace-root split through the shared workspace helper path.
+- The two commands now diverge honestly in the same workspace layout instead of sharing one ambiguous split action.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 880 -->
+### [880] - 2026-04-02 07:05 - `Workspace 7.5-7 - Browser Row Pointer And Click Selection Dedupe`
+<!-- ENTRY 880 -->
+HUMAN SUMMARY: `Fixed a Browser row event-order bug where the same single click was selecting once on \`pointerdown\` and then again on \`click\` because the row-level guard flag was cleared too early on \`pointerup\`, which duplicated Browser console lines like \`Selected target\`, \`Select > ...\`, and \`... > Choose next [...]\`.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow Browser row-event dedupe fix inside the current `Workspace 7.5-7` console-alignment cleanup.
+- Preserved the existing Browser surface activation behavior on `pointerdown` and only fixed the duplicate selection transition from the same click cycle.
+- Added focused presenter coverage instead of widening this into a larger Browser refactor.
+
+#### What Changed
+- Updated `src/app/panels/browserTreeRowPresenter.tsx` so the Browser row-level `browserPointerSelectionHandled` guard now stays alive through the real `click` event instead of being deleted on `pointerup` before the later `click` check runs.
+- Added `src/app/panels/browserTreeRowPresenter.test.tsx` to prove one pointer-driven Browser row click now commits selection exactly once.
+
+#### Files Changed
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeRowPresenter.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- A single Browser content click no longer prints duplicate Browser selection console lines just because the row handled both `pointerdown` and `click`.
+- Browser rows still activate immediately on `pointerdown`, but the full selection transition now only lands once per deliberate click.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/panels/browserTreeRowPresenter.test.tsx src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 879 -->
+### [879] - 2026-04-02 06:50 - `Workspace 7.5-7 - Docked Browser Click Should Not Replay Root`
+<!-- ENTRY 879 -->
+HUMAN SUMMARY: `Patched AppShell so docked Browser panel clicks are treated as in-bounds workspace interactions, which stops a valid Browser content click from falling through to a later \`global-outside-click\` clear that replayed \`Returned to root\` and \`Root > Choose next [...]\` in the console.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow AppShell outside-click cleanup inside the current `Workspace 7.5-7` console-alignment ladder.
+- Preserved the newer explicit Browser handoff contract and the recent Browser-side log dedupe work instead of reopening Browser publisher logic again.
+- Limited the change to docked Browser in-bounds recognition and focused Browser/AppShell regression coverage.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the global `window` `pointerdown` outside-click guard now treats `.BrowserPanelRoot`, `.BrowserPanelBody`, and `.BrowserTree` as in-bounds workspace Browser surfaces.
+- Updated `src/app/AppShell.test.tsx` with a focused regression that clicks inside the docked Browser panel and proves AppShell does not request `surface-clear` from the `global-outside-click` source for that same click.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Docked Browser panel clicks no longer replay root after a valid Browser selection or prompt transition.
+- AppShell now treats docked Browser content interactions the same way it already treats floating and split Browser interactions for outside-click clearing.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 878 -->
+### [878] - 2026-04-01 22:54 - `Workspace 7.5-7 - Browser Single-Click Console Cleanup`
+<!-- ENTRY 878 -->
+HUMAN SUMMARY: `Cleaned up Browser single-click console output so a simple Browser content click no longer replays the legacy `target-selection` transition after the explicit Browser handoff, no longer emits the redundant Browser-layer `Selected ...` line for basic row selection, and no longer logs `Selection cleared` when no active part was actually cleared.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow Browser click-noise cleanup on top of the already-shipped `Phase 2F` Browser handoff rollout.
+- Preserved the explicit Browser handoff model and the legacy sync path as fallback for non-upgraded callers instead of reopening the broader console architecture.
+- Limited Browser-side logging cleanup to simple row-selection flows so focus/open/reveal actions can keep their higher-signal Browser entries.
+
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so a fresh explicit workspace handoff now also consumes a same-cycle legacy `target-selection` sync, preventing Browser from replaying a second full console transition right after the explicit Browser handoff.
+- Updated `src/app/store/useAppStore.ts` so `selectPart(null)` no longer appends `Selection cleared` when the selected part was already empty.
+- Updated `src/app/panels/browserInteractions.ts` so simple explicit Browser row selection and graph-document row selection stop emitting the redundant Browser-layer `Selected ...` entry.
+- Added focused regressions in:
+  - `src/app/console/ConsoleDock.test.tsx`
+  - `src/app/store/useAppStore.test.ts`
+  - `src/app/panels/browserInteractions.test.ts`
+
+#### Behavior Changes
+- A simple Browser content click now produces one cleaner console transition instead of an explicit Browser handoff followed by a second legacy replay.
+- Browser row selection no longer adds an extra Browser-layer `Selected ...` line when the console already prints the selected-target and destination breadcrumb.
+- Null part selection no longer prints `Selection cleared` unless something was actually cleared.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/app/store/workspaceSelectionCommands.test.ts src/app/panels/browserInteractions.test.ts src/app/console/ConsoleDock.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 877 -->
+### [877] - 2026-04-01 22:35 - `Workspace 7.5-7 Phase 2F - Browser Publisher Rollout And Legacy Compatibility Demotion`
+<!-- ENTRY 877 -->
+HUMAN SUMMARY: `Rolled Browser onto the newer explicit console workspace handoff model for the highest-signal selection seams. Browser content selection, Browser graph-document row selection, and Browser-owned object or reference activation now emit a `selection` handoff before the older `target-selection` sync, so Browser joins viewer and spaghetti on the same console context contract while the legacy path remains as fallback compatibility.`
+#### Scope / Constraints Honored
+- Kept this slice focused on Browser-side console publisher rollout without reopening the recent spaghetti live-focus repair chain.
+- Preserved the older `requestConsoleContextSync('target-selection')` path as fallback compatibility instead of trying to delete the legacy sync model in the same pass.
+- Limited the rollout to the highest-signal Browser-owned selection and activation seams instead of widening into a broader Browser redesign.
+
+#### What Changed
+- Updated `src/app/store/workspaceSelectionCommands.ts` so shared Browser selection commits now publish an explicit `consoleWorkspaceContextHandoff` with `mode: 'selection'` before the older `target-selection` sync.
+- Updated `src/app/panels/browserInteractions.ts` so Browser explicit-selection rows ride that shared handoff seam and graph-document row clicks publish one direct Browser `selection` handoff after selecting the target.
+- Updated `src/app/store/workspaceIntents.ts` so Browser-owned reference and object activation intents now emit the same explicit `selection` handoff contract while still preserving the older compatibility sync.
+- Threaded the new Browser handoff publisher through `src/app/panels/useBrowserPanelController.ts`.
+- Added focused coverage in:
+  - `src/app/store/workspaceSelectionCommands.test.ts`
+  - `src/app/store/workspaceIntents.test.ts`
+  - `src/app/panels/browserInteractions.test.ts`
+  - `src/app/panels/BrowserPanel.test.tsx`
+
+#### Behavior Changes
+- Browser selection now reaches `ConsoleDock` primarily through explicit Browser workspace handoffs instead of relying only on the older reason-only sync path.
+- Browser graph-document row clicks now publish a concrete Browser `selection` handoff, so Browser participates in the same workspace-console contract already used by viewer and spaghetti.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/workspaceSelectionCommands.test.ts src/app/store/workspaceIntents.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/BrowserPanel.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 876 -->
+### [876] - 2026-04-01 22:14 - `VR-SP - Console Node Breadcrumb Summary Cleanup`
+<!-- ENTRY 876 -->
+HUMAN SUMMARY: `Extended the cleaner console breadcrumb print into graph-owned node scopes, so sketch and focused-node sessions now keep the full \`Root > Graph Documents > Graph N > ...\` path in the top status instead of collapsing to short labels like \`Sketch\` or \`Focus Node\`. The summary now preserves graph context while still showing the selected node branch or node label at the end.`
+#### Scope / Constraints Honored
+- Kept this as a narrow summary-render cleanup in `ConsoleBar` without changing staged-navigation execution or the raw transcript entries stored in the console log.
+- Reused the same friendly graph breadcrumb normalization that was just added for graph scope instead of inventing a second node-summary format.
+- Limited test changes to focused summary assertions for sketch-selected and node-selected graph sessions.
+
+#### What Changed
+- Updated `src/app/console/ConsoleBar.tsx` so graph-owned node and branch scopes now normalize staged breadcrumbs into:
+  - `Root > Graph Documents > Graph N > Focus Node > ...`
+  - `Root > Graph Documents > Graph N > Sketch > ...`
+  - and the same pattern for other graph-owned branch scopes
+- Added focused assertions in `src/app/console/ConsoleDock.test.tsx` proving the summary now shows:
+  - `Root > Graph Documents > Graph 1 > Sketch > sketch_[1] > Choose next`
+  - `Root > Graph Documents > Graph 1 > Focus Node > node_[1] Cube > Choose next`
+
+#### Behavior Changes
+- When a user selects or focuses a graph-owned node, the top console status now keeps the full graph breadcrumb instead of dropping the graph context.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/AppShell.consoleLiveFocus.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 875 -->
+### [875] - 2026-04-01 22:10 - `VR-SP - Console Graph Breadcrumb Summary Cleanup`
+<!-- ENTRY 875 -->
+HUMAN SUMMARY: `Updated the top console status so staged graph scope now prints a fuller breadcrumb instead of collapsing to plain \`Graph\`. When the user is inside a graph, the summary now reads like \`Root > Graph Documents > Graph 1 > Choose next\`, while the underlying transcript entries and prompt parsing behavior stay unchanged.`
+#### Scope / Constraints Honored
+- Kept this as a narrow console-print cleanup without changing staged-navigation behavior or the underlying command transcript format.
+- Limited the render change to staged graph summary display in `ConsoleBar` so existing graph command execution and raw `Graph > Choose next [...]` transcript entries remain intact.
+- Updated only the focused tests that assert the staged summary text.
+
+#### What Changed
+- Updated `src/app/console/ConsoleBar.tsx` so `graphRoot` and `graphSelected` now render a friendlier top breadcrumb:
+  - `Root > Graph Documents`
+  - `Root > Graph Documents > Graph N`
+- Kept raw transcript parsing untouched, so manually appended transcript lines like `Graph > Choose next [...]` still display exactly as written when no staged graph session owns the summary.
+- Updated focused summary assertions in `src/app/console/ConsoleDock.test.tsx` and `src/app/AppShell.consoleLiveFocus.test.tsx` to match the fuller staged breadcrumb.
+
+#### Behavior Changes
+- The top console summary now gives clearer orientation when the user is inside graph scope.
+- Example:
+  - before: `Graph > Choose next [...]`
+  - now: `Root > Graph Documents > Graph 1 > Choose next [...]`
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/AppShell.consoleLiveFocus.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 874 -->
+### [874] - 2026-04-01 21:54 - `VR-SP - Workspace 7.5-7A Phase 2E - Dedupe Spaghetti Activation Noise`
+<!-- ENTRY 874 -->
+HUMAN SUMMARY: `Collapsed the hosted spaghetti activation paths so one floating, meatball, or popout click now publishes one canonical graph-focus handoff instead of stacked capture-plus-bubble duplicates. The shell no longer double-fires the same spaghetti graph focus from those hosted windows, and focused AppShell coverage now locks that quieter activation path in place.`
+#### Scope / Constraints Honored
+- Kept this inside the narrow `Workspace 7.5-7A Phase 2E` noise-cleanup lane instead of reopening the late-root replay or submit-path work.
+- Left split-host frame activation intact; this slice only removed duplicate hosted-window publishers.
+- Preserved the panel-level graph or node refinement path instead of widening into a broader `ConsoleDock` redesign.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so floating, meatball, and popout spaghetti shells now use one canonical shell activation path per click instead of stacking `onPointerDownCapture` and `onPointerDown`.
+- Added focused `src/app/AppShell.test.tsx` coverage proving one floating spaghetti shell click now emits one explicit console workspace handoff and one legacy `surface-activation` sync.
+- Kept `src/app/AppShell.consoleLiveFocus.test.tsx` as reserve composed-shell coverage while preserving the narrower AppShell publisher regression as the permanent lock for this slice.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/AppShell.consoleLiveFocus.test.tsx`
+
+#### Behavior Changes
+- One deliberate floating spaghetti click now publishes one graph-focus activation by default instead of duplicating the same hosted spaghetti handoff through both capture and bubble paths.
+- Meatball and popout spaghetti shells now follow that same one-publisher-per-click rule.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 873 -->
+### [873] - 2026-04-01 21:32 - `VR-SP - Workspace 7.5-7A Phase 2D Retry - Tagged AppShell Clear Sources`
+<!-- ENTRY 873 -->
+HUMAN SUMMARY: `Retried the late-root replay fix by tagging every AppShell `surface-clear` publisher and tightening when spaghetti-visibility loss is allowed to clear the console. The shell now distinguishes viewer activation, outside-click clear, and lost-spaghetti-visibility, and it no longer treats normal split-host spaghetti presence as “spaghetti disappeared.”`
+#### Scope / Constraints Honored
+- Kept this inside the same `Workspace 7.5-7A Phase 2D` lane instead of jumping ahead to duplicate-publish cleanup or the submit-path reserve.
+- Left `ConsoleDock` behavior unchanged in this retry; the work stayed AppShell-first as planned.
+- Preserved the earlier split-host activation fixes while making the late clear publishers more explicit and safer.
+
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` so `consoleContextSyncRequest` now carries a small internal source tag and `requestConsoleContextSync(...)` accepts that optional source.
+- Updated `src/app/AppShell.tsx` to route AppShell `surface-clear` requests through one helper and tag the remaining clear publishers as `viewer-activation`, `global-outside-click`, or `lost-spaghetti-visibility`.
+- Tightened the spaghetti-visibility clear so it only fires when no split, detached, floating, or popout spaghetti surface still exists.
+- Added focused `src/app/AppShell.test.tsx` coverage that viewer activation uses the tagged clear source and that split-host spaghetti presence does not trigger the `lost-spaghetti-visibility` clear during normal split use.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- AppShell now preserves the source of its late `surface-clear` requests, making the remaining live replay traceable without guessing.
+- Normal split-host spaghetti presence no longer counts as “spaghetti disappeared,” so that visibility-loss clear should not fire during ordinary split transitions.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 872 -->
+### [872] - 2026-04-01 21:15 - `VR-SP - Workspace 7.5-7A Phase 2D - Prevent Late Global Clear Replay`
+<!-- ENTRY 872 -->
+HUMAN SUMMARY: `Stopped the broad AppShell outside-click clear from treating split and slotted workspace surfaces like out-of-bounds clicks. Split-host spaghetti header clicks no longer fall through to `surface-clear`, and the focused AppShell regressions now prove the later global clear path is no longer the default next thing that runs after those clicks.`
+#### Scope / Constraints Honored
+- Kept this inside the narrow `Workspace 7.5-7A Phase 2D` clear-replay lane instead of widening into the later duplicate-publish cleanup or final submit-path reserve.
+- Left the earlier `Phase 2A` stale-root replay guard and `Phase 2C` frame-level spaghetti activation intact; this slice only narrows when the global AppShell pointer clear is allowed to fire.
+- Preserved the real-console harness as reserve expected-failure coverage while the broader noisy spaghetti activation loop continues into follow-on phases.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the global `window` `pointerdown` clear handler now treats split and slotted spaghetti or browser frame clicks as in-bounds workspace interactions instead of outside clicks.
+- Tightened `src/app/AppShell.test.tsx` so repeated split-host spaghetti header clicks must not request `surface-clear` while still re-publishing the explicit spaghetti graph handoff.
+- Reshaped `src/app/AppShell.consoleLiveFocus.test.tsx` to keep tracking the broader real-console flow as reserve coverage while the focused AppShell regression remains the reliable proof for this slice.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/AppShell.consoleLiveFocus.test.tsx`
+
+#### Behavior Changes
+- Split and slotted spaghetti frame clicks are no longer treated as generic outside clicks by the global AppShell clear logic.
+- Repeated split-host spaghetti header clicks should no longer trigger a late `surface-clear` from the global pointerdown handler.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 871 -->
+### [871] - 2026-04-01 20:58 - `VR-SP - Workspace 7.5-7A Phase 2C - Restore Split Spaghetti Click Publisher Reliability`
+<!-- ENTRY 871 -->
+HUMAN SUMMARY: `Restored split-host spaghetti activation after dock or split by moving the base publisher up to the full viewport frame. Header and body clicks now re-publish the clicked spaghetti viewport graph instead of depending on the inner surface wrapper alone, and the focused AppShell regressions now prove repeated post-dock header clicks keep emitting fresh handoffs.`
+#### Scope / Constraints Honored
+- Kept this inside the narrow `Workspace 7.5-7A Phase 2C` publisher-reliability lane instead of widening into Browser rollout or another broader `ConsoleDock` rewrite.
+- Left panel-local graph and node refinement in place; this slice only moved the base split-host activation responsibility to the full frame so docked header clicks cannot bypass it.
+- Preserved the earlier stale-root replay protection from `Phase 2A` and re-ran the focused real-console and console-precedence coverage alongside the new split-host regression.
+
+#### What Changed
+- Updated `src/app/workspace/ViewportFrame.tsx` with an optional frame-level activation capture so the whole split-host spaghetti frame can publish activation, not just the inner surface body.
+- Updated `src/app/AppShell.tsx` to wire split-host `Spaghetti Editor` slots through that frame-level activation seam.
+- Updated `src/app/workspace/ViewportSurfaceRegistry.tsx` to remove the older duplicate split-wrapper capture now that the frame owns the base publisher.
+- Added focused regressions in `src/app/AppShell.test.tsx` that prove repeated post-dock split-header clicks still re-publish the clicked viewport graph and keep incrementing the explicit console handoff sequence.
+
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- After docking or splitting a `Spaghetti Editor`, clicking the split frame header or body now re-publishes spaghetti activation instead of silently doing nothing.
+- Split-host spaghetti activation no longer depends on the inner `ViewportSurfaceRegistry` wrapper alone, so the shared console has a more reliable publisher path after drag-to-split.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd test -- --run src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 870 -->
+### [870] - 2026-04-01 20:41 - `VR-SP - Workspace 7.5-7A Phase 2A - Prevent Stale Root Replay`
+<!-- ENTRY 870 -->
+HUMAN SUMMARY: `Stopped one stale console root replay from overwriting valid split-spaghetti graph focus. `ConsoleDock` now ignores legacy `surface-clear` resets while `Spaghetti Editor` is still the active surface, and the focused console regressions now prove that graph-selected scope survives that replay attempt.`
+#### Scope / Constraints Honored
+- Kept this as the narrow `Workspace 7.5-7A Phase 2A` replay fix instead of widening into the later Browser rollout or a broader console redesign.
+- Preserved the explicit workspace handoff direction; this change only narrows when legacy `surface-clear` compatibility is allowed to force the console back to `Root`.
+- Left the broader composed-shell repro in `src/app/AppShell.consoleLiveFocus.test.tsx` as expected-failure coverage so that separate shell-harness gap remains visible without blocking this smaller stale-replay repair.
+
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so legacy `surface-clear` sync only forces a root reset when the active workspace surface is not `spaghetti`, preventing a stale replay from canceling a fresh split-spaghetti graph focus.
+- Added a focused regression in `src/app/console/ConsoleDock.test.tsx` that proves an explicit spaghetti graph handoff survives a later stale `surface-clear` request while `spaghetti` remains the active surface.
+- Retained and reshaped `src/app/AppShell.consoleLiveFocus.test.tsx` as a broader expected-failure real-console harness so the composed-shell gap can still be tracked separately while the narrower replay precedence fix ships now.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/AppShell.consoleLiveFocus.test.tsx`
+
+#### Behavior Changes
+- A split-host `Spaghetti Editor` graph focus is no longer immediately overwritten by a stale legacy root replay while `Spaghetti Editor` is still the active surface.
+- The shared console should now stay in the graph-selected path longer instead of snapping straight back to `Root` from the same interaction cycle.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.consoleLiveFocus.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 869 -->
+### [869] - 2026-04-01 20:24 - `VR-SP - Workspace 7.5-7A Phase 1 - Real Console Split Spaghetti Repro`
+<!-- ENTRY 869 -->
+HUMAN SUMMARY: `Added a focused real-console repro for the still-open split-host spaghetti click bug. The new coverage uses the actual docked `ConsoleDock` path, proves the live flow still sticks on `Root`, and gives the next repair slice a concrete composed-app seam to target.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-7A` reproduction slice instead of widening into another behavior patch before the live failure was captured honestly.
+- Used the real docked `ConsoleDock` path rather than the older mocked shell-only coverage so the failing behavior matches the composed app more closely.
+- Preserved the green focused suite by recording the known live mismatch as an expected-failure regression instead of hiding it behind more mock-driven assertions.
+
+#### What Changed
+- Added `src/app/AppShell.consoleLiveFocus.test.tsx` as a focused integration repro that renders the real `AppShell` plus actual docked `ConsoleDock` path after dynamically loading the shell stores behind a `Worker` mock.
+- Drove the exact live flow in that repro: split the model viewport, convert the right slot to `Spaghetti Editor`, click the viewer to hold `root`, then click the split spaghetti surface.
+- Locked the still-open mismatch in the assertions: the real console should leave `root`, show `Graph > Choose next`, and append `Selected target: graph_[2]`, but currently does not.
+
+#### Files Changed
+- `src/app/AppShell.consoleLiveFocus.test.tsx`
+
+#### Behavior Changes
+- No runtime behavior changed in this slice; the new focused coverage now captures the real split spaghetti console mismatch that the earlier mocked shell tests could not prove.
+- The next repair phase can now target the composed app seam directly instead of guessing from shell-only publishers.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.consoleLiveFocus.test.tsx`
+- `npm.cmd run build`
+
+
+<!-- ENTRY 865 -->
+HUMAN SUMMARY: `Updated the architecture roadmap so `Pasta Path` now has an explicit place in the main working queue instead of living only in the catch-all open-family list. The roadmap now frames it as a later derived CAD-command / transform-diff timeline surface that follows the current workspace cleanup ladder and earlier `Edit History` groundwork, rather than reading like a second undo/history system.`  
+#### Scope / Constraints Honored
+- Kept this as a docs-only roadmap interpretation update and did not invent a fake standalone `Pasta Path` phase id before the family is ready.
+- Preserved the current umbrella status of the `Pasta Path` family while making its likely dependency order more explicit.
+- Narrowed the wording so `Pasta Path` no longer reads like it should replace `Spaghetti` or duplicate `Edit History`.
+
+#### What Changed
+- Updated `docs/Human-Plans/roadmap/Architecture-roadmap.md` so the `Pasta Path` family read now describes it as a derived scrub-friendly CAD-command / transform-diff surface, explicitly separate from `Edit History`.
+- Added `Pasta Path` into the main `### Suggested Working Order` after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork.
+- Removed `Pasta Path` from the generic `### Other Open Families` list now that it has a more explicit place in the roadmap queue.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No runtime behavior changed; this is a roadmap and interpretation cleanup so the cross-family plan now shows where `Pasta Path` belongs more honestly.
+
+#### Verification Steps
+- Read back `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+
+<!-- ENTRY 869 -->
+### [868] - 2026-04-01 20:05 - `VR-SP - Workspace 7.5-7 Phase 2E Follow-Up - Host-Owned Spaghetti Console Sync`
+<!-- ENTRY 868 -->
+HUMAN SUMMARY: `Followed up `Workspace 7.5-7` after the live split-host spaghetti repro still left console stuck or frozen. Host-owned spaghetti activation now sets the graph target in the shared AppShell activation seam, and the panel-level legacy `target-selection` console sync is demoted to fallback-only so a click into split spaghetti stops fighting the staged console session.`  
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up inside the active `Workspace 7.5-7` console compatibility lane instead of widening into Browser rollout or a broader AppShell refactor.
+- Preserved the explicit workspace handoff direction from `Phase 2A` through `Phase 2E`; this change removes overlap between the hosted spaghetti panel fallback and the host-owned activation seam rather than replacing the handoff model.
+- Left document planning files untouched in this code fix; only the required permanent changelog history was updated.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the hosted spaghetti activation path now also writes the resolved graph or node target into `workspaceSelection.selectedTarget` at the same time it publishes the explicit console handoff.
+- Updated `src/app/panels/SpaghettiPanel.tsx` so the old active-surface `target-selection` sync effect only runs as a fallback when no host-owned `onActivateEditorContext` seam exists.
+- Narrowed `SpaghettiPanel` node-focus syncing so hosted panels no longer fire the legacy `requestConsoleContextSync('target-selection')` on top of the explicit host handoff.
+- Extended the focused regressions in `src/app/AppShell.test.tsx` and `src/app/panels/SpaghettiPanel.test.tsx` to prove hosted spaghetti activation now sets the shared graph or node target directly and that hosted panels no longer replay the legacy console sync path.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+
+#### Behavior Changes
+- Clicking into a hosted split `Spaghetti Editor` now routes graph or node focus through one authoritative activation seam instead of overlapping AppShell handoff plus panel-level compatibility resync.
+- Hosted spaghetti focus changes should stop re-seeding console state through the legacy `target-selection` path, which was the likely cause of the console appearing stuck or frozen after the click.
+- Non-hosted `SpaghettiPanel` usage still retains the older fallback graph-node workspace sync behavior when no host activation callback is available.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 868 -->
+### [867] - 2026-04-01 19:57 - `VR-SP - Workspace 7.5-7 Phase 2E - Split-Host Outer Activation Fallback`
+<!-- ENTRY 867 -->
+HUMAN SUMMARY: `Completed the split-host fallback repair for `Workspace 7.5-7 Phase 2E`. Split `Spaghetti Editor` surfaces now publish activation from the outer workspace wrapper again, so console refocus no longer depends only on the inner panel-root event path and the richer `Phase 2D` graph or node targeting still stays intact.`  
+#### Scope / Constraints Honored
+- Kept this inside `Workspace 7.5-7 Phase 2E - Split-Host Outer Activation Fallback` instead of widening into the later Browser rollout in `Phase 2F`.
+- Preserved the direct graph or node handoff work from `Phase 2D` and did not rework `ConsoleDock` preference order again.
+- Limited the fix to split-host spaghetti activation only; floating and popout spaghetti behavior stayed on the existing direct-target path.
+
+#### What Changed
+- Updated `src/app/workspace/ViewportSurfaceRegistry.tsx` so split-host `Spaghetti Editor` surfaces now publish `onActivateSpaghettiSurface(surfaceInstanceId)` from the outer wrapper on pointer-down capture.
+- Removed split-host `activateOnPointerDownCapture` from the nested `SpaghettiPanel` instance in `ViewportSurfaceRegistry` so a deliberate split click does not publish duplicate base handoffs from both wrapper and panel root.
+- Updated `src/app/AppShell.test.tsx` so the focused split-host regressions now click the real split spaghetti wrapper path instead of the mocked panel root, proving wrapper activation works and that stale ambient graph state still cannot win.
+- Kept the existing `Phase 2D` graph/node refinement coverage green, including viewport-local selected-node handoff behavior.
+
+#### Files Changed
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`
+
+#### Behavior Changes
+- Clicking anywhere on a split-host `Spaghetti Editor` surface now guarantees spaghetti activation from the outer workspace wrapper, even when the inner panel-root path is not the first real live event seam reached.
+- Split-host console refocus is now structurally closer to the already-working Browser split-host activation model.
+- Panel-local graph or node actions still refine the handoff through the richer direct-target path from `Phase 2D`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 867 -->
+### [866] - 2026-04-01 18:43 - `VR-SP - Workspace 7.5-7 Phase 2D - Direct Spaghetti Graph Focus Command`
+<!-- ENTRY 866 -->
+HUMAN SUMMARY: `Completed the direct spaghetti graph-focus lane for `Workspace 7.5-7 Phase 2D`. Split or floating `Spaghetti Editor` activation now resolves graph and viewport-local node target from the clicked `editorViewportId`, so the console can enter its existing graph-selected or node-selected path without leaning on stale ambient graph state.`  
+#### Scope / Constraints Honored
+- Kept this inside `Workspace 7.5-7 Phase 2D - Direct Spaghetti Graph Focus Command` instead of widening into the later Browser rollout in `Phase 2E`.
+- Reused the existing `Root -> Graph -> graph_[n]` and deeper node-selected console model instead of inventing a new navigation concept.
+- Preserved the explicit workspace handoff plus legacy fallback arrangement from `Phase 2A` through `Phase 2C` while making the spaghetti target more concrete.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the shared spaghetti activation helper now resolves `graphDocumentId`, viewport-local selected node, and direct `graph` or `node` mode from the clicked `editorViewportId` before publishing the explicit console workspace handoff.
+- Updated `src/app/panels/SpaghettiPanel.tsx` so graph-switch and focus-node actions can pass their direct graph or node target through the same activation seam instead of relying on later ambient state reads.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` and `src/app/workspace/ViewportSurfaceRegistry.tsx` so floating, popout, and split-host spaghetti activation all accept the widened direct-target callback shape and floating activation now passes the focused `editorViewportId`.
+- Added focused regressions in `src/app/AppShell.test.tsx` proving stale ambient graph state cannot beat the clicked viewport binding and that a viewport-local selected node publishes a `node` handoff.
+- Added a focused regression in `src/app/console/ConsoleDock.test.tsx` proving the explicit spaghetti node handoff lands in the existing `graphNodeSelected` console path.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-7 - Spaghetti Editor Split Modes And Console Alignment.md`
+
+#### Behavior Changes
+- Clicking a split or floating `Spaghetti Editor` now publishes a direct graph or node console target from that editor viewport instead of leaning on stale `activeGraphDocumentId`.
+- Repeated spaghetti clicks still count as meaningful handoffs, but the handoff is now specific enough to drive the existing graph-selected or node-selected console location instead of lingering on `Root`.
+- Floating or popout spaghetti activation no longer loses graph context just because the shared activation callback was invoked without a viewport id.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 866 -->
+### [865] - 2026-04-01 18:22 - `VR-SP - Workspace 7.5-7 Phase 2C - Unify Spaghetti Activation Publishers`
+<!-- ENTRY 865 -->
+HUMAN SUMMARY: `Unified the remaining spaghetti-side console publishers for `Workspace 7.5-7 Phase 2C`. `AppShell` now owns one shared spaghetti activation helper, `SpaghettiPanel` can invoke that same helper for panel-local focus paths, and split-host spaghetti activation no longer depends only on the outer slot wrapper to move console off `root`.`  
+#### Scope / Constraints Honored
+- Kept this inside `Workspace 7.5-7 Phase 2C - Unify Spaghetti Activation Publishers` instead of widening into the later Browser rollout in `Phase 2D`.
+- Preserved the explicit console handoff path from `Phase 2A` and `Phase 2B` while keeping the legacy reason-based sync alive as fallback.
+- Focused only on spaghetti publisher coverage across split-host, floating or popout, and panel-local activation without redesigning the broader staged-navigation system.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` with one shared spaghetti activation helper that now owns active viewport selection, active workspace-surface selection, explicit console handoff publishing, and the legacy `surface-activation` fallback.
+- Updated `src/app/workspace/ViewportSurfaceRegistry.tsx` so split-host spaghetti activation now routes through `SpaghettiPanel` instead of relying only on the outer split wrapper capture path.
+- Updated `src/app/panels/SpaghettiPanel.tsx` so the panel can publish editor-context activation from its root and from user-driven panel-local graph or node focus actions using the same shared helper seam.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the floating, meatball, and popout panel instances can use the same panel-local activation callback without forking the console publisher behavior.
+- Added focused regressions in `src/app/AppShell.test.tsx` and `src/app/panels/SpaghettiPanel.test.tsx`, and kept `src/app/hosts/SpaghettiWindowHost.test.tsx` green against the new panel prop shape.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- Split-host spaghetti activation no longer depends only on the outer workspace-slot wrapper to publish console focus intent.
+- Panel-local spaghetti focus paths now use the same shared activation helper as the shell-level wrappers, so clicking into the editor body or using user-driven graph or node focus controls can publish the same spaghetti console handoff.
+- The later Browser rollout remains deferred to `Phase 2D`, so this slice only unifies spaghetti-side publisher coverage.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/panels/SpaghettiPanel.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 864 -->
+### [864] - 2026-04-01 18:03 - `VR-SP - Workspace 7.5-7 Phase 2B - Make ConsoleDock Prefer Explicit Workspace Handoff`
+<!-- ENTRY 864 -->
+HUMAN SUMMARY: `Completed the real console preference switch for `Workspace 7.5-7 Phase 2B`. `ConsoleDock` now consumes explicit viewer and spaghetti workspace handoffs before the older reason-only sync path, so stale selected-target compatibility no longer wins those focus changes and repeated deliberate clicks remain meaningful console refocus events.`  
+#### Scope / Constraints Honored
+- Kept this inside `Workspace 7.5-7 Phase 2B - Make ConsoleDock Prefer Explicit Workspace Handoff` instead of widening into the broader `Phase 2C` publisher rollout or a general `ConsoleDock` redesign.
+- Preserved the older `consoleContextSyncRequest` path as fallback compatibility for non-upgraded callers.
+- Kept the higher-risk sketch, draw, and transform guardrails in place while changing the console preference order.
+
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so the main console sync effect now reads fresh `consoleWorkspaceContextHandoff` events before the legacy reason-only sync request, resolves explicit viewer-root and spaghetti graph or node handoffs first, and treats fresh handoff `seq` values as meaningful even when the resulting scope repeats.
+- Kept the legacy `consoleContextSyncRequest` path intact in `src/app/console/ConsoleDock.tsx`, but only as fallback compatibility when no new explicit workspace handoff is available.
+- Updated `src/app/console/ConsoleDock.test.tsx` with focused regressions proving explicit viewer-root and spaghetti-graph handoffs outrank stale selected-target compatibility and that repeated explicit spaghetti graph handoffs still re-focus the console.
+- Updated `src/app/AppShell.test.tsx` to keep the upstream viewer and spaghetti publisher coverage aligned with the new explicit-handoff-first console behavior.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- `ConsoleDock` now prefers explicit viewer and spaghetti workspace handoffs over stale selected-target compatibility and the older reason-only sync path.
+- Repeated deliberate viewer or spaghetti activation can now re-focus the console even when the visible scope repeats, because fresh explicit handoff `seq` values are treated as meaningful events.
+- The older `consoleContextSyncRequest` path remains available as fallback compatibility for the not-yet-upgraded callers that will move in `Phase 2C`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 864 -->
+
+HUMAN SUMMARY: `Updated the cross-family architecture roadmap so its visible working queue now matches the real workspace cleanup order. The roadmap now puts the live `Workspace 7.5-7` through `Workspace 7.5-11` ladder ahead of `Workspace 5.3`, removes the already-shipped `App Shell` ladder from the active queue, and records a later deferred `AppShell` cleanup follow-on instead of leaving that future pass implied.`  
+#### Scope / Constraints Honored
+- Kept this as a docs-only roadmap cleanup and did not invent a fake new source-doc phase id for the later `AppShell` pass.
+- Preserved the shipped `AppShell` family read while making the active queue more honest about current workspace priorities.
+- Updated the queue using the live workspace-family docs and cleanup-stack ordering instead of reviving older shorthand.
+
+#### What Changed
+- Updated `docs/Human-Plans/roadmap/Architecture-roadmap.md` so the `Workspace Modes` family read now reflects the current open `Workspace 7.5-7` through `Workspace 7.5-11` cleanup ladder plus the later `Workspace 5.3` UX follow-on.
+- Reworked the roadmap `### Suggested Working Order` so the workspace cleanup ladder is now the explicit top queue, the already-shipped `App Shell` ladder is no longer presented as active work, and one deferred `AppShell - Later Workspace Cleanup Follow-On` appears after the current workspace ladder.
+- Clarified the `AppShell` family read so any future `AppShell` cleanup is treated as a new later workspace-driven follow-on instead of a reopening of the shipped `[5.0F]` family.
+
+#### Files Changed
+- `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No runtime behavior changed; this is a roadmap ordering cleanup so the visible to-do list matches the actual current workspace execution order more closely.
+
+#### Verification Steps
+- Read back `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+
+<!-- ENTRY 863 -->
+### [863] - 2026-04-01 17:53 - `VR-SP - Workspace 7.5-7 Phase 2A - Define Explicit Console Workspace Context Handoff`
+<!-- ENTRY 863 -->
+HUMAN SUMMARY: `Implemented the first real console-compatibility infrastructure slice for `Workspace 7.5-7`. `useAppStore` now owns an explicit console workspace handoff event payload with sequence semantics, and `AppShell` publishes that payload for viewer-root and spaghetti graph or node activation while the older reason-based console sync path stays alive as fallback compatibility for the later `Phase 2B` preference switch.`  
+#### Scope / Constraints Honored
+- Kept this change inside `Workspace 7.5-7 Phase 2A - Define Explicit Console Workspace Context Handoff` instead of switching `ConsoleDock` itself over to the new path yet.
+- Preserved the legacy `consoleContextSyncRequest` behavior so the migration can stay two-step and safer.
+- Focused only on the first publishers that matter for the broken workspace flow: viewer activation and spaghetti activation.
+
+#### What Changed
+- Updated `src/app/store/useAppStore.ts` with a new `ConsoleWorkspaceContextHandoff` payload type, store field, and `requestConsoleWorkspaceContextHandoff(...)` publisher method that increments a fresh `seq` on every deliberate handoff.
+- Updated `src/app/AppShell.tsx` so viewer activation now publishes a root handoff and spaghetti activation now publishes graph or node handoff payloads that include source surface, graph or node identity, clicked `editorViewportId`, and the current selected target.
+- Updated `src/app/AppShell.test.tsx` so shell activation coverage now proves those viewer and spaghetti publishers emit the explicit handoff payload and that repeated clicks still advance the handoff sequence.
+- Updated `src/app/store/useAppStore.test.ts` with a focused regression that proves the explicit handoff store path increments `seq` and stores the latest published payload without disturbing other app-store state.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes
+- The app store now has an explicit console workspace handoff event channel for workspace-mode activation.
+- Viewer and spaghetti activation now publish that channel immediately, even though `ConsoleDock` still primarily follows the older reason-based compatibility path until `Phase 2B`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/store/useAppStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 862 -->
+### [862] - 2026-04-01 17:40 - `VR-SP - Workspace 7.5-7 Phase 1 - Surface Click Console Refocus Follow-Up`
+<!-- ENTRY 862 -->
+HUMAN SUMMARY: `Finished the `Workspace 7.5-7 Phase 1` console-refocus behavior so deliberate surface clicks now win over stale selected-target context. The model viewport now re-roots the console even when a shared selection exists, and a split-host `Spaghetti Editor` click now re-focuses the console back onto that editor's graph on every click cycle.`  
+#### Scope / Constraints Honored
+- Kept this follow-up inside the same narrow `Workspace 7.5-7 Phase 1` click-to-console seam instead of widening into later split ghost, presentation, popout, or visual-parity work.
+- Preserved the existing sketch-plane pick exception so active sketch pick flows are not disrupted by generic viewer re-root behavior.
+- Tightened the current console-context priority order instead of introducing a separate surface-specific console model.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so model viewport activation always requests `surface-clear` console sync unless an active sketch-plane pick session still needs to keep control.
+- Updated `src/app/console/ConsoleDock.tsx` so `surface-activation` now prefers the active spaghetti graph context over any stale workspace-selected target, making deliberate split-editor clicks win.
+- Updated `src/app/AppShell.test.tsx` so viewer clicks with an existing shared selection now expect console root sync instead of suppressing it.
+- Updated `src/app/console/ConsoleDock.test.tsx` with a focused regression that proves spaghetti `surface-activation` ignores a stale selected object target and returns to graph-focused console context.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- Clicking the model viewport now re-focuses the console to viewer-root context even if a shared selection existed beforehand.
+- Clicking back onto a split-host `Spaghetti Editor` now re-focuses the console to that editor's graph instead of leaving the console on stale selected-target context.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 861 -->
+### [861] - 2026-04-01 17:29 - `VR-SP - Workspace 7.5-7 Phase 1 - Split Editor Click Focuses Console On That Editor Graph`
+<!-- ENTRY 861 -->
+HUMAN SUMMARY: `Implemented the first `Workspace 7.5-7` cleanup slice so clicking a split-host `Spaghetti Editor` now activates that exact editor viewport before console sync runs, letting `ConsoleDock` follow the clicked editor's graph instead of stale ambient editor context.`  
+#### Scope / Constraints Honored
+- Kept this change inside the narrow `Workspace 7.5-7 Phase 1 - Split Editor Click Focuses Console On That Editor Graph` seam instead of widening into the broader split-mode, ghost-preview, popout, or presentation-mode cleanup tasks.
+- Tightened one existing shell activation path rather than inventing a new console ownership model.
+- Preserved the already-landed Browser or viewer render-truth behavior and only changed how split-host Spaghetti activation resolves the active editor graph for console sync.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the shared spaghetti-surface activation callback can accept an `editorViewportId` and sets that viewport active before requesting console context sync.
+- Updated `src/app/workspace/ViewportSurfaceRegistry.tsx` so split-slot spaghetti surfaces pass their bound `surfaceInstanceId` through the activation path when clicked.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the same activation seam carries the concrete `editorViewportId` for floating, meatball, and popout spaghetti wrappers too, keeping shell activation behavior consistent across hosts.
+- Updated `src/app/AppShell.test.tsx` with a focused regression proving a right-hand split-host spaghetti click activates that exact viewport, updates the active graph, and requests `surface-activation` console sync.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Clicking a split-host `Spaghetti Editor` now makes the shell treat that exact editor viewport as active before `ConsoleDock` sync runs.
+- Console graph focus no longer has to rely on stale ambient active-editor context after a left-versus-right split-editor click.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 860 -->
+### [860] - 2026-04-01 16:38 - `VR-SP - Workspace 7.5-6 Phase 2 - Constructive Bind When Entering Editor`
+<!-- ENTRY 860 -->
+HUMAN SUMMARY: `Implemented the next `Workspace 7.5-6` shell-truth fix so switching a slot from `Browser` or another non-editor surface into `Spaghetti Editor` now always yields a live editor instead of a blank shell. The slot-switch path now ignores stale retained editor ids, only reuses a retained editor when it still exists and is not already visible elsewhere, and otherwise opens a fresh editor viewport so another live editor never gets silently stolen.`  
+#### Scope / Constraints Honored
+- Kept this change inside the narrow `Workspace 7.5-6 Phase 2 - Constructive Bind When Entering Editor` seam instead of widening back into the Phase 1 destructive-replace path.
+- Preserved the existing explicit preserve actions and the already-landed Phase 1 close behavior.
+- Focused the fix on the shared slot-switch seam and the exact blank-shell / stolen-editor outcomes the user surfaced.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so slot switches into `spaghettiEditor` now resolve through one helper that validates retained editor ids before reuse and otherwise opens a new editor viewport immediately.
+- Updated `src/app/AppShell.test.tsx` with focused regressions that prove stale retained editor ids no longer leave a blank shell, and that switching another slot to editor while another editor is already visible opens a fresh editor instead of stealing the visible one.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Switching a `Browser` or other non-editor slot to `Spaghetti Editor` now always lands on a real bound editor surface instead of a blank shell.
+- Stale retained spaghetti ids no longer get trusted during switch-to-editor replacement.
+- If another visible editor is already open, the new slot opens its own editor viewport instead of reusing or stealing that visible editor.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/workspace/useWorkspaceStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 859 -->
+### [859] - 2026-04-01 16:08 - `VR-SP - Workspace 7.5-6 Phase 1 - Destructive Replace When Leaving Editor`
+<!-- ENTRY 859 -->
+HUMAN SUMMARY: `Implemented the first `Workspace 7.5-6` shell-truth fix so intentionally replacing a split-slot `Spaghetti Editor` with `Browser` or another surface now behaves like a real close instead of auto-rescuing that editor into floating mode. The workspace slot no longer retains a dead spaghetti surface id after that replace, the outgoing editor viewport is explicitly closed, and the focused `AppShell` regression now locks the exact right-click `-` surface-menu path that was previously fighting the user.`  
+#### Scope / Constraints Honored
+- Kept this change inside the narrow `Workspace 7.5-6 Phase 1 - Destructive Replace When Leaving Editor` seam instead of widening into the separate `Browser -> Editor` constructive-bind work.
+- Preserved the existing explicit preserve actions like float, pop out, and duplicate by only changing the split-slot replacement path.
+- Left Browser/build-policy render ownership untouched so closing an editor surface through slot replacement does not become a hidden graph-output suppression path.
+
+#### What Changed
+- Updated `src/app/workspace/useWorkspaceStore.ts` so slot-surface replacement can explicitly discard retained surface ids for selected kinds during an intentional replace.
+- Updated `src/app/AppShell.tsx` so split-slot `spaghettiEditor -> other surface` replacement marks the outgoing spaghetti surface as destructive, clears retained spaghetti reuse for that slot, and closes the outgoing `editorViewportId` instead of letting it survive as a fallback floating editor.
+- Updated `src/app/AppShell.test.tsx` so the mocked `closeEditorViewport(...)` path behaves like a real close and added a focused regression that opens a split-slot editor, switches it to Browser from the right-click `-` menu, and proves the editor closes instead of auto-floating while another editor stays alive.
+
+#### Files Changed
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Replacing a split-slot `Spaghetti Editor` with `Browser`, `Console`, or `Model Viewport` now closes that editor surface instead of auto-floating it as a rescue fallback.
+- The replaced slot no longer keeps a stale retained spaghetti surface id that could later masquerade as a reusable bound editor for that slot.
+- Other already-open editor surfaces remain available, and graph-rendered project content keeps following Browser/build-policy truth rather than whether that particular editor shell stayed open.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd test -- --run src/app/workspace/useWorkspaceStore.test.ts`
+- `npm.cmd run build`
+
 <!-- ENTRY 858 -->
 ### [858] - 2026-04-01 15:33 - `VR-SP - Workspace 7.5-5 Phase 9C - Keep Top-Level Assemblies Out Of Runtime Root`
 <!-- ENTRY 858 -->

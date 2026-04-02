@@ -9,7 +9,14 @@ type ViewportSurfaceRegistryProps = {
   slotId: WorkspaceViewportSlotId
   surfaceKind: WorkspaceSurfaceKind
   surfaceInstanceId: string
-  onActivateSpaghettiSurface: () => void
+  onActivateSpaghettiSurface: (
+    editorViewportId?: string,
+    target?: {
+      graphDocumentId?: string | null
+      nodeId?: string | null
+      mode?: 'graph' | 'node'
+    },
+  ) => void
   spaghettiWindowSettingsOpen?: boolean
 }
 
@@ -69,11 +76,11 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--spaghetti"
         data-workspace-slot-id={slotId}
         data-workspace-surface-instance-id={surfaceInstanceId}
-        onPointerDownCapture={onActivateSpaghettiSurface}
       >
         {editorViewport !== null ? (
           <SpaghettiPanel
             editorViewportId={editorViewport.editorViewportId}
+            onActivateEditorContext={onActivateSpaghettiSurface}
             isWindowSettingsOpen={spaghettiWindowSettingsOpen}
           />
         ) : (

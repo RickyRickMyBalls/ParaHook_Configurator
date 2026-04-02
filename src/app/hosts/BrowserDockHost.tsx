@@ -33,15 +33,15 @@ import {
 import {
   type WorkspaceSplitDockSide,
 } from '../workspace/workspaceSplitTypes'
+import {
+  resolveWorkspaceSplitDockPreview,
+} from '../workspace/workspaceSplitPreview'
 
 const minBrowserFloatingWidth = 280
 const minBrowserFloatingHeight = 220
 const floatingEdgePadding = 12
 const browserPopoutBackground = 'rgb(11, 12, 16)'
 const browserSplitDividerSize = 10
-const browserSplitPreviewEdgePadding = 14
-const browserSplitPreviewOuterBandPadding = 28
-
 type BrowserFloatingFrame = {
   shellWidth: number
   shellHeight: number
@@ -63,7 +63,7 @@ type BrowserNestedSplitPreview = {
 
 type BrowserSplitDockPreview = {
   side: WorkspaceSplitDockSide
-  scope: 'pane-local' | 'whole-browser'
+  scope: 'local' | 'global'
   targetSlotId: WorkspaceViewportSlotId | null
   rect: {
     left: number
@@ -398,149 +398,13 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
 
   const resolveBrowserSplitDockPreviewSide = useCallback(
     (pointerClientX: number, pointerClientY: number): BrowserSplitDockPreview | null => {
-      const viewportRect = viewportRef.current?.getBoundingClientRect()
-      if (viewportRect === undefined || viewportRect.width <= 0 || viewportRect.height <= 0) {
-        return null
-      }
-      const overshootThreshold = 120
-      if (
-        pointerClientX < viewportRect.left - overshootThreshold ||
-        pointerClientX > viewportRect.right + overshootThreshold ||
-        pointerClientY < viewportRect.top - overshootThreshold ||
-        pointerClientY > viewportRect.bottom + overshootThreshold
-      ) {
-        return null
-      }
-      const hoveredSlotElement =
-        typeof document.elementsFromPoint === 'function'
-          ? document
-              .elementsFromPoint(pointerClientX, pointerClientY)
-              .map((element) =>
-                element instanceof HTMLElement
-                  ? element.closest('[data-workspace-slot-id]')
-                  : null,
-              )
-              .find(
-                (element): element is HTMLElement =>
-                  element instanceof HTMLElement && viewportRef.current?.contains(element) === true,
-              ) ?? null
-          : null
-      const overshootSide =
-        hoveredSlotElement !== null
-          ? null
-          : pointerClientX >= viewportRect.right &&
-              pointerClientX <= viewportRect.right + browserSplitPreviewEdgePadding &&
-              pointerClientY >= viewportRect.top &&
-              pointerClientY <= viewportRect.bottom
-            ? 'right'
-            : pointerClientX <= viewportRect.left &&
-                pointerClientX >= viewportRect.left - browserSplitPreviewEdgePadding &&
-                pointerClientY >= viewportRect.top &&
-                pointerClientY <= viewportRect.bottom
-              ? 'left'
-              : pointerClientY <= viewportRect.top &&
-                  pointerClientY >= viewportRect.top - browserSplitPreviewEdgePadding &&
-                  pointerClientX >= viewportRect.left &&
-                  pointerClientX <= viewportRect.right
-                ? 'top'
-                : pointerClientY >= viewportRect.bottom &&
-                    pointerClientY <= viewportRect.bottom + browserSplitPreviewEdgePadding &&
-                    pointerClientX >= viewportRect.left &&
-                    pointerClientX <= viewportRect.right
-                  ? 'bottom'
-                  : null
-      if (overshootSide !== null) {
-        const lastPreview = browserSplitDockPreviewRef.current
-        if (lastPreview?.side === overshootSide) {
-          return {
-            side: overshootSide,
-            scope: 'whole-browser',
-            targetSlotId: null,
-            rect: {
-              left: 0,
-              top: 0,
-              width: viewportRect.width,
-              height: viewportRect.height,
-            },
-          }
-        }
-      }
-      const hoveredPaneRect = hoveredSlotElement?.getBoundingClientRect() ?? viewportRect
-      const hoveredSlotId = hoveredSlotElement?.getAttribute('data-workspace-slot-id') ?? null
-      const hoveredSlot = hoveredSlotId === null ? null : viewportSlotsById[hoveredSlotId] ?? null
-      const modelViewportBodyRect =
-        hoveredSlot?.surfaceKind === 'modelViewer'
-          ? hoveredSlotElement?.querySelector('.ViewportFrameBody')?.getBoundingClientRect()
-          : null
-      const previewRect =
-        modelViewportBodyRect !== undefined &&
-        modelViewportBodyRect !== null &&
-        modelViewportBodyRect.width > 0 &&
-        modelViewportBodyRect.height > 0
-          ? modelViewportBodyRect
-          : hoveredPaneRect
-      const clampedPointerClientX = Math.min(
-        previewRect.right,
-        Math.max(previewRect.left, pointerClientX),
+      const nextPreview = resolveWorkspaceSplitDockPreview(
+        viewportRef.current,
+        viewportSlotsById,
+        pointerClientX,
+        pointerClientY,
       )
-      const clampedPointerClientY = Math.min(
-        previewRect.bottom,
-        Math.max(previewRect.top, pointerClientY),
-      )
-      const topEdgeDistance = Math.max(0, clampedPointerClientY - previewRect.top)
-      const rightEdgeDistance = Math.max(0, previewRect.right - clampedPointerClientX)
-      const bottomEdgeDistance = Math.max(0, previewRect.bottom - clampedPointerClientY)
-      const leftEdgeDistance = Math.max(0, clampedPointerClientX - previewRect.left)
-      const edgeDistances: Array<{ side: WorkspaceSplitDockSide; distance: number }> = [
-        {
-          side: 'top',
-          distance: topEdgeDistance,
-        },
-        {
-          side: 'right',
-          distance: rightEdgeDistance,
-        },
-        {
-          side: 'bottom',
-          distance: bottomEdgeDistance,
-        },
-        { side: 'left', distance: leftEdgeDistance },
-      ]
-      const previewableEdge = edgeDistances
-        .filter((entry) =>
-          entry.distance <= browserSplitPreviewOuterBandPadding,
-        )
-        .sort((left, right) => left.distance - right.distance)[0]
-      if (previewableEdge === undefined) {
-        return null
-      }
-      const isWholeBrowserPreview =
-        previewableEdge.side === 'right'
-          ? rightEdgeDistance <= browserSplitPreviewEdgePadding
-          : previewableEdge.side === 'left'
-            ? leftEdgeDistance <= browserSplitPreviewEdgePadding
-            : previewableEdge.side === 'top'
-              ? topEdgeDistance <= browserSplitPreviewEdgePadding
-              : bottomEdgeDistance <= browserSplitPreviewEdgePadding
-      return {
-        side: previewableEdge.side,
-        scope: isWholeBrowserPreview ? 'whole-browser' : 'pane-local',
-        targetSlotId:
-          !isWholeBrowserPreview ? hoveredSlotId : null,
-        rect: isWholeBrowserPreview
-          ? {
-              left: 0,
-              top: 0,
-              width: viewportRect.width,
-              height: viewportRect.height,
-            }
-          : {
-              left: previewRect.left - viewportRect.left,
-              top: previewRect.top - viewportRect.top,
-              width: previewRect.width,
-              height: previewRect.height,
-            },
-      }
+      return nextPreview as BrowserSplitDockPreview | null
     },
     [viewportRef, viewportSlotsById],
   )
@@ -1261,10 +1125,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       } else if (nextNestedSplitPreview !== null) {
         commitBrowserSlotSplit(nextNestedSplitPreview.targetSlotId, nextNestedSplitPreview.activeSide)
       } else if (nextSplitDockPreview !== null) {
-        if (
-          nextSplitDockPreview.scope === 'pane-local' &&
-          nextSplitDockPreview.targetSlotId !== null
-        ) {
+        if (nextSplitDockPreview.scope === 'local' && nextSplitDockPreview.targetSlotId !== null) {
           commitBrowserSlotSplit(nextSplitDockPreview.targetSlotId, nextSplitDockPreview.side)
         } else {
           commitBrowserWholeLayoutSplit(nextSplitDockPreview.side)
@@ -1449,7 +1310,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               return (
                 <div
                   className={`ViewportSplitDockGhost ${
-                    browserSplitDockPreview.scope === 'whole-browser'
+                    browserSplitDockPreview.scope === 'global'
                       ? 'isWholeBrowserScope'
                       : 'isPaneLocalScope'
                   } ${
