@@ -405,7 +405,7 @@ describe('SpaghettiPanel', () => {
     expect(container?.textContent).toContain('Spaghetti Editor Canvas expanded node-2 no-fit 0')
   })
 
-  it('does not request legacy console target sync when a host-owned activation handler is present', async () => {
+  it('still syncs the shared workspace target when a host-owned activation handler is present', async () => {
     const onActivateEditorContext = vi.fn()
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -438,8 +438,12 @@ describe('SpaghettiPanel', () => {
       )
     })
 
-    expect(currentAppState.workspaceSelection.selectedTarget).toBeNull()
-    expect(currentAppState.requestConsoleContextSync).not.toHaveBeenCalled()
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-2',
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
   })
 
   it('does not let an inactive editor viewport overwrite the shared workspace target', async () => {

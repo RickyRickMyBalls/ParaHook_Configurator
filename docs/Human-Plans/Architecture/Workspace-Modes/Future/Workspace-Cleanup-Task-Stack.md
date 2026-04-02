@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-02 11:44: Updated this cleanup stack after `Workspace 7.5-10` became the active next planning target, replacing the plain text popout-repair placeholder with a linked future phase doc so the workspace ladder now points directly at the new research-first `Spaghetti Editor` popout planning surface
 1. 2026-04-01 17:13: Renumbered the larger `Workspace 7.5` cleanup ladder so the task stack now matches the intended execution order, assigning `Workspace 7.5-7` through `Workspace 7.5-11` across the split-mode and console alignment, split ghost preview repair, presentation-mode truth, popout repair, and split-versus-float visual parity tasks while repointing the presentation-mode link to its new `Workspace 7.5-9` file name
 1. 2026-04-01 17:10: Reworked this cleanup stack after chat clarified that the first task should live at the top rather than the bottom, flipping the ordering rule to top-first and expanding the stack with larger `Spaghetti Editor` cleanup themes around split-mode and console alignment, split ghost previews, presentation-mode truth, popout repair, and split-versus-float visual parity
 1. 2026-04-01 17:07: Added this umbrella cleanup-stack doc so larger future workspace cleanups can be captured in one lightweight planning surface without immediately overcommitting them into implementation-ready phase docs, locking the ordering rule that the bottom-most task is the next one to plan or execute
@@ -56,7 +57,7 @@ Why this is here:
 - this separates reduced-chrome `Essentials` behavior from `Overlay` behavior and cleans up the `Spaghetti Editor` primary presentation control into an explicit four-mode contract
 - it fits after the broader split-mode semantics cleanup and after the split ghost affordance is honest enough to support clearer presentation behavior
 
-#### 4. [ ] `Workspace 7.5-10 - Spaghetti Editor Popout Window Repair`
+#### 4. [ ] [Workspace 7.5-10 - Spaghetti Editor Popout Window Repair](./Workspace_Phase%20Workspace-7.5-10%20-%20Spaghetti%20Editor%20Popout%20Window%20Repair.md)
 Why this is here:
 - the popout path is still broken and deserves its own larger cleanup task
 - it is ordered after the earlier split-mode and presentation-truth work so we do not lock popout behavior against shell semantics that are still shifting

@@ -4,9 +4,12 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { ConsoleDock } from './console/ConsoleDock'
+import type { ConsoleFloatingRect } from './console/consoleTypes'
 import { useConsoleStore } from './console/useConsoleStore'
 import { BrowserDockHost } from './hosts/BrowserDockHost'
 import { RadioRuntimeHost } from './hosts/RadioRuntimeHost'
@@ -28,6 +31,7 @@ import { ViewportWorkspaceHost } from './workspace/ViewportWorkspaceHost'
 import {
   commitWorkspaceSurfaceRootSplit,
   commitWorkspaceSurfaceSlotSplit,
+  floatingConsoleCompatibilitySurfaceInstanceId,
   floatWorkspaceSurface,
   popoutWorkspaceSurface,
   restoreDetachedSurfaceByKind,
@@ -51,9 +55,16 @@ import {
   type WorkspaceSplitPriority,
   type WorkspaceSplitDockSide,
 } from './workspace/workspaceSplitTypes'
+import {
+  resolveWorkspaceSplitDockPreview,
+  type WorkspaceSplitDockPreview,
+} from './workspace/workspaceSplitPreview'
 
 const floatingDockLockGap = 25
 const splitDividerHeight = 10
+const consoleFloatingViewportMargin = 12
+const consoleFloatingMinWidth = 420
+const consoleFloatingMinHeight = 220
 
 function collectLeafSlotIdsFromLayoutNode(
   nodeId: string,
@@ -88,6 +99,60 @@ function findParentSplitNodeIdForLayoutNode(
     }
   }
   return null
+}
+
+function clampConsoleTransitionFloatingRect(
+  nextRect: ConsoleFloatingRect,
+  viewportWidth: number,
+  viewportHeight: number,
+  bounds?: {
+    minX?: number
+    minY?: number
+    maxX?: number
+    maxY?: number
+  },
+): ConsoleFloatingRect {
+  const maxWidth = Math.max(
+    consoleFloatingMinWidth,
+    viewportWidth - consoleFloatingViewportMargin * 2,
+  )
+  const maxHeight = Math.max(
+    consoleFloatingMinHeight,
+    viewportHeight - consoleFloatingViewportMargin * 2,
+  )
+  const width = Math.min(maxWidth, Math.max(consoleFloatingMinWidth, Math.round(nextRect.width)))
+  const height = Math.min(
+    maxHeight,
+    Math.max(consoleFloatingMinHeight, Math.round(nextRect.height)),
+  )
+  const minX = Math.max(
+    consoleFloatingViewportMargin,
+    Math.round(bounds?.minX ?? consoleFloatingViewportMargin),
+  )
+  const minY = Math.max(
+    consoleFloatingViewportMargin,
+    Math.round(bounds?.minY ?? consoleFloatingViewportMargin),
+  )
+  const maxX = Math.max(
+    minX,
+    Math.min(
+      viewportWidth - width - consoleFloatingViewportMargin,
+      Math.round(bounds?.maxX ?? viewportWidth - width - consoleFloatingViewportMargin),
+    ),
+  )
+  const maxY = Math.max(
+    minY,
+    Math.min(
+      viewportHeight - height - consoleFloatingViewportMargin,
+      Math.round(bounds?.maxY ?? viewportHeight - height - consoleFloatingViewportMargin),
+    ),
+  )
+  return {
+    x: Math.max(minX, Math.min(Math.round(nextRect.x), maxX)),
+    y: Math.max(minY, Math.min(Math.round(nextRect.y), maxY)),
+    width,
+    height,
+  }
 }
 
 export function AppShell() {
@@ -150,6 +215,7 @@ export function AppShell() {
   const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
   const setBrowserFloatingPosition = useWorkspaceStore((state) => state.setBrowserFloatingPosition)
   const setBrowserFloatingSize = useWorkspaceStore((state) => state.setBrowserFloatingSize)
+  const setConsoleFloatingRect = useConsoleStore((state) => state.setFloatingRect)
   const setBrowserViewportSplitRatio = useWorkspaceStore(
     (state) => state.setBrowserViewportSplitRatio,
   )
@@ -199,17 +265,14 @@ export function AppShell() {
     pointerOffsetY: number
     titleBarHeight: number
   } | null>(null)
-  const [consoleSlotHeaderDragSeed, setConsoleSlotHeaderDragSeed] = useState<{
-    pointerId: number
-    clientX: number
-    clientY: number
-    pointerOffsetX: number
-    pointerOffsetY: number
-    titleBarHeight: number
-  } | null>(null)
+  const [consoleTransitionSplitDockPreview, setConsoleTransitionSplitDockPreview] =
+    useState<WorkspaceSplitDockPreview | null>(null)
+  const [isConsoleTransitionDragActive, setIsConsoleTransitionDragActive] = useState(false)
   const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
   const lastHandledFloatingShellActivationSeqRef = useRef(0)
   const hasHydratedWorkspacePersistenceRef = useRef(false)
+  const consoleTransitionSplitDockPreviewRef = useRef<WorkspaceSplitDockPreview | null>(null)
+  const consoleTransitionDragCleanupRef = useRef<(() => void) | null>(null)
 
   const {
     resolveLeftDockPreviewPanelId,
@@ -293,9 +356,14 @@ export function AppShell() {
     activeEditorSurface?.splitPriority ??
     activeEditorViewport?.splitPriority ??
     defaultWorkspaceSplitPriority
-  const workspaceSplitMenuTargetEditorViewportId =
+  const workspaceSplitMenuTargetSurfaceInstanceId =
     workspaceSplitMenu?.scope === 'floating-titlebar'
       ? workspaceSplitMenu.targetSurfaceInstanceId ?? activeEditorViewport?.editorViewportId ?? null
+      : activeEditorViewport?.editorViewportId ?? null
+  const workspaceSplitMenuTargetEditorViewportId =
+    workspaceSplitMenuTargetSurfaceInstanceId !== null &&
+    editorViewportsById[workspaceSplitMenuTargetSurfaceInstanceId] !== undefined
+      ? workspaceSplitMenuTargetSurfaceInstanceId
       : activeEditorViewport?.editorViewportId ?? null
   const workspaceSplitMenuTargetEditorViewport =
     workspaceSplitMenuTargetEditorViewportId !== null
@@ -343,6 +411,15 @@ export function AppShell() {
       Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'console') ?? null,
     [detachedSlotSurfaceById],
   )
+  const workspaceSplitMenuTargetSurfaceKind =
+    workspaceSplitMenuTargetSurfaceInstanceId === null
+      ? null
+      : editorViewportsById[workspaceSplitMenuTargetSurfaceInstanceId] !== undefined
+        ? 'spaghettiEditor'
+        : activeDetachedConsoleSurface?.surfaceInstanceId === workspaceSplitMenuTargetSurfaceInstanceId ||
+            workspaceSplitMenuTargetSurfaceInstanceId === floatingConsoleCompatibilitySurfaceInstanceId
+          ? 'console'
+          : null
   const detachedViewerSurfaces = useMemo(
     () =>
       Object.values(detachedSlotSurfaceById).filter(
@@ -772,8 +849,12 @@ export function AppShell() {
   }, [activeDetachedConsoleSurface, consoleSlotCount, consoleWindowMode, restoreDetachedSurfaceByKind])
 
   const handleFloatingSplitMenu = useCallback(
-    (editorViewportId: string, event: ReactMouseEvent<HTMLDivElement>) => {
-      if (editorViewportsById[editorViewportId] === undefined) {
+    (surfaceInstanceId: string, event: ReactMouseEvent<HTMLDivElement>) => {
+      if (
+        editorViewportsById[surfaceInstanceId] === undefined &&
+        surfaceInstanceId !== floatingConsoleCompatibilitySurfaceInstanceId &&
+        activeDetachedConsoleSurface?.surfaceInstanceId !== surfaceInstanceId
+      ) {
         return
       }
       event.preventDefault()
@@ -782,10 +863,10 @@ export function AppShell() {
         x: event.clientX,
         y: event.clientY,
         scope: 'floating-titlebar',
-        targetSurfaceInstanceId: editorViewportId,
+        targetSurfaceInstanceId: surfaceInstanceId,
       })
     },
-    [editorViewportsById, setWorkspaceSplitMenu],
+    [activeDetachedConsoleSurface, editorViewportsById, setWorkspaceSplitMenu],
   )
 
   const handleCommitFloatingSurfaceSplit = useCallback(
@@ -793,6 +874,28 @@ export function AppShell() {
       splitDockSide: WorkspaceSplitDockSide,
       scope: 'local' | 'global',
     ) => {
+      if (workspaceSplitMenuTargetSurfaceInstanceId === null) {
+        return
+      }
+      if (workspaceSplitMenuTargetSurfaceKind === 'console') {
+        const preferredRatio = 0.5
+        if (scope === 'local') {
+          commitWorkspaceSurfaceSlotSplit(
+            workspaceSplitMenuTargetSurfaceInstanceId,
+            resolveViewerTargetSlotId(),
+            splitDockSide,
+            {
+              preferredRatio,
+            },
+          )
+        } else {
+          commitWorkspaceSurfaceRootSplit(workspaceSplitMenuTargetSurfaceInstanceId, splitDockSide, {
+            preferredRatio,
+          })
+        }
+        setWorkspaceSplitMenu(null)
+        return
+      }
       if (workspaceSplitMenuTargetEditorViewport === null) {
         return
       }
@@ -832,6 +935,32 @@ export function AppShell() {
       splitRatio,
       workspaceSplitMenuTargetEditorSurface,
       workspaceSplitMenuTargetEditorViewport,
+      workspaceSplitMenuTargetSurfaceInstanceId,
+      workspaceSplitMenuTargetSurfaceKind,
+    ],
+  )
+
+  const handleSelectFloatingSurfaceSplitDockSide = useCallback(
+    (splitDockSide: WorkspaceSplitDockSide) => {
+      if (workspaceSplitMenuTargetSurfaceInstanceId === null) {
+        return
+      }
+      if (workspaceSplitMenuTargetSurfaceKind === 'console') {
+        splitWorkspaceSurfaceToSide(workspaceSplitMenuTargetSurfaceInstanceId, splitDockSide, {
+          preferredRatio: 0.5,
+          targetSlotId: resolveViewerTargetSlotId(),
+        })
+        setWorkspaceSplitMenu(null)
+        return
+      }
+      setWorkspaceSplitMenu(null)
+    },
+    [
+      resolveViewerTargetSlotId,
+      setWorkspaceSplitMenu,
+      splitWorkspaceSurfaceToSide,
+      workspaceSplitMenuTargetSurfaceInstanceId,
+      workspaceSplitMenuTargetSurfaceKind,
     ],
   )
 
@@ -1073,6 +1202,143 @@ export function AppShell() {
     ],
   )
 
+  const resolveConsoleTransitionViewportBounds = useCallback(() => {
+    const viewportElement = viewportRef.current
+    const shellRect = appShellRef.current?.getBoundingClientRect()
+    const viewportRect = viewportElement?.getBoundingClientRect()
+    const primaryViewportBodyElement = viewportElement?.querySelector(
+      '.ViewportFrame.isPrimarySlot .ViewportFrameBody',
+    ) as HTMLElement | null
+    const primaryViewportBodyRect = primaryViewportBodyElement?.getBoundingClientRect()
+    const viewportWidth =
+      shellRect?.width ??
+      viewportRect?.width ??
+      viewportElement?.clientWidth ??
+      window.innerWidth
+    const viewportHeight =
+      shellRect?.height ??
+      viewportRect?.height ??
+      viewportElement?.clientHeight ??
+      window.innerHeight
+
+    if (
+      shellRect === undefined ||
+      primaryViewportBodyRect === undefined ||
+      primaryViewportBodyRect.width <= 0 ||
+      primaryViewportBodyRect.height <= 0
+    ) {
+      return {
+        viewportWidth,
+        viewportHeight,
+        bounds: undefined,
+      }
+    }
+
+    return {
+      viewportWidth,
+      viewportHeight,
+      bounds: {
+        minX: primaryViewportBodyRect.left - shellRect.left,
+        minY: primaryViewportBodyRect.top - shellRect.top,
+        maxX: primaryViewportBodyRect.right - shellRect.left,
+        maxY: primaryViewportBodyRect.bottom - shellRect.top,
+      },
+    }
+  }, [])
+
+  const resolveConsoleTransitionSplitDockPreview = useCallback(
+    (pointerClientX: number, pointerClientY: number): WorkspaceSplitDockPreview | null =>
+      resolveWorkspaceSplitDockPreview(
+        viewportRef.current,
+        viewportSlotsById,
+        pointerClientX,
+        pointerClientY,
+      ),
+    [viewportSlotsById],
+  )
+
+  const commitConsoleTransitionWorkspaceSplit = useCallback(
+    (surfaceInstanceId: string, preview: WorkspaceSplitDockPreview) => {
+      if (preview.scope === 'global') {
+        commitWorkspaceSurfaceRootSplit(surfaceInstanceId, preview.side)
+        return
+      }
+      if (preview.targetSlotId === null) {
+        return
+      }
+      commitWorkspaceSurfaceSlotSplit(surfaceInstanceId, preview.targetSlotId, preview.side)
+    },
+    [],
+  )
+
+  const stopConsoleTransitionDrag = useCallback(() => {
+    consoleTransitionDragCleanupRef.current?.()
+  }, [])
+
+  useEffect(() => () => stopConsoleTransitionDrag(), [stopConsoleTransitionDrag])
+
+  const consoleTransitionSplitDockGhostStyle = useMemo(() => {
+    if (consoleTransitionSplitDockPreview === null) {
+      return null
+    }
+    const previewRatio = 0.25
+    const horizontalPreviewWidth = Math.max(
+      0,
+      consoleTransitionSplitDockPreview.rect.width * previewRatio - splitDividerHeight,
+    )
+    const verticalPreviewHeight = Math.max(
+      0,
+      consoleTransitionSplitDockPreview.rect.height * previewRatio - splitDividerHeight,
+    )
+
+    if (consoleTransitionSplitDockPreview.side === 'bottom') {
+      return {
+        left: `${consoleTransitionSplitDockPreview.rect.left}px`,
+        top: `${
+          consoleTransitionSplitDockPreview.rect.top +
+          consoleTransitionSplitDockPreview.rect.height * (1 - previewRatio) +
+          splitDividerHeight
+        }px`,
+        width: `${consoleTransitionSplitDockPreview.rect.width}px`,
+        height: `${verticalPreviewHeight}px`,
+        right: 'auto',
+        bottom: 'auto',
+      } satisfies CSSProperties
+    }
+    if (consoleTransitionSplitDockPreview.side === 'top') {
+      return {
+        left: `${consoleTransitionSplitDockPreview.rect.left}px`,
+        top: `${consoleTransitionSplitDockPreview.rect.top}px`,
+        width: `${consoleTransitionSplitDockPreview.rect.width}px`,
+        height: `${verticalPreviewHeight}px`,
+        right: 'auto',
+        bottom: 'auto',
+      } satisfies CSSProperties
+    }
+    if (consoleTransitionSplitDockPreview.side === 'right') {
+      return {
+        left: `${
+          consoleTransitionSplitDockPreview.rect.left +
+          consoleTransitionSplitDockPreview.rect.width * (1 - previewRatio) +
+          splitDividerHeight
+        }px`,
+        top: `${consoleTransitionSplitDockPreview.rect.top}px`,
+        width: `${horizontalPreviewWidth}px`,
+        height: `${consoleTransitionSplitDockPreview.rect.height}px`,
+        right: 'auto',
+        bottom: 'auto',
+      } satisfies CSSProperties
+    }
+    return {
+      left: `${consoleTransitionSplitDockPreview.rect.left}px`,
+      top: `${consoleTransitionSplitDockPreview.rect.top}px`,
+      width: `${horizontalPreviewWidth}px`,
+      height: `${consoleTransitionSplitDockPreview.rect.height}px`,
+      right: 'auto',
+      bottom: 'auto',
+    } satisfies CSSProperties
+  }, [consoleTransitionSplitDockPreview])
+
   const handleViewportSlotHeaderDragOut = useCallback(
     (
       slotId: string,
@@ -1141,22 +1407,123 @@ export function AppShell() {
         })
       } else if (slot.surfaceKind === 'console') {
         const floatingRect = useConsoleStore.getState().floatingRect
+        const floatingSize = {
+          width: Math.max(1, Math.round(floatingRect.width)),
+          height: Math.max(1, Math.round(floatingRect.height)),
+        }
         const pointerOffsetX = Math.min(
           Math.max(16, Math.round(payload.clientX - payload.frameRect.left)),
-          Math.max(16, floatingRect.width - 16),
+          Math.max(16, floatingSize.width - 16),
         )
         const pointerOffsetY = Math.min(
           Math.max(0, Math.round(payload.clientY - payload.frameRect.top)),
           Math.max(1, Math.round(payload.headerRect.height)) - 1,
         )
-        setConsoleSlotHeaderDragSeed({
-          pointerId: payload.pointerId,
-          clientX: payload.clientX,
-          clientY: payload.clientY,
-          pointerOffsetX,
-          pointerOffsetY,
-          titleBarHeight: Math.max(1, Math.round(payload.headerRect.height)),
-        })
+        const shellRect = appShellRef.current?.getBoundingClientRect()
+        const { viewportWidth, viewportHeight, bounds } = resolveConsoleTransitionViewportBounds()
+        const nextFloatingRect = clampConsoleTransitionFloatingRect(
+          {
+            ...floatingRect,
+            ...floatingSize,
+            x:
+              shellRect === undefined
+                ? floatingRect.x
+                : Math.round(payload.clientX - shellRect.left - pointerOffsetX),
+            y:
+              shellRect === undefined
+                ? floatingRect.y
+                : Math.round(payload.clientY - shellRect.top - pointerOffsetY),
+          },
+          viewportWidth,
+          viewportHeight,
+          bounds,
+        )
+        stopConsoleTransitionDrag()
+        consoleTransitionSplitDockPreviewRef.current = null
+        setConsoleTransitionSplitDockPreview(null)
+        setIsConsoleTransitionDragActive(true)
+        setConsoleFloatingRect(nextFloatingRect)
+        floatWorkspaceSurface(slot.surfaceInstanceId)
+
+        let isStopped = false
+        const move = (moveEvent: PointerEvent) => {
+          if (moveEvent.pointerId !== payload.pointerId) {
+            return
+          }
+          const nextBounds = resolveConsoleTransitionViewportBounds()
+          setConsoleFloatingRect(
+            clampConsoleTransitionFloatingRect(
+              {
+                ...nextFloatingRect,
+                x:
+                  shellRect === undefined
+                    ? nextFloatingRect.x
+                    : Math.round(moveEvent.clientX - shellRect.left - pointerOffsetX),
+                y:
+                  shellRect === undefined
+                    ? nextFloatingRect.y
+                    : Math.round(moveEvent.clientY - shellRect.top - pointerOffsetY),
+              },
+              nextBounds.viewportWidth,
+              nextBounds.viewportHeight,
+              nextBounds.bounds,
+            ),
+          )
+          const nextSplitDockPreview = resolveConsoleTransitionSplitDockPreview(
+            moveEvent.clientX,
+            moveEvent.clientY,
+          )
+          consoleTransitionSplitDockPreviewRef.current = nextSplitDockPreview
+          setConsoleTransitionSplitDockPreview(nextSplitDockPreview)
+        }
+        const stop = () => {
+          if (isStopped) {
+            return
+          }
+          isStopped = true
+          window.removeEventListener('pointermove', move)
+          window.removeEventListener('pointerup', handlePointerUp)
+          window.removeEventListener('pointercancel', handlePointerCancel)
+          if (consoleTransitionDragCleanupRef.current === stop) {
+            consoleTransitionDragCleanupRef.current = null
+          }
+          consoleTransitionSplitDockPreviewRef.current = null
+          setConsoleTransitionSplitDockPreview(null)
+          setIsConsoleTransitionDragActive(false)
+        }
+        const handlePointerUp = (upEvent: PointerEvent) => {
+          if (upEvent.pointerId !== payload.pointerId) {
+            return
+          }
+          const nextSplitDockPreview =
+            consoleTransitionSplitDockPreviewRef.current ??
+            resolveConsoleTransitionSplitDockPreview(upEvent.clientX, upEvent.clientY)
+          stop()
+          if (nextSplitDockPreview !== null) {
+            commitConsoleTransitionWorkspaceSplit(slot.surfaceInstanceId, nextSplitDockPreview)
+          }
+        }
+        const handlePointerCancel = (cancelEvent?: PointerEvent) => {
+          if (
+            cancelEvent !== undefined &&
+            cancelEvent.pointerId !== payload.pointerId
+          ) {
+            return
+          }
+          stop()
+        }
+
+        consoleTransitionDragCleanupRef.current = stop
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', handlePointerUp)
+        window.addEventListener('pointercancel', handlePointerCancel)
+        const initialSplitDockPreview = resolveConsoleTransitionSplitDockPreview(
+          payload.clientX,
+          payload.clientY,
+        )
+        consoleTransitionSplitDockPreviewRef.current = initialSplitDockPreview
+        setConsoleTransitionSplitDockPreview(initialSplitDockPreview)
+        return
       }
       handleViewportSlotFloat(slotId, {
         preserveBrowserFloatingShell: slot.surfaceKind === 'browser',
@@ -1164,12 +1531,19 @@ export function AppShell() {
     },
     [
       appShellRef,
+      clampConsoleTransitionFloatingRect,
+      commitConsoleTransitionWorkspaceSplit,
+      floatWorkspaceSurface,
       handleViewportSlotFloat,
+      resolveConsoleTransitionSplitDockPreview,
+      resolveConsoleTransitionViewportBounds,
       setBrowserFloatingPosition,
       setBrowserFloatingSize,
       setBrowserSlotHeaderDragSeed,
-      setConsoleSlotHeaderDragSeed,
+      setConsoleFloatingRect,
+      setIsConsoleTransitionDragActive,
       setSpaghettiSlotHeaderDragSeed,
+      stopConsoleTransitionDrag,
       viewportSlotsById,
     ],
   )
@@ -1721,9 +2095,34 @@ export function AppShell() {
         <ConsoleDock
           listLeftOffset={consoleListLeftOffset}
           suppressDockedSurface={suppressLegacyDockedConsoleSurface}
-          slotHeaderDragSeed={consoleSlotHeaderDragSeed}
-          onConsumeSlotHeaderDragSeed={() => setConsoleSlotHeaderDragSeed(null)}
+          suppressSlotHeaderDragSeedReplay={isConsoleTransitionDragActive}
+          onOpenFloatingSplitMenu={handleFloatingSplitMenu}
         />
+        {consoleTransitionSplitDockPreview !== null &&
+        consoleTransitionSplitDockGhostStyle !== null &&
+        viewportRef.current !== null
+          ? createPortal(
+              <div
+                className={`ViewportSplitDockGhost ${
+                  consoleTransitionSplitDockPreview.scope === 'global'
+                    ? 'isWholeBrowserScope'
+                    : 'isPaneLocalScope'
+                } ${
+                  consoleTransitionSplitDockPreview.side === 'left'
+                    ? 'isDockLeft'
+                    : consoleTransitionSplitDockPreview.side === 'right'
+                      ? 'isDockRight'
+                      : consoleTransitionSplitDockPreview.side === 'top'
+                        ? 'isDockTop'
+                        : 'isDockBottom'
+                }`}
+                data-split-preview-scope={consoleTransitionSplitDockPreview.scope}
+                aria-hidden="true"
+                style={consoleTransitionSplitDockGhostStyle}
+              />,
+              viewportRef.current,
+            )
+          : null}
       </section>
       <BrowserDockHost
         appShellRef={appShellRef}
@@ -1764,20 +2163,55 @@ export function AppShell() {
         >
           {workspaceSplitMenu.scope === 'floating-titlebar' ? (
             <>
-              <button
-                type="button"
-                className="PrimaryViewportLeftDockResizeMenuAction"
-                onClick={() => handleCommitFloatingSurfaceSplit('right', 'local')}
-              >
-                Split Right Locally
-              </button>
-              <button
-                type="button"
-                className="PrimaryViewportLeftDockResizeMenuAction"
-                onClick={() => handleCommitFloatingSurfaceSplit('right', 'global')}
-              >
-                Split Right Globally
-              </button>
+              {workspaceSplitMenuTargetSurfaceKind === 'console' ? (
+                <>
+                  <button
+                    type="button"
+                    className="PrimaryViewportLeftDockResizeMenuAction"
+                    onClick={() => handleSelectFloatingSurfaceSplitDockSide('top')}
+                  >
+                    Split Top
+                  </button>
+                  <button
+                    type="button"
+                    className="PrimaryViewportLeftDockResizeMenuAction"
+                    onClick={() => handleSelectFloatingSurfaceSplitDockSide('right')}
+                  >
+                    Split Right
+                  </button>
+                  <button
+                    type="button"
+                    className="PrimaryViewportLeftDockResizeMenuAction"
+                    onClick={() => handleSelectFloatingSurfaceSplitDockSide('bottom')}
+                  >
+                    Split Bottom
+                  </button>
+                  <button
+                    type="button"
+                    className="PrimaryViewportLeftDockResizeMenuAction"
+                    onClick={() => handleSelectFloatingSurfaceSplitDockSide('left')}
+                  >
+                    Split Left
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="PrimaryViewportLeftDockResizeMenuAction"
+                    onClick={() => handleCommitFloatingSurfaceSplit('right', 'local')}
+                  >
+                    Split Right Locally
+                  </button>
+                  <button
+                    type="button"
+                    className="PrimaryViewportLeftDockResizeMenuAction"
+                    onClick={() => handleCommitFloatingSurfaceSplit('right', 'global')}
+                  >
+                    Split Right Globally
+                  </button>
+                </>
+              )}
             </>
           ) : null}
           {workspaceSplitMenu.scope === 'divider' ? (

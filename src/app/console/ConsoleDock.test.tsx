@@ -7,6 +7,7 @@ import { getDefaultNodeParams } from '../spaghetti/registry/nodeRegistry'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
+import { defaultPrimaryViewportSlotId } from '../workspace/workspaceShellTypes'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { useConsoleStore } from './useConsoleStore'
 
@@ -76,6 +77,33 @@ describe('ConsoleDock', () => {
     globalThis.Worker = originalWorker
     setViewer(null)
   })
+
+  const createRect = (left: number, top: number, width: number, height: number): DOMRect =>
+    ({
+      left,
+      top,
+      width,
+      height,
+      right: left + width,
+      bottom: top + height,
+      x: left,
+      y: top,
+      toJSON: () => ({}),
+    }) as DOMRect
+
+  const appendWorkspaceViewportShell = () => {
+    const viewportArea = document.createElement('section')
+    viewportArea.className = 'ViewportArea'
+    viewportArea.getBoundingClientRect = () => createRect(0, 0, 800, 600)
+
+    const primarySlot = document.createElement('div')
+    primarySlot.dataset.workspaceSlotId = defaultPrimaryViewportSlotId
+    primarySlot.getBoundingClientRect = () => createRect(0, 200, 800, 400)
+
+    viewportArea.appendChild(primarySlot)
+    document.body.appendChild(viewportArea)
+    return { viewportArea, primarySlot }
+  }
 
   it('renders the collapsed console row and expands into the panel', async () => {
     container = document.createElement('div')
@@ -1299,6 +1327,29 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleDock--floatingOwner > .ConsolePanel')).toBeNull()
   })
 
+  it('opens the shared floating split menu callback from the floating console header on right-click', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const handleOpenFloatingSplitMenu = vi.fn()
+
+    await act(async () => {
+      useConsoleStore.getState().switchToFloating()
+      root?.render(<ConsoleDock onOpenFloatingSplitMenu={handleOpenFloatingSplitMenu} />)
+    })
+
+    const floatingHeader = container.querySelector(
+      '.ConsoleFloatingWindow .ConsolePanelHeader',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingHeader?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    expect(handleOpenFloatingSplitMenu).toHaveBeenCalledTimes(1)
+    expect(handleOpenFloatingSplitMenu.mock.calls[0]?.[0]).toBe('console-floating-compat')
+  })
+
   it('uses the shared workspace float action when a real console slot is hosted in the workspace tree', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -1407,6 +1458,261 @@ describe('ConsoleDock', () => {
       x: 292,
       y: 226,
     })
+  })
+
+  it('keeps a slot-header seeded floating console below the primary viewport title bar during repeat drag-out', async () => {
+    const viewportArea = document.createElement('section')
+    viewportArea.className = 'ViewportArea'
+    viewportArea.getBoundingClientRect = () => createRect(0, 0, 800, 600)
+    const primarySlot = document.createElement('div')
+    primarySlot.className = 'ViewportFrame isPrimarySlot'
+    primarySlot.dataset.workspaceSlotId = defaultPrimaryViewportSlotId
+    primarySlot.getBoundingClientRect = () => createRect(0, 0, 800, 600)
+    const primarySlotBody = document.createElement('div')
+    primarySlotBody.className = 'ViewportFrameBody'
+    primarySlotBody.getBoundingClientRect = () => createRect(0, 56, 800, 544)
+    primarySlot.appendChild(primarySlotBody)
+    viewportArea.appendChild(primarySlot)
+    document.body.appendChild(viewportArea)
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const consumeSeed = vi.fn()
+
+    await act(async () => {
+      useConsoleStore.getState().switchToFloating()
+      useConsoleStore.getState().setFloatingRect({
+        x: 64,
+        y: 80,
+        width: 720,
+        height: 420,
+      })
+      root?.render(
+        <ConsoleDock
+          slotHeaderDragSeed={{
+            pointerId: 2,
+            clientX: 320,
+            clientY: 24,
+            pointerOffsetX: 120,
+            pointerOffsetY: 24,
+            titleBarHeight: 40,
+          }}
+          onConsumeSlotHeaderDragSeed={consumeSeed}
+        />,
+      )
+    })
+
+    expect(consumeSeed).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 0,
+        }),
+      )
+    })
+
+    expect(useConsoleStore.getState().floatingRect.y).toBe(56)
+  })
+
+  it('uses the shared local split ghost and keeps the top-level console split intact when the floating console drops into the hovered pane', async () => {
+    const { viewportArea, primarySlot } = appendWorkspaceViewportShell()
+    const originalElementsFromPoint = document.elementsFromPoint
+    document.elementsFromPoint = (() => [primarySlot]) as typeof document.elementsFromPoint
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+      root?.render(<ConsoleDock />)
+    })
+
+    const initialWorkspaceState = useWorkspaceStore.getState()
+    const initialRightSplitCount = Object.values(initialWorkspaceState.viewportLayoutNodesById).filter(
+      (node): node is Extract<(typeof initialWorkspaceState.viewportLayoutNodesById)[string], { kind: 'split' }> =>
+        node.kind === 'split' && node.splitDockSide === 'right',
+    ).length
+
+    const expand = container.querySelector(
+      'button[aria-label="Expand console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      expand?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const floatButton = container.querySelector(
+      'button[aria-label="Float console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      floatButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingHeader = container.querySelector(
+      '.ConsoleFloatingWindow .ConsolePanelHeader',
+    ) as HTMLDivElement | null
+    floatingHeader!.getBoundingClientRect = () => createRect(120, 80, 720, 32)
+
+    await act(async () => {
+      floatingHeader?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 220,
+          clientY: 100,
+          button: 0,
+        }),
+      )
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 780,
+          clientY: 260,
+        }),
+      )
+    })
+
+    const localGhost = viewportArea.querySelector(
+      '.ViewportSplitDockGhost[data-split-preview-scope="local"]',
+    ) as HTMLDivElement | null
+    expect(localGhost).not.toBeNull()
+    expect(localGhost?.className).toContain('isDockRight')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 780,
+          clientY: 260,
+        }),
+      )
+    })
+
+    expect(viewportArea.querySelector('.ViewportSplitDockGhost')).toBeNull()
+
+    const workspaceState = useWorkspaceStore.getState()
+    const rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+    const splitNodes = Object.values(workspaceState.viewportLayoutNodesById).filter(
+      (node): node is Extract<(typeof workspaceState.viewportLayoutNodesById)[string], { kind: 'split' }> =>
+        node.kind === 'split',
+    )
+
+    expect(rootNode?.kind).toBe('split')
+    expect(splitNodes.filter((node) => node.splitDockSide === 'right').length).toBeGreaterThanOrEqual(
+      initialRightSplitCount + 1,
+    )
+    expect(useConsoleStore.getState().windowMode).toBe('docked')
+
+    document.elementsFromPoint = originalElementsFromPoint
+  })
+
+  it('uses the shared global split ghost and creates a new root column when the floating console drops on the outer edge band', async () => {
+    const { viewportArea, primarySlot } = appendWorkspaceViewportShell()
+    const originalElementsFromPoint = document.elementsFromPoint
+    document.elementsFromPoint = (() => [primarySlot]) as typeof document.elementsFromPoint
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+      root?.render(<ConsoleDock />)
+    })
+
+    const expand = container.querySelector(
+      'button[aria-label="Expand console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      expand?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const floatButton = container.querySelector(
+      'button[aria-label="Float console"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      floatButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const floatingHeader = container.querySelector(
+      '.ConsoleFloatingWindow .ConsolePanelHeader',
+    ) as HTMLDivElement | null
+    floatingHeader!.getBoundingClientRect = () => createRect(120, 80, 720, 32)
+
+    await act(async () => {
+      floatingHeader?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 220,
+          clientY: 100,
+          button: 0,
+        }),
+      )
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 792,
+          clientY: 260,
+        }),
+      )
+    })
+
+    const globalGhost = viewportArea.querySelector(
+      '.ViewportSplitDockGhost[data-split-preview-scope="global"]',
+    ) as HTMLDivElement | null
+    expect(globalGhost).not.toBeNull()
+    expect(globalGhost?.className).toContain('isDockRight')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 792,
+          clientY: 260,
+        }),
+      )
+    })
+
+    expect(viewportArea.querySelector('.ViewportSplitDockGhost')).toBeNull()
+
+    const workspaceState = useWorkspaceStore.getState()
+    const rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
+
+    expect(rootNode?.kind).toBe('split')
+    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('right')
+    expect(useConsoleStore.getState().windowMode).toBe('docked')
+    expect(
+      Object.values(workspaceState.detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'console',
+      ),
+    ).toBe(false)
+
+    document.elementsFromPoint = originalElementsFromPoint
   })
 
   it('opens pop-out mode and keeps only the collapsed row in the main shell', async () => {
@@ -12235,6 +12541,33 @@ describe('ConsoleDock', () => {
 
     expect(useConsoleStore.getState().stagedNavigationSession).toBeNull()
     expect(useSpaghettiStore.getState().sketchPlanePickSession?.nodeId).toBe('node-sketch-1')
+  })
+
+  it('submits a non-empty console draft on Enter after focus moves into the spaghetti surface', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('g')
+    })
+
+    const spaghettiSurface = document.createElement('div')
+    spaghettiSurface.tabIndex = 0
+    document.body.appendChild(spaghettiSurface)
+    spaghettiSurface.focus()
+    expect(document.activeElement).toBe(spaghettiSurface)
+
+    await act(async () => {
+      spaghettiSurface.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('graphSelected')
+    expect(useConsoleStore.getState().inputText).toBe('Sketch')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === '> g')).toBe(true)
   })
 
   it('submits the active guided console choice on Space even after focus leaves the input', async () => {

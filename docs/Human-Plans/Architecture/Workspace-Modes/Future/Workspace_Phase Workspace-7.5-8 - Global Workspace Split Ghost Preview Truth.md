@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-02 10:57: Recorded the continuous console drag-out handoff follow-up after the remaining repeat repro was narrowed to a drag-ownership seam, noting that `AppShell.tsx` now owns the full slotted-console-to-floating transition drag until pointer-up so a console dragged out of split view keeps following the cursor, keeps the shared split ghost alive, and no longer visibly drops into the model viewport before release even on the second `float -> split right -> drag out again` pass
+1. 2026-04-02 10:21: Recorded the second-drag titlebar clamp follow-up after the repeat console repro was narrowed further, noting that `ConsoleDock.tsx` now clamps floating console drag against the primary viewport body instead of the full shell so a re-floated console cannot slip under the model viewport titlebar and lose its draggable header during the repeat drag-out path
+1. 2026-04-02 10:02: Recorded the final console re-float size truth after the repeat drag-out follow-up was re-tested, noting that `AppShell.tsx` should preserve the stored compact floating console size when a re-docked console is dragged back out instead of adapting to the hosted split viewport size so the repeated `float -> split right -> drag out again` path returns to the same smaller default float-window shape users get on first float
+1. 2026-04-02 09:56: Recorded the last floating-console follow-up after the main `Phase 6` ship, noting that `AppShell.tsx` now reseeds console drag-out from the live redocked slot size instead of the older parked floating size so the repeat `float -> split right -> drag out again` template path keeps following the pointer smoothly instead of slipping back into the stale handoff behavior
+1. 2026-04-02 09:48: Recorded the follow-up floating-console drag-out polish after the main `Phase 6` ship, noting that `AppShell.tsx` now pre-seeds console's floating rect during the slotted header drag handoff so the split `Console top / Model Viewport bottom` template case no longer visibly snaps through the old parked floating position before the live floating drag continues
+1. 2026-04-02 09:34: Marked `Phase 6 - Floating Console Shared Ghost Preview Adoption` complete after wiring floating console drag through the shared `workspaceSplitPreview` resolver inside `ConsoleDock.tsx`, rendering the same scope-aware split ghost overlay used by the other floating surfaces, and verifying through focused `ConsoleDock` plus `AppShell` coverage that floating console drag now predicts and commits the same directional split truth as the shipped four-way floating menu
+1. 2026-04-02 09:12: Locked the open `Phase 6 - Floating Console Shared Ghost Preview Adoption` assumptions and tightened that phase into an implementation-ready drag-preview slice, recording that floating console should use the exact same edge thresholds, local/global ghost bounds, and directional drop truth as Browser while keeping left-dock snap work explicitly out of scope and treating the shipped four-way floating console menu as the source-of-truth behavior the drag ghost must visually predict
+1. 2026-04-02 09:09: Tightened the shipped `Phase 5 - Floating Console Shared Split Command Adoption` outcome so floating console now mirrors Browser's floating titlebar menu language with the same four directional split commands instead of the temporary right-only local/global pair, keeping the command adoption aligned to the existing floating-window UX while preserving the shared helper routing underneath
+1. 2026-04-02 09:00: Marked `Phase 5 - Floating Console Shared Split Command Adoption` complete after wiring floating console into the shared floating-titlebar split menu, routing right-side local/global console splits through the existing shared workspace split helpers, and proving in focused `ConsoleDock` plus `AppShell` coverage that floating console now adopts the same command language as Browser and `Spaghetti Editor` without pulling drag-preview work forward from `Phase 6`
+1. 2026-04-02 08:37: Tightened `Phase 5 - Floating Console Shared Split Command Adoption` into an implementation-ready execution slice after confirming the current command seams, locking that floating console already reuses shared float/popout actions through `ConsoleDock.tsx`, that shared console split support already exists inside `workspaceSurfaceActions.ts`, and that the missing work is mainly command exposure rather than split-engine invention so the next slice can stay command-only ahead of the later drag-preview adoption
 1. 2026-04-02 08:31: Marked `Phase 4 - Floating Console Split Adoption Research` complete after the console ownership trace finished, recording that floating console is self-hosted inside `ConsoleDock.tsx`, that `ConsolePanel.tsx` only forwards header pointer-down, that `workspaceSurfaceActions.ts` already carries reusable console float/popout plus split-helper support, and that `AppShell.tsx` only owns the slotted-console header drag seed so `Phase 5` can start from the real command-adoption seams
 1. 2026-04-02 08:28: Tightened `Phase 4 - Floating Console Split Adoption Research` into an implementation-ready research slice after tracing the current console ownership seams, locking that floating console does not have a separate host like Browser or `Spaghetti Editor`, that `ConsoleDock.tsx` owns floating drag directly while `ConsolePanel.tsx` only forwards header pointer-down, that `workspaceSurfaceActions.ts` already carries console float/popout and split-helper support, and that `AppShell.tsx` only seeds slotted-console header drags so the next console adoption work can target the real files instead of searching for a non-existent `ConsoleDockHost`
 1. 2026-04-02 08:22: Extended the `7.5-8` ladder with new follow-on console-adoption phases after the shared Browser plus Spaghetti ghost-preview contract stabilized, keeping floating `Console` inside the same phase family by adding `Phase 4 - Floating Console Split Adoption Research`, `Phase 5 - Floating Console Shared Split Command Adoption`, and `Phase 6 - Floating Console Shared Ghost Preview Adoption` instead of starting a separate doc family
@@ -679,7 +689,40 @@ Shipped result:
 - confirmed that `workspaceSurfaceActions.ts` already contains reusable console float/popout and shared split-helper support
 - confirmed that `AppShell.tsx` only owns the slotted-console header-drag seed handoff into `ConsoleDock`
 
-## [ ] Phase 5 - Floating Console Shared Split Command Adoption
+Carry-forward report:
+- owner model:
+  - floating console is self-hosted inside `src/app/console/ConsoleDock.tsx`
+  - there is no `ConsoleDockHost` equivalent to reuse or extend
+- drag model:
+  - floating header drag starts in `ConsoleDock.tsx` through `handleFloatingHeaderPointerDown(...)`
+  - long-running pointer movement is owned by `beginFloatingHeaderDrag(...)`
+  - slotted tear-out drag is still seeded by `AppShell.tsx` through `consoleSlotHeaderDragSeed`
+- panel model:
+  - `ConsolePanel.tsx` should stay presentation-only
+  - it forwards `onHeaderPointerDown`
+  - it should not become the new owner of drag, split preview, or split commit logic
+- command model:
+  - `workspaceSurfaceActions.ts` already supports console in the shared surface helpers
+  - future command work should reuse:
+    - `floatWorkspaceSurface(...)`
+    - `popoutWorkspaceSurface(...)`
+    - `splitWorkspaceSurfaceToSide(...)`
+    - `commitWorkspaceSurfaceSlotSplit(...)`
+    - `commitWorkspaceSurfaceRootSplit(...)`
+- preview model:
+  - future drag preview work should reuse `src/app/workspace/workspaceSplitPreview.ts`
+  - `ConsoleDock.tsx` should consume that helper directly
+  - do not invent a console-only preview resolver
+- testing model:
+  - prefer `src/app/console/ConsoleDock.test.tsx` for owner-path verification
+  - use targeted `src/app/AppShell.test.tsx` only for slot-header seed and shell integration coverage
+  - do not start by inventing a new dedicated console host harness
+- implementation guardrails for later phases:
+  - `Phase 5` should only add shared local/global split commands to floating console
+  - `Phase 6` should only add shared drag-preview adoption to the existing `ConsoleDock.tsx` owner path
+  - keep commands and drag-preview adoption separate so regressions are easier to isolate
+
+## [x] Phase 5 - Floating Console Shared Split Command Adoption
 ### info
 Purpose:
 - make floating `Console` expose the same shared local/global split commands Browser and `Spaghetti Editor` already use
@@ -687,22 +730,136 @@ Purpose:
 Current read:
 - the shared command helpers already exist
 - console should become the next adopter rather than getting a custom split-command path
+- floating console already routes float/popout behavior through `ConsoleDock.tsx`
+- unlike Browser and `Spaghetti Editor`, console does not yet expose a floating split command surface
+- the next missing piece is command exposure, not a new split engine
 
 Main work:
 - add shared local/global split commands to floating console
 - route those commands through the same workspace split helpers
 - keep command naming and meaning aligned with the locked `7.5-8` contract
+- keep drag-preview work out of this slice
 
 Done shape:
 - floating console can perform `local` and `global` splits through the shared action layer
 - command-driven console behavior matches Browser and `Spaghetti Editor`
+- the command slice lands without touching the later floating-drag preview path
+
+### Questions / Decisions
+
+#### [x] Question 1 - Does console already have the split engine support we need?
+
+##### Suggestion
+- yes
+- `workspaceSurfaceActions.ts` already supports console through:
+  - `splitWorkspaceSurfaceToSide(...)`
+  - `commitWorkspaceSurfaceSlotSplit(...)`
+  - `commitWorkspaceSurfaceRootSplit(...)`
+
+##### Why
+- the missing work is mainly exposing the commands from floating console UI
+- `Phase 5` should not invent a separate console split engine
+
+#### [x] Question 2 - What file should own the new floating console command entry point?
+
+##### Suggestion
+- `ConsoleDock.tsx`
+
+##### Why
+- it already owns the floating console shell and floating header behavior
+- it is the real owner of floating console actions
+
+#### [x] Question 3 - Should `ConsolePanel.tsx` become the command owner?
+
+##### Suggestion
+- no
+- keep `ConsolePanel.tsx` thin and presentation-oriented
+
+##### Why
+- it currently forwards callbacks and renders shared buttons
+- turning it into the command owner would blur the owner boundary we just clarified in Phase 4
+
+#### [x] Question 4 - Should Phase 5 reuse the shared floating-titlebar split menu in `AppShell.tsx`, or add console-local buttons first?
+
+##### Suggestion
+- prefer reusing the shared floating-titlebar split menu if the owner seam can stay clean
+- if that seam proves awkward, fall back to a small console-local command surface only for this phase
+
+##### Why
+- reuse keeps command language aligned across Browser, `Spaghetti Editor`, and console
+- but command-only progress matters more than forcing the wrong owner boundary
+
+#### [x] Question 5 - What exact commands should be in scope first?
+
+##### Suggestion
+- match the first adopter contract already used in `7.5-8`:
+  - `Split Right Locally`
+  - `Split Right Globally`
+
+##### Why
+- this keeps the first console command slice small
+- it matches the existing right-side-first validation path before later sides or drag preview are added
+
+#### [x] Question 6 - What should stay out of scope for this phase?
+
+##### Suggestion
+- drag ghost preview
+- edge-band detection
+- floating console drag rewrite
+- broader console chrome redesign
+
+##### Why
+- those belong in `Phase 6`
+- `Phase 5` should remain a command-only adoption slice
 
 Checklist:
-- [ ] Add shared local/global console split commands
-- [ ] Route console commands through shared workspace split helpers
-- [ ] Verify command-driven console local/global splits match the locked contract
+- [x] Add shared local/global console split commands
+- [x] Route console commands through shared workspace split helpers
+- [x] Verify command-driven console local/global splits match the locked contract
 
-## [ ] Phase 6 - Floating Console Shared Ghost Preview Adoption
+Likely files:
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsolePanel.tsx`
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/AppShell.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+Highest-signal seams:
+- `ConsoleDock.tsx`
+  - `handleFloatToggle(...)`
+  - floating window shell around `.ConsoleFloatingWindow`
+  - the place where floating-console actions are currently surfaced
+- `workspaceSurfaceActions.ts`
+  - existing console support in shared split helpers
+- `AppShell.tsx`
+  - current shared floating-titlebar split menu for Browser and `Spaghetti Editor`
+  - possible reuse seam if console adopts the same menu owner path
+
+Implementation cut:
+1. Add a floating-console command entry point in `ConsoleDock.tsx`.
+2. Expose `Split Right Locally` and `Split Right Globally` through that owner path, preferably by reusing the shared floating split menu pattern if it keeps ownership clean.
+3. Route the commands through the shared workspace split helpers instead of console-specific split code.
+4. Verify the resulting layout behavior matches the already-shipped right-side local/global contract.
+5. Leave all drag-preview and edge-band behavior untouched for `Phase 6`.
+
+Verification:
+- floating console can invoke shared right-side local/global split commands
+- command-driven console split results match Browser and `Spaghetti Editor`
+- no drag-preview logic changed in this slice
+
+Shipped outcome:
+- `ConsoleDock.tsx` now opens the shared floating-titlebar split menu from floating console header right-click instead of needing a console-specific menu
+- floating console now mirrors Browser's four-way floating titlebar split menu language:
+  - `Split Top`
+  - `Split Right`
+  - `Split Bottom`
+  - `Split Left`
+- `AppShell.tsx` now resolves floating console as a valid shared split-menu target and routes those four directional console commands through the shared workspace helper layer while leaving the temporary local/global command menu only on the `Spaghetti Editor` path
+- `workspaceSurfaceActions.ts` now accepts floating console command commits in both slot-scoped and root-scoped split helpers and returns console to docked mode once the new hosted split lands
+- focused `ConsoleDock.test.tsx` and `AppShell.test.tsx` coverage now prove the shared menu opens from the floating console header and exposes the Browser-matching four-way directional split menu correctly
+
+## [x] Phase 6 - Floating Console Shared Ghost Preview Adoption
 ### info
 Purpose:
 - make floating console drag and drop use the same shared local/global ghost-preview system now used by Browser and `Spaghetti Editor`
@@ -721,6 +878,104 @@ Done shape:
 - console becomes the next real adopter of the shared global/local split system
 
 Checklist:
-- [ ] Reuse the shared preview resolver for floating console drag
-- [ ] Render scope-aware console ghost previews
-- [ ] Verify drag-driven console preview and drop results match command-driven behavior
+- [x] Reuse the shared preview resolver for floating console drag
+- [x] Render scope-aware console ghost previews
+- [x] Verify drag-driven console preview and drop results match command-driven behavior
+
+Shipped outcome:
+- `ConsoleDock.tsx` now resolves floating-console drag previews through the shared `workspaceSplitPreview.ts` contract instead of only moving the floating rect
+- floating console now renders the same scope-aware workspace ghost overlay language as Browser and `Spaghetti Editor`
+- pointer-up commits now route through the shared workspace split helpers so floating console drag drops dock back into the workspace with the same directional truth the ghost preview showed
+- focused `ConsoleDock.test.tsx` and `AppShell.test.tsx` coverage now prove both local and global floating-console drag preview paths while the existing build remains green
+- follow-up polish now makes the slotted-console-to-floating handoff pre-seed the real floating rect inside `AppShell.tsx`, so the split-template drag case keeps following the pointer smoothly instead of visibly snapping through the old parked float position first
+- final follow-up polish now makes repeated console re-dock drag-outs reseed floating size from the live slot frame instead of the stale parked floating rect, so the `float -> split right -> drag out again` path stays smooth after re-splitting too
+- final final truth: repeated console re-dock drag-outs should keep the stored compact floating window size instead of inheriting the redocked slot viewport dimensions, so the re-float result matches the normal post-load floating console size rather than coming back as a full split-sized console window
+- titlebar clamp follow-up: repeated console re-dock drag-outs now clamp against the primary viewport body top boundary, so the floating console header cannot slide under the model viewport titlebar during the second drag-out and later become ungrabbable
+- continuous handoff follow-up: slotted-console drag-out now stays under one AppShell-owned pointer session until mouse-up, so the floating console keeps following the cursor, keeps the shared ghost preview active, and does not visibly drop back into the model viewport during the repeat handoff path
+
+### Questions / Decisions
+
+#### [x] Question 1 - Should floating `Console` reuse the exact same edge thresholds and band sizes as Browser and `Spaghetti Editor`?
+
+##### Suggestion
+- yes
+- keep the same shared preview thresholds:
+  - outer edge band = `global`
+  - next inward band = `local`
+  - same pixel distances on all four sides
+
+##### Why
+- `7.5-8` is the shared ghost-preview truth phase family
+- console should become another adopter of that truth, not a special-case drag surface
+
+#### [x] Question 2 - Should floating `Console` use the same ghost bounds model as Browser?
+
+##### Suggestion
+- yes
+- ghost bounds should follow the same shared rule:
+  - `local` ghost clips to the hovered leaf pane
+  - `global` ghost spans the full workspace layout bounds
+
+##### Why
+- that keeps the drag preview aligned with the already-shipped Browser plus `Spaghetti Editor` contract
+- it also keeps console drag behavior visually consistent with the command meanings we already locked
+
+#### [x] Question 3 - Should left-dock snap behavior be in scope for this phase?
+
+##### Suggestion
+- no
+- leave left-dock snap behavior out of scope here
+
+##### Why
+- `Phase 6` should stay focused on shared split ghost preview adoption
+- adding new dock-target rules would widen this into a larger console-host behavior pass
+
+#### [x] Question 4 - Should floating `Console` drag drops follow the same directional meaning as Browser’s floating drag?
+
+##### Suggestion
+- yes
+- for `top/right/bottom/left`, the drop result should match the side and scope the ghost preview showed
+
+##### Why
+- the shared preview must be honest
+- drag-driven console results should not diverge from the same four directional outcomes Browser already teaches
+
+#### [x] Question 5 - What is the source-of-truth behavior that the drag preview should visually predict?
+
+##### Suggestion
+- the shipped floating console four-way command menu from `Phase 5`
+
+##### Why
+- the menu already expresses the expected directional outcomes
+- `Phase 6` should make drag preview visually predict those same results instead of inventing a second console-specific interpretation
+
+Likely files:
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/workspace/workspaceSplitPreview.ts`
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+Highest-signal seams:
+- `ConsoleDock.tsx`
+  - `beginFloatingHeaderDrag(...)`
+  - `handleFloatingHeaderPointerDown(...)`
+  - the floating drag move/up path that currently updates `floatingRect`
+  - `.ConsoleFloatingWindow` render path where ghost preview will need to be shown
+- `workspaceSplitPreview.ts`
+  - shared local/global preview side and bounds resolver
+- `workspaceSurfaceActions.ts`
+  - final drag-drop commit seam after preview resolves to a side and scope
+
+Implementation cut:
+1. Reuse `resolveWorkspaceSplitDockPreview(...)` inside the floating console drag move path owned by `ConsoleDock.tsx`.
+2. Track the active console split preview as shared `side + scope + targetSlotId + rect`, matching the Browser/`Spaghetti Editor` preview contract.
+3. Render the preview ghost from that shared state inside the existing floating-console owner path.
+4. On pointer-up, commit the drop through the shared workspace split helpers so the result matches the previewed side and scope.
+5. Keep left-dock snap behavior untouched and do not widen this slice into a broader console-host rewrite.
+
+Verification:
+- floating console drag preview uses the same threshold and ghost-bounds contract as Browser and `Spaghetti Editor`
+- local/global preview scopes are visually honest on all four sides
+- dropping after preview commits the same directional result that the preview showed
+- the shipped four-way floating console split menu and the new drag preview now describe the same behavior

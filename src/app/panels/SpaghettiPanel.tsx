@@ -482,7 +482,6 @@ export function SpaghettiPanel({
 
   useEffect(() => {
     if (
-      onActivateEditorContext !== undefined ||
       graphDocumentId === null ||
       workspaceActiveSurface !== 'spaghetti' ||
       !isActiveEditorViewport
@@ -521,7 +520,6 @@ export function SpaghettiPanel({
     setWorkspaceSelectedTarget,
     workspaceActiveSurface,
     workspaceSelectedTarget,
-    onActivateEditorContext,
   ])
 
   useEffect(() => {
@@ -837,12 +835,10 @@ export function SpaghettiPanel({
           : {
               kind: 'graph-node',
               graphDocumentId,
-              nodeId: nextNodeId,
-            },
+            nodeId: nextNodeId,
+          },
       )
-      if (onActivateEditorContext === undefined) {
-        requestConsoleContextSync('target-selection')
-      }
+      requestConsoleContextSync('target-selection')
     }
     setFitNodeRequest((current) => ({
       nodeId: nextNodeId,

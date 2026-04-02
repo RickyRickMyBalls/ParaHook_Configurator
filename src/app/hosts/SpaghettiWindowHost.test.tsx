@@ -4,6 +4,33 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StrictMode, useRef, useState } from 'react'
+const workspaceChildWindowMockState = vi.hoisted(() => ({
+  forceNullHost: false,
+  forcedChildWindow: null as Window | null,
+}))
+const spaghettiPanelMockState = vi.hoisted(() => ({
+  throwOnRender: false,
+}))
+
+vi.mock('../workspace/useWorkspaceChildWindow', async () => {
+  const actual =
+    await vi.importActual<typeof import('../workspace/useWorkspaceChildWindow')>(
+      '../workspace/useWorkspaceChildWindow',
+    )
+  return {
+    ...actual,
+    useWorkspaceChildWindow: (options: Parameters<typeof actual.useWorkspaceChildWindow>[0]) => {
+      if (workspaceChildWindowMockState.forceNullHost) {
+        return {
+          childWindow: workspaceChildWindowMockState.forcedChildWindow,
+          host: null,
+        }
+      }
+      return actual.useWorkspaceChildWindow(options)
+    },
+  }
+})
+
 import { SpaghettiWindowHost } from './SpaghettiWindowHost'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import { createDefaultEditorWorkspaceSurfaceState } from '../workspace/workspaceShellTypes'
@@ -63,23 +90,28 @@ vi.mock('../panels/SpaghettiPanel', () => ({
     isHeaderCollapsed?: boolean
     isCanvasToolbarVisible?: boolean
     isWindowSettingsOpen?: boolean
-  }) => (
-    <div
-      className="MockSpaghettiPanel"
-      data-editor-viewport-id={editorViewportId}
-      onPointerDownCapture={
-        activateOnPointerDownCapture
-          ? () => {
-              onActivateEditorContext?.(editorViewportId)
-            }
-          : undefined
-      }
-    >{`Spaghetti Panel ${editorViewportId} ${
-      isHeaderCollapsed === true ? 'header-collapsed' : 'header-expanded'
-    } ${isCanvasToolbarVisible === false ? 'canvas-toolbar-hidden' : 'canvas-toolbar-visible'} ${
-      isWindowSettingsOpen === true ? 'window-settings-open' : 'window-settings-closed'
-    }`}</div>
-  ),
+  }) => {
+    if (spaghettiPanelMockState.throwOnRender) {
+      throw new Error('Forced popup subtree error')
+    }
+    return (
+      <div
+        className="MockSpaghettiPanel"
+        data-editor-viewport-id={editorViewportId}
+        onPointerDownCapture={
+          activateOnPointerDownCapture
+            ? () => {
+                onActivateEditorContext?.(editorViewportId)
+              }
+            : undefined
+        }
+      >{`Spaghetti Panel ${editorViewportId} ${
+        isHeaderCollapsed === true ? 'header-collapsed' : 'header-expanded'
+      } ${isCanvasToolbarVisible === false ? 'canvas-toolbar-hidden' : 'canvas-toolbar-visible'} ${
+        isWindowSettingsOpen === true ? 'window-settings-open' : 'window-settings-closed'
+      }`}</div>
+    )
+  },
 }))
 
 const viewport = (windowMode: string) => ({
@@ -291,6 +323,9 @@ describe('SpaghettiWindowHost', () => {
   }
 
   beforeEach(() => {
+    workspaceChildWindowMockState.forceNullHost = false
+    workspaceChildWindowMockState.forcedChildWindow = null
+    spaghettiPanelMockState.throwOnRender = false
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     mockRequestGraphDocumentBuild.mockClear()
     mockOnResetSplitRatio.mockClear()
@@ -441,7 +476,31 @@ describe('SpaghettiWindowHost', () => {
           },
         }
       }),
-      closeEditorViewport: vi.fn(),
+      closeEditorViewport: vi.fn((editorViewportId: string) => {
+        const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
+        if (currentViewport === undefined) {
+          return
+        }
+        const nextEditorViewportsById = { ...currentSpaghettiState.editorViewportsById }
+        delete nextEditorViewportsById[editorViewportId]
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          editorViewportsById: nextEditorViewportsById,
+          editorViewportOrder: currentSpaghettiState.editorViewportOrder.filter(
+            (currentViewportId: string) => currentViewportId !== editorViewportId,
+          ),
+          activeEditorViewportId:
+            currentSpaghettiState.activeEditorViewportId === editorViewportId
+              ? currentSpaghettiState.editorViewportOrder.find(
+                  (currentViewportId: string) => currentViewportId !== editorViewportId,
+                ) ?? ''
+              : currentSpaghettiState.activeEditorViewportId,
+        }
+        const workspaceState = useWorkspaceStore.getState()
+        workspaceState.clearDetachedSlotSurface(editorViewportId)
+        workspaceState.removeEditorSurfacePlacement(editorViewportId)
+        workspaceState.removeEditorSurfaceBinding(editorViewportId)
+      }),
     }
   })
 
@@ -455,6 +514,9 @@ describe('SpaghettiWindowHost', () => {
     container = null
     root = null
     window.open = originalWindowOpen
+    workspaceChildWindowMockState.forceNullHost = false
+    workspaceChildWindowMockState.forcedChildWindow = null
+    spaghettiPanelMockState.throwOnRender = false
   })
 
   it('renders the meatball editor into the left dock host via portal', async () => {
@@ -825,7 +887,7 @@ describe('SpaghettiWindowHost', () => {
     )
   })
 
-  it('moves the editor into a child-window popout owner and docks it back when the popout closes', async () => {
+  it('closes the editor when the child-window popout closes', async () => {
     await renderHarness({ strict: true })
 
     const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popout')
@@ -866,11 +928,202 @@ describe('SpaghettiWindowHost', () => {
     })
     await rerenderHarness({ strict: true })
 
-    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.windowMode).toBe('expanded')
-    expect(container?.querySelector('.SpaghettiFloatingWindow')).not.toBeNull()
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-1')
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']).toBeUndefined()
+    expect(container?.querySelector('.SpaghettiFloatingWindow')).toBeNull()
   })
 
-  it('redocks a detached slotted editor from popout back into the workspace slot tree', async () => {
+  it('does not mount popup content when the child window exists but the host is missing', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popout Missing Host')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+    workspaceChildWindowMockState.forceNullHost = true
+    workspaceChildWindowMockState.forcedChildWindow = popoutWindow
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.querySelector('.SpaghettiPopoutContent')).toBeNull()
+    expect(popoutDocument.body.querySelector('.SpaghettiPopoutDiagnostics')).toBeNull()
+  })
+
+  it('opens a visible child-window popout through the shared hook when the popout button is clicked', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popout Direct')
+    let beforeUnloadHandler: (() => void) | null = null
+    let isPopoutClosed = false
+    const popoutWindow = {
+      get closed() {
+        return isPopoutClosed
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(() => {
+        isPopoutClosed = true
+      }),
+      addEventListener: vi.fn((type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'beforeunload' && typeof handler === 'function') {
+          beforeUnloadHandler = handler as () => void
+        }
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Pop editor out into browser window"]',
+    ) as HTMLButtonElement | null
+    expect(popoutButton).not.toBeNull()
+
+    await act(async () => {
+      popoutButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'separateWindow',
+    )
+    expect(window.open).toHaveBeenCalledTimes(1)
+    expect(popoutDocument.body.querySelector('.SpaghettiPopoutContent')).not.toBeNull()
+    expect(popoutDocument.body.querySelector('.SpaghettiPopoutDiagnostics')).toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
+    expect(beforeUnloadHandler).not.toBeNull()
+  })
+
+  it('relays non-editable console keys from the popout window back to the main window', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popout Enter Relay')
+    let keyDownHandler: ((event: KeyboardEvent) => void) | null = null
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn((type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'keydown' && typeof handler === 'function') {
+          keyDownHandler = handler as (event: KeyboardEvent) => void
+        }
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const surface = popoutDocument.body.querySelector('.SpaghettiPopoutSurface') as HTMLElement | null
+    expect(surface).not.toBeNull()
+    expect(keyDownHandler).not.toBeNull()
+
+    await act(async () => {
+      keyDownHandler?.(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(dispatchSpy).toHaveBeenCalled()
+    const relayedEvent = dispatchSpy.mock.calls.at(-1)?.[0] as KeyboardEvent | undefined
+    expect(relayedEvent?.key).toBe('Enter')
+
+    await act(async () => {
+      keyDownHandler?.(
+        new KeyboardEvent('keydown', {
+          key: 'ArrowUp',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      keyDownHandler?.(
+        new KeyboardEvent('keydown', {
+          key: 'ArrowDown',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      keyDownHandler?.(
+        new KeyboardEvent('keydown', {
+          key: 'S',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      keyDownHandler?.(
+        new KeyboardEvent('keydown', {
+          key: 'D',
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    const relayedKeys = dispatchSpy.mock.calls.map((call) => (call[0] as KeyboardEvent).key)
+    expect(relayedKeys).toContain('ArrowUp')
+    expect(relayedKeys).toContain('ArrowDown')
+    expect(relayedKeys).toContain('S')
+    expect(relayedKeys).toContain('D')
+  })
+
+  it('renders the popup crash fallback when the popup subtree crashes', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popout Crash')
+    let beforeUnloadHandler: (() => void) | null = null
+    let isPopoutClosed = false
+    const popoutWindow = {
+      get closed() {
+        return isPopoutClosed
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(() => {
+        isPopoutClosed = true
+      }),
+      addEventListener: vi.fn((type: string, handler: EventListenerOrEventListenerObject) => {
+        if (type === 'beforeunload' && typeof handler === 'function') {
+          beforeUnloadHandler = handler as () => void
+        }
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+    spaghettiPanelMockState.throwOnRender = true
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.querySelector('.SpaghettiPopoutDiagnostics')).toBeNull()
+    expect(popoutDocument.body.textContent).toContain(
+      'Detached Spaghetti popup crashed: Forced popup subtree error',
+    )
+    expect(beforeUnloadHandler).not.toBeNull()
+  })
+
+  it('closes a detached slotted editor instead of redocking it when the popout window closes', async () => {
     const detachedSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
       surfaceKind: 'spaghettiEditor',
       surfaceInstanceId: 'editor-viewport-1',
@@ -915,6 +1168,60 @@ describe('SpaghettiWindowHost', () => {
     const spaghettiSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
       (slot) => slot.surfaceKind === 'spaghettiEditor',
     )
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-1')
+    expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']).toBeUndefined()
+    expect(spaghettiSlots).toHaveLength(0)
+    expect(
+      useWorkspaceStore.getState().detachedSlotSurfaceById['editor-viewport-1'],
+    ).toBeUndefined()
+  })
+
+  it('redocks a detached slotted editor only when the popout dock action is clicked', async () => {
+    const detachedSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'spaghettiEditor',
+      surfaceInstanceId: 'editor-viewport-1',
+    })
+    expect(detachedSlotId).toBeTruthy()
+    useWorkspaceStore.getState().detachViewportSlotSurface(detachedSlotId ?? '', 'popout')
+
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Detached Slot Popout Dock')
+    let isPopoutClosed = false
+    const popoutWindow = {
+      get closed() {
+        return isPopoutClosed
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(() => {
+        isPopoutClosed = true
+      }),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const dockButton = popoutDocument.body.querySelector(
+      'button[aria-label="Dock editor back into workspace"]',
+    ) as HTMLButtonElement | null
+    expect(dockButton).not.toBeNull()
+
+    await act(async () => {
+      dockButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    const spaghettiSlots = Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+      (slot) => slot.surfaceKind === 'spaghettiEditor',
+    )
+    expect(currentSpaghettiState.closeEditorViewport).not.toHaveBeenCalledWith('editor-viewport-1')
     expect(spaghettiSlots).toHaveLength(1)
     expect(spaghettiSlots[0]?.surfaceInstanceId).toBe('editor-viewport-1')
     expect(currentSpaghettiState.editorViewportsById['editor-viewport-1']?.windowMode).toBe('expanded')

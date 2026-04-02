@@ -12,7 +12,83 @@ type RegisteredWorkspaceChildWindow = {
 
 const childWindowRegistry = new Map<string, RegisteredWorkspaceChildWindow>()
 
+const ensureDocumentHead = (targetDocument: Document): HTMLHeadElement | null => {
+  if (targetDocument.head !== null) {
+    return targetDocument.head
+  }
+  const documentElement = targetDocument.documentElement
+  if (documentElement === null) {
+    return null
+  }
+  const nextHead = targetDocument.createElement('head') as HTMLHeadElement
+  documentElement.insertBefore(nextHead, documentElement.firstChild)
+  return targetDocument.head ?? nextHead
+}
+
+const ensureDocumentBody = (targetDocument: Document): HTMLBodyElement | null => {
+  if (targetDocument.body !== null) {
+    return targetDocument.body as HTMLBodyElement
+  }
+  const documentElement = targetDocument.documentElement
+  if (documentElement === null) {
+    return null
+  }
+  const nextBody = targetDocument.createElement('body') as HTMLBodyElement
+  documentElement.appendChild(nextBody)
+  return (targetDocument.body as HTMLBodyElement | null) ?? nextBody
+}
+
+const isHtmlElement = (candidate: unknown): candidate is HTMLElement => {
+  if (
+    candidate === null ||
+    candidate === undefined ||
+    typeof candidate !== 'object' ||
+    !('nodeType' in candidate) ||
+    (candidate as { nodeType?: unknown }).nodeType !== Node.ELEMENT_NODE
+  ) {
+    return false
+  }
+  const ownerDocument =
+    'ownerDocument' in candidate
+      ? ((candidate as { ownerDocument?: Document | null }).ownerDocument ?? null)
+      : null
+  const ownerWindow = ownerDocument?.defaultView
+  if (ownerWindow === null || ownerWindow === undefined) {
+    return true
+  }
+  return candidate instanceof ownerWindow.HTMLElement
+}
+
+const isHtmlBodyElement = (candidate: unknown): candidate is HTMLBodyElement => {
+  if (
+    candidate === null ||
+    candidate === undefined ||
+    typeof candidate !== 'object' ||
+    !('nodeType' in candidate) ||
+    (candidate as { nodeType?: unknown }).nodeType !== Node.ELEMENT_NODE
+  ) {
+    return false
+  }
+  const ownerDocument =
+    'ownerDocument' in candidate
+      ? ((candidate as { ownerDocument?: Document | null }).ownerDocument ?? null)
+      : null
+  const ownerWindow = ownerDocument?.defaultView
+  if (ownerWindow === null || ownerWindow === undefined) {
+    return (
+      'tagName' in candidate &&
+      typeof (candidate as { tagName?: unknown }).tagName === 'string' &&
+      (candidate as { tagName: string }).tagName.toUpperCase() === 'BODY'
+    )
+  }
+  return candidate instanceof ownerWindow.HTMLBodyElement
+}
+
 const copyDocumentStyles = (sourceDocument: Document, targetDocument: Document) => {
+  const targetHead = ensureDocumentHead(targetDocument)
+  if (targetHead === null) {
+    return
+  }
   const existing = targetDocument.querySelector(`[${styleCloneMarker}="true"]`)
   if (existing !== null) {
     return
@@ -20,21 +96,43 @@ const copyDocumentStyles = (sourceDocument: Document, targetDocument: Document) 
   const fragment = targetDocument.createDocumentFragment()
   Array.from(sourceDocument.querySelectorAll('link[rel="stylesheet"], style')).forEach((node) => {
     const clone = node.cloneNode(true)
-    if (clone instanceof HTMLElement) {
+    if (isHtmlElement(clone)) {
       clone.setAttribute(styleCloneMarker, 'true')
     }
     fragment.appendChild(clone)
   })
-  targetDocument.head.appendChild(fragment)
+  targetHead.appendChild(fragment)
+}
+
+const isUsableChildWindowHost = (
+  targetWindow: Window,
+  candidate: Element | null,
+  childWindowId: string,
+): candidate is HTMLElement => {
+  if (!isHtmlElement(candidate)) {
+    return false
+  }
+  const targetBody = targetWindow.document.body
+  if (candidate.ownerDocument !== targetWindow.document) {
+    return false
+  }
+  if (!candidate.isConnected) {
+    return false
+  }
+  if (!isHtmlBodyElement(targetBody) || !targetBody.contains(candidate)) {
+    return false
+  }
+  return candidate.getAttribute(hostMarker) === childWindowId
 }
 
 const ensureChildWindowHost = (
+  targetWindow: Window,
   targetDocument: Document,
   childWindowId: string,
   rootClassName: string,
 ): HTMLElement => {
   const existingHost = targetDocument.querySelector(`[${hostMarker}="${childWindowId}"]`)
-  if (existingHost instanceof HTMLElement) {
+  if (isUsableChildWindowHost(targetWindow, existingHost, childWindowId)) {
     return existingHost
   }
 
@@ -52,7 +150,6 @@ type UseWorkspaceChildWindowOptions = {
   spec: WorkspaceChildWindowSpec
   rootClassName: string
   bodyBackground?: string
-  claimPendingWindow?: () => Window | null
   onBlocked?: () => void
   onClosed?: () => void
 }
@@ -131,7 +228,6 @@ export function useWorkspaceChildWindow(
     spec,
     rootClassName,
     bodyBackground = 'rgb(5, 7, 11)',
-    claimPendingWindow,
     onBlocked,
     onClosed,
   } = options
@@ -158,11 +254,96 @@ export function useWorkspaceChildWindow(
     }
 
     let popup = childWindowRef.current
+    const syncTimeoutIds = new Set<ReturnType<typeof setTimeout>>()
+    let removeLoadListener: (() => void) | null = null
+    const cleanupHostSync = () => {
+      syncTimeoutIds.forEach((timeoutId) => clearTimeout(timeoutId))
+      syncTimeoutIds.clear()
+      removeLoadListener?.()
+      removeLoadListener = null
+    }
+    const syncPopupHost = (targetWindow: Window): HTMLElement | null => {
+      if (targetWindow.closed) {
+        hostRef.current = null
+        setHost(null)
+        return null
+      }
+      targetWindow.document.title = windowTitle
+      targetWindow.document.documentElement.style.height = '100%'
+      const targetBody = ensureDocumentBody(targetWindow.document)
+      if (targetBody === null) {
+        hostRef.current = null
+        setHost(null)
+        return null
+      }
+      targetBody.style.margin = '0'
+      targetBody.style.height = '100%'
+      targetBody.style.background = bodyBackground
+      targetBody.style.overflow = 'hidden'
+      copyDocumentStyles(document, targetWindow.document)
+      const nextHost = ensureChildWindowHost(
+        targetWindow,
+        targetWindow.document,
+        childWindowId,
+        rootClassName,
+      )
+      hostRef.current = nextHost
+      setHost(nextHost)
+      return nextHost
+    }
+    const scheduleHostSync = (targetWindow: Window) => {
+      ;[0, 50, 250, 1000].forEach((delayMs) => {
+        const timeoutId = setTimeout(() => {
+          syncTimeoutIds.delete(timeoutId)
+          if (targetWindow.closed) {
+            hostRef.current = null
+            setHost(null)
+            return
+          }
+          const currentHost = hostRef.current
+          if (
+            delayMs !== 0 &&
+            isUsableChildWindowHost(targetWindow, currentHost, childWindowId)
+          ) {
+            return
+          }
+          if (delayMs !== 0) {
+            setHost(null)
+          }
+          hostRef.current = null
+          syncPopupHost(targetWindow)
+        }, delayMs)
+        syncTimeoutIds.add(timeoutId)
+      })
+    }
+    const validateCurrentHost = (targetWindow: Window) => {
+      const currentHost = hostRef.current
+      if (currentHost === null) {
+        return
+      }
+      if (isUsableChildWindowHost(targetWindow, currentHost, childWindowId)) {
+        return
+      }
+      hostRef.current = null
+      setHost(null)
+      const timeoutId = setTimeout(() => {
+        syncTimeoutIds.delete(timeoutId)
+        syncPopupHost(targetWindow)
+      }, 0)
+      syncTimeoutIds.add(timeoutId)
+    }
+    const attachLoadSync = (targetWindow: Window) => {
+      const handleLoad = () => {
+        syncPopupHost(targetWindow)
+      }
+      targetWindow.addEventListener('load', handleLoad)
+      removeLoadListener = () => {
+        targetWindow.removeEventListener('load', handleLoad)
+      }
+    }
     if (popup === null || popup.closed) {
       popup =
-        claimRegisteredChildWindow(childWindowId) ??
-        claimPendingWindow?.() ??
-        window.open('', windowName, windowFeatures)
+        claimRegisteredChildWindow(childWindowId) ?? window.open('', windowName, windowFeatures)
       if (popup === null || popup === undefined) {
         onBlocked?.()
         return
@@ -171,20 +352,9 @@ export function useWorkspaceChildWindow(
       childWindowRef.current = openedPopup
       registerChildWindow(childWindowId, openedPopup)
       setChildWindow(openedPopup)
-      openedPopup.document.title = windowTitle
-      openedPopup.document.documentElement.style.height = '100%'
-      openedPopup.document.body.style.margin = '0'
-      openedPopup.document.body.style.height = '100%'
-      openedPopup.document.body.style.background = bodyBackground
-      openedPopup.document.body.style.overflow = 'hidden'
-      copyDocumentStyles(document, openedPopup.document)
-      const nextHost = ensureChildWindowHost(
-        openedPopup.document,
-        childWindowId,
-        rootClassName,
-      )
-      hostRef.current = nextHost
-      setHost(nextHost)
+      syncPopupHost(openedPopup)
+      attachLoadSync(openedPopup)
+      scheduleHostSync(openedPopup)
       const handleBeforeUnload = () => {
         unregisterChildWindow(childWindowId, openedPopup)
         childWindowRef.current = null
@@ -198,25 +368,23 @@ export function useWorkspaceChildWindow(
         onClosed?.()
       }
       openedPopup.addEventListener('beforeunload', handleBeforeUnload, { once: true })
-      return
+      return () => {
+        cleanupHostSync()
+      }
     }
 
     registerChildWindow(childWindowId, popup)
-    popup.document.title = windowTitle
-    popup.document.documentElement.style.height = '100%'
-    popup.document.body.style.margin = '0'
-    popup.document.body.style.height = '100%'
-    popup.document.body.style.background = bodyBackground
-    popup.document.body.style.overflow = 'hidden'
-    copyDocumentStyles(document, popup.document)
     setChildWindow(popup)
-    const nextHost = ensureChildWindowHost(popup.document, childWindowId, rootClassName)
-    hostRef.current = nextHost
-    setHost(nextHost)
+    validateCurrentHost(popup)
+    syncPopupHost(popup)
+    attachLoadSync(popup)
+    scheduleHostSync(popup)
+    return () => {
+      cleanupHostSync()
+    }
   }, [
     bodyBackground,
     childWindowId,
-    claimPendingWindow,
     isOpen,
     onBlocked,
     onClosed,

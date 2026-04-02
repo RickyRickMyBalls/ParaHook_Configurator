@@ -10,6 +10,8 @@ import {
 import type { WorkspaceSplitDockSide } from './workspaceSplitTypes'
 import { useWorkspaceStore } from './useWorkspaceStore'
 
+export const floatingConsoleCompatibilitySurfaceInstanceId = 'console-floating-compat'
+
 function findSlotBySurfaceInstanceId(surfaceInstanceId: string) {
   const workspaceState = useWorkspaceStore.getState()
   return (
@@ -44,6 +46,12 @@ function resolveSurfaceKindForAction(surfaceInstanceId: string): WorkspaceSurfac
     defaultBrowserToolbarOwnerSurfaceInstanceId
   if (surfaceInstanceId === currentBrowserSurfaceInstanceId) {
     return 'browser'
+  }
+  if (
+    surfaceInstanceId === floatingConsoleCompatibilitySurfaceInstanceId &&
+    useConsoleStore.getState().windowMode === 'floating'
+  ) {
+    return 'console'
   }
   if (useSpaghettiStore.getState().editorViewportsById[surfaceInstanceId] !== undefined) {
     return 'spaghettiEditor'
@@ -207,13 +215,17 @@ export function splitWorkspaceSurfaceToSide(
 
   if (slottedSurface?.surfaceKind === 'console' || detachedSurface?.surfaceKind === 'console') {
     if (detachedSurface !== null) {
-      return workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
+      const nextSlot = workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
+      useConsoleStore.getState().switchToDocked(false)
+      return nextSlot
     }
-    return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
+    const nextSlotId = workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
       surfaceKind: 'console',
       surfaceInstanceId,
       preferredRatio: options?.preferredRatio,
     })
+    useConsoleStore.getState().switchToDocked(false)
+    return nextSlotId
   }
 
   if (isSpaghettiSurface) {
@@ -269,6 +281,9 @@ export function commitWorkspaceSurfaceSlotSplit(
       workspaceState.setBrowserFloating(false)
       workspaceState.setBrowserViewportSplit(false)
     }
+    if (surfaceKind === 'console') {
+      useConsoleStore.getState().switchToDocked(false)
+    }
     return nextSlotId
   }
   if (surfaceKind === 'browser') {
@@ -280,6 +295,15 @@ export function commitWorkspaceSurfaceSlotSplit(
     workspaceState.releaseHostRoute(defaultBrowserHostRouteId)
     workspaceState.setBrowserFloating(false)
     workspaceState.setBrowserViewportSplit(false)
+    return nextSlotId
+  }
+  if (surfaceKind === 'console') {
+    const nextSlotId = workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
+      surfaceKind,
+      surfaceInstanceId,
+      preferredRatio: options?.preferredRatio,
+    })
+    useConsoleStore.getState().switchToDocked(false)
     return nextSlotId
   }
   return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
@@ -301,10 +325,15 @@ export function commitWorkspaceSurfaceRootSplit(
   const slottedSurface = findSlotBySurfaceInstanceId(surfaceInstanceId)
   const detachedSurface = workspaceState.detachedSlotSurfaceById[surfaceInstanceId] ?? null
   const surfaceKind = resolveSurfaceKindForAction(surfaceInstanceId)
-  if (surfaceKind !== 'browser' && surfaceKind !== 'spaghettiEditor') {
+  if (surfaceKind !== 'browser' && surfaceKind !== 'spaghettiEditor' && surfaceKind !== 'console') {
     return null
   }
-  if (surfaceKind !== 'browser' && slottedSurface !== null && detachedSurface === null) {
+  if (
+    surfaceKind !== 'browser' &&
+    surfaceKind !== 'console' &&
+    slottedSurface !== null &&
+    detachedSurface === null
+  ) {
     return null
   }
   if (surfaceKind === 'spaghettiEditor') {
@@ -324,6 +353,9 @@ export function commitWorkspaceSurfaceRootSplit(
       workspaceState.setBrowserFloating(false)
       workspaceState.setBrowserViewportSplit(false)
     }
+    if (surfaceKind === 'console') {
+      useConsoleStore.getState().switchToDocked(false)
+    }
     return null
   }
   workspaceState.splitViewportRoot(splitDockSide, {
@@ -335,6 +367,9 @@ export function commitWorkspaceSurfaceRootSplit(
     workspaceState.releaseHostRoute(defaultBrowserHostRouteId)
     workspaceState.setBrowserFloating(false)
     workspaceState.setBrowserViewportSplit(false)
+  }
+  if (surfaceKind === 'console') {
+    useConsoleStore.getState().switchToDocked(false)
   }
   return null
 }

@@ -2693,6 +2693,44 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
     expect(selectActiveEditorViewport(state)?.windowMode).toBe('expanded')
   })
 
+  it('keeps a separate-window editor viewport open when draw sketch starts', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'separateWindow')
+
+    useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+
+    const state = useSpaghettiStore.getState()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('separateWindow')
+    expect(state.geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      shouldRestoreViewportWindowMode: false,
+      editorViewportId: viewportId,
+    })
+  })
+
   it('tracks viewer-owned Line draft points and commits a line on the second point before returning to idle', () => {
     useSpaghettiStore.getState().setGraph({
       schemaVersion: 1,
@@ -3327,6 +3365,63 @@ describe('useSpaghettiStore Geometry/Sketch editing semantics', () => {
         locked: false,
       },
     ])
+  })
+
+  it('keeps a separate-window editor viewport open during sketch-plane pick and confirm-to-draw', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              planeTransform: {
+                offsetMm: 0,
+                translation: { x: 0, y: 0, z: 0 },
+                rotationDeg: { x: 0, y: 0, z: 0 },
+                inPlaneRotationDeg: 0,
+              },
+              components: [],
+              outputs: { profiles: [], diagnostics: [] },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+      ],
+      edges: [],
+    })
+
+    const viewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    expect(viewportId).not.toBeNull()
+    useSpaghettiStore.getState().setEditorViewportWindowMode(viewportId ?? '', 'separateWindow')
+
+    useSpaghettiStore.getState().startSketchPlanePick('node-sketch-1')
+
+    let state = useSpaghettiStore.getState()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('separateWindow')
+    expect(state.sketchPlanePickSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      stage: 'pick',
+      shouldRestoreViewportWindowMode: false,
+      editorViewportId: viewportId,
+    })
+
+    useSpaghettiStore.getState().setSketchPlanePickDraftPlane('XY')
+    useSpaghettiStore.getState().confirmSketchPlanePick()
+
+    state = useSpaghettiStore.getState()
+    expect(selectActiveEditorViewport(state)?.windowMode).toBe('separateWindow')
+    expect(state.sketchPlanePickSession).toBeNull()
+    expect(state.geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+      shouldRestoreViewportWindowMode: false,
+      editorViewportId: viewportId,
+    })
   })
 
   it('records, merges, persists, and restores sketch-plane transform history', () => {

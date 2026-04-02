@@ -1,4 +1,7 @@
-import { type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { ParaSlider } from '../components/ParaSlider'
 import { ParaSelect } from '../components/ParaSelect'
 import {
@@ -14,6 +17,7 @@ type ConsolePanelProps = {
   surfaceMode?: 'docked' | 'floating' | 'popout'
   isVisible?: boolean
   onHeaderPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onHeaderContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void
   onClose?: () => void
   onFloatToggle?: () => void
   onPopoutToggle?: () => void
@@ -24,6 +28,7 @@ export function ConsolePanel({
   surfaceMode = 'docked',
   isVisible,
   onHeaderPointerDown,
+  onHeaderContextMenu,
   onClose,
   onFloatToggle,
   onPopoutToggle,
@@ -145,7 +150,11 @@ export function ConsolePanel({
         aria-hidden="true"
       />
       {!isChromeHidden ? (
-        <div className="ConsolePanelHeader" onPointerDown={onHeaderPointerDown}>
+        <div
+          className="ConsolePanelHeader"
+          onPointerDown={onHeaderPointerDown}
+          onContextMenu={onHeaderContextMenu}
+        >
           <span className="ConsolePanelTitle">Console</span>
           <div className="ConsolePanelActions">
             <button

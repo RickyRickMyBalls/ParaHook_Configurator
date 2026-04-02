@@ -3555,7 +3555,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
       const activeViewport = selectActiveEditorViewport(state)
       const shouldRestoreViewportWindowMode =
-        activeViewport !== null && activeViewport.windowMode !== 'collapsed'
+        activeViewport !== null &&
+        activeViewport.windowMode !== 'collapsed' &&
+        activeViewport.windowMode !== 'separateWindow'
       const editorViewportId = activeViewport?.editorViewportId ?? null
       const nextEditorViewportsById: typeof state.editorViewportsById =
         shouldRestoreViewportWindowMode && activeViewport !== null
@@ -4556,7 +4558,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       const shouldRestoreViewportWindowMode =
         shouldCollapseViewport &&
         activeViewport !== null &&
-        activeViewport.windowMode !== 'collapsed'
+        activeViewport.windowMode !== 'collapsed' &&
+        activeViewport.windowMode !== 'separateWindow'
       const editorViewportId =
         shouldCollapseViewport
           ? (current?.editorViewportId ?? activeViewport?.editorViewportId ?? null)

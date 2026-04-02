@@ -65,6 +65,586 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 906 -->
+### [906] - 2026-04-02 16:15 - `Workspace 7.5-10 - Spaghetti Popout Sketch Draw Preserve Window Cleanup`
+<!-- ENTRY 906 -->
+HUMAN SUMMARY: `Stopped sketch entry from collapsing a popped-out \`Spaghetti Editor\` viewport, so entering sketch draw or sketch-plane pick from the child-window editor now keeps that popout browser open instead of closing it.`
+#### Scope / Constraints Honored
+- Kept the fix on the existing spaghetti sketch-session seam instead of widening into popout lifecycle or activation logic.
+- Preserved the old collapse-and-restore behavior for in-app expanded editor viewports.
+- Added direct store regressions for the popped-out `separateWindow` path so the close-on-sketch bug stays covered.
+
+#### What Changed
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so both `startSketchPlanePick(...)` and `startGeometrySketchSession(..., 'draw')` skip the temporary viewport collapse when the active editor viewport is already in `separateWindow` mode.
+- Extended `src/app/spaghetti/store/useSpaghettiStore.test.ts` with focused regressions that prove popped-out editor viewports remain `separateWindow` during sketch-plane pick and when sketch draw starts or is confirmed from plane-pick.
+
+#### Behavior Changes
+- Starting `Sketch Draw` from a popped-out `Spaghetti Editor` no longer closes that popout browser window.
+- Starting `Sketch Plane Pick` from a popped-out `Spaghetti Editor`, and confirming into draw, now keeps the child window open through the sketch flow.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 905 -->
+### [905] - 2026-04-02 16:02 - `Workspace 7.5-10 - Spaghetti Popout Typed Command Relay Cleanup`
+<!-- ENTRY 905 -->
+HUMAN SUMMARY: `Extended the popped-out \`Spaghetti Editor\` keyboard bridge to relay plain non-modified typing back to the main app window too, so flows like clicking a sketch and typing \`SD\` now reach the first-browser console without re-focusing it.` 
+#### Scope / Constraints Honored
+- Kept this change on the same narrow child-window relay seam instead of widening into a broader keyboard synchronization layer.
+- Preserved native typing behavior for editable fields inside the popped-out editor.
+- Reused the same non-editable target guard already protecting the `Enter` and arrow-key relays.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the popped-out `Spaghetti Editor` now relays single-character non-modified key presses from non-editable surface targets back to the main app window.
+- Extended `src/app/hosts/SpaghettiWindowHost.test.tsx` so the relay regression now proves typed keys like `S` and `D` are dispatched back to the first window along with `Enter`, `ArrowUp`, and `ArrowDown`.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- After focusing a non-editable target in the popped-out `Spaghetti Editor`, typed command letters now reach the main-browser console again.
+- The relay still ignores editable fields and modified shortcuts, so normal in-window text editing behavior stays native.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 904 -->
+### [904] - 2026-04-02 15:42 - `Workspace 7.5-10 - Spaghetti Popout Arrow Relay Cleanup`
+<!-- ENTRY 904 -->
+HUMAN SUMMARY: `Extended the popped-out \`Spaghetti Editor\` keyboard bridge so ` + "`ArrowUp`" + ` and ` + "`ArrowDown`" + ` now relay back to the main app window too, letting the first-browser console keep cycling choices after focus moves into the child window.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow extension of the existing popout keyboard relay instead of inventing a broad multi-key shortcut bridge.
+- Preserved the same non-editable-target guard so arrows from text fields or obvious interactive controls still keep their native behavior.
+- Reused the same popout-host seam that now relays `Enter`, rather than scattering arrow handling across multiple owners.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the child-window relay now forwards `ArrowUp` and `ArrowDown` in addition to `Enter` from non-editable Spaghetti surface targets.
+- Extended `src/app/hosts/SpaghettiWindowHost.test.tsx` so the relay regression now proves all three keys are dispatched back to the main window.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- After focusing the popped-out `Spaghetti Editor`, `ArrowUp` and `ArrowDown` now keep driving the main-browser console choice cycling path.
+- The relay still stays off editable fields and obvious button-like controls inside the child window.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 903 -->
+### [903] - 2026-04-02 15:40 - `Workspace 7.5-10 - Spaghetti Popout Enter Relay Cleanup`
+<!-- ENTRY 903 -->
+HUMAN SUMMARY: `Added a narrow \`Enter\` relay from the popped-out \`Spaghetti Editor\` window back to the main app window, so after a popout selection updates the console context, pressing \`Enter\` in that child window can still commit the console action in the first browser.` 
+#### Scope / Constraints Honored
+- Kept this fix narrow to the missing child-window keyboard bridge instead of widening into a generic popout hotkey relay system.
+- Preserved native `Enter` behavior for editable fields and obvious interactive controls inside the popped-out editor.
+- Left the existing popout lifecycle and console routing rules intact outside this one child-window gap.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so the popped-out `Spaghetti Editor` window now relays plain non-modified `Enter` presses from non-editable Spaghetti surface targets back to the main app window.
+- Added a focused regression in `src/app/hosts/SpaghettiWindowHost.test.tsx` that proves the popout host dispatches a relayed `Enter` event to the main window.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- After clicking `Output Preview` or another non-editable node target in the popped-out `Spaghetti Editor`, pressing `Enter` in that child window can now trigger the console commit path in the main browser.
+- Editable controls and obvious button-like targets inside the popped-out editor still keep their own native `Enter` behavior.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 902 -->
+### [902] - 2026-04-02 15:37 - `Workspace 7.5-10 - Spaghetti Popout Selection-To-Console Sync Repair`
+<!-- ENTRY 902 -->
+HUMAN SUMMARY: `Repaired the shared target publish path so selection changes inside a host-owned \`Spaghetti Editor\`, including the popped-out browser window, now report back to the console context again instead of going quiet after activation.` 
+#### Scope / Constraints Honored
+- Kept this repair focused on the selection-to-console handoff seam instead of widening into more popout lifecycle changes.
+- Preserved the existing host-owned activation callback path while restoring shared workspace-target publication on later node-selection changes.
+- Verified the repair at the panel level and kept the rest of the worktree untouched.
+
+#### What Changed
+- Updated `src/app/panels/SpaghettiPanel.tsx` so active Spaghetti panels now continue syncing graph and node selection into the shared workspace target even when `onActivateEditorContext` is provided by a host such as the popped-out window path.
+- Updated the focus-node change path in `src/app/panels/SpaghettiPanel.tsx` so it always requests console target sync after publishing the next selected graph or node target.
+- Updated `src/app/panels/SpaghettiPanel.test.tsx` so the host-owned activation case now proves the shared workspace target and console sync request still fire when node selection changes.
+
+#### Files Changed
+- `src/app/panels/SpaghettiPanel.tsx`
+- `src/app/panels/SpaghettiPanel.test.tsx`
+
+#### Behavior Changes
+- Clicking `Output Preview` or other node-selection surfaces inside a popped-out `Spaghetti Editor` should now publish the new graph-node target back to the console context again.
+- Host-owned Spaghetti surfaces no longer suppress shared target sync just because activation ownership lives higher up the tree.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/SpaghettiPanel.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 901 -->
+### [901] - 2026-04-02 15:18 - `Workspace 7.5-10 - Console Global Enter Draft Submit Cleanup`
+<!-- ENTRY 901 -->
+HUMAN SUMMARY: `Made global \`Enter\` submit a non-empty console draft even after focus moves into the \`Spaghetti Editor\` surface, so you can click back into the graph and still fire the next queued console command without re-focusing the console input first.` 
+#### Scope / Constraints Honored
+- Kept this cleanup narrowly focused on the existing console global-key path instead of widening into a new cross-surface shortcut system.
+- Preserved higher-priority `Enter` ownership for staged console flows, sketch draw, and reference-transform sessions.
+- Avoided stealing `Enter` from obvious interactive controls by limiting the new draft-submit path to non-button surface targets.
+
+#### What Changed
+- Updated the global main-window and popout-window keyboard handlers in `src/app/console/ConsoleDock.tsx` so `Enter` now submits a non-empty flat console draft when focus has moved into a non-editable Spaghetti surface and no higher-priority console or editor owner is active.
+- Added a focused regression in `src/app/console/ConsoleDock.test.tsx` that types a console draft, moves focus into a non-input surface, presses `Enter`, and proves the queued command still submits.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- After typing a console command, clicking into the Spaghetti surface no longer forces you to re-focus the console input before pressing `Enter`.
+- Existing staged console and editor-tool keyboard ownership remains ahead of this flat-draft submit path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 900 -->
+### [900] - 2026-04-02 15:09 - `Workspace 7.5-10 - Phase 4 - Popout Verification And Closeout`
+<!-- ENTRY 900 -->
+HUMAN SUMMARY: `Closed out the \`Spaghetti Editor\` popout repair by removing the temporary popup diagnostics UI and debug-event plumbing while keeping the cross-window popup fix that made the real child window render correctly.` 
+#### Scope / Constraints Honored
+- Kept the cleanup focused on temporary popup-debug scaffolding after the live browser retest confirmed the underlying fix was working.
+- Preserved the permanent cross-window child-window host repair instead of rolling back the actual shipped fix during cleanup.
+- Left unrelated worktree changes alone and folded the final product truth back into the `7.5-10` docs in the same change set.
+
+#### What Changed
+- Removed the temporary `SpaghettiPopoutDiagnostics` overlay, popup measurement machinery, and debug-state bookkeeping from `src/app/hosts/SpaghettiWindowHost.tsx`.
+- Removed the dead `claimPendingWindow` and `onDebugEvent` hook options plus their temporary event plumbing from `src/app/workspace/useWorkspaceChildWindow.ts`.
+- Tightened `src/app/hosts/SpaghettiWindowHost.test.tsx` so the shipped popout contract now proves visible popup content without the temporary diagnostics chrome, while still covering the host-missing and popup-crash paths.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/workspace/useWorkspaceChildWindow.ts`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Repair Attempts Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md`
+
+#### Behavior Changes
+- Popped-out `Spaghetti Editor` windows no longer show the temporary debugging overlay now that live verification is complete.
+- The shared popup path is smaller and cleaner because the temporary debug callback plumbing and dead pending-popup claim option were removed.
+- The real permanent behavior remains the same: `Spaghetti Editor` popout mounts visibly in a real child window and keeps the cleaned-up close-versus-dock lifecycle.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 899 -->
+### [899] - 2026-04-02 14:54 - `Workspace 7.5-10 - Attempt 7 - Cross-Window Element Truth Repair`
+<!-- ENTRY 899 -->
+HUMAN SUMMARY: `Repaired the popup diagnostics and shared popup host checks to treat child-window DOM nodes as real elements across browser window boundaries, which should stop the \`Spaghetti Editor\` popup from falsely reporting committed popup descendants as \`missing\` just because they came from another window realm.` 
+#### Scope / Constraints Honored
+- Kept this slice tightly focused on the concrete cross-window DOM identity bug exposed by the live `Attempt 6` repro.
+- Avoided changing popup layout or panel behavior before the diagnostics truth itself was fixed.
+- Preserved the expanded diagnostics overlay so the next live repro can confirm whether this was the final blocker or just the last bad measurement layer.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so popup descendant checks now recognize cross-window elements using owner-window-aware logic instead of same-window `instanceof HTMLElement` assumptions.
+- Updated `src/app/workspace/useWorkspaceChildWindow.ts` so shared popup host validation and cloned style bookkeeping use the same cross-window-safe element checks.
+- Added fallback behavior in both files for mocked popup documents that do not expose a real child-window `defaultView`, keeping the current popup confidence tests meaningful.
+
+#### Behavior Changes
+- Popup diagnostics should now report the real popup descendant boxes and styles instead of false `missing` values when the committed subtree lives in the child window realm.
+- Shared child-window host validation now handles cross-window DOM elements more honestly.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 898 -->
+### [898] - 2026-04-02 14:47 - `Workspace 7.5-10 - Attempt 6 - Host-Descendant Paint And Visibility Diagnostics`
+<!-- ENTRY 898 -->
+HUMAN SUMMARY: `Extended the \`Spaghetti Editor\` popup diagnostics again so they now measure the committed host descendants directly, including their boxes and computed visibility styles, which should let the next live repro tell us whether the popup subtree is present-but-zero-sized or otherwise styled out even though the host already contains it.` 
+#### Scope / Constraints Honored
+- Kept this slice diagnostics-focused and built directly on the new truth from `Attempt 5` that the popup host already contains committed Spaghetti descendants.
+- Avoided speculative visual fixes before we have one more live repro showing direct host-descendant layout and style truth.
+- Left the previous host-commit and host-connectivity diagnostics in place because their comparison with the new host-descendant measurements is still useful.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so popup diagnostics now report direct host-descendant boxes for the committed popup `surface`, `window`, `content`, `body`, and `panel` nodes.
+- Added direct host-descendant computed-style summaries for the committed popup window and content nodes in `src/app/hosts/SpaghettiWindowHost.tsx`.
+- Updated `src/app/hosts/SpaghettiWindowHost.test.tsx` so the host-missing path proves missing host-descendant boxes while the normal popup path proves non-missing host descendant boxes and styles.
+
+#### Behavior Changes
+- The Spaghetti popup diagnostics overlay can now distinguish between a committed subtree that is missing entirely and a committed subtree that exists but may still be visually hidden or collapsed.
+- No end-user popup semantics changed beyond the expanded temporary diagnostics surface.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 897 -->
+### [897] - 2026-04-02 14:44 - `Workspace 7.5-10 - Attempt 5 - Portal Commit Truth Diagnostics`
+<!-- ENTRY 897 -->
+HUMAN SUMMARY: `Extended the \`Spaghetti Editor\` popup diagnostics to inspect the live popup host directly, so the next repro can show whether the host ever receives portal children at all or whether the document-level subtree queries were simply missing already-committed content.` 
+#### Scope / Constraints Honored
+- Kept this slice on diagnostics only and targeted the remaining portal-commit uncertainty exposed by the latest live popup screenshots.
+- Preserved the existing popup host and lifecycle repairs instead of reopening them again before we have direct host-commit truth.
+- Left the diagnostics overlay active because the next live repro still needs the expanded signal set.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so popup diagnostics now report `hostChildCount`, `hostHtmlLength`, `hostDiagnostics`, `hostSurface`, and `hostWindow` based on the actual popup host contents.
+- Added delayed measurement passes, `requestAnimationFrame`, and a host `MutationObserver` in `src/app/hosts/SpaghettiWindowHost.tsx` so late portal commits or short-lived host mutations are more likely to be captured in the visible diagnostics.
+- Updated `src/app/hosts/SpaghettiWindowHost.test.tsx` so the host-missing path proves empty host-commit truth while the normal popup path proves host-level surface and window descendants are detected.
+
+#### Behavior Changes
+- The Spaghetti popup diagnostics overlay now distinguishes between “document-level subtree missing” and “host actually contains portal descendants.”
+- The next live popup repro should be able to tell us whether the portal subtree never commits into the host or whether our earlier document queries were simply looking in the wrong place.
+- No end-user popup semantics changed beyond the expanded temporary diagnostics surface.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 896 -->
+### [896] - 2026-04-02 14:42 - `Workspace 7.5-10 - Attempt 4 - Live Host Connectivity Repair`
+<!-- ENTRY 896 -->
+HUMAN SUMMARY: `Hardened the shared child-window host contract so popup surfaces now validate that their host is still attached to the live child document before portaling into it, while \`Spaghetti Editor\` diagnostics now show current host-connectivity truth and remount the portal subtree when the host identity changes.` 
+#### Scope / Constraints Honored
+- Kept this slice on the popup host-connectivity failure exposed by the live `Attempt 3` repro instead of reopening layout or shared popup boot work broadly.
+- Preserved the temporary diagnostics surface because one more live retest is still needed before the popout can be considered fixed.
+- Avoided persisted state changes and limited the user-facing behavior change to stronger shared host recovery plus more honest popup diagnostics.
+
+#### What Changed
+- Updated `src/app/workspace/useWorkspaceChildWindow.ts` with live host validation so the shared hook now only reuses hosts that are connected, belong to the current popup document, and are still contained by the popup body; otherwise it clears the stale host and recreates a fresh marked host in the live child document.
+- Added short follow-up host revalidation passes after popup open or reuse in `src/app/workspace/useWorkspaceChildWindow.ts` so a late popup document swap can recover without relying only on the popup `load` event.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so popup diagnostics now report `hostConnected` and `hostOwner` truth, clear stale host or portal truth when the host disappears, and remount the portal subtree when the live host identity changes.
+
+#### Behavior Changes
+- Shared child-window surfaces now have a stronger recovery path when a popup host becomes stale or detached from the live popup document.
+- The `Spaghetti Editor` popup diagnostics overlay now distinguishes between “host was previously seen” and “host is currently connected to the live popup document.”
+- A recovered popup host now gets a fresh portal subtree mount instead of reusing the previous target silently.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 895 -->
+### [895] - 2026-04-02 14:18 - `Workspace 7.5-10 - Attempt 3 - Popup Visible Layout Diagnostics And Repair`
+<!-- ENTRY 895 -->
+HUMAN SUMMARY: `Extended the \`Spaghetti Editor\` popup diagnostics from boot truth into visible-layout truth by measuring the child-window subtree nodes and reinforcing the popout shell with full-size flex rules, so the next live repro can show whether the popup now renders visibly or exactly which mounted node is still collapsing.` 
+#### Scope / Constraints Honored
+- Kept this slice on the mounted-but-invisible Spaghetti popup layout problem instead of reopening shared popup boot, Browser behavior, or broader workspace presentation cleanup.
+- Left the temporary diagnostics in place because the popout still needs one more live repro before closeout.
+- Preserved the already-shipped close-vs-dock lifecycle truth and avoided persisted state changes.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so `SpaghettiPopoutDiagnostics` now reports measured layout boxes for the popup `surface`, `window`, `content`, `body`, and `panel` nodes, and so host-missing popup states immediately report those nodes as `missing` instead of leaving them stuck at `pending`.
+- Reinforced the detached Spaghetti popout shell in `src/app/hosts/SpaghettiWindowHost.tsx` with explicit full-size flex layout styles on the popout content and body wrappers.
+- Updated `src/app/theme/shell/windows.css` so `.SpaghettiPopoutWindow` and `.SpaghettiPopoutContent` carry a stronger full-size flex layout contract inside the child window.
+- Expanded `src/app/hosts/SpaghettiWindowHost.test.tsx` so the diagnostics path now proves host-missing layout truth, non-missing subtree measurements on the normal portal path, and missing panel measurement during a forced popup subtree crash.
+
+#### Behavior Changes
+- The Spaghetti popup diagnostics overlay now tells us whether the visible subtree nodes exist and what size they are after portal mount starts.
+- The detached Spaghetti popout shell now has stronger width, height, and flex guarantees inside the child window.
+- This slice may restore visible popout rendering, but the final product result still depends on the next live repro.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 894 -->
+### [894] - 2026-04-02 14:00 - `Workspace 7.5-10 - Attempt 2 - Live Child-Window Mount Diagnostics`
+<!-- ENTRY 894 -->
+HUMAN SUMMARY: `Added popup-visible diagnostics to the \`Spaghetti Editor\` child-window path so a live repro can now show whether the remaining popout failure happens at host creation, portal mount, or a subtree crash, while focused tests prove the host-missing, portal-attempted, and error-boundary states.` 
+#### Scope / Constraints Honored
+- Kept this slice diagnostics-only and scoped to the remaining Spaghetti popout investigation instead of treating it as the final behavioral fix.
+- Preserved the already-shipped dock-vs-close lifecycle truth and did not change persisted workspace or popout state shape.
+- Avoided widening the UI changes into Browser or Console even though the shared child-window hook gained optional internal debug events.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so detached Spaghetti popouts now maintain local diagnostics state and render a compact `SpaghettiPopoutDiagnostics` block in the child window showing popup phase, child-window truth, host truth, portal-render truth, error-boundary truth, and the latest debug message.
+- Extended `src/app/workspace/useWorkspaceChildWindow.ts` with an optional internal `onDebugEvent` callback that reports popup open or reuse, shell sync, host ready, load resync, blocked, and closed states to the Spaghetti diagnostics surface.
+- Updated `src/app/hosts/SpaghettiWindowHost.test.tsx` to prove three critical states directly: diagnostics render when the child window exists but the host is missing, diagnostics show the portal-attempted state on the normal popout path, and diagnostics flip into the error-boundary state when a forced popup subtree crash occurs.
+
+#### Behavior Changes
+- Spaghetti child-window popouts now surface popup-visible diagnostics during live debugging.
+- The popup can now tell us whether the shared hook observed a child window, resolved a host, attempted portal render, or caught a subtree error.
+- No user-facing popup semantics changed beyond the temporary diagnostics overlay for this debugging attempt.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 893 -->
+### [893] - 2026-04-02 13:31 - `Workspace 7.5-10 - Phase 3A - Spaghetti Popout Relay Retirement`
+<!-- ENTRY 893 -->
+HUMAN SUMMARY: `Retired the spaghetti-only pending popup relay so \`Spaghetti Editor\` now opens child-window popouts through the same shared hook path as Browser, and added a focused regression proving the real \`PO\` button mounts visible popout content without a preopened \`about:blank\` handoff.` 
+#### Scope / Constraints Honored
+- Kept this slice on the remaining spaghetti-specific popup-open seam instead of reopening shared child-window boot behavior or widening into Browser or Console redesign.
+- Preserved the already-shipped `Phase 3` lifecycle truth that explicit dock restores or redocks while real child-window close closes the editor.
+- Kept persisted workspace placement and popout state shapes unchanged while simplifying only the runtime popout owner path.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` to remove `preopenViewportPopoutWindow(...)`, `claimPendingViewportPopoutWindow(...)`, and the pending popup ref so Spaghetti popouts now open directly through `useWorkspaceChildWindow(...)`.
+- Left `SpaghettiPopoutSurfaceHost` on the shared child-window hook, but removed its spaghetti-specific `claimPendingWindow` dependency so the shared hook owns popup creation and host mount directly.
+- Added a focused regression in `src/app/hosts/SpaghettiWindowHost.test.tsx` that clicks the real `Pop editor out into browser window` button and proves visible `SpaghettiPopoutContent` mounts in the child window through the direct shared-hook path, while the existing close and dock lifecycle regressions remain green.
+
+#### Behavior Changes
+- `Spaghetti Editor` no longer relies on a preopened blank popup window for later claim when entering `separateWindow`.
+- The `PO` action now follows the same direct shared child-window opening model as Browser, reducing the chance of the old dark `about:blank` handoff failure.
+- Existing dock-back and close-on-window-close behavior remains intact.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 892 -->
+### [892] - 2026-04-02 12:44 - `Workspace 7.5-10 - Phase 3 - Spaghetti Popout Lifecycle Repair`
+<!-- ENTRY 892 -->
+HUMAN SUMMARY: `Split Spaghetti popout close from explicit dock behavior so a real child-window close now closes the editor and clears detached-slot residue, while the dock button remains the only path that restores a popped-out editor back into the in-app workspace.` 
+#### Scope / Constraints Honored
+- Kept this slice on the spaghetti-specific popout lifecycle seam instead of reopening the shared child-window boot repair from `Phase 2`.
+- Preserved the user-locked behavior that closing a popped-out `Spaghetti Editor` should close it rather than auto-restoring it somewhere in-app.
+- Kept explicit dock behavior working for detached slotted editors instead of widening this into broader Browser or Console popout redesign.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so popout `onClosed` now routes through the editor close path while `onBlocked` and the explicit dock button still use the existing dock-back restore logic.
+- Hardened the Spaghetti close path to clear any detached-slot workspace bookkeeping and stale split or preview state before the editor closes, preventing orphaned detached popout residue when a popped-out slotted editor window is dismissed.
+- Updated `src/app/hosts/SpaghettiWindowHost.test.tsx` so the focused lifecycle regressions now prove three truths directly: child-window close closes the editor, detached popout close does not redock it, and the explicit dock button still redocks a detached editor into the workspace slot tree.
+
+#### Behavior Changes
+- Closing a popped-out `Spaghetti Editor` window now closes that editor instead of silently restoring it to floating or slotted in-app state.
+- Detached slotted Spaghetti popouts now clear their detached workspace bookkeeping on close instead of leaving stale detached-surface state behind.
+- The explicit `Dock editor back into workspace` action remains the one path that restores a popped-out editor to the workspace.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 891 -->
+### [891] - 2026-04-02 12:27 - `Workspace 7.5-10 - Phase 2 - Shared Child-Window Boot Truth`
+<!-- ENTRY 891 -->
+HUMAN SUMMARY: `Hardened the shared popup boot path so child-window surfaces re-sync their popup host after open and on popup load, which targets the live blank dark \`about:blank\` popout symptom by making Browser, Console, and Spaghetti re-establish a visible portal mount if the real browser replaces the initial popup document shell.` 
+#### Scope / Constraints Honored
+- Kept this implementation on the shared child-window boot seam in `useWorkspaceChildWindow.ts` instead of widening into spaghetti-only lifecycle cleanup.
+- Treated Browser, Console, and Spaghetti as the minimum confidence set because all three rely on the same popup host contract.
+- Avoided turning this slice into a broader popout UX redesign or `Phase 3` docking or lifecycle repair.
+
+#### What Changed
+- Updated `src/app/workspace/useWorkspaceChildWindow.ts` so popup boot now ensures head and body existence more defensively, re-applies popup shell setup through one shared sync helper, and re-validates the child-window host after open plus again on popup `load`.
+- Added a focused regression in `src/app/workspace/useWorkspaceChildWindow.test.tsx` that simulates real-browser popup document body replacement and proves the shared hook recreates the host and re-mounts visible portal content.
+- Re-ran the Browser, Console, Spaghetti, and AppShell popup-related suites to confirm the shared boot hardening still supports the current adopters.
+
+#### Behavior Changes
+- Shared popup surfaces now get an extra host re-sync after boot, which should prevent a live popup from staying on a dark blank `about:blank` window if the browser replaces the initial child document after `window.open`.
+- Browser, Console, and Spaghetti popouts all now inherit the same stronger child-window host recovery path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/workspace/useWorkspaceChildWindow.test.tsx src/app/hosts/BrowserDockHost.test.tsx src/app/hosts/SpaghettiWindowHost.test.tsx src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 890 -->
+### [890] - 2026-04-02 10:57 - `Workspace 7.5-8 - Phase 6E - Continuous Console Drag-Out Handoff`
+<!-- ENTRY 890 -->
+HUMAN SUMMARY: `Replaced the slotted-console drag-out seed relay with one continuous AppShell-owned transition drag, so the console now stays attached to the cursor until mouse-up while keeping the compact float size, shared ghost preview, and titlebar-safe clamp behavior intact even on repeat drag-outs.` 
+#### Scope / Constraints Honored
+- Kept this as a tight post-ship follow-up on the existing `Phase 6` floating-console ghost-preview adoption instead of changing the shared split-preview thresholds or menu truth again.
+- Preserved the current compact floating-console size truth and the earlier primary-viewport-body clamp while removing only the mid-gesture ownership gap.
+- Left normal already-floating console header drag in `ConsoleDock.tsx` and changed only the slotted-console-to-floating transition path in `AppShell.tsx`.
+
+#### What Changed
+- Reworked `src/app/AppShell.tsx` so slotted console header drag-out now starts a real window-level transition drag after threshold-cross, immediately floats the console, keeps updating `floatingRect` on every pointer move, renders the shared split ghost while the mouse stays down, and commits any workspace split only on pointer-up.
+- Added an explicit transient AppShell-owned console transition session so the shared preview state and cleanup stay local to the handoff instead of leaking into persisted console state.
+- Updated `src/app/console/ConsoleDock.tsx` with a small `suppressSlotHeaderDragSeedReplay` guard so the old seeded replay path is ignored while the new AppShell-owned transition drag is active, preventing double ownership during the same gesture.
+- Expanded `src/app/AppShell.test.tsx` with focused regressions for continuous slotted-console drag motion, pointer-up-only split commit, and repeat `float -> split right -> drag out again` continuity while preserving the existing console drag coverage.
+
+#### Behavior Changes
+- Dragging a slotted console out of workspace split view now keeps the floating console attached to the pointer until left-mouse release instead of briefly dropping into the model viewport during the handoff.
+- Repeat console drag-outs after re-docking now keep the same continuous motion behavior as the first drag-out while still using the compact floating size and staying below the model viewport titlebar.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 889 -->
+### [889] - 2026-04-02 10:21 - `Workspace 7.5-8 - Phase 6D - Floating Console Titlebar Clamp Follow-Up`
+<!-- ENTRY 889 -->
+HUMAN SUMMARY: `Fixed the remaining second-drag console trap by clamping floating console drag against the primary viewport body instead of the full shell, so a re-floated console can no longer slip under the model viewport titlebar and become impossible to grab again.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow post-ship fix on top of the existing `Phase 6` console drag adoption instead of reopening split-preview semantics.
+- Reused the real floating-console owner path in `ConsoleDock.tsx`, matching Browser's titlebar-safe floating bounds model rather than inventing another AppShell-only workaround.
+- Focused on the exact failure case from manual repro: second drag-out after re-docking the console into workspace split view.
+
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so floating console clamping now honors the primary viewport body top boundary when the body is present, preventing the floating console header from disappearing underneath the model viewport titlebar during seeded drag replay and later pointer moves.
+- Updated `src/app/console/ConsoleDock.test.tsx` with a real-owner regression proving a seeded repeat drag-out stays below the primary viewport title bar instead of slipping under it.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md` to record the new boundary rule for floating console drag.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 888 -->
+### [888] - 2026-04-02 10:02 - `Workspace 7.5-8 - Phase 6C - Floating Console Default Re-Float Size Truth`
+<!-- ENTRY 888 -->
+HUMAN SUMMARY: `Adjusted the final console re-float behavior so a console dragged back out of a workspace split returns to its normal floating window size instead of inheriting the full split viewport dimensions, matching the smaller default float window users get when they first expand and float console after load-in.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow behavior-truth correction on top of the shipped `Phase 6` drag adoption instead of reopening ghost-preview logic.
+- Reused the existing slotted-console drag handoff in `AppShell.tsx` and only changed which floating size that handoff preserves.
+- Treated the initial post-load expanded-to-floating console size as the source-of-truth default for later re-float transitions.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so slotted console drag-out now keeps the stored floating window width and height during the detach handoff instead of copying the redocked split slot frame size.
+- Updated `src/app/AppShell.test.tsx` so the repeat `float -> split right -> drag out again` regression now proves console comes back out at the expected compact floating size while still following the pointer smoothly.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md` to record that re-docked console should preserve the normal default floating window dimensions instead of adapting to the slot viewport size.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 887 -->
+### [887] - 2026-04-02 09:56 - `Workspace 7.5-8 - Phase 6B - Floating Console Re-Dock Drag-Out Reseed Fix`
+<!-- ENTRY 887 -->
+HUMAN SUMMARY: `Finished the last floating-console template-case cleanup by reseeding drag-out from the live split slot size after console is docked back into the workspace, so re-splitting console and dragging it back out no longer falls back to an old parked floating rect and feels stuck again.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up on the already-shipped `Phase 6` console drag adoption instead of reopening preview semantics or left-dock behavior.
+- Reused the existing slotted-console drag handoff in `AppShell.tsx` rather than adding console-only post-dock drag math elsewhere.
+- Focused on the exact repeat template flow: float console, split it back into the workspace, then drag it back out again.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the slotted-console drag-out handoff now seeds floating width and height from the live slot frame instead of the previously parked floating rect when console detaches back into floating mode.
+- Updated `src/app/AppShell.test.tsx` with a regression covering the real repeat flow where a detached console surface is docked back into a right split and then dragged out again, proving the handoff now uses the live slot size.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md` to record the re-dock drag-out reseed fix as the final follow-up on the floating-console adoption thread.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 886 -->
+### [886] - 2026-04-02 09:48 - `Workspace 7.5-8 - Phase 6A - Floating Console Slot Drag Handoff Polish`
+<!-- ENTRY 886 -->
+HUMAN SUMMARY: `Polished the remaining floating console template-case handoff by pre-seeding the real console floating rect before a slotted console detaches into floating mode, so the split `Console top / Model Viewport bottom` drag-out flow now keeps following the pointer smoothly instead of visibly snapping through the old parked float position first.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up on top of the shipped `Phase 6` console ghost-preview adoption instead of reopening shared preview semantics.
+- Reused the existing slot-header drag-seed contract and only tightened the slotted-to-floating rect handoff.
+- Focused on the console template case so Browser and `Spaghetti Editor` remain the reference behavior, not a new branch to copy later.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so the console branch inside the slot-header drag-out handoff now pre-seeds the live floating rect from the slot frame and pointer offsets before the console surface detaches into floating mode.
+- Updated `src/app/AppShell.test.tsx` with a focused regression proving a split slotted console no longer snaps through a stale parked floating rect during the drag-out transition.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md` to record the post-ship polish as part of the same floating-console adoption thread.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 885 -->
+### [885] - 2026-04-02 09:34 - `Workspace 7.5-8 - Phase 6 - Floating Console Shared Ghost Preview Adoption`
+<!-- ENTRY 885 -->
+HUMAN SUMMARY: `Shipped the floating console ghost-preview adoption slice by wiring floating console header drag into the shared `workspaceSplitPreview` resolver, rendering the same scope-aware workspace ghost overlay used by Browser and `Spaghetti Editor`, and proving through focused console coverage that floating console drag now predicts and commits the same four-way split truth as the shipped floating console menu.` 
+#### Scope / Constraints Honored
+- Kept this slice focused on shared floating-console drag-preview adoption instead of reopening left-dock snap or broader console-host cleanup.
+- Reused the existing shared preview and split-commit helpers instead of inventing a console-only drag-preview path.
+- Preserved `ConsoleDock.tsx` as the floating console owner boundary while keeping `ConsolePanel.tsx` presentation-only.
+
+#### What Changed
+- Updated `src/app/console/ConsoleDock.tsx` so floating console drag now resolves local versus global split previews through the shared `resolveWorkspaceSplitDockPreview(...)` helper, renders the scope-aware ghost overlay into the workspace viewport, and commits pointer-up drops through the shared slot/root split helpers.
+- Updated `src/app/console/ConsoleDock.test.tsx` so focused coverage now proves floating console drag shows both local and global shared split ghosts and docks back into the workspace through the same preview contract.
+- Kept `src/app/AppShell.test.tsx` green alongside the new console-owner regressions so the already-shipped floating console split-menu behavior remains aligned with the new drag-preview truth.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md` to mark `Phase 6` shipped and record the final floating console adoption outcome.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/console/ConsoleDock.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 884 -->
+### [884] - 2026-04-02 09:09 - `Workspace 7.5-8 - Phase 5 - Floating Console Shared Split Menu Alignment`
+<!-- ENTRY 884 -->
+HUMAN SUMMARY: `Cleaned up the floating console split menu so it now matches Browser's four-way floating titlebar menu instead of showing the temporary right-only local/global command pair, while keeping the console wired into the same shared split helper layer and preserving the already-shipped floating console command adoption work.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow menu-language cleanup on top of the shipped `Phase 5` command adoption rather than reopening drag-preview work.
+- Matched the existing floating Browser menu shape instead of inventing a console-specific variant.
+- Left the underlying shared helper routing intact so this stays a UI cleanup, not a second split-engine rewrite.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so floating console targets now render the Browser-matching four-direction split menu (`Split Top`, `Split Right`, `Split Bottom`, `Split Left`) while `Spaghetti Editor` keeps its current shared floating menu path.
+- Updated `src/app/workspace/workspaceSurfaceActions.ts` so console side-split commits always return the floating console to docked workspace mode after the directional split lands.
+- Updated `src/app/AppShell.test.tsx` and kept `src/app/console/ConsoleDock.test.tsx` focused on the real product contract: floating console right-click now opens the Browser-style 4-way split menu and remains fully wired through the shared split adoption seam.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+<!-- ENTRY 883 -->
+### [883] - 2026-04-02 09:00 - `Workspace 7.5-8 - Phase 5 - Floating Console Shared Split Command Adoption`
+<!-- ENTRY 883 -->
+HUMAN SUMMARY: `Shipped the floating console command-adoption slice by wiring floating console header right-click into the same shared floating split menu used by the other floating surfaces, routing `Split Right Locally` and `Split Right Globally` through the existing shared workspace split helpers, and proving through focused `ConsoleDock` plus `AppShell` coverage that console can now join the shared local/global split command flow without pulling drag-preview work forward.` 
+#### Scope / Constraints Honored
+- Kept this slice command-only and left drag ghost, edge-band detection, and floating-console drag preview parity for `Phase 6`.
+- Reused the shared floating-titlebar split menu in `AppShell.tsx` instead of inventing a console-only menu or direct console header buttons.
+- Preserved `ConsoleDock.tsx` as the floating console owner boundary and kept `ConsolePanel.tsx` presentation-focused by only adding the header context-menu callback seam.
+
+#### What Changed
+- Updated `src/app/console/ConsolePanel.tsx` so the floating console header can forward right-click context-menu events without taking ownership of split commands.
+- Updated `src/app/console/ConsoleDock.tsx` so floating console right-click opens the shared split menu target path, using the detached console surface id when present and a compatibility floating-console surface id when the console is floating outside the workspace tree.
+- Updated `src/app/AppShell.tsx` so the shared floating-titlebar split menu now recognizes floating console targets in addition to `Spaghetti Editor`, and routes console `Split Right Locally` versus `Split Right Globally` through the same shared menu action seam.
+- Updated `src/app/workspace/workspaceSurfaceActions.ts` so shared slot/root split commits now accept floating console command targets, including the compatibility floating-console path, and dock the console back into hosted workspace mode once the split is created.
+- Updated `src/app/console/ConsoleDock.test.tsx` and `src/app/AppShell.test.tsx` so focused coverage proves floating console can open the shared split menu and commit right-side local/global splits correctly.
+
+#### Files Changed
+- `src/app/console/ConsolePanel.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-8 - Global Workspace Split Ghost Preview Truth.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
 <!-- ENTRY 882 -->
 ### [882] - 2026-04-02 08:16 - `Workspace 7.5-8 - Phase 2 - Shared Global And Local Split Ghost Preview Contract`
 <!-- ENTRY 882 -->

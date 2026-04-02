@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, useLayoutEffect } from 'react'
+import { act, useLayoutEffect, type MouseEvent as ReactMouseEvent } from 'react'
 import { useRef } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,7 +8,9 @@ import { useConsoleStore } from './console/useConsoleStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from './store/audioSamplerStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { workspaceLayoutStorageKey } from './workspace/workspacePersistence'
-import { splitWorkspaceSurfaceToSide } from './workspace/workspaceSurfaceActions'
+import {
+  splitWorkspaceSurfaceToSide,
+} from './workspace/workspaceSurfaceActions'
 import {
   createDefaultEditorWorkspaceSurfaceState,
   defaultPrimaryViewportSlotId,
@@ -141,11 +143,14 @@ vi.mock('./console/ConsoleDock', async () => {
     ConsoleDock: ({
       listLeftOffset,
       suppressDockedSurface = false,
+      suppressSlotHeaderDragSeedReplay = false,
       slotHeaderDragSeed = null,
       onConsumeSlotHeaderDragSeed,
+      onOpenFloatingSplitMenu,
     }: {
       listLeftOffset: number
       suppressDockedSurface?: boolean
+      suppressSlotHeaderDragSeedReplay?: boolean
       slotHeaderDragSeed?: {
         pointerId: number
         clientX: number
@@ -155,6 +160,10 @@ vi.mock('./console/ConsoleDock', async () => {
         titleBarHeight: number
       } | null
       onConsumeSlotHeaderDragSeed?: () => void
+      onOpenFloatingSplitMenu?: (
+        surfaceInstanceId: string,
+        event: ReactMouseEvent<HTMLDivElement>,
+      ) => void
     }) => {
       const isExpanded = useConsoleStore((state) => state.isExpanded)
       const isListMode = useConsoleStore((state) => state.isListMode)
@@ -176,6 +185,9 @@ vi.mock('./console/ConsoleDock', async () => {
       }
 
       useLayoutEffect(() => {
+        if (suppressSlotHeaderDragSeedReplay) {
+          return
+        }
         if (windowMode !== 'floating' || slotHeaderDragSeed === null) {
           return
         }
@@ -229,6 +241,7 @@ vi.mock('./console/ConsoleDock', async () => {
         onConsumeSlotHeaderDragSeed,
         setFloatingRect,
         slotHeaderDragSeed,
+        suppressSlotHeaderDragSeedReplay,
         windowMode,
       ])
 
@@ -267,7 +280,14 @@ vi.mock('./console/ConsoleDock', async () => {
                 height: `${floatingRect.height}px`,
               }}
             >
-              Console Floating
+              <div
+                className="ConsolePanelHeader"
+                onContextMenu={(event) =>
+                  onOpenFloatingSplitMenu?.('console-floating-compat', event)
+                }
+              >
+                Console Floating
+              </div>
             </div>
           ) : null}
         </div>
@@ -1914,7 +1934,7 @@ describe('AppShell', () => {
     )
   })
 
-  it('drags a slotted console out from the viewport header into a live floating window', async () => {
+  it('keeps a slotted console attached to the pointer until release during drag-out', async () => {
     ;({ container, root } = await renderAppShell())
 
     await act(async () => {
@@ -1982,6 +2002,10 @@ describe('AppShell', () => {
       )
     })
 
+    const floatingRectBeforeRelease = useConsoleStore.getState().floatingRect
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+    expect(floatingRectBeforeRelease.x).toBeGreaterThan(300)
+    expect(floatingRectBeforeRelease.y).toBeGreaterThan(30)
     await act(async () => {
       window.dispatchEvent(
         new PointerEvent('pointerup', {
@@ -2002,8 +2026,302 @@ describe('AppShell', () => {
     expect(container?.querySelector('.ViewportFrame[data-workspace-surface-kind="console"]')).toBeNull()
     expect(container?.querySelector('.ConsoleFloatingWindow')).not.toBeNull()
     expect(useConsoleStore.getState().windowMode).toBe('floating')
-    expect(useConsoleStore.getState().floatingRect.x).toBeGreaterThan(300)
-    expect(useConsoleStore.getState().floatingRect.y).toBeGreaterThan(30)
+    expect(useConsoleStore.getState().floatingRect).toMatchObject(floatingRectBeforeRelease)
+  })
+
+  it('pre-seeds the floating console rect from the slot header drag-out instead of snapping through the old parked float rect', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'top', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+      useConsoleStore.getState().setFloatingRect({
+        x: 48,
+        y: 640,
+        width: 720,
+        height: 420,
+      })
+      useConsoleStore.getState().switchToDocked(false)
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'console',
+    ) as HTMLDivElement | undefined
+    const header = slotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+    expect(slotFrame).not.toBeUndefined()
+    expect(header).not.toBeNull()
+
+    mockShellGeometry(container)
+    mockRect(slotFrame, {
+      left: 320,
+      top: 0,
+      width: 1120,
+      height: 260,
+    })
+    mockElementSize(slotFrame, {
+      width: 1120,
+      height: 260,
+    })
+    mockRect(header, {
+      left: 320,
+      top: 0,
+      width: 1120,
+      height: 40,
+    })
+
+    await act(async () => {
+      header?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 1,
+          clientX: 420,
+          clientY: 24,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 520,
+          clientY: 72,
+        }),
+      )
+    })
+
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+    expect(useConsoleStore.getState().floatingRect.x).toBeGreaterThan(250)
+    expect(useConsoleStore.getState().floatingRect.y).toBeLessThan(100)
+    expect(useConsoleStore.getState().floatingRect.x).not.toBe(48)
+    expect(useConsoleStore.getState().floatingRect.y).not.toBe(640)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 520,
+          clientY: 72,
+        }),
+      )
+    })
+  })
+
+  it('shows the shared split ghost during a slotted console drag-out and only commits that split on pointerup', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'top', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+      useConsoleStore.getState().setFloatingRect({
+        x: 64,
+        y: 80,
+        width: 720,
+        height: 420,
+      })
+      useConsoleStore.getState().switchToDocked(false)
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') !== 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'console',
+    ) as HTMLDivElement | undefined
+    const header = slotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+    expect(slotFrame).not.toBeUndefined()
+    expect(header).not.toBeNull()
+
+    mockShellGeometry(container)
+    mockRect(slotFrame, {
+      left: 320,
+      top: 0,
+      width: 1120,
+      height: 260,
+    })
+    mockElementSize(slotFrame, {
+      width: 1120,
+      height: 260,
+    })
+    mockRect(header, {
+      left: 320,
+      top: 0,
+      width: 1120,
+      height: 40,
+    })
+    mockRect(container?.querySelector('.ViewportFrame.isPrimarySlot .ViewportFrameBody'), {
+      left: 320,
+      top: 40,
+      width: 1120,
+      height: 860,
+    })
+
+    await act(async () => {
+      header?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 3,
+          clientX: 420,
+          clientY: 24,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 3,
+          clientX: 720,
+          clientY: 904,
+          buttons: 1,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.ViewportSplitDockGhost.isDockBottom')).not.toBeNull()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'console',
+      ),
+    ).toHaveLength(0)
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 3,
+          clientX: 720,
+          clientY: 904,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('.ViewportSplitDockGhost')).toBeNull()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'console',
+      ),
+    ).toHaveLength(1)
+    expect(useConsoleStore.getState().windowMode).toBe('docked')
+  })
+
+  it('keeps the stored floating console size when a re-docked right split console is dragged back out', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let consoleSlotId: string | null = null
+    await act(async () => {
+      consoleSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-1',
+      })
+      useConsoleStore.getState().setFloatingRect({
+        x: 64,
+        y: 80,
+        width: 720,
+        height: 420,
+      })
+      useWorkspaceStore.getState().detachViewportSlotSurface(consoleSlotId ?? '', 'floating')
+      useConsoleStore.getState().switchToFloating()
+      splitWorkspaceSurfaceToSide('console-surface-1', 'right')
+    })
+
+    await rerenderAppShell(root!)
+
+    const redockedConsoleSlotId =
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+        (slot) => slot.surfaceKind === 'console' && slot.surfaceInstanceId === 'console-surface-1',
+      )?.slotId ?? null
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) => element.getAttribute('data-workspace-slot-id') === redockedConsoleSlotId,
+    ) as HTMLDivElement | undefined
+    const header = slotFrame?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+    expect(slotFrame).not.toBeUndefined()
+    expect(header).not.toBeNull()
+
+    mockShellGeometry(container)
+    mockRect(slotFrame, {
+      left: 980,
+      top: 0,
+      width: 460,
+      height: 900,
+    })
+    mockElementSize(slotFrame, {
+      width: 460,
+      height: 900,
+    })
+    mockRect(header, {
+      left: 980,
+      top: 0,
+      width: 460,
+      height: 40,
+    })
+
+    await act(async () => {
+      header?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 2,
+          clientX: 1040,
+          clientY: 24,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 2,
+          clientX: 900,
+          clientY: 120,
+        }),
+      )
+    })
+
+    const repeatDragRect = useConsoleStore.getState().floatingRect
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+    expect(useConsoleStore.getState().floatingRect.width).toBe(720)
+    expect(useConsoleStore.getState().floatingRect.height).toBe(420)
+    expect(useConsoleStore.getState().floatingRect.x).not.toBe(64)
+    expect(repeatDragRect.x).toBeGreaterThan(250)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 2,
+          clientX: 760,
+          clientY: 220,
+          buttons: 1,
+        }),
+      )
+    })
+
+    expect(useConsoleStore.getState().floatingRect.y).not.toBe(repeatDragRect.y)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 2,
+          clientX: 900,
+          clientY: 120,
+        }),
+      )
+    })
   })
 
   it('suppresses the old docked console host while a console surface is already hosted in the slot tree', async () => {
@@ -3163,6 +3481,32 @@ describe('AppShell', () => {
     expect(rootNode?.kind).toBe('split')
     expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('right')
     expect(splitNodes.filter((node) => node.splitDockSide === 'top')).toHaveLength(1)
+  })
+
+  it('opens the shared floating split menu for the floating console header on right-click', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useConsoleStore.getState().switchToFloating()
+    })
+
+    const floatingHeader = container?.querySelector(
+      '.ConsoleFloatingWindow .ConsolePanelHeader',
+    ) as HTMLDivElement | null
+    expect(floatingHeader).not.toBeNull()
+
+    await act(async () => {
+      floatingHeader?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const menuButtons = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).map((button) => button.textContent)
+
+    expect(menuButtons).toContain('Split Top')
+    expect(menuButtons).toContain('Split Right')
+    expect(menuButtons).toContain('Split Bottom')
+    expect(menuButtons).toContain('Split Left')
   })
 
   it('migrates split view compatibility state onto a generic workspace divider instead of the old split shell', async () => {
