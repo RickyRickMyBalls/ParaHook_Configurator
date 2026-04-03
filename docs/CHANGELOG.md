@@ -65,6 +65,573 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 954 -->
+### [954] - 2026-04-03 17:24 - `Console 11 - Phase 5.1 - Move Submit Coordinator And Remaining Controller Callbacks Into useConsoleInteraction`
+<!-- ENTRY 954 -->
+HUMAN SUMMARY: `Finished the Phase 5.1 controller move by shifting the submit coordinator and remaining interaction callback band into \`useConsoleInteraction.ts\`, rewiring \`ConsoleDock.tsx\` down to the helper seams and render shell it still legitimately owns, and re-verifying the console slice with targeted tests plus a full production build.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the remaining controller-band move inside `Console 11 / Phase 5` instead of reopening parser, window-host, or reference/content runtime-family extraction.
+- Preserved the final docked, floating, list, split-ghost, and pop-out JSX ownership in `src/app/console/ConsoleDock.tsx`.
+- Kept the existing console behavior and transcript wording intact while finishing the submit or cancel or tab-cycle ownership move into the existing interaction hook.
+
+#### Summary of Implementation
+- Expanded `src/app/console/useConsoleInteraction.ts` so it now owns the remaining controller band, including the submit coordinator, escape or cancel stepping, transform tab-cycle behavior, and the interaction helpers those flows depend on.
+- Rewired `src/app/console/ConsoleDock.tsx` to consume the finished controller hook, leaving the component focused on store subscriptions, helper seams, windowing consumption, refs, and final JSX composition.
+- Removed the now-stale inline controller ownership from `src/app/console/ConsoleDock.tsx` and cleaned up the surrounding imports or helper leftovers so the shell compiles cleanly in its thinner shape.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No intentional command-language or visible UI behavior changes; this pass completes the controller ownership move behind `useConsoleInteraction.ts` while keeping the same console flows green under test.
+- `ConsoleDock.tsx` no longer owns the big inline submit or interaction callback band that Phase 5.1 targeted.
+
+#### Verification Steps
+- Ran `npm.cmd test -- ConsoleDock consoleReferenceContentCommands`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 953 -->
+### [953] - 2026-04-03 16:59 - `Console 11 - Phase 5 - Thin ConsoleDock Composition Shell First Cut`
+<!-- ENTRY 953 -->
+HUMAN SUMMARY: `Landed the first controller-hook cut for Console 11 / Phase 5 by extracting guided-root rehydration, radio-choice coordination, duplicated keyboard routing, and prompt/feature/sketch sync effects into \`useConsoleInteraction.ts\`, rewiring \`ConsoleDock.tsx\` to consume it, and re-verifying the console slice with targeted tests plus a full production build while leaving the submit coordinator local for a later follow-on.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the Phase 5 shell-thinning controller seam instead of reopening parser, window-host, or reference/content runtime-family work.
+- Preserved the final docked, floating, list, split-ghost, and pop-out JSX ownership in `src/app/console/ConsoleDock.tsx`.
+- Left `handleSubmitCommand(...)` and the remaining controller remainder in `src/app/console/ConsoleDock.tsx` rather than claiming a larger extraction than was actually shipped.
+
+#### Summary of Implementation
+- Added `src/app/console/useConsoleInteraction.ts` to own guided-root entry or rehydration helpers, radio-choice coordination helpers, duplicated main-window and pop-out keyboard routing effects, and the prompt or feature or sketch sync effect band.
+- Rewired `src/app/console/ConsoleDock.tsx` to consume that hook, replacing the old inline keyboard and sync ownership with callback refs and returned interaction helpers while keeping the render shell intact.
+- Removed the extracted inline controller-effect band from `src/app/console/ConsoleDock.tsx` and kept the remaining submit or context-handoff logic local so the next follow-on can finish the shell thinning truthfully.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No intentional console-language or visible UI behavior changes; this pass reorganizes ownership by moving the keyboard and sync controller band into a dedicated hook while keeping the same console flows green under test.
+- `ConsoleDock.tsx` now reads that interaction band through `useConsoleInteraction.ts` instead of owning those effects inline.
+
+#### Verification Steps
+- Ran `npm.cmd test -- ConsoleDock consoleReferenceContentCommands`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 952 -->
+### [952] - 2026-04-03 16:39 - `Console 11 - Phase 4.2 - Finish Reference Transform Root Shortcut Cleanup And Coverage`
+<!-- ENTRY 952 -->
+HUMAN SUMMARY: `Finished the last small post-Phase-4 cleanup by removing the leftover inline \`referenceTransformRoot\` delete-latest fallback from \`ConsoleDock.tsx\`, added direct tests for the remaining extracted reference-transform helper paths, and re-verified the console slice with both targeted tests and a full production build.`
+#### Scope / Constraints Honored
+- Kept this slice limited to the narrow `Console 11 / Phase 4.2` follow-on for the leftover reference-transform root shortcut seam and direct helper coverage.
+- Left sketch, radio, workspace, and broader `Phase 5` shell-thinning work untouched.
+- Preserved the existing command wording and runtime behavior while removing the final duplicate root shortcut owner from `src/app/console/ConsoleDock.tsx`.
+
+#### Summary of Implementation
+- Removed the leftover inline `referenceTransformRoot` `DeleteLatest` fallback from `src/app/console/ConsoleDock.tsx`, leaving `tryHandleReferenceTransformRootShortcut(...)` as the only owner for that shortcut path.
+- Expanded `src/app/console/consoleReferenceContentCommands.test.ts` with direct focused tests for `tryHandleReferenceTransformRootShortcut(...)` and representative `tryHandleActiveReferenceTransformSubmission(...)` paths covering snap entry, vec3 commit, and prompt opening.
+- Left the rest of the extracted reference/content runtime family unchanged so `Phase 5` can now start from shell-thinning work instead of more shortcut cleanup.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/consoleReferenceContentCommands.test.ts`
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No intentional console-language or UI behavior changes; this was the `Phase 4.2` cleanup that removes the last leftover root shortcut duplication and strengthens direct coverage around the extracted reference-transform helpers.
+- The `referenceTransformRoot` delete-latest shortcut now lives in one owner path instead of being mirrored inline in `ConsoleDock.tsx`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- consoleReferenceContentCommands ConsoleDock`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 951 -->
+### [951] - 2026-04-03 16:21 - `Console 11 - Phase 4.1 - Complete Reference/Content Runtime Extraction Cleanup`
+<!-- ENTRY 951 -->
+HUMAN SUMMARY: `Finished the first extracted reference/content runtime seam by removing the stale inline prompt and staged-execute copies still living in \`ConsoleDock.tsx\`, widened \`consoleReferenceContentCommands.test.ts\` into direct runtime coverage, and re-verified the console slice with both targeted tests and a full production build.`
+#### Scope / Constraints Honored
+- Kept this slice limited to the `Console 11 / Phase 4.1` cleanup pass that restores single ownership for the already-extracted reference/content runtime family.
+- Left sketch, radio, workspace, flat-root dispatch, and the broader `Phase 5` shell-thinning work untouched.
+- Preserved transcript wording and prompt behavior while removing the stale inline fallback branches from `src/app/console/ConsoleDock.tsx`.
+
+#### Summary of Implementation
+- Removed the stale inline `transform.delete-latest.confirm`, `reference-transform.axis`, `reference-transform.plane`, and `content.owner.label` prompt-session copies from `src/app/console/ConsoleDock.tsx`, leaving that family owned by `tryHandleReferenceContentPromptSubmission(...)`.
+- Removed the stale inline content-owner prompt-action and staged reference/content execute branches from `src/app/console/ConsoleDock.tsx`, so the extracted `src/app/console/consoleReferenceContentCommands.ts` module is now the only owner for that runtime family while `ConsoleDock.tsx` keeps only the still-local `reference.load*`, `content.selectAll`, and `content.delete` branches.
+- Expanded `src/app/console/consoleReferenceContentCommands.test.ts` from helper-shape coverage into direct runtime tests for delete-latest confirmation, content-owner rename prompting/submission, staged prompt creation, and representative reference/content transform execute paths.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/consoleReferenceContentCommands.test.ts`
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No intentional console-language or UI behavior changes; this was the Phase 4.1 ownership cleanup that removes duplicate inline runtime branches after the earlier Phase 4 extraction.
+- The reference/content prompt and staged execute paths now live in one owner module instead of being split between `ConsoleDock.tsx` and `consoleReferenceContentCommands.ts`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- consoleReferenceContentCommands ConsoleDock`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 950 -->
+### [950] - 2026-04-03 15:46 - `Console 11 - Phase 4 - Split Domain Command Families Out Of Submit Dispatch`
+<!-- ENTRY 950 -->
+HUMAN SUMMARY: `Extracted the first reference-transform, content-transform, and content-owner rename runtime-family seam out of \`ConsoleDock.tsx\` into \`consoleReferenceContentCommands.ts\`, routed the matching submit paths through that module, and verified that the Phase 4 family split preserved the existing console behavior.`
+#### Scope / Constraints Honored
+- Kept this slice limited to the locked `Console 11 / Phase 4` first extraction cut.
+- Left sketch, radio, workspace, pop-out keyboard routing, and flat-root command dispatch in `src/app/console/ConsoleDock.tsx`.
+- Preserved the existing transcript and prompt wording while moving the reference/content family seam behind one focused runtime module.
+
+#### Summary of Implementation
+- Added `src/app/console/consoleReferenceContentCommands.ts` as the first extracted runtime-family module for reference transform, content transform, delete-latest confirmation, snap helpers, and content-owner rename prompt handoff.
+- Updated `src/app/console/ConsoleDock.tsx` so the top-level submit coordinator now routes the locked first-cut prompt, active reference-transform, root delete, content-owner prompt, and staged reference/content execution branches through that module.
+- Added focused runtime-family coverage in `src/app/console/consoleReferenceContentCommands.test.ts`.
+
+#### Files Changed
+- `src/app/console/consoleReferenceContentCommands.ts`
+- `src/app/console/consoleReferenceContentCommands.test.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No intentional command-language or console-UI behavior changes; this was a Phase 4 runtime-family extraction pass.
+- The reference/content transform and rename submit paths now execute through the extracted runtime module while `ConsoleDock.tsx` remains the overall coordinator.
+
+#### Verification Steps
+- Ran `npm.cmd test -- consoleReferenceContentCommands ConsoleDock`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 949 -->
+### [949] - 2026-04-03 15:03 - `Console 11 - Phase 3 - Extract Window Host And Surface Placement Logic`
+<!-- ENTRY 949 -->
+HUMAN SUMMARY: `Moved the locked floating, pop-out, drag, resize, split-preview, and host-render data mechanics out of \`ConsoleDock.tsx\` into \`useConsoleWindowing.ts\`, kept the final floating/pop-out/split JSX visibly owned by \`ConsoleDock.tsx\`, and verified that the extraction preserved the existing console window-host behavior.`
+#### Scope / Constraints Honored
+- Kept this slice limited to the locked `Console 11 / Phase 3` host-mechanics extraction.
+- Preserved final JSX ownership in `src/app/console/ConsoleDock.tsx` instead of hiding the console surface behind an opaque hook.
+- Left the pop-out keyboard-routing effect, staged-navigation flow, prompt-session logic, feature-assist logic, and submit-runtime families in `ConsoleDock.tsx` for later phases.
+
+#### Summary of Implementation
+- Added `src/app/console/useConsoleWindowing.ts` as the focused host hook for floating bounds, slot-header drag replay, floating drag and resize, pop-out host creation, split-preview state, split commit behavior, and render-ready windowing data.
+- Updated `src/app/console/ConsoleDock.tsx` to consume `useConsoleWindowing(...)` for window-host mechanics while keeping the final floating window, pop-out portal, split ghost portal, docked surface, and list overlay composition visible in the component.
+- Moved the floating-rect clamp effect into the extracted hook so the full floating placement seam now lives in one windowing owner path.
+
+#### Files Changed
+- `src/app/console/useConsoleWindowing.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No intentional console behavior changes; this was an extraction-only Phase 3 pass.
+- Floating, pop-out, list, and split-dock behavior continue to route through the same visible `ConsoleDock` render composition with the host mechanics delegated behind the new hook.
+
+#### Verification Steps
+- Ran `npm.cmd test -- ConsoleDock`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 948 -->
+### [948] - 2026-04-03 14:31 - `Console 11 - Phase 2 - Extract Pure Parsing, Prompt, And Formatting Helpers`
+<!-- ENTRY 948 -->
+HUMAN SUMMARY: `Moved the locked first-cut pure helper band out of \`ConsoleDock.tsx\` into dedicated parser, prompt-text, and formatter modules, added focused helper tests for those new seams, and kept the extraction behavior-preserving by leaving feature-assist, store-derived, and window-host logic in place for later phases.`
+#### Scope / Constraints Honored
+- Kept this slice limited to the locked `Console 11 / Phase 2` pure-helper extraction.
+- Preserved existing console behavior and transcript wording instead of widening into runtime-family or window-host cleanup.
+- Left feature-assist, store-derived context, reference-snap, sketch-status, and radio-specific helpers in `ConsoleDock.tsx` for later phases.
+
+#### Summary of Implementation
+- Added `src/app/console/consoleCommandParser.ts` for flat command parsing, zoom token parsing, and prompt-token normalization.
+- Added `src/app/console/consolePromptText.ts` for breadcrumb formatting, staged prompt text, prompt-session text, and root prompt generation.
+- Added `src/app/console/consoleFormatters.ts` for the generic vec2, vec3, and signed-float literal parsers.
+- Updated `src/app/console/ConsoleDock.tsx` to import those helpers and removed the corresponding inline copies.
+- Added focused unit coverage in `src/app/console/consoleCommandParser.test.ts`, `src/app/console/consolePromptText.test.ts`, and `src/app/console/consoleFormatters.test.ts`.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/consoleCommandParser.ts`
+- `src/app/console/consolePromptText.ts`
+- `src/app/console/consoleFormatters.ts`
+- `src/app/console/consoleCommandParser.test.ts`
+- `src/app/console/consolePromptText.test.ts`
+- `src/app/console/consoleFormatters.test.ts`
+
+#### Behavior Changes
+- No intended user-facing behavior changes.
+- Console prompt text, command parsing, and existing `ConsoleDock` runtime flow remain the same after the extraction.
+
+#### Verification Steps
+- Ran `npm.cmd test -- consoleCommandParser consoleFormatters consolePromptText ConsoleDock`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 947 -->
+### [947] - 2026-04-03 13:58 - `Workspace 7.5-16 - Spaghetti Editor Viewport Type Adoption`
+<!-- ENTRY 947 -->
+HUMAN SUMMARY: `Added \`Spaghetti Editor\` to the console Workspace Modes \`Viewport Type Menu\`, reusing the existing editor-viewport reuse or duplication seam so viewport-type switches retarget the console to the new live editor surface instead of inventing a console-local editor mount path.`
+#### Scope / Constraints Honored
+- Kept this slice focused on `Viewport Type` adoption only.
+- Reused the existing `AppShell` and editor viewport lifecycle seams instead of building a console-only `Spaghetti Editor` mount path.
+- Preserved protected-primary handling and the existing staged breadcrumb retargeting rules.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/workspaceViewportLabels.ts` so workspace-modes viewport labels can include live `spaghettiEditor` targets when the chosen viewport switches over.
+- Added `Spaghetti Editor` to the staged `Viewport Type Menu` in `src/app/console/stagedNavigation.ts` and mapped the new action identity in `src/app/console/radioCommandIdentity.ts`.
+- Extended `src/app/console/ConsoleDock.tsx` so `Viewport Type > Spaghetti Editor` reuses the existing editor-viewport reuse or duplication seam, closes old editor surfaces truthfully when switching away, and retargets the staged console session to the new live editor surface after success.
+- Refreshed the focused workspace-modes coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleDock.test.tsx`, then re-ran the console suite and `npm run build`.
+
+<!-- ENTRY 946 -->
+### [946] - 2026-04-03 13:43 - `Workspace 7.5-16 - Split Menu Alias Override`
+<!-- ENTRY 946 -->
+HUMAN SUMMARY: `Adjusted the new Workspace Modes alias system so the split submenu now uses the direct mnemonic aliases \`t\`, \`r\`, \`b\`, and \`l\` for the four split directions, with \`Back\` promoted only inside that menu so \`Split Bottom\` can keep \`b\`.`
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up to the shipped `Workspace 7.5-16` alias cleanup.
+- Limited the override to the split submenu instead of reopening the broader workspace-modes alias rules.
+- Preserved the rest of the new one-letter-first alias behavior.
+
+#### Summary of Implementation
+- Updated `src/app/console/stagedNavigation.ts` so the split submenu no longer reserves `b` for `Back`, allowing the directional aliases to be `t`, `r`, `b`, and `l`.
+- Promoted `Back` only within that submenu so directional shorthand stays direct and mnemonic.
+- Refreshed the focused workspace-modes regression coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts`, then re-ran the focused console suite and `npm run build`.
+
+<!-- ENTRY 945 -->
+### [945] - 2026-04-03 13:38 - `Workspace 7.5-16 - Guided Alias Simplification First Pass`
+<!-- ENTRY 945 -->
+HUMAN SUMMARY: `Simplified the Workspace Modes guided aliases so those menus now prefer one-letter shorthand by default, reserve \`b\` for \`Back\`, promote only the colliding choices to the shortest deterministic menu-local alias, and keep the visible summary hints aligned with the actual accepted aliases.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-16` alias cleanup limited to `Workspace Modes`.
+- Preserved the existing staged console structure and command behavior while tightening only guided alias matching and hint rendering.
+- Left broader staged-console alias cleanup deferred.
+
+#### Summary of Implementation
+- Added a menu-local workspace-modes alias resolver in `src/app/console/stagedNavigation.ts` so effective aliases now prefer one letter by default, reserve `b` for `Back`, and promote only colliding choices to the shortest unused deterministic alias.
+- Updated workspace-modes staged matching in `src/app/console/stagedNavigation.ts` so the active menu now accepts those effective aliases while keeping existing explicit aliases available as compatibility fallbacks.
+- Updated `src/app/console/ConsoleBar.tsx` so the summary hint layer now reads the same effective aliases that workspace-modes matching uses, keeping the visible shorthand truthful.
+- Added focused regression coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleBar.test.tsx`, then verified the slice with focused Vitest coverage plus a full `npm run build`.
+
+<!-- ENTRY 944 -->
+### [944] - 2026-04-03 13:24 - `Workspace 7.5-16 - Close Action First Implementation`
+<!-- ENTRY 944 -->
+HUMAN SUMMARY: `Added the first console workspace-modes Close action, exposing it only for eligible non-primary model, browser, and console viewports through a dedicated confirmation submenu, then reusing the existing workspace slot-removal cleanup rules and returning the console to the refreshed Workspace Modes picker after the target closes.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-16` close slice centered on truthful existing viewport-close behavior only.
+- Preserved primary-slot protection by keeping `Close` out of the chosen-viewport menu for protected primary targets.
+- Reused the existing workspace slot-removal cleanup rules instead of inventing console-local viewport deletion behavior.
+
+#### Summary of Implementation
+- Extended `src/app/console/stagedNavigation.ts` with `Close` menu presence gating, a dedicated close-confirm submenu, and the new staged execute action for `workspace.viewport.close`.
+- Updated `src/app/console/radioCommandIdentity.ts` and `src/app/console/ConsoleBar.tsx` so the new close-confirm layer keeps normal breadcrumb identity and summary behavior.
+- Updated `src/app/console/ConsoleDock.tsx` so confirmed close actions reuse the existing workspace cleanup rules for non-primary model, browser, and console slots, then return the staged console session to the refreshed `Root > Workspace Modes` picker after the target viewport disappears.
+- Added or refreshed focused regression coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleDock.test.tsx`, then verified the slice with focused Vitest coverage plus a full `npm run build`.
+
+<!-- ENTRY 943 -->
+### [943] - 2026-04-03 13:16 - `Workspace 7.5-16 - Float Action First Implementation`
+<!-- ENTRY 943 -->
+HUMAN SUMMARY: `Added the first console workspace-modes Float action, exposing it only for eligible non-primary model, browser, and console viewports while reusing the existing host-specific float seams and keeping the console anchored on the same source viewport branch after success.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-16` float slice centered on truthful existing float behavior only.
+- Preserved primary-slot protection by keeping `Float` out of the chosen-viewport menu for protected primary targets.
+- Reused existing Browser, Console, and model-viewer float seams instead of inventing console-local float state.
+
+#### Summary of Implementation
+- Expanded `src/app/workspace/workspaceViewportLabels.ts` so workspace viewport options now carry `slotId` and `isPrimary`, allowing the staged console layer to gate `Float` honestly.
+- Updated `src/app/console/stagedNavigation.ts` and `src/app/console/radioCommandIdentity.ts` so `Workspace Modes` can expose `Float` only for eligible non-primary `modelViewer`, `browser`, and `console` targets with normal breadcrumb output.
+- Updated `src/app/console/ConsoleDock.tsx` so successful float actions reuse the existing host-specific runtime seams: non-primary model viewers detach to floating, Browser reuses the browser floating shell path, and Console reuses floating console mode while the staged session stays on the same source viewport branch.
+- Added or refreshed focused regression coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleDock.test.tsx`, then verified the slice with focused Vitest coverage plus a full `npm run build`.
+
+<!-- ENTRY 942 -->
+### [942] - 2026-04-03 13:05 - `Workspace 7.5-16 - Browser Open In New Browser Adoption`
+<!-- ENTRY 942 -->
+HUMAN SUMMARY: `Expanded the console workspace-modes \`Open In New Browser\` action to support Browser through the existing browser popout seam, and tightened the shared viewport labels so a lone browser stays singular while multiple browser targets can scale into numbered labels only when they actually exist.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-16` later-surface slice centered on Browser only.
+- Reused the existing browser popout owner seam instead of inventing browser copy or detach behavior in the console layer.
+- Left Console, `Float`, and `Close` deferred.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/workspaceViewportLabels.ts` so browser viewport labels now stay singular in the one-browser case and only add numbering when multiple browser targets exist.
+- Expanded the workspace-modes action gating in `src/app/console/stagedNavigation.ts` so Browser can expose `Open In New Browser` through the same chosen-viewport action family.
+- Updated `src/app/console/ConsoleDock.tsx` so Browser now routes that action through `setBrowserPoppedOut(true)` while model-viewer keeps its existing detached-copy behavior.
+- Added and refreshed focused workspace-modes coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleDock.test.tsx` for browser menu presence, browser open execution, and the singular browser label path.
+
+#### Files Changed
+- `src/app/workspace/workspaceViewportLabels.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Workspace Modes` now exposes `Open In New Browser` for Browser viewports as well as model viewports.
+- Browser uses the existing browser popout runtime path rather than a copied detached surface path.
+- When only one browser target exists, the console label stays singular as `Browser Viewport`; numbering is reserved for multi-browser cases.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 941 -->
+### [941] - 2026-04-03 12:41 - `Workspace 7.5-16 - Model Viewport Open In New Browser First Implementation`
+<!-- ENTRY 941 -->
+HUMAN SUMMARY: `Added \`Open In New Browser\` to the console workspace-modes flow for supported model viewports only, wired it through the existing model-viewer copy-to-browser behavior, preserved the source viewport as the active in-app console target after success, and fixed the global active-viewer leak so the full console suite stays stable.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-16` slice limited to `modelViewer` support in the console workspace-modes branch.
+- Reused the existing model viewport detached copy and camera-copy seam instead of inventing console-local popout behavior.
+- Left Browser, Console, `Float`, and `Close` deferred to later phases.
+
+#### Summary of Implementation
+- Extended `src/app/workspace/workspaceViewportLabels.ts` and `src/app/console/stagedNavigation.ts` so workspace-modes viewport options now carry `surfaceKind`, letting the chosen-viewport action menu expose `Open In New Browser` only for supported `modelViewer` targets.
+- Added the new staged action identity and runtime execution path in `src/app/console/radioCommandIdentity.ts` and `src/app/console/ConsoleDock.tsx`, reusing `createDetachedViewportSurfaceCopy(...)` plus the existing viewer camera-clone restore seam so model viewport browser copies open with the source camera.
+- Kept the console on the source viewport branch after success and logged the result as app activity, then removed the temporary active-viewer handoff from the console path so the detached copy no longer steals global viewer ownership from later console flows or tests.
+- Added and updated focused coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleDock.test.tsx` for action presence, successful model viewport browser-copy execution, and source-viewport continuity after the action completes.
+
+#### Files Changed
+- `src/app/workspace/workspaceViewportLabels.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+
+#### Behavior Changes
+- `Root > Workspace Modes > <Model Viewport> > Choose next [...]` now includes `Open In New Browser` for supported model viewports.
+- Committing that action opens a copied model viewport in a new browser window while the in-app source viewport remains the active workspace-modes console target.
+- Unsupported viewport kinds continue to omit this action in the first shipped pass.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 940 -->
+### [940] - 2026-04-03 12:21 - `Workspace 7.5-16 - Split Follow-Into-New-Viewport`
+<!-- ENTRY 940 -->
+HUMAN SUMMARY: `Changed the console workspace-modes split flow so a successful split now forwards the user into the newly created viewport's branch instead of leaving them on the source viewport's split submenu, which makes repeated workspace edits follow the new pane naturally.`
+#### Scope / Constraints Honored
+- Kept this as a narrow `Workspace 7.5-16` workflow cleanup on successful split follow-up behavior.
+- Preserved the existing split execution seam, camera restore behavior, and chosen-viewport menu structure.
+- Reused the existing workspace viewport label helpers instead of inventing a second new-viewport naming path.
+
+#### Summary of Implementation
+- Exported the chosen-viewport staged-session factory from `src/app/console/stagedNavigation.ts` so runtime split handling can retarget into the standard workspace-modes viewport branch.
+- Updated the split-success path in `src/app/console/ConsoleDock.tsx` so when a new slot is created it resolves the new viewport label and forwards the staged session to `Root > Workspace Modes > <New Viewport>`.
+- Refreshed the focused `ConsoleDock` regression so split success now verifies the console lands on the newly created viewport branch instead of staying inside the old split submenu.
+
+#### Files Changed
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/stagedNavigation.ts`
+
+#### Behavior Changes
+- After a committed workspace-modes split, the console now forwards to the new viewport's chosen-viewport branch.
+- Example: splitting `Model Viewport 1` right now lands on `Root > Workspace Modes > Model Viewport 2`.
+
+#### Verification Steps
+- Ran `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 939 -->
+### [939] - 2026-04-03 12:18 - `Workspace 7.5-16 - Workspace Modes Action Menu Cleanup`
+<!-- ENTRY 939 -->
+HUMAN SUMMARY: `Reshaped the chosen-viewport workspace-modes console branch into a cleaner action menu so users now see \`Split Menu\`, \`Viewport Type Menu\`, and \`Back\` first, with the split directions living one level deeper and the viewport-type submenu staying aligned to that same action-family structure.`
+#### Scope / Constraints Honored
+- Kept this as a narrow cleanup of the shipped `Workspace 7.5-16` console flow rather than widening into new actions like `Open In New Browser`, `Float`, or `Close`.
+- Preserved the existing split execution seam, viewport-type execution seam, live viewport retargeting, and breadcrumb/status behavior.
+- Kept `Browser` shorthand stable as `bro` while leaving `b` reserved for `Back`.
+
+#### Summary of Implementation
+- Added a dedicated `workspaceModeViewportSplitSelected` staged scope so the chosen viewport now leads into a stable action menu before the concrete split directions.
+- Updated `src/app/console/stagedNavigation.ts` so the chosen viewport branch now exposes `Split Menu`, `Viewport Type Menu`, and `Back`, with `Split Menu` advancing into the four split directions and `Viewport Type Menu` advancing into the existing viewport-type submenu.
+- Updated `src/app/console/ConsoleBar.tsx` and `src/app/console/radioCommandIdentity.ts` so the new split-menu layer keeps honest breadcrumb summaries and command identities.
+- Updated `src/app/console/ConsoleDock.tsx` so successful viewport-type changes keep the renamed `Viewport Type Menu` breadcrumb truthful after retargeting to the new live surface instance.
+- Refreshed the focused staged-navigation and `ConsoleDock` regression coverage to lock the new menu shape and submenu prompts.
+
+#### Files Changed
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+
+#### Behavior Changes
+- `Root > Workspace Modes > <Viewport>` now shows `Choose next [Split Menu, Viewport Type Menu, Back]`.
+- `Split Menu` now owns the four split directions in its own submenu.
+- `Viewport Type Menu` remains the chosen-viewport submenu for `Model Viewport`, `Browser`, and `Console`.
+
+#### Verification Steps
+- Ran `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 938 -->
+### [938] - 2026-04-03 12:11 - `Workspace 7.5-16 - Browser Alias Cleanup`
+<!-- ENTRY 938 -->
+HUMAN SUMMARY: `Reserved \`b\` for \`Back\` across the console workspace-modes flow by changing the \`Browser\` viewport-type alias to \`bro\` and adding regression coverage so the viewport-type submenu keeps its shorthand predictable.`
+#### Scope / Constraints Honored
+- Kept this as a narrow console cleanup within the existing `Workspace 7.5-16` workspace-modes branch.
+- Preserved the shipped `Viewport Type` submenu behavior and only adjusted the conflicting shorthand alias.
+- Protected the `Back` contract by ensuring `b` continues to route to the existing back choice instead of `Browser`.
+
+#### Summary of Implementation
+- Updated the `Browser` choice inside the `Workspace Modes > <Viewport> > Viewport Type` submenu so its explicit alias is now `bro` instead of `b`.
+- Added focused staged-navigation regression coverage proving that `bro` executes the browser type change while `b` still advances through the normal back path.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+
+#### Behavior Changes
+- In the viewport-type submenu, `Browser` now uses `bro` as its stable shorthand alias.
+- `b` remains reserved for `Back`.
+
+#### Verification Steps
+- Ran `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+
+<!-- ENTRY 937 -->
+### [937] - 2026-04-03 12:08 - `Workspace 7.5-16 - Console Workspace Modes Viewport Type Submenu`
+<!-- ENTRY 937 -->
+HUMAN SUMMARY: `Expanded the console workspace-modes flow with a real Viewport Type submenu so a chosen viewport can now switch between \`Model Viewport\`, \`Browser\`, and \`Console\` while keeping honest breadcrumbs, shared viewport labels, and live retargeting after the surface instance changes.`
+#### Scope / Constraints Honored
+- Kept this slice tightly on `Workspace 7.5-16 Phase 6`: one chosen-viewport `Viewport Type` submenu plus the first safe surface kinds.
+- Reused the existing workspace surface-kind owner seam through `setViewportSlotSurfaceKind(...)` instead of inventing a console-local viewport-type mutation path.
+- Deferred `Spaghetti Editor` from the first submenu pass and preserved the existing split flow, titlebar reporting, and normal breadcrumb/status rendering.
+
+#### Summary of Implementation
+- Added a shared workspace viewport-label helper module so `AppShell` titlebar logs and the console workspace-modes flow can use the same numbered viewport labels and split wording.
+- Extended `src/app/console/stagedNavigation.ts` with a `Viewport Type` submenu branch, new staged choices for `Model Viewport`, `Browser`, and `Console`, and the staged execute results needed to carry the chosen viewport plus target surface kind out to the runtime layer.
+- Updated `src/app/console/ConsoleDock.tsx` to build workspace viewport choices from live slot state through the shared helper, execute viewport-type changes through `setViewportSlotSurfaceKind(...)`, handle the browser-shell split cleanup edge case, and retarget the staged session to the new `surfaceInstanceId` after a successful type change so the console stays attached to the same visual viewport.
+- Updated `src/app/console/ConsoleBar.tsx` and `src/app/console/radioCommandIdentity.ts` so the new submenu keeps the normal breadcrumb/status output and command identity coverage.
+- Added focused regression coverage for the staged submenu shape and live `ConsoleDock` execution path, including the post-change breadcrumb retargeting behavior.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/workspace/workspaceViewportLabels.ts`
+
+#### Behavior Changes
+- `Root > Workspace Modes > <Viewport> > Viewport Type` now exists as a real console submenu.
+- The first shipped submenu options are `Model Viewport`, `Browser`, `Console`, and `Back`.
+- After a successful viewport-type change, the staged console breadcrumb updates to the new live viewport label and remains inside the `Viewport Type` submenu for fast repeat actions.
+
+#### Verification Steps
+- Ran `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 936 -->
+### [936] - 2026-04-03 11:50 - `Workspace 7.5-16 - Titlebar Split Console Reporting`
+<!-- ENTRY 936 -->
+HUMAN SUMMARY: `Added console reporting for viewport titlebar split actions so direct UI splits now log as user-selected workspace activity with the same viewport naming and split wording already used by the console workspace-modes flow.`
+#### Scope / Constraints Honored
+- Kept this slice narrowly on `Workspace 7.5-16 Phase 4`: reporting only for committed titlebar split actions.
+- Hooked the log at the real split commit seam in `AppShell` instead of logging menu-open or preview states.
+- Preserved the existing split behavior, camera restore behavior, and workspace-modes console flow without widening into new commands.
+
+#### Summary of Implementation
+- Added shared local helpers in `src/app/AppShell.tsx` to build the same numbered viewport labels used by the console workspace-modes path and to normalize split action labels.
+- Updated `handleViewportSlotSplit(...)` in `src/app/AppShell.tsx` to append a console entry after a successful split commit using the shape `User selected: <Viewport Label> > <Split Direction>`.
+- Kept the log limited to successful split commits by requiring a real `nextSlotId` before appending the entry.
+- Extended the existing split regression coverage in `src/app/AppShell.test.tsx` to assert that a titlebar `Split Right` action now produces the expected user-selected console entry.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`
+
+#### Behavior Changes
+- Right-click titlebar split actions now append a console activity entry after the split succeeds.
+- The console entry reads as UI-originated activity, for example `User selected: Model Viewport 1 > Split Right`.
+- Titlebar split activity now uses the same viewport labels and split wording as the console `Workspace Modes` split flow.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/AppShell.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 935 -->
+### [935] - 2026-04-03 11:39 - `Workspace 7.5-16 - Console Workspace Modes Split Direction Commands`
+<!-- ENTRY 935 -->
+HUMAN SUMMARY: `Completed the first real action layer under \`Root > Workspace Modes\` by adding the four split directions after viewport selection, wiring those console choices into live workspace viewport splitting, and keeping the normal breadcrumb and prompt flow active after the split so the user stays inside the chosen viewport branch.`
+#### Scope / Constraints Honored
+- Kept this slice narrowly on `Workspace 7.5-16 Phase 3`: split-direction choices and execution only.
+- Preserved the existing `Workspace Modes` root branch and viewport picker from `Phase 2`.
+- Kept the normal console breadcrumb and prompt style instead of inventing a special workspace-modes console status surface.
+
+#### Summary of Implementation
+- Extended `src/app/console/stagedNavigation.ts` so the selected viewport branch now exposes `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, and `Back`.
+- Added staged execute action ids for those four split directions and mapped them into deterministic console radio identities in `src/app/console/radioCommandIdentity.ts`.
+- Wired `src/app/console/ConsoleDock.tsx` to execute the chosen split against the live target viewport, preserving the selected viewport branch after execution and appending honest breadcrumb plus prompt entries back into the console transcript.
+- Reused the existing workspace slot split runtime seam for slotted viewport duplication and layered model-viewer camera pose restore onto that path so console-issued model splits inherit the same post-split camera persistence behavior already expected in the main shell.
+- Added focused regression coverage for staged split choice shape and end-to-end console split execution in `src/app/console/stagedNavigation.workspaceModes.test.ts` and `src/app/console/ConsoleDock.test.tsx`.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`
+
+#### Behavior Changes
+- After choosing a viewport inside `Workspace Modes`, the console now offers `Split Top`, `Split Right`, `Split Bottom`, and `Split Left`.
+- Submitting one of those choices now performs the requested split on the chosen target instead of stopping at a placeholder branch.
+- After a successful split, the console stays inside the chosen viewport branch and reprints the same `Choose next [Split Top, Split Right, Split Bottom, Split Left, Back]` prompt so repeated workspace splits remain fast.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleDock.test.tsx src/app/console/ConsoleBar.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 934 -->
+### [934] - 2026-04-03 11:31 - `Workspace 7.5-16 - Console Workspace Modes Root Branch And Viewport Picker`
+<!-- ENTRY 934 -->
+HUMAN SUMMARY: `Added the first real console home for workspace modes by wiring \`Workspace Modes\` and alias \`wm\` into the staged root, feeding live viewport labels into the console context, and preserving the normal breadcrumb/status flow through the new viewport-picker branch while keeping split execution deferred to the next phase.`
+#### Scope / Constraints Honored
+- Kept this slice narrowly on `Workspace 7.5-16 Phase 2`: root entry, alias, staged branch shell, and live viewport picker only.
+- Reused the existing staged-navigation owner path instead of inventing a parallel console branch system.
+- Deferred split-direction commands and split execution to `Phase 3` exactly as planned.
+
+#### Summary of Implementation
+- Added `Workspace Modes` as a real root staged choice in `src/app/console/stagedNavigation.ts` and wired `wm` through the existing alias-matching path.
+- Added workspace-modes staged scopes for the viewport picker and selected-viewport holding state in `src/app/console/stagedNavigation.ts`.
+- Extended the staged-navigation context with live workspace viewport options so the console can list labels like `Model Viewport 1` and `Browser Viewport 2`.
+- Updated `src/app/console/ConsoleDock.tsx` to feed live workspace viewport metadata into the staged-navigation context, print honest `Root > Workspace Modes` prompt text, and include `Workspace Modes` in the root prompt fallback text.
+- Updated `src/app/console/ConsoleBar.tsx` so the visible summary breadcrumb and fallback alias hints stay correct for the new workspace-modes branch.
+- Added focused regression coverage in `src/app/console/stagedNavigation.workspaceModes.test.ts`, `src/app/console/ConsoleDock.test.tsx`, and `src/app/console/ConsoleBar.test.tsx`.
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsoleBar.tsx`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/ConsoleBar.test.tsx`
+
+#### Behavior Changes
+- `Root` now exposes `Workspace Modes` as a first-class staged console choice.
+- Typing `wm` enters the same console branch as `Workspace Modes`.
+- The new branch lists live workspace viewports and keeps normal breadcrumb/status output through viewport selection.
+- The branch currently stops at viewport selection; split actions remain intentionally deferred.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/console/stagedNavigation.workspaceModes.test.ts src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx`
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 933 -->
 ### [933] - 2026-04-03 10:54 - `Workspace 7.5 - AppShell Viewer Camera TypeScript Build Repair`
 <!-- ENTRY 933 -->

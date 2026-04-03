@@ -11,7 +11,7 @@ import {
 import { createPortal } from 'react-dom'
 import { ConsoleDock } from './console/ConsoleDock'
 import type { ConsoleFloatingRect } from './console/consoleTypes'
-import { useConsoleStore } from './console/useConsoleStore'
+import { appendConsoleEntry, useConsoleStore } from './console/useConsoleStore'
 import { BrowserDockHost } from './hosts/BrowserDockHost'
 import { RadioRuntimeHost } from './hosts/RadioRuntimeHost'
 import { SpaghettiWindowHost } from './hosts/SpaghettiWindowHost'
@@ -68,6 +68,10 @@ import {
   resolveWorkspaceSplitDockPreview,
   type WorkspaceSplitDockPreview,
 } from './workspace/workspaceSplitPreview'
+import {
+  getWorkspaceSplitActionLabel,
+  getWorkspaceViewportDisplayLabel,
+} from './workspace/workspaceViewportLabels'
 
 const floatingDockLockGap = 25
 const splitDividerHeight = 10
@@ -1649,6 +1653,11 @@ export function AppShell() {
             ? sourceViewer.getCameraPose()
             : getLatestViewerCameraPose(sourceSlot.surfaceInstanceId)
           : null
+      const sourceViewportLabel = getWorkspaceViewportDisplayLabel(
+        viewportSlotsById,
+        primaryViewportId,
+        sourceSlot.surfaceInstanceId,
+      )
       const nextSlotId = splitViewportSlot(slotId, splitDockSide, {
         surfaceKind: sourceSlot.surfaceKind,
         ...(nextSurfaceInstanceId === null ? {} : { surfaceInstanceId: nextSurfaceInstanceId }),
@@ -1665,11 +1674,20 @@ export function AppShell() {
           restoreViewerCameraPose(nextSlot.surfaceInstanceId, sourceCameraPose)
         }
       }
+      if (nextSlotId !== null && sourceViewportLabel !== null) {
+        appendConsoleEntry({
+          layer: 'App',
+          severity: 'info',
+          source: 'app',
+          text: `User selected: ${sourceViewportLabel} > ${getWorkspaceSplitActionLabel(splitDockSide)}`,
+        })
+      }
     },
     [
       appShellRef,
       createDuplicatedEditorSurfaceInstanceId,
       getViewer,
+      primaryViewportId,
       restoreViewerCameraPose,
       splitViewportSlot,
       viewportSlotsById,

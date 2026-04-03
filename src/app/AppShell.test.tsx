@@ -1554,6 +1554,13 @@ describe('AppShell', () => {
         orthoViewHeight: 12,
       }),
     )
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) => entry.text === 'User selected: Model Viewport 1 > Split Right',
+        ),
+    ).toBe(true)
   })
 
   it('renders a detached floating model viewport and quick docks it back to its host viewport', async () => {

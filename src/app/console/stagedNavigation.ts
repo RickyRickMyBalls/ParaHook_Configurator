@@ -20,6 +20,13 @@ export type ConsoleStagedGraphOption = {
 }
 
 export type ConsoleStagedNavigationContext = {
+  workspaceViewportOptions: Array<{
+    viewportId: string
+    slotId?: string
+    isPrimary?: boolean
+    label: string
+    surfaceKind?: 'modelViewer' | 'browser' | 'console' | 'spaghettiEditor'
+  }>
   contentAssemblies: Array<{
     assemblyId: string
     label: string
@@ -89,6 +96,7 @@ export type ConsoleStagedNavigationChoice = {
   aliases: string[]
   label: string
   kind: ConsoleStagedNavigationChoiceKind
+  workspaceViewportId?: string
   contentAssemblyId?: string
   referenceCategoryId?: string
   referenceId?: string
@@ -96,6 +104,11 @@ export type ConsoleStagedNavigationChoice = {
 
 export type ConsoleStagedNavigationScopeId =
   | 'root'
+  | 'workspaceModesRoot'
+  | 'workspaceModeViewportSelected'
+  | 'workspaceModeViewportSplitSelected'
+  | 'workspaceModeViewportTypeSelected'
+  | 'workspaceModeViewportCloseConfirmSelected'
   | 'contentRoot'
   | 'cameraRoot'
   | 'cameraProjectionRoot'
@@ -168,6 +181,7 @@ export type ConsoleStagedNavigationSelection = {
   graphDocumentId: string | null
   selectedNodeId: string | null
   sketchNodeId: string | null
+  workspaceViewportId?: string | null
   contentAssemblyId?: string | null
   contentComponentId?: string | null
   contentObjectId?: string | null
@@ -190,7 +204,18 @@ export type ConsoleStagedNavigationExecuteResult = {
   session: ConsoleStagedNavigationSession
   submittedToken: string
   matchedChoice: ConsoleStagedNavigationChoice
-  actionId:
+    actionId:
+      | 'workspace.viewport.split.top'
+      | 'workspace.viewport.split.right'
+      | 'workspace.viewport.split.bottom'
+      | 'workspace.viewport.split.left'
+      | 'workspace.viewport.float'
+      | 'workspace.viewport.close'
+      | 'workspace.viewport.openInNewBrowser'
+      | 'workspace.viewport.type.modelViewer'
+      | 'workspace.viewport.type.browser'
+      | 'workspace.viewport.type.console'
+      | 'workspace.viewport.type.spaghettiEditor'
     | 'camera.pan'
     | 'camera.orbit'
     | 'camera.projection.orthographic'
@@ -361,6 +386,13 @@ const ROOT_REFERENCES_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'scope',
 }
 
+const ROOT_WORKSPACE_MODES_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'WORKSPACEMODES',
+  aliases: ['WM'],
+  label: 'Workspace Modes',
+  kind: 'scope',
+}
+
 const ROOT_CAMERA_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'CAMERA',
   aliases: ['C'],
@@ -393,6 +425,104 @@ const ROOT_ORBIT_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'ORBIT',
   aliases: ['O'],
   label: 'Orbit',
+  kind: 'action',
+}
+
+const WORKSPACE_SPLIT_TOP_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPLITTOP',
+  aliases: ['TOP', 'ST'],
+  label: 'Split Top',
+  kind: 'action',
+}
+
+const WORKSPACE_SPLIT_RIGHT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPLITRIGHT',
+  aliases: ['RIGHT', 'SR'],
+  label: 'Split Right',
+  kind: 'action',
+}
+
+const WORKSPACE_SPLIT_BOTTOM_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPLITBOTTOM',
+  aliases: ['BOTTOM', 'SB'],
+  label: 'Split Bottom',
+  kind: 'action',
+}
+
+const WORKSPACE_SPLIT_LEFT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPLITLEFT',
+  aliases: ['LEFT', 'SL'],
+  label: 'Split Left',
+  kind: 'action',
+}
+
+const WORKSPACE_SPLIT_MENU_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPLITMENU',
+  aliases: ['SM'],
+  label: 'Split Menu',
+  kind: 'scope',
+}
+
+const WORKSPACE_VIEWPORT_TYPE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'VIEWPORTTYPEMENU',
+  aliases: ['VT', 'VTM'],
+  label: 'Viewport Type Menu',
+  kind: 'scope',
+}
+
+const WORKSPACE_VIEWPORT_TYPE_MODEL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'MODELVIEWPORT',
+  aliases: ['MV'],
+  label: 'Model Viewport',
+  kind: 'action',
+}
+
+const WORKSPACE_VIEWPORT_TYPE_BROWSER_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'BROWSER',
+  aliases: ['BRO'],
+  label: 'Browser',
+  kind: 'action',
+}
+
+const WORKSPACE_VIEWPORT_TYPE_CONSOLE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CONSOLE',
+  aliases: ['C'],
+  label: 'Console',
+  kind: 'action',
+}
+
+const WORKSPACE_VIEWPORT_TYPE_SPAGHETTI_EDITOR_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SPAGHETTIEDITOR',
+  aliases: ['SE', 'SP'],
+  label: 'Spaghetti Editor',
+  kind: 'action',
+}
+
+const WORKSPACE_OPEN_IN_NEW_BROWSER_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'OPENINNEWBROWSER',
+  aliases: ['OINB', 'ONB'],
+  label: 'Open In New Browser',
+  kind: 'action',
+}
+
+const WORKSPACE_FLOAT_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'FLOAT',
+  aliases: ['F'],
+  label: 'Float',
+  kind: 'action',
+}
+
+const WORKSPACE_CLOSE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CLOSE',
+  aliases: ['CL'],
+  label: 'Close',
+  kind: 'scope',
+}
+
+const WORKSPACE_CONFIRM_CLOSE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'CONFIRMCLOSE',
+  aliases: ['CC'],
+  label: 'Confirm Close',
   kind: 'action',
 }
 
@@ -880,15 +1010,132 @@ const createBackChoice = (): ConsoleStagedNavigationChoice => ({
 })
 
 const normalizeToken = (value: string): string => value.trim().toUpperCase()
+const normalizeCompactChoiceToken = (value: string): string =>
+  value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 
-const matchesChoice = (choice: ConsoleStagedNavigationChoice, normalizedToken: string): boolean => {
+const isWorkspaceModesScope = (
+  scopeId: ConsoleStagedNavigationScopeId | null | undefined,
+): boolean =>
+  scopeId === 'workspaceModesRoot' ||
+  scopeId === 'workspaceModeViewportSelected' ||
+  scopeId === 'workspaceModeViewportSplitSelected' ||
+  scopeId === 'workspaceModeViewportTypeSelected' ||
+  scopeId === 'workspaceModeViewportCloseConfirmSelected'
+
+const buildWorkspaceModesChoiceAliasCandidates = (
+  choice: ConsoleStagedNavigationChoice,
+): string[] => {
+  if (choice.canonicalToken === 'BACK') {
+    return ['B']
+  }
+  const compactLabel = normalizeCompactChoiceToken(choice.label)
+  if (compactLabel.length === 0) {
+    return []
+  }
+  const words = choice.label
+    .split(/[^A-Za-z0-9]+/g)
+    .map((segment) => segment.trim().toUpperCase())
+    .filter((segment) => segment.length > 0)
+  const anchorWord =
+    words[0] === 'SPLIT' &&
+    (words[1] === 'TOP' ||
+      words[1] === 'RIGHT' ||
+      words[1] === 'BOTTOM' ||
+      words[1] === 'LEFT')
+      ? words[1]!
+      : (words[0] ?? compactLabel)
+  const matchedTrailingDigits = compactLabel.match(/(\d+)$/)
+  const trailingDigits = matchedTrailingDigits?.[1] ?? ''
+  const candidates: string[] = []
+  const pushCandidate = (value: string) => {
+    const normalized = normalizeCompactChoiceToken(value)
+    if (normalized.length === 0 || candidates.includes(normalized)) {
+      return
+    }
+    candidates.push(normalized)
+  }
+
+  pushCandidate(anchorWord[0] ?? '')
+  if (trailingDigits.length > 0) {
+    pushCandidate(`${anchorWord[0] ?? ''}${trailingDigits}`)
+  }
+  for (let length = 2; length <= Math.min(anchorWord.length, 3); length += 1) {
+    pushCandidate(anchorWord.slice(0, length))
+  }
+  for (let length = 4; length <= compactLabel.length; length += 1) {
+    pushCandidate(anchorWord + compactLabel.slice(anchorWord.length, length))
+    pushCandidate(compactLabel.slice(0, length))
+  }
+
+  return candidates
+}
+
+export const resolveWorkspaceModesChoiceAliases = (
+  session: ConsoleStagedNavigationSession | null | undefined,
+  choices: readonly ConsoleStagedNavigationChoice[],
+): Map<string, string[]> => {
+  const aliasMap = new Map<string, string[]>()
+  const usedAliases = new Set<string>()
+  const backChoice = choices.find((choice) => choice.canonicalToken === 'BACK') ?? null
+  if (backChoice !== null) {
+    const backAliases =
+      session?.scopeId === 'workspaceModeViewportSplitSelected' ? ['BA'] : ['B']
+    aliasMap.set(backChoice.canonicalToken, backAliases)
+    for (const backAlias of backAliases) {
+      usedAliases.add(backAlias)
+    }
+  }
+
+  for (const choice of choices) {
+    if (choice.canonicalToken === 'BACK') {
+      continue
+    }
+    const candidates = buildWorkspaceModesChoiceAliasCandidates(choice)
+    const selectedAlias = candidates.find((candidate) => !usedAliases.has(candidate)) ?? null
+    const effectiveAliases = [
+      ...(selectedAlias === null ? [] : [selectedAlias]),
+      ...choice.aliases.filter((alias) => {
+        const normalizedAlias = normalizeCompactChoiceToken(alias)
+        return normalizedAlias.length > 0 && normalizedAlias !== selectedAlias
+      }),
+    ]
+    if (selectedAlias !== null) {
+      usedAliases.add(selectedAlias)
+    }
+    aliasMap.set(choice.canonicalToken, effectiveAliases)
+  }
+
+  return aliasMap
+}
+
+export const resolveEffectiveChoiceAliases = (
+  session: ConsoleStagedNavigationSession | null | undefined,
+  choices: readonly ConsoleStagedNavigationChoice[],
+  choice: ConsoleStagedNavigationChoice,
+): string[] => {
+  if (!isWorkspaceModesScope(session?.scopeId)) {
+    return choice.aliases
+  }
+  return resolveWorkspaceModesChoiceAliases(session, choices).get(choice.canonicalToken) ?? choice.aliases
+}
+
+const matchesChoice = (
+  choice: ConsoleStagedNavigationChoice,
+  normalizedToken: string,
+  session?: ConsoleStagedNavigationSession | null,
+  choices?: readonly ConsoleStagedNavigationChoice[],
+): boolean => {
   const normalizedLabel = normalizeToken(choice.label)
   const compactLabel = normalizedLabel.replace(/\s+/gu, '')
+  const effectiveAliases =
+    session !== undefined && choices !== undefined
+      ? resolveEffectiveChoiceAliases(session, choices, choice)
+      : choice.aliases
   return (
     normalizedToken === choice.canonicalToken ||
     normalizedToken === normalizedLabel ||
     normalizedToken === compactLabel ||
-    choice.aliases.includes(normalizedToken)
+    effectiveAliases.includes(normalizedToken)
   )
 }
 
@@ -896,11 +1143,67 @@ const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
   ROOT_CONTENT_CHOICE,
   ROOT_REFERENCES_CHOICE,
+  ROOT_WORKSPACE_MODES_CHOICE,
   ROOT_CAMERA_CHOICE,
   ROOT_RADIO_CHOICE,
   ROOT_ZOOM_CHOICE,
   ROOT_PAN_CHOICE,
   ROOT_ORBIT_CHOICE,
+]
+
+const createWorkspaceViewportChoice = (
+  viewportId: string,
+  label: string,
+  index: number,
+): ConsoleStagedNavigationChoice => ({
+  canonicalToken: label.toUpperCase(),
+  aliases: [`${index + 1}`],
+  label,
+  kind: 'scope',
+  workspaceViewportId: viewportId,
+})
+
+const buildWorkspaceModesRootChoices = (
+  context: Pick<ConsoleStagedNavigationContext, 'workspaceViewportOptions'>,
+): ConsoleStagedNavigationChoice[] => [
+  ...context.workspaceViewportOptions.map((viewportOption, index) =>
+    createWorkspaceViewportChoice(viewportOption.viewportId, viewportOption.label, index),
+  ),
+  createBackChoice(),
+]
+
+const buildWorkspaceViewportActionChoices = (options?: {
+  includeFloat?: boolean
+  includeClose?: boolean
+  includeOpenInNewBrowser?: boolean
+}): ConsoleStagedNavigationChoice[] => [
+  WORKSPACE_SPLIT_MENU_CHOICE,
+  WORKSPACE_VIEWPORT_TYPE_CHOICE,
+  ...(options?.includeFloat === true ? [WORKSPACE_FLOAT_CHOICE] : []),
+  ...(options?.includeOpenInNewBrowser === true ? [WORKSPACE_OPEN_IN_NEW_BROWSER_CHOICE] : []),
+  ...(options?.includeClose === true ? [WORKSPACE_CLOSE_CHOICE] : []),
+  createBackChoice(),
+]
+
+const buildWorkspaceViewportSplitChoices = (): ConsoleStagedNavigationChoice[] => [
+  WORKSPACE_SPLIT_TOP_CHOICE,
+  WORKSPACE_SPLIT_RIGHT_CHOICE,
+  WORKSPACE_SPLIT_BOTTOM_CHOICE,
+  WORKSPACE_SPLIT_LEFT_CHOICE,
+  createBackChoice(),
+]
+
+const buildWorkspaceViewportTypeChoices = (): ConsoleStagedNavigationChoice[] => [
+  WORKSPACE_VIEWPORT_TYPE_MODEL_CHOICE,
+  WORKSPACE_VIEWPORT_TYPE_BROWSER_CHOICE,
+  WORKSPACE_VIEWPORT_TYPE_CONSOLE_CHOICE,
+  WORKSPACE_VIEWPORT_TYPE_SPAGHETTI_EDITOR_CHOICE,
+  createBackChoice(),
+]
+
+const buildWorkspaceViewportCloseConfirmChoices = (): ConsoleStagedNavigationChoice[] => [
+  WORKSPACE_CONFIRM_CLOSE_CHOICE,
+  createBackChoice(),
 ]
 
 const createContentAssemblyChoice = (
@@ -1340,6 +1643,115 @@ const createZoomRootSession = (): ConsoleStagedNavigationSession => ({
     sketchNodeId: null,
   },
   validChoices: buildZoomActionChoices(),
+})
+
+export const createWorkspaceModesRootSession = (
+  context: Pick<ConsoleStagedNavigationContext, 'workspaceViewportOptions'>,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'workspaceModesRoot',
+  breadcrumb: ['Root', 'Workspace Modes'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    workspaceViewportId: null,
+  },
+  validChoices: buildWorkspaceModesRootChoices(context),
+})
+
+const resolveWorkspaceViewportOption = (
+  context: Pick<ConsoleStagedNavigationContext, 'workspaceViewportOptions'> | undefined,
+  viewportId: string,
+) => context?.workspaceViewportOptions.find((viewportOption) => viewportOption.viewportId === viewportId) ?? null
+
+const supportsWorkspaceViewportOpenInNewBrowser = (
+  surfaceKind: ConsoleStagedNavigationContext['workspaceViewportOptions'][number]['surfaceKind'] | undefined,
+): boolean => surfaceKind === 'modelViewer' || surfaceKind === 'browser'
+
+const supportsWorkspaceViewportFloat = (
+  viewportOption: ConsoleStagedNavigationContext['workspaceViewportOptions'][number] | null,
+): boolean =>
+  viewportOption !== null &&
+  viewportOption.isPrimary !== true &&
+  (viewportOption.surfaceKind === 'modelViewer' ||
+    viewportOption.surfaceKind === 'browser' ||
+    viewportOption.surfaceKind === 'console')
+
+const supportsWorkspaceViewportClose = (
+  viewportOption: ConsoleStagedNavigationContext['workspaceViewportOptions'][number] | null,
+): boolean =>
+  viewportOption !== null &&
+  viewportOption.isPrimary !== true &&
+  (viewportOption.surfaceKind === 'modelViewer' ||
+    viewportOption.surfaceKind === 'browser' ||
+    viewportOption.surfaceKind === 'console')
+
+export const createWorkspaceModeViewportSelectedSession = (
+  viewportId: string,
+  label: string,
+  context?: Pick<ConsoleStagedNavigationContext, 'workspaceViewportOptions'>,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'workspaceModeViewportSelected',
+  breadcrumb: ['Root', 'Workspace Modes', label],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    workspaceViewportId: viewportId,
+  },
+  validChoices: buildWorkspaceViewportActionChoices({
+    includeFloat: supportsWorkspaceViewportFloat(resolveWorkspaceViewportOption(context, viewportId)),
+    includeClose: supportsWorkspaceViewportClose(resolveWorkspaceViewportOption(context, viewportId)),
+    includeOpenInNewBrowser:
+      supportsWorkspaceViewportOpenInNewBrowser(
+        resolveWorkspaceViewportOption(context, viewportId)?.surfaceKind,
+      ),
+  }),
+})
+
+const createWorkspaceModeViewportSplitSelectedSession = (
+  viewportId: string,
+  label: string,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'workspaceModeViewportSplitSelected',
+  breadcrumb: ['Root', 'Workspace Modes', label, 'Split Menu'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    workspaceViewportId: viewportId,
+  },
+  validChoices: buildWorkspaceViewportSplitChoices(),
+})
+
+const createWorkspaceModeViewportTypeSelectedSession = (
+  viewportId: string,
+  label: string,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'workspaceModeViewportTypeSelected',
+  breadcrumb: ['Root', 'Workspace Modes', label, 'Viewport Type Menu'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    workspaceViewportId: viewportId,
+  },
+  validChoices: buildWorkspaceViewportTypeChoices(),
+})
+
+const createWorkspaceModeViewportCloseConfirmSelectedSession = (
+  viewportId: string,
+  label: string,
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'workspaceModeViewportCloseConfirmSelected',
+  breadcrumb: ['Root', 'Workspace Modes', label, 'Close'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    workspaceViewportId: viewportId,
+  },
+  validChoices: buildWorkspaceViewportCloseConfirmChoices(),
 })
 
 export const createSketchDrawZoomRootSession = (): ConsoleStagedNavigationSession => ({
@@ -2739,6 +3151,7 @@ export const createConsoleStagedNavigationContext = (
   contentObjectTransformSnapLockByObjectId: ConsoleStagedNavigationContext['contentObjectTransformSnapLockByObjectId'] = {},
   contentObjectTransformSnapEnabledByObjectId: ConsoleStagedNavigationContext['contentObjectTransformSnapEnabledByObjectId'] = {},
   contentObjectTransformShellByObjectId: ConsoleStagedNavigationContext['contentObjectTransformShellByObjectId'] = {},
+  workspaceViewportOptions: ConsoleStagedNavigationContext['workspaceViewportOptions'] = [],
 ): ConsoleStagedNavigationContext => {
   const usingLegacyArgumentOrder =
     (contentAssembliesOrReferenceCategories.length > 0 &&
@@ -2767,6 +3180,13 @@ export const createConsoleStagedNavigationContext = (
     : referenceTransformSnapEnabledByReferenceId
 
   return {
+    workspaceViewportOptions: workspaceViewportOptions.map((viewportOption) => ({
+      viewportId: viewportOption.viewportId,
+      slotId: viewportOption.slotId,
+      isPrimary: viewportOption.isPrimary,
+      label: viewportOption.label,
+      surfaceKind: viewportOption.surfaceKind,
+    })),
     contentAssemblies: contentAssemblies.map((assembly) => ({
       assemblyId: assembly.assemblyId,
       label: assembly.label,
@@ -2851,6 +3271,9 @@ export const submitConsoleStagedNavigationToken = (
         matchedRootChoice,
       )
     }
+    if (matchedRootChoice.canonicalToken === ROOT_WORKSPACE_MODES_CHOICE.canonicalToken) {
+      return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedRootChoice)
+    }
     if (matchedRootChoice.canonicalToken === ROOT_RADIO_CHOICE.canonicalToken) {
       const radioRootSession = createRadioRootSession()
       return createAdvanceResult(radioRootSession, submittedToken, matchedRootChoice)
@@ -2909,6 +3332,9 @@ export const submitConsoleStagedNavigationToken = (
         matchedChoice,
       )
     }
+    if (matchedChoice.canonicalToken === ROOT_WORKSPACE_MODES_CHOICE.canonicalToken) {
+      return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedChoice)
+    }
     if (matchedChoice.canonicalToken === ROOT_CONTENT_CHOICE.canonicalToken) {
       return createAdvanceResult(createContentRootSession(context), submittedToken, matchedChoice)
     }
@@ -2950,6 +3376,296 @@ export const submitConsoleStagedNavigationToken = (
       )
     }
     return createAdvanceResult(rootSession, submittedToken, matchedChoice)
+  }
+
+  if (session.scopeId === 'workspaceModesRoot') {
+    const workspaceModesChoices = buildWorkspaceModesRootChoices(context)
+    const matchedChoice =
+      workspaceModesChoices.find((choice) =>
+        matchesChoice(choice, normalizedToken, session, workspaceModesChoices),
+      ) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult(
+        { ...session, validChoices: workspaceModesChoices },
+        submittedToken,
+        workspaceModesChoices,
+      )
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    if (typeof matchedChoice.workspaceViewportId === 'string') {
+      return createAdvanceResult(
+        createWorkspaceModeViewportSelectedSession(
+          matchedChoice.workspaceViewportId,
+          matchedChoice.label,
+          context,
+        ),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    return createInvalidResult(
+      { ...session, validChoices: workspaceModesChoices },
+      submittedToken,
+      workspaceModesChoices,
+    )
+  }
+
+    if (session.scopeId === 'workspaceModeViewportSelected') {
+      const choices = buildWorkspaceViewportActionChoices({
+        includeFloat: supportsWorkspaceViewportFloat(
+          resolveWorkspaceViewportOption(context, session.selections.workspaceViewportId ?? ''),
+        ),
+        includeClose: supportsWorkspaceViewportClose(
+          resolveWorkspaceViewportOption(context, session.selections.workspaceViewportId ?? ''),
+        ),
+        includeOpenInNewBrowser:
+          supportsWorkspaceViewportOpenInNewBrowser(
+            resolveWorkspaceViewportOption(context, session.selections.workspaceViewportId ?? '')?.surfaceKind,
+          ),
+      })
+      const matchedChoice =
+        choices.find((choice) => matchesChoice(choice, normalizedToken, session, choices)) ?? null
+      if (matchedChoice === null) {
+        return createInvalidResult({ ...session, validChoices: choices }, submittedToken, choices)
+      }
+      if (matchedChoice.canonicalToken === WORKSPACE_SPLIT_MENU_CHOICE.canonicalToken) {
+        return createAdvanceResult(
+          createWorkspaceModeViewportSplitSelectedSession(
+            session.selections.workspaceViewportId ?? '',
+            session.breadcrumb.at(-1) ?? 'Viewport',
+          ),
+          submittedToken,
+          matchedChoice,
+        )
+      }
+      if (matchedChoice.canonicalToken === WORKSPACE_VIEWPORT_TYPE_CHOICE.canonicalToken) {
+        return createAdvanceResult(
+          createWorkspaceModeViewportTypeSelectedSession(
+            session.selections.workspaceViewportId ?? '',
+            session.breadcrumb.at(-1) ?? 'Viewport',
+          ),
+          submittedToken,
+          matchedChoice,
+        )
+      }
+      if (matchedChoice.canonicalToken === WORKSPACE_FLOAT_CHOICE.canonicalToken) {
+        return {
+          kind: 'execute',
+          session,
+          submittedToken,
+          matchedChoice,
+          actionId: 'workspace.viewport.float',
+          breadcrumb: [...session.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
+      if (matchedChoice.canonicalToken === WORKSPACE_CLOSE_CHOICE.canonicalToken) {
+        return createAdvanceResult(
+          createWorkspaceModeViewportCloseConfirmSelectedSession(
+            session.selections.workspaceViewportId ?? '',
+            session.breadcrumb.at(-1) ?? 'Viewport',
+          ),
+          submittedToken,
+          matchedChoice,
+        )
+      }
+      if (matchedChoice.canonicalToken === WORKSPACE_OPEN_IN_NEW_BROWSER_CHOICE.canonicalToken) {
+        return {
+          kind: 'execute',
+          session: {
+            ...session,
+            validChoices: choices,
+          },
+          submittedToken,
+          matchedChoice,
+          actionId: 'workspace.viewport.openInNewBrowser',
+          breadcrumb: [...session.breadcrumb, matchedChoice.label],
+          selections: session.selections,
+        }
+      }
+      return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedChoice)
+    }
+
+  if (session.scopeId === 'workspaceModeViewportSplitSelected') {
+    const choices = buildWorkspaceViewportSplitChoices()
+    const matchedChoice =
+      choices.find((choice) => matchesChoice(choice, normalizedToken, session, choices)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: choices }, submittedToken, choices)
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_SPLIT_TOP_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.split.top',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_SPLIT_RIGHT_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.split.right',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_SPLIT_BOTTOM_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.split.bottom',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_SPLIT_LEFT_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.split.left',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    return createAdvanceResult(
+      createWorkspaceModeViewportSelectedSession(
+        session.selections.workspaceViewportId ?? '',
+        session.breadcrumb.at(-2) ?? 'Viewport',
+        context,
+      ),
+      submittedToken,
+      matchedChoice,
+    )
+  }
+
+  if (session.scopeId === 'workspaceModeViewportTypeSelected') {
+    const choices = buildWorkspaceViewportTypeChoices()
+    const matchedChoice =
+      choices.find((choice) => matchesChoice(choice, normalizedToken, session, choices)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: choices }, submittedToken, choices)
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_VIEWPORT_TYPE_MODEL_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.type.modelViewer',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_VIEWPORT_TYPE_BROWSER_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.type.browser',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_VIEWPORT_TYPE_CONSOLE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.type.console',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_VIEWPORT_TYPE_SPAGHETTI_EDITOR_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.type.spaghettiEditor',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    return createAdvanceResult(
+      createWorkspaceModeViewportSelectedSession(
+        session.selections.workspaceViewportId ?? '',
+        session.breadcrumb.at(-2) ?? 'Viewport',
+        context,
+      ),
+      submittedToken,
+      matchedChoice,
+    )
+  }
+
+  if (session.scopeId === 'workspaceModeViewportCloseConfirmSelected') {
+    const choices = buildWorkspaceViewportCloseConfirmChoices()
+    const matchedChoice =
+      choices.find((choice) => matchesChoice(choice, normalizedToken, session, choices)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: choices }, submittedToken, choices)
+    }
+    if (matchedChoice.canonicalToken === WORKSPACE_CONFIRM_CLOSE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: choices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'workspace.viewport.close',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    return createAdvanceResult(
+      createWorkspaceModeViewportSelectedSession(
+        session.selections.workspaceViewportId ?? '',
+        session.breadcrumb.at(-2) ?? 'Viewport',
+        context,
+      ),
+      submittedToken,
+      matchedChoice,
+    )
   }
 
   if (session.scopeId === 'cameraRoot') {

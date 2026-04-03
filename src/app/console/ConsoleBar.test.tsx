@@ -102,6 +102,65 @@ describe('ConsoleBar', () => {
     ).toEqual(['B'])
   })
 
+  it('uses workspace-modes one-letter aliases by default and promotes only collisions', async () => {
+    useConsoleStore.setState({
+      stagedNavigationSession: {
+        scopeId: 'workspaceModeViewportTypeSelected',
+        breadcrumb: ['Root', 'Workspace Modes', 'Browser Viewport', 'Viewport Type Menu'],
+        selections: {
+          graphDocumentId: null,
+          selectedNodeId: null,
+          sketchNodeId: null,
+          workspaceViewportId: 'browser-workspace-slot-2',
+        },
+        validChoices: [
+          {
+            label: 'Model Viewport',
+            aliases: ['MV'],
+            canonicalToken: 'MODELVIEWPORT',
+            kind: 'action',
+          },
+          {
+            label: 'Browser',
+            aliases: ['BRO'],
+            canonicalToken: 'BROWSER',
+            kind: 'action',
+          },
+          {
+            label: 'Console',
+            aliases: ['C'],
+            canonicalToken: 'CONSOLE',
+            kind: 'action',
+          },
+          {
+            label: 'Back',
+            aliases: ['B'],
+            canonicalToken: 'BACK',
+            kind: 'scope',
+          },
+        ],
+      },
+      stagedChoiceIndex: 0,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleBar />)
+    })
+
+    const choiceNodes = Array.from(container.querySelectorAll('.ConsoleBarSummaryChoice'))
+    const aliasTexts = choiceNodes.map((choiceNode) =>
+      Array.from(choiceNode.querySelectorAll('.ConsoleBarSummaryChoiceAlias')).map((node) => node.textContent).join(
+        '',
+      ),
+    )
+
+    expect(aliasTexts).toEqual(['M', 'Br', 'C', 'B'])
+  })
+
   it('treats escape as step-back immediately for reference transform value prompts', async () => {
     const cancelSpy = { called: false }
 
@@ -355,7 +414,7 @@ describe('ConsoleBar', () => {
           sequence: 1,
           createdAtMs: 1,
           timestampLabel: '00:00:01',
-          text: 'Root > Choose next [Graph, References, Camera, Radio, Zoom, Pan, Orbit]',
+          text: 'Root > Choose next [Graph, References, Workspace Modes, Camera, Radio, Zoom, Pan, Orbit]',
           layer: 'Commands',
           commandLineKind: null,
           source: 'console',
@@ -381,11 +440,19 @@ describe('ConsoleBar', () => {
       container.querySelectorAll('.ConsoleBarSummaryChoice'),
     ) as HTMLElement[]
     const referencesChoice = choices.find((choice) => choice.textContent?.includes('References'))
+    const workspaceModesChoice = choices.find((choice) =>
+      choice.textContent?.includes('Workspace Modes'),
+    )
 
     expect(
       Array.from(referencesChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? []).map(
         (node) => node.textContent,
       ),
     ).toEqual(['R', 'e', 'f'])
+    expect(
+      Array.from(
+        workspaceModesChoice?.querySelectorAll('.ConsoleBarSummaryChoiceAlias') ?? [],
+      ).map((node) => node.textContent),
+    ).toEqual(['W', 'M'])
   })
 })

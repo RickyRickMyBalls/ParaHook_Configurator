@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-03 10:08: Added `Workspace 7.5-17 - Split Viewport Browser Instance Ownership` as the new top cleanup target after chat clarified that switching the right side of a split model viewport to `Browser` currently steals the docked left-toolbar Browser instead of opening a viewport-local Browser instance, and recorded the intended rule that viewport Browser opens must create a new surface rather than reparent an existing docked Browser
 1. 2026-04-03 10:02: Added `Workspace 7.5-16 - Console Workspace Modes Entry` as the new top cleanup target after chat clarified that workspace-mode options should get a real console home, and linked this stack entry to a new future phase doc that locks `Root > Workspace Modes` with alias `wm` as the next research-first console integration task
 1. 2026-04-03 09:58: Moved the finished `Workspace 7.5-10`, `Workspace 7.5-12`, and `Workspace 7.5-14` phase docs from `Future/` into `Shipped/` after confirming both their top-level closeout text and permanent `docs/CHANGELOG.md` entries, and repointed this cleanup stack so the closed items now link to their canonical shipped phase files while the stack itself stays in `Future/`
 1. 2026-04-03 09:42: Moved the finished `Workspace 7.5-15 - Model Viewport Local View Toolbar State` phase doc from `Future/` into `Shipped/` after closeout, and repointed this cleanup stack entry so the ladder still links to the canonical shipped phase file instead of leaving the completed doc in the future-planning bucket
@@ -54,52 +55,57 @@ When a new larger cleanup appears:
 
 ### Cleanup Stack
 
-#### 1. [ ] [Workspace 7.5-16 - Console Workspace Modes Entry](./Workspace_Phase%20Workspace-7.5-16%20-%20Console%20Workspace%20Modes%20Entry.md)
+#### 1. [ ] `Workspace 7.5-17 - Split Viewport Browser Instance Ownership`
+Why this is here:
+- this is now the current first larger cleanup to plan because splitting a model viewport and switching the new right pane to `Browser` currently reuses or reparents the docked left-toolbar Browser instead of creating a fresh viewport-local Browser surface
+- opening `Browser` inside a viewport split should allocate a new Browser instance for that viewport host, leaving the already-docked Browser in place so viewport mode swaps do not silently steal or move existing workspace surfaces
+
+#### 2. [ ] [Workspace 7.5-16 - Console Workspace Modes Entry](./Workspace_Phase%20Workspace-7.5-16%20-%20Console%20Workspace%20Modes%20Entry.md)
 Why this is here:
 - this is now the current first larger cleanup to plan because workspace modes need one honest console home instead of being spread across unrelated paths or left only to viewport chrome
 - the root console should gain `Workspace Modes` with alias `wm`, and that should enter a dedicated workspace-modes section that can become the stable console home for future workspace-mode actions
 
-#### 2. [x] [Workspace 7.5-15 - Model Viewport Local View Toolbar State](../Shipped/Workspace_Phase%20Workspace-7.5-15%20-%20Model%20Viewport%20Local%20View%20Toolbar%20State.md)
+#### 3. [x] [Workspace 7.5-15 - Model Viewport Local View Toolbar State](../Shipped/Workspace_Phase%20Workspace-7.5-15%20-%20Model%20Viewport%20Local%20View%20Toolbar%20State.md)
 Why this is here:
 - this phase shipped the per-viewport `View` toolbar and gizmo anchor repairs and is now closed after live validation confirmed that expanding or minimizing one model viewport no longer clones or misaligns sibling toolbar chrome
 - later model viewport chrome polish should be treated as new follow-up work instead of reopening this finished local-toolbar cleanup
 
-#### 3. [x] [Workspace 7.5-14 - Model Viewport Split Camera Persistence](../Shipped/Workspace_Phase%20Workspace-7.5-14%20-%20Model%20Viewport%20Split%20Camera%20Persistence.md)
+#### 4. [x] [Workspace 7.5-14 - Model Viewport Split Camera Persistence](../Shipped/Workspace_Phase%20Workspace-7.5-14%20-%20Model%20Viewport%20Split%20Camera%20Persistence.md)
 Why this is here:
 - this phase shipped the split-camera persistence fix and is now closed after live validation confirmed that splitting a model viewport preserves the user camera across both panes
 - later camera or viewport polish should be treated as new follow-up work instead of reopening this finished split-camera repair slot
 
-#### 4. [ ] [Workspace 7.5-7 - Spaghetti Editor Split Modes And Console Alignment](./Workspace_Phase%20Workspace-7.5-7%20-%20Spaghetti%20Editor%20Split%20Modes%20And%20Console%20Alignment.md)
+#### 5. [ ] [Workspace 7.5-7 - Spaghetti Editor Split Modes And Console Alignment](./Workspace_Phase%20Workspace-7.5-7%20-%20Spaghetti%20Editor%20Split%20Modes%20And%20Console%20Alignment.md)
 Why this is here:
 - this is the current first larger cleanup to plan because split-mode semantics and console alignment are likely the broadest foundation under several of the later `Spaghetti Editor` cleanup tasks
 - this should clarify how split-host `Spaghetti Editor` behavior and console interaction are supposed to work together before we polish the more local presentation or visual seams
 
-#### 5. [ ] [Workspace 7.5-8 - Global Workspace Split Ghost Preview Truth](./Workspace_Phase%20Workspace-7.5-8%20-%20Global%20Workspace%20Split%20Ghost%20Preview%20Truth.md)
+#### 6. [ ] [Workspace 7.5-8 - Global Workspace Split Ghost Preview Truth](./Workspace_Phase%20Workspace-7.5-8%20-%20Global%20Workspace%20Split%20Ghost%20Preview%20Truth.md)
 Why this is here:
 - the split ghost preview is a direct workspace interaction cue and should be honest before we spend too much time polishing presentation details
 - this should be fixed as a shared workspace-shell affordance, with `Spaghetti Editor` as the first validation surface instead of turning split ghost logic into spaghetti-only code
 
-#### 6. [ ] [Workspace 7.5-9 - Spaghetti Presentation Mode Truth](./Workspace_Phase%20Workspace-7.5-9%20-%20Spaghetti%20Presentation%20Mode%20Truth.md)
+#### 7. [ ] [Workspace 7.5-9 - Spaghetti Presentation Mode Truth](./Workspace_Phase%20Workspace-7.5-9%20-%20Spaghetti%20Presentation%20Mode%20Truth.md)
 Why this is here:
 - this separates reduced-chrome `Essentials` behavior from `Overlay` behavior and cleans up the `Spaghetti Editor` primary presentation control into an explicit four-mode contract
 - it fits after the broader split-mode semantics cleanup and after the split ghost affordance is honest enough to support clearer presentation behavior
 
-#### 7. [x] [Workspace 7.5-10 - Spaghetti Editor Popout Window Repair](../Shipped/Workspace_Phase%20Workspace-7.5-10%20-%20Spaghetti%20Editor%20Popout%20Window%20Repair.md)
+#### 8. [x] [Workspace 7.5-10 - Spaghetti Editor Popout Window Repair](../Shipped/Workspace_Phase%20Workspace-7.5-10%20-%20Spaghetti%20Editor%20Popout%20Window%20Repair.md)
 Why this is here:
 - this phase repaired the broken `Spaghetti Editor` popout path into a working real child-window mode and is now closed
 - later popout titlebar split-menu capability should be treated as a new later workspace phase instead of reopening this finished repair slot
 
-#### 8. [ ] `Workspace 7.5-11 - Spaghetti Editor Split-Mode Visual Parity With Floating Window`
+#### 9. [ ] `Workspace 7.5-11 - Spaghetti Editor Split-Mode Visual Parity With Floating Window`
 Why this is here:
 - this is a more visual polish and parity task rather than the first structural cleanup to tackle
 - it should land after the can we add an option to all the right click menus on the title bar? when the user underlying split semantics, presentation truth, and popout behavior are more stable
 
-#### 9. [x] [Workspace 7.5-12 - Popout Window Titlebar Split Menu](../Shipped/Workspace_Phase%20Workspace-7.5-12%20-%20Popout%20Window%20Titlebar%20Split%20Menu.md)
+#### 10. [x] [Workspace 7.5-12 - Popout Window Titlebar Split Menu](../Shipped/Workspace_Phase%20Workspace-7.5-12%20-%20Popout%20Window%20Titlebar%20Split%20Menu.md)
 Why this is here:
 - this phase shipped the popup-local child-window workspace shell, popup-local titlebar split menu, and the first adopter set across `Spaghetti Editor`, `modelViewer`, `Console`, and `Browser`, so it is now closed
 - later popup-local polish or parity work should be treated as new follow-up phases instead of reopening this completed titlebar-split capability ladder
 
-#### 10. [ ] [Workspace 7.5-13 - Model Viewport Popout Window](./Workspace_Phase%20Workspace-7.5-13%20-%20Model%20Viewport%20Popout%20Window.md)
+#### 11. [ ] [Workspace 7.5-13 - Model Viewport Popout Window](./Workspace_Phase%20Workspace-7.5-13%20-%20Model%20Viewport%20Popout%20Window.md)
 Why this is here:
 - this is another new workspace capability task rather than residue from the current `Spaghetti Editor` or Browser popout work, because the model viewport still needs its own explicit popout button and child-window lifecycle
 - it fits after the earlier popout repair and popout-titlebar capability phases because model viewport popout should build on the now-proven child-window substrate and the broader detached-surface or popout interaction truth already established elsewhere in the workspace ladder

@@ -3,6 +3,55 @@
 ## Doc Header
 
 ### Doc History
+891. 2026-04-03 17:24: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the `Console 11 / Phase 5.1` implementation shipped, recording that `useConsoleInteraction.ts` now owns the submit coordinator and remaining interaction callback band while `Phase 5` stays open for any final shell-thinning follow-on, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console checklist now shows `Phase 5.1` complete with the refreshed open-phase status, and logged the shipped implementation slice in `docs/CHANGELOG.md`
+890. 2026-04-03 17:04: Tightened `Phase 5.1 - Move Submit Coordinator And Remaining Controller Callbacks Into useConsoleInteraction` inside `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` into an implementation-ready slice by re-reading the live post-first-cut controller boundary in `ConsoleDock.tsx` and `useConsoleInteraction.ts`, locking the exact remaining callback targets, exclusions, sequencing, and verification for moving the submit or cancel or tab-cycle controller band into the existing interaction hook, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the open console checklist now records that `Console 11 / Phase 5.1` is implementation-ready
+889. 2026-04-03 17:04: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the first `Phase 5` controller-hook cut to add a new explicit `Phase 5.1 - Move Submit Coordinator And Remaining Controller Callbacks Into useConsoleInteraction`, making the next shell-thinning pass concrete around moving `handleSubmitCommand(...)` and the still-local interaction callback band out of `src/app/console/ConsoleDock.tsx`, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the open console checklist now tracks that follow-on directly under the still-open `Phase 5`
+888. 2026-04-03 16:59: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the first `Console 11 / Phase 5` controller-hook cut shipped, recording that `src/app/console/useConsoleInteraction.ts` now owns guided-root rehydration, radio-choice coordination, duplicated keyboard routing, and prompt or feature or sketch sync while the phase remains open because `handleSubmitCommand(...)` and the remaining controller callbacks still live in `src/app/console/ConsoleDock.tsx`, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` with the same first-cut status, and logged the shipped code slice in `docs/CHANGELOG.md`
+887. 2026-04-03 16:42: Prepared `Phase 5 - Thin ConsoleDock Composition Shell` inside `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` for implementation by re-reading the live post-`Phase 4.2` `ConsoleDock.tsx` shape, locking the next cut to a `useConsoleInteraction`-style controller hook for submit, escape/back, keyboard routing, and prompt/feature sync while keeping final render composition and windowing local, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family history records that `Console 11 / Phase 5` is now implementation-ready
+886. 2026-04-03 16:39: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the `Console 11 / Phase 4.2` cleanup shipped, marking the narrow follow-on complete with the real root-shortcut duplicate removal and verification, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console checklist now shows `Phase 4.2` done, and logged the same implementation slice in `docs/CHANGELOG.md`
+885. 2026-04-03 16:34: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the second post-`Phase 4.1` code review, adding a new narrow `Phase 4.2 - Finish Reference Transform Root Shortcut Cleanup And Coverage` follow-on for the leftover `referenceTransformRoot` delete-latest fallback and the remaining extracted helper coverage gap, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the open console checklist now tracks that tiny cleanup slice explicitly before `Phase 5`
+884. 2026-04-03 16:21: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the `Console 11 / Phase 4.1` cleanup shipped, marking the follow-on complete with the real duplicate-ownership removal and verification, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console checklist now shows `Phase 4.1` done, and logged the same implementation slice in `docs/CHANGELOG.md`
+883. 2026-04-03 16:04: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after a post-implementation review showed the landed `Console 11 / Phase 4` seam still leaves stale inline reference/content runtime ownership in `ConsoleDock.tsx`, adding a new explicit `Phase 4.1 - Complete Reference/Content Runtime Extraction Cleanup` follow-on before `Phase 5`, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the open console checklist now tracks that new completion slice separately from the already-landed initial `Phase 4`
+882. 2026-04-03 15:46: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the `Console 11 / Phase 4` runtime-family extraction shipped, marking the phase complete with the real `consoleReferenceContentCommands.ts` seam and verification, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family checklist now shows `Phase 4` done, and logged the same implementation slice in `docs/CHANGELOG.md`
+881. 2026-04-03 15:21: Prepared `Phase 4 - Split Domain Command Families Out Of Submit Dispatch` inside `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` for implementation by re-reading the live post-`Phase 3` submit-runtime seam in `ConsoleDock.tsx`, locking the first extraction cut to the shared reference-transform, content-transform, and content-owner rename family boundary with explicit file targets, exclusions, sequencing, and verification, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family history records that `Console 11 / Phase 4` is now implementation-ready
+880. 2026-04-03 15:03: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the `Console 11 / Phase 3` host extraction shipped, marking `Phase 3` complete with the real `useConsoleWindowing.ts` seam and verification, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family checklist now shows `Phase 3` done, and logged the same implementation slice in `docs/CHANGELOG.md`
+879. 2026-04-03 14:41: Prepared `Phase 3 - Extract Window Host And Surface Placement Logic` inside `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` for implementation by re-reading the live post-`Phase 2` host seam in `ConsoleDock.tsx`, locking the `useConsoleWindowing`-style boundary, explicit host inputs and outputs, exclusions, sequencing, and verification, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family history records that `Console 11 / Phase 3` is now implementation-ready
+878. 2026-04-03 14:31: Updated `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` after the Phase 2 helper extraction shipped, marking `Phase 2` complete with the actual extracted files and verification, updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family checklist now shows `Phase 2` done, and logged the same implementation slice in `docs/CHANGELOG.md`
+877. 2026-04-03 14:24: Prepared `Phase 2 - Extract Pure Parsing, Prompt, And Formatting Helpers` inside `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` for implementation, locking the exact pure-helper first cut, file targets, exclusions, sequencing, and verification against the live `ConsoleDock.tsx`, and updated `docs/Human-Plans/Architecture/Console/Console-Index.md` so the console family history records that `Console 11 / Phase 2` is now implementation-ready while the broader decomposition phase remains open
+876. 2026-04-03 14:17: Re-ran `Phase 1 - Responsibility Audit And Safe Extraction Boundaries` inside `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md` against the later live `ConsoleDock.tsx`, confirming the overall extraction order still holds while refreshing the document to call out the newer feature-assist helper seam, content-owner rename prompt path, and the fact that `Workspace Modes` staged-navigation ownership already lives partly outside `ConsoleDock`
+875. 2026-04-03 14:04: Refreshed the shipped `Phase 2 - Workspace Modes Root Branch And Viewport Picker` section inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the later workspace-modes work and section reformat, tightening the live owner-seam read around `buildRootChoices()`, `createWorkspaceModesRootSession(...)`, `workspaceViewportOptions`, `buildRootPromptText()`, and `buildStagedSummaryBreadcrumb(...)` so the early root-branch phase still reads implementation-ready in the newer `##` layout
+874. 2026-04-03 13:58: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the first `Spaghetti Editor` viewport-type slice shipped, marking `Phase 13 - Spaghetti Editor Viewport Type Adoption Plan` complete and recording that `Workspace Modes` now includes `Spaghetti Editor` in `Viewport Type Menu` while the runtime reuses the existing editor-viewport reuse or duplication seam and retargets the staged console session to the new live editor surface after success
+873. 2026-04-03 13:45: Tightened `Phase 13 - Spaghetti Editor Viewport Type Adoption Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking `src/app/AppShell.tsx` as the real `spaghettiEditor` slot-switch owner seam, preserving protected-primary handling, and scoping the first console pass to reuse the existing editor-viewport reuse or duplication rules plus staged-session retargeting after a successful switch
+872. 2026-04-03 13:44: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` to add `Phase 13 - Spaghetti Editor Viewport Type Adoption Plan`, locking the next later-surface workspace-modes slice as a dedicated `Viewport Type` adoption pass for `Spaghetti Editor` after the generic workspace-mode action, close, and guided-alias phases settled
+871. 2026-04-03 13:43: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the split-menu alias follow-up shipped, recording that the split submenu now uses `t`, `r`, `b`, and `l` for the four split directions while `Back` is promoted only inside that submenu so `Split Bottom` can keep `b`
+870. 2026-04-03 13:38: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the first guided alias cleanup shipped, marking `Phase 12 - Guided Alias Simplification Plan` complete and recording that `Workspace Modes` now prefers one-letter aliases by default, reserves `b` for `Back`, promotes only colliding choices to the shortest deterministic menu-local alias, and keeps the visible summary hints aligned with the accepted aliases
+869. 2026-04-03 13:31: Tightened `Phase 12 - Guided Alias Simplification Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking the real alias owner seams in `stagedNavigation.ts` and `ConsoleBar.tsx`, reserving `b` for `Back` when present, keeping collision promotion menu-local, and scoping the first runtime pass to `Workspace Modes` unless broader adoption proves essentially free
+868. 2026-04-03 13:30: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` to add `Phase 12 - Guided Alias Simplification Plan`, locking the next console cleanup as a one-letter-first guided alias pass where only menu-local collisions promote a choice to a two-letter shorthand and protected aliases like `Back` can stay reserved when needed
+867. 2026-04-03 13:24: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the first close runtime slice shipped, marking `Phase 11 - Close Action Plan` complete and recording that `Workspace Modes` now exposes `Close` for eligible non-primary model, browser, and console viewport targets through a dedicated confirmation submenu while the console returns to the refreshed `Root > Workspace Modes` picker after success and protected primary targets remain blocked
+866. 2026-04-03 13:19: Tightened `Phase 11 - Close Action Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking reuse of the existing workspace close owner seam, explicit protected-primary handling, one required confirmation step for destructive close actions, and a truthful post-close console handoff rule before the next runtime pass starts
+865. 2026-04-03 13:16: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the first float runtime slice shipped, marking `Phase 10 - Float Action Plan` complete and recording that `Workspace Modes` now exposes `Float` for eligible non-primary model, browser, and console viewport targets while the console stays anchored on the same source viewport branch after success and protected primary targets remain blocked
+864. 2026-04-03 13:07: Tightened `Phase 10 - Float Action Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking reuse of the shared `floatWorkspaceSurface(...)` owner seam plus the existing `AppShell` host-state helpers, explicit primary-slot protection handling, and a narrow later runtime path that does not invent console-local floating behavior for Browser, Console, or model viewers
+863. 2026-04-03 13:05: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the Browser later-surface slice shipped, marking `Phase 9 - Open In New Browser Later-Surface Adoption Plan` complete and recording that Browser now adopts `Open In New Browser` through the existing browser popout seam while shared workspace viewport labels keep the one-browser case singular and reserve browser numbering for real multi-browser cases
+862. 2026-04-03 12:50: Tightened `Phase 9 - Open In New Browser Later-Surface Adoption Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready planning slice, locking the shared workspace viewport-label ownership for future browser numbering, preserving the simple singular `Browser` label in the one-browser case, and adding explicit per-surface adoption questions or boundaries for Browser and Console before any non-model runtime implementation starts
+861. 2026-04-03 12:46: Tightened `Phase 9 - Open In New Browser Later-Surface Adoption Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`, locking that future browser-target labels in `Workspace Modes` should remain the simple singular `Browser` when only one live browser target exists and only expand into numbered labels like `Browser 1`, `Browser 2`, and later siblings when multiple distinct browser windows are actually available
+860. 2026-04-03 12:41: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the `Open In New Browser` workspace-modes slice shipped, marking `Phase 7 - Open In New Browser Menu Presence And Surface Gate` and `Phase 8 - Model Viewport Open In New Browser First Implementation` complete and recording that the chosen-viewport action menu now exposes `Open In New Browser` only for supported `modelViewer` targets while the runtime path reuses the existing model viewport browser-copy seam and keeps the source viewport as the active in-app console target after success
+859. 2026-04-03 12:29: Tightened `Phase 8 - Model Viewport Open In New Browser First Implementation` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking that the first real runtime pass should ship `Open In New Browser` only for supported `modelViewer` targets, reuse the same model viewport browser-copy owner seam already used by the titlebar action, keep the source viewport as the active in-app console target after success, and defer Browser or other later surfaces to their own follow-up phase
+858. 2026-04-03 12:26: Reworked the later `Workspace 7.5-16` phase ladder inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`, splitting the old broad `Open In New Browser` follow-up into smaller chunks for menu-presence or surface gating, first `modelViewer` implementation, and later-surface adoption before the existing `Float` and `Close` planning phases so the next runtime slice can ship more safely
+857. 2026-04-03 12:23: Tightened `Phase 7 - Open In New Browser Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking that the next planning or implementation pass should treat `Open In New Browser` as a chosen-viewport action-family entry, require `modelViewer` support first, reuse the existing child-window or browser-open owner seams instead of inventing console-local popup logic, and answer the truthful console handoff rule before code starts
+856. 2026-04-03 12:21: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the latest workspace-modes split cleanup shipped, recording that successful split commands now forward the console into the newly created viewport branch under `Root > Workspace Modes > <New Viewport>` instead of leaving the user parked on the source viewport's split submenu
+855. 2026-04-03 12:18: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the workspace-modes menu cleanup shipped, marking `Phase 5 - Chosen Viewport Action Menu Shape` complete and recording that the chosen-viewport branch now shows `Split Menu`, `Viewport Type Menu`, and `Back`, while the split directions and viewport-type options each live in their own submenu layers with normal breadcrumb or status output
+854. 2026-04-03 12:08: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the `Phase 6 - Viewport Type Submenu Plan` implementation slice shipped, marking that phase complete and recording that `Workspace Modes` now includes a real `Viewport Type` submenu with the first safe options `Model Viewport`, `Browser`, and `Console`, that the runtime path retargets to the new live surface instance after a successful type change, and that `Spaghetti Editor` remains intentionally deferred to a later safety pass
+853. 2026-04-03 12:00: Tightened `Phase 6 - Viewport Type Submenu Plan` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice after tracing `src/app/AppShell.tsx` and `src/app/workspace/useWorkspaceStore.ts` as the real surface-kind owner seams, locking that the first viewport-type pass should ship `Model Viewport`, `Browser`, and `Console`, defer `Spaghetti Editor`, and reuse `handleViewportSlotSurfaceKindChange(...)` / `setViewportSlotSurfaceKind(...)` instead of inventing console-local viewport-type mutation logic
+852. 2026-04-03 11:55: Reworked the later `Workspace 7.5-16` ladder inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`, replacing the old broad `Phase 5 - Workspace Modes Section Expansion Plan` with a narrower chosen-viewport action-menu phase and adding follow-on phases for `Viewport Type`, `Open In New Browser`, `Float`, and `Close` so later workspace-mode console growth can ship in smaller ordered slices
+851. 2026-04-03 11:50: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the `Phase 4 - Titlebar Split Console Reporting` implementation slice shipped, marking that phase complete and recording that viewport titlebar split actions now append user-selected console activity entries from the real `AppShell` split commit seam using the same viewport labels and split wording as the `Workspace Modes` console path
+850. 2026-04-03 11:49: Tightened `Phase 4 - Titlebar Split Console Reporting` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice after tracing `src/app/AppShell.tsx` as the real titlebar split owner seam, locking that the next work should log only committed split actions from `handleViewportSlotSplit(...)` as user-selected console activity while reusing the existing viewport and split vocabulary and avoiding menu-open or preview logging
+849. 2026-04-03 11:45: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after chat clarified that viewport titlebar split actions should report into the console as user-selected activity, adding that cleanup as the new `Phase 4 - Titlebar Split Console Reporting` and shifting the broader `Workspace Modes Section Expansion Plan` down to `Phase 5`
+848. 2026-04-03 11:39: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the `Phase 3 - Viewport Split Direction Commands` implementation slice shipped, marking that phase complete and recording that `Workspace Modes` now reaches the four split directions after viewport selection while the live console execution path reuses the existing slot-split runtime seam plus model-viewer camera restore rather than a new console-local split system
+847. 2026-04-03 11:37: Tightened `Phase 3 - Viewport Split Direction Commands` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking that the next work should widen the selected-viewport branch with the four split choices, preserve the normal console breadcrumb and prompt pattern, and reuse `src/app/workspace/workspaceSurfaceActions.ts` as the shared split commit seam instead of inventing console-local split behavior
+846. 2026-04-03 11:31: Updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after the `Phase 2` implementation slice shipped, marking the root branch and viewport picker complete and recording that `Workspace Modes` or `wm` now enters a real staged console family with live viewport labels and normal breadcrumb/status output while split-direction execution remains intentionally deferred to `Phase 3`
+845. 2026-04-03 11:24: Tightened `Phase 2 - Workspace Modes Root Branch And Viewport Picker` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready slice, locking the exact console owner seams, the narrow staged-navigation viewport-data adapter boundary, the explicit defer of split execution to Phase 3, and the concrete done-shape for shipping `Root > Workspace Modes > Choose viewport [...]` with normal breadcrumb or status output
+844. 2026-04-03 11:18: Completed `Phase 1 - Console Root Entry And Owner Path Research` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md`, replacing the earlier speculative console-read with the traced owner seams for root-choice insertion, alias matching, prompt transcript truth, visible breadcrumb or status rendering, and the missing staged-navigation viewport-data adapter needed before the `Workspace Modes` branch can ship
+843. 2026-04-03 10:57: Tightened `Phase 1 - Console Root Entry And Owner Path Research` inside `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` into an implementation-ready research slice, locking the exact console seams to trace for root entry insertion, alias matching, breadcrumb or status output, viewport choice generation, and later split-action reuse before code begins
 842. 2026-04-03 10:52: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after chat clarified that the console status should keep printing normal breadcrumbs throughout the new `Workspace Modes` flow, locking that the branch must reuse the standard breadcrumb/status pattern instead of inventing a one-off status style once the user enters viewport and split choices
 841. 2026-04-03 10:46: Expanded `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` after chat clarified the intended console conversation shape, locking the first flow as `Root > Workspace Modes > Choose viewport [...] > Choose next [Split Top, Split Right, Split Bottom, Split Left]`, standardizing the wording to `Split Bottom`, and breaking the work into clearer phased steps so the first implementation slice can stay narrow while later workspace-mode actions still have a stable console home
 840. 2026-04-03 10:02: Added `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-16 - Console Workspace Modes Entry.md` as the new research-first planning surface for integrating workspace-mode options into the console, and updated `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace-Cleanup-Task-Stack.md` so the next cleanup target is now `Root > Workspace Modes` with alias `wm` entering a dedicated workspace-modes console section
@@ -617,6 +666,172 @@
 232. 2026-03-25 03:15: Locked the first three `Browser-5.1` reference-selection decisions across both `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and the standalone `Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection stays lightweight, viewport-picked references should follow into matching Browser rows when the mapping is clear, and empty-space click plus replacement click own normal reference deselect and replacement
 231. 2026-03-25 03:13: Locked `q2` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that viewport-picked references should drive Browser row selection whenever one clear matching reference row exists while still avoiding fake sync for ambiguous cases
 230. 2026-03-25 03:12: Locked `q1` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection only highlights/selects the reference while stronger transform ownership must remain a separate explicit action instead of starting from normal row or viewport selection
+<!-- ENTRY 349 -->
+### [349] - 2026-04-03 15:21 - `DOC - Prepare Console 11 Phase 4 For Implementation`
+<!-- ENTRY 349 -->
+HUMAN SUMMARY: Tightened `Console 11 / Phase 4` into an implementation-ready runtime-family slice by re-reading the live post-`Phase 3` submit seam, locking the first extraction cut to the shared reference-transform, content-transform, and content-owner rename boundary, and making the exclusions explicit so sketch, radio, workspace, and flat-root command cleanup do not get mixed into the same pass.
+
+#### Scope
+- Refined the existing standalone future `Console 11` phase doc under `docs/Human-Plans/Architecture/Console/Future/`.
+- Updated the console family index history in `docs/Human-Plans/Architecture/Console/Console-Index.md`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Expanded `Phase 4` from a short intent block into a real implementation-ready spec with current live read, locked first-cut file targets, explicit runtime inputs and outputs, exclusions, sequencing, and verification.
+- Locked the first implementation cut to the shared reference/content transform seam plus browser-adjacent content-owner rename handling instead of widening immediately into sketch, radio, workspace, or flat commands.
+- Clarified that `handleSubmitCommand(...)` should remain the top-level coordinator in the first cut while routing that first family through an extracted module.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the current post-`Phase 3` `handleSubmitCommand(...)` seam in `src/app/console/ConsoleDock.tsx`, including prompt handling, staged execution, reference/content transform branches, content-owner rename flow, sketch/runtime branches, and flat command dispatch, so the updated `Phase 4` boundary now matches the live code shape before the next implementation pass.
+
+<!-- ENTRY 350 -->
+### [350] - 2026-04-03 15:46 - `DOC - Close Out Console 11 Phase 4 After Runtime Family Extraction`
+<!-- ENTRY 350 -->
+HUMAN SUMMARY: Marked `Console 11 / Phase 4` complete after the first runtime-family extraction shipped, updating the phase doc with the real `consoleReferenceContentCommands.ts` seam and verification, checking off `Phase 4` in the console family index, and recording the same implementation slice in the permanent changelog.
+
+#### Scope
+- Updated the standalone future `Console 11` phase doc under `docs/Human-Plans/Architecture/Console/Future/`.
+- Updated the console family index history and checklist in `docs/Human-Plans/Architecture/Console/Console-Index.md`.
+- Logged the corresponding shipped implementation work in `docs/CHANGELOG.md`.
+
+#### Summary
+- Added a new `Doc History` line and `Implementation Result` block to the `Console 11` phase doc so the planning record now matches the real Phase 4 code seam, test coverage, and verification commands.
+- Corrected the earlier proposed runtime-family filename in the phase doc to the shipped `src/app/console/consoleReferenceContentCommands.ts` shape.
+- Checked off `Console 11 / Phase 4` in the console family index while keeping `Phase 5` and the overall `Console 11` plan open.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Confirmed the shipped Phase 4 runtime-family extraction verification already passed in the same change set:
+  - `npm.cmd test -- consoleReferenceContentCommands ConsoleDock`
+  - `npm.cmd run build`
+
+<!-- ENTRY 348 -->
+### [348] - 2026-04-03 15:03 - `DOC - Close Out Console 11 Phase 3 After Window Host Extraction`
+<!-- ENTRY 348 -->
+HUMAN SUMMARY: Marked `Console 11 / Phase 3` complete after the window-host extraction shipped, updating the phase doc with the real `useConsoleWindowing.ts` seam and verification, checking off `Phase 3` in the console family index, and recording the same implementation slice in the permanent changelog.
+
+#### Scope
+- Updated the active `Console 11` planning doc to reflect the shipped `Phase 3` result.
+- Updated the console family index history and checklist.
+- Added the permanent implementation entry in `docs/CHANGELOG.md`.
+
+#### Summary
+- Added a real `Phase 3` implementation result block describing the extracted `useConsoleWindowing.ts` host seam, the responsibilities that moved, the JSX ownership that stayed in `ConsoleDock.tsx`, and the verification that passed.
+- Marked `Phase 3` complete in the future `Console 11` doc and in the console family index checklist.
+- Logged the shipped runtime slice in `docs/CHANGELOG.md` so the extracted window-host mechanics have a permanent implementation-history entry.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the final `Console 11 / Phase 3` planning sections against the shipped `src/app/console/useConsoleWindowing.ts` and updated `src/app/console/ConsoleDock.tsx` ownership split so the docs now match the live implementation and verification truth.
+
+<!-- ENTRY 344 -->
+### [344] - 2026-04-03 14:17 - `DOC - Refresh Console 11 Phase 1 Audit After Later Console Work`
+<!-- ENTRY 344 -->
+HUMAN SUMMARY: Re-ran the `Console 11` `Phase 1` audit against the later live `ConsoleDock.tsx`, confirming the same broad extraction order still holds while tightening the seam map around the newer feature-assist helper band, the newer `content.owner.label` rename prompt path, and the fact that `Workspace Modes` staged-navigation ownership now already lives partly outside `ConsoleDock`.
+
+#### Scope
+- Refined the existing standalone future `Console 11` planning doc under `docs/Human-Plans/Architecture/Console/Future/`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Added a stale-check result so `Phase 1` now explicitly says the main extraction order is still valid.
+- Split the old helper read into a clearer pure-helper seam plus a separate feature-assist helper seam.
+- Updated the submit and domain-family findings to include the newer content-owner rename prompt path.
+- Clarified that later `Phase 4` work should keep `Workspace Modes` on the existing `stagedNavigation.ts` ownership seam instead of reabsorbing it into `ConsoleDock`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the refreshed `Console 11` `Phase 1` findings against the current `src/app/console/ConsoleDock.tsx` helper bands, submit path, and window-host block to confirm the updated seam labels match the live file without changing the locked subphase order.
+
+<!-- ENTRY 347 -->
+### [347] - 2026-04-03 14:41 - `DOC - Prepare Console 11 Phase 3 For Implementation`
+<!-- ENTRY 347 -->
+HUMAN SUMMARY: Tightened `Console 11 / Phase 3` into an implementation-ready host-mechanics slice by re-reading the live post-`Phase 2` `ConsoleDock.tsx` windowing seam, locking a `useConsoleWindowing`-style boundary, and making the exclusions explicit so the next extraction can move floating, pop-out, and split-host behavior without accidentally absorbing keyboard-routing or command-runtime logic.
+
+#### Scope
+- Refined the existing standalone future `Console 11` phase doc under `docs/Human-Plans/Architecture/Console/Future/`.
+- Updated the console family index history in `docs/Human-Plans/Architecture/Console/Console-Index.md`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Added a full implementation-ready `Phase 3` spec with current live read, locked file target, explicit host inputs and outputs, exclusions, sequencing, and verification.
+- Clarified that final JSX composition should stay in `ConsoleDock.tsx` while mechanics move behind a focused host hook or helper family.
+- Clarified that the pop-out keyboard listener stays out of `Phase 3` even though it depends on `popoutWindow`, because it is input-routing logic rather than placement or host behavior.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the current floating bounds, pop-out host, split-preview, drag or resize, and render-integration seams in `src/app/console/ConsoleDock.tsx` against the updated `Phase 3` boundary so the new implementation-ready scope matches the live code after the shipped `Phase 2` extraction.
+
+<!-- ENTRY 346 -->
+### [346] - 2026-04-03 14:31 - `DOC - Close Out Console 11 Phase 2 After Helper Extraction`
+<!-- ENTRY 346 -->
+HUMAN SUMMARY: Marked `Console 11 / Phase 2` complete after the helper extraction shipped, updating the phase doc with the actual extracted files and verification, checking off `Phase 2` in the console family index, and recording the same implementation slice in the permanent changelog.
+
+#### Scope
+- Updated the active `Console 11` planning doc to reflect the shipped `Phase 2` result.
+- Updated the console family index history and checklist.
+- Added the permanent implementation entry in `docs/CHANGELOG.md`.
+
+#### Summary
+- Added a new `Doc History` entry and completion block to the `Console 11` phase doc.
+- Marked `Phase 2` complete in the console family checklist.
+- Recorded the implementation verification commands alongside the shipped `Phase 2` summary.
+- Linked the docs closeout to the permanent implementation history in `docs/CHANGELOG.md`.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the updated `Console 11` and `Console-Index` entries against the shipped helper modules, test files, and the successful verification commands so the docs now reflect the actual implemented `Phase 2` slice instead of only the earlier implementation-ready plan.
+
+<!-- ENTRY 345 -->
+### [345] - 2026-04-03 14:24 - `DOC - Prepare Console 11 Phase 2 For Implementation`
+<!-- ENTRY 345 -->
+HUMAN SUMMARY: Tightened `Console 11 / Phase 2` into an implementation-ready first extraction slice by locking the exact pure-helper file targets, the explicit exclusions that should stay out of the first pass, the recommended extraction order, and the focused helper-test plan, while also updating the console family index history so the phase now reads ready for code instead of only aspirational.
+
+#### Scope
+- Refined the existing standalone future `Console 11` phase doc under `docs/Human-Plans/Architecture/Console/Future/`.
+- Updated the console family index history in `docs/Human-Plans/Architecture/Console/Console-Index.md`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Added a full `Phase 2` header with goals, current live read, and exact first-cut file targets.
+- Locked the first extraction set to parser, prompt-text, and generic literal helpers rather than every top-level pure function.
+- Added explicit `Phase 2` exclusions so feature-assist, store-derived, window-host, and command-family-specific pure helpers do not get pulled into the first cut by accident.
+- Added a focused unit-test plan and regression expectations for the implementation pass.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Console/Future/Console_Phase Console-11 - ConsoleDock Organization And Decomposition Plan.md`
+- `docs/Human-Plans/Architecture/Console/Console-Index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Re-read the current top-level helper band in `src/app/console/ConsoleDock.tsx` against the new `Phase 2` file-target and exclusion lists to confirm the implementation-ready scope still matches the live code after the later console additions.
 
 <!-- ENTRY 343 -->
 ### [343] - 2026-04-03 08:07 - `DOC - Lock Main Model Viewport Open In New Browser Rule`

@@ -130,6 +130,32 @@ const resolveStagedAdvanceIdentity = ({
   }
 
   switch (activeScopeId) {
+    case 'workspaceModesRoot':
+      return matchedCanonicalToken === 'BACK'
+        ? buildIdentity('Console', 'WorkspaceModes', 'Back')
+        : resolveSelectionIdentity(['Console', 'WorkspaceModes'], matchedLabel)
+    case 'workspaceModeViewportSelected':
+      return matchedCanonicalToken === 'SPLITMENU'
+        ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'SplitMenu')
+        : matchedCanonicalToken === 'VIEWPORTTYPEMENU'
+          ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'ViewportTypeMenu')
+          : matchedCanonicalToken === 'CLOSE'
+            ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'Close')
+          : matchedCanonicalToken === 'BACK'
+            ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'Back')
+            : null
+    case 'workspaceModeViewportSplitSelected':
+      return matchedCanonicalToken === 'BACK'
+        ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'SplitMenu', 'Back')
+        : null
+    case 'workspaceModeViewportTypeSelected':
+      return matchedCanonicalToken === 'BACK'
+        ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'ViewportTypeMenu', 'Back')
+        : null
+    case 'workspaceModeViewportCloseConfirmSelected':
+      return matchedCanonicalToken === 'BACK'
+        ? buildIdentity('Console', 'WorkspaceModes', 'Viewport', 'Close', 'Back')
+        : null
     case 'cameraRoot':
       return matchedCanonicalToken === 'PROJECTION'
         ? buildIdentity('Console', 'Camera', 'Projection')
@@ -658,6 +684,28 @@ const resolveStagedExecuteIdentity = ({
   actionId,
 }: Extract<RadioCommandIdentityInput, { kind: 'stagedExecute' }>): string => {
   switch (actionId) {
+    case 'workspace.viewport.split.top':
+      return buildIdentity('Console', 'WorkspaceModes', 'Split', 'Top')
+    case 'workspace.viewport.split.right':
+      return buildIdentity('Console', 'WorkspaceModes', 'Split', 'Right')
+    case 'workspace.viewport.split.bottom':
+      return buildIdentity('Console', 'WorkspaceModes', 'Split', 'Bottom')
+    case 'workspace.viewport.split.left':
+      return buildIdentity('Console', 'WorkspaceModes', 'Split', 'Left')
+    case 'workspace.viewport.float':
+      return buildIdentity('Console', 'WorkspaceModes', 'Float')
+    case 'workspace.viewport.close':
+      return buildIdentity('Console', 'WorkspaceModes', 'Close')
+    case 'workspace.viewport.openInNewBrowser':
+      return buildIdentity('Console', 'WorkspaceModes', 'OpenInNewBrowser')
+    case 'workspace.viewport.type.modelViewer':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'ModelViewport')
+    case 'workspace.viewport.type.browser':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Browser')
+    case 'workspace.viewport.type.console':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Console')
+    case 'workspace.viewport.type.spaghettiEditor':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'SpaghettiEditor')
     case 'radio.on':
       return buildIdentity('Console', 'Radio', 'On')
     case 'radio.off':

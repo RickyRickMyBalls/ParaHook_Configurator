@@ -9,7 +9,10 @@ import {
   type RefObject,
 } from 'react'
 import { CONSOLE_MAX_EXPANDED_HEIGHT, useConsoleStore } from './useConsoleStore'
-import type { ConsoleStagedNavigationSession } from './stagedNavigation'
+import {
+  resolveEffectiveChoiceAliases,
+  type ConsoleStagedNavigationSession,
+} from './stagedNavigation'
 import { useAppStore } from '../store/useAppStore'
 
 type ConsoleBarProps = {
@@ -98,6 +101,8 @@ export function ConsoleBar({
           return 'REF'
         case 'CAMERA':
           return 'C'
+        case 'WORKSPACEMODES':
+          return 'WM'
         case 'RADIO':
           return 'R'
         case 'ZOOM':
@@ -166,6 +171,12 @@ export function ConsoleBar({
         return ['Root']
       case 'zoomRoot':
         return ['Zoom']
+      case 'workspaceModesRoot':
+      case 'workspaceModeViewportSelected':
+      case 'workspaceModeViewportSplitSelected':
+      case 'workspaceModeViewportTypeSelected':
+      case 'workspaceModeViewportCloseConfirmSelected':
+        return session.breadcrumb
       case 'sketchDrawZoomRoot':
         return ['Graph', 'Sketch', 'Sketch Draw', 'Zoom']
       case 'graphRoot':
@@ -321,7 +332,14 @@ export function ConsoleBar({
           leadText: ' > Choose next',
           choices: stagedNavigationSession.validChoices.map((choice) => ({
             label: choice.label,
-            aliasHint: selectPreferredAliasHint(choice.label, choice.aliases),
+            aliasHint: selectPreferredAliasHint(
+              choice.label,
+              resolveEffectiveChoiceAliases(
+                stagedNavigationSession,
+                stagedNavigationSession.validChoices,
+                choice,
+              ),
+            ),
           })),
           activeChoiceIndex: stagedChoiceIndex ?? 0,
         }

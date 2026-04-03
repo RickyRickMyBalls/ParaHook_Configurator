@@ -3,6 +3,24 @@
 ## Doc Header
 
 ### Doc History
+41. 2026-04-03 17:24: Completed `Console 11 / Phase 5.1` by moving the submit coordinator and remaining interaction callback band into `src/app/console/useConsoleInteraction.ts`, rewiring `src/app/console/ConsoleDock.tsx` down to helper seams plus shell composition ownership, and verifying the slice with the targeted console Vitest pass plus a full production build while keeping `Phase 5` open for any final shell-thinning follow-on
+40. 2026-04-03 17:04: Prepared `Console 11 / Phase 5.1` for implementation by tightening the still-open shell-thinning remainder around the live post-first-cut controller seam, locking the next code pass to moving `handleSubmitCommand(...)`, `handleEscCancelCommand(...)`, transform tab-cycle helpers, staged back or cancel helpers, `routeConsoleGlobalKey(...)`, and the rest of the still-inline interaction callback band into `src/app/console/useConsoleInteraction.ts`
+39. 2026-04-03 17:04: Added a new explicit `Console 11 / Phase 5.1` follow-on after the first controller-hook cut, recording that the next shell-thinning slice is now specifically about moving `handleSubmitCommand(...)` and the remaining interaction/controller callback band into `src/app/console/useConsoleInteraction.ts` rather than leaving the rest of `Phase 5` as a vague open remainder
+38. 2026-04-03 16:59: Landed the first `Console 11 / Phase 5` controller-hook cut by extracting guided-root rehydration, radio-choice coordination, duplicated main or pop-out keyboard routing, and prompt or feature or sketch sync effects into `src/app/console/useConsoleInteraction.ts`, rewiring `src/app/console/ConsoleDock.tsx` to consume that hook, and verifying the slice with the targeted console Vitest pass plus a full production build while keeping `Phase 5` open because the submit coordinator and remaining controller callbacks still live in `ConsoleDock.tsx`
+37. 2026-04-03 16:42: Prepared `Console 11 / Phase 5` as an implementation-ready shell-thinning slice by tightening the future `Console 11` phase doc around the live post-`Phase 4.2` `ConsoleDock.tsx` shape, locking the next cut to a `useConsoleInteraction`-style controller hook for submit, escape/back, keyboard routing, and prompt/feature sync while keeping final render composition and windowing local
+36. 2026-04-03 16:39: Completed `Console 11 / Phase 4.2` by removing the leftover inline `referenceTransformRoot` delete-latest fallback from `ConsoleDock.tsx`, adding direct focused tests for the remaining extracted reference-transform helper paths in `src/app/console/consoleReferenceContentCommands.test.ts`, and verifying the cleanup with the targeted console Vitest pass plus a full production build
+35. 2026-04-03 16:34: Updated the open `Console 11` planning record after a second post-`Phase 4.1` code review showed the large duplicate runtime seam is gone but one leftover `referenceTransformRoot` delete-latest fallback and the remaining extracted active reference-transform helper coverage gap still justify one tiny follow-on, adding `Phase 4.2` to the future phase doc and widening the checklist so that cleanup is tracked explicitly before `Phase 5`
+34. 2026-04-03 16:21: Completed `Console 11 / Phase 4.1` by removing the stale inline reference/content prompt and staged-execute ownership left behind in `ConsoleDock.tsx`, expanding `src/app/console/consoleReferenceContentCommands.test.ts` into direct runtime coverage for the extracted family seam, and verifying the cleanup with the targeted console Vitest pass plus a full production build
+33. 2026-04-03 16:04: Updated the open `Console 11` planning record after a post-implementation review showed the first `Phase 4` runtime-family seam still leaves stale inline reference/content ownership in `ConsoleDock.tsx`, adding a new `Phase 4.1` completion slice to the future phase doc so that cleanup is tracked explicitly before `Phase 5` shell-thinning
+32. 2026-04-03 15:46: Completed `Console 11 / Phase 4` by extracting the first reference-transform, content-transform, and content-owner rename runtime-family seam into `src/app/console/consoleReferenceContentCommands.ts`, routing the matching `ConsoleDock.tsx` submit paths through that module, adding focused runtime-family tests, and verifying the slice with the targeted `ConsoleDock` Vitest pass plus a full production build
+31. 2026-04-03 15:21: Prepared `Console 11 / Phase 4` as an implementation-ready runtime-family slice by tightening the future `Console 11` phase doc around the live post-`Phase 3` submit seam, locking the first extraction cut to the shared reference-transform, content-transform, and content-owner rename family boundary, and making the exclusions explicit so sketch, radio, workspace, and flat-root command cleanup do not get accidentally absorbed into the same code pass
+30. 2026-04-03 15:03: Completed `Console 11 / Phase 3` by extracting the floating, pop-out, drag, resize, split-preview, and host-render data mechanics out of `ConsoleDock.tsx` into `src/app/console/useConsoleWindowing.ts`, keeping the final floating/pop-out/split JSX visibly owned by `ConsoleDock.tsx`, and verifying the window-host extraction with the targeted `ConsoleDock` Vitest pass plus a full production build
+29. 2026-04-03 14:41: Prepared `Console 11 / Phase 3` as an implementation-ready host-mechanics slice by tightening the future `Console 11` phase doc around the live post-`Phase 2` windowing seam, locking the `useConsoleWindowing`-style boundary, explicit inputs and outputs, exclusions, sequencing, and verification while leaving the overall `ConsoleDock` decomposition phase open
+28. 2026-04-03 14:31: Completed `Console 11 / Phase 2` by extracting the locked first-cut parser, prompt-text, and literal helpers out of `ConsoleDock.tsx` into dedicated console helper modules with focused helper tests and full console plus build verification, while keeping the larger `ConsoleDock` decomposition phase open for the later window-host and runtime-family cuts
+27. 2026-04-03 14:24: Prepared `Console 11 / Phase 2` as an implementation-ready first extraction slice by tightening the future `Console 11` phase doc around the exact pure-helper first cut, locked file targets, exclusions, sequencing, and test plan while leaving the overall `ConsoleDock` decomposition phase open
+26. 2026-04-03 12:10: Completed `Console 11 / Phase 1` as a read-first responsibility audit, adding concrete findings and a locked extraction handoff to the future `Console 11` plan doc and marking only the first checklist step complete while keeping the overall plan open
+25. 2026-04-03 11:55: Renamed the open `ConsoleDock` organization plan into the new future-doc style `Console 11`, removed the legacy `5.1H` lane name from that plan record, moved the standalone file into `Console/Future/`, and renamed its implementation ladder to plain `Phase 1` through `Phase 5`
+24. 2026-04-03 11:20: Added a new open console architecture phase `[5.1H] ConsoleDock Organization And Decomposition Plan`, created a standalone root-level phase doc for it, and broke the `ConsoleDock.tsx` cleanup into explicit planned subphases so future console refactor work can land in smaller, reviewable slices
 23. 2026-03-26 07:08: Moved the standalone shipped console phase docs into `Console/Shipped/`, left the still-open `[4.1I]` parent record at the root because `4.1I5` is not done yet, and updated the phase index plus phase-doc guidance so shipped links now resolve through the shipped folder instead of the mixed old root layout
 22. 2026-03-25 21:49: Marked `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` complete after shipping the first owner-first command migration cut, moving its standalone phase record into `Console/Shipped/`, and updating the phase index so shared workspace-selection outcomes and shared view commands are now landed console-family history rather than an open future follow-on
 21. 2026-03-24 14:19: Created the standalone future phase doc `Future/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`, updated the phase-doc guidance to reflect the folderized `Console/Future/` layout, and linked the new `5.1G` follow-on out of the bottom phase index
@@ -1185,7 +1203,7 @@ History note:
 
 # Phase Index
 
-## [x] `[4.1H]` `Hybrid Command Capture And Shortcut Unification`
+## [x] `Console 1` - `[4.1H]` `Hybrid Command Capture And Shortcut Unification`
 
 Summary:
 - unified typed-first console capture, optional `/` focus, and shortcut routing into one safer intake model
@@ -1204,7 +1222,7 @@ Checklist:
 - [x] protect real text fields from console capture
 - [x] route typed command entry through visible shared dispatch
 
-## [~] `[4.1I]` `Hierarchical Path Grammar`
+## [~] `Console 2` - `[4.1I]` `Hierarchical Path Grammar`
 
 Summary:
 - introduced the staged command tree for graph and sketch flows, with one remaining hardening follow-on still open
@@ -1228,7 +1246,7 @@ Checklist:
 - [x] `4.1I4` missing-branch recovery and node creation
 - [ ] `4.1I5` robustness and prompt quality
 
-## [x] `[4.1J]` `Input Ownership And Coordination Cleanup`
+## [x] `Console 3` - `[4.1J]` `Input Ownership And Coordination Cleanup`
 
 Summary:
 - made keyboard ownership explicit across console, viewer, and active sessions so command intake stops drifting
@@ -1251,7 +1269,7 @@ Checklist:
 - [x] `4.1J3` migrate active sessions onto shared routing
 - [x] `4.1J4` harden precedence and clean up leftovers
 
-## [x] `[4.1K]` `Surface-Driven Console Context Sync`
+## [x] `Console 4` - `[4.1K]` `Surface-Driven Console Context Sync`
 
 Summary:
 - made console context follow the active graph, sketch, and surface state instead of drifting into panel-local mode
@@ -1269,7 +1287,7 @@ Checklist:
 - [x] scope prompts from real surface activity
 - [x] clear stale context when sessions or surfaces exit
 
-## [x] `[4.1L]` `Command Transcript Sublayers`
+## [x] `Console 5` - `[4.1L]` `Command Transcript Sublayers`
 
 Summary:
 - split the console transcript into clearer layers so command flow, system notes, params, and diagnostics can coexist
@@ -1287,7 +1305,7 @@ Checklist:
 - [x] separate command flow from worker or app notes
 - [x] keep collapsed mode readable
 
-## [x] `[4.1M]` `Staged Choice Prefill And Arrow Cycling`
+## [x] `Console 6` - `[4.1M]` `Staged Choice Prefill And Arrow Cycling`
 
 Summary:
 - added constrained-choice prefill and quick cycling so staged steps stop feeling blank and friction-heavy
@@ -1305,7 +1323,7 @@ Checklist:
 - [x] support `ArrowUp` and `ArrowDown` cycling
 - [x] keep assisted-choice behavior scoped to constrained staged states
 
-## [x] `[4.1N]` `Feature Session Prompt Descriptors`
+## [x] `Console 7` - `[4.1N]` `Feature Session Prompt Descriptors`
 
 Summary:
 - extended the shared prompt/choice seam so active feature sessions can publish their next-input expectations cleanly
@@ -1323,7 +1341,7 @@ Checklist:
 - [x] expose expected next input more clearly
 - [x] keep prompt descriptors compatible with collapsed console use
 
-## [x] `[4.1P]` `Assisted Prefill Replace-On-Type Across Levels`
+## [x] `Console 8` - `[4.1P]` `Assisted Prefill Replace-On-Type Across Levels`
 
 Summary:
 - adds one shared overwrite rule so the first printable user key replaces assisted prefill instead of appending onto it
@@ -1342,7 +1360,7 @@ Checklist:
 - [x] preserve normal manual typing after override begins
 - [x] keep unconstrained flat command entry unchanged
 
-## [x] `[5.1F]` `Workspace Selection, Surface Activation, And Canonical Intents`
+## [~] `Console 9` - `[5.1F]` `Workspace Selection, Surface Activation, And Canonical Intents`
 
 Summary:
 - moved console-driven workspace and surface activation toward one canonical intent layer instead of per-surface command handling
@@ -1414,7 +1432,7 @@ What is still missing is the repeatable expansion rule for new CAD commands:
 - every new graph/view/workspace command should plug into one owned seam first
 - every surface should adapt into that same seam instead of inventing a local execution path
 
-## [x] `[5.1G]` `Surface-Agnostic Command Ownership And Adapter Expansion`
+## [~] `Console 10` - `[5.1G]` `Surface-Agnostic Command Ownership And Adapter Expansion`
 
 Summary:
 - shipped the first owner-first command migration cut so `Console`, `Browser`, `Model Viewport`, and `View Toolbar` now share canonical workspace-selection outcome seams plus shared view-command owners instead of continuing to grow separate local glue
@@ -1435,3 +1453,31 @@ Checklist:
 - [x] assign each command family to its canonical owner seam instead of a surface-local handler
 - [x] migrate Browser, model viewport, and view-toolbar entry points onto those shared seams where they still call local behavior directly
 - [x] add regression coverage proving the same command can be triggered from more than one surface without different behavior
+
+## [ ] `Console 11` - `ConsoleDock Organization And Decomposition Plan`
+
+Summary:
+- adds a dedicated planning phase for shrinking `ConsoleDock.tsx` out of its current "UI host plus command runtime plus domain glue" shape into smaller, owned console modules without changing the shipped console behavior all at once
+
+Goals:
+- separate render/window-host responsibilities from command-execution responsibilities
+- move parser, prompt-text, and domain command logic behind clearer console seams
+- stage the refactor into subphases small enough to verify without losing console behavior
+
+Docs:
+- [Console 11](./Future/Console_Phase%20Console-11%20-%20ConsoleDock%20Organization%20And%20Decomposition%20Plan.md)
+
+Checklist:
+- [x] `Phase 1` inventory and freeze current `ConsoleDock` responsibilities
+- [x] `Phase 2` extract pure parsing, prompt-text, and formatting helpers
+- [x] `Phase 3` isolate windowing, floating, pop-out, and split-dock host behavior
+- [x] `Phase 4` land the first reference/content runtime-family seam
+- [x] `Phase 4.1` complete the first reference/content extraction by removing stale inline ownership and tightening direct coverage
+- [x] `Phase 4.2` finish the remaining reference-transform root shortcut cleanup and direct helper coverage
+- [ ] `Phase 5` reduce `ConsoleDock` to a thin composition shell with focused hooks/modules
+- [x] `Phase 5.1` move `handleSubmitCommand(...)` and the remaining controller callback band into `src/app/console/useConsoleInteraction.ts`
+
+Status:
+- `useConsoleInteraction.ts` now owns both the first-cut keyboard or sync band and the `Phase 5.1` submit or cancel or tab-cycle controller remainder
+- `ConsoleDock.tsx` is materially thinner and now reads primarily as subscriptions, helper seams, windowing consumption, refs, and JSX composition
+- `Phase 5` remains open only for any final shell-thinning follow-on that still proves worthwhile after the `Phase 5.1` controller move

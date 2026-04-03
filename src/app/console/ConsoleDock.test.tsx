@@ -261,6 +261,551 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Select > Content')).toBe(true)
   })
 
+  it('enters workspace modes from root and lists live viewport choices', async () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'browser',
+      surfaceInstanceId: 'browser-workspace-slot-2',
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModesRoot')
+    expect(useConsoleStore.getState().inputText).toBe('Model Viewport 1')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Root > Workspace Modes')).toBe(
+      true,
+    )
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) =>
+          entry.text ===
+          'Root > Workspace Modes > Choose next [Model Viewport 1, Browser Viewport, Back]',
+      ),
+    ).toBe(true)
+  })
+
+  it('splits the chosen workspace-mode viewport and forwards the console to the new viewport branch', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Model Viewport 1')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Model Viewport 1 > Choose next',
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Open In New Browser',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Split Menu')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'workspaceModeViewportSplitSelected',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Model Viewport 1 > Split Menu > Choose next',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Split Right')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(Object.keys(useWorkspaceStore.getState().viewportSlotsById)).toHaveLength(2)
+    const secondarySlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slot) => slot.slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlot?.surfaceKind).toBe('modelViewer')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Model Viewport 2',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) => entry.text === 'Root > Workspace Modes > Model Viewport 1 > Split Menu > Split Right',
+        ),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Model Viewport 2 > Choose next',
+    )
+  })
+
+  it('changes the chosen workspace-mode viewport type and keeps the viewport-type choices active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'browser',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Browser Viewport')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Viewport Type Menu')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportTypeSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Browser Viewport > Viewport Type Menu > Choose next',
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Model Viewport',
+      'Browser',
+      'Console',
+      'Spaghetti Editor',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Console')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const secondarySlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slot) => slot.slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlot?.surfaceKind).toBe('console')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportTypeSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Console Viewport 2',
+      'Viewport Type Menu',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text === 'Root > Workspace Modes > Browser Viewport > Viewport Type Menu > Console',
+        ),
+    ).toBe(true)
+    expect(
+      container.querySelector('.ConsoleBarSummary')?.textContent,
+    ).toContain('Root > Workspace Modes > Console Viewport 2 > Viewport Type Menu > Choose next')
+  })
+
+  it('changes the chosen workspace-mode viewport type to spaghetti editor and keeps the viewport-type choices active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'browser',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Browser Viewport')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Viewport Type Menu')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Spaghetti Editor')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const secondarySlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slot) => slot.slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlot?.surfaceKind).toBe('spaghettiEditor')
+    expect(typeof secondarySlot?.surfaceInstanceId).toBe('string')
+    expect(secondarySlot?.surfaceInstanceId.length ?? 0).toBeGreaterThan(0)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportTypeSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Spaghetti Editor Viewport 2',
+      'Viewport Type Menu',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text ===
+            'Root > Workspace Modes > Browser Viewport > Viewport Type Menu > Spaghetti Editor',
+        ),
+    ).toBe(true)
+    expect(
+      container.querySelector('.ConsoleBarSummary')?.textContent,
+    ).toContain('Root > Workspace Modes > Spaghetti Editor Viewport 2 > Viewport Type Menu > Choose next')
+  })
+
+  it('opens a model viewport in new browser from workspace modes and keeps the source viewport branch active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Model Viewport 1')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Open In New Browser')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(Object.keys(useWorkspaceStore.getState().detachedSlotSurfaceById)).toHaveLength(1)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Model Viewport 1',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) => entry.text === 'Root > Workspace Modes > Model Viewport 1 > Open In New Browser',
+        ),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Model Viewport 1 opened in new browser'),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Model Viewport 1 > Choose next',
+    )
+  })
+
+  it('opens a browser viewport in new browser from workspace modes and keeps the source viewport branch active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'browser',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Browser Viewport')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+      expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+        'Split Menu',
+        'Viewport Type Menu',
+        'Float',
+        'Open In New Browser',
+        'Close',
+        'Back',
+      ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Open In New Browser')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isPoppedOut).toBe(true)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Browser Viewport',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) => entry.text === 'Root > Workspace Modes > Browser Viewport > Open In New Browser',
+        ),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Browser Viewport opened in new browser'),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Browser Viewport > Choose next',
+    )
+  })
+
+  it('floats a browser viewport from workspace modes and keeps the source viewport branch active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'browser',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Browser Viewport')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Float')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(true)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Browser Viewport',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Root > Workspace Modes > Browser Viewport > Float'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Browser Viewport floated'),
+    ).toBe(true)
+  })
+
+  it('floats a console viewport from workspace modes and keeps the source viewport branch active', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'console',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Console Viewport 2')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Float')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().windowMode).toBe('floating')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Console Viewport 2',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Root > Workspace Modes > Console Viewport 2 > Float'),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Console Viewport 2 floated'),
+    ).toBe(true)
+  })
+
+  it('closes a browser viewport from workspace modes and returns to the workspace-modes root picker', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'browser',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Browser Viewport')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Close')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'workspaceModeViewportCloseConfirmSelected',
+    )
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Browser Viewport > Close > Choose next',
+    )
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Confirm Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Confirm Close')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(Object.keys(useWorkspaceStore.getState().viewportSlotsById)).toHaveLength(1)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModesRoot')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) => entry.text === 'Root > Workspace Modes > Browser Viewport > Close > Confirm Close',
+        ),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Browser Viewport closed'),
+    ).toBe(true)
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Root > Workspace Modes > Choose next',
+    )
+  })
+
   it('keeps multi-word content autofill labels readable instead of collapsing to canonical tokens', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
