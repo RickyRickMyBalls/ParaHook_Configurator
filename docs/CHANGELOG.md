@@ -65,6 +65,192 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 961 -->
+### [961] - 2026-04-03 19:34 - `AppShell 4 - Build Cleanup After Phase 6 Extraction`
+<!-- ENTRY 961 -->
+HUMAN SUMMARY: `Fixed the post-Phase-6 AppShell build break by cleaning stale shell imports and selector destructures, tightening the extracted hook contracts to match the real workspace action return types, and correcting the moved type import in \`WorkspaceViewportTree.tsx\` so \`npm run build\` succeeds again.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the build errors exposed after the AppShell 4 seam extractions instead of reopening the refactor scope or changing runtime behavior.
+- Fixed the hook contract drift at the source so `AppShell.tsx` can continue passing the existing workspace action functions without casts or wrapper shims.
+- Left the landed AppShell ownership seams intact while only removing stale unused reads and correcting type surfaces that the stricter build path rejected.
+
+#### Summary of Implementation
+- Removed stale unused imports and selector destructures from `src/app/AppShell.tsx` that were left behind after the earlier selector and menu extractions.
+- Tightened `useAppShellConsoleTransition.ts`, `useAppShellViewportActions.ts`, and `useAppShellWorkspaceMenus.tsx` so their callback contracts now match the real `workspaceSurfaceActions` and editor window-mode types used by the shell.
+- Corrected `src/app/hosts/useAppShellWorkspaceSelectors.ts` to preserve the literal union for `workspaceSplitMenuTargetSurfaceKind`, and fixed `src/app/workspace/WorkspaceViewportTree.tsx` to import `WorkspaceSplitDockSide` from the actual exporting module.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellConsoleTransition.ts`
+- `src/app/hosts/useAppShellViewportActions.ts`
+- `src/app/hosts/useAppShellWorkspaceMenus.tsx`
+- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass only resolves build-time type and unused-symbol failures introduced by the recent AppShell seam extraction work.
+
+#### Verification Steps
+- Ran `npx.cmd tsc -b`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 960 -->
+### [960] - 2026-04-03 19:24 - `AppShell 4 - Phase 6 - Spawn Menu And Minor Shell Menu Coordination Cleanup`
+<!-- ENTRY 960 -->
+HUMAN SUMMARY: `Moved the remaining AppShell workspace-menu cluster into a new \`useAppShellWorkspaceMenus.tsx\` hook, rewired \`AppShell.tsx\` to consume that seam, and kept dock-controller, console-transition, detached-viewer, and viewport-tree ownership outside the final optional menu cleanup.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the `AppShell 4 / Phase 6` workspace-menu cleanup seam instead of widening into left-dock pointer ownership, detached-viewer behavior, console transition flow, or viewport-tree composition.
+- Moved the viewport spawn-menu portal and action helpers, the floating split submenu hover or lock state, the floating or divider workspace split-menu actions, and the two small menu render surfaces behind one hook while preserving the existing shell callback contracts.
+- Left `useAppShellDockController`, `useAppShellConsoleTransition`, `WorkspaceViewportTree`, and the top-level mounted host composition in place so the final pass stays a menu-cluster cleanup instead of another shell rewrite.
+
+#### Summary of Implementation
+- Added `src/app/hosts/useAppShellWorkspaceMenus.tsx` to own the remaining workspace-menu cluster, including spawn-menu focus or dismiss effects, spawn-position resolution, spawn filtering and actions, floating split submenu state, floating or divider split-menu handlers, and the render-ready menu surfaces.
+- Rewired `src/app/AppShell.tsx` to consume the new menu hook for `handleOpenViewportSpawnMenu(...)`, `handleFloatingSplitMenu(...)`, `viewportSpawnMenuSurface`, `leftDockResizeMenuSurface`, and `workspaceSplitMenuSurface` while keeping the shared `viewportSpawnMenu` state available for the existing activation-clearing seam.
+- Preserved the existing menu behavior while making the post-Phase-5 shell read more like top-level composition plus explicit seams instead of one last inline menu cluster.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellWorkspaceMenus.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass reorganizes the remaining workspace-menu ownership so the shell body stays slimmer while the existing spawn, split-menu, and left-dock menu behavior continues to work the same way.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.workspaceModes.test.ts`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 959 -->
+### [959] - 2026-04-03 19:10 - `AppShell 4 - Phase 5 - Extract Viewport Tree Composition`
+<!-- ENTRY 959 -->
+HUMAN SUMMARY: `Moved the recursive AppShell viewport-tree render band into a new \`WorkspaceViewportTree.tsx\` component, rewired \`AppShell.tsx\` to consume that tree as \`viewerSurface\`, and kept the surrounding spawn-menu, detached-viewer, and shell-level composition ownership local so the phase stays narrowly compositional.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the `AppShell 4 / Phase 5` viewport-tree composition seam instead of widening into spawn-menu cleanup, detached-viewer window ownership, generic slot actions, or console transition logic.
+- Moved the recursive slot and split-layout render band, slot-frame wiring, primary left-dock embedding, and `viewerSurface` creation into one workspace composition component while continuing to pass activation, slot-action, divider-resize, and left-dock callbacks in from `AppShell.tsx`.
+- Left viewport spawn-menu portals, detached-viewer floating and popout window rendering, and the rest of the shell return tree in `src/app/AppShell.tsx` so the extraction remains a render-tree cleanup instead of a broader shell rewrite.
+
+#### Summary of Implementation
+- Added `src/app/workspace/WorkspaceViewportTree.tsx` to own the recursive `renderViewportSlot(...)` and `renderViewportLayoutNode(...)` composition seam, including `ViewportFrame`, `ViewportWorkspaceHost`, `ViewportSurfaceRegistry`, and primary `PrimaryViewportLeftDock` wiring.
+- Exported the shared `ViewportFrameHeaderDragOutPayload` type from `src/app/workspace/ViewportFrame.tsx` so the new tree component can reuse the existing slot-header drag contract instead of duplicating it.
+- Rewired `src/app/AppShell.tsx` to replace the inline viewport-tree recursion with one `WorkspaceViewportTree` render value, keeping the bottom shell focused on top-level surface composition plus the still-local spawn-menu and detached-viewer surfaces.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass reorganizes viewport-tree composition ownership so the shell body reads more like a composition root while the existing slot, left-dock, and viewer-surface behavior stays intact.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.workspaceModes.test.ts`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 958 -->
+### [958] - 2026-04-03 18:53 - `AppShell 4 - Phase 4 - Extract Console Transition Host`
+<!-- ENTRY 958 -->
+HUMAN SUMMARY: `Moved the AppShell console drag-out, split-preview, and split-commit subsystem into a new \`useAppShellConsoleTransition.ts\` host hook, rewired \`AppShell.tsx\` to consume that seam, and kept the final ghost portal render local so the shell body reads more like composition instead of pointer-transition ownership.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the `AppShell 4 / Phase 4` console transition seam instead of widening into generic viewport-slot actions, spawn-menu cleanup, detached-viewer behavior, or viewport-tree composition.
+- Moved the console-specific drag-out lifecycle, preview state, cleanup refs, floating-rect clamp math, split-preview resolution, split commit, and unmount cleanup into one host hook while preserving the delegated callback contract used by `useAppShellViewportActions.ts`.
+- Left the split-ghost portal render mounted from `src/app/AppShell.tsx` so this pass does not drift into the later viewport-tree composition phase.
+
+#### Summary of Implementation
+- Added `src/app/hosts/useAppShellConsoleTransition.ts` to own the console transition state, cleanup refs, console floating-rect clamp helper, viewport-bounds resolution, split-preview resolution, split-commit helper, derived ghost style, unmount cleanup, and the console slot-header drag-out callback.
+- Rewired `src/app/AppShell.tsx` to consume the returned console transition preview state, ghost style, drag-active truth, and delegated console header-drag callback instead of defining that subsystem inline.
+- Kept `useAppShellViewportActions.ts` as the generic slot-action seam and continued feeding it one delegated console drag-out callback from the new console transition host.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellConsoleTransition.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass reorganizes the console drag-out and split-preview ownership so the remaining AppShell body reads more like composition plus explicit seams while the existing transition behavior stays intact.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.workspaceModes.test.ts`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 957 -->
+### [957] - 2026-04-03 18:37 - `AppShell 4 - Phase 3 - Extract Viewport Slot Action Host`
+<!-- ENTRY 957 -->
+HUMAN SUMMARY: `Extracted the generic AppShell viewport-slot action band into a new \`useAppShellViewportActions.ts\` host hook, rewired \`AppShell.tsx\` to consume that seam, and kept the console transition drag-out mechanics local so the later console-transition phase still owns that subsystem.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the `AppShell 4 / Phase 3` slot-action seam instead of widening into viewport-tree rendering, selector ownership, activation ownership, or the console transition subsystem planned for Phase 4.
+- Moved the reusable slot close, split, surface-kind switch, float, popout, and left-dock toggle handlers behind one host hook while preserving the existing action contracts used by the shell UI.
+- Left the console drag-out split-preview and transition lifecycle mechanics local in `src/app/AppShell.tsx`, with the new hook delegating only the console-specific drag-out branch back into the shell.
+
+#### Summary of Implementation
+- Added `src/app/hosts/useAppShellViewportActions.ts` to own the generic viewport-slot action family, including slot close handling, slot splitting, spaghetti editor duplication and kind switching, Browser and viewer float or popout behaviors, and the primary left-dock toggle workflow.
+- Rewired `src/app/AppShell.tsx` to consume that new action seam instead of defining the Phase 3 viewport-slot action cluster inline.
+- Preserved the existing console transition subsystem by keeping the console drag-out implementation in `src/app/AppShell.tsx` and passing it into the hook as a delegated callback for console slot headers only.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellViewportActions.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass reorganizes viewport-slot action ownership so `AppShell.tsx` reads more like composition while the existing slot interactions continue to behave the same way.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx src/app/console/stagedNavigation.workspaceModes.test.ts`
+- Ran `npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 956 -->
+### [956] - 2026-04-03 18:23 - `AppShell 4 - Phase 2 - Extract Surface Activation And Console Handoff`
+<!-- ENTRY 956 -->
+HUMAN SUMMARY: `Moved the AppShell activation and console-handoff band into a new \`useAppShellSurfaceActivation.ts\` host hook, rewired the shell and spawn handlers to consume that seam, and re-verified the focused AppShell and ConsoleDock coverage plus a clean TypeScript check.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the `AppShell 4 / Phase 2` activation seam instead of widening into spawn-menu state ownership, viewport slot mutations, console transition mechanics, or viewport-tree rendering.
+- Preserved the existing activation callback signatures used by the mounted hosts and the viewport spawn flows while moving their shared activation and clear ownership behind one hook.
+- Left the spawn-menu state, positioning, filtering, and portal rendering local in `src/app/AppShell.tsx` as planned for this phase.
+
+#### Summary of Implementation
+- Added `src/app/hosts/useAppShellSurfaceActivation.ts` to own the spaghetti, viewer, and floating Browser activation callbacks plus the console workspace handoff publishing, surface-clear helper, floating-shell replay effect, lost-spaghetti clear effect, Browser floating-shell reset effect, and the global outside-click clear effect.
+- Rewired `src/app/AppShell.tsx` to consume that activation seam instead of defining the activation and clear cluster inline in the shell body.
+- Repointed the viewport spawn flows so the local spawn-menu handlers still own menu state and surface creation while delegating the actual activation or console-handoff work through the extracted hook.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellSurfaceActivation.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass reorganizes the AppShell activation and console-handoff ownership so the shell reads more like composition plus explicit seams while the existing activation behavior remains intact.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+- Ran `npx tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 955 -->
+### [955] - 2026-04-03 18:06 - `AppShell 4 - Phase 1 - Extract Workspace Shell Selectors`
+<!-- ENTRY 955 -->
+HUMAN SUMMARY: `Started AppShell 4 by moving the read-only workspace selector band out of \`AppShell.tsx\` and into a new \`useAppShellWorkspaceSelectors.ts\` hook, keeping the nearby detached-viewer and Browser-suppression effects local while re-verifying the shell plus console suites.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the read-only selector seam for `AppShell 4 / Phase 1` instead of widening into activation, viewport-action, console-transition, or viewport-tree extraction work.
+- Preserved the detached-viewer floating-rect effects and the Browser suppression ref effect inside `src/app/AppShell.tsx` as planned for the first cut.
+- Kept the existing runtime behavior and store contracts intact while only repointing selector ownership.
+
+#### Summary of Implementation
+- Added `src/app/hosts/useAppShellWorkspaceSelectors.ts` to own the grouped workspace selector reads for active editor slot resolution, spaghetti visibility summaries, floating split-menu target summaries, Browser or Console slot counts, detached-surface summaries, dock suppression summaries, and primary layout constraint summaries.
+- Rewired `src/app/AppShell.tsx` to consume that grouped selector hook instead of defining the same derived selector band inline in the shell body.
+- Left the nearby split-default, dock-preview, detached-viewer floating-window, and Browser suppression effect ownership local in `src/app/AppShell.tsx` so Phase 1 remains a read-only extraction instead of drifting into later AppShell 4 phases.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intentional runtime behavior change; this pass reorganizes selector ownership so `AppShell.tsx` reads more like a shell compositor while the existing effects and handlers continue using the same derived values.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx src/app/console/ConsoleDock.test.tsx`
+
 <!-- ENTRY 954 -->
 ### [954] - 2026-04-03 17:24 - `Console 11 - Phase 5.1 - Move Submit Coordinator And Remaining Controller Callbacks Into useConsoleInteraction`
 <!-- ENTRY 954 -->

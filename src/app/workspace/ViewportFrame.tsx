@@ -9,7 +9,7 @@ import {
 } from 'react'
 import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
 
-type ViewportFrameHeaderDragOutPayload = {
+export type ViewportFrameHeaderDragOutPayload = {
   pointerId: number
   clientX: number
   clientY: number

@@ -3,6 +3,18 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-04-03 19:24: Refreshed this index after the shipped `AppShell 4 / Phase 6` workspace-menu extraction, recording that `useAppShellWorkspaceMenus.tsx` now owns the remaining viewport-spawn plus shell-menu cluster and that the `AppShell 4` cleanup ladder is now fully shipped through its final optional menu pass
+17. 2026-04-03 19:13: Refreshed this index after the final `AppShell 4` prep pass, recording that the optional `Phase 6 - Spawn Menu And Minor Shell Menu Coordination Cleanup` is now implementation-ready around the live remaining viewport-spawn, left-dock-resize, floating-split-submenu, and workspace-split-menu band still inline in `AppShell.tsx`
+16. 2026-04-03 19:10: Refreshed this index after the shipped `AppShell 4 / Phase 5` viewport-tree extraction, recording that `WorkspaceViewportTree.tsx` now owns the recursive slot and split-layout composition seam while only the optional `Phase 6 - Spawn Menu And Minor Shell Menu Coordination Cleanup` pass remains open if the later shell read still justifies it
+15. 2026-04-03 18:56: Refreshed this index after the shipped `AppShell 4 / Phase 4` console-transition extraction, recording that `useAppShellConsoleTransition.ts` now owns the console drag-out and split-preview subsystem and that `Phase 5 - Extract Viewport Tree Composition` has been tightened into an implementation-ready slice around the live post-Phase-4 recursive viewport render tree still inline in `AppShell.tsx`
+14. 2026-04-03 18:41: Refreshed this index after the shipped `AppShell 4 / Phase 3` slot-action extraction, recording that `useAppShellViewportActions.ts` now owns the generic viewport-slot action family and that `Phase 4 - Extract Console Transition Host` has been tightened into an implementation-ready slice around the live remaining console drag-out, preview, cleanup, and ghost-render seam in `AppShell.tsx`
+13. 2026-04-03 18:27: Refreshed this index after the shipped `AppShell 4 / Phase 2` activation-host extraction, recording that `useAppShellSurfaceActivation.ts` now owns the activation and clear band and that `Phase 3 - Extract Viewport Slot Action Host` has been tightened into an implementation-ready slot-action slice around the live post-Phase-2 `AppShell.tsx` callback cluster
+12. 2026-04-03 18:14: Refreshed this index after the next `AppShell 4` prep pass, recording that `Phase 1 - Extract Workspace Shell Selectors` is now shipped through `useAppShellWorkspaceSelectors.ts` and that `Phase 2 - Extract Surface Activation And Console Handoff` has been tightened into an implementation-ready activation-host slice around the live `AppShell.tsx` callback and clear-effect band
+11. 2026-04-03 17:54: Refreshed this index after another `AppShell 4` prep pass, recording that `Phase 1 - Extract Workspace Shell Selectors` now has a tighter first-cut hook contract and a sharper boundary around the nearby split-default, dock-preview, detached-viewer-effect, and Browser-suppression-effect reads that should still stay local in `AppShell.tsx`
+10. 2026-04-03 17:49: Refreshed this index after the next `AppShell 4` prep pass, recording that `Phase 1 - Extract Workspace Shell Selectors` is now implementation-ready around the traced read-only derived-state cluster in `src/app/AppShell.tsx` instead of remaining only a high-level future-phase heading
+9. 2026-04-03 17:45: Refreshed this index after the next `AppShell 4` planning pass, recording that the post-`Phase 0` AppShell cleanup lane now has an explicit `Phase 1` through `Phase 6` future-phase ladder for selectors, activation, slot actions, console transition hosting, viewport-tree composition, and optional spawn-menu cleanup instead of only a loose suggested-order note
+8. 2026-04-03 17:43: Refreshed this index after the first `AppShell 4` setup pass, updating the family to use the simpler `AppShell 4 - Workspace Host Reorganization And Readability Cleanup` phase name, recording that the lane now starts with an explicit `Phase 0` shell audit before future extraction cuts are locked, and aligning the AppShell follow-on read around that research-first setup
+7. 2026-04-03 17:39: Added `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase AppShell - Workspace Host Reorganization And Readability Cleanup.md` as the new non-numbered post-`5.0F` future phase, refreshed this index so the AppShell family now records the current workspace-host overload as a readability and ownership cleanup lane instead of pretending it still belongs to the older numbered extraction ladder
 6. 2026-04-01 09:18: Refreshed this index after a live post-`Workspace 7.x` shell review, corrected the stale post-`5.0F-2` read so `AppShell` now honestly records its newer workspace-slot, persistence, detached-surface, and split-policy overload, and added a first future AppShell phase ladder for reorganizing workspace-mode host ownership without pretending the bridge cleanup fully solved the shell
 5. 2026-03-22 14:12: Marked `[5.0F-2]` complete after shipping `BrowserDockHost`, `SpaghettiWindowHost`, and `useAppShellDockController`, closed the parent `[5.0F]` family, and updated this index to point at the moved shipped phase record instead of the earlier future plan
 4. 2026-03-22 13:28: Refreshed this index after the shipped `5.0F-1` runtime-host extraction, removed stale radio-runtime leakage language, and linked the new standalone `5.0F-2` future phase doc so the remaining browser/editor shell-controller work now has an implementation-ready planning surface
@@ -40,11 +52,8 @@ Current roadmap home:
 - `[5.0F]` AppShell Cleanup And Host Seam Extraction
 - `[5.0F-1]` AppShell Runtime Host Extraction
 - `[5.0F-2]` AppShell Window And Dock Host Extraction
-- later follow-on ladder:
-  - `[5.0G]` AppShell Workspace Host Rebalancing
-  - `[5.0G-1]` Workspace Persistence And Legacy Migration Host Extraction
-  - `[5.0G-2]` Viewport Slot Tree Host Extraction
-  - `[5.0G-3]` Workspace Surface Interaction And Shell Menu Host Extraction
+- post-`5.0F` follow-on:
+  - `AppShell 4 - Workspace Host Reorganization And Readability Cleanup`
 
 ### Why This Doc Exists
 
@@ -346,6 +355,35 @@ Shipped result:
 - the file now reads much closer to a real workspace compositor ahead of `[5.1]`
 
 This phase landed without needing more roadmap IDs.
+
+## [ ] AppShell 4 - `AppShell 4` - `Workspace Host Reorganization And Readability Cleanup`
+
+This is the next honest AppShell phase after the shipped `5.0F` bridge work.
+
+Reason:
+- the current `AppShell` overload is no longer mainly the old runtime-host or browser-editor host problem
+- the live strain now comes from workspace-slot selectors, surface-activation glue, viewport slot actions, console transition logic, and viewport-tree composition living together in one large shell file
+- this cleanup is better described as a non-numbered organization lane than as a fake continuation of the old legacy AppShell numbering
+
+Standalone phase doc:
+- `Future/AppShell 4 - Workspace Host Reorganization And Readability Cleanup.md`
+
+Target result:
+- `AppShell.tsx` reads like a composition root plus a few explicit hooks or host seams
+- workspace selectors, surface activation, viewport actions, console transition handling, and viewport-tree composition each have clearer homes
+- later workspace cleanup can target the right seam without re-reading the whole shell body
+
+Research-first setup:
+- `AppShell 4` now begins with a `Phase 0 - Responsibility Audit And Future Phase Setup`
+- that phase traces the live shell into explicit responsibility bands before any new extraction phase names are locked
+
+Current future-phase ladder inside `AppShell 4`:
+- `Phase 1 - Extract Workspace Shell Selectors` now shipped through `useAppShellWorkspaceSelectors.ts`
+- `Phase 2 - Extract Surface Activation And Console Handoff` now shipped through `useAppShellSurfaceActivation.ts`
+- `Phase 3 - Extract Viewport Slot Action Host` now shipped through `useAppShellViewportActions.ts`
+- `Phase 4 - Extract Console Transition Host` now shipped through `useAppShellConsoleTransition.ts`
+- `Phase 5 - Extract Viewport Tree Composition` now shipped through `WorkspaceViewportTree.tsx`
+- `Phase 6 - Spawn Menu And Minor Shell Menu Coordination Cleanup` now shipped through `useAppShellWorkspaceMenus.tsx`, which owns the remaining viewport-spawn, left-dock-resize-menu, floating-split-submenu, and workspace-split-menu cluster without pulling dock-controller, console-transition, or viewport-tree ownership back into the shell
 
 ### Success Read
 
