@@ -132,10 +132,12 @@ describe('ViewportOverlay sketch session window', () => {
     const { useAppStore } = await import('../store/useAppStore')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { getViewer, subscribeViewer } = await import('../viewerBridge')
     useAppStore.setState(useAppStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     vi.mocked(getViewer).mockReturnValue(null)
     vi.mocked(subscribeViewer).mockReturnValue(() => {})
   })
@@ -151,6 +153,55 @@ describe('ViewportOverlay sketch session window', () => {
     container = null
     document.body.innerHTML = ''
     globalThis.Worker = originalWorker
+  })
+
+  it('does not leak axis widget size through the global document root', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        axisOverlayEnabled: true,
+        viewToolbarOpen: true,
+        viewToolbarExpandedAxisWidgetSize: 308,
+      })
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+        axisOverlayEnabled: true,
+        viewToolbarOpen: false,
+        viewToolbarExpandedAxisWidgetSize: null,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewportOverlay viewportId="model-viewer-primary" />
+          <ViewportOverlay viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const overlayRoots = Array.from(
+      container.querySelectorAll('.ViewportOverlayRoot'),
+    ) as HTMLDivElement[]
+    const axisWidgets = Array.from(container.querySelectorAll('.AxisWidget')) as HTMLDivElement[]
+    const huds = Array.from(container.querySelectorAll('.ViewportHud')) as HTMLDivElement[]
+    expect(overlayRoots).toHaveLength(2)
+    expect(axisWidgets).toHaveLength(2)
+    expect(huds).toHaveLength(2)
+    expect(overlayRoots[0]?.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
+    expect(overlayRoots[1]?.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
+    expect(document.documentElement.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
+    expect(axisWidgets[0]?.style.width).toBe('308px')
+    expect(axisWidgets[1]?.style.width).toBe('80px')
+    expect(huds[0]?.style.right).toBe('334px')
+    expect(huds[1]?.style.right).toBe('106px')
   })
 
   it('keeps the floating sketch window controls-only without the old embedded preview card', async () => {

@@ -12,8 +12,17 @@ const INTERACTIVE_TARGET_SELECTOR = [
   '[contenteditable="true"]',
 ].join(',')
 
+export const isNodeTarget = (target: EventTarget | null): target is Node =>
+  target !== null &&
+  typeof target === 'object' &&
+  'nodeType' in target &&
+  typeof (target as { nodeType?: unknown }).nodeType === 'number'
+
+export const isElementTarget = (target: EventTarget | null): target is Element =>
+  isNodeTarget(target) && target.nodeType === Node.ELEMENT_NODE
+
 export const isInteractiveTarget = (target: EventTarget | null): boolean => {
-  if (!(target instanceof Element)) {
+  if (!isElementTarget(target)) {
     return false
   }
   return target.closest(INTERACTIVE_TARGET_SELECTOR) !== null

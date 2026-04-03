@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { isNodeTarget } from '../spInteractive'
 
 type SpaghettiContextMenuItem = {
   id: string
@@ -32,7 +33,7 @@ export function SpaghettiContextMenu({
     }
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target
-      if (!(target instanceof Node)) {
+      if (!isNodeTarget(target)) {
         return
       }
       if (menuRef.current?.contains(target)) {

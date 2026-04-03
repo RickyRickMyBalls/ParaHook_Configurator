@@ -39,6 +39,7 @@ describe('ViewportFrame', () => {
           onSplitLeft={vi.fn()}
           onFloat={vi.fn()}
           onPopOut={vi.fn()}
+          onClose={vi.fn()}
           {...props}
         >
           <div>Body</div>
@@ -76,8 +77,10 @@ describe('ViewportFrame', () => {
     })
 
     expect(container?.querySelector('.ViewportFrameActionMenu')).not.toBeNull()
-    expect(container?.textContent).toContain('Split Top')
+    expect(container?.textContent).toContain('Split')
+    expect(container?.textContent).toContain('Viewport Type')
     expect(container?.textContent).toContain('Pop Out')
+    expect(container?.textContent).toContain('Close')
   })
 
   it('uses the top-right frame button as a direct pop out control', async () => {
@@ -111,7 +114,149 @@ describe('ViewportFrame', () => {
     })
 
     expect(container?.querySelector('.ViewportFrameActionMenu')).not.toBeNull()
+    expect(container?.textContent).toContain('Split')
+  })
+
+  it('opens the split submenu from the viewport titlebar menu', async () => {
+    await renderFrame()
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitGroup = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    ) as HTMLDivElement | null
+    expect(splitGroup).not.toBeNull()
+    const splitButton = splitGroup?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.textContent).toContain('Split Top')
     expect(container?.textContent).toContain('Split Right')
+  })
+
+  it('locks a titlebar submenu open when its row is clicked', async () => {
+    await renderFrame()
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const splitGroup = container?.querySelector(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      splitGroup?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.textContent).toContain('Split Top')
+  })
+
+  it('opens the viewport type submenu from the viewport titlebar menu', async () => {
+    await renderFrame()
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const typeGroup = container?.querySelectorAll(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    )[1] as HTMLDivElement | undefined
+    expect(typeGroup).toBeDefined()
+    const typeButton = typeGroup?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(typeButton).not.toBeNull()
+
+    await act(async () => {
+      typeButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.textContent).toContain('Model Viewport')
+    expect(container?.textContent).toContain('Browser')
+    expect(container?.textContent).toContain('Console')
+    expect(container?.textContent).toContain('Spaghetti Editor')
+  })
+
+  it('calls the viewport type action from the titlebar submenu', async () => {
+    const onRequestSurfaceKind = vi.fn()
+    await renderFrame({ onRequestSurfaceKind })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const typeGroup = container?.querySelectorAll(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    )[1] as HTMLDivElement | undefined
+    const typeButton = typeGroup?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      typeButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const consoleButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Console') as HTMLButtonElement | undefined
+
+    expect(consoleButton).not.toBeUndefined()
+
+    await act(async () => {
+      consoleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onRequestSurfaceKind).toHaveBeenCalledWith('console')
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it('calls the close action from the viewport titlebar menu', async () => {
+    const onClose = vi.fn()
+    await renderFrame({ onClose })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const closeButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+
+    expect(closeButton).not.toBeUndefined()
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
   })
 
   it('anchors the viewport action menu near the right-click position', async () => {
@@ -133,7 +278,7 @@ describe('ViewportFrame', () => {
     const menu = container?.querySelector('.ViewportFrameActionMenu') as HTMLDivElement | null
     expect(menu).not.toBeNull()
     expect(menu?.style.left).toBe('210px')
-    expect(menu?.style.top).toBe('76px')
+    expect(menu?.style.top).toBe('96px')
   })
 
   it('closes the viewport action menu when clicking elsewhere in the frame', async () => {

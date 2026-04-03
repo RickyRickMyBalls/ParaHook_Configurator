@@ -129,6 +129,10 @@ type WorkspaceStoreState = {
       hostViewportId?: WorkspaceViewportId | null
     },
   ) => WorkspaceViewportSlotId | null
+  createDetachedViewportSurfaceCopy: (
+    sourceViewportId: WorkspaceViewportId,
+    hostMode: 'floating' | 'popout',
+  ) => WorkspaceDetachedSlotSurfaceState | null
   setViewportLayoutSplitRatio: (nodeId: WorkspaceLayoutNodeId, ratio: number) => void
   removeViewportSlot: (slotId: WorkspaceViewportSlotId) => void
   detachViewportSlotSurface: (
@@ -197,6 +201,7 @@ const createInitialState = (): Omit<
   | 'hideViewportSplitSlot'
   | 'splitViewportSlot'
   | 'splitViewportRoot'
+  | 'createDetachedViewportSurfaceCopy'
   | 'setViewportLayoutSplitRatio'
   | 'removeViewportSlot'
   | 'detachViewportSlotSurface'
@@ -909,6 +914,34 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
       })
     })
     return createdSlotId
+  },
+  createDetachedViewportSurfaceCopy: (sourceViewportId, hostMode) => {
+    let detachedSurface: WorkspaceDetachedSlotSurfaceState | null = null
+    set((state) => {
+      const existingSurfaceIds = [
+        ...Object.values(state.viewportSlotsById).map((slot) => slot.surfaceInstanceId),
+        ...Object.keys(state.detachedSlotSurfaceById),
+      ]
+      const nextSurfaceInstanceId = createNextWorkspaceGeneratedId(
+        'model-viewer-detached',
+        existingSurfaceIds,
+      )
+      detachedSurface = {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: nextSurfaceInstanceId,
+        hostMode,
+        hostViewportId: sourceViewportId,
+        lastSlotId: defaultPrimaryViewportSlotId,
+        preferredSplitDockSide: 'right',
+      }
+      return withDerivedBrowserContract(state, {
+        detachedSlotSurfaceById: {
+          ...state.detachedSlotSurfaceById,
+          [nextSurfaceInstanceId]: detachedSurface,
+        },
+      })
+    })
+    return detachedSurface
   },
   setViewportLayoutSplitRatio: (nodeId, ratio) => {
     set((state) => {

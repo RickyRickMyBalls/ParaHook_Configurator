@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-02 16:23: Cleaned up this closed `Workspace 7.5-10` phase doc after later popout follow-up fixes landed, rewriting the top summary and current-read sections so they match the shipped product truth that live `Spaghetti Editor` popout now works, recording that later keyboard and sketch-entry fixes were follow-up behavior cleanups rather than evidence the phase was still open, and explicitly deferring any future popout titlebar split-menu capability to a new later workspace phase instead of reopening `7.5-10`
 1. 2026-04-02 15:09: Marked `Workspace 7.5-10` closed after the final live retest succeeded, recording that the surviving popup fix was the cross-window DOM realm repair in `useWorkspaceChildWindow.ts` and `SpaghettiWindowHost.tsx`, that the temporary popup diagnostics and shared debug plumbing were removed from the shipped path during closeout cleanup, and that the attempt-by-attempt history remains preserved in the companion repair ledger
 1. 2026-04-02 13:39: Added the companion attempt tracker `Workspace_Repair Attempts Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md` and locked that ongoing live-fix slices should now be recorded there attempt-by-attempt until the popout path is actually working, after which the surviving truth should be compiled back into this main phase doc
 1. 2026-04-02 13:31: Extended the shipped `Phase 3` truth after the relay-retirement follow-up landed in code, recording that `SpaghettiWindowHost.tsx` no longer pre-opens `about:blank` child windows for later claim and now opens `Spaghetti Editor` popouts directly through `useWorkspaceChildWindow(...)` like Browser while `SpaghettiWindowHost.test.tsx` proves the `PO` button mounts visible popout content through the shared hook without the old pending-window relay
@@ -45,27 +46,15 @@ This phase does not cover:
 
 `Workspace 7.5-10` is the popout repair follow-on inside the larger `Workspace 7.5` cleanup ladder.
 
-It exists because the `Spaghetti Editor` popout path still reads as broken enough to deserve its own cleanup:
-- the live popout behavior is not yet trusted as a first-class workspace mode
-- the ownership seam between editor host state, detached surface state, child-window state, and activation or close behavior still needs to be traced cleanly
-- trying to implement blind here would risk locking in another compatibility workaround instead of an honest popout contract
-
-So the first step should be research, not immediate implementation:
-- trace the real open path
-- trace the real render or mount path
-- trace focus, activation, and close or return behavior
-- identify which parts are salvageable versus which seams are still compatibility-only
-
-Research so far now points at a more specific next direction:
-- treat the blank popout as a shared child-window boot or portal-commit failure first
-- treat Spaghetti's pre-open or claim relay as the next surface-specific seam after the shared boot path is understood
-- keep the final repair honest across Browser, Console, and Spaghetti instead of declaring victory from one mocked popup path
-- live retest after `Phase 3` now narrows the strongest remaining spaghetti-specific suspect further: Browser opens its popout directly through the shared child-window hook, while Spaghetti still depends on a pending-window claim relay before portal mount
-
 Final closeout truth:
 - live browser retest now confirms `Spaghetti Editor` visibly mounts and stays usable in a real popped-out child window
 - the root cause that finally unblocked the live popup was not host creation, portal commit, or layout collapse; it was same-window DOM element assumptions that misclassified child-window descendants as missing across browser realms
 - the temporary diagnostics overlay and shared popup debug-event plumbing were useful for diagnosis only and were removed during closeout so the shipped popout path is clean again
+- later follow-up fixes after closeout stayed in the popout-behavior lane only:
+- popout selection now reports back to the main console correctly
+- child-window keyboard relay now forwards command typing plus `Enter`, `ArrowUp`, and `ArrowDown` back to the main console from non-editable popout targets
+- entering `Sketch Draw` or `Sketch Plane Pick` from a popped-out `Spaghetti Editor` no longer collapses the popout browser window
+- these later fixes do not reopen `7.5-10`; they confirm the repaired popout path is now a working first-class workspace mode with some follow-up behavior polish already absorbed
 
 ### Locked Direction
 
@@ -82,22 +71,20 @@ Final closeout truth:
 
 ### Current Read
 
-Current likely mismatch:
-- `Spaghetti Editor` popout behavior exists, but the product truth around who owns the popout lifecycle and how it should rejoin the workspace is still not written down cleanly enough to implement the repair in one shot
-- some popout behavior may already be partially shared through workspace child-window and detached-surface helpers, but the exact salvageable seams still need a dedicated pass
-- earlier `Workspace 7.5-7` cleanup already clarified split, floating, and popout activation publishing, which means this phase can now focus more honestly on popout ownership and repair instead of re-solving console targeting first
-- live repro now says the failure is more basic than editor interaction alone: popping out `Spaghetti Editor` opens a separate browser window titled for the editor, but that child window remains a dark `about:blank` surface with no mounted editor content
+Current product truth:
+- `Spaghetti Editor` popout now opens as a real visible child-window surface instead of a dark blank `about:blank` shell
+- the popped-out editor stays interactive, keeps its popout lifecycle truth, and now survives later high-signal user flows like console selection handoff, keyboard-driven console command continuation, and sketch-entry transitions
+- explicit dock versus real child-window close behavior remains distinct and explainable
+- the detailed debugging history remains preserved in the companion repair-attempt ledger rather than living inline here
 
-Desired invariant:
-- opening a `Spaghetti Editor` popout should create one predictable workspace-owned surface state
-- the popout should stay interactive and correctly targeted while open
-- closing, restoring, or redocking the popout should leave the workspace in one clean, explainable state without ghost ownership or stale window bookkeeping
+Shipped invariant:
+- opening a `Spaghetti Editor` popout creates one predictable workspace-owned `separateWindow` surface state
+- the popout stays interactive and correctly targeted while open
+- closing or docking the popout leaves the workspace in one clean, explainable state without ghost ownership or stale window bookkeeping
 
-Current strongest hypothesis:
-- the popup browser window opens
-- shared child-window setup starts far enough to theme the popup document
-- but the real host creation or portal commit does not become visible in live browser conditions
-- therefore the first implementation slice should likely target shared popup boot truth before any deeper spaghetti-only subtree change
+Deferred follow-on:
+- allowing right-click split commands directly from popout titlebars is intentionally out of scope for `Workspace 7.5-10`
+- that should live in a new later `Workspace 7.5` phase instead of being folded back into this repair doc
 
 ### Likely Files
 

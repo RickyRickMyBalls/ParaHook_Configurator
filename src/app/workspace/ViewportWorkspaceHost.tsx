@@ -1,3 +1,4 @@
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useEffect } from 'react'
 import { ViewToolbar } from '../components/ViewToolbar'
 import { ViewerHost } from '../components/ViewerHost'
@@ -8,10 +9,14 @@ import type { WorkspaceViewportId } from './workspaceShellTypes'
 type ViewportWorkspaceHostProps = {
   viewportId: WorkspaceViewportId
   onActivateViewerSurface: (viewportId: WorkspaceViewportId) => void
+  onViewportContextMenu?: (
+    viewportId: WorkspaceViewportId,
+    event: ReactMouseEvent<HTMLDivElement>,
+  ) => void
 }
 
 export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
-  const { viewportId, onActivateViewerSurface } = props
+  const { viewportId, onActivateViewerSurface, onViewportContextMenu } = props
   const ensureViewportChrome = useWorkspaceStore((state) => state.ensureViewportChrome)
 
   useEffect(() => {
@@ -23,6 +28,13 @@ export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
       className="ViewportWorkspaceHost"
       data-workspace-viewport-id={viewportId}
       onPointerDownCapture={() => onActivateViewerSurface(viewportId)}
+      onContextMenu={
+        onViewportContextMenu === undefined
+          ? undefined
+          : (event) => {
+              onViewportContextMenu(viewportId, event)
+            }
+      }
     >
       <div className="ViewportViewerSurface" data-workspace-viewport-id={viewportId}>
         <ViewerHost viewportId={viewportId} />

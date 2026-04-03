@@ -32,6 +32,7 @@ import {
   COMPACT_AXIS_WIDGET_SIZE,
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
   resolveRightDockWidth,
+  resolveViewAnchorTop,
 } from './viewToolbarLayout'
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 
@@ -224,7 +225,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     <aside
       className={`RightDock ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`}
       data-workspace-viewport-id={viewportId}
-      style={{ width: `${rightDockWidth}px`, minWidth: `${rightDockWidth}px`, maxWidth: `${rightDockWidth}px` }}
+      style={{
+        width: `${rightDockWidth}px`,
+        minWidth: `${rightDockWidth}px`,
+        maxWidth: `${rightDockWidth}px`,
+        paddingTop: `${resolveViewAnchorTop(resolvedAxisWidgetSize)}px`,
+      }}
     >
       <div className="RightPanelStack">
         <details className="V15Panel ViewToolbarRoot" open={viewToolbarOpen}>

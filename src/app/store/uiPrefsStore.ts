@@ -170,8 +170,6 @@ const sanitizePreset = (preset: MaterialPreset): MaterialPreset => ({
 
 type UiPrefsState = {
   view: ViewSettings
-  viewToolbarOpen: boolean
-  viewToolbarExpandedAxisWidgetSize: number | null
   sketchPlaneToolbarGhostPlaneScale: number
   sketchPlaneToolbarGizmoScale: number
   sketchPlaneToolbarTranslateSnapEnabled: boolean
@@ -189,8 +187,6 @@ type UiPrefsState = {
   sketchDrawPlinePointSymbolType: 'crosshair' | 'circle'
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
-  setViewToolbarOpen: (open: boolean) => void
-  setViewToolbarExpandedAxisWidgetSize: (size: number | null) => void
   setSketchPlaneToolbarGhostPlaneScale: (scale: number) => void
   setSketchPlaneToolbarGizmoScale: (scale: number) => void
   setSketchPlaneToolbarTranslateSnapEnabled: (enabled: boolean) => void
@@ -222,8 +218,6 @@ type UiPrefsState = {
 
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
-  viewToolbarOpen: false,
-  viewToolbarExpandedAxisWidgetSize: null,
   sketchPlaneToolbarGhostPlaneScale: 1,
   sketchPlaneToolbarGizmoScale: 1,
   sketchPlaneToolbarTranslateSnapEnabled: false,
@@ -244,12 +238,6 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setViewKey: (key, value) => {
     set({ view: { ...get().view, [key]: value } })
-  },
-  setViewToolbarOpen: (open) => {
-    set({ viewToolbarOpen: open })
-  },
-  setViewToolbarExpandedAxisWidgetSize: (size) => {
-    set({ viewToolbarExpandedAxisWidgetSize: size })
   },
   setSketchPlaneToolbarGhostPlaneScale: (scale) => {
     set({ sketchPlaneToolbarGhostPlaneScale: clamp(scale, 0.4, 3) })

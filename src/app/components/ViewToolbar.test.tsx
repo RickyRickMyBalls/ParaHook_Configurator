@@ -66,12 +66,17 @@ describe('ViewToolbar', () => {
     const { useAppStore } = await import('../store/useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     useAppStore.setState({ selectedPartKey: 'part:object-1' })
-    useUiPrefsStore.setState({ viewToolbarOpen: true })
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      viewToolbarOpen: true,
+    })
   })
 
   afterEach(async () => {
@@ -101,7 +106,7 @@ describe('ViewToolbar', () => {
     root = createRoot(container)
 
     await act(async () => {
-      root?.render(<ViewToolbar />)
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
     })
 
     const perspectiveButton = Array.from(container.querySelectorAll('button')).find(
@@ -124,9 +129,72 @@ describe('ViewToolbar', () => {
       frameAllButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    expect(setProjectionModeCommandMock).toHaveBeenCalledWith('perspective')
-    expect(setCameraPresetCommandMock).toHaveBeenCalledWith('top')
-    expect(frameSelectedCommandMock).toHaveBeenCalledWith('part:object-1')
-    expect(frameAllCommandMock).toHaveBeenCalledTimes(1)
+    expect(setProjectionModeCommandMock).toHaveBeenCalledWith('perspective', 'model-viewer-primary')
+    expect(setCameraPresetCommandMock).toHaveBeenCalledWith('top', 'model-viewer-primary')
+    expect(frameSelectedCommandMock).toHaveBeenCalledWith('part:object-1', 'model-viewer-primary')
+    expect(frameAllCommandMock).toHaveBeenCalledWith('model-viewer-primary')
+  })
+
+  it('keeps toolbar open state local to the clicked model viewport', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+      viewToolbarOpen: false,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewToolbar viewportId="model-viewer-primary" />
+          <ViewToolbar viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const toolbarRoots = Array.from(
+      container.querySelectorAll('.ViewToolbarRoot'),
+    ) as HTMLDetailsElement[]
+    const rightDocks = Array.from(container.querySelectorAll('.RightDock')) as HTMLElement[]
+    expect(toolbarRoots).toHaveLength(2)
+    expect(rightDocks).toHaveLength(2)
+    expect(toolbarRoots[0]?.open).toBe(true)
+    expect(toolbarRoots[1]?.open).toBe(false)
+    expect(rightDocks[0]?.style.paddingTop).toBe('332px')
+    expect(rightDocks[1]?.style.paddingTop).toBe('104px')
+
+    const toggles = Array.from(container.querySelectorAll('.ViewToolbarToggle')) as HTMLElement[]
+    expect(toggles).toHaveLength(2)
+
+    await act(async () => {
+      toggles[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarOpen,
+    ).toBe(false)
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarOpen,
+    ).toBe(false)
+
+    await act(async () => {
+      toggles[1]?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarOpen,
+    ).toBe(false)
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarOpen,
+    ).toBe(true)
   })
 })

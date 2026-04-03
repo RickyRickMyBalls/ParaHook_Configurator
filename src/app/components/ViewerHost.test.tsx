@@ -64,10 +64,31 @@ let viewerSetOnGeometrySketchDeleteSelection: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchFinishDraft: ReturnType<typeof vi.fn>
 let viewerSetOnGeometrySketchCancelDraft: ReturnType<typeof vi.fn>
 let viewerSetOnWorkspaceSelectionPick: ReturnType<typeof vi.fn>
+let viewerApplyCameraPose: ReturnType<typeof vi.fn>
+let viewerSetOnCameraPoseChange: ReturnType<typeof vi.fn>
 
-vi.mock('../viewerBridge', () => ({
-  setViewer: vi.fn(),
-}))
+vi.mock('../viewerBridge', () => {
+  const queuedCameraPoseByViewportId = new Map<string, unknown>()
+  const latestCameraPoseByViewportId = new Map<string, unknown>()
+  return {
+    setViewer: vi.fn(),
+    queueViewerCameraPose: vi.fn((viewportId: string, pose: unknown) => {
+      queuedCameraPoseByViewportId.set(viewportId, pose)
+      latestCameraPoseByViewportId.set(viewportId, pose)
+    }),
+    consumeQueuedViewerCameraPose: vi.fn((viewportId: string) => {
+      const pose = queuedCameraPoseByViewportId.get(viewportId) ?? null
+      queuedCameraPoseByViewportId.delete(viewportId)
+      return pose
+    }),
+    setLatestViewerCameraPose: vi.fn((viewportId: string, pose: unknown) => {
+      latestCameraPoseByViewportId.set(viewportId, pose)
+    }),
+    getLatestViewerCameraPose: vi.fn((viewportId: string) => {
+      return latestCameraPoseByViewportId.get(viewportId) ?? null
+    }),
+  }
+})
 
 vi.mock('../../viewer/Viewer', () => ({
   Viewer: class MockViewer {
@@ -79,6 +100,8 @@ vi.mock('../../viewer/Viewer', () => ({
     public setHighlightedReferenceIds = (...args: unknown[]) =>
       viewerSetHighlightedReferenceIds(...args)
     public applyViewSettings(): void {}
+    public applyCameraPose = (...args: unknown[]) => viewerApplyCameraPose(...args)
+    public setOnCameraPoseChange = (...args: unknown[]) => viewerSetOnCameraPoseChange(...args)
     public ensureReferenceLoaded = (...args: unknown[]) => viewerEnsureReferenceLoaded(...args)
     public setReferenceVisible = (...args: unknown[]) => viewerSetReferenceVisible(...args)
     public removeReference = (...args: unknown[]) => viewerRemoveReference(...args)
@@ -463,6 +486,8 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnGeometrySketchFinishDraft = vi.fn()
     viewerSetOnGeometrySketchCancelDraft = vi.fn()
     viewerSetOnWorkspaceSelectionPick = vi.fn()
+    viewerApplyCameraPose = vi.fn()
+    viewerSetOnCameraPoseChange = vi.fn()
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
@@ -524,6 +549,36 @@ describe('ViewerHost reference loading', () => {
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Loaded Model: Shoe 1'),
     ).toBe(true)
+  })
+
+  it('applies a queued camera pose when a viewer viewport mounts', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { queueViewerCameraPose } = await import('../viewerBridge')
+    const { Vector3 } = await import('three')
+
+    queueViewerCameraPose('model-viewer-secondary', {
+      position: new Vector3(10, 20, 30),
+      target: new Vector3(1, 2, 3),
+      up: new Vector3(0, 1, 0),
+      projectionMode: 'orthographic',
+      perspectiveFovDeg: 42,
+      orthoViewHeight: 18,
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-secondary" />)
+    })
+
+    expect(viewerApplyCameraPose).toHaveBeenCalledTimes(1)
+    expect(viewerApplyCameraPose.mock.calls[0]?.[0]).toMatchObject({
+      projectionMode: 'orthographic',
+      perspectiveFovDeg: 42,
+      orthoViewHeight: 18,
+    })
   })
 
   it('captures real loaded reference part rows into the workspace after load succeeds', async () => {

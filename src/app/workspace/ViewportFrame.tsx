@@ -20,6 +20,8 @@ type ViewportFrameHeaderDragOutPayload = {
 type ViewportFrameProps = {
   slotId: WorkspaceViewportSlotId
   surfaceKind: WorkspaceSurfaceKind
+  availableSurfaceKinds?: readonly WorkspaceSurfaceKind[]
+  enableHeaderStripContextMenu?: boolean
   isPrimary?: boolean
   onActivateSurface?: () => void
   onPrimaryButtonClick?: () => void
@@ -34,6 +36,9 @@ type ViewportFrameProps = {
   onSplitLeft?: () => void
   onFloat?: () => void
   onPopOut?: () => void
+  popOutButtonAriaLabel?: string
+  popOutButtonTitle?: string
+  onClose?: () => void
   onHeaderDragOut?: (payload: ViewportFrameHeaderDragOutPayload) => void
   children: ReactNode
 }
@@ -48,7 +53,7 @@ const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
 const typePickerWidth = 180
 const typePickerHeight = 160
 const actionMenuWidth = 180
-const actionMenuHeight = 236
+const actionMenuHeight = 210
 const menuEdgePadding = 8
 
 type FrameMenuPosition = {
@@ -60,6 +65,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
   const {
     slotId,
     surfaceKind,
+    availableSurfaceKinds,
+    enableHeaderStripContextMenu = false,
     isPrimary = false,
     onActivateSurface,
     onPrimaryButtonClick,
@@ -70,11 +77,14 @@ export function ViewportFrame(props: ViewportFrameProps) {
     onSplitLeft,
     onFloat,
     onPopOut,
+    onClose,
     onHeaderDragOut,
     children,
   } = props
   const [isTypePickerOpen, setIsTypePickerOpen] = useState(false)
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false)
+  const [hoveredActionSubmenu, setHoveredActionSubmenu] = useState<'split' | 'viewportType' | null>(null)
+  const [lockedActionSubmenu, setLockedActionSubmenu] = useState<'split' | 'viewportType' | null>(null)
   const [typePickerPosition, setTypePickerPosition] = useState<FrameMenuPosition>({
     left: 8,
     top: 44,
@@ -96,24 +106,38 @@ export function ViewportFrame(props: ViewportFrameProps) {
   } | null>(null)
   const surfaceChoices = useMemo(
     () =>
-      (['modelViewer', 'browser', 'console', 'spaghettiEditor'] as const).map((kind) => ({
+      (availableSurfaceKinds ??
+        (['modelViewer', 'browser', 'console', 'spaghettiEditor'] as const)
+      ).map((kind) => ({
         kind,
         label: surfaceKindLabels[kind],
         disabled: isPrimary && kind !== 'modelViewer',
       })),
-    [isPrimary],
+    [availableSurfaceKinds, isPrimary],
   )
-  const slotActions = useMemo(
+  const splitActions = useMemo(
     () => [
       { id: 'split-top', label: 'Split Top', onSelect: onSplitTop },
       { id: 'split-right', label: 'Split Right', onSelect: onSplitRight },
       { id: 'split-bottom', label: 'Split Bottom', onSelect: onSplitBottom },
       { id: 'split-left', label: 'Split Left', onSelect: onSplitLeft },
+    ],
+    [onSplitBottom, onSplitLeft, onSplitRight, onSplitTop],
+  )
+  const slotActions = useMemo(
+    () => [
       { id: 'float', label: 'Float', onSelect: onFloat },
       { id: 'popout', label: 'Pop Out', onSelect: onPopOut },
+      { id: 'close', label: 'Close', onSelect: onClose },
     ],
-    [onFloat, onPopOut, onSplitBottom, onSplitLeft, onSplitRight, onSplitTop],
+    [onClose, onFloat, onPopOut],
   )
+  const isSplitSubmenuOpen =
+    lockedActionSubmenu === 'split' ||
+    (lockedActionSubmenu === null && hoveredActionSubmenu === 'split')
+  const isViewportTypeSubmenuOpen =
+    lockedActionSubmenu === 'viewportType' ||
+    (lockedActionSubmenu === null && hoveredActionSubmenu === 'viewportType')
 
   useEffect(() => {
     if (!isTypePickerOpen && !isActionMenuOpen) {
@@ -124,6 +148,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
       if (targetNode === null) {
         setIsTypePickerOpen(false)
         setIsActionMenuOpen(false)
+        setHoveredActionSubmenu(null)
+        setLockedActionSubmenu(null)
         return
       }
       if (
@@ -142,6 +168,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
       }
       setIsTypePickerOpen(false)
       setIsActionMenuOpen(false)
+      setHoveredActionSubmenu(null)
+      setLockedActionSubmenu(null)
     }
     window.addEventListener('pointerdown', handlePointerDown)
     return () => {
@@ -213,6 +241,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
     event.preventDefault()
     event.stopPropagation()
     setIsActionMenuOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
     setTypePickerPosition(
       resolveMenuPosition(event.clientX, event.clientY, typePickerWidth, typePickerHeight),
     )
@@ -223,6 +253,35 @@ export function ViewportFrame(props: ViewportFrameProps) {
     event.preventDefault()
     event.stopPropagation()
     setIsTypePickerOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
+    setActionMenuPosition(
+      resolveMenuPosition(event.clientX, event.clientY, actionMenuWidth, actionMenuHeight),
+    )
+    setIsActionMenuOpen(true)
+  }
+
+  const handleViewportFrameContextMenuCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!enableHeaderStripContextMenu) {
+      return
+    }
+    const frameRect = frameRef.current?.getBoundingClientRect()
+    if (frameRect === undefined) {
+      return
+    }
+    const isWithinTopStrip = event.clientY >= frameRect.top && event.clientY <= frameRect.top + 44
+    if (!isWithinTopStrip) {
+      return
+    }
+    const targetElement = event.target as Element | null
+    if (targetElement?.closest('.ViewportFrameActionMenu, .ViewportFrameTypePicker') !== null) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    setIsTypePickerOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
     setActionMenuPosition(
       resolveMenuPosition(event.clientX, event.clientY, actionMenuWidth, actionMenuHeight),
     )
@@ -247,18 +306,52 @@ export function ViewportFrame(props: ViewportFrameProps) {
 
   const handleSelectSurfaceKind = (nextSurfaceKind: WorkspaceSurfaceKind) => {
     setIsTypePickerOpen(false)
+    setIsActionMenuOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
     onRequestSurfaceKind?.(nextSurfaceKind)
   }
 
   const handleActionSelect = (action: (() => void) | undefined) => {
     setIsActionMenuOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
     action?.()
   }
 
   const handlePopOutButtonClick = () => {
     setIsTypePickerOpen(false)
     setIsActionMenuOpen(false)
+    setHoveredActionSubmenu(null)
+    setLockedActionSubmenu(null)
     onPopOut?.()
+  }
+
+  const handleHoverActionSubmenu = (submenu: 'split' | 'viewportType') => {
+    if (lockedActionSubmenu !== null) {
+      return
+    }
+    setHoveredActionSubmenu(submenu)
+  }
+
+  const handleLeaveActionSubmenu = (submenu: 'split' | 'viewportType') => {
+    if (lockedActionSubmenu !== null || hoveredActionSubmenu !== submenu) {
+      return
+    }
+    setHoveredActionSubmenu(null)
+  }
+
+  const handleToggleActionSubmenu = (
+    submenu: 'split' | 'viewportType',
+    event: ReactMouseEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setLockedActionSubmenu((current) => {
+      const nextValue = current === submenu ? null : submenu
+      setHoveredActionSubmenu(nextValue)
+      return nextValue
+    })
   }
 
   return (
@@ -268,6 +361,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
       data-workspace-slot-id={slotId}
       data-workspace-surface-kind={surfaceKind}
       onPointerDownCapture={onActivateSurface}
+      onContextMenuCapture={handleViewportFrameContextMenuCapture}
     >
       <div
         className="ViewportFrameHeader"
@@ -300,8 +394,8 @@ export function ViewportFrame(props: ViewportFrameProps) {
             type="button"
             className="ViewportFrameActionMenuButton"
             onClick={handlePopOutButtonClick}
-            aria-label={`Pop out ${surfaceKindLabels[surfaceKind]}`}
-            title="Pop out viewport"
+            aria-label={props.popOutButtonAriaLabel ?? `Pop out ${surfaceKindLabels[surfaceKind]}`}
+            title={props.popOutButtonTitle ?? 'Pop out viewport'}
           >
             ↗
           </button>
@@ -343,6 +437,72 @@ export function ViewportFrame(props: ViewportFrameProps) {
               top: `${actionMenuPosition.top}px`,
             }}
           >
+            <div
+              className="ViewportFrameActionMenuSubmenuGroup"
+              onMouseEnter={() => handleHoverActionSubmenu('split')}
+              onMouseLeave={() => handleLeaveActionSubmenu('split')}
+            >
+              <button
+                type="button"
+                className="ViewportFrameActionMenuAction ViewportFrameActionMenuAction--submenu"
+                aria-haspopup="menu"
+                aria-expanded={isSplitSubmenuOpen}
+                onFocus={() => handleHoverActionSubmenu('split')}
+                onClick={(event) => handleToggleActionSubmenu('split', event)}
+              >
+                <span>Split</span>
+                <span className="ViewportFrameActionMenuChevron">›</span>
+              </button>
+              {isSplitSubmenuOpen ? (
+                <div className="ViewportFrameActionSubmenu" role="menu">
+                  {splitActions.map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      className="ViewportFrameActionMenuAction"
+                      disabled={action.onSelect === undefined}
+                      onClick={() => handleActionSelect(action.onSelect)}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div
+              className="ViewportFrameActionMenuSubmenuGroup"
+              onMouseEnter={() => handleHoverActionSubmenu('viewportType')}
+              onMouseLeave={() => handleLeaveActionSubmenu('viewportType')}
+            >
+              <button
+                type="button"
+                className="ViewportFrameActionMenuAction ViewportFrameActionMenuAction--submenu"
+                aria-haspopup="menu"
+                aria-expanded={isViewportTypeSubmenuOpen}
+                onFocus={() => handleHoverActionSubmenu('viewportType')}
+                onClick={(event) => handleToggleActionSubmenu('viewportType', event)}
+              >
+                <span>Viewport Type</span>
+                <span className="ViewportFrameActionMenuChevron">›</span>
+              </button>
+              {isViewportTypeSubmenuOpen ? (
+                <div className="ViewportFrameActionSubmenu" role="menu">
+                  {surfaceChoices.map((choice) => (
+                    <button
+                      key={choice.kind}
+                      type="button"
+                      className={`ViewportFrameActionMenuAction ${
+                        choice.kind === surfaceKind ? 'isActive' : ''
+                      }`}
+                      disabled={choice.disabled}
+                      onClick={() => handleSelectSurfaceKind(choice.kind)}
+                    >
+                      {choice.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             {slotActions.map((action) => (
               <button
                 key={action.id}

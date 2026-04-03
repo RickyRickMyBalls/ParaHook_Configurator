@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-02 16:23: Cleaned up this repair ledger after the later popout follow-up behavior fixes landed, clarifying in the top status read that the main `Workspace 7.5-10` repair is still closed, that later console-sync and sketch-entry fixes did not reopen the attempt ladder, and that any future popout titlebar split-menu capability should move to a new later workspace phase instead of being logged as another `7.5-10` repair attempt
 1. 2026-04-02 15:09: Recorded the successful live `Attempt 7` retest, updating this ledger to capture that the popup now visibly mounts in a real child window and that the final blocker was cross-window DOM realm checks rather than host creation or layout collapse, then noting that the temporary diagnostics overlay and shared popup debug plumbing were removed during closeout while the surviving product truth was compiled back into the main `Workspace 7.5-10` phase doc
 1. 2026-04-02 14:54: Recorded the live `Attempt 6` repro result and marked `Attempt 7 - Cross-Window Element Truth Repair` implemented in code, capturing that the popup host already contained committed descendants but every popup box and style still showed `missing`, then recording that both `useWorkspaceChildWindow.ts` and `SpaghettiWindowHost.tsx` now use cross-window-safe element checks instead of same-window `instanceof HTMLElement` assumptions so the next live repro can show real popup descendant measurements
 1. 2026-04-02 14:47: Recorded the live `Attempt 5` repro result and marked `Attempt 6 - Host-Descendant Paint And Visibility Diagnostics` implemented in code, capturing that the popup host now clearly contains committed `SpaghettiPopoutSurface` and `SpaghettiPopoutWindow` descendants while the old document-level subtree queries still show `missing`, then recording that `SpaghettiWindowHost.tsx` now measures host-descendant boxes and computed styles directly so the next live repro can distinguish zero-size or hidden paint from a missing subtree
@@ -25,7 +26,7 @@ This doc exists to:
 - prevent the main `Workspace 7.5-10` phase doc from turning into a noisy attempt-by-attempt scratchpad
 
 When the popout path is finally working:
-- compile the surviving product truth back into `Workspace_Phase Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md`
+- compile the surviving product truth back into `../Shipped/Workspace_Phase Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md`
 - keep this file as the attempt history instead of folding every failed step into the main phase narrative
 
 ## Doc Body
@@ -49,10 +50,12 @@ Current state:
 - spaghetti lifecycle close versus dock truth has been cleaned up
 - the spaghetti pending-popup relay has been retired
 - live `Spaghetti Editor` popout now visibly works in a real child window
+- later popout follow-up fixes already covered console-selection sync, popout keyboard relay back to the main console, and preserving the popped-out editor through sketch-entry flows without reopening this repair ladder
 
 Current working assumption:
 - the final blocker was cross-window DOM realm handling, not popup boot, portal commit, or layout collapse
 - this ledger is now preserved as the debugging history while the main phase doc carries the surviving product truth
+- any future “right-click the popout titlebar and split it” capability should be planned as a new later `Workspace 7.5` phase rather than logged here as another repair attempt because that is new feature work, not evidence that the popout repair is still broken
 
 ### Attempt Ledger
 

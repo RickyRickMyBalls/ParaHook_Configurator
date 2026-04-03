@@ -525,6 +525,27 @@ export class CameraController {
     }
   }
 
+  public applyPose(pose: CameraPose): void {
+    this.cameraTransition = null
+    this.lastPerspectiveFovDeg = pose.perspectiveFovDeg
+    this.orthoViewHeight = Math.max(pose.orthoViewHeight, 0.001)
+    this.setProjectionMode(pose.projectionMode)
+    const activeCamera = this.getActiveCamera()
+    activeCamera.position.copy(pose.position)
+    activeCamera.up.copy(pose.up).normalize()
+    this.controls.target.copy(pose.target)
+    if (this.projectionMode === 'orthographic') {
+      this.updateOrthographicFrustum()
+    } else {
+      this.syncNearFarFromDistance(
+        Math.max(this.perspectiveCamera.position.distanceTo(this.controls.target), MIN_CAMERA_DISTANCE),
+      )
+    }
+    activeCamera.lookAt(this.controls.target)
+    activeCamera.updateProjectionMatrix()
+    this.controls.update()
+  }
+
   public snapToDirection(direction: Vector3): void {
     this.cameraTransition = null
     const activeCamera = this.getActiveCamera()

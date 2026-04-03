@@ -1,4 +1,5 @@
 import type { ProjectionMode, ViewSettings } from '../shared/viewSettingsTypes'
+import type { CameraPose } from '../viewer/scene/CameraController'
 import type { ReferenceTransformOverride } from './references/referenceManifest'
 import type { ActiveReferenceTransformHandle } from './store/useAppStore'
 import type {
@@ -129,6 +130,9 @@ export type ViewerTransformSession = {
 }
 
 export interface ViewerApi {
+  getCameraPose?: () => CameraPose
+  applyCameraPose?: (pose: CameraPose) => void
+  setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void
   setCameraPreset: (preset: CameraPreset) => void
   setProjectionMode: (mode: ProjectionMode) => void
   alignCameraToGeometrySketchPlane: () => void
@@ -283,6 +287,58 @@ let activeViewerViewportId: string | null = null
 const viewerByViewportId = new Map<string, ViewerApi>()
 const activeListeners = new Set<(viewer: ViewerApi | null) => void>()
 const listenersByViewportId = new Map<string, Set<(viewer: ViewerApi | null) => void>>()
+const queuedCameraPoseByViewportId = new Map<string, CameraPose>()
+const latestCameraPoseByViewportId = new Map<string, CameraPose>()
+const scheduledCameraRestoreByViewportId = new Map<
+  string,
+  { firstFrameId: number; secondFrameId: number | null }
+>()
+
+const cloneCameraPose = (pose: CameraPose): CameraPose => ({
+  position: pose.position.clone(),
+  target: pose.target.clone(),
+  up: pose.up.clone(),
+  projectionMode: pose.projectionMode,
+  perspectiveFovDeg: pose.perspectiveFovDeg,
+  orthoViewHeight: pose.orthoViewHeight,
+})
+
+const cancelScheduledViewerCameraRestore = (viewportId: string): void => {
+  const scheduled = scheduledCameraRestoreByViewportId.get(viewportId) ?? null
+  if (scheduled === null) {
+    return
+  }
+  window.cancelAnimationFrame(scheduled.firstFrameId)
+  if (scheduled.secondFrameId !== null) {
+    window.cancelAnimationFrame(scheduled.secondFrameId)
+  }
+  scheduledCameraRestoreByViewportId.delete(viewportId)
+}
+
+const applyViewerCameraPoseIfPresent = (viewportId: string, pose: CameraPose): void => {
+  const activeViewer = getViewer(viewportId)
+  if (activeViewer === null || typeof activeViewer.applyCameraPose !== 'function') {
+    return
+  }
+  activeViewer.applyCameraPose(cloneCameraPose(pose))
+}
+
+const scheduleViewerCameraRestore = (viewportId: string, pose: CameraPose): void => {
+  cancelScheduledViewerCameraRestore(viewportId)
+  applyViewerCameraPoseIfPresent(viewportId, pose)
+  const scheduled = {
+    firstFrameId: 0,
+    secondFrameId: null as number | null,
+  }
+  scheduled.firstFrameId = window.requestAnimationFrame(() => {
+    applyViewerCameraPoseIfPresent(viewportId, pose)
+    scheduled.secondFrameId = window.requestAnimationFrame(() => {
+      applyViewerCameraPoseIfPresent(viewportId, pose)
+      scheduledCameraRestoreByViewportId.delete(viewportId)
+    })
+  })
+  scheduledCameraRestoreByViewportId.set(viewportId, scheduled)
+}
 
 const getViewportListeners = (viewportId: string): Set<(viewer: ViewerApi | null) => void> => {
   const currentListeners = listenersByViewportId.get(viewportId)
@@ -323,6 +379,7 @@ export const setViewer = (viewportIdOrViewer: string | ViewerApi | null, nextVie
   if (typeof viewportIdOrViewer === 'string') {
     const viewportId = viewportIdOrViewer
     if (nextViewer === null || nextViewer === undefined) {
+      cancelScheduledViewerCameraRestore(viewportId)
       viewerByViewportId.delete(viewportId)
       if (activeViewerViewportId === viewportId) {
         activeViewerViewportId = null
@@ -331,6 +388,11 @@ export const setViewer = (viewportIdOrViewer: string | ViewerApi | null, nextVie
       viewerByViewportId.set(viewportId, nextViewer)
       if (activeViewerViewportId === null) {
         activeViewerViewportId = viewportId
+      }
+      const pendingCameraPose =
+        queuedCameraPoseByViewportId.get(viewportId) ?? latestCameraPoseByViewportId.get(viewportId) ?? null
+      if (pendingCameraPose !== null) {
+        scheduleViewerCameraRestore(viewportId, pendingCameraPose)
       }
     }
     notifyViewportViewerListeners(viewportId)
@@ -373,6 +435,59 @@ export const subscribeViewer = (
   activeListeners.add(listener)
   return () => {
     activeListeners.delete(listener)
+  }
+}
+
+export const queueViewerCameraPose = (viewportId: string, pose: CameraPose): void => {
+  latestCameraPoseByViewportId.set(viewportId, cloneCameraPose(pose))
+  queuedCameraPoseByViewportId.set(viewportId, cloneCameraPose(pose))
+}
+
+export const restoreViewerCameraPose = (viewportId: string, pose: CameraPose): void => {
+  queueViewerCameraPose(viewportId, pose)
+  scheduleViewerCameraRestore(viewportId, pose)
+}
+
+export const queueViewerCameraClone = (
+  sourceViewportId: string,
+  targetViewportId: string,
+): boolean => {
+  const sourceViewer = getViewer(sourceViewportId)
+  const sourcePose =
+    sourceViewer !== null && typeof sourceViewer.getCameraPose === 'function'
+      ? sourceViewer.getCameraPose()
+      : latestCameraPoseByViewportId.get(sourceViewportId) ?? null
+  if (sourcePose === null) {
+    return false
+  }
+  queueViewerCameraPose(targetViewportId, sourcePose)
+  return true
+}
+
+export const consumeQueuedViewerCameraPose = (viewportId: string): CameraPose | null => {
+  const pose = queuedCameraPoseByViewportId.get(viewportId) ?? null
+  if (pose !== null) {
+    queuedCameraPoseByViewportId.delete(viewportId)
+  }
+  return pose
+}
+
+export const setLatestViewerCameraPose = (viewportId: string, pose: CameraPose): void => {
+  latestCameraPoseByViewportId.set(viewportId, cloneCameraPose(pose))
+}
+
+export const getLatestViewerCameraPose = (viewportId: string): CameraPose | null => {
+  const pose = latestCameraPoseByViewportId.get(viewportId) ?? null
+  if (pose === null) {
+    return null
+  }
+  return {
+    position: pose.position.clone(),
+    target: pose.target.clone(),
+    up: pose.up.clone(),
+    projectionMode: pose.projectionMode,
+    perspectiveFovDeg: pose.perspectiveFovDeg,
+    orthoViewHeight: pose.orthoViewHeight,
   }
 }
 

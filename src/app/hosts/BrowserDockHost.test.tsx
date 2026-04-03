@@ -16,10 +16,27 @@ import { defaultPrimaryViewportSlotId } from '../workspace/workspaceShellTypes'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
 
+vi.mock('../store/useAppStore', () => ({
+  useAppStore: (selector: (state: any) => unknown) =>
+    selector({
+      viewerTransforms: {},
+      sketchPlanePickSession: null,
+      geometrySketchSession: null,
+      activeViewerViewportId: 'primary-viewport',
+    }),
+}))
+
+vi.mock('../workspace/ViewportWorkspaceHost', () => ({
+  ViewportWorkspaceHost: ({ viewportId }: { viewportId: string }) => (
+    <div className="ViewportWorkspaceHost">{`Viewer Host ${viewportId}`}</div>
+  ),
+}))
+
 vi.mock('../panels/BrowserPanel', () => ({
   BrowserPanel: ({
     presentationMode,
     onCyclePresentationMode,
+    showTitleBar,
     isFloating,
     isPoppedOut,
     isCollapsed,
@@ -33,6 +50,7 @@ vi.mock('../panels/BrowserPanel', () => ({
   }: {
     presentationMode?: 'expanded' | 'essentials' | 'collapsed'
     onCyclePresentationMode?: () => void
+    showTitleBar?: boolean
     isFloating?: boolean
     isPoppedOut?: boolean
     isCollapsed?: boolean
@@ -45,13 +63,15 @@ vi.mock('../panels/BrowserPanel', () => ({
     onWheelCapture?: (event: ReactWheelEvent<HTMLDivElement>) => void
   }) => (
     <div className="BrowserPanelRoot" onWheelCapture={onWheelCapture}>
-      <div
-        data-testid={`browser-titlebar-${isFloating === true ? 'floating' : 'docked'}`}
-        onContextMenu={onTitleBarContextMenu}
-        onPointerDown={onTitleBarPointerDown}
-      >
-        Browser Titlebar
-      </div>
+      {showTitleBar === false ? null : (
+        <div
+          data-testid={`browser-titlebar-${isFloating === true ? 'floating' : 'docked'}`}
+          onContextMenu={onTitleBarContextMenu}
+          onPointerDown={onTitleBarPointerDown}
+        >
+          Browser Titlebar
+        </div>
+      )}
       <div className="BrowserPanelBody" data-testid="mock-browser-body">
         Mock Browser Body
       </div>
@@ -504,7 +524,7 @@ describe('BrowserDockHost', () => {
     expect(panelStack?.dataset.scrollTop).toBe('96')
   })
 
-  it('keeps the docked browser visible while opening a child-window popout copy', async () => {
+  it('keeps the docked browser visible while opening a child-window popup workspace', async () => {
     await renderHarness()
     mockGeometry()
 
@@ -541,7 +561,9 @@ describe('BrowserDockHost', () => {
     expect(window.open).toHaveBeenCalled()
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
     expect(container?.textContent).toContain('Browser Panel docked expanded')
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.querySelectorAll('.ViewportFrame')).toHaveLength(1)
+    expect(popoutDocument.body.querySelectorAll('.BrowserPanelRoot')).toHaveLength(1)
 
     await act(async () => {
       beforeUnloadHandler?.()
@@ -550,7 +572,7 @@ describe('BrowserDockHost', () => {
     expect(container?.textContent).toContain('Browser Panel docked expanded')
   })
 
-  it('still lets the original docked browser drag into floating while a popout copy is open', async () => {
+  it('still lets the original docked browser drag into floating while a popup workspace is open', async () => {
     await renderHarness()
     mockGeometry()
 
@@ -579,7 +601,7 @@ describe('BrowserDockHost', () => {
       popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
     expect(container?.textContent).toContain('Browser Panel docked expanded')
 
     await act(async () => {
@@ -605,7 +627,118 @@ describe('BrowserDockHost', () => {
 
     expect(useWorkspaceStore.getState().browserShell.isPoppedOut).toBe(true)
     expect(container?.querySelector('.BrowserFloatingWindow')).not.toBeNull()
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+  })
+
+  it('lets a popped-out browser split from the popup workspace titlebar menu', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const popoutDocument = document.implementation.createHTMLDocument('Browser Popout Split Workspace')
+    const popoutWindow = {
+      get closed() {
+        return false
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const popoutTitlebar = popoutDocument.body.querySelector(
+      '.ViewportFrameHeader',
+    ) as HTMLDivElement | null
+    expect(popoutTitlebar).not.toBeNull()
+
+    await act(async () => {
+      popoutTitlebar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 140,
+          clientY: 84,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.trim() === 'Split Right') as HTMLButtonElement | undefined
+
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.click()
+    })
+
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.querySelectorAll('.ViewportFrame')).toHaveLength(2)
+    expect(popoutDocument.body.querySelectorAll('.BrowserPanelRoot')).toHaveLength(2)
+    expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('opens the popup split menu from the browser pane top strip even when the precise header target is missed', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const popoutDocument = document.implementation.createHTMLDocument('Browser Popout Top Strip Menu')
+    const popoutWindow = {
+      get closed() {
+        return false
+      },
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    const popoutButton = container?.querySelector(
+      'button[aria-label="Mock browser popout"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      popoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const popoutFrame = popoutDocument.body.querySelector('.ViewportFrame') as HTMLDivElement | null
+    expect(popoutFrame).not.toBeNull()
+    mockRect(popoutFrame, {
+      left: 0,
+      top: 0,
+      width: 1280,
+      height: 720,
+    })
+
+    await act(async () => {
+      popoutFrame?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 180,
+          clientY: 24,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.trim() === 'Split Right') as HTMLButtonElement | undefined
+
+    expect(splitRightButton).toBeDefined()
   })
 
   it('shows separate quick dock and popout controls for a floating browser', async () => {
@@ -1986,6 +2119,7 @@ describe('BrowserDockHost', () => {
     ).find((element) => element.textContent?.trim() === 'Split Left') as HTMLButtonElement | undefined
 
     expect(splitLeftButton).not.toBeUndefined()
+    expect(container?.textContent).toContain('Close')
 
     await act(async () => {
       splitLeftButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -2052,6 +2186,41 @@ describe('BrowserDockHost', () => {
     expect(useWorkspaceStore.getState().detachedSlotSurfaceById['browser-surface-1']).toBeUndefined()
     expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(false)
     expect(useWorkspaceStore.getState().browserShell.isViewportSplit).toBe(false)
+    expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
+  })
+
+  it('closes the floating browser from the floating split menu', async () => {
+    useWorkspaceStore.getState().setBrowserFloating(true)
+
+    await renderHarness()
+    mockGeometry()
+
+    const floatingTitlebar = container?.querySelector(
+      '[data-testid="browser-titlebar-floating"]',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      floatingTitlebar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 180,
+        }),
+      )
+    })
+
+    const closeButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+
+    expect(closeButton).not.toBeUndefined()
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(false)
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
   })
 

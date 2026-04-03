@@ -287,6 +287,16 @@ export const createDefaultEditorPopoutState = (
   windowFeatures: 'popup=yes,width=1440,height=920,resizable=yes,scrollbars=no',
 })
 
+export const createDefaultModelViewportPopoutState = (
+  surfaceInstanceId: WorkspaceSurfaceInstanceId,
+): WorkspacePopoutSurfaceState => ({
+  childWindowId: `model-viewport-${surfaceInstanceId}-popout`,
+  owner: 'child-window',
+  windowName: `parahook-model-viewport-${surfaceInstanceId}`,
+  windowTitle: 'ParaHook Model Viewport',
+  windowFeatures: 'popup=yes,width=1440,height=920,resizable=yes,scrollbars=no',
+})
+
 export const resolveWorkspacePresentationMode = (
   windowMode: EditorSurfaceWindowMode,
 ): WorkspacePresentationMode => (windowMode === 'split view' ? 'tiled' : 'windowed')

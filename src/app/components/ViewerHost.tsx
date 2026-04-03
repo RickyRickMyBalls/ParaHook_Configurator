@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
+  consumeQueuedViewerCameraPose,
+  getLatestViewerCameraPose,
+  setLatestViewerCameraPose,
   setViewer,
   type GeometrySketchOverlayVm,
   type ViewerTransformHistoryOverlayVm,
@@ -820,9 +823,17 @@ export function ViewerHost(props: ViewerHostProps) {
     const viewer = new Viewer(mountRef.current)
     viewerRef.current = viewer
     setViewer(viewportId, viewer)
+    viewer.setOnCameraPoseChange?.((pose) => {
+      setLatestViewerCameraPose(viewportId, pose)
+    })
+    const queuedCameraPose = consumeQueuedViewerCameraPose(viewportId) ?? getLatestViewerCameraPose(viewportId)
+    if (queuedCameraPose !== null) {
+      viewer.applyCameraPose?.(queuedCameraPose)
+    }
 
     return () => {
       isMountedRef.current = false
+      viewer.setOnCameraPoseChange?.(null)
       viewer.dispose()
       viewerRef.current = null
       setViewer(viewportId, null)

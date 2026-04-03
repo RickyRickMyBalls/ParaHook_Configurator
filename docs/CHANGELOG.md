@@ -65,6 +65,703 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 933 -->
+### [933] - 2026-04-03 10:54 - `Workspace 7.5 - AppShell Viewer Camera TypeScript Build Repair`
+<!-- ENTRY 933 -->
+HUMAN SUMMARY: `Fixed the AppShell model-viewer camera capture call sites so the optional \`ViewerApi.getCameraPose\` contract no longer breaks TypeScript builds, and verified that \`npm run build\` now succeeds end-to-end.`
+#### Scope / Constraints Honored
+- Kept this patch tightly focused on the two build-breaking TypeScript call sites in `AppShell.tsx`.
+- Preserved the existing camera fallback behavior through `getLatestViewerCameraPose(...)` instead of changing runtime camera ownership.
+- Avoided widening into unrelated viewer, workspace, or console changes.
+
+#### Summary of Implementation
+- Updated the split-time model viewer camera capture path in `src/app/AppShell.tsx` to cache the source viewer instance before checking and calling `getCameraPose()`.
+- Updated the primary model viewport browser-copy camera capture path in `src/app/AppShell.tsx` to use the same cached-viewer pattern.
+- This satisfies TypeScript's optional-method narrowing for `ViewerApi.getCameraPose` while keeping the existing fallback to `getLatestViewerCameraPose(...)`.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+
+#### Behavior Changes
+- No intended runtime behavior change.
+- The build now succeeds because the optional `getCameraPose` method is invoked through a narrowed cached viewer instead of a repeated fresh `getViewer(...)` expression.
+
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 932 -->
+### [932] - 2026-04-03 09:39 - `Workspace 7.5-15 - View Toolbar Local Anchor Repair`
+<!-- ENTRY 932 -->
+HUMAN SUMMARY: `Moved the live gizmo and View-toolbar anchor math onto per-viewport component state so each model viewport now positions its own gizmo, HUD, and View dock from the same local size values instead of relying on a shared CSS-variable seam that was still producing overlap and bad sibling alignment in the real split-view repro.`
+#### Scope / Constraints Honored
+- Kept this follow-up tightly on the remaining live `Workspace 7.5-15` layout regression without reopening unrelated model viewport behavior.
+- Preserved the existing per-viewport toolbar state owner path in workspace chrome instead of introducing another state store.
+- Repaired the real layout seam directly and added focused regression coverage for the dock and HUD anchor math.
+
+#### Summary of Implementation
+- Added shared local layout helpers in `src/app/components/viewToolbarLayout.ts` so the right dock top anchor and HUD offset now derive from the same per-viewport axis-widget size contract.
+- Updated `src/app/components/ViewToolbar.tsx` so each viewport's `RightDock` sets its own width and top padding inline from local toolbar state instead of relying on inherited CSS-variable anchor math.
+- Updated `src/app/components/ViewportOverlay.tsx` so the axis widget and viewport HUD also use direct per-viewport inline positioning, keeping the visible gizmo, HUD, and toolbar stack aligned off the same local size values.
+- Removed the now-misleading shared host sizing write from `src/app/workspace/ViewportWorkspaceHost.tsx` and refreshed the focused host, toolbar, and overlay tests to verify no shared host var is required and that sibling viewports keep independent compact versus expanded anchor geometry.
+
+#### Files Changed
+- `src/app/components/viewToolbarLayout.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/workspace/ViewportWorkspaceHost.test.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes
+- Expanding the gizmo or `View` toolbar in one model viewport now keeps that viewport's own toolbar stack aligned under its gizmo without shoving sibling compact toolbars into the wrong anchor position.
+- Split model viewports now compute compact versus expanded `View` toolbar placement from their own live local gizmo size instead of inheriting alignment from a shared layout variable.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/workspace/ViewportWorkspaceHost.test.tsx src/app/components/ViewportOverlay.test.tsx src/app/components/ViewToolbar.test.tsx src/app/workspace/useWorkspaceStore.test.ts`
+
+<!-- ENTRY 931 -->
+### [931] - 2026-04-03 09:28 - `Workspace 7.5-15 - Model Viewport Local Toolbar Layout Isolation`
+<!-- ENTRY 931 -->
+HUMAN SUMMARY: `Scoped axis-widget sizing to each viewport overlay host so expanding the main model viewport toolbar no longer leaks the larger gizmo layout into sibling model viewports that should remain compact.`
+#### Scope / Constraints Honored
+- Kept this follow-up narrowly focused on the remaining multi-viewport toolbar layout leak from `Workspace 7.5-15`.
+- Preserved the existing per-viewport toolbar state model instead of widening into another state ownership rewrite.
+- Targeted the layout seam directly without reopening unrelated camera, popout, or global view-setting work.
+
+#### Summary of Implementation
+- Updated `src/app/components/ViewportOverlay.tsx` so the `--v15-axis-widget-size` custom property is now applied on each `ViewportOverlayRoot` instead of being written to `document.documentElement`.
+- This keeps axis-widget sizing and dependent compact-toolbar layout calculations scoped to the owning viewport rather than leaking globally across sibling model viewports.
+- Added focused regression coverage in `src/app/components/ViewportOverlay.test.tsx` that renders two viewport overlays with different toolbar states and verifies each overlay host keeps its own axis-widget size while the document root no longer receives the shared size variable.
+
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+
+#### Behavior Changes
+- Expanding the main model viewport toolbar or gizmo no longer forces sibling model viewports to lay out their compact toolbar using the expanded axis-widget size.
+- Compact sibling model viewports can now keep their smaller `View` button and axis widget positioning while another viewport is expanded.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/components/ViewportOverlay.test.tsx src/app/components/ViewToolbar.test.tsx src/app/workspace/useWorkspaceStore.test.ts`
+
+<!-- ENTRY 930 -->
+### [930] - 2026-04-03 09:21 - `Workspace 7.5-15 - Model Viewport Local View Toolbar State Phase 2`
+<!-- ENTRY 930 -->
+HUMAN SUMMARY: `Removed the leftover global toolbar-open seam from UI prefs and added a real two-viewport regression test so model viewport toolbar shell state now aligns more cleanly with the intended per-viewport workspace chrome owner path.`
+#### Scope / Constraints Honored
+- Kept this slice narrowly focused on the model viewport toolbar-shell ownership cleanup.
+- Preserved the existing per-viewport `viewportChromeById` owner path instead of introducing a new toolbar state model.
+- Avoided widening into shared view-setting redesign, camera work, or popout behavior.
+
+#### Summary of Implementation
+- Removed the unused global `viewToolbarOpen` and `viewToolbarExpandedAxisWidgetSize` state plus setters from `src/app/store/uiPrefsStore.ts` so the UI prefs layer no longer advertises a second toolbar-open owner path.
+- Updated `src/app/components/ViewToolbar.test.tsx` to seed toolbar open state through `useWorkspaceStore` and `viewportId`, matching the real workspace owner seam instead of the old global fallback.
+- Added a focused multi-viewport regression test in `src/app/components/ViewToolbar.test.tsx` that renders two model viewport toolbars and verifies toggling one toolbar only updates that viewport's local workspace chrome state.
+
+#### Files Changed
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.test.tsx`
+
+#### Behavior Changes
+- The codebase now has one fewer legacy shared toolbar-open seam, reducing the risk of future toolbar state drift back toward a global owner path.
+- Regression coverage now explicitly protects the intended behavior that toolbar open state is local per model viewport.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/components/ViewToolbar.test.tsx src/app/workspace/useWorkspaceStore.test.ts`
+
+<!-- ENTRY 929 -->
+### [929] - 2026-04-03 08:47 - `Workspace 7.5-14 - Model Viewport Split Camera Restore Timing Hardening`
+<!-- ENTRY 929 -->
+HUMAN SUMMARY: `Strengthened the model viewport split camera path so the source pane now restores immediately if it stays mounted, while both source and sibling panes also keep a queued post-layout replay path for remount-heavy split transitions.`
+#### Scope / Constraints Honored
+- Kept this change narrowly focused on the still-live `move camera -> split view` reset bug.
+- Reused the existing split-time camera capture path instead of introducing a second workspace-only camera system.
+- Treated this as a timing and ownership hardening slice, not a full camera architecture rewrite.
+
+#### Summary of Implementation
+- Added a stronger camera-restore helper in `src/app/viewerBridge.ts` that now queues the pose, applies it immediately to any already-mounted viewer, and schedules follow-up replay frames so post-split layout settling does not win over the captured user camera.
+- Updated `src/app/viewerBridge.ts` viewer registration so a newly mounted viewer automatically picks up any pending camera restore path as soon as it registers.
+- Updated `src/app/AppShell.tsx` split and copied-viewer flows to use the stronger restore helper for both the original model viewport and any newly created sibling or copied viewer surface.
+- Expanded `src/app/AppShell.test.tsx` so the split path now verifies that the live source viewer receives an immediate camera reapply in addition to the queued handoff used by remounting viewers.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Splitting a model viewport now tries to preserve the user camera through both runtime paths.
+- If the original viewer stays mounted, it is immediately reapplied there.
+- If either viewer remounts during the split transition, the queued restore plus follow-up replay frames still reseed that viewport from the same captured pose.
+- Copied model viewport browser-window creation now uses the same stronger restore path, so copied viewers start closer to the clicked source camera.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/AppShell.test.tsx src/app/components/ViewerHost.test.tsx`
+
+<!-- ENTRY 928 -->
+### [928] - 2026-04-03 08:32 - `Workspace 7.5 - Model Viewport Split Camera Persistence Follow-Up`
+<!-- ENTRY 928 -->
+HUMAN SUMMARY: `Hardened the model viewport split camera behavior so both panes restore from the user’s last live camera pose even when the split causes the primary viewer to remount during the layout transition.`
+#### Scope / Constraints Honored
+- Kept this follow-up narrowly focused on the split-time model viewer camera regression.
+- Preserved the earlier copied primary popout behavior and reused the same camera-pose plumbing instead of adding a separate split-only camera system.
+- Treated the live repro as the source of truth and strengthened the runtime path beyond the earlier one-shot clone approach.
+
+#### Summary of Implementation
+- Updated `src/viewer/Viewer.ts` so viewer instances can emit live camera-pose changes back to the app layer.
+- Updated `src/app/viewerBridge.ts` to retain the latest known camera pose per viewport in addition to the one-shot queued handoff used during remounts and copied viewer creation.
+- Updated `src/app/components/ViewerHost.tsx` so a mounting viewport restores from the queued pose first and otherwise falls back to the latest persisted viewport camera pose.
+- Updated `src/app/AppShell.tsx` so split-created model viewports reseed both the original viewport and the new sibling viewport from the same captured user camera pose.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Splitting a model viewport now restores both panes from the user’s last live camera pose instead of falling back to the constructor/default framed view when the primary viewer remounts during the split.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/components/ViewerHost.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 927 -->
+### [927] - 2026-04-03 08:21 - `Workspace 7.5 - Model Viewport Camera Clone Popout`
+<!-- ENTRY 927 -->
+HUMAN SUMMARY: `Primary model viewports can now open a copied child-window viewer without leaving the workspace, and new split model viewports inherit the source camera instead of resetting to the default view.`
+#### Scope / Constraints Honored
+- Kept this pass focused on model viewport behavior only.
+- Preserved the existing non-primary detach/popout path while adding a separate copied primary-viewer browser action.
+- Reused one shared camera-clone seam for both split-created viewers and the new primary browser copy path.
+
+#### Summary of Implementation
+- Updated `src/app/viewerBridge.ts`, `src/viewer/Viewer.ts`, and `src/viewer/scene/CameraController.ts` so viewer camera poses can be captured, queued, and applied to freshly mounted viewer instances.
+- Updated `src/app/components/ViewerHost.tsx` so a queued camera pose is consumed when a new model viewport mounts.
+- Updated `src/app/workspace/useWorkspaceStore.ts` and `src/app/AppShell.tsx` so the primary model viewport can spawn a detached copied viewer in `hostMode: 'popout'` while leaving the in-app primary slot in place.
+- Updated `src/app/AppShell.tsx` and `src/app/workspace/ViewportFrame.tsx` so the primary model viewport now shows an `Open Model Viewport in new browser` titlebar action instead of suppressing the top-right button entirely.
+- Updated `src/app/AppShell.test.tsx` and `src/app/components/ViewerHost.test.tsx` with focused coverage for split camera cloning, queued camera application on mount, and the primary copied browser-window flow.
+
+#### Files Changed
+- `src/app/viewerBridge.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/AppShell.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/scene/CameraController.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Splitting a model viewport now preserves the source viewport camera instead of resetting to the default camera.
+- The primary model viewport now exposes a top-right `open in new browser` action that opens a copied child-window viewer and keeps the in-app primary viewport in place.
+
+#### Verification Steps
+- `cmd /c npx.cmd vitest run src/app/components/ViewerHost.test.tsx src/app/AppShell.test.tsx`
+
+<!-- ENTRY 923 -->
+### [926] - 2026-04-03 07:51 - `Workspace 7.5 - Titlebar Submenu Click Lock`
+<!-- ENTRY 926 -->
+HUMAN SUMMARY: `Titlebar submenus can now be click-locked open, so users can click Split or Viewport Type once and keep that submenu open until they choose an action or click elsewhere.`
+#### Scope / Constraints Honored
+- Kept this interaction cleanup focused on the shared titlebar submenu behavior.
+- Preserved the existing hover preview behavior while adding the requested click-to-lock interaction.
+- Applied the same lock-open pattern to the shared floating split submenu so titlebar menus stay consistent.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/ViewportFrame.tsx` so `Split` and `Viewport Type` submenus can be hovered for preview or clicked to pin them open.
+- Updated `src/app/AppShell.tsx` so the shared floating split submenu for Spaghetti and Console also supports click-to-lock.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` and `src/app/AppShell.test.tsx` with focused coverage proving the submenu stays open after a click even when the pointer leaves the row.
+
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Hovering a titlebar submenu row still previews it.
+- Clicking a titlebar submenu row now locks that submenu open until the user picks an action or clicks elsewhere.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+### [925] - 2026-04-03 07:48 - `Workspace 7.5 - Titlebar Viewport Type Submenu`
+<!-- ENTRY 925 -->
+HUMAN SUMMARY: `Added a new Viewport Type submenu to the shared titlebar context menu, so users can switch a viewport surface from the same right-click menu instead of relying only on the mode button picker.`
+#### Scope / Constraints Honored
+- Kept this cleanup scoped to the shared viewport titlebar context menu.
+- Added `Viewport Type` as a sibling of `Split`, `Float`, `Pop Out`, and `Close`, exactly matching the requested menu shape.
+- Reused the existing viewport surface-switch choices instead of creating a second surface type list.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/ViewportFrame.tsx` so the titlebar action menu now includes a `Viewport Type` submenu next to `Split`.
+- Reused the existing `surfaceChoices` list for the submenu entries and routed selection through the same `onRequestSurfaceKind` seam.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` with focused coverage for opening the new submenu and switching a viewport to `Console`.
+
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+
+#### Behavior Changes
+- Titlebar context menus now show `Viewport Type` as a top-level action.
+- Hovering `Viewport Type` opens a submenu with the available surface-switch options for that viewport.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx`
+- `npm.cmd run build`
+
+### [924] - 2026-04-03 07:46 - `Workspace 7.5 - Titlebar Split Submenu Cleanup`
+<!-- ENTRY 924 -->
+HUMAN SUMMARY: `Collapsed the titlebar split actions into a single Split submenu, so shared viewport and floating-window menus stay shorter while still exposing Top, Right, Bottom, and Left splits on hover.`
+#### Scope / Constraints Honored
+- Kept this cleanup focused on the shared titlebar context menus that already expose split actions.
+- Preserved the existing split behavior and close actions instead of changing the actual workspace split semantics.
+- Reused the existing shared viewport and floating menu seams instead of creating another menu system.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/ViewportFrame.tsx` so titlebar action menus now show a single `Split` row that opens a nested submenu with the four split directions.
+- Updated `src/app/AppShell.tsx` so floating shared titlebar menus for Spaghetti and Console use the same nested split submenu pattern.
+- Updated `src/app/theme/foundation/base.css` with the shared submenu styling and chevron treatment for both menu owners.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` and `src/app/AppShell.test.tsx` with focused coverage for the new submenu interaction path.
+
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Right-click titlebar menus now show `Split` as one item instead of listing all four split directions inline.
+- Hovering or focusing `Split` opens a nested submenu with `Split Top`, `Split Right`, `Split Bottom`, and `Split Left`.
+- Floating Spaghetti, floating Console, and shared slotted viewport titlebar menus now use the same split submenu pattern.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+### [923] - 2026-04-03 07:35 - `Workspace 7.5 - Viewport Searchable Spawn Menu`
+<!-- ENTRY 923 -->
+HUMAN SUMMARY: `Added a searchable right-click viewport menu that starts with Spawn Spaghetti Editor and Spawn Browser, so users can open those floating surfaces directly from the model viewport.`
+#### Scope / Constraints Honored
+- Kept this change focused on the viewport right-click spawn flow.
+- Reused the existing viewer host and AppShell surface-spawn seams instead of inventing another workspace menu system.
+- Started with the first two requested actions only: Spaghetti Editor and Browser.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/ViewportWorkspaceHost.tsx` so viewport hosts can publish right-click context events upward.
+- Updated `src/app/AppShell.tsx` to own a searchable viewport spawn menu, route the first actions through the real floating Spaghetti and Browser spawn paths, and place those surfaces near the click point.
+- Updated `src/app/AppShell.test.tsx` with focused coverage for opening the searchable menu, filtering it, and spawning both surfaces.
+- Updated `src/app/theme/foundation/base.css` with the viewport spawn menu styling.
+
+#### Files Changed
+- `src/app/workspace/ViewportWorkspaceHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/foundation/base.css`
+
+#### Behavior Changes
+- Right-clicking a model viewport now opens a searchable spawn menu.
+- The first viewport spawn actions create a floating Spaghetti Editor and a floating Browser near the click point.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 922 -->
+### [922] - 2026-04-02 23:21 - `Workspace 7.5 - Floating Model Viewport Drag Repair`
+<!-- ENTRY 922 -->
+HUMAN SUMMARY: `Made detached floating model viewport windows actually draggable inside the main viewport area by giving the AppShell-owned viewer float path its own persisted floating rect and header drag loop.`
+#### Scope / Constraints Honored
+- Kept this change focused on detached floating model viewport behavior.
+- Reused the existing AppShell-owned detached viewer path rather than moving model viewport float ownership into another host.
+- Left model viewport popout behavior unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/AppShell.tsx` to track per-surface floating rects for detached model viewer windows, initialize them from the host viewport, and clamp them within the main viewport area.
+- Added a real pointer-driven drag loop on `.DetachedViewerFloatingWindowHeader` so floating model viewports can move after detaching.
+- Updated `src/app/AppShell.test.tsx` with a focused regression that drags a detached floating model viewport and verifies its position updates.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Detached floating model viewports can now be dragged around over the main model viewport area.
+- Floating model viewport position now persists across normal AppShell rerenders while the surface remains detached.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 921 -->
+### [921] - 2026-04-02 23:10 - `Workspace 7.5-12 - Browser Popup Titlebar Split Menu Fallback`
+<!-- ENTRY 921 -->
+HUMAN SUMMARY: `Added a popup-local Browser header-strip context-menu fallback so right-clicking the visible top strip of a Browser child-window pane still opens the split menu when the precise header target is missed live.`
+#### Scope / Constraints Honored
+- Kept this change focused on the Browser popup-local split-menu entry point.
+- Reused the existing popup-local workspace shell rather than introducing another Browser-specific menu system.
+- Left the main-window Browser menu behavior unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/ViewportFrame.tsx` to support an optional top-strip context-menu fallback that opens the shared action menu from the frame itself when the pointer lands in the visible header band.
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to enable that fallback for popup-local Browser slots.
+- Updated `src/app/hosts/BrowserDockHost.test.tsx` with a Browser popout regression that right-clicks the popup frame top strip and verifies the split menu appears.
+
+#### Files Changed
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- Browser panes inside popup-local child windows now open the split menu when the user right-clicks the visible top strip, even if the exact header target is missed.
+- The popup-local Browser split entry point is more forgiving in live child-window use.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/BrowserDockHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 920 -->
+### [920] - 2026-04-02 22:56 - `Workspace 7.5-12 - Browser Direct Popup Workspace Open`
+<!-- ENTRY 920 -->
+HUMAN SUMMARY: `Changed Browser popouts to open directly into the popup-local workspace shell, so a newly opened Browser child window is immediately splittable from its visible titlebar instead of waiting on the older single-surface popout path.`
+#### Scope / Constraints Honored
+- Kept this change focused on Browser popout open behavior.
+- Reused the existing popup-local workspace shell rather than inventing another Browser-specific child-window shell.
+- Preserved the main-window Browser behavior and floating Browser flows.
+
+#### Summary of Implementation
+- Updated `src/app/hosts/BrowserDockHost.tsx` so Browser popouts now render `PopupWorkspaceShell` immediately with Browser as the root surface instead of first rendering the older standalone Browser popout copy.
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` so the popup-local shell can open without forcing an initial split, which lets Browser start as a single-pane popup workspace that is already ready for titlebar split actions.
+- Updated `src/app/hosts/BrowserDockHost.test.tsx` to cover the new immediate Browser popup workspace behavior and its titlebar-driven split flow.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- Opening Browser in a second window now creates a popup-local workspace immediately.
+- Right-clicking the visible Browser popup titlebar now exposes split actions right away, without requiring a secondary transition from the old single-surface Browser popout path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/BrowserDockHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 919 -->
+### [919] - 2026-04-02 22:42 - `Workspace 7.5-12 - Browser Popout Split Workspace Adoption`
+<!-- ENTRY 919 -->
+HUMAN SUMMARY: `Updated Browser popouts so right-clicking the popout titlebar can now split the child window into a popup-local workspace, matching the newer splittable popout behavior already available from popped-out \`Spaghetti Editor\` workspaces.`
+#### Scope / Constraints Honored
+- Kept the existing simple Browser popout copy behavior intact until the user explicitly asks to split from the popout titlebar.
+- Reused the popup-local workspace shell instead of inventing a separate Browser-only split substrate.
+- Limited the test harness changes to Browser popout coverage and lightweight viewer mocks needed for the popup-local shell path.
+
+#### Summary of Implementation
+- Updated `src/app/hosts/BrowserDockHost.tsx` so popped-out Browser windows now open a popup-local split menu from the Browser titlebar, and choosing `Split Top`, `Split Right`, `Split Bottom`, or `Split Left` transitions that child window into `PopupWorkspaceShell` with Browser as the root surface.
+- Generalized `src/app/workspace/PopupWorkspaceShell.tsx` so it can start from a non-spaghetti root surface while preserving popup-local spaghetti duplication and close behavior when users later switch popup-local slots to `Spaghetti Editor`.
+- Updated `src/app/hosts/BrowserDockHost.test.tsx` to cover the new Browser popout split transition and mocked the viewer-side dependencies needed by the popup-local shell in that focused test environment.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+
+#### Behavior Changes
+- Right-clicking the titlebar of a popped-out Browser window now shows the split actions and can turn that child window into a splittable popup-local workspace.
+- After the split action is chosen, the Browser popout stays in the child window and gains popup-local viewport slots instead of remaining a single unsplittable popout copy.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/BrowserDockHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 918 -->
+### [918] - 2026-04-02 22:36 - `Workspace 7.5-12 - Popup Shell Extra Header Row Removal`
+<!-- ENTRY 918 -->
+HUMAN SUMMARY: `Removed the extra popup-shell toolbar row from the popped-out workspace shell so split popup windows no longer grow a second header above the real surface titlebar, and collapsing back to one pane returns to the original single-popout look.`
+#### Scope / Constraints Honored
+- Kept this cleanup focused on popup-shell chrome only.
+- Preserved the popup-local split substrate and pane behavior.
+- Removed the extra shell row instead of adding more special-case visibility toggles.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to remove the popup-shell toolbar row entirely.
+- Cleaned out the now-unused popup-shell dock or close toolbar callbacks left behind by that row removal.
+
+#### Files Changed
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+
+#### Behavior Changes
+- Popped-out split workspaces no longer render an extra top header row above the real surface titlebars.
+- After closing a popup-local sibling pane, the remaining single pane now visually matches the original popped-out surface more closely.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+<!-- ENTRY 917 -->
+### [917] - 2026-04-02 22:33 - `Workspace 7.5-12 - Popup Workspace Label Cleanup`
+<!-- ENTRY 917 -->
+HUMAN SUMMARY: `Removed the stray \`POPUP WORKSPACE\` label from the popped-out workspace shell toolbar so closing popup-local sibling panes no longer leaves that extra string hanging over an otherwise normal popout surface.`
+#### Scope / Constraints Honored
+- Kept this cleanup narrowly focused on popup-shell chrome instead of changing popup lifecycle behavior.
+- Preserved the existing popup-shell action buttons for dock and close.
+- Avoided reopening the popup-local split system for a cosmetic follow-up.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to remove the hardcoded `POPUP WORKSPACE` label from the popup-shell toolbar.
+- Adjusted the popup-shell toolbar layout so the remaining `DK` and `X` actions stay aligned cleanly on the right.
+
+#### Files Changed
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+
+#### Behavior Changes
+- Popped-out workspace shells no longer show the `POPUP WORKSPACE` string above the content after popup-local split panes are closed back down.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+<!-- ENTRY 916 -->
+### [916] - 2026-04-02 22:31 - `Workspace 7.5-12 - Popup Split Menu Close And Hover Cleanup`
+<!-- ENTRY 916 -->
+HUMAN SUMMARY: `Fixed the popped-out \`Spaghetti Editor\` split titlebar menu so popup-local sibling panes can actually close from the menu, and added visible hover/focus feedback for the popup-local menu actions in the child window.`
+#### Scope / Constraints Honored
+- Kept this cleanup on the popup-local `Spaghetti Editor` workspace shell instead of reopening the main workspace menu paths.
+- Reused popup-local slot ownership and editor-close behavior instead of inventing a separate popup close system.
+- Limited the visual polish change to the shared popup frame menu button styling already used by the child-window shell.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to add popup-local slot removal support, wire a real `onClose` callback into popup-local `ViewportFrame` titlebars, and close owned popup spaghetti viewports when a popup-local sibling spaghetti pane is dismissed.
+- Updated `src/app/theme/foundation/base.css` so `ViewportFrame` action-menu and type-picker buttons show visible hover and focus feedback even when rendered in the child-window popup shell.
+- Updated `src/app/hosts/SpaghettiWindowHost.test.tsx` with a focused regression for the exact `split right -> right-click sibling -> Close` popup flow.
+
+#### Files Changed
+- `src/app/workspace/PopupWorkspaceShell.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- In a popped-out `Spaghetti Editor` workspace, closing a popup-local sibling pane from the split titlebar menu now removes that pane instead of leaving the menu stuck open.
+- Popup-local titlebar menu actions now show visible hover or focus feedback in the child window.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 915 -->
+### [915] - 2026-04-02 22:18 - `Workspace 7.5-12 - Titlebar Menu Close Action Cleanup`
+<!-- ENTRY 915 -->
+HUMAN SUMMARY: `Added a shared \`Close\` action to the titlebar context menus for floating surfaces and split viewport frames, so users can dismiss those panes from the same right-click menu that already exposes split actions.`
+#### Scope / Constraints Honored
+- Kept this cleanup on existing titlebar context-menu owners instead of inventing a separate close menu system.
+- Covered both floating-window titlebars and split-window titlebars in the main workspace.
+- Reused the existing close or dock behavior already owned by each surface instead of introducing new close semantics.
+
+#### Summary of Implementation
+- Updated `src/app/AppShell.tsx` so the shared floating titlebar split menu for floating `Spaghetti Editor` and floating `Console` now also offers `Close`, and the action routes through the existing editor close or console dock path.
+- Updated `src/app/workspace/ViewportFrame.tsx` so split viewport titlebars can expose a `Close` action when their host provides a close callback.
+- Updated `src/app/AppShell.tsx` to pass that split-titlebar close callback for non-primary workspace slots, with surface-specific handling for slotted `Spaghetti Editor`, `Browser`, and `Console`.
+- Updated `src/app/hosts/BrowserDockHost.tsx` so the Browser floating titlebar context menu also includes `Close`, mapped to the existing quick-dock close behavior for the floating browser shell.
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+
+#### Behavior Changes
+- Right-clicking the titlebar of a floating `Spaghetti Editor`, floating `Console`, or floating `Browser` now shows `Close` alongside the split actions.
+- Right-clicking the titlebar of a non-primary split viewport now includes `Close` in the action menu.
+- Choosing `Close` from those menus now performs the same close or dock action the corresponding surface already uses elsewhere in the UI.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx src/app/AppShell.test.tsx src/app/hosts/BrowserDockHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 914 -->
+### [914] - 2026-04-02 22:10 - `Workspace 7.5-12 - Floating Spaghetti Four-Way Split Menu Cleanup`
+<!-- ENTRY 914 -->
+HUMAN SUMMARY: `Updated the in-app floating \`Spaghetti Editor\` titlebar context menu to use the same four-way split language as the newer popup-local and console flows, replacing the old local/global right-split menu for this floating spaghetti path.`
+#### Scope / Constraints Honored
+- Kept this cleanup narrow to the floating `Spaghetti Editor` titlebar menu path in the shared AppShell menu owner.
+- Preserved the console-specific floating split behavior while bringing floating spaghetti onto the newer four-way directional contract.
+- Avoided reopening the closed `7.5-12` phase for a small post-close behavior cleanup.
+
+#### What Changed
+- Updated `src/app/AppShell.tsx` so floating `spaghettiEditor` titlebar menus now render `Split Top`, `Split Right`, `Split Bottom`, and `Split Left`, and commit those choices through the existing directional floating split helper instead of the old local/global right-split branch.
+- Updated `src/app/AppShell.test.tsx` to cover the new floating spaghetti four-way menu truth and remove the old local/global spaghetti expectations.
+
+#### Behavior Changes
+- Right-clicking the titlebar of an in-app floating `Spaghetti Editor` now shows `Split Top`, `Split Right`, `Split Bottom`, and `Split Left`.
+- The old `Split Right Locally` and `Split Right Globally` menu items no longer appear for floating spaghetti windows.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 913 -->
+### [913] - 2026-04-02 22:04 - `Workspace 7.5-12 - Popup-Local Split Divider Resize Cleanup`
+<!-- ENTRY 913 -->
+HUMAN SUMMARY: `Added real divider dragging to the popup-local child-window shell, so users can now adjust vertical split widths and horizontal split heights inside popped-out popup workspaces instead of being locked to the default 50/50 layout.`
+#### Scope / Constraints Honored
+- Kept this cleanup inside the existing popup-local workspace shell instead of pushing resize ownership down into individual surface adapters.
+- Preserved the main workspace split behavior and kept the change scoped to popup-local child-window layouts.
+- Reused the same popup-local slot tree and split-ratio model already introduced under `7.5-12`.
+
+#### What Changed
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to store popup-local split-ratio updates, expose draggable divider ownership, and apply pointer-driven ratio changes for both vertical and horizontal popup-local splits.
+- Extended `src/app/hosts/SpaghettiWindowHost.test.tsx` with focused regressions that prove popup-local vertical widths and horizontal heights can both be adjusted inside the child window.
+
+#### Behavior Changes
+- Popped-out popup workspaces can now drag vertical dividers to change split widths.
+- Popped-out popup workspaces can now drag horizontal dividers to change split heights.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 912 -->
+### [912] - 2026-04-02 21:58 - `Workspace 7.5-12 - Popout Spaghetti Cross-Window Context Menu Cleanup`
+<!-- ENTRY 912 -->
+HUMAN SUMMARY: `Fixed popped-out \`Spaghetti Editor\` canvas right-click handling so node creation and related canvas context-menu actions now work inside the child browser window instead of failing the cross-window target checks.`
+#### Scope / Constraints Honored
+- Kept this cleanup narrow to cross-window target detection in the spaghetti interaction and context-menu path.
+- Preserved the existing main-window editor behavior while making the same logic safe for popped-out child-window DOM realms.
+- Avoided reopening the broader closed `7.5-12` phase ladder for a small follow-up behavior repair.
+
+#### What Changed
+- Updated `src/app/spaghetti/spInteractive.ts` with cross-window-safe node and element target guards that do not rely on same-realm `instanceof` checks.
+- Updated `src/app/spaghetti/canvas/interactionModel.ts`, `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, and `src/app/spaghetti/ui/SpaghettiContextMenu.tsx` to use those shared guards for canvas right-click handling and menu dismissal.
+- Extended `src/app/spaghetti/canvas/interactionModel.test.ts` with a child-window element-realm regression.
+
+#### Behavior Changes
+- Right-clicking the canvas in a popped-out `Spaghetti Editor` can now open the node-add menu correctly.
+- Popped-out spaghetti context-menu interactions now survive child-window DOM realms instead of silently treating popup targets as invalid.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/canvas/interactionModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 907 -->
+<!-- ENTRY 911 -->
+### [911] - 2026-04-02 21:27 - `Workspace 7.5-12 - Phase 6 - Popup-Local Browser Adoption`
+<!-- ENTRY 911 -->
+HUMAN SUMMARY: `Adapted \`Browser\` into the popup-local child-window shell, so a popped-out \`Spaghetti Editor\` popup workspace can now switch one of its local slots to \`Browser\` while keeping the split and later surface switching inside that same browser window.`
+#### Scope / Constraints Honored
+- Kept this slice on Browser-only popup-local adoption after the shipped Console-first pass.
+- Reused the existing popup-local shell and slot tree from `Phase 4` instead of reopening the substrate design.
+- Kept the main workspace layout untouched by popup-local Browser switching.
+
+#### What Changed
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to expand popup-local surface switching to `browser` and render popup-local Browser slots through a local `BrowserPanel` adapter inside the existing child-window shell.
+- Extended `src/app/hosts/SpaghettiWindowHost.test.tsx` with a focused regression that proves a popup-local slot can switch to `Browser` inside the same child window and that the popup-owned sibling still stays out of the main host tree.
+
+#### Behavior Changes
+- Popup-local child-window workspaces created from popped-out `Spaghetti Editor` can now switch popup-local slots between `Spaghetti Editor`, `Model Viewport`, `Console`, and `Browser`.
+- Choosing `Browser` for a popup-local slot keeps the child window alive and renders the browser inside that popup-local slot instead of routing back to the main app workspace.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 907 -->
+<!-- ENTRY 910 -->
+### [910] - 2026-04-02 20:56 - `Workspace 7.5-12 - Phase 5 - Popup-Local Console Adoption`
+<!-- ENTRY 910 -->
+HUMAN SUMMARY: `Adapted Console into the popup-local child-window shell, so a popped-out \`Spaghetti Editor\` popup workspace can now switch one of its local slots to \`Console\` while keeping the split and later surface switching inside that same browser window.` 
+#### Scope / Constraints Honored
+- Kept this slice on popup-local Console adoption only and left Browser explicitly deferred.
+- Reused the existing popup-local shell and slot tree from `Phase 4` instead of reopening the substrate decision.
+- Kept the main workspace layout untouched by popup-local Console switching.
+
+#### What Changed
+- Updated `src/app/workspace/PopupWorkspaceShell.tsx` to expand popup-local surface switching to `console` and render popup-local console slots through a local Console adapter built from `ConsolePanel` plus `ConsoleBar`.
+- Extended `src/app/hosts/SpaghettiWindowHost.test.tsx` with a focused regression that proves a popup-local slot can switch to `Console` inside the same child window and that the popup-owned sibling still stays out of the main host tree.
+
+#### Behavior Changes
+- Popup-local child-window workspaces created from popped-out `Spaghetti Editor` can now switch popup-local slots between `Spaghetti Editor`, `Model Viewport`, and `Console`.
+- Choosing `Console` for a popup-local slot keeps the child window alive and renders the console inside that popup-local slot instead of routing back to the main app workspace.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 909 -->
+### [909] - 2026-04-02 20:20 - `Workspace 7.5-12 - Popup-Local Spaghetti Graph Binding Cleanup`
+<!-- ENTRY 909 -->
+HUMAN SUMMARY: `Stopped popup-local split-created \`Spaghetti Editor\` siblings from losing their initial graph binding, so the new child-window viewport now opens directly on the graph instead of showing \`Viewport graph binding is missing.\`` 
+#### Scope / Constraints Honored
+- Kept the repair narrow to popup-local spaghetti sibling creation inside the new `7.5-12` child-window shell.
+- Preserved the popup-owned viewport filtering so these extra popout-created editors still do not leak back into the normal main-app host list.
+- Left Browser and Console popup-local parity untouched.
+
+#### What Changed
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so popup-local sibling spaghetti viewports keep the normal viewport graph-binding path created by `openGraphDocumentInNewViewport(...)` instead of stripping that binding immediately after creation.
+- Tightened `src/app/hosts/SpaghettiWindowHost.test.tsx` to keep the popup-local split flow covered while staying aligned with the host-level mock harness.
+
+#### Behavior Changes
+- Splitting a popped-out `Spaghetti Editor` into a second popup-local spaghetti viewport now opens that sibling directly on its graph on first render.
+- The temporary `Viewport graph binding is missing.` error no longer appears in the newly created popup-local sibling during the initial split flow.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 908 -->
+### [908] - 2026-04-02 18:12 - `Workspace 7.5-12 - Phase 4 - Popup-Local Workspace Shell First Implementation`
+<!-- ENTRY 908 -->
+HUMAN SUMMARY: `Shipped the first popup-local multi-viewport shell for popped-out \`Spaghetti Editor\`, so right-click split in the child window now keeps the popup alive, creates a same-surface sibling viewport in that same browser, and allows first-wave popup-local switching between \`Spaghetti Editor\` and \`Model Viewport\`.`
+#### Scope / Constraints Honored
+- Kept this first implementation cut strictly on popped-out `Spaghetti Editor` as the validator surface and deferred Browser plus Console popup-local parity.
+- Kept popup-local layout state isolated from the main workspace slot tree by introducing one per-popup shell state model instead of widening the singleton main workspace store.
+- Kept the first popup-local surface-switching set intentionally narrow at `spaghettiEditor` and `modelViewer`.
+
+#### What Changed
+- Added `src/app/workspace/PopupWorkspaceShell.tsx` as the first popup-local workspace shell, including one popup-local zustand store per child window, reused workspace slot-tree shapes, popup-local split ownership, same-surface sibling default, and popup-local cleanup for extra spaghetti editor viewports.
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` so a popped-out `Spaghetti Editor` can open a popup-local four-way split menu from its child-window titlebar, promote itself into the new popup-local shell after split, create popup-owned sibling spaghetti viewports, and switch popup-local slots between `Spaghetti Editor` and `Model Viewport`.
+- Updated `src/app/workspace/ViewportFrame.tsx` so popup-local shells can narrow the available surface picker choices without changing the main workspace defaults.
+- Updated `src/app/AppShell.tsx` to pass viewer activation through to the popped-out spaghetti host so popup-local `modelViewer` slots can reuse `ViewportWorkspaceHost`.
+- Extended `src/app/hosts/SpaghettiWindowHost.test.tsx` with a focused regression covering popup-local titlebar split, same-surface sibling creation, popup-only viewport ownership, and popup-local switching from spaghetti to model viewport.
+
+#### Behavior Changes
+- Right-clicking the titlebar of a popped-out `Spaghetti Editor` now opens popup-local `Split Top`, `Split Right`, `Split Bottom`, and `Split Left` actions inside the child window.
+- Choosing one of those split actions keeps the child window open and turns it into a two-viewport popup-local workspace instead of redocking anything into the main app.
+- The new sibling popup-local viewport starts as `Spaghetti Editor`, and popup-local type switching now supports both `Spaghetti Editor` and `Model Viewport` in that child window.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx`
+- `npm.cmd test -- --run src/app/hosts/SpaghettiWindowHost.test.tsx src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
+### [907] - 2026-04-02 16:49 - `Workspace 7.5-13 - Phase 2 - Non-Primary Model Viewport Child-Window Popout`
+<!-- ENTRY 907 -->
+HUMAN SUMMARY: `Shipped the first real model viewport child-window popout path for non-primary viewer slots, including the titlebar popout button, shared popup-host rendering through \`ViewportWorkspaceHost\`, and honest quick-dock versus popup-close cleanup behavior.`
+#### Scope / Constraints Honored
+- Kept this first implementation cut strictly on non-primary `modelViewer` slots and left primary model viewport transfer semantics for a later phase.
+- Reused the existing detached-surface bookkeeping with `hostMode: 'popout'` instead of inventing a separate viewer-only popout state model.
+- Reused `ViewportWorkspaceHost.tsx` as the popup render boundary so the viewer canvas, overlay, and toolbar stayed together under one existing workspace host.
+
+#### What Changed
+- Added `createDefaultModelViewportPopoutState(...)` in `src/app/workspace/workspaceShellTypes.ts` so non-primary model viewport popouts now have a real child-window spec and stable popup identity.
+- Updated `src/app/AppShell.tsx` to expose the titlebar popout button for non-primary `modelViewer` slots, route their popout action through the existing detached-surface path, and render detached viewer surfaces with `hostMode === 'popout'` through `useWorkspaceChildWindow(...)`.
+- Added a new detached viewer popup shell in `src/app/AppShell.tsx` that portals `ViewportWorkspaceHost` into the child window, keeps viewer activation alive from popup focus, quick-docks explicitly, and clears detached popout state on real child-window close.
+- Extended `src/app/AppShell.test.tsx` with focused regressions covering model viewport popout open, visible child-window render, quick dock back into the slot tree, and popup-close cleanup.
+
+#### Behavior Changes
+- Non-primary model viewport slots now show the explicit `open in new browser` titlebar button.
+- Clicking that button opens the selected non-primary model viewport in a real child window while preserving its normal viewer host, overlay, and toolbar stack.
+- Quick Dock now redocks that popped-out non-primary viewer back into the workspace slot tree, while closing the child window clears the detached viewer popout state instead of silently restoring it elsewhere.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx`
+- `npm.cmd run build`
+
 <!-- ENTRY 906 -->
 ### [906] - 2026-04-02 16:15 - `Workspace 7.5-10 - Spaghetti Popout Sketch Draw Preserve Window Cleanup`
 <!-- ENTRY 906 -->

@@ -1,4 +1,4 @@
-import { isInteractiveTarget } from '../spInteractive'
+import { isElementTarget, isInteractiveTarget } from '../spInteractive'
 
 export type NodeInteractionZone = 'header' | 'body' | 'control'
 
@@ -53,7 +53,7 @@ export const shouldClearCanvasSelection = (
 export const readCanvasPointerTargetState = (
   target: EventTarget | null,
 ): CanvasPointerTargetState => {
-  if (!(target instanceof Element)) {
+  if (!isElementTarget(target)) {
     return {
       interactive: false,
       insideNode: false,

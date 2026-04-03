@@ -1,6 +1,9 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it } from 'vitest'
 import {
   getNodeInteractionBehavior,
+  readCanvasPointerTargetState,
   shouldClearCanvasSelection,
   type CanvasPointerTargetState,
 } from './interactionModel'
@@ -63,5 +66,30 @@ describe('interactionModel', () => {
         }),
       ),
     ).toBe(false)
+  })
+
+  it('reads canvas pointer targets from a child-window element realm', () => {
+    const iframe = document.createElement('iframe')
+    document.body.appendChild(iframe)
+    const popupDocument = iframe.contentDocument
+    expect(popupDocument).not.toBeNull()
+
+    const node = popupDocument!.createElement('div')
+    node.className = 'SpaghettiNode'
+    const button = popupDocument!.createElement('button')
+    node.appendChild(button)
+    popupDocument!.body.appendChild(node)
+
+    expect(readCanvasPointerTargetState(button)).toEqual({
+      interactive: true,
+      insideNode: true,
+      insidePort: false,
+      insideWire: false,
+      insideWireWaypoint: false,
+      insideWireLoop: false,
+      insideWireGap: false,
+    })
+
+    iframe.remove()
   })
 })

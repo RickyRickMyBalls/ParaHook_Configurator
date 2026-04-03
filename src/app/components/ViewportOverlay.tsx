@@ -46,10 +46,13 @@ import {
   renderProfilePreview,
 } from '../spaghetti/ui/features/profilePreview'
 import {
+  AXIS_WIDGET_TOP,
   COMPACT_AXIS_WIDGET_SIZE,
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
   MAX_AXIS_WIDGET_SIZE,
   MIN_AXIS_WIDGET_SIZE,
+  RIGHT_DOCK_PADDING_X,
+  resolveViewportHudRight,
 } from './viewToolbarLayout'
 
 type OverlayPosition = {
@@ -1095,16 +1098,6 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   }, [resolvedAxisWidgetSize])
 
   useEffect(() => {
-    document.documentElement.style.setProperty(
-      '--v15-axis-widget-size',
-      `${resolvedAxisWidgetSize}px`,
-    )
-    return () => {
-      document.documentElement.style.removeProperty('--v15-axis-widget-size')
-    }
-  }, [resolvedAxisWidgetSize])
-
-  useEffect(() => {
     if (activePlanePickNode === null) {
       return
     }
@@ -1824,7 +1817,21 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     window.addEventListener('pointercancel', stop)
   }
 
-  const axisWidgetStyle = { width: `${axisWidgetSize}px`, height: `${axisWidgetSize}px` }
+  const axisWidgetStyle = useMemo(
+    () => ({
+      top: `${AXIS_WIDGET_TOP}px`,
+      right: `${RIGHT_DOCK_PADDING_X}px`,
+      width: `${axisWidgetSize}px`,
+      height: `${axisWidgetSize}px`,
+    }),
+    [axisWidgetSize],
+  )
+  const viewportHudStyle = useMemo(
+    () => ({
+      right: `${resolveViewportHudRight(axisWidgetSize)}px`,
+    }),
+    [axisWidgetSize],
+  )
   const overlayModeLabel =
     sketchPlanePickSession !== null
       ? 'sketch plane pick'
@@ -4263,7 +4270,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
           />
         </div>
       ) : null}
-      <div className="ViewportOverlayWidget ViewportHud">
+      <div className="ViewportOverlayWidget ViewportHud" style={viewportHudStyle}>
         <span className="HudLine">Mode: {overlayModeLabel}</span>
         <span className="HudLine">
           Selected: {selectedPartKey === null ? 'none' : selectedPartKey}

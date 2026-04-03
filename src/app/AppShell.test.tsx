@@ -6,6 +6,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useConsoleStore } from './console/useConsoleStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from './store/audioSamplerStore'
+import { consumeQueuedViewerCameraPose, setViewer } from './viewerBridge'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { workspaceLayoutStorageKey } from './workspace/workspacePersistence'
 import {
@@ -113,14 +114,20 @@ vi.mock('./workspace/ViewportWorkspaceHost', () => ({
   ViewportWorkspaceHost: ({
     viewportId,
     onActivateViewerSurface,
+    onViewportContextMenu,
   }: {
     viewportId: string
     onActivateViewerSurface: (viewportId: string) => void
+    onViewportContextMenu?: (
+      viewportId: string,
+      event: ReactMouseEvent<HTMLDivElement>,
+    ) => void
   }) => (
     <div
       className="ViewportWorkspaceHost"
       data-workspace-viewport-id={viewportId}
       onPointerDownCapture={() => onActivateViewerSurface(viewportId)}
+      onContextMenu={(event) => onViewportContextMenu?.(viewportId, event)}
     >
       <div className="ViewportViewerSurface" data-workspace-viewport-id={viewportId}>
         Viewer Host
@@ -928,6 +935,9 @@ describe('AppShell', () => {
     window.confirm = originalWindowConfirm
     window.open = originalWindowOpen
     window.AudioContext = originalAudioContext
+    setViewer('model-viewer-primary', null)
+    setViewer('model-viewer-workspace-slot-2', null)
+    setViewer('model-viewer-detached-1', null)
   })
 
   it('renders a true header-only shell in collapsed mode', async () => {
@@ -1374,6 +1384,178 @@ describe('AppShell', () => {
     )
   })
 
+  it('opens a searchable viewport spawn menu on model viewport right-click', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const viewportHost = container?.querySelector(
+      '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-primary"]',
+    ) as HTMLDivElement | null
+    expect(viewportHost).not.toBeNull()
+
+    await act(async () => {
+      viewportHost?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 640,
+          clientY: 320,
+        }),
+      )
+    })
+
+    const searchInput = container?.querySelector('.ViewportSpawnMenuSearch') as HTMLInputElement | null
+    expect(searchInput).not.toBeNull()
+    expect(container?.textContent).toContain('Spawn Spaghetti Editor')
+    expect(container?.textContent).toContain('Spawn Browser')
+
+    expect(searchInput?.getAttribute('placeholder')).toBe('Search spawn actions')
+  })
+
+  it('spawns floating spaghetti and browser surfaces from the viewport spawn menu', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const viewportHost = container?.querySelector(
+      '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-primary"]',
+    ) as HTMLDivElement | null
+    expect(viewportHost).not.toBeNull()
+
+    await act(async () => {
+      viewportHost?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 640,
+          clientY: 320,
+        }),
+      )
+    })
+
+    const spawnSpaghettiButton = Array.from(
+      container?.querySelectorAll('.ViewportSpawnMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Spawn Spaghetti Editor') as
+      | HTMLButtonElement
+      | undefined
+    expect(spawnSpaghettiButton).toBeDefined()
+
+    currentSpaghettiState.openGraphDocumentInNewViewport.mockClear()
+    currentSpaghettiState.setEditorViewportPosition.mockClear()
+
+    await act(async () => {
+      spawnSpaghettiButton?.click()
+    })
+
+    expect(currentSpaghettiState.openGraphDocumentInNewViewport).toHaveBeenCalledWith('graph-document-1')
+    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalled()
+    expect(container?.querySelector('.ViewportSpawnMenu')).toBeNull()
+
+    const refreshedViewportHost = container?.querySelector(
+      '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-primary"]',
+    ) as HTMLDivElement | null
+    expect(refreshedViewportHost).not.toBeNull()
+
+    await act(async () => {
+      refreshedViewportHost?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 700,
+          clientY: 360,
+        }),
+      )
+    })
+
+    const spawnBrowserButton = Array.from(
+      container?.querySelectorAll('.ViewportSpawnMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Spawn Browser') as
+      | HTMLButtonElement
+      | undefined
+    expect(spawnBrowserButton).toBeDefined()
+
+    await act(async () => {
+      spawnBrowserButton?.click()
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.isFloating).toBe(true)
+    expect(container?.querySelector('.BrowserFloatingWindow')).not.toBeNull()
+  })
+
+  it('queues the source camera onto both model viewports after a split', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const { Vector3 } = await import('three')
+    const applyCameraPose = vi.fn()
+    setViewer('model-viewer-primary', {
+      applyCameraPose,
+      getCameraPose: () => ({
+        position: new Vector3(9, 8, 7),
+        target: new Vector3(1, 2, 3),
+        up: new Vector3(0, 1, 0),
+        projectionMode: 'perspective',
+        perspectiveFovDeg: 55,
+        orthoViewHeight: 12,
+      }),
+    } as any)
+
+    const primaryHeader = container?.querySelector(
+      '.ViewportFrame.isPrimarySlot .ViewportFrameHeader',
+    ) as HTMLDivElement | null
+    expect(primaryHeader).not.toBeNull()
+
+    await act(async () => {
+      primaryHeader?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const splitButton = container?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
+
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Split Right') as HTMLButtonElement | undefined
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const secondaryViewportSlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slot) =>
+        slot.slotId !== defaultPrimaryViewportSlotId && slot.surfaceKind === 'modelViewer',
+    )
+    expect(secondaryViewportSlot).toBeDefined()
+
+    const primaryQueuedPose = consumeQueuedViewerCameraPose('model-viewer-primary')
+    const secondaryQueuedPose = consumeQueuedViewerCameraPose(
+      secondaryViewportSlot?.surfaceInstanceId ?? '',
+    )
+    expect(primaryQueuedPose).not.toBeNull()
+    expect(secondaryQueuedPose).not.toBeNull()
+    expect(primaryQueuedPose).toMatchObject({
+      projectionMode: 'perspective',
+      perspectiveFovDeg: 55,
+      orthoViewHeight: 12,
+    })
+    expect(secondaryQueuedPose).toMatchObject({
+      projectionMode: 'perspective',
+      perspectiveFovDeg: 55,
+      orthoViewHeight: 12,
+    })
+    expect(applyCameraPose).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectionMode: 'perspective',
+        perspectiveFovDeg: 55,
+        orthoViewHeight: 12,
+      }),
+    )
+  })
+
   it('renders a detached floating model viewport and quick docks it back to its host viewport', async () => {
     ;({ container, root } = await renderAppShell())
 
@@ -1421,6 +1603,194 @@ describe('AppShell', () => {
         (slot) => slot.surfaceKind === 'modelViewer',
       ),
     ).toHaveLength(2)
+  })
+
+  it('drags a detached floating model viewport around the main viewport area', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    let secondaryViewerSlotId: string | null = null
+    await act(async () => {
+      secondaryViewerSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-workspace-slot-2',
+      })
+    })
+
+    await act(async () => {
+      useWorkspaceStore.getState().detachViewportSlotSurface(secondaryViewerSlotId ?? '', 'floating')
+    })
+    await rerenderAppShell(root!)
+
+    const floatingViewer = container?.querySelector(
+      '.DetachedViewerFloatingWindow[data-workspace-surface-instance-id="model-viewer-workspace-slot-2"]',
+    ) as HTMLDivElement | null
+    const floatingHeader = floatingViewer?.querySelector(
+      '.DetachedViewerFloatingWindowHeader',
+    ) as HTMLDivElement | null
+
+    expect(floatingViewer).not.toBeNull()
+    expect(floatingHeader).not.toBeNull()
+
+    mockRect(floatingViewer, {
+      left: 344,
+      top: 24,
+      width: 320,
+      height: 405,
+    })
+
+    await act(async () => {
+      floatingHeader?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 7,
+          clientX: 420,
+          clientY: 48,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 7,
+          clientX: 620,
+          clientY: 180,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 7,
+          clientX: 620,
+          clientY: 180,
+        }),
+      )
+    })
+
+    expect(floatingViewer?.style.left).toBe('224px')
+    expect(floatingViewer?.style.top).toBe('156px')
+  })
+
+  it('opens a copied primary model viewport in a new browser window', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const { popoutDocument, popoutWindow } = createMockChildWindow()
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    const openInNewBrowserButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.getAttribute('aria-label') === 'Open Model Viewport in new browser',
+    ) as HTMLButtonElement | undefined
+    expect(openInNewBrowserButton).toBeDefined()
+
+    await act(async () => {
+      openInNewBrowserButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(window.open).toHaveBeenCalled()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'modelViewer',
+      ),
+    ).toHaveLength(1)
+    expect(Object.keys(useWorkspaceStore.getState().detachedSlotSurfaceById)).toHaveLength(1)
+    expect(popoutDocument.body.textContent).toContain('Model Viewport')
+    expect(popoutDocument.body.textContent).toContain('Viewer Host')
+  })
+
+  it('pops out a non-primary model viewport into a child window and quick docks it back', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const { popoutDocument, popoutWindow } = createMockChildWindow()
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-workspace-slot-2',
+      })
+    })
+
+    const slotPopoutButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.getAttribute('aria-label') === 'Pop out Model Viewport',
+    ) as HTMLButtonElement | undefined
+    expect(slotPopoutButton).not.toBeUndefined()
+
+    await act(async () => {
+      slotPopoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(window.open).toHaveBeenCalled()
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['model-viewer-workspace-slot-2']?.hostMode).toBe(
+      'popout',
+    )
+    expect(
+      container?.querySelector(
+        '.ViewportFrame[data-workspace-surface-kind="modelViewer"][data-workspace-slot-id="workspace-slot-2"]',
+      ),
+    ).toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Model Viewport')
+    expect(popoutDocument.body.textContent).toContain('Viewer Host')
+
+    const quickDockButton = popoutDocument.body.querySelector(
+      '.DetachedViewerPopoutWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['model-viewer-workspace-slot-2']).toBeUndefined()
+    expect(popoutWindow.close).toHaveBeenCalled()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'modelViewer',
+      ),
+    ).toHaveLength(2)
+  })
+
+  it('clears a non-primary model viewport popout when the child window closes', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const { popoutDocument, popoutWindow, dispatchBeforeUnload } = createMockChildWindow()
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-workspace-slot-2',
+      })
+    })
+
+    const slotPopoutButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.getAttribute('aria-label') === 'Pop out Model Viewport',
+    ) as HTMLButtonElement | undefined
+    expect(slotPopoutButton).not.toBeUndefined()
+
+    await act(async () => {
+      slotPopoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(popoutDocument.body.textContent).toContain('Viewer Host')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['model-viewer-workspace-slot-2']).toBeDefined()
+
+    await act(async () => {
+      dispatchBeforeUnload()
+    })
+    await rerenderAppShell(root!)
+
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['model-viewer-workspace-slot-2']).toBeUndefined()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).filter(
+        (slot) => slot.surfaceKind === 'modelViewer',
+      ),
+    ).toHaveLength(1)
   })
 
   it('renders a left split on the left side instead of mirroring it to the right', async () => {
@@ -3313,7 +3683,7 @@ describe('AppShell', () => {
     expect(currentSpaghettiState.setEditorViewportSplitPriority).not.toHaveBeenCalled()
   })
 
-  it('opens the floating spaghetti titlebar context menu and creates a local right workspace split', async () => {
+  it('opens the floating spaghetti titlebar context menu and creates a right workspace split', async () => {
     ;({ container, root } = await renderAppShell())
 
     const floatingTitleBar = container?.querySelector(
@@ -3325,24 +3695,37 @@ describe('AppShell', () => {
       floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const splitRightLocallyButton = Array.from(
-      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
-    ).find(
-      (button) => button.textContent === 'Split Right Locally',
-    )
-    expect(splitRightLocallyButton).not.toBeNull()
+    const splitGroup = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuSubmenuGroup',
+    ) as HTMLDivElement | null
+    expect(splitGroup).not.toBeNull()
+    const splitButton = splitGroup?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
 
     await act(async () => {
-      splitRightLocallyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
     })
 
-    expect(currentSpaghettiState.setEditorViewportSplitDirection).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      'vertical',
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right',
     )
+    expect(splitRightButton).not.toBeNull()
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
       'expanded',
+    )
+    expect(currentSpaghettiState.setEditorViewportSplitDockSide).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'right',
     )
     expect(
       Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
@@ -3378,32 +3761,45 @@ describe('AppShell', () => {
       await rerenderAppShell(root!)
     })
 
-    const splitRightLocallyButton = Array.from(
-      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
-    ).find(
-      (button) => button.textContent === 'Split Right Locally',
-    )
-    expect(splitRightLocallyButton).not.toBeNull()
+    const splitGroup = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuSubmenuGroup',
+    ) as HTMLDivElement | null
+    expect(splitGroup).not.toBeNull()
+    const splitButton = splitGroup?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
 
     await act(async () => {
-      splitRightLocallyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
     })
 
-    expect(currentSpaghettiState.setEditorViewportSplitDirection).toHaveBeenCalledWith(
-      'editor-viewport-1',
-      'vertical',
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right',
     )
+    expect(splitRightButton).not.toBeNull()
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
     expect(currentSpaghettiState.setEditorViewportWindowMode).toHaveBeenCalledWith(
       'editor-viewport-1',
       'expanded',
     )
-    expect(currentSpaghettiState.setEditorViewportSplitDirection).not.toHaveBeenCalledWith(
+    expect(currentSpaghettiState.setEditorViewportSplitDockSide).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      'right',
+    )
+    expect(currentSpaghettiState.setEditorViewportSplitDockSide).not.toHaveBeenCalledWith(
       'editor-viewport-2',
-      'vertical',
+      'right',
     )
   })
 
-  it('uses Split Right Locally to keep a top-level console split intact while splitting only the model viewport pane', async () => {
+  it('uses Split Right to keep a top-level console split intact while splitting only the model viewport pane', async () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
       surfaceKind: 'console',
       surfaceInstanceId: 'console-surface-1',
@@ -3420,15 +3816,28 @@ describe('AppShell', () => {
       floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const splitRightLocallyButton = Array.from(
-      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
-    ).find(
-      (button) => button.textContent === 'Split Right Locally',
-    )
-    expect(splitRightLocallyButton).not.toBeNull()
+    const splitGroup = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuSubmenuGroup',
+    ) as HTMLDivElement | null
+    expect(splitGroup).not.toBeNull()
+    const splitButton = splitGroup?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
 
     await act(async () => {
-      splitRightLocallyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      splitButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const splitRightButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Split Right',
+    )
+    expect(splitRightButton).not.toBeNull()
+
+    await act(async () => {
+      splitRightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     const workspaceState = useWorkspaceStore.getState()
@@ -3443,7 +3852,7 @@ describe('AppShell', () => {
     expect(splitNodes.filter((node) => node.splitDockSide === 'right')).toHaveLength(1)
   })
 
-  it('uses Split Right Globally to create a new right root column across the whole workspace layout', async () => {
+  it('shows the shared four-way floating split menu for the floating spaghetti header on right-click', async () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'top', {
       surfaceKind: 'console',
       surfaceInstanceId: 'console-surface-1',
@@ -3460,27 +3869,45 @@ describe('AppShell', () => {
       floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const splitRightGloballyButton = Array.from(
+    const menuButtons = Array.from(
       container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
-    ).find(
-      (button) => button.textContent === 'Split Right Globally',
-    )
-    expect(splitRightGloballyButton).not.toBeNull()
+    ).map((button) => button.textContent)
+
+    expect(menuButtons.some((label) => label?.includes('Split'))).toBe(true)
+    expect(menuButtons).toContain('Close')
+  })
+
+  it('locks the floating split submenu open when the split row is clicked', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const floatingTitleBar = container?.querySelector(
+      '.SpaghettiFloatingDock .SpaghettiFloatingHandle',
+    ) as HTMLDivElement | null
+    expect(floatingTitleBar).not.toBeNull()
 
     await act(async () => {
-      splitRightGloballyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      floatingTitleBar?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
     })
 
-    const workspaceState = useWorkspaceStore.getState()
-    const rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
-    const splitNodes = Object.values(workspaceState.viewportLayoutNodesById).filter(
-      (node): node is Extract<(typeof workspaceState.viewportLayoutNodesById)[string], { kind: 'split' }> =>
-        node.kind === 'split',
-    )
+    const splitButton = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuAction--submenu',
+    ) as HTMLButtonElement | null
+    expect(splitButton).not.toBeNull()
 
-    expect(rootNode?.kind).toBe('split')
-    expect(rootNode?.kind === 'split' ? rootNode.splitDockSide : null).toBe('right')
-    expect(splitNodes.filter((node) => node.splitDockSide === 'top')).toHaveLength(1)
+    await act(async () => {
+      splitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const splitGroup = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeMenuSubmenuGroup',
+    ) as HTMLDivElement | null
+
+    await act(async () => {
+      splitGroup?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.textContent).toContain('Split Top')
+    expect(container?.textContent).toContain('Split Right')
   })
 
   it('opens the shared floating split menu for the floating console header on right-click', async () => {
@@ -3503,10 +3930,37 @@ describe('AppShell', () => {
       container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
     ).map((button) => button.textContent)
 
-    expect(menuButtons).toContain('Split Top')
-    expect(menuButtons).toContain('Split Right')
-    expect(menuButtons).toContain('Split Bottom')
-    expect(menuButtons).toContain('Split Left')
+    expect(menuButtons.some((label) => label?.includes('Split'))).toBe(true)
+    expect(menuButtons).toContain('Close')
+  })
+
+  it('closes the floating console from the shared floating titlebar menu', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    await act(async () => {
+      useConsoleStore.getState().switchToFloating()
+    })
+
+    const floatingHeader = container?.querySelector(
+      '.ConsoleFloatingWindow .ConsolePanelHeader',
+    ) as HTMLDivElement | null
+    expect(floatingHeader).not.toBeNull()
+
+    await act(async () => {
+      floatingHeader?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const closeButton = Array.from(
+      container?.querySelectorAll('.WorkspaceSplitMenu button') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+
+    expect(closeButton).not.toBeUndefined()
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('.ConsoleFloatingWindow')).toBeNull()
   })
 
   it('migrates split view compatibility state onto a generic workspace divider instead of the old split shell', async () => {
@@ -3804,7 +4258,8 @@ describe('AppShell', () => {
     expect(window.open).toHaveBeenCalled()
     expect(container?.textContent).toContain('Browser Panel docked expanded')
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Browser Panel docked expanded')
 
     await act(async () => {
       dispatchBeforeUnload()
@@ -3837,7 +4292,8 @@ describe('AppShell', () => {
       slotPopoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Browser Panel docked expanded')
     expect(
       Object.values(useWorkspaceStore.getState().viewportSlotsById).filter((slot) => slot.surfaceKind === 'browser'),
     ).toHaveLength(1)
@@ -3850,7 +4306,8 @@ describe('AppShell', () => {
       Object.values(useWorkspaceStore.getState().viewportSlotsById).filter((slot) => slot.surfaceKind === 'browser'),
     ).toHaveLength(0)
     expect(useWorkspaceStore.getState().browserShell.isPoppedOut).toBe(true)
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Browser Panel docked expanded')
   })
 
   it('keeps a browser popout copy open while the original slotted browser is dragged out into floating mode', async () => {
@@ -3885,7 +4342,8 @@ describe('AppShell', () => {
     })
 
     expect(useWorkspaceStore.getState().browserShell.isPoppedOut).toBe(true)
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Browser Panel docked expanded')
 
     mockRect(slotFrame, {
       left: 320,
@@ -3946,7 +4404,8 @@ describe('AppShell', () => {
     expect(
       container?.querySelector('.ViewportFrame[data-workspace-surface-kind="browser"]'),
     ).toBeNull()
-    expect(popoutDocument.body.textContent).toContain('Browser Panel poppedout expanded')
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Browser Panel docked expanded')
   })
 
   it('lets the user resize the full left dock width from the shared vertical handle', async () => {

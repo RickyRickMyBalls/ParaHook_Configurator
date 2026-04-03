@@ -68,6 +68,20 @@ vi.mock('../store/useAppStore', () => ({
     }),
 }))
 
+vi.mock('../panels/BrowserPanel', () => ({
+  BrowserPanel: ({
+    showTitleBar,
+  }: {
+    showTitleBar?: boolean
+  }) => (
+    <div
+      className={`BrowserPanelRoot ${showTitleBar === false ? 'BrowserPanelRoot--headerless' : ''}`}
+    >
+      Mock Browser Panel
+    </div>
+  ),
+}))
+
 vi.mock('../panels/SpaghettiPanel', () => ({
   SpaghettiPanel: ({
     editorViewportId,
@@ -112,6 +126,22 @@ vi.mock('../panels/SpaghettiPanel', () => ({
       }`}</div>
     )
   },
+}))
+
+vi.mock('../workspace/ViewportWorkspaceHost', () => ({
+  ViewportWorkspaceHost: ({
+    viewportId,
+    onActivateViewerSurface,
+  }: {
+    viewportId: string
+    onActivateViewerSurface?: (viewportId: string) => void
+  }) => (
+    <div
+      className="ViewportWorkspaceHost"
+      data-workspace-viewport-id={viewportId}
+      onPointerDownCapture={() => onActivateViewerSurface?.(viewportId)}
+    >{`Viewer Host ${viewportId}`}</div>
+  ),
 }))
 
 const viewport = (windowMode: string) => ({
@@ -244,6 +274,7 @@ function SpaghettiWindowHostHarness() {
           onActivateSpaghettiSurface={() => {}}
           onActivateSpaghettiFloatingWindow={() => {}}
           onOpenFloatingSplitMenu={() => {}}
+          onActivateViewerSurface={() => {}}
           leftDockWidthPreviewHandlerRef={leftDockWidthPreviewHandlerRef}
         />
       </section>
@@ -475,6 +506,29 @@ describe('SpaghettiWindowHost', () => {
             },
           },
         }
+      }),
+      openGraphDocumentInNewViewport: vi.fn((graphDocumentId: string) => {
+        const nextOrdinal =
+          Object.keys(currentSpaghettiState.editorViewportsById).length + 1
+        const editorViewportId = `editor-viewport-${nextOrdinal}`
+        useWorkspaceStore
+          .getState()
+          .setEditorSurfaceBinding(editorViewportId, graphDocumentId)
+        currentSpaghettiState = {
+          ...currentSpaghettiState,
+          activeEditorViewportId: editorViewportId,
+          editorViewportOrder: [...currentSpaghettiState.editorViewportOrder, editorViewportId],
+          editorViewportsById: {
+            ...currentSpaghettiState.editorViewportsById,
+            [editorViewportId]: {
+              ...viewport('expanded'),
+              editorViewportId,
+              graphDocumentId,
+              zOrder: nextOrdinal + 4,
+            },
+          },
+        }
+        return editorViewportId
       }),
       closeEditorViewport: vi.fn((editorViewportId: string) => {
         const currentViewport = currentSpaghettiState.editorViewportsById[editorViewportId]
@@ -1001,6 +1055,485 @@ describe('SpaghettiWindowHost', () => {
     expect(popoutDocument.body.querySelector('.SpaghettiPopoutDiagnostics')).toBeNull()
     expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
     expect(beforeUnloadHandler).not.toBeNull()
+  })
+
+  it('splits a popped-out spaghetti editor into a popup-local two-viewport shell and allows model viewport switching', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popup Workspace')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const titleBar = popoutDocument.body.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    expect(titleBar).not.toBeNull()
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 80,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.includes('Split Right')) as HTMLButtonElement | undefined
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).not.toBeNull()
+    expect(popoutDocument.body.querySelectorAll('.ViewportFrame')).toHaveLength(2)
+    expect(popoutDocument.body.querySelectorAll('.MockSpaghettiPanel')).toHaveLength(2)
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-2')
+    expect(container?.textContent).not.toContain('Spaghetti Panel editor-viewport-2')
+
+    const secondModeButton = popoutDocument.body.querySelectorAll(
+      '.ViewportFrameModeButton',
+    )[1] as HTMLButtonElement | undefined
+    expect(secondModeButton).toBeDefined()
+
+    await act(async () => {
+      secondModeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 260,
+          clientY: 140,
+        }),
+      )
+    })
+
+    const modelViewportButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameTypePickerAction'),
+    ).find((action) => action.textContent?.includes('Model Viewport')) as HTMLButtonElement | undefined
+    expect(modelViewportButton).toBeDefined()
+
+    await act(async () => {
+      modelViewportButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.textContent).toContain('Viewer Host')
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
+  })
+
+  it('allows switching a popup-local slot to console without mutating the main host tree', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popup Workspace')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const titleBar = popoutDocument.body.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    expect(titleBar).not.toBeNull()
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 80,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.includes('Split Right')) as HTMLButtonElement | undefined
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    const secondModeButton = popoutDocument.body.querySelectorAll(
+      '.ViewportFrameModeButton',
+    )[1] as HTMLButtonElement | undefined
+    expect(secondModeButton).toBeDefined()
+
+    await act(async () => {
+      secondModeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 260,
+          clientY: 140,
+        }),
+      )
+    })
+
+    const consoleButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameTypePickerAction'),
+    ).find((action) => action.textContent?.includes('Console')) as HTMLButtonElement | undefined
+    expect(consoleButton).toBeDefined()
+
+    await act(async () => {
+      consoleButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.querySelector('.ConsolePanel')).not.toBeNull()
+    expect(popoutDocument.body.querySelector('.ConsoleBar')).not.toBeNull()
+    expect(container?.querySelector('.ConsolePanel')).toBeNull()
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
+  })
+
+  it('returns a popup-local split back to the original single-surface popout after closing the sibling slot', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popup Workspace')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const rootTitleBar = popoutDocument.body.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    expect(rootTitleBar).not.toBeNull()
+
+    await act(async () => {
+      rootTitleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 80,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.includes('Split Right')) as HTMLButtonElement | undefined
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    const splitHeaders = popoutDocument.body.querySelectorAll('.ViewportFrameHeader')
+    const siblingHeader = splitHeaders[1] as HTMLDivElement | undefined
+    expect(siblingHeader).toBeDefined()
+
+    await act(async () => {
+      siblingHeader?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 260,
+          clientY: 140,
+        }),
+      )
+    })
+
+    const closeButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+    expect(closeButton).toBeDefined()
+
+    await act(async () => {
+      closeButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.querySelectorAll('.ViewportFrame')).toHaveLength(0)
+    expect(popoutDocument.body.querySelector('.PopupWorkspaceShell')).toBeNull()
+    expect(popoutDocument.body.querySelector('.SpaghettiFloatingHandle')).not.toBeNull()
+    expect(popoutDocument.body.textContent).toContain('Spaghetti Panel editor-viewport-1')
+    expect(popoutDocument.body.textContent).not.toContain('Spaghetti Panel editor-viewport-2')
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
+  })
+
+  it('allows switching a popup-local slot to browser without mutating the main host tree', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popup Workspace')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const titleBar = popoutDocument.body.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    expect(titleBar).not.toBeNull()
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 80,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.includes('Split Right')) as HTMLButtonElement | undefined
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    const secondModeButton = popoutDocument.body.querySelectorAll(
+      '.ViewportFrameModeButton',
+    )[1] as HTMLButtonElement | undefined
+    expect(secondModeButton).toBeDefined()
+
+    await act(async () => {
+      secondModeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 260,
+          clientY: 140,
+        }),
+      )
+    })
+
+    const browserButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameTypePickerAction'),
+    ).find((action) => action.textContent?.includes('Browser')) as HTMLButtonElement | undefined
+    expect(browserButton).toBeDefined()
+
+    await act(async () => {
+      browserButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    expect(popoutDocument.body.querySelector('.BrowserPanelRoot')).not.toBeNull()
+    expect(container?.querySelector('.BrowserPanelRoot')).toBeNull()
+    expect(currentSpaghettiState.closeEditorViewport).toHaveBeenCalledWith('editor-viewport-2')
+  })
+
+  it('allows resizing popup-local vertical splits inside the child window', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popup Workspace')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const titleBar = popoutDocument.body.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    expect(titleBar).not.toBeNull()
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 80,
+        }),
+      )
+    })
+
+    const splitRightButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.includes('Split Right')) as HTMLButtonElement | undefined
+    expect(splitRightButton).toBeDefined()
+
+    await act(async () => {
+      splitRightButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    const splitLayout = popoutDocument.body.querySelector('.ViewportSplitLayout') as HTMLDivElement | null
+    const divider = popoutDocument.body.querySelector('.ViewportSplitDividerShell') as HTMLDivElement | null
+    expect(splitLayout).not.toBeNull()
+    expect(divider).not.toBeNull()
+    mockRect(splitLayout, { left: 0, top: 0, width: 1000, height: 800 })
+    expect(splitLayout?.style.gridTemplateColumns).toContain('0.5fr')
+
+    await act(async () => {
+      divider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          button: 0,
+          clientX: 500,
+          clientY: 200,
+        }),
+      )
+      popoutDocument.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 250,
+          clientY: 200,
+        }),
+      )
+      popoutDocument.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 250,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(splitLayout?.style.gridTemplateColumns).toContain('0.75fr')
+  })
+
+  it('allows resizing popup-local horizontal splits inside the child window', async () => {
+    await renderHarness({ strict: true })
+
+    const popoutDocument = document.implementation.createHTMLDocument('Spaghetti Popup Workspace')
+    const popoutWindow = {
+      closed: false,
+      document: popoutDocument,
+      focus: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Window
+
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      currentSpaghettiState.setEditorViewportWindowMode('editor-viewport-1', 'separateWindow')
+    })
+    await rerenderHarness({ strict: true })
+
+    const titleBar = popoutDocument.body.querySelector('.SpaghettiFloatingHandle') as HTMLDivElement | null
+    expect(titleBar).not.toBeNull()
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 80,
+        }),
+      )
+    })
+
+    const splitBottomButton = Array.from(
+      popoutDocument.body.querySelectorAll('.ViewportFrameActionMenuAction'),
+    ).find((action) => action.textContent?.includes('Split Bottom')) as HTMLButtonElement | undefined
+    expect(splitBottomButton).toBeDefined()
+
+    await act(async () => {
+      splitBottomButton?.click()
+    })
+    await rerenderHarness({ strict: true })
+
+    const splitLayout = popoutDocument.body.querySelector('.ViewportSplitLayout') as HTMLDivElement | null
+    const divider = popoutDocument.body.querySelector('.ViewportSplitDividerShell') as HTMLDivElement | null
+    expect(splitLayout).not.toBeNull()
+    expect(divider).not.toBeNull()
+    mockRect(splitLayout, { left: 0, top: 0, width: 900, height: 800 })
+    expect(splitLayout?.style.gridTemplateRows).toContain('0.5fr')
+
+    await act(async () => {
+      divider?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 2,
+          button: 0,
+          clientX: 200,
+          clientY: 400,
+        }),
+      )
+      popoutDocument.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 2,
+          clientX: 200,
+          clientY: 200,
+        }),
+      )
+      popoutDocument.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 2,
+          clientX: 200,
+          clientY: 200,
+        }),
+      )
+    })
+
+    expect(splitLayout?.style.gridTemplateRows).toContain('0.75fr')
   })
 
   it('relays non-editable console keys from the popout window back to the main window', async () => {

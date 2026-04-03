@@ -346,6 +346,8 @@ export class Viewer {
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
   private onSketchPlanePickTransformCommit: (() => void) | null = null
+  private onCameraPoseChange: ((pose: CameraPose) => void) | null = null
+  private lastEmittedCameraPose: CameraPose | null = null
   private onGeometrySketchHoverPoint:
     | ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void)
     | null = null
@@ -1254,6 +1256,31 @@ export class Viewer {
       text: 'Zoom previous',
       source: 'viewer',
       severity: 'info',
+    })
+  }
+
+  public getCameraPose(): CameraPose {
+    return this.cameraController.getPose()
+  }
+
+  public applyCameraPose(pose: CameraPose): void {
+    this.cameraController.applyPose(pose)
+  }
+
+  public setOnCameraPoseChange(handler: ((pose: CameraPose) => void) | null): void {
+    this.onCameraPoseChange = handler
+    if (handler === null) {
+      return
+    }
+    const pose = this.cameraController.getPose()
+    this.lastEmittedCameraPose = pose
+    handler({
+      position: pose.position.clone(),
+      target: pose.target.clone(),
+      up: pose.up.clone(),
+      projectionMode: pose.projectionMode,
+      perspectiveFovDeg: pose.perspectiveFovDeg,
+      orthoViewHeight: pose.orthoViewHeight,
     })
   }
 
@@ -3995,6 +4022,26 @@ export class Viewer {
     this.frameId = window.requestAnimationFrame(this.renderLoop)
     const dt = this.clock.getDelta()
     this.cameraController.update(dt)
+    if (this.onCameraPoseChange !== null) {
+      const pose = this.cameraController.getPose()
+      if (
+        this.lastEmittedCameraPose === null ||
+        !this.areCameraPosesEquivalent(this.lastEmittedCameraPose, pose) ||
+        this.lastEmittedCameraPose.projectionMode !== pose.projectionMode ||
+        Math.abs(this.lastEmittedCameraPose.perspectiveFovDeg - pose.perspectiveFovDeg) > 1e-8 ||
+        Math.abs(this.lastEmittedCameraPose.orthoViewHeight - pose.orthoViewHeight) > 1e-8
+      ) {
+        this.lastEmittedCameraPose = pose
+        this.onCameraPoseChange({
+          position: pose.position.clone(),
+          target: pose.target.clone(),
+          up: pose.up.clone(),
+          projectionMode: pose.projectionMode,
+          perspectiveFovDeg: pose.perspectiveFovDeg,
+          orthoViewHeight: pose.orthoViewHeight,
+        })
+      }
+    }
     this.referenceTransformMoveSnapHelper.tick(dt)
     this.referenceTransformRotateSnapHelper.tick(dt)
     const activeCamera = this.cameraController.getActiveCamera()

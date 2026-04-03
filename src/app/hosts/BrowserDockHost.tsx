@@ -12,6 +12,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { BrowserPanel } from '../panels/BrowserPanel'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import {
   commitWorkspaceSurfaceRootSplit,
   commitWorkspaceSurfaceSlotSplit,
@@ -36,6 +37,7 @@ import {
 import {
   resolveWorkspaceSplitDockPreview,
 } from '../workspace/workspaceSplitPreview'
+import { PopupWorkspaceShell } from '../workspace/PopupWorkspaceShell'
 
 const minBrowserFloatingWidth = 280
 const minBrowserFloatingHeight = 220
@@ -186,6 +188,10 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     useState<BrowserNestedSplitPreview | null>(null)
   const activeDetachedBrowserSurface =
     Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'browser') ?? null
+  const openGraphDocumentInNewViewport = useSpaghettiStore((state) => state.openGraphDocumentInNewViewport)
+  const closeEditorViewport = useSpaghettiStore((state) => state.closeEditorViewport)
+  const setActiveEditorViewportId = useSpaghettiStore((state) => state.setActiveEditorViewportId)
+  const setActiveViewerViewportId = useWorkspaceStore((state) => state.setActiveViewerViewportId)
 
   const resolveActiveBrowserSurfaceInstanceId = useCallback(
     () =>
@@ -305,6 +311,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     onBlocked: handleBrowserPopoutBlocked,
     onClosed: handleBrowserPopoutClosed,
   })
+
 
   const getBrowserFloatingFrame = useCallback((): BrowserFloatingFrame | null => {
     const shellElement = appShellRef.current
@@ -555,10 +562,6 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     setIsBrowserPoppedOut,
     isBrowserPoppedOut,
   ])
-
-  const handleCloseBrowserPopout = useCallback(() => {
-    setIsBrowserPoppedOut(false)
-  }, [setIsBrowserPoppedOut])
 
   const handleOpenFloatingSplitMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -1186,14 +1189,25 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       {isBrowserPoppedOut && browserPopoutHost !== null
         ? createPortal(
             <div className="BrowserPopoutSurface">
-              <BrowserPanel
-                presentationMode={browserPresentationMode}
-                onCyclePresentationMode={handleCycleBrowserPresentationMode}
-                isCollapsed={isBrowserCollapsed}
-                isPoppedOut
-                popoutButtonMode="dock"
-                onTogglePopout={handleCloseBrowserPopout}
-                newEditorSpawnPosition={newEditorSpawnPosition}
+              <PopupWorkspaceShell
+                popupWorkspaceId="browser-popout-workspace"
+                rootSurfaceKind="browser"
+                rootSurfaceInstanceId={resolveActiveBrowserSurfaceInstanceId()}
+                initialSplitDockSide={null}
+                onActivateSpaghettiSurface={(editorViewportId) => {
+                  if (editorViewportId !== undefined) {
+                    setActiveEditorViewportId(editorViewportId)
+                  }
+                }}
+                onActivateViewerSurface={(viewportId) => {
+                  setActiveViewerViewportId(viewportId)
+                }}
+                onCreatePopupSpaghettiViewport={(graphDocumentId) =>
+                  openGraphDocumentInNewViewport(graphDocumentId)
+                }
+                onClosePopupSpaghettiViewport={(editorViewportId) => {
+                  closeEditorViewport(editorViewportId)
+                }}
               />
             </div>,
             browserPopoutHost,
@@ -1292,6 +1306,13 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
             onClick={() => handleSelectFloatingSplitDockSide('left')}
           >
             Split Left
+          </button>
+          <button
+            type="button"
+            className="PrimaryViewportLeftDockResizeMenuAction"
+            onClick={handleQuickDockBrowser}
+          >
+            Close
           </button>
         </div>
       ) : null}

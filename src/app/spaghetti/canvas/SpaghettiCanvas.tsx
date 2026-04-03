@@ -75,7 +75,7 @@ import {
   buildCompositeExpansionKey,
   type CompositeExpansionDirection,
 } from './compositeExpansion'
-import { isInteractiveTarget } from '../spInteractive'
+import { isElementTarget, isInteractiveTarget, isNodeTarget } from '../spInteractive'
 import {
   beginViewerTemporaryPanDrag,
   beginViewerTemporaryOrbitDrag,
@@ -1103,7 +1103,7 @@ export function SpaghettiCanvas({
     }
     const handleWindowPointerDown = (event: PointerEvent) => {
       const target = event.target
-      if (!(target instanceof Node)) {
+      if (!isNodeTarget(target)) {
         return
       }
       if (nodeAddMenuRef.current?.contains(target)) {
@@ -2345,7 +2345,7 @@ export function SpaghettiCanvas({
           event.preventDefault()
           event.stopPropagation()
           const target = event.target
-          if (!(target instanceof Element)) {
+          if (!isElementTarget(target)) {
             return
           }
           const viewportElement = viewportRef.current
