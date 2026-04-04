@@ -25,7 +25,7 @@ import {
   defaultPrimaryViewportSlotId,
 } from '../workspace/workspaceShellTypes'
 import {
-  buildWorkspaceViewportOptions,
+  buildConsoleWorkspaceViewportOptions,
   getWorkspaceViewportDisplayLabel,
   getWorkspaceViewportSurfaceLabel,
 } from '../workspace/workspaceViewportLabels'
@@ -2199,6 +2199,26 @@ export function useConsoleInteraction(
               return
             }
 
+            if (targetSlot.surfaceKind === 'dashboard' || targetSlot.surfaceKind === 'notepad') {
+              appendConsoleEntry({
+                layer: 'App',
+                text:
+                  targetSlot.surfaceKind === 'dashboard'
+                    ? 'Dashboard workspace-mode actions land in a later follow-on phase'
+                    : 'Notepad workspace-mode actions land in a later follow-on phase',
+                source: 'console',
+                severity: 'warn',
+              })
+              appendConsoleEntry({
+                layer: 'Commands',
+                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+                source: 'console',
+                severity: 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
+
             const sourceViewer =
               targetSlot.surfaceKind === 'modelViewer' ? getViewer(targetSlot.surfaceInstanceId) : null
             const sourceCameraPose =
@@ -2233,7 +2253,7 @@ export function useConsoleInteraction(
                       nextSlot.surfaceInstanceId,
                     ) ?? getWorkspaceViewportSurfaceLabel(nextSlot.surfaceKind),
                     {
-                      workspaceViewportOptions: buildWorkspaceViewportOptions(
+                      workspaceViewportOptions: buildConsoleWorkspaceViewportOptions(
                         refreshedWorkspaceState.viewportSlotsById,
                         refreshedWorkspaceState.primaryViewportId,
                       ),

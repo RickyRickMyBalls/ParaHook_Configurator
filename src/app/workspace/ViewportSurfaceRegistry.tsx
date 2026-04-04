@@ -2,6 +2,8 @@ import { ConsoleDock } from '../console/ConsoleDock'
 import { BrowserPanel } from '../panels/BrowserPanel'
 import { SpaghettiPanel } from '../panels/SpaghettiPanel'
 import { selectEditorViewportById, useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import { NotepadSurface } from '../notepad/NotepadSurface'
+import { DashboardSurface } from './DashboardSurface'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
 
@@ -9,6 +11,7 @@ type ViewportSurfaceRegistryProps = {
   slotId: WorkspaceViewportSlotId
   surfaceKind: WorkspaceSurfaceKind
   surfaceInstanceId: string
+  onOpenDashboardNoteInNotepad?: (surfaceInstanceId: string, noteId: string) => void
   onActivateSpaghettiSurface: (
     editorViewportId?: string,
     target?: {
@@ -25,6 +28,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     slotId,
     surfaceKind,
     surfaceInstanceId,
+    onOpenDashboardNoteInNotepad,
     onActivateSpaghettiSurface,
     spaghettiWindowSettingsOpen = false,
   } = props
@@ -90,6 +94,19 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         )}
       </div>
     )
+  }
+
+  if (surfaceKind === 'dashboard') {
+    return (
+      <DashboardSurface
+        surfaceInstanceId={surfaceInstanceId}
+        onOpenNoteInNotepad={(noteId) => onOpenDashboardNoteInNotepad?.(surfaceInstanceId, noteId)}
+      />
+    )
+  }
+
+  if (surfaceKind === 'notepad') {
+    return <NotepadSurface surfaceInstanceId={surfaceInstanceId} />
   }
 
   return (

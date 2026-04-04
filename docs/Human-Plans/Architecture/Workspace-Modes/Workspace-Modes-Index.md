@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+87. 2026-04-03 19:38: Promoted `Dashboard` out of `Wish-Features` into the real workspace-family roadmap by adding `Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding.md`, grounding its first `Phase 0` read in the live `Workspace 7.x` surface seams, and refreshing this workspace-family index so the new surface-onboarding lane now sits beside the other active future workspace docs
 86. 2026-04-01 08:35: Added the native `Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity` follow-on under `Workspace-Modes/Future/`, refreshed the `Workspace 7.5` family read so the next multi-editor-shell task now has its own dedicated planning surface instead of hiding only inside `7.5-4`, and kept the workspace-family ladder honest by separating shell-parity cleanup from the later multi-editor surface parity lane
 85. 2026-04-01 02:03: Added the native `Workspace 7.5-4 - Browser And Spaghetti Shell Parity Cleanup` follow-on under `Workspace-Modes/Future/`, refreshed the `Workspace 7.5` family read so the contract-extraction, split-truth migration, and host-adapter retirement work now hand forward into one explicit parity-cleanup plus carry-forward lane, and kept the workspace-family ladder honest by giving the later Browser-versus-Spaghetti cleanup one visible home
 84. 2026-04-01 00:57: Marked `Workspace 7.5-2` as shipped after re-checking the landed Spaghetti workspace split-truth migration, moved its phase record out of `Workspace-Modes/Future/` and into `Workspace-Modes/Shipped/`, and refreshed the workspace-family read so the remaining open `7.5` ladder now leaves only `7.5-3` as the active adapter-retirement plus onboarding cleanup
@@ -1462,6 +1463,7 @@ Current source doc:
 - `Workspace 7.5-3` has now closed the main host-adapter retirement and future-surface onboarding lane
 - `Workspace 7.5-4` is the new open parity-cleanup and carry-forward lane for the remaining Browser-versus-Spaghetti shell mismatches and later toolbar rules
 - `Workspace 7.5-5` is the next dedicated follow-on for honest multiple-`Spaghetti Editor` surfaces once the generic shell parity cleanup from `7.5-4` is no longer the right home for that deeper editor-specific carry item
+- `Workspace 7.5-17` should now be the dedicated research-first onboarding lane for `Dashboard` and later `Notepad`, treating them as real workspace surfaces on top of the existing `Workspace 7.x` slot model while keeping note content persistence outside workspace-layout persistence
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
@@ -1470,6 +1472,7 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5 - Surface Host Standardization And Reusable Window Contract.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`
 
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
@@ -1504,6 +1507,8 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
 - multi-editor follow-on:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md`
+- dashboard follow-on:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`
 - staged `7.2d` subphases:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2d-1 - Browser Toolbar Owner State And AppShell Repoint.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2d-2 - Browser Toolbar Claim And Rehoming Parity.md`

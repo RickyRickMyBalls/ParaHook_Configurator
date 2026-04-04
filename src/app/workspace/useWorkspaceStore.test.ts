@@ -375,4 +375,130 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       }),
     )
   })
+
+  it('detaches, redocks, and persists a dashboard slot like any other shared workspace surface', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    const dashboardSlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(dashboardSlotId).toBeTruthy()
+
+    const detachedSurface = useWorkspaceStore
+      .getState()
+      .detachViewportSlotSurface(dashboardSlotId ?? '', 'popout')
+
+    expect(detachedSurface).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'dashboard',
+        surfaceInstanceId: 'dashboard-surface-1',
+        hostMode: 'popout',
+      }),
+    )
+
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const normalized = normalizePersistedWorkspaceLayout(serialized)
+
+    expect(normalized?.detachedSlotSurfaceById['dashboard-surface-1']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'dashboard',
+        hostMode: 'popout',
+      }),
+    )
+
+    const redockedSlotId = useWorkspaceStore
+      .getState()
+      .redockDetachedSurface('dashboard-surface-1', 'left')
+    const redockedSlot =
+      (redockedSlotId !== null
+        ? useWorkspaceStore.getState().viewportSlotsById[redockedSlotId]
+        : null) ?? null
+
+    expect(redockedSlot?.surfaceKind).toBe('dashboard')
+    expect(redockedSlot?.surfaceInstanceId).toBe('dashboard-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']).toBeUndefined()
+  })
+
+  it('detaches, redocks, and persists a notepad slot like any other shared workspace surface', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'notepad',
+      surfaceInstanceId: 'notepad-surface-1',
+    })
+
+    const notepadSlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(notepadSlotId).toBeTruthy()
+
+    const detachedSurface = useWorkspaceStore
+      .getState()
+      .detachViewportSlotSurface(notepadSlotId ?? '', 'floating')
+
+    expect(detachedSurface).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'notepad',
+        surfaceInstanceId: 'notepad-surface-1',
+        hostMode: 'floating',
+      }),
+    )
+
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const normalized = normalizePersistedWorkspaceLayout(serialized)
+    expect(normalized?.detachedSlotSurfaceById['notepad-surface-1']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'notepad',
+        hostMode: 'floating',
+      }),
+    )
+
+    const redockedSlotId = useWorkspaceStore
+      .getState()
+      .redockDetachedSurface('notepad-surface-1', 'left')
+    const redockedSlot =
+      (redockedSlotId !== null
+        ? useWorkspaceStore.getState().viewportSlotsById[redockedSlotId]
+        : null) ?? null
+
+    expect(redockedSlot?.surfaceKind).toBe('notepad')
+    expect(redockedSlot?.surfaceInstanceId).toBe('notepad-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['notepad-surface-1']).toBeUndefined()
+  })
+
+  it('can swap a detached dashboard surface into notepad without losing detached host mode', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    const dashboardSlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(dashboardSlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().detachViewportSlotSurface(dashboardSlotId ?? '', 'popout')
+    const nextSurfaceInstanceId = useWorkspaceStore
+      .getState()
+      .setDetachedSurfaceKind('dashboard-surface-1', 'notepad')
+
+    expect(nextSurfaceInstanceId).toBe('dashboard-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'notepad',
+        surfaceInstanceId: 'dashboard-surface-1',
+        hostMode: 'popout',
+      }),
+    )
+
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const normalized = normalizePersistedWorkspaceLayout(serialized)
+    expect(normalized?.detachedSlotSurfaceById['dashboard-surface-1']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'notepad',
+        hostMode: 'popout',
+      }),
+    )
+  })
 })

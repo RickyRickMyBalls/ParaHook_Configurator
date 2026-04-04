@@ -1558,6 +1558,1222 @@ button.ParaSelectMenuAction:hover {
     rgba(7, 9, 13, 0.74);
 }
 
+.DashboardSurface {
+  background:
+    radial-gradient(circle at top left, rgba(94, 142, 255, 0.18) 0%, rgba(94, 142, 255, 0) 34%),
+    radial-gradient(circle at bottom right, rgba(130, 200, 255, 0.12) 0%, rgba(130, 200, 255, 0) 36%),
+    linear-gradient(180deg, rgba(9, 12, 18, 0.98) 0%, rgba(6, 8, 13, 0.98) 100%);
+  color: rgba(241, 244, 255, 0.94);
+}
+
+.DashboardSurfaceCanvas {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.DashboardSurfaceHero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.DashboardSurfaceHeroCopy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.DashboardSurfaceEyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(199, 214, 255, 0.6);
+}
+
+.DashboardSurfaceTitle {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.DashboardSurfaceCopy {
+  margin: 0;
+  max-width: 720px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(223, 229, 255, 0.76);
+}
+
+.DashboardSurfaceCreateButton {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 210, 128, 0.2);
+  background: linear-gradient(180deg, rgba(255, 215, 130, 0.22) 0%, rgba(255, 183, 88, 0.18) 100%);
+  color: rgba(255, 245, 223, 0.96);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.DashboardSurfaceCreateButton:hover,
+.DashboardSurfaceCreateButton:focus-visible {
+  background: linear-gradient(180deg, rgba(255, 225, 148, 0.3) 0%, rgba(255, 192, 102, 0.24) 100%);
+}
+
+.DashboardSurfaceCreateButton--secondary {
+  border-color: rgba(142, 176, 255, 0.18);
+  background: linear-gradient(180deg, rgba(148, 184, 255, 0.14) 0%, rgba(104, 141, 220, 0.12) 100%);
+}
+
+.DashboardSurfaceBoard {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+  gap: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.02) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(132, 168, 255, 0.04);
+}
+
+.DashboardSurfaceBoard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 144px 144px;
+  opacity: 0.35;
+}
+
+.DashboardSurfaceLane {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(320px, 1fr);
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  z-index: 1;
+}
+
+.DashboardSurfaceLaneResizeColumn {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  z-index: 2;
+}
+
+.DashboardSurfaceLaneResizeHandle {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  width: 14px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.DashboardSurfaceLaneResizeHandle::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(208, 221, 255, 0.18);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 0 0 1px rgba(132, 168, 255, 0.04);
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease,
+    width 140ms ease;
+}
+
+.DashboardSurfaceLaneResizeHandle:hover::before,
+.DashboardSurfaceLaneResizeHandle:focus-visible::before,
+.DashboardSurfaceLaneResizeColumn.isActive .DashboardSurfaceLaneResizeHandle::before {
+  width: 4px;
+  background: rgba(255, 214, 126, 0.54);
+  box-shadow:
+    0 0 0 1px rgba(255, 214, 126, 0.16),
+    0 0 14px rgba(255, 214, 126, 0.16);
+}
+
+.DashboardSurfaceLaneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 6px;
+}
+
+.DashboardSurfaceLaneTitleGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.DashboardSurfaceLaneTitleButton {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: text;
+}
+
+.DashboardSurfaceLaneTitleButton:hover .DashboardSurfaceLaneTitle,
+.DashboardSurfaceLaneTitleButton:focus-visible .DashboardSurfaceLaneTitle {
+  color: rgba(239, 244, 255, 0.92);
+}
+
+.DashboardSurfaceLaneTitle {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(212, 224, 255, 0.78);
+}
+
+.DashboardSurfaceLaneTitleInput {
+  min-width: 0;
+  max-width: 180px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 214, 126, 0.42);
+  outline: none;
+  background: transparent;
+  color: rgba(239, 244, 255, 0.94);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.DashboardSurfaceLaneFitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(176, 197, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(224, 232, 255, 0.74);
+  cursor: pointer;
+}
+
+.DashboardSurfaceLaneFitButton:hover,
+.DashboardSurfaceLaneFitButton:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(244, 248, 255, 0.94);
+}
+
+.DashboardSurfaceLaneFitButton.isUnlocked {
+  border-color: rgba(255, 214, 126, 0.28);
+  background: rgba(255, 214, 126, 0.12);
+  color: rgba(255, 233, 186, 0.94);
+}
+
+.DashboardSurfaceLaneFitButton:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.DashboardSurfaceLaneFitIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.DashboardSurfaceLaneHeaderButton {
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(214, 225, 247, 0.82);
+  font-size: 11px;
+}
+
+.DashboardSurfaceLaneHeaderButton:hover,
+.DashboardSurfaceLaneHeaderButton:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(244, 248, 255, 0.94);
+}
+
+.DashboardSurfaceLaneHeaderButton:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.DashboardSurfaceLaneHeaderButton--secondary {
+  color: rgba(210, 200, 184, 0.78);
+}
+
+.DashboardSurfaceLaneCount {
+  font-size: 11px;
+  color: rgba(191, 204, 239, 0.66);
+}
+
+.DashboardSurfaceLaneBoard {
+  position: relative;
+  min-height: 320px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(12, 15, 22, 0.84) 0%, rgba(10, 13, 19, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(124, 162, 255, 0.03);
+  overflow: hidden;
+  cursor: grab;
+}
+
+.DashboardSurfaceLaneBoard.isPanning {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.DashboardSurfaceLaneStage {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.DashboardSurfaceSelectionBox {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid rgba(137, 177, 255, 0.78);
+  border-radius: 12px;
+  background: rgba(91, 134, 255, 0.14);
+  box-shadow:
+    inset 0 0 0 1px rgba(191, 214, 255, 0.18),
+    0 0 0 1px rgba(64, 110, 226, 0.14);
+  pointer-events: none;
+}
+
+.DashboardSurfaceLaneBoard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.024) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.024) 1px, transparent 1px);
+  background-size: 144px 144px;
+  opacity: 0.28;
+}
+
+.DashboardSurfaceLaneBoard.isDropTarget {
+  border-color: rgba(255, 221, 134, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(255, 205, 112, 0.1),
+    0 0 0 1px rgba(255, 205, 112, 0.08);
+}
+
+.DashboardSurfaceLaneEmptyState {
+  position: absolute;
+  inset: 18px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  text-align: center;
+  border: 1px dashed rgba(176, 197, 255, 0.12);
+  border-radius: 14px;
+  color: rgba(204, 214, 242, 0.64);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.DashboardSurfaceEmptyState {
+  position: absolute;
+  inset: 24px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.DashboardSurfaceEmptyCard {
+  display: grid;
+  gap: 12px;
+  max-width: 360px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  border: 1px dashed rgba(176, 197, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 35, 0.92) 0%, rgba(11, 15, 24, 0.94) 100%);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.DashboardSurfaceEmptyCard h3,
+.DashboardSurfaceEmptyCard p {
+  margin: 0;
+}
+
+.DashboardSurfaceEmptyCard h3 {
+  font-size: 22px;
+  line-height: 1.16;
+}
+
+.DashboardSurfaceEmptyCard p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(223, 229, 255, 0.78);
+}
+
+.DashboardStickyNote {
+  --dashboard-sticky-note-bg-top: rgba(255, 236, 173, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(247, 215, 121, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(255, 250, 225, 0.95);
+  --dashboard-sticky-note-bar-bottom: rgba(251, 236, 177, 0.82);
+  --dashboard-sticky-note-border: rgba(255, 221, 134, 0.28);
+  --dashboard-sticky-note-text: rgba(61, 42, 8, 0.96);
+  --dashboard-sticky-note-body-text: rgba(74, 52, 10, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(88, 58, 7, 0.76);
+  --dashboard-sticky-note-ui-border: rgba(92, 66, 11, 0.1);
+  --dashboard-sticky-note-button-bg: rgba(255, 250, 236, 0.36);
+  position: absolute;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  border-radius: 18px;
+  border: 1px solid var(--dashboard-sticky-note-border);
+  background:
+    linear-gradient(180deg, var(--dashboard-sticky-note-bg-top) 0%, var(--dashboard-sticky-note-bg-bottom) 100%);
+  color: var(--dashboard-sticky-note-text);
+  box-shadow:
+    0 22px 44px rgba(0, 0, 0, 0.26),
+    0 8px 14px rgba(135, 97, 14, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.46);
+  overflow: visible;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.DashboardStickyNote.isSelected {
+  z-index: 1;
+  box-shadow:
+    0 0 0 2px rgba(126, 173, 255, 0.82),
+    0 18px 36px rgba(0, 0, 0, 0.24),
+    0 6px 14px rgba(126, 173, 255, 0.18);
+}
+
+.DashboardStickyNote.isDragging {
+  z-index: 2;
+  box-shadow:
+    0 28px 56px rgba(0, 0, 0, 0.32),
+    0 10px 18px rgba(135, 97, 14, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  transform: rotate(-1deg) scale(1.01);
+}
+
+.DashboardStickyNote[data-dashboard-note-menu-open='true'] {
+  z-index: 6;
+}
+
+.DashboardStickyNoteResizeHandle {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  z-index: 7;
+}
+
+.DashboardStickyNoteResizeHandle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0);
+  transition: background 120ms ease;
+}
+
+.DashboardStickyNote:hover .DashboardStickyNoteResizeHandle::before,
+.DashboardStickyNoteResizeHandle:focus-visible::before {
+  background: rgba(124, 160, 255, 0.22);
+}
+
+.DashboardStickyNoteResizeHandle--north,
+.DashboardStickyNoteResizeHandle--south {
+  left: 18px;
+  right: 18px;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+.DashboardStickyNoteResizeHandle--north {
+  top: -5px;
+}
+
+.DashboardStickyNoteResizeHandle--south {
+  bottom: -5px;
+}
+
+.DashboardStickyNoteResizeHandle--east,
+.DashboardStickyNoteResizeHandle--west {
+  top: 18px;
+  bottom: 18px;
+  width: 10px;
+  cursor: ew-resize;
+}
+
+.DashboardStickyNoteResizeHandle--east {
+  right: -5px;
+}
+
+.DashboardStickyNoteResizeHandle--west {
+  left: -5px;
+}
+
+.DashboardStickyNoteResizeHandle--northEast,
+.DashboardStickyNoteResizeHandle--northWest,
+.DashboardStickyNoteResizeHandle--southEast,
+.DashboardStickyNoteResizeHandle--southWest {
+  width: 16px;
+  height: 16px;
+}
+
+.DashboardStickyNoteResizeHandle--northEast {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.DashboardStickyNoteResizeHandle--northWest {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.DashboardStickyNoteResizeHandle--southEast {
+  right: -6px;
+  bottom: -6px;
+  cursor: nwse-resize;
+}
+
+.DashboardStickyNoteResizeHandle--southWest {
+  left: -6px;
+  bottom: -6px;
+  cursor: nesw-resize;
+}
+
+.DashboardStickyNote[data-note-color-preset='green'] {
+  --dashboard-sticky-note-bg-top: rgba(204, 244, 170, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(162, 225, 131, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(230, 252, 214, 0.95);
+  --dashboard-sticky-note-bar-bottom: rgba(201, 241, 179, 0.84);
+  --dashboard-sticky-note-border: rgba(143, 198, 104, 0.34);
+  --dashboard-sticky-note-text: rgba(29, 62, 18, 0.96);
+  --dashboard-sticky-note-body-text: rgba(39, 74, 24, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(45, 88, 29, 0.78);
+  --dashboard-sticky-note-ui-border: rgba(70, 112, 52, 0.12);
+  --dashboard-sticky-note-button-bg: rgba(235, 250, 226, 0.4);
+}
+
+.DashboardStickyNote[data-note-color-preset='pink'] {
+  --dashboard-sticky-note-bg-top: rgba(247, 196, 220, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(238, 171, 202, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(252, 226, 237, 0.95);
+  --dashboard-sticky-note-bar-bottom: rgba(246, 206, 226, 0.84);
+  --dashboard-sticky-note-border: rgba(210, 146, 178, 0.34);
+  --dashboard-sticky-note-text: rgba(85, 33, 56, 0.96);
+  --dashboard-sticky-note-body-text: rgba(97, 41, 64, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(110, 54, 79, 0.78);
+  --dashboard-sticky-note-ui-border: rgba(121, 67, 91, 0.12);
+  --dashboard-sticky-note-button-bg: rgba(255, 239, 246, 0.4);
+}
+
+.DashboardStickyNote[data-note-color-preset='purple'] {
+  --dashboard-sticky-note-bg-top: rgba(225, 203, 248, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(206, 175, 240, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(242, 232, 255, 0.95);
+  --dashboard-sticky-note-bar-bottom: rgba(227, 209, 248, 0.84);
+  --dashboard-sticky-note-border: rgba(166, 132, 214, 0.34);
+  --dashboard-sticky-note-text: rgba(61, 35, 92, 0.96);
+  --dashboard-sticky-note-body-text: rgba(74, 42, 105, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(88, 52, 121, 0.78);
+  --dashboard-sticky-note-ui-border: rgba(95, 67, 132, 0.12);
+  --dashboard-sticky-note-button-bg: rgba(247, 241, 255, 0.38);
+}
+
+.DashboardStickyNote[data-note-color-preset='blue'] {
+  --dashboard-sticky-note-bg-top: rgba(191, 223, 247, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(150, 202, 236, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(226, 242, 255, 0.95);
+  --dashboard-sticky-note-bar-bottom: rgba(197, 227, 247, 0.84);
+  --dashboard-sticky-note-border: rgba(118, 176, 214, 0.34);
+  --dashboard-sticky-note-text: rgba(24, 58, 88, 0.96);
+  --dashboard-sticky-note-body-text: rgba(35, 70, 102, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(44, 82, 116, 0.78);
+  --dashboard-sticky-note-ui-border: rgba(57, 97, 131, 0.12);
+  --dashboard-sticky-note-button-bg: rgba(234, 246, 255, 0.38);
+}
+
+.DashboardStickyNote[data-note-color-preset='white'] {
+  --dashboard-sticky-note-bg-top: rgba(249, 249, 249, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(233, 233, 233, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(255, 255, 255, 0.97);
+  --dashboard-sticky-note-bar-bottom: rgba(242, 242, 242, 0.9);
+  --dashboard-sticky-note-border: rgba(189, 189, 189, 0.34);
+  --dashboard-sticky-note-text: rgba(52, 52, 52, 0.96);
+  --dashboard-sticky-note-body-text: rgba(68, 68, 68, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(88, 88, 88, 0.78);
+  --dashboard-sticky-note-ui-border: rgba(108, 108, 108, 0.12);
+  --dashboard-sticky-note-button-bg: rgba(255, 255, 255, 0.5);
+}
+
+.DashboardStickyNote[data-note-color-preset='gray'] {
+  --dashboard-sticky-note-bg-top: rgba(193, 193, 193, 0.98);
+  --dashboard-sticky-note-bg-bottom: rgba(156, 156, 156, 0.96);
+  --dashboard-sticky-note-bar-top: rgba(222, 222, 222, 0.95);
+  --dashboard-sticky-note-bar-bottom: rgba(196, 196, 196, 0.84);
+  --dashboard-sticky-note-border: rgba(132, 132, 132, 0.34);
+  --dashboard-sticky-note-text: rgba(41, 41, 41, 0.96);
+  --dashboard-sticky-note-body-text: rgba(51, 51, 51, 0.9);
+  --dashboard-sticky-note-ui-text: rgba(62, 62, 62, 0.78);
+  --dashboard-sticky-note-ui-border: rgba(76, 76, 76, 0.12);
+  --dashboard-sticky-note-button-bg: rgba(240, 240, 240, 0.3);
+}
+
+.DashboardStickyNoteTitleBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 18px 18px 0 0;
+  border-bottom: 1px solid rgba(96, 70, 15, 0.12);
+  background:
+    linear-gradient(180deg, var(--dashboard-sticky-note-bar-top) 0%, var(--dashboard-sticky-note-bar-bottom) 100%);
+  cursor: grab;
+  position: relative;
+  overflow: visible;
+}
+
+.DashboardStickyNoteTitleBarLaneLabel {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dashboard-sticky-note-ui-text);
+}
+
+.DashboardStickyNoteHeader {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px 4px;
+}
+
+.DashboardStickyNoteTitleBlock {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.DashboardStickyNoteBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(105, 73, 10, 0.12);
+  color: rgba(88, 58, 7, 0.84);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.DashboardStickyNoteTitle {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.18;
+  color: var(--dashboard-sticky-note-text);
+}
+
+.DashboardStickyNoteTitleButton,
+.DashboardStickyNoteBodyButton {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: text;
+}
+
+.DashboardStickyNoteTitleButton {
+  min-width: 0;
+}
+
+.DashboardStickyNoteTitleButton:hover,
+.DashboardStickyNoteTitleButton:focus-visible,
+.DashboardStickyNoteBodyButton:hover,
+.DashboardStickyNoteBodyButton:focus-visible {
+  background: transparent;
+}
+
+.DashboardStickyNoteTitleInput,
+.DashboardStickyNoteBodyInput {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dashboard-sticky-note-text);
+  box-sizing: border-box;
+  font-family: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.DashboardStickyNoteTitleInput {
+  min-width: 0;
+  font-size: 18px;
+  line-height: 1.18;
+  font-weight: 700;
+}
+
+.DashboardStickyNoteBodyInput {
+  min-height: 100%;
+  resize: none;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.DashboardStickyNoteTitleInput::placeholder,
+.DashboardStickyNoteBodyInput::placeholder {
+  color: color-mix(in srgb, var(--dashboard-sticky-note-ui-text) 88%, transparent);
+}
+
+.DashboardStickyNoteActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.DashboardStickyNoteActionButton {
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-sticky-note-ui-border);
+  background: var(--dashboard-sticky-note-button-bg);
+  color: color-mix(in srgb, var(--dashboard-sticky-note-text) 90%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.DashboardStickyNoteActionButton--icon {
+  width: 22px;
+  padding: 0;
+}
+
+.DashboardStickyNoteActionButton:hover,
+.DashboardStickyNoteActionButton:focus-visible {
+  background: rgba(255, 252, 241, 0.82);
+}
+
+.DashboardStickyNoteActionButton--secondary {
+  background: rgba(105, 73, 10, 0.08);
+}
+
+.DashboardStickyNoteMenuIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 16px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.DashboardStickyNoteOverflowMenu,
+.DashboardStickyNoteColorMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 8;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(18, 18, 20, 0.94);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.DashboardStickyNoteOverflowMenu {
+  right: 8px;
+  min-width: 150px;
+  display: grid;
+  gap: 6px;
+}
+
+.DashboardStickyNoteOverflowAction {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 248, 255, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.DashboardStickyNoteOverflowAction:hover,
+.DashboardStickyNoteOverflowAction:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.DashboardStickyNoteOverflowGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.DashboardStickyNoteOverflowLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212, 224, 255, 0.72);
+}
+
+.DashboardStickyNoteOverflowSwatches,
+.DashboardStickyNoteColorMenu {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.DashboardStickyNoteColorMenu {
+  left: 8px;
+}
+
+.DashboardStickyNoteColorSwatch {
+  width: 38px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.DashboardStickyNoteColorSwatch:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.DashboardStickyNoteColorSwatch:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.DashboardStickyNoteColorSwatch.isSelected {
+  position: relative;
+}
+
+.DashboardStickyNoteColorSwatch.isSelected::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(29, 29, 29, 0.88);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='yellow'] {
+  background: linear-gradient(180deg, #ffe68a 0%, #f1d267 100%);
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='green'] {
+  background: linear-gradient(180deg, #c4f0a7 0%, #9cda75 100%);
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='pink'] {
+  background: linear-gradient(180deg, #f7c0df 0%, #efa4c9 100%);
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='purple'] {
+  background: linear-gradient(180deg, #dcc6f5 0%, #c6acef 100%);
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='blue'] {
+  background: linear-gradient(180deg, #b9dbf4 0%, #95c6ea 100%);
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='white'] {
+  background: linear-gradient(180deg, #ffffff 0%, #e9e9e9 100%);
+}
+
+.DashboardStickyNoteColorSwatch[data-note-color-option='gray'] {
+  background: linear-gradient(180deg, #cdcdcd 0%, #ababab 100%);
+}
+
+.DashboardStickyNoteBody {
+  min-height: 0;
+  padding: 8px 14px 14px;
+  overflow: auto;
+}
+
+.DashboardStickyNoteBodyButton,
+.DashboardStickyNoteBodyInput {
+  min-height: 100%;
+}
+
+.DashboardStickyNoteBody p,
+.DashboardStickyNoteBodyButton p {
+  margin: 0;
+  color: var(--dashboard-sticky-note-body-text);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+  .DashboardSurfaceBoard {
+    grid-template-columns: 1fr;
+    min-height: 420px;
+  }
+
+  .DashboardSurfaceHero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .DashboardStickyNote {
+    width: min(248px, calc(100% - 32px)) !important;
+  }
+}
+
+.NotepadSurface {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 205, 126, 0.09) 0%, rgba(255, 205, 126, 0) 32%),
+    radial-gradient(circle at bottom right, rgba(136, 197, 255, 0.08) 0%, rgba(136, 197, 255, 0) 34%),
+    linear-gradient(180deg, rgba(12, 13, 18, 0.99) 0%, rgba(8, 9, 13, 0.99) 100%);
+  color: rgba(240, 242, 250, 0.95);
+}
+
+.NotepadSurfaceSidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  box-sizing: border-box;
+}
+
+.NotepadSurfaceSidebarHeader {
+  display: grid;
+  gap: 12px;
+}
+
+.NotepadSurfaceEyebrow {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(205, 213, 236, 0.6);
+}
+
+.NotepadSurfaceTitle {
+  margin: 6px 0 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.NotepadSurfaceCreateButton,
+.NotepadSurfaceToolbarButton {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(245, 247, 255, 0.95);
+}
+
+.NotepadSurfaceCreateButton {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.NotepadSurfaceNoteList {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.NotepadSurfaceEmptyList {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.NotepadSurfaceEmptyList p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(221, 226, 244, 0.76);
+}
+
+.NotepadSurfaceNoteListItem {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.NotepadSurfaceNoteListItem.isActive {
+  border-color: rgba(255, 208, 140, 0.36);
+  background:
+    linear-gradient(180deg, rgba(255, 216, 163, 0.12) 0%, rgba(255, 216, 163, 0.05) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.NotepadSurfaceNoteListTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.NotepadSurfaceNoteListTitle {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.NotepadSurfacePinnedBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 207, 122, 0.18);
+  color: rgba(255, 227, 174, 0.94);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.NotepadSurfaceNoteListPreview,
+.NotepadSurfaceNoteListMeta {
+  margin: 0;
+}
+
+.NotepadSurfaceNoteListPreview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(223, 228, 245, 0.74);
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.NotepadSurfaceNoteListMeta {
+  font-size: 11px;
+  color: rgba(188, 197, 224, 0.6);
+}
+
+.NotepadSurfaceEditor {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.NotepadSurfaceToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.NotepadSurfaceSavedState {
+  font-size: 12px;
+  color: rgba(201, 210, 235, 0.68);
+}
+
+.NotepadSurfaceToolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.NotepadSurfaceToolbarButton {
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.NotepadSurfaceToolbarButton--danger {
+  border-color: rgba(255, 132, 132, 0.14);
+  background: rgba(255, 92, 92, 0.08);
+  color: rgba(255, 203, 203, 0.95);
+}
+
+.NotepadSurfaceTitleInput,
+.NotepadSurfaceBodyInput {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(246, 248, 255, 0.96);
+  box-sizing: border-box;
+}
+
+.NotepadSurfaceTitleInput {
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.NotepadSurfaceBodyInput {
+  min-height: 0;
+  padding: 14px;
+  resize: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.NotepadSurfaceEmptyEditor {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.NotepadSurfaceEmptyEditorCard {
+  display: grid;
+  gap: 10px;
+  max-width: 440px;
+  padding: 22px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.NotepadSurfaceEmptyEditorCard h3,
+.NotepadSurfaceEmptyEditorCard p {
+  margin: 0;
+}
+
+.NotepadSurfaceEmptyEditorCard h3 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.NotepadSurfaceEmptyEditorCard p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(223, 228, 245, 0.78);
+}
+
+@media (max-width: 980px) {
+  .NotepadSurface {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(220px, auto) minmax(0, 1fr);
+  }
+
+  .NotepadSurfaceSidebar {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .NotepadSurfaceToolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .ViewportViewerSurface {
   position: absolute;
   inset: 0;

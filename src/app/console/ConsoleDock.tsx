@@ -23,7 +23,7 @@ import {
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import {
-  buildWorkspaceViewportOptions,
+  buildConsoleWorkspaceViewportOptions,
 } from '../workspace/workspaceViewportLabels'
 import {
   activateGraphDocumentIntent,
@@ -701,7 +701,7 @@ const buildStagedNavigationContextFromStoreState = (
   const appState = useAppStore.getState()
   const workspaceState = useWorkspaceStore.getState()
   const referenceTree = selectReferenceWorkspaceBrowserTree(appState)
-  const workspaceViewportOptions = buildWorkspaceViewportOptions(
+  const workspaceViewportOptions = buildConsoleWorkspaceViewportOptions(
     workspaceState.viewportSlotsById,
     workspaceState.primaryViewportId,
   )

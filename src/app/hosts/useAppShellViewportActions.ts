@@ -347,10 +347,7 @@ export function useAppShellViewportActions(input: UseAppShellViewportActionsInpu
   )
 
   const handleViewportSlotSurfaceKindChange = useCallback(
-    (
-      slotId: string,
-      nextSurfaceKind: 'modelViewer' | 'browser' | 'console' | 'spaghettiEditor',
-    ) => {
+    (slotId: string, nextSurfaceKind: WorkspaceViewportSlot['surfaceKind']) => {
       const currentSlot = viewportSlotsById[slotId] ?? null
       if (currentSlot === null) {
         return

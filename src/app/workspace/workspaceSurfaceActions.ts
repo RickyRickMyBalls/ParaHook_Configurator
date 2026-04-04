@@ -22,7 +22,7 @@ function findSlotBySurfaceInstanceId(surfaceInstanceId: string) {
 }
 
 export function findSlottedSurfaceInstanceIdByKind(
-  surfaceKind: 'browser' | 'console' | 'spaghettiEditor' | 'modelViewer',
+  surfaceKind: WorkspaceSurfaceKind,
 ) {
   const workspaceState = useWorkspaceStore.getState()
   const matchingSlot =
@@ -248,6 +248,28 @@ export function splitWorkspaceSurfaceToSide(
     }
     return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
       surfaceKind: 'modelViewer',
+      surfaceInstanceId,
+      preferredRatio: options?.preferredRatio,
+    })
+  }
+
+  if (slottedSurface?.surfaceKind === 'dashboard' || detachedSurface?.surfaceKind === 'dashboard') {
+    if (detachedSurface !== null) {
+      return workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
+    }
+    return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId,
+      preferredRatio: options?.preferredRatio,
+    })
+  }
+
+  if (slottedSurface?.surfaceKind === 'notepad' || detachedSurface?.surfaceKind === 'notepad') {
+    if (detachedSurface !== null) {
+      return workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
+    }
+    return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
+      surfaceKind: 'notepad',
       surfaceInstanceId,
       preferredRatio: options?.preferredRatio,
     })

@@ -65,6 +65,1208 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 997 -->
+### [997] - 2026-04-04 14:29 - `Dashboard-7.10 - Phase 10.5 - Sticky Note Focus Lift`
+<!-- ENTRY 997 -->
+HUMAN SUMMARY: `Shipped the dashboard sticky-note focus-lift pass by adding one temporary double-click front-editing override on top of the attachment-aware stack order, so overlapping notes can be brought to the front and toggled back without mutating the underlying attachment model or persistence shape.`
+#### Scope / Constraints Honored
+- Kept this slice focused on one temporary lifted-note override instead of widening into direct-drag child detach, new connector chrome, or any dashboard persistence changes.
+- Preserved the structural child-above-parent ordering from `Phase 10.4` as the default baseline and layered the new behavior on top as a reversible surface-local override.
+- Kept the override narrow by lifting only the directly toggled note and leaving subtree ownership, resize behavior, menus, and inline editing contracts intact.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` to track one temporary lifted sticky-note id, push that note to the top of its lane render order without mutating attachment relationships, and clear stale lifted state automatically when the note disappears from the pinned dashboard board.
+- Updated `src/app/workspace/DashboardStickyNoteCard.tsx` to emit a guarded double-click focus-lift toggle from the sticky-note shell while ignoring resize handles, buttons, and active text inputs so the new override does not conflict with existing gesture owners.
+- Added focused dashboard regressions in `src/app/AppShell.test.tsx` that verify double-click lift puts one note above the normal attachment stack and that double-clicking again restores the original child-above-parent ordering.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Double-clicking a dashboard sticky note now temporarily brings that one note to the front above overlapping notes in the same lane.
+- Double-clicking the same sticky note again clears the temporary override and returns the note to the normal attachment-derived stack order.
+- Attachment persistence, subtree movement, resize handles, menus, and inline editing otherwise keep their existing behavior.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 996 -->
+### [996] - 2026-04-04 13:33 - `Dashboard-7.10 - Phase 10.4 - Attachment Stack Layering Polish`
+<!-- ENTRY 996 -->
+HUMAN SUMMARY: `Shipped the dashboard sticky-note attachment layering polish by deriving attachment-aware render order inside the board surface so attached children now stay visually above parents both at rest and while a parent-led subtree is dragged, without widening the dashboard model or changing attachment semantics.`
+#### Scope / Constraints Honored
+- Kept this slice focused on visual stack ordering only instead of widening into double-click focus lift, direct-drag child detach, connector chrome, or any new persistence shape.
+- Preserved the existing dashboard-owned attachment model by leaving `parentNoteId`, lane placement, and sticky-note sizing untouched while only correcting the render order derived from those relationships.
+- Kept the change lane-local and attachment-aware while leaving unattached note behavior stable and keeping resize handles, title-bar drag, menus, and inline editing reachable.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` to derive sticky-note render order from attachment depth so descendants render after ancestors, and carried `parentNoteId` through drag-preview layouts so the same child-above-parent ordering stays intact while a subtree is actively moving.
+- Added focused dashboard regressions in `src/app/AppShell.test.tsx` that assert attached children render above their parent both at rest and during a parent-subtree drag using one lane-stage order helper instead of the earlier brittle DOM bitmask check.
+- Closed the `Dashboard-7.10` phase docs and advanced the umbrella dashboard doc so the next attachment-and-resize slice now stages `Phase 10.5 - Sticky Note Focus Lift`.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Attached dashboard sticky-note children now render above their parent by default when the notes overlap.
+- Dragging a parent-led attachment subtree no longer causes the parent preview to visually cover its attached child.
+- Attachment persistence, attachment creation, subtree movement semantics, resize behavior, menus, and inline editing otherwise remain unchanged in this phase.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 995 -->
+### [995] - 2026-04-04 13:17 - `Dashboard-7.10 - Phase 10.3 - Resizable Sticky Notes Foundation`
+<!-- ENTRY 995 -->
+HUMAN SUMMARY: `Shipped the first dashboard sticky-note resize foundation by adding dashboard-owned persisted note width and height plus explicit edge and corner resize handles, while keeping title-bar drag, sticky-note menus, and the existing attachment-tree behavior working on top of the new variable-size geometry seam.`
+#### Scope / Constraints Honored
+- Kept this slice focused on persisted note size plus resize handles instead of widening into direct-drag child detach, connector chrome, or the later mixed-size polish pass.
+- Preserved dashboard ownership by storing note size in the dashboard sticky-note layout model rather than moving it into the shared notepad note model.
+- Kept title-bar drag as the primary move gesture and used explicit handle-owned resize gestures so move, edit, and menu interactions remain structurally separate.
+
+#### Summary of Implementation
+- Extended `src/app/dashboard/dashboardTypes.ts`, `src/app/dashboard/dashboardPersistence.ts`, and `src/app/dashboard/useDashboardStore.ts` so dashboard sticky-note layouts can now persist optional `width` and `height`, migrate older layouts forward through the next dashboard storage key, and commit resized note frames through one dashboard-owned store action.
+- Updated `src/app/workspace/DashboardSurface.tsx` so sticky-note dimensions now resolve from the layout model, added a surface-owned resize gesture path with live preview and frame clamping, and kept existing drag, attach, selection, fit, and subtree behavior running through the new variable-size geometry seam.
+- Updated `src/app/workspace/DashboardStickyNoteCard.tsx` and `src/app/theme/foundation/base.css` to expose explicit resize handles on all edges and corners without blocking the sticky-note title bar, inline editing affordances, or overflow menu access.
+- Added focused dashboard store and AppShell regressions covering size persistence, edge and corner resize behavior, resized-parent attachment, and the continued reachability of the sticky-note menu plus title-bar drag after resizing.
+- Closed `Phase 10.3` in the dedicated `Dashboard-7.10` planning doc and advanced the umbrella dashboard doc so `Phase 10.4` is now the next implementation-ready slice.
+
+#### Files Changed
+- `src/app/dashboard/dashboardTypes.ts`
+- `src/app/dashboard/dashboardPersistence.ts`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard sticky notes can now be resized from all edges and corners.
+- Resized sticky-note width and height now persist through the dashboard-owned board model and dashboard storage.
+- Sticky-note attachment, subtree movement, title-bar drag, and overflow menu access all continue to work after resize exists.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 994 -->
+### [994] - 2026-04-04 13:01 - `Dashboard-7.10 - Phase 10.2 - Attachment Bounds Refactor For Variable Note Size`
+<!-- ENTRY 994 -->
+HUMAN SUMMARY: `Refactored the dashboard sticky-note geometry contract so attachment, subtree movement, selection, fit-to-notes, and default board placement now all flow through one centralized dimensions-and-bounds seam, while preserving the current fixed-size note behavior ahead of the later resize feature.` 
+#### Scope / Constraints Honored
+- Kept this slice internal-only instead of widening into per-note size persistence, resize handles, drag-intent changes, or new attachment semantics.
+- Preserved the current fixed sticky-note size as the active runtime default while centralizing the geometry math underneath it.
+- Left the shipped same-lane attachment behavior, subtree carry behavior, and no-overlap detach behavior unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` so sticky-note dimensions now resolve through one helper seam and the related title-bar bounds, full-note bounds, movement clamp, selection overlap, fit-to-notes bounds, and default board placement all route through that centralized geometry contract.
+- Kept the live dashboard interaction behavior unchanged by continuing to use the current fixed width and height as the active default dimensions during this refactor phase.
+- Reused the existing focused AppShell dashboard suite to verify that attachment, subtree movement, fit, selection, and cross-lane drag behavior all stay green after the geometry cleanup.
+- Closed `Phase 10.2` in the dedicated `Dashboard-7.10` planning doc and advanced the umbrella dashboard doc so `Phase 10.3` is now the next implementation-ready slice.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard sticky-note geometry now routes through one internal dimensions-and-bounds seam that can later accept variable note size.
+- Current sticky-note size, attachment behavior, subtree movement, fit behavior, and selection behavior remain unchanged in this phase.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 993 -->
+### [993] - 2026-04-04 12:48 - `Dashboard-7.10 - Phase 10.1 - Parent Full-Body Attachment Hit Area`
+<!-- ENTRY 993 -->
+HUMAN SUMMARY: `Widened dashboard sticky-note attachment so the dragged note title bar now attaches when it overlaps any visible part of a same-lane parent sticky note, not just the parent title bar, while keeping the existing strongest-overlap winner rule, subtree movement, and detach behavior intact.`
+#### Scope / Constraints Honored
+- Kept this slice narrow to parent-hit-area widening only instead of widening into per-note sizing, resize handles, dragged-body intent changes, or direct-drag detach behavior.
+- Preserved the existing drag-intent contract by keeping the dragged note anchored to title-bar overlap only while broadening only the parent candidate hit area.
+- Left the shipped attachment-tree contract, same-lane-only behavior, strongest-overlap winner rule, and no-overlap detach behavior intact.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` with a full sticky-note bounds helper for the current fixed card size and switched drop-time parent candidate hit testing from parent title-bar bounds to full parent note bounds.
+- Kept `resolveDropAttachmentParentNoteId(...)` anchored to the dragged sticky note title bar so the interaction still reads as a title-bar drag-and-drop gesture rather than whole-card overlap intent.
+- Added focused AppShell coverage proving that a dragged sticky note now attaches when its title bar overlaps the parent body without overlapping the parent title bar, while keeping the existing strongest-overlap and detach regressions green.
+- Closed `Phase 10.1` in the dedicated `Dashboard-7.10` planning doc and advanced the umbrella dashboard doc so `Phase 10.2` is now the next implementation-ready slice.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Same-lane sticky-note attachment can now land when the dragged note title bar overlaps any visible part of a parent sticky note's full bounds.
+- Parent selection still uses deterministic strongest-overlap winner selection when more than one same-lane parent candidate overlaps.
+- Ordinary no-overlap drops, subtree movement, and later resize behavior all remain unchanged in this slice.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 992 -->
+### [992] - 2026-04-04 12:22 - `Dashboard-7.5 - Sticky Note Overflow Menu Visibility Fix`
+<!-- ENTRY 992 -->
+HUMAN SUMMARY: `Fixed the dashboard sticky-note \`...\` menu visibility regression by letting the title-bar overflow surface render outside the title bar instead of clipping it away, while keeping the existing sticky-note menu interactions and focused menu tests intact.`
+#### Scope / Constraints Honored
+- Kept this as a narrow sticky-note chrome fix instead of widening into further dashboard menu redesign, new actions, or attachment behavior changes.
+- Preserved the existing sticky-note menu event model and focused only on the title-bar clipping seam that could hide the overflow surface.
+- Left the shipped attachment-tree and subtree-movement runtime untouched.
+
+#### Summary of Implementation
+- Updated `src/app/theme/foundation/base.css` so `.DashboardStickyNoteTitleBar` no longer clips absolutely positioned child menu surfaces, allowing the sticky-note overflow menu to render visibly beneath the title bar.
+- Kept the already-added focused AppShell menu interaction coverage intact to verify the burger menu still opens and its actions remain reachable.
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The sticky-note `...` overflow menu now renders visibly instead of being clipped by the title bar.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t "pointer menu|burger menu|open-in-notepad"`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 991 -->
+### [991] - 2026-04-04 12:13 - `Dashboard - Phase 10 - Move Attached Note Subtrees`
+<!-- ENTRY 991 -->
+HUMAN SUMMARY: `Shipped attached subtree movement on the dashboard board so dragging any sticky note that owns descendants now carries that full subtree through live preview and final drop, including cross-lane movement that preserves attachment links through one batched placement commit while direct-drag child detach remains staged for the next phase.`
+#### Scope / Constraints Honored
+- Kept this slice on subtree movement only instead of widening into explicit detach controls, attach-preview chrome, connector lines, or broader sticky-note stack visuals.
+- Preserved the ownership split by keeping attachment state in the dashboard-owned `parentNoteId` model and widening only the dashboard drag plus placement seam around it.
+- Kept direct child drag behavior structurally unchanged in this phase so relationship-breaking detach rules still remain isolated to the later `Phase 11` pass.
+
+#### Summary of Implementation
+- Extended `src/app/workspace/DashboardSurface.tsx` with attachment-subtree note-id resolution plus a drag movement-mode split so directly dragged notes that own descendants now move their full subtree through the existing live preview path.
+- Widened the pointer-finish drop seam to use one batched dashboard placement commit for moved subtree notes before re-evaluating the directly dragged note's parent, which preserves attachment links during cross-lane subtree movement.
+- Added focused dashboard regressions in `src/app/AppShell.test.tsx` covering parent-child follow, nested child-subtree follow, and cross-lane subtree carry with preserved attachment links.
+- Closed `Phase 10` in the dashboard planning docs and advanced the umbrella dashboard doc so `Phase 11` now reads as the next implementation-ready command.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dragging a dashboard sticky note that owns attached descendants now carries that full descendant subtree with preserved relative spacing.
+- Cross-lane subtree drag now moves the whole subtree into the destination lane together without clearing the descendant `parentNoteId` links mid-commit.
+- Direct child drag still keeps the pre-Phase-11 relationship-edit behavior; explicit detach-by-drag has not shipped yet.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 990 -->
+### [990] - 2026-04-04 11:58 - `Dashboard - Phase 9 - Attach Notes On Drop By Title-Bar Overlap`
+<!-- ENTRY 990 -->
+HUMAN SUMMARY: `Shipped the first live dashboard attachment behavior by extending sticky-note drop so the directly dragged note now attaches to the same-lane note whose title bar it overlaps most strongly, while ordinary non-overlap drops stay detached and later subtree movement remains staged for the next phase.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to drop-time attachment creation only instead of widening into attached subtree movement, child detachment by drag, attachment-preview chrome, or explicit attach/detach buttons.
+- Preserved the ownership split by writing parent relationships through the dashboard-owned `parentNoteId` model without moving attachment state into the shared notepad note model or the transient selection state.
+- Kept the first runtime pass lane-local and title-bar-only, attaching only the directly dragged note and leaving wider selection/group-move behavior structurally separate.
+
+#### Summary of Implementation
+- Extended `src/app/workspace/DashboardSurface.tsx` with title-bar-bounds overlap helpers and widened the existing pointer-finish drop seam so final sticky-note placement now also resolves one same-lane parent candidate by strongest title-bar overlap area.
+- Reused the shipped dashboard-owned attachment groundwork by writing the resolved parent through `setStickyNoteAttachmentParent(...)`, which automatically clears invalid or no-longer-qualifying parent links.
+- Added focused dashboard regressions in `src/app/AppShell.test.tsx` covering same-lane attachment creation, strongest-overlap winner selection, and ordinary detached drops with no qualifying title-bar overlap.
+- Closed `Phase 9` in the dashboard planning docs and staged `Phase 10` as the next runtime pass for attached subtree movement.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dropping a sticky note onto another sticky note title bar in the same lane now creates a durable parent/child relationship through `parentNoteId`.
+- When multiple same-lane title bars overlap at drop, the strongest overlap area wins deterministically.
+- Ordinary drops with no qualifying title-bar overlap now clear any old parent from the directly dragged note instead of leaving stale attachment behind.
+- Attached descendants still do not move with the parent yet; that runtime widening remains staged for `Phase 10`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 989 -->
+### [989] - 2026-04-04 11:41 - `Dashboard - Phase 8 - Sticky Attachment Tree Contract`
+<!-- ENTRY 989 -->
+HUMAN SUMMARY: `Landed the first dashboard-owned attachment-tree groundwork by adding an optional persisted \`parentNoteId\` relationship to sticky-note board layouts, normalizing away invalid parent links and cycles in the store and persistence seam, and leaving live attach-on-drop behavior for the next dashboard phase.`
+#### Scope / Constraints Honored
+- Kept this slice on Phase 8 contract and model groundwork instead of widening into live title-bar-overlap attachment on drop, subtree drag movement, detach-by-drag behavior, or new sticky-note chrome.
+- Preserved the ownership split by keeping attachment state in the dashboard board model rather than moving it into the shared notepad note model or the transient dashboard selection state.
+- Kept attachment trees lane-local in the landed groundwork by automatically clearing cross-lane parent links, missing-parent links, self-links, and cycle-forming links.
+
+#### Summary of Implementation
+- Extended `src/app/dashboard/dashboardTypes.ts` so dashboard sticky-note layouts can carry one optional `parentNoteId` relationship and widened persisted dashboard state to the next schema version.
+- Updated `src/app/dashboard/dashboardPersistence.ts` with relationship normalization that preserves valid one-parent chains while clearing invalid or cycle-forming attachment links and migrating storage reads forward from earlier dashboard widget keys.
+- Updated `src/app/dashboard/useDashboardStore.ts` so reconciliation, lane migration, placement changes, note removal, and an explicit attachment-parent setter all flow through the same attachment normalization seam.
+- Added focused dashboard store coverage for persistence round-trip, detachment after lane changes or note removal, and cycle prevention, then refreshed the dashboard phase docs to close `Phase 8` and stage `Phase 9` next.
+
+#### Files Changed
+- `src/app/dashboard/dashboardTypes.ts`
+- `src/app/dashboard/dashboardPersistence.ts`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard sticky-note board layouts can now persist one optional durable parent link through `parentNoteId`.
+- Invalid attachment links no longer survive persistence or store mutations when the referenced parent is missing, ends up in another lane, or would create a cycle.
+- Live sticky-note dragging and drop-time attachment creation still behave exactly as before; runtime attachment behavior remains staged for `Phase 9`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 988 -->
+### [988] - 2026-04-04 11:28 - `Dashboard - Phase 7.5 - Sticky Note Title Bar Corner Polish`
+<!-- ENTRY 988 -->
+HUMAN SUMMARY: `Fixed the sticky-note title-bar corner so the top fillet stays smooth after the overflow-layering work, by restoring local title-bar clipping without breaking the menu surfaces that now render above the note.`
+#### Scope / Constraints Honored
+- Kept this pass tightly scoped to the sticky-note title-bar corner clipping issue instead of widening into new menu behavior, drag changes, or broader sticky-note restyling.
+- Preserved the earlier overflow-layering fix by changing only the title-bar’s own corner clipping rather than reverting the card shell back to overflow clipping.
+- Left the burger menu and legacy right-click color palette behavior unchanged apart from the smoother top corner render.
+
+#### Summary of Implementation
+- Updated `base.css` so the sticky-note title bar now owns its own top-corner radius and local clipping.
+- Preserved the card-level overflow visibility so menu surfaces can still escape above the note.
+- Verified the focused dashboard interaction suite still passes after the visual polish.
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Sticky-note top corners now render with a smooth fillet again instead of showing a title-bar corner protrusion.
+- Sticky-note menus still render above the note as before.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 987 -->
+### [987] - 2026-04-04 11:26 - `Dashboard - Phase 7.5 - Sticky Note Menu Layering Polish`
+<!-- ENTRY 987 -->
+HUMAN SUMMARY: `Adjusted the sticky-note overflow layering so both the burger menu and the legacy right-click color palette render above the note instead of being clipped inside it, while keeping the same sticky-note actions and drag behavior intact.`
+#### Scope / Constraints Honored
+- Kept this pass tightly scoped to menu layering and clipping behavior instead of widening into new sticky-note actions, menu structure changes, or dashboard camera/layout work.
+- Preserved the existing sticky-note menu logic by changing only the card-local open-state attribute and the CSS overflow/z-index behavior needed to let the menus escape the note shell.
+- Left the previously shipped burger-menu and right-click color paths unchanged from the user’s perspective apart from the improved visibility.
+
+#### Summary of Implementation
+- Updated `DashboardStickyNoteCard.tsx` so an open sticky-note menu marks the active note shell, giving the card one explicit elevated state while a menu is visible.
+- Updated `base.css` so the sticky-note shell no longer clips overflow and both the burger menu and color palette render with a higher z-index above the card chrome.
+- Verified the focused dashboard interaction suite still passes after the layering change.
+
+#### Files Changed
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Sticky-note burger menus now render above the note so all menu options remain visible.
+- Sticky-note right-click color palettes now also render above the note instead of being clipped by the card shell.
+- The active note is elevated while one of its menus is open so overlapping notes do not cover the menu surface.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 986 -->
+### [986] - 2026-04-04 11:24 - `Dashboard - Phase 7.5 - Sticky Note Burger Menu Foundation`
+<!-- ENTRY 986 -->
+HUMAN SUMMARY: `Refactored dashboard sticky-note chrome so a new top-right burger menu now holds \`Open in Notepad\` and visible color access, while keeping \`Unpin\` visible in the title bar, preserving the legacy right-click color path, and leaving selection-aware align menu actions for the next phase.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to sticky-note chrome cleanup instead of widening into selection-aware align menu actions, note-model changes, drag redesign, or camera behavior changes.
+- Preserved the current ownership split by keeping menu state local to `DashboardStickyNoteCard.tsx`, note action wiring in `DashboardSurface.tsx`, note content in the shared notepad model, and placement persistence in the dashboard store.
+- Kept the legacy title-bar right-click color path alive in the first cut so the burger menu could land additively before later cleanup decides whether to retire that gesture.
+
+#### Summary of Implementation
+- Reworked `DashboardStickyNoteCard.tsx` so the title bar now exposes one compact burger trigger, moves `Open in Notepad` into the overflow menu, and adds visible color swatches inside that same menu.
+- Kept `Unpin` visible in the sticky-note title bar and preserved the existing title-bar drag behavior by continuing to treat button chrome as non-drag targets.
+- Updated dashboard regressions in `AppShell.test.tsx` so notepad handoff now flows through the burger menu and added focused coverage for color changes from that menu while preserving the old right-click color test.
+
+#### Files Changed
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Sticky notes now show a top-right burger menu trigger instead of keeping `Open in Notepad` always visible in the title bar.
+- `Open in Notepad` now runs from the burger menu.
+- Visible color access now also lives in the burger menu, while the existing title-bar right-click color palette still works.
+- `Unpin` remains visible in the title bar in this first burger-menu pass.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 985 -->
+### [985] - 2026-04-04 11:04 - `Dashboard - Phase 7.4 - Align Selected Notes`
+<!-- ENTRY 985 -->
+HUMAN SUMMARY: `Added the first board-local sticky-note align actions so a lane-local selected note set can snap to one shared vertical or horizontal edge through temporary lane-header controls, while keeping selection active, note content unchanged, and lane ownership in the dashboard placement model.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to lane-local alignment on the existing selected note set instead of widening into burger-menu exposure, cross-lane alignment, spacing/distribute tools, selection persistence, or shared note-model changes.
+- Reused the shipped board-local selection and group-move seam in `DashboardSurface.tsx` instead of introducing a second multi-note targeting system.
+- Preserved the current ownership split by keeping note content in the shared notepad model, selection ephemeral in the dashboard surface, and placement persistence in the dashboard store.
+
+#### Summary of Implementation
+- Extended `DashboardSurface.tsx` with lane-local selected-note alignment helpers that derive one deterministic anchor edge and then commit updated placements for the active selected note set through the existing dashboard placement seam.
+- Added temporary lane-header vertical and horizontal align buttons so the first align pass has an honest action entry point before the later sticky-note burger-menu phases land.
+- Added focused dashboard regressions in `AppShell.test.tsx` covering vertical alignment, horizontal-align enablement when fewer than two notes are selected, and unchanged placement for unselected notes.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lanes now expose temporary align controls that become available when at least two notes are selected in the same lane.
+- Vertical align snaps the selected note set to one shared x edge derived from the top-most selected note.
+- Horizontal align snaps the selected note set to one shared y edge derived from the left-most selected note.
+- Align actions keep the current selection active and do not change note content, pin state, camera state, or lane ownership.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 984 -->
+### [984] - 2026-04-04 10:47 - `Dashboard - Phase 7.3 - Group Move And Selection Polish`
+<!-- ENTRY 984 -->
+HUMAN SUMMARY: `Widened the dashboard sticky-note drag path so one selected note can carry the full selected set inside the same lane, preserving relative note spacing while keeping single-note drag, selection ownership, and lane camera behavior intact.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to lane-local group movement and selection polish instead of widening into align commands, burger-menu work, persisted selection, or cross-lane multi-note movement.
+- Preserved the current ownership split by keeping selection ephemeral inside `DashboardSurface.tsx`, sticky-note content in the shared notepad model, and note placement persistence in the dashboard store.
+- Reused the shipped sticky-note drag seam instead of introducing a second movement system or a new persisted group object model.
+
+#### Summary of Implementation
+- Extended `DashboardSurface.tsx` so the existing sticky-note drag state can carry one selected note set, preserve each selected note’s relative world-space offset, and commit all moved note placements together through the existing dashboard placement seam.
+- Kept single-note drag as the natural fallback when only one note is selected and left cross-lane movement behavior unchanged for that single-note path.
+- Preserved selected-state visuals through `DashboardStickyNoteCard.tsx` while allowing already-selected notes to keep the current selection instead of forcing a one-note reset before drag.
+- Expanded focused dashboard AppShell regressions to prove lane-local group movement and preserved relative note spacing while the existing selection, camera, fit, and single-note drag tests continue to pass.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dragging one selected dashboard sticky note now moves the full selected set inside the same lane.
+- Relative spacing between selected notes is preserved during the move.
+- Single-note drag still works as before when only one note is selected.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 983 -->
+### [983] - 2026-04-04 10:37 - `Dashboard - Phase 7.2 - Multi-Note Selection Foundation`
+<!-- ENTRY 983 -->
+HUMAN SUMMARY: `Added the first board-local multi-note selection pass to the dashboard so users can click-select one sticky note, drag a lane-local selection rectangle across multiple notes, and clear selection by clicking empty board space, while sticky-note placement, note content ownership, and lane camera behavior stay unchanged.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to selection foundation only and did not widen it into group move, align commands, burger-menu work, selection persistence, or shared note-model changes.
+- Preserved the current ownership split by keeping selection ephemeral inside `DashboardSurface.tsx`, sticky-note content in the shared notepad model, and note placement persistence unchanged in the dashboard store.
+- Reused the existing lane-board pointer and sticky-note render seams instead of introducing a second board host or a new persisted dashboard-selection schema.
+
+#### Summary of Implementation
+- Extended `DashboardSurface.tsx` with one local selected-note state plus a lane-local selection-rectangle gesture that uses the existing lane camera math, clears on empty-board click, and keeps selection scoped to one lane board at a time.
+- Threaded selected visual state into `DashboardStickyNoteCard.tsx` so sticky notes can show selected state without reopening inline title/body editing or changing sticky-note action ownership.
+- Added dashboard styling for the selection rectangle and selected sticky-note emphasis in `base.css`.
+- Expanded focused dashboard AppShell regressions to cover single-note click selection, lane-local box selection, clear-on-empty-board behavior, and unchanged sticky-note placement persistence during the new selection interactions.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Clicking a dashboard sticky note now selects it.
+- Dragging across empty space in one lane board now creates a lane-local selection rectangle and selects the notes inside it.
+- Clicking empty board space now clears the current dashboard sticky-note selection.
+- Sticky-note placement remains unchanged while selection state updates.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 982 -->
+### [982] - 2026-04-04 09:14 - `Dashboard - Phase 7.1 - Zoom-Unlocked Fit All Notes In Lane`
+<!-- ENTRY 982 -->
+HUMAN SUMMARY: `Updated the dashboard lane fit action so locked lanes keep the current pan-only recovery behavior while zoom-unlocked lanes now solve both zoom and pan from full note bounds, letting the magnifying-glass action frame all sticky notes vertically and horizontally without mutating placement.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to the existing lane-camera fit action instead of widening into zoom persistence, new camera controls, selection tools, burger-menu cleanup, or note-model changes.
+- Preserved the current dashboard ownership split by leaving sticky-note content in the shared notepad model, lane-local camera state transient in `DashboardSurface.tsx`, and sticky-note placement persistence unchanged in the dashboard store.
+- Reused the shipped lane camera, fit button, and zoom unlock seams instead of introducing a second fit system or changing wheel-zoom unlock semantics.
+
+#### Summary of Implementation
+- Split the dashboard lane fit helper in `DashboardSurface.tsx` so locked lanes keep the current zoom-preserving recenter behavior while unlocked lanes compute a true fit-to-bounds camera target from the full padded note bounds and current lane viewport.
+- Added one unlocked-fit helper that derives the next lane zoom from both viewport width and viewport height, clamps it through the existing lane zoom limits, and then computes the matching pan target that centers the padded bounds box.
+- Expanded the focused dashboard AppShell regressions to assert that locked fit still preserves zoom `1`, tall unlocked note clusters now fit top-to-bottom, wide unlocked note clusters still fit horizontally, and sticky-note placement stays unchanged throughout.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Locked dashboard lanes still use the current pan-only fit recovery behavior.
+- Zoom-unlocked lanes now use the fit button as a true fit-to-bounds action across both width and height.
+- Sticky-note placement remains unchanged while the lane camera updates.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 981 -->
+### [981] - 2026-04-04 08:52 - `Dashboard - Phase 5.2.4 - Optional Lane Zoom Unlock`
+<!-- ENTRY 981 -->
+HUMAN SUMMARY: `Added lane-local zoom unlock controls to the dashboard camera headers so each lane stays pan-only by default, exposes a lock button beside fit-to-notes, and only allows wheel zoom after that lane is explicitly unlocked, while sticky-note placement and drag ownership stay unchanged.`
+#### Scope / Constraints Honored
+- Kept this follow-on tightly scoped to optional lane-local zoom unlock instead of widening into persisted camera state, board-global zoom, minimaps, zoom presets, or general whiteboard tooling.
+- Preserved the existing dashboard ownership split by keeping note content in the shared notepad model, sticky-note placement in the dashboard store, and the new zoom state transient inside `DashboardSurface.tsx`.
+- Reused the existing real lane-camera seam and fit-to-notes header cluster instead of introducing a second camera abstraction or a new store schema.
+
+#### Summary of Implementation
+- Extended the dashboard lane camera model in `DashboardSurface.tsx` to include transient `zoom` alongside `panX` and `panY`, updated client-to-lane-world pointer math to respect zoom, and kept fit-to-notes camera recentering compatible with the zoomed stage transform.
+- Added one lane-header lock button beside the existing fit action so each lane can toggle between the default locked pan-only mode and an unlocked wheel-zoom mode without affecting the other lanes.
+- Added wheel-driven zoom updates that preserve the world point under the pointer while clamping the lane camera back into the finite dashboard lane world.
+- Expanded the focused dashboard AppShell regressions to cover locked-by-default behavior, unlocked wheel zoom, and sticky-note drag correctness after zoom changes.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Each dashboard lane header now includes a lock button beside fit-to-notes.
+- Lanes remain pan-only while locked.
+- Unlocking a lane enables wheel zoom for that lane camera only.
+- Sticky-note drag and placement now remain correct under zoomed lane-camera transforms.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 980 -->
+### [980] - 2026-04-04 08:44 - `Dashboard - Phase 6.3 - Move Lane Title To Front Of Header Row`
+<!-- ENTRY 980 -->
+HUMAN SUMMARY: `Reordered the dashboard lane header so the lane title appears as the first item in the row again, keeping the inline rename affordance but moving it ahead of the fit and delete controls.` 
+#### Scope / Constraints Honored
+- Kept this polish slice limited to the lane-header item order only.
+- Did not change lane rename behavior, lane delete behavior, or any dashboard store logic.
+- Limited verification to the focused dashboard suite because the change is purely presentational within the dashboard header.
+
+#### Summary of Implementation
+- Reordered the lane header render in `DashboardSurface.tsx` so the inline lane title control now appears before the fit and delete controls.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lane headers now render the lane title first in the row.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 979 -->
+### [979] - 2026-04-04 08:43 - `Dashboard - Phase 6.3 - Remove Duplicate Lane Header Title`
+<!-- ENTRY 979 -->
+HUMAN SUMMARY: `Removed the accidental duplicate lane title from the dashboard lane header so the new inline-rename title affordance is the only lane title shown.` 
+#### Scope / Constraints Honored
+- Kept this polish slice limited to the duplicated lane-header title rendering bug.
+- Did not change the inline rename interaction, lane model, or other dashboard controls.
+- Limited verification to the focused dashboard suite because the fix is purely within the dashboard lane header.
+
+#### Summary of Implementation
+- Removed the leftover static lane title render from `DashboardSurface.tsx` so the lane header now shows only the inline-rename title control.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lane headers now show only one lane title instead of both the old static label and the new inline-rename title.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 978 -->
+### [978] - 2026-04-04 08:38 - `Dashboard - Phase 6.3 - Inline Lane Title Rename Polish`
+<!-- ENTRY 978 -->
+HUMAN SUMMARY: `Removed the separate dashboard lane Rename button and folded lane renaming directly into the lane title, so users can click the lane name itself to rename it inline with Enter, blur-save, and Escape-cancel behavior.` 
+#### Scope / Constraints Honored
+- Kept this polish slice narrow to the lane-header rename affordance and did not widen into lane model changes, delete flow changes, or extra board controls.
+- Preserved the existing `renameLane(...)` dashboard-store seam instead of introducing a second title-edit ownership path.
+- Limited verification to the focused dashboard suite because the change is scoped to dashboard lane-header behavior.
+
+#### Summary of Implementation
+- Reworked `DashboardSurface.tsx` so lane titles now enter an inline edit state when clicked, commit from the live input value on Enter or blur, and cancel cleanly on Escape.
+- Removed the old dedicated lane Rename button from the dashboard header and kept the destructive Delete action separate.
+- Added dashboard styling for the clickable lane title and inline title input so the lane header still reads as a title instead of a heavy button row.
+- Updated the focused AppShell dashboard regressions to rename lanes through the lane title itself and cover the Escape cancel path.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lanes are now renamed by clicking the lane title text instead of using a separate Rename button.
+- Enter and blur save the new lane title.
+- Escape cancels the rename and leaves the current lane title unchanged.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 977 -->
+### [977] - 2026-04-04 08:35 - `Dashboard - Phase 6.3 - Lower Minimum Lane Resize Width`
+<!-- ENTRY 977 -->
+HUMAN SUMMARY: `Lowered the hard minimum width for dashboard lane resizing so users can collapse a lane much further before the splitter stops, while keeping the existing resize persistence and dashboard regressions intact.` 
+#### Scope / Constraints Honored
+- Kept this polish slice narrow to the resize clamp only and did not reopen lane model, splitter behavior, camera persistence, or other board interactions.
+- Preserved the existing adjacent-lane resize math and persistence model instead of introducing a second special-case path for narrow lanes.
+- Limited verification to the focused dashboard suite because the change only adjusts the width clamp threshold.
+
+#### Summary of Implementation
+- Reduced the lane resize minimum constants in `DashboardSurface.tsx` so the lane splitter can shrink a lane far below the original `240px` cap.
+- Updated the focused dashboard resize regression in `AppShell.test.tsx` so the expected persisted width values match the new lower clamp behavior.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lanes can now be resized much narrower before hitting the minimum-width stop.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 976 -->
+### [976] - 2026-04-04 08:32 - `Dashboard - Phase 6.3 - Add Resizable Lane Widths And Layout Polish`
+<!-- ENTRY 976 -->
+HUMAN SUMMARY: `Added real vertical splitter resizing to the user-managed dashboard lanes, persisted adjacent lane widths through the dashboard store, and kept sticky-note placement, editing, fit-to-notes, and lane-camera behavior stable while the board layout changes.` 
+#### Scope / Constraints Honored
+- Kept this runtime slice focused on lane-width resizing without widening into lane reorder, lane collapse, zoom changes, camera persistence, or generalized board templates.
+- Reused the existing durable lane `width` model in the dashboard store instead of inventing a second layout-persistence system.
+- Preserved shared notepad ownership for note content and color while limiting the change to dashboard board layout behavior plus its focused regressions.
+
+#### Summary of Implementation
+- Added one explicit adjacent-lane width update seam in the dashboard store and tightened dashboard persistence normalization so lane width records stay valid when the board is resized and later restored.
+- Reworked `DashboardSurface.tsx` to render vertical splitter bars between adjacent lanes, drive width-balancing through pointer drag, and keep the live board on the existing CSS-grid lane layout instead of switching to a new layout model.
+- Added lane-camera clamping after width changes so narrowed lanes keep valid camera bounds without disturbing sticky-note world placement.
+- Expanded dashboard store and AppShell regressions to prove lane-width persistence and real divider dragging without regressing sticky-note placement.
+
+#### Files Changed
+- `src/app/dashboard/dashboardPersistence.ts`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-6 - User-Managed Board Lanes And Resizable Columns.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dashboard lanes now resize through vertical splitter bars between adjacent lanes.
+- Resized lane widths now persist through the dashboard lane records and restore after reload.
+- Sticky-note placement stays unchanged while lane widths move around it.
+- Lane cameras now clamp back into valid bounds when a resize narrows the visible lane viewport.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 975 -->
+### [975] - 2026-04-04 08:21 - `Dashboard - Phase 6.2 - Implement User-Managed Lanes`
+<!-- ENTRY 975 -->
+HUMAN SUMMARY: `Promoted the dashboard board from two hardcoded lanes into a user-managed lane model with stable \`laneId\` placement, persisted lane records, lane create/rename/delete flows, and safe note migration on delete, while keeping sticky-note editing, drag, fit-to-notes, and lane cameras intact.` 
+#### Scope / Constraints Honored
+- Kept this runtime slice focused on the dynamic-lane model widening without implementing vertical splitter drag, lane reorder, lane collapse, lane color systems, or camera persistence.
+- Preserved note content and color ownership in the shared notepad model while moving only board structure plus sticky-note placement identity into the dashboard-owned store.
+- Kept default dashboard onboarding stable by still seeding `TO DO` and `Completed` on first load while widening the runtime to support additional user-managed lanes.
+
+#### Summary of Implementation
+- Reworked the dashboard types, persistence, and store model to persist durable lane records with `id`, `title`, `order`, and `width`, and migrated sticky-note placement from lane-name coupling to `laneId`.
+- Updated dashboard hydration and storage normalization so the new board model reads and writes lane records cleanly while still recovering older sticky-note lane data through the fallback normalization path.
+- Reworked `DashboardSurface.tsx` to render dynamic lanes, keep local lane-camera state keyed by lane id, add lightweight create/rename/delete lane actions, and preserve drag, inline note editing, color menu, and fit-to-notes behavior under the widened model.
+- Expanded dashboard store and AppShell coverage to prove lane creation, rename, deletion, one-lane minimum protection, note migration on delete, and persisted `laneId` placement without breaking the existing sticky-note flows.
+
+#### Files Changed
+- `src/app/dashboard/dashboardTypes.ts`
+- `src/app/dashboard/dashboardPersistence.ts`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-6 - User-Managed Board Lanes And Resizable Columns.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dashboard boards now persist real lane records instead of assuming exactly two hardcoded lanes.
+- Users can add, rename, and delete lanes from the dashboard surface while one minimum lane remains protected.
+- Deleting a lane with notes now migrates those notes into an explicitly chosen destination lane before the lane is removed.
+- Sticky-note placement now persists by stable `laneId` while default boards still start with `TO DO` and `Completed`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 974 -->
+### [974] - 2026-04-04 07:52 - `Dashboard - Phase 5.2 - Lane Fit-To-Notes Action`
+<!-- ENTRY 974 -->
+HUMAN SUMMARY: `Added a tiny lane-header fit action for both \`TO DO\` and \`Completed\` so users can recenter lost sticky notes without changing note placement or widening the dashboard camera model into full zoom tooling.` 
+#### Scope / Constraints Honored
+- Kept this follow-on tightly scoped to a lane-local recovery action without widening into zoom controls, minimaps, camera presets, persisted fit history, or any note-placement schema changes.
+- Preserved the dashboard ownership split by updating only the local lane camera in `DashboardSurface.tsx` while leaving note content and sticky-note placement persistence unchanged.
+- Reused the shipped lane-camera seam and existing dashboard camera regressions instead of introducing a new shared canvas subsystem or broader camera abstraction layer.
+
+#### Summary of Implementation
+- Added one small fit button to each dashboard lane header and wired it to compute the lane-local sticky-note bounds for that lane only.
+- Added a camera recenter helper in `DashboardSurface.tsx` that applies padding around the lane note bounds, converts that into a lane-camera target, and clamps the result to the finite lane world.
+- Added lane-header fit-button styling and disabled-state treatment in `base.css` so the action stays discoverable while clearly communicating when a lane has no notes to fit.
+- Expanded focused dashboard AppShell coverage with fit-to-notes regressions that prove the camera recenters correctly for both lanes without mutating sticky-note placement persistence, plus empty-lane disabled-state coverage.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `TO DO` and `Completed` now each expose a tiny fit-to-notes button in the lane header.
+- Clicking the fit action recenters that lane camera around the notes in that lane with padding while leaving sticky-note placement data unchanged.
+- Empty lanes keep the fit action visible in a disabled state so the recovery affordance stays understandable without becoming a confusing no-op.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 973 -->
+### [973] - 2026-04-04 07:39 - `Dashboard - Phase 5.2 - Real Lane Canvas Camera`
+<!-- ENTRY 973 -->
+HUMAN SUMMARY: `Replaced dashboard lane DOM-scroll panning with a real per-lane camera in \`DashboardSurface.tsx\`, so sticky-note lanes now pan as transformed canvas stages while note placement, inline editing, color menus, and cross-lane drag all keep working under camera offset.` 
+#### Scope / Constraints Honored
+- Kept this runtime slice focused on the lane-camera conversion only without widening into zoom, persisted camera state, minimaps, infinite-canvas behavior, note resizing, or generalized whiteboard infrastructure.
+- Preserved the ownership split by leaving note content in the shared notepad model and sticky-note lane plus placement persistence in the dashboard store while keeping lane camera state transient and surface-local.
+- Reused the existing dashboard interaction seams instead of widening store schema by landing the camera model, lane-world math, and stage transform path directly in `DashboardSurface.tsx`.
+
+#### Summary of Implementation
+- Replaced the old `scrollLeft` and `scrollTop` middle-mouse pan path in `DashboardSurface.tsx` with one local `panX` and `panY` camera per lane backed by translated lane stages.
+- Converted sticky-note drag math from visible-board coordinates into lane-world coordinates so dragging still behaves correctly after lane camera movement and still persists dropped placement through the dashboard store.
+- Added lane-stage structure and camera-driven styling updates in `base.css` so the lane board now behaves like a real surface viewport instead of an overflow scroller.
+- Updated focused dashboard AppShell coverage so the lane-pan regression now asserts camera motion and added a drag-after-pan regression to prove sticky-note placement math stays correct once the lane camera has moved.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dashboard lane boards now pan through local camera movement rather than DOM scroll.
+- Sticky notes render inside transformed lane stages while keeping dashboard-owned lane-world `x/y` placement.
+- Dragging sticky notes still persists lane assignment and dropped placement correctly after camera movement.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 972 -->
+### [972] - 2026-04-04 07:17 - `Dashboard - Phase 5.1 - Pannable Sticky Note Lane Canvases`
+<!-- ENTRY 972 -->
+HUMAN SUMMARY: `Upgraded the dashboard sticky-note lanes into pannable canvases by adding middle-mouse drag scrolling on the `TO DO` and `Completed` lane boards, while keeping sticky-note coordinates, lane ownership, inline editing, color menus, and note dragging unchanged.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on lane-board viewport panning only without widening into zoom, persistent camera state, note-coordinate changes, extra lanes, or a generalized whiteboard subsystem.
+- Preserved the existing ownership split by keeping note content in the shared notepad model and sticky-note lane or placement persistence in the dashboard store while treating panning as ephemeral view-layer state only.
+- Avoided extra store complexity by implementing lane panning directly on the DOM lane-board scroll containers inside the dashboard surface and extending focused dashboard AppShell coverage instead of widening persistence or dashboard store contracts.
+
+#### Summary of Implementation
+- Added one middle-mouse lane-pan session seam in `DashboardSurface.tsx` that tracks the active lane board, pointer origin, and starting scroll position independently from the existing sticky-note drag session.
+- Reworked the shared window-level pointer handlers so middle-mouse lane panning updates `scrollLeft` and `scrollTop` on the active lane board while left-button sticky-note drag continues to use the existing placement preview and drop-commit path.
+- Added a lane-board active-pan styling state in `base.css` so active middle-mouse panning reads clearly as a grabbed canvas interaction.
+- Expanded the focused dashboard AppShell regression slice with a new end-to-end test proving middle-mouse lane dragging changes the lane viewport scroll without mutating sticky-note placement in the dashboard store.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Users can now middle-mouse drag-pan the `TO DO` and `Completed` sticky-note lane canvases.
+- Lane panning changes board viewport scroll position without changing sticky-note coordinates or dashboard placement persistence.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/notepad/useNotepadStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 971 -->
+### [971] - 2026-04-04 07:11 - `Dashboard - Phase 5 - Sticky Note Title Bar Color Menu`
+<!-- ENTRY 971 -->
+HUMAN SUMMARY: `Added a sticky-note color palette on dashboard title-bar right click by widening the shared note model with one persisted color preset field, then wiring the title bar to open a Windows-Sticky-Notes-style swatch menu that recolors the same note record instead of creating dashboard-only color state.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on sticky-note color selection and persistence without widening into rich styling systems, note resizing, extra widget work, or a separate dashboard-only note schema.
+- Preserved the shared-note architecture by storing note color on the same notepad note model that already owns title, body, pin state, and timestamps.
+- Avoided AppShell churn by keeping the color menu local to the sticky-note card while extending focused notepad-store and dashboard AppShell regressions.
+
+#### Summary of Implementation
+- Added a persisted `colorPreset` field to the shared `NotepadNote` model, widened notepad persistence normalization, and added a store action to update note color presets safely.
+- Updated `DashboardStickyNoteCard.tsx` so right-clicking the sticky-note title bar opens a swatch palette and selecting a swatch updates the shared note color while closing the menu.
+- Reworked sticky-note styling in `base.css` so the note body, title bar, text, and controls all derive from the selected color preset instead of a hard-coded yellow-only card.
+- Expanded focused regression coverage so the note store verifies color persistence and the AppShell dashboard slice verifies right-click title-bar palette opening plus shared-note color updates.
+
+#### Files Changed
+- `src/app/notepad/notepadTypes.ts`
+- `src/app/notepad/notepadPersistence.ts`
+- `src/app/notepad/useNotepadStore.ts`
+- `src/app/notepad/useNotepadStore.test.ts`
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Right-clicking a sticky-note title bar now opens a color menu.
+- Choosing a swatch recolors that sticky note and persists the selected color with the shared note record.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/notepad/useNotepadStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- Ran `npm.cmd test -- --run src/app/notepad/useNotepadStore.test.ts`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 970 -->
+### [970] - 2026-04-04 07:07 - `Dashboard - Phase 5 - Remove Sticky Note Title Bar Mark`
+<!-- ENTRY 970 -->
+HUMAN SUMMARY: `Removed the two decorative lines from the left side of the dashboard sticky-note title bar so the chrome stays cleaner while preserving the full-width draggable title bar behavior.` 
+#### Scope / Constraints Honored
+- Kept this pass limited to a tiny sticky-note visual cleanup with no note-model, drag-model, or inline-edit behavior changes.
+- Preserved the draggable title-bar interaction introduced in the previous dashboard follow-up.
+
+#### Summary of Implementation
+- Removed the decorative title-bar mark from `DashboardStickyNoteCard.tsx`.
+- Deleted the unused corresponding styling from `base.css`.
+
+#### Files Changed
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The sticky-note title bar no longer shows the two decorative lines on the left.
+
+#### Verification Steps
+- Visual-only cleanup; no runtime behavior changed.
+
+<!-- ENTRY 969 -->
+### [969] - 2026-04-04 07:05 - `Dashboard - Phase 5 - Sticky Note Title Bar Drag Follow-Up`
+<!-- ENTRY 969 -->
+HUMAN SUMMARY: `Restyled the dashboard sticky note chrome to feel closer to Windows Sticky Notes by adding a real top title bar and making that whole bar draggable, while keeping inline title and body editing below it and preserving the existing board note actions.` 
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on sticky-note card chrome and drag hit-target behavior without reopening note ownership, inline edit semantics, layout persistence, or extra widget work.
+- Preserved the existing shared-note model and dashboard placement ownership by limiting the change to card structure, styling, and drag-target wiring.
+- Avoided new AppShell complexity by only updating the sticky-note card component, the dashboard surface pointer handoff, and the focused dashboard drag regressions.
+
+#### Summary of Implementation
+- Reworked `DashboardStickyNoteCard.tsx` so each sticky note now has a dedicated top title bar with lightweight lane labeling and the existing card actions living inside that bar.
+- Moved dashboard drag start from the tiny explicit handle to the full `.DashboardStickyNoteTitleBar`, while guarding the action buttons so clicking them does not trigger a drag.
+- Updated `base.css` to style the new sticky-note title bar so the card reads more like Windows Sticky Notes and the editable title and body remain below the draggable chrome.
+- Updated the dashboard AppShell drag regressions to start from the new title-bar selector instead of the removed handle.
+
+#### Files Changed
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Sticky notes now show a dedicated top title bar.
+- Users can drag a sticky note by clicking anywhere on that title bar except the note action buttons.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 968 -->
+### [968] - 2026-04-04 06:58 - `Dashboard - Phase 5 - Dashboard Sticky Note Creation And Inline Editing`
+<!-- ENTRY 968 -->
+HUMAN SUMMARY: `Made sticky notes feel native to Dashboard by adding a direct \`Add Sticky Note\` board action, extracting sticky-note cards into their own component, enabling blur-commit inline title and body editing on the same shared notepad note records, and moving drag onto a dedicated handle so editing and placement no longer fight each other.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on dashboard-created sticky notes, inline title and body editing, and the drag-handle interaction shift without widening into resizing, style presets, extra widgets, richer autosave rules, or a second note system.
+- Preserved the ownership split by keeping note identity, title, body, pin state, and active-note behavior in `useNotepadStore.ts` while leaving lane and x/y placement inside the dashboard widget store.
+- Avoided AppShell architecture churn by keeping the create and edit flow inside the existing dashboard surface and note-store seams, then extending the existing dashboard AppShell regressions instead of inventing a new service layer.
+
+#### Summary of Implementation
+- Added `DashboardStickyNoteCard.tsx` as the extracted sticky-note card seam so inline edit state, local drafts, focus rules, and the dedicated drag handle stay out of `DashboardSurface.tsx`.
+- Updated `DashboardSurface.tsx` so the hero area now includes `Add Sticky Note`, creating a shared pinned note through the existing notepad store and handing one-shot initial focus into inline body editing on the new card.
+- Reworked sticky-note rendering so title and body can enter visually seamless inline edit mode, save back through the existing notepad-store actions on blur, and cancel current drafts on `Escape`.
+- Moved sticky-note drag start onto an explicit handle while keeping `Open in Notepad`, `Unpin`, lane ownership, and placement persistence intact.
+- Expanded the dashboard AppShell regression slice to cover dashboard-created notes, initial body focus, inline title edits, inline body edits, `Escape` cancel, and drag persistence through the new handle interaction.
+
+#### Files Changed
+- `src/app/workspace/DashboardStickyNoteCard.tsx`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Dashboard now has a direct `Add Sticky Note` action that creates and pins a shared note immediately.
+- New dashboard-created sticky notes start in inline body edit mode on the board.
+- Sticky-note title and body can now be edited inline on the card and still open as the same note in `Notepad`.
+- Sticky-note dragging now starts from a dedicated handle instead of the whole header band.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/notepad/useNotepadStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 967 -->
+### [967] - 2026-04-04 06:39 - `Dashboard - Phase 4.1 - Remove Sticky Note Lane Action Buttons`
+<!-- ENTRY 967 -->
+HUMAN SUMMARY: `Removed the temporary \`Move to Completed\` and \`Move to TO DO\` sticky-note buttons so the shipped dashboard board now uses drag as the only lane-transition interaction, while keeping the note actions focused on opening in Notepad and unpinning.` 
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on removing the fallback lane-action buttons after cross-lane drag shipped, without widening into more dashboard board changes, note-model changes, or extra widget work.
+- Preserved the existing dashboard ownership split by leaving lane changes in the drag-and-drop path and keeping the shared notepad note model untouched.
+- Avoided new AppShell complexity by only trimming the sticky-note card action row and updating the dashboard regression test to cover drag round-trips instead of button clicks.
+
+#### Summary of Implementation
+- Removed the dashboard-store lane action wiring from `DashboardSurface.tsx` so sticky-note cards no longer render the explicit lane-move button.
+- Kept the card action row limited to `Open in Notepad` and `Unpin`, matching the drag-first board interaction now that cross-lane drop is already live.
+- Reworked the AppShell dashboard regression to move a sticky note from `TO DO` to `Completed` and back again by pointer drag, preserving coverage for both directions without relying on removed buttons.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-4.1 - Drag Sticky Notes Between Board Lanes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Sticky-note cards no longer show `Move to Completed` or `Move to TO DO` buttons.
+- Moving a sticky note between dashboard lanes is now drag-only.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+
+<!-- ENTRY 966 -->
+### [966] - 2026-04-04 06:35 - `Dashboard - Phase 4.1 - Drag Sticky Notes Between Board Lanes`
+<!-- ENTRY 966 -->
+HUMAN SUMMARY: `Upgraded the shipped two-lane dashboard board so sticky notes can now drag directly between \`TO DO\` and \`Completed\`, with transient cross-lane drag preview, one dashboard-owned drop commit that persists both lane and local coordinates together, and the existing lane buttons retained as a fallback interaction.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on cross-lane sticky-note drag and drop instead of widening into more lanes, task metadata, resizing, style presets, extra widgets, console workspace-modes adoption, or popup-local shell switching.
+- Preserved the clean ownership split by keeping note title, body, and pin state inside `useNotepadStore.ts` while leaving lane assignment and board placement inside the dashboard-owned widget store.
+- Avoided new dashboard-specific AppShell orchestration by upgrading the existing dashboard surface drag path, widening the dashboard store with one combined placement commit, and extending focused dashboard regression coverage.
+
+#### Summary of Implementation
+- Added a combined `setStickyNotePlacement(...)` dashboard-store action so cross-lane drop commits can persist `lane + x + y` together without scattering lane-switch logic across the surface and store.
+- Reworked `DashboardSurface.tsx` drag behavior to use transient drag-preview state during pointer movement, detect which lane board the note is currently over, and commit the final target lane-local placement only on drop.
+- Kept dragged-card rendering stable by merging the transient drag preview into the effective dashboard layout map, so sticky notes visually move across the lane boundary before the persisted drop commit lands.
+- Added light active-lane feedback in the dashboard board styling and preserved the existing explicit `Move to Completed` or `Move to TO DO` card buttons as a fallback interaction.
+- Expanded dashboard-focused regression coverage with a new end-to-end cross-lane drag test in `AppShell.test.tsx` plus store coverage for the combined placement commit.
+
+#### Files Changed
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-4.1 - Drag Sticky Notes Between Board Lanes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Sticky notes can now drag directly from `TO DO` into `Completed` and back again.
+- Cross-lane drops now persist both the target lane and the dropped lane-local coordinates through the dashboard-owned widget store.
+- The active drop-target lane now highlights during sticky-note drag.
+- Existing explicit lane-move buttons still remain available as a fallback interaction.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx` and confirmed the dashboard-specific slice is green while `src/app/AppShell.test.tsx` still has 3 unrelated pre-existing failures outside the dashboard scope
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 965 -->
+### [965] - 2026-04-03 22:14 - `Dashboard - Phase 4 - Add To Do And Completed Board Lanes For Sticky Notes`
+<!-- ENTRY 965 -->
+HUMAN SUMMARY: `Added the first real board-organization layer to Dashboard by splitting sticky notes into persistent \`TO DO\` and \`Completed\` lanes, keeping lane ownership inside the dashboard widget store instead of the shared note model, and preserving the existing sticky-note open and unpin flows.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on two fixed dashboard lanes instead of widening into global task schema, due dates, priorities, custom boards, sticky-note resizing, style presets, extra widgets, console workspace-modes adoption, or popup-local shell switching.
+- Preserved the clean ownership split by keeping note title, body, and pin state inside `useNotepadStore.ts` while storing lane assignment and board placement only in the dashboard-owned widget layout model.
+- Avoided new dashboard-specific AppShell orchestration by widening the existing dashboard persistence seam and surface tests instead of introducing a new app-shell-only task system.
+
+#### Summary of Implementation
+- Added a `todo | completed` lane union to the dashboard sticky-note layout contract and widened dashboard persistence so old records normalize safely while new records persist lane state alongside note coordinates.
+- Updated `useDashboardStore.ts` to seed pinned notes into `TO DO`, preserve existing lane placement during reconciliation, expose a dedicated lane-change action, and keep position updates lane-aware.
+- Reworked `DashboardSurface.tsx` and the shared dashboard styling so the board now renders two fixed lane regions, keeps drag scoped to placement inside the current lane, and adds explicit `Move to Completed` or `Move to TO DO` card actions.
+- Expanded dashboard-focused regression coverage so lane seeding, lane persistence, lane restore, lane movement, and the existing dashboard open or unpin paths are all covered without widening the runtime architecture.
+- Stabilized the persisted-dashboard hydration test path in `AppShell.test.tsx` so the long file no longer adds a dashboard-specific failure on top of the existing unrelated AppShell test debt.
+
+#### Files Changed
+- `src/app/dashboard/dashboardTypes.ts`
+- `src/app/dashboard/dashboardPersistence.ts`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-4 - Add To Do And Completed Board Lanes For Sticky Notes.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard sticky notes now live in two real lanes: `TO DO` and `Completed`.
+- Newly seeded pinned notes default into the `TO DO` lane.
+- Sticky notes can move between lanes through explicit card actions while still supporting drag placement inside the active lane.
+- Dashboard lane placement now persists independently from both workspace layout snapshots and the shared notepad note model.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx` and confirmed the dashboard hydration failure is gone while `src/app/AppShell.test.tsx` still has 3 unrelated pre-existing failures outside the dashboard scope
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 964 -->
+### [964] - 2026-04-03 21:58 - `Dashboard - Phase 3 - Add Sticky Notes As The First Dashboard Widget`
+<!-- ENTRY 964 -->
+HUMAN SUMMARY: `Implemented the first real dashboard widget slice by rendering pinned notes as sticky-note cards inside Dashboard, adding dashboard-owned widget-layout persistence, wiring one honest open-in-notepad handoff across slotted and detached hosts, and keeping note content ownership cleanly inside the existing notepad store.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the first sticky-note widget family instead of widening into note style presets, resizing, board grouping, extra widgets, console workspace-modes adoption, or popup-local child-window shell switching.
+- Preserved the clean ownership split by keeping note title, body, and pin state inside `useNotepadStore.ts` while introducing a separate `src/app/dashboard/` seam that only owns sticky-note placement metadata and persistence.
+- Avoided new dashboard-only AppShell sprawl by threading a small open-in-notepad callback seam through the shared workspace render hosts and adding only one generic detached-surface kind-switch helper in the workspace store.
+
+#### Summary of Implementation
+- Added `src/app/dashboard/dashboardTypes.ts`, `src/app/dashboard/dashboardPersistence.ts`, and `src/app/dashboard/useDashboardStore.ts` as the first dashboard-owned widget-layout seam with sticky-note coordinates keyed by note id plus dedicated `parahook.dashboard.widgets.v1` persistence.
+- Reworked `src/app/workspace/DashboardSurface.tsx` so pinned notes from `useNotepadStore.ts` now render as fixed-size sticky-note cards with drag placement, body previews, empty-state handling, unpin actions, and open-in-notepad actions.
+- Widened `ViewportSurfaceRegistry.tsx`, `WorkspaceViewportTree.tsx`, `DashboardWindowHost.tsx`, and `AppShell.tsx` so sticky notes can open the active note in `Notepad` from both slotted and detached dashboard hosts while preserving detached host mode when switching floating or popout dashboards into notepad.
+- Added and refined dashboard board styling in `base.css`, dashboard persistence hydration in `AppShell.tsx`, and one safer hydration-order fix so restored sticky-note layouts win before the board seeds default placements.
+- Added focused regression coverage for the dashboard store, detached-surface kind switching, sticky-note rendering, unpin behavior, open-in-notepad handoff, drag persistence, and restored widget positions.
+
+#### Files Changed
+- `src/app/dashboard/dashboardTypes.ts`
+- `src/app/dashboard/dashboardPersistence.ts`
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/hosts/DashboardWindowHost.tsx`
+- `src/app/hosts/NotepadWindowHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Pinned notes now appear inside `Dashboard` as draggable sticky-note cards.
+- Sticky-note layout now persists separately from both workspace layout snapshots and notepad note-content persistence.
+- Sticky notes can now unpin in place without deleting the underlying note.
+- Dashboard cards can now open the selected note back into `Notepad` from both slotted and detached dashboard hosts.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+- Ran `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx` and confirmed the touched dashboard files pass while `src/app/AppShell.test.tsx` still has 3 unrelated pre-existing failures outside the dashboard scope
+
+<!-- ENTRY 963 -->
+### [963] - 2026-04-03 20:22 - `Dashboard - Phase 2 - Create Notepad Workspace And Shared Note Model`
+<!-- ENTRY 963 -->
+HUMAN SUMMARY: `Implemented the second real Dashboard family slice by onboarding \`notepad\` as a shared workspace surface kind, adding a feature-owned note store plus persistence layer, wiring detached notepad hosts through the main workspace shell, and stopping cleanly before sticky notes, dashboard widgets, console workspace-modes adoption, or popup-local shell switching.`
+#### Scope / Constraints Honored
+- Kept this pass focused on `Notepad` as its own workspace surface plus one shared note model instead of widening into sticky-note widgets, dashboard board placement, rich text, or a broader productivity system.
+- Preserved the clean architecture boundary between workspace layout persistence and note-content persistence by keeping note records out of `workspacePersistence.ts` snapshots and introducing a dedicated notepad persistence module instead.
+- Left console `Workspace Modes` and popup-local child-window switching explicitly deferred by filtering console-facing workspace-type options and guarding the still-unsupported notepad command path rather than exposing partial support.
+
+#### Summary of Implementation
+- Added `notepad` to the shared workspace surface-kind contract, slot labels, viewport picker, render registry, layout persistence normalization, and shared workspace surface actions so non-primary slots can host `Notepad` like the other secondary surfaces.
+- Added `src/app/notepad/notepadTypes.ts`, `src/app/notepad/notepadPersistence.ts`, and `src/app/notepad/useNotepadStore.ts` as the first feature-owned shared note model and persistence seam with create, rename, edit-body, delete, active-note, and pin-state behavior.
+- Added `src/app/notepad/NotepadSurface.tsx` as the first calm note-writing workspace and `src/app/hosts/NotepadWindowHost.tsx` as the isolated floating or popout host so detached notepad behavior stays out of `AppShell.tsx`.
+- Rewired `AppShell.tsx` and the workspace selector seams so persisted notes hydrate independently from layout-restore prompts while detached notepad floating and popout windows quick dock and restore through the normal workspace model.
+- Added focused regression coverage for the note store, viewport picker exposure, workspace detach or redock behavior, AppShell notepad flows, and persisted note hydration.
+
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/workspaceViewportLabels.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
+- `src/app/hosts/NotepadWindowHost.tsx`
+- `src/app/notepad/notepadTypes.ts`
+- `src/app/notepad/notepadPersistence.ts`
+- `src/app/notepad/useNotepadStore.ts`
+- `src/app/notepad/NotepadSurface.tsx`
+- `src/app/notepad/useNotepadStore.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Non-primary workspace slots can now switch into `Notepad`.
+- `Notepad` now supports split, float, popout, redock, and persisted restore through the main workspace shell.
+- Notes now persist independently from workspace layout with one shared first-pass model of `id`, `title`, `body`, `createdAt`, `updatedAt`, and `isPinned`.
+- Console workspace-modes still intentionally exclude `Notepad` in this phase instead of exposing partial support.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/notepad/useNotepadStore.test.ts src/app/workspace/ViewportFrame.test.tsx src/app/workspace/useWorkspaceStore.test.ts`
+- Ran `npm.cmd test -- --run src/app/AppShell.test.tsx -t notepad`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 962 -->
+### [962] - 2026-04-03 20:05 - `Dashboard - Phase 1 - Create Dashboard Workspace Foundation`
+<!-- ENTRY 962 -->
+HUMAN SUMMARY: `Implemented the first real Dashboard workspace slice by onboarding \`dashboard\` as a shared workspace surface kind, adding a minimal board shell plus detached hosts, and widening the main workspace slot, persistence, and verification seams without reopening the AppShell architecture or silently widening into console workspace-modes adoption.`
+#### Scope / Constraints Honored
+- Kept this pass scoped to the main workspace surface system so `dashboard` now behaves like a real hosted surface without pulling `Notepad`, sticky notes, widget data, or dashboard-specific persistence into the same command.
+- Preserved the protected primary-slot rule by only exposing `Dashboard` on non-primary workspace slots.
+- Kept console `Workspace Modes` and popup-local shell switching deferred by filtering console viewport options back to the original supported kinds and adding an explicit guard instead of half-adopting dashboard actions there.
+
+#### Summary of Implementation
+- Added `dashboard` to the shared workspace surface-kind contract, generated ids, slot labels, viewport picker, registry rendering, persistence normalization, and shared workspace surface actions.
+- Added `src/app/workspace/DashboardSurface.tsx` as the first calm board shell and `src/app/hosts/DashboardWindowHost.tsx` as the isolated floating or popout host so detached dashboard behavior stays out of `AppShell.tsx`.
+- Rewired the AppShell selector and host composition seams so detached dashboard floating and popout windows render, quick dock, and persist through the normal workspace model.
+- Added focused regression coverage for dashboard slot switching, detach or redock or persistence behavior, and AppShell floating or popout flows.
+
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/workspaceViewportLabels.ts`
+- `src/app/workspace/workspaceSurfaceActions.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/hosts/useAppShellViewportActions.ts`
+- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
+- `src/app/hosts/DashboardWindowHost.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/workspace/ViewportFrame.test.tsx`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Non-primary workspace slots can now switch into `Dashboard`.
+- `Dashboard` now supports split, float, popout, redock, and persisted restore through the main workspace shell.
+- Console workspace-modes still intentionally exclude `Dashboard` in this phase instead of exposing partial support.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/workspace/ViewportFrame.test.tsx src/app/workspace/useWorkspaceStore.test.ts src/app/AppShell.test.tsx`
+- Ran `npx.cmd tsc -p tsconfig.json --noEmit`
+- Ran `npm.cmd run build`
+
 <!-- ENTRY 961 -->
 ### [961] - 2026-04-03 19:34 - `AppShell 4 - Build Cleanup After Phase 6 Extraction`
 <!-- ENTRY 961 -->

@@ -49,7 +49,13 @@ export type BrowserShellState = {
   popoutState: WorkspacePopoutSurfaceState | null
 }
 
-export type WorkspaceSurfaceKind = 'modelViewer' | 'browser' | 'console' | 'spaghettiEditor'
+export type WorkspaceSurfaceKind =
+  | 'modelViewer'
+  | 'browser'
+  | 'console'
+  | 'spaghettiEditor'
+  | 'notepad'
+  | 'dashboard'
 
 export type WorkspaceSurfaceInstanceId = string
 export type WorkspaceViewportId = WorkspaceSurfaceInstanceId
@@ -350,6 +356,12 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   }
   if (surfaceKind === 'console') {
     return `console-${slotId}`
+  }
+  if (surfaceKind === 'notepad') {
+    return `notepad-${slotId}`
+  }
+  if (surfaceKind === 'dashboard') {
+    return `dashboard-${slotId}`
   }
   return `spaghetti-${slotId}`
 }

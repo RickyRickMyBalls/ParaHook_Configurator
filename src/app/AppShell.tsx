@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -9,10 +10,22 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { ConsoleDock } from './console/ConsoleDock'
+import {
+  readPersistedDashboardState,
+  writePersistedDashboardState,
+} from './dashboard/dashboardPersistence'
+import { serializeDashboardState, useDashboardStore } from './dashboard/useDashboardStore'
 import { useConsoleStore } from './console/useConsoleStore'
 import { BrowserDockHost } from './hosts/BrowserDockHost'
+import { DashboardWindowHost } from './hosts/DashboardWindowHost'
+import { NotepadWindowHost } from './hosts/NotepadWindowHost'
 import { RadioRuntimeHost } from './hosts/RadioRuntimeHost'
 import { SpaghettiWindowHost } from './hosts/SpaghettiWindowHost'
+import {
+  readPersistedNotepadState,
+  writePersistedNotepadState,
+} from './notepad/notepadPersistence'
+import { serializeNotepadState, useNotepadStore } from './notepad/useNotepadStore'
 import { useAppShellConsoleTransition } from './hosts/useAppShellConsoleTransition'
 import { useAppShellDockController } from './hosts/useAppShellDockController'
 import {
@@ -295,6 +308,12 @@ export function AppShell() {
   const hydratePersistedWorkspaceLayout = useWorkspaceStore(
     (state) => state.hydratePersistedWorkspaceLayout,
   )
+  const setDetachedSurfaceKind = useWorkspaceStore((state) => state.setDetachedSurfaceKind)
+  const hydratePersistedNotepadState = useNotepadStore((state) => state.hydratePersistedNotepadState)
+  const setActiveNoteId = useNotepadStore((state) => state.setActiveNoteId)
+  const hydratePersistedDashboardState = useDashboardStore(
+    (state) => state.hydratePersistedDashboardState,
+  )
   const activeEditorSurface = useWorkspaceStore((state) =>
     activeEditorViewportId.length > 0 ? state.editorSurfacePlacementById[activeEditorViewportId] ?? null : null,
   )
@@ -320,6 +339,8 @@ export function AppShell() {
   } | null>(null)
   const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
   const hasHydratedWorkspacePersistenceRef = useRef(false)
+  const hasHydratedNotepadPersistenceRef = useRef(false)
+  const hasHydratedDashboardPersistenceRef = useRef(false)
 
   const {
     resolveLeftDockPreviewPanelId,
@@ -386,6 +407,10 @@ export function AppShell() {
       activeDetachedConsoleSurface,
       detachedViewerFloatingSurfaces,
       detachedViewerPopoutSurfaces,
+      detachedDashboardFloatingSurfaces,
+      detachedDashboardPopoutSurfaces,
+      detachedNotepadFloatingSurfaces,
+      detachedNotepadPopoutSurfaces,
     },
     dockSuppression: {
       suppressLegacyDockedBrowserSurface,
@@ -595,6 +620,50 @@ export function AppShell() {
     sketchPlanePickSession,
     workspaceActiveSurface,
   })
+
+  useEffect(() => {
+    if (hasHydratedNotepadPersistenceRef.current) {
+      return
+    }
+    hasHydratedNotepadPersistenceRef.current = true
+    const persistedNotepadState = readPersistedNotepadState()
+    if (persistedNotepadState !== null) {
+      hydratePersistedNotepadState(persistedNotepadState)
+    }
+    writePersistedNotepadState(serializeNotepadState(useNotepadStore.getState()))
+  }, [hydratePersistedNotepadState])
+
+  useEffect(() => {
+    const unsubscribe = useNotepadStore.subscribe((state) => {
+      if (!hasHydratedNotepadPersistenceRef.current) {
+        return
+      }
+      writePersistedNotepadState(serializeNotepadState(state))
+    })
+    return unsubscribe
+  }, [])
+
+  useLayoutEffect(() => {
+    if (hasHydratedDashboardPersistenceRef.current) {
+      return
+    }
+    hasHydratedDashboardPersistenceRef.current = true
+    const persistedDashboardState = readPersistedDashboardState()
+    if (persistedDashboardState !== null) {
+      hydratePersistedDashboardState(persistedDashboardState)
+    }
+    writePersistedDashboardState(serializeDashboardState(useDashboardStore.getState()))
+  }, [hydratePersistedDashboardState])
+
+  useEffect(() => {
+    const unsubscribe = useDashboardStore.subscribe((state) => {
+      if (!hasHydratedDashboardPersistenceRef.current) {
+        return
+      }
+      writePersistedDashboardState(serializeDashboardState(state))
+    })
+    return unsubscribe
+  }, [])
 
   useEffect(() => {
     if (hasHydratedWorkspacePersistenceRef.current) {
@@ -928,6 +997,27 @@ export function AppShell() {
     [viewportLayoutNodesById],
   )
 
+  const handleOpenDashboardNoteInNotepad = useCallback(
+    (dashboardSurfaceInstanceId: string, noteId: string) => {
+      setActiveNoteId(noteId)
+      const workspaceState = useWorkspaceStore.getState()
+      const slottedDashboard = Object.values(workspaceState.viewportSlotsById).find(
+        (slot) =>
+          slot.surfaceKind === 'dashboard' &&
+          slot.surfaceInstanceId === dashboardSurfaceInstanceId,
+      )
+      if (slottedDashboard !== undefined) {
+        handleViewportSlotSurfaceKindChange(slottedDashboard.slotId, 'notepad')
+        return
+      }
+      const detachedSurface = workspaceState.detachedSlotSurfaceById[dashboardSurfaceInstanceId] ?? null
+      if (detachedSurface?.surfaceKind === 'dashboard') {
+        setDetachedSurfaceKind(dashboardSurfaceInstanceId, 'notepad')
+      }
+    },
+    [handleViewportSlotSurfaceKindChange, setActiveNoteId, setDetachedSurfaceKind],
+  )
+
   const viewerSurface = (
     <WorkspaceViewportTree
       viewportSlotRootNodeId={viewportSlotRootNodeId}
@@ -956,6 +1046,7 @@ export function AppShell() {
         )
       }
       onRequestViewportSlotSurfaceKind={handleViewportSlotSurfaceKindChange}
+      onOpenDashboardNoteInNotepad={handleOpenDashboardNoteInNotepad}
       onSplitViewportSlot={handleViewportSlotSplit}
       onFloatViewportSlot={handleViewportSlotFloat}
       onPopOutViewportSlot={handleViewportSlotPopOut}
@@ -1075,6 +1166,22 @@ export function AppShell() {
         {viewportSpawnMenuSurface}
         {detachedViewerWindows}
         {detachedViewerPopoutWindows}
+        <DashboardWindowHost
+          viewportRef={viewportRef}
+          primaryViewportId={primaryViewportId}
+          floatingSurfaces={detachedDashboardFloatingSurfaces}
+          popoutSurfaces={detachedDashboardPopoutSurfaces}
+          onClearDetachedSurface={clearDetachedSlotSurface}
+          onOpenNoteInNotepad={handleOpenDashboardNoteInNotepad}
+          onQuickDock={redockDetachedSurface}
+        />
+        <NotepadWindowHost
+          viewportRef={viewportRef}
+          floatingSurfaces={detachedNotepadFloatingSurfaces}
+          popoutSurfaces={detachedNotepadPopoutSurfaces}
+          onClearDetachedSurface={clearDetachedSlotSurface}
+          onQuickDock={redockDetachedSurface}
+        />
         <SpaghettiWindowHost
           appShellRef={appShellRef}
           viewportRef={viewportRef}
@@ -1138,10 +1245,10 @@ export function AppShell() {
         resolveLeftDockPreviewPanelId={resolveLeftDockPreviewPanelId}
         onActivateBrowserFloatingWindow={handleActivateBrowserFloatingWindow}
         newEditorSpawnPosition={newEditorSpawnPosition}
-      workspaceActiveSurface={workspaceActiveSurface}
-      slotHeaderDragSeed={browserSlotHeaderDragSeed}
-      onConsumeSlotHeaderDragSeed={() => setBrowserSlotHeaderDragSeed(null)}
-    />
+        workspaceActiveSurface={workspaceActiveSurface}
+        slotHeaderDragSeed={browserSlotHeaderDragSeed}
+        onConsumeSlotHeaderDragSeed={() => setBrowserSlotHeaderDragSeed(null)}
+      />
       {leftDockResizeMenuSurface}
       {workspaceSplitMenuSurface}
       {isRadioToolbarOpen ? <RadioPanel /> : null}

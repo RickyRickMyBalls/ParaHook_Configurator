@@ -328,6 +328,8 @@ const normalizeViewportSlotRecord = (
     value.surfaceKind === 'browser' ||
     value.surfaceKind === 'console' ||
     value.surfaceKind === 'spaghettiEditor' ||
+    value.surfaceKind === 'notepad' ||
+    value.surfaceKind === 'dashboard' ||
     value.surfaceKind === 'modelViewer'
       ? value.surfaceKind
       : slotId === defaultPrimaryViewportSlotId
@@ -349,7 +351,9 @@ const normalizeViewportSlotRecord = (
         (kind === 'modelViewer' ||
           kind === 'browser' ||
           kind === 'console' ||
-          kind === 'spaghettiEditor') &&
+          kind === 'spaghettiEditor' ||
+          kind === 'notepad' ||
+          kind === 'dashboard') &&
         typeof surfaceInstanceId === 'string' &&
         surfaceInstanceId.length > 0
       ) {
@@ -646,6 +650,8 @@ const normalizeWorkspaceSurfacePlacement = (
     value.surfaceKind === 'browser' ||
     value.surfaceKind === 'console' ||
     value.surfaceKind === 'spaghettiEditor' ||
+    value.surfaceKind === 'notepad' ||
+    value.surfaceKind === 'dashboard' ||
     value.surfaceKind === 'modelViewer'
       ? value.surfaceKind
       : 'browser'
@@ -854,6 +860,8 @@ export const normalizePersistedWorkspaceLayout = (
             detachedSurface.surfaceKind === 'modelViewer' ||
             detachedSurface.surfaceKind === 'browser' ||
             detachedSurface.surfaceKind === 'console' ||
+            detachedSurface.surfaceKind === 'dashboard' ||
+            detachedSurface.surfaceKind === 'notepad' ||
             detachedSurface.surfaceKind === 'spaghettiEditor'
               ? detachedSurface.surfaceKind
               : null

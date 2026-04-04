@@ -198,6 +198,8 @@ describe('ViewportFrame', () => {
     expect(container?.textContent).toContain('Browser')
     expect(container?.textContent).toContain('Console')
     expect(container?.textContent).toContain('Spaghetti Editor')
+    expect(container?.textContent).toContain('Notepad')
+    expect(container?.textContent).toContain('Dashboard')
   })
 
   it('calls the viewport type action from the titlebar submenu', async () => {

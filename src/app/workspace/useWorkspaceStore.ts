@@ -140,6 +140,13 @@ type WorkspaceStoreState = {
     hostMode: 'floating' | 'popout',
   ) => WorkspaceDetachedSlotSurfaceState | null
   clearDetachedSlotSurface: (surfaceInstanceId: string) => void
+  setDetachedSurfaceKind: (
+    surfaceInstanceId: string,
+    surfaceKind: WorkspaceSurfaceKind,
+    options?: {
+      surfaceInstanceId?: string
+    },
+  ) => string | null
   redockDetachedSurface: (
     surfaceInstanceId: string,
     splitDockSide?: WorkspaceSplitDockSide,
@@ -206,6 +213,7 @@ const createInitialState = (): Omit<
   | 'removeViewportSlot'
   | 'detachViewportSlotSurface'
   | 'clearDetachedSlotSurface'
+  | 'setDetachedSurfaceKind'
   | 'redockDetachedSurface'
   | 'setViewportSlotSurfaceKind'
   | 'hydratePersistedWorkspaceLayout'
@@ -1110,6 +1118,39 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
         detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
       })
     })
+  },
+  setDetachedSurfaceKind: (surfaceInstanceId, surfaceKind, options) => {
+    let nextSurfaceInstanceId: string | null = null
+    set((state) => {
+      const currentDetachedSurface = state.detachedSlotSurfaceById[surfaceInstanceId] ?? null
+      if (currentDetachedSurface === null) {
+        return state
+      }
+      nextSurfaceInstanceId = options?.surfaceInstanceId ?? currentDetachedSurface.surfaceInstanceId
+      if (
+        currentDetachedSurface.surfaceKind === surfaceKind &&
+        nextSurfaceInstanceId === currentDetachedSurface.surfaceInstanceId
+      ) {
+        return state
+      }
+      const nextDetachedSurface = {
+        ...currentDetachedSurface,
+        surfaceKind,
+        surfaceInstanceId: nextSurfaceInstanceId,
+      }
+      const nextDetachedSlotSurfaceById = { ...state.detachedSlotSurfaceById }
+      delete nextDetachedSlotSurfaceById[surfaceInstanceId]
+      nextDetachedSlotSurfaceById[nextSurfaceInstanceId] = nextDetachedSurface
+      return withDerivedBrowserContract(state, {
+        detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+        ...(currentDetachedSurface.surfaceKind === 'modelViewer' &&
+        surfaceKind !== 'modelViewer' &&
+        state.activeViewerViewportId === currentDetachedSurface.surfaceInstanceId
+          ? { activeViewerViewportId: state.primaryViewportId }
+          : {}),
+      })
+    })
+    return nextSurfaceInstanceId
   },
   redockDetachedSurface: (surfaceInstanceId, splitDockSide) => {
     let createdSlotId: WorkspaceViewportSlotId | null = null

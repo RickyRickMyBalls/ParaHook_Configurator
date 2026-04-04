@@ -51,6 +51,7 @@ type WorkspaceViewportTreeProps = {
     slotId: WorkspaceViewportSlotId,
     surfaceKind: WorkspaceSurfaceKind,
   ) => void
+  onOpenDashboardNoteInNotepad: (surfaceInstanceId: string, noteId: string) => void
   onSplitViewportSlot: (slotId: WorkspaceViewportSlotId, dockSide: WorkspaceSplitDockSide) => void
   onFloatViewportSlot: (slotId: WorkspaceViewportSlotId) => void
   onPopOutViewportSlot: (slotId: WorkspaceViewportSlotId) => void
@@ -91,6 +92,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onOpenViewportSpawnMenu,
     onCycleBrowserPresentationMode,
     onRequestViewportSlotSurfaceKind,
+    onOpenDashboardNoteInNotepad,
     onSplitViewportSlot,
     onFloatViewportSlot,
     onPopOutViewportSlot,
@@ -212,6 +214,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             slotId={slot.slotId}
             surfaceKind={slot.surfaceKind}
             surfaceInstanceId={slot.surfaceInstanceId}
+            onOpenDashboardNoteInNotepad={onOpenDashboardNoteInNotepad}
             onActivateSpaghettiSurface={onActivateSpaghettiSurface}
             spaghettiWindowSettingsOpen={windowSettingsOpenByViewportId[slot.surfaceInstanceId] ?? false}
           />

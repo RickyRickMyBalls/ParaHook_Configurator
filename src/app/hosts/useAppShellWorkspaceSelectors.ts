@@ -183,6 +183,18 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
     const detachedViewerPopoutSurfaces = Object.values(detachedSlotSurfaceById).filter(
       (surface) => surface.surfaceKind === 'modelViewer' && surface.hostMode === 'popout',
     )
+    const detachedDashboardFloatingSurfaces = Object.values(detachedSlotSurfaceById).filter(
+      (surface) => surface.surfaceKind === 'dashboard' && surface.hostMode === 'floating',
+    )
+    const detachedDashboardPopoutSurfaces = Object.values(detachedSlotSurfaceById).filter(
+      (surface) => surface.surfaceKind === 'dashboard' && surface.hostMode === 'popout',
+    )
+    const detachedNotepadFloatingSurfaces = Object.values(detachedSlotSurfaceById).filter(
+      (surface) => surface.surfaceKind === 'notepad' && surface.hostMode === 'floating',
+    )
+    const detachedNotepadPopoutSurfaces = Object.values(detachedSlotSurfaceById).filter(
+      (surface) => surface.surfaceKind === 'notepad' && surface.hostMode === 'popout',
+    )
 
     const rootNode = viewportLayoutNodesById[viewportSlotRootNodeId] ?? null
     const rootLeftSplitSlotIds =
@@ -234,6 +246,10 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
         activeDetachedConsoleSurface,
         detachedViewerFloatingSurfaces,
         detachedViewerPopoutSurfaces,
+        detachedDashboardFloatingSurfaces,
+        detachedDashboardPopoutSurfaces,
+        detachedNotepadFloatingSurfaces,
+        detachedNotepadPopoutSurfaces,
       },
       dockSuppression: {
         suppressLegacyDockedBrowserSurface,

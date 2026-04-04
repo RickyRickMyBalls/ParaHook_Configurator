@@ -4,6 +4,18 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+209. 2026-04-04 12:30: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md` to the docs map as the dedicated post-`Dashboard-7 / Phase 10` planning home for sticky-note attachment-hit widening plus later resizing, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that new `7.10` follow-on, refreshed `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md` so it points forward to the new dedicated doc, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+208. 2026-04-04 08:58: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md` to the docs map as the next dashboard-family backlog surface after shipped `Dashboard-6`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that new board-tools and surface-polish bucket, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+207. 2026-04-04 07:56: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-6 - User-Managed Board Lanes And Resizable Columns.md` to the docs map as the next dashboard-family follow-on after shipped `Dashboard-5.2`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at user-managed lanes plus vertical divider resizing as the next structural board phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+206. 2026-04-04 07:20: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md` to the docs map as the next architectural dashboard follow-on after `Dashboard-5.1`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now records the Spaghetti-style real lane-camera direction plus its open design questions, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+205. 2026-04-04 07:11: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5.1 - Pannable Sticky Note Lane Canvases.md` to the docs map as the next dashboard-family follow-on after shipped `Dashboard-5`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at middle-mouse pannable lane canvases as the next implementation-ready phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+204. 2026-04-04 06:47: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5 - Dashboard Sticky Note Creation And Inline Editing.md` to the docs map as the next dashboard-family execution slice, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at dashboard-created sticky notes plus inline board editing as the next implementation-ready phase, added the linked-note product-direction decision to `docs/Human-Plans/CodexNotes/15_CodexChatNotes.md`, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+203. 2026-04-04 06:30: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-4.1 - Drag Sticky Notes Between Board Lanes.md` to the docs map as the next dashboard-family follow-on after shipped `Dashboard-4`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at cross-lane sticky-note drag as the next explicit phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+202. 2026-04-03 22:04: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-4 - Add To Do And Completed Board Lanes For Sticky Notes.md` to the docs map as the next dashboard-family execution slice, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that implementation-ready two-lane sticky-note board phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+201. 2026-04-03 21:43: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-3 - Add Sticky Notes As The First Dashboard Widget.md` to the docs map as the next dashboard-family execution slice, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that implementation-ready sticky-note widget phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+200. 2026-04-03 20:10: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-2 - Create Notepad Workspace And Shared Note Model.md` to the docs map as the next dashboard-family execution slice, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that implementation-ready `Notepad` phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
+199. 2026-04-03 19:44: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-1 - Create Dashboard Workspace Foundation.md` as the first dedicated dashboard-family future phase doc, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at the new local future-planning home, and refreshed this docs map so the new `Architecture/Dashboard/` family is discoverable beside the other architecture subtrees
+198. 2026-04-03 19:38: Promoted `Dashboard` out of wish-only planning by adding `docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the workspace family now records that new surface-onboarding lane, added `docs/Human-Plans/CodexNotes/15_CodexChatNotes.md` as the next active planning-notes file for the dashboard pass, and updated `docs/Human-Plans/Wish-Features/Dashboard/Dashboard.md` so the original product-shape doc now points at the real execution home
 197. 2026-04-03 18:14: Updated `docs/Human-Plans/Architecture/AppShell/Future/AppShell 4 - Workspace Host Reorganization And Readability Cleanup.md` after the shipped Phase 1 selector extraction, marking that first AppShell 4 slice complete through `src/app/hosts/useAppShellWorkspaceSelectors.ts`, then tightened `Phase 2 - Extract Surface Activation And Console Handoff` into an implementation-ready spec around the live AppShell activation and clear-effect band, and refreshed `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md` so the family summary now records Phase 1 as shipped and Phase 2 as the next ready slice
 196. 2026-04-03 17:54: Tightened `Phase 1 - Extract Workspace Shell Selectors` inside `docs/Human-Plans/Architecture/AppShell/Future/AppShell 4 - Workspace Host Reorganization And Readability Cleanup.md` again after a second live `src/app/AppShell.tsx` read, locking the exact in-scope selector band, the nearby effect-owned reads that should stay local, the first grouped hook contract, execution order, and checklist, and refreshed `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md` so the AppShell family summary records that sharper Phase 1 boundary
 195. 2026-04-03 17:49: Tightened `Phase 1 - Extract Workspace Shell Selectors` inside `docs/Human-Plans/Architecture/AppShell/Future/AppShell 4 - Workspace Host Reorganization And Readability Cleanup.md` into an implementation-ready AppShell cleanup slice after tracing the live derived-state band in `src/app/AppShell.tsx`, and refreshed `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md` so the AppShell family summary now records that first AppShell 4 phase as ready for code work
@@ -533,11 +545,13 @@ Rule notes:
         - `12_CodexChatNotes.md`
         - `13_CodexChatNotes.md`
         - `14_CodexChatNotes.md`
+        - `15_CodexChatNotes.md`
 ### ----Architecture
         - `Architecture Setup.md`
         - `Audio-Patchbay.md`
         - `AutoCAD-Command-Backlog.md`
         - `AppShell/AppShell-Index.md`
+        - `Dashboard/Dashboard.md`
         - `Browser/Browser-Index.md`
         - `Camera-Controls/Camera_Controls-Index.md`
         - `Console/Console.md`
@@ -570,6 +584,7 @@ Rule notes:
             - `Future/Workspace_Phase Workspace-7.5-3 - Host Adapter Retirement And Future Surface Onboarding.md`
             - `Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
             - `Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md`
+            - `Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`
             - `Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
             - `Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
             - `Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
@@ -603,6 +618,17 @@ Rule notes:
             - `Future/AppShell 4 - Workspace Host Reorganization And Readability Cleanup.md`
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
             - `Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
+#### -------Dashboard
+            - `Dashboard.md`
+            - `Future/Dashboard_Phase Dashboard-1 - Create Dashboard Workspace Foundation.md`
+            - `Future/Dashboard_Phase Dashboard-2 - Create Notepad Workspace And Shared Note Model.md`
+            - `Future/Dashboard_Phase Dashboard-3 - Add Sticky Notes As The First Dashboard Widget.md`
+            - `Future/Dashboard_Phase Dashboard-4 - Add To Do And Completed Board Lanes For Sticky Notes.md`
+            - `Future/Dashboard_Phase Dashboard-4.1 - Drag Sticky Notes Between Board Lanes.md`
+            - `Future/Dashboard_Phase Dashboard-5 - Dashboard Sticky Note Creation And Inline Editing.md`
+            - `Future/Dashboard_Phase Dashboard-5.1 - Pannable Sticky Note Lane Canvases.md`
+            - `Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md`
+            - `Future/Dashboard_Phase Dashboard-6 - User-Managed Board Lanes And Resizable Columns.md`
 #### -------Browser
             - `Browser-Index.md`
             - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`

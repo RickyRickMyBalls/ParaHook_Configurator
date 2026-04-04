@@ -1,6 +1,23 @@
 import { defaultPrimaryViewportSlotId, type WorkspaceViewportSlot } from './workspaceShellTypes'
 import type { WorkspaceSplitDockSide } from './workspaceSplitTypes'
 
+export type ConsoleWorkspaceSurfaceKind = Exclude<
+  WorkspaceViewportSlot['surfaceKind'],
+  'dashboard' | 'notepad'
+>
+
+export type WorkspaceViewportOption = {
+  viewportId: string
+  slotId: string
+  isPrimary: boolean
+  label: string
+  surfaceKind: WorkspaceViewportSlot['surfaceKind']
+}
+
+export type ConsoleWorkspaceViewportOption = Omit<WorkspaceViewportOption, 'surfaceKind'> & {
+  surfaceKind: ConsoleWorkspaceSurfaceKind
+}
+
 export const getWorkspaceViewportSurfaceLabel = (
   surfaceKind: WorkspaceViewportSlot['surfaceKind'],
 ): string =>
@@ -8,9 +25,13 @@ export const getWorkspaceViewportSurfaceLabel = (
     ? 'Model Viewport'
     : surfaceKind === 'browser'
       ? 'Browser Viewport'
-      : surfaceKind === 'console'
-        ? 'Console Viewport'
-        : 'Spaghetti Editor Viewport'
+        : surfaceKind === 'console'
+          ? 'Console Viewport'
+          : surfaceKind === 'notepad'
+            ? 'Notepad'
+          : surfaceKind === 'dashboard'
+            ? 'Dashboard Viewport'
+            : 'Spaghetti Editor Viewport'
 
 export const getOrderedWorkspaceViewportSlots = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,
@@ -33,13 +54,7 @@ export const getOrderedWorkspaceViewportSlots = (
 export const buildWorkspaceViewportOptions = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,
   primaryViewportId: string,
-): Array<{
-  viewportId: string
-  slotId: string
-  isPrimary: boolean
-  label: string
-  surfaceKind: WorkspaceViewportSlot['surfaceKind']
-}> => {
+): WorkspaceViewportOption[] => {
   const orderedSlots = getOrderedWorkspaceViewportSlots(viewportSlotsById, primaryViewportId)
   const browserSlots = orderedSlots.filter((slot) => slot.surfaceKind === 'browser')
   let browserIndex = 0
@@ -66,6 +81,15 @@ export const buildWorkspaceViewportOptions = (
     }
   })
 }
+
+export const buildConsoleWorkspaceViewportOptions = (
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>,
+  primaryViewportId: string,
+): ConsoleWorkspaceViewportOption[] =>
+  buildWorkspaceViewportOptions(viewportSlotsById, primaryViewportId).filter(
+    (option): option is ConsoleWorkspaceViewportOption =>
+      option.surfaceKind !== 'dashboard' && option.surfaceKind !== 'notepad',
+  )
 
 export const getWorkspaceViewportDisplayLabel = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,

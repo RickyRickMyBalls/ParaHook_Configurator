@@ -4,6 +4,10 @@ import { act, useLayoutEffect, type MouseEvent as ReactMouseEvent } from 'react'
 import { useRef } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { dashboardStorageKey } from './dashboard/dashboardPersistence'
+import { useDashboardStore } from './dashboard/useDashboardStore'
+import { notepadStorageKey } from './notepad/notepadPersistence'
+import { useNotepadStore } from './notepad/useNotepadStore'
 import { useConsoleStore } from './console/useConsoleStore'
 import { resetAudioSamplerStore, useAudioSamplerStore } from './store/audioSamplerStore'
 import { consumeQueuedViewerCameraPose, setViewer } from './viewerBridge'
@@ -23,6 +27,7 @@ import {
 let currentSpaghettiState: any
 let currentAppState: any
 const originalWindowConfirm = window.confirm
+const originalWindowPrompt = window.prompt
 let mockSoundCloudPlaybackMode: 'ready' | 'throw' = 'ready'
 const mockSoundCloudEnsureSourceReady = vi.fn(async () => {
   if (mockSoundCloudPlaybackMode === 'throw') {
@@ -525,6 +530,26 @@ const mockShellGeometry = (container: HTMLDivElement | null) => {
   })
 }
 
+const expectStickyNoteToRenderAbove = (
+  container: HTMLDivElement | null,
+  laneId: string,
+  noteId: string,
+  noteBelowId: string,
+) => {
+  const laneSurface = container?.querySelector(
+    `[data-dashboard-lane-board="${laneId}"] .DashboardSurfaceLaneStage`,
+  )
+  expect(laneSurface).not.toBeNull()
+  const renderedNotes = Array.from(
+    laneSurface?.querySelectorAll('.DashboardStickyNote') ?? [],
+  ) as HTMLElement[]
+  const noteIndex = renderedNotes.findIndex((element) => element.dataset.noteId === noteId)
+  const noteBelowIndex = renderedNotes.findIndex((element) => element.dataset.noteId === noteBelowId)
+  expect(noteIndex).toBeGreaterThanOrEqual(0)
+  expect(noteBelowIndex).toBeGreaterThanOrEqual(0)
+  expect(noteIndex).toBeGreaterThan(noteBelowIndex)
+}
+
 const undockBrowserFromDock = async (container: HTMLDivElement | null) => {
   const dockedTitlebar = container?.querySelector(
     '[data-testid="browser-titlebar-docked"]',
@@ -625,10 +650,13 @@ describe('AppShell', () => {
 
   beforeEach(() => {
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+    useDashboardStore.setState(useDashboardStore.getInitialState(), true)
+    useNotepadStore.setState(useNotepadStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     resetAudioSamplerStore()
     window.localStorage.clear()
     window.confirm = vi.fn(() => true)
+    window.prompt = vi.fn(() => 'New lane')
     mockSoundCloudPlaybackMode = 'ready'
     mockSoundCloudEnsureSourceReady.mockClear()
     mockSoundCloudGetTransportState.mockClear()
@@ -933,6 +961,7 @@ describe('AppShell', () => {
     document.body.innerHTML = ''
     window.localStorage.clear()
     window.confirm = originalWindowConfirm
+    window.prompt = originalWindowPrompt
     window.open = originalWindowOpen
     window.AudioContext = originalAudioContext
     setViewer('model-viewer-primary', null)
@@ -943,7 +972,7 @@ describe('AppShell', () => {
   it('renders a true header-only shell in collapsed mode', async () => {
     currentSpaghettiState.editorViewportsById['editor-viewport-1'] = viewport('collapsed')
 
-    ;({ container, root } = await renderAppShell())
+    ;({ container } = await renderAppShell())
 
     expect(container?.querySelector('.SpaghettiFloatingHandle')).not.toBeNull()
     expect(container?.querySelector('.SpaghettiFloatingBody')).toBeNull()
@@ -1709,6 +1738,105 @@ describe('AppShell', () => {
     expect(popoutDocument.body.textContent).toContain('Viewer Host')
   })
 
+  it('switches a non-primary slot into dashboard from the viewport type picker', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let browserSlotId: string | null = null
+    await act(async () => {
+      browserSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === browserSlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton).not.toBeNull()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const dashboardAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Dashboard') as HTMLButtonElement | undefined
+
+    expect(dashboardAction).not.toBeUndefined()
+
+    await act(async () => {
+      dashboardAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await rerenderAppShell(root!)
+
+    const replacedSlot = browserSlotId === null ? null : useWorkspaceStore.getState().viewportSlotsById[browserSlotId]
+    expect(replacedSlot?.surfaceKind).toBe('dashboard')
+    expect(replacedSlot?.surfaceInstanceId).toBe(`dashboard-${browserSlotId}`)
+    expect(container?.textContent).toContain('Calm board shell online')
+  })
+
+  it('switches a non-primary slot into notepad from the viewport type picker', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let browserSlotId: string | null = null
+    await act(async () => {
+      browserSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'browser',
+        surfaceInstanceId: 'browser-surface-1',
+      })
+    })
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === browserSlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'browser',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton).not.toBeNull()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const notepadAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Notepad') as HTMLButtonElement | undefined
+
+    expect(notepadAction).not.toBeUndefined()
+
+    await act(async () => {
+      notepadAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await rerenderAppShell(root!)
+
+    const replacedSlot =
+      browserSlotId === null ? null : useWorkspaceStore.getState().viewportSlotsById[browserSlotId]
+    expect(replacedSlot?.surfaceKind).toBe('notepad')
+    expect(replacedSlot?.surfaceInstanceId).toBe(`notepad-${browserSlotId}`)
+    expect(container?.textContent).toContain('Focused notes land here')
+  })
+
   it('pops out a non-primary model viewport into a child window and quick docks it back', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
@@ -1760,6 +1888,3623 @@ describe('AppShell', () => {
         (slot) => slot.surfaceKind === 'modelViewer',
       ),
     ).toHaveLength(2)
+  })
+
+  it('renders a detached floating dashboard surface and quick docks it back', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let dashboardSlotId: string | null = null
+    await act(async () => {
+      dashboardSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'dashboard',
+        surfaceInstanceId: 'dashboard-surface-1',
+      })
+    })
+
+    await act(async () => {
+      useWorkspaceStore.getState().detachViewportSlotSurface(dashboardSlotId ?? '', 'floating')
+    })
+    await rerenderAppShell(root!)
+
+    const floatingDashboard = container?.querySelector(
+      '.DashboardFloatingWindow[data-workspace-surface-instance-id="dashboard-surface-1"]',
+    ) as HTMLDivElement | null
+    expect(floatingDashboard).not.toBeNull()
+    expect(floatingDashboard?.textContent).toContain('Floating Dashboard')
+    expect(floatingDashboard?.textContent).toContain('Calm board shell online')
+
+    const quickDockButton = floatingDashboard?.querySelector(
+      '.DashboardFloatingWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(
+      container?.querySelector('.DashboardFloatingWindow[data-workspace-surface-instance-id="dashboard-surface-1"]'),
+    ).toBeNull()
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']).toBeUndefined()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'dashboard' && slot.surfaceInstanceId === 'dashboard-surface-1',
+      ),
+    ).toBe(true)
+  })
+
+  it('pops out a dashboard slot into a child window and quick docks it back', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const { popoutDocument, popoutWindow } = createMockChildWindow()
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'dashboard',
+        surfaceInstanceId: 'dashboard-surface-1',
+      })
+    })
+
+    const slotPopoutButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.getAttribute('aria-label') === 'Pop out Dashboard',
+    ) as HTMLButtonElement | undefined
+    expect(slotPopoutButton).not.toBeUndefined()
+
+    await act(async () => {
+      slotPopoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(window.open).toHaveBeenCalled()
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']?.hostMode).toBe(
+      'popout',
+    )
+    expect(popoutDocument.body.textContent).toContain('Dashboard')
+    expect(popoutDocument.body.textContent).toContain('Calm board shell online')
+
+    const quickDockButton = popoutDocument.body.querySelector(
+      '.DashboardPopoutWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']).toBeUndefined()
+    expect(popoutWindow.close).toHaveBeenCalled()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'dashboard' && slot.surfaceInstanceId === 'dashboard-surface-1',
+      ),
+    ).toBe(true)
+  })
+
+  it('renders a detached floating notepad surface and quick docks it back', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let notepadSlotId: string | null = null
+    await act(async () => {
+      notepadSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'notepad',
+        surfaceInstanceId: 'notepad-surface-1',
+      })
+    })
+
+    await act(async () => {
+      useWorkspaceStore.getState().detachViewportSlotSurface(notepadSlotId ?? '', 'floating')
+    })
+    await rerenderAppShell(root!)
+
+    const floatingNotepad = container?.querySelector(
+      '.NotepadFloatingWindow[data-workspace-surface-instance-id="notepad-surface-1"]',
+    ) as HTMLDivElement | null
+    expect(floatingNotepad).not.toBeNull()
+    expect(floatingNotepad?.textContent).toContain('Floating Notepad')
+    expect(floatingNotepad?.textContent).toContain('Focused notes land here')
+
+    const quickDockButton = floatingNotepad?.querySelector(
+      '.NotepadFloatingWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(
+      container?.querySelector('.NotepadFloatingWindow[data-workspace-surface-instance-id="notepad-surface-1"]'),
+    ).toBeNull()
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['notepad-surface-1']).toBeUndefined()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'notepad' && slot.surfaceInstanceId === 'notepad-surface-1',
+      ),
+    ).toBe(true)
+  })
+
+  it('pops out a notepad slot into a child window and quick docks it back', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const { popoutDocument, popoutWindow } = createMockChildWindow()
+    window.open = vi.fn(() => popoutWindow) as typeof window.open
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'notepad',
+        surfaceInstanceId: 'notepad-surface-1',
+      })
+    })
+
+    const slotPopoutButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.getAttribute('aria-label') === 'Pop out Notepad',
+    ) as HTMLButtonElement | undefined
+    expect(slotPopoutButton).not.toBeUndefined()
+
+    await act(async () => {
+      slotPopoutButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(window.open).toHaveBeenCalled()
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['notepad-surface-1']?.hostMode).toBe(
+      'popout',
+    )
+    expect(popoutDocument.body.textContent).toContain('Notepad')
+    expect(popoutDocument.body.textContent).toContain('Focused notes land here')
+
+    const quickDockButton = popoutDocument.body.querySelector(
+      '.NotepadPopoutWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['notepad-surface-1']).toBeUndefined()
+    expect(popoutWindow.close).toHaveBeenCalled()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'notepad' && slot.surfaceInstanceId === 'notepad-surface-1',
+      ),
+    ).toBe(true)
+  })
+
+  it('hydrates persisted notepad notes independently from workspace-layout restore', async () => {
+    window.localStorage.setItem(
+      notepadStorageKey,
+      JSON.stringify({
+        version: 1,
+        notesById: {
+          'note-1': {
+            id: 'note-1',
+            title: 'Recovered note',
+            body: 'Persisted body',
+            createdAt: '2026-04-03T20:00:00.000Z',
+            updatedAt: '2026-04-03T20:01:00.000Z',
+            isPinned: true,
+          },
+        },
+        noteOrder: ['note-1'],
+        activeNoteId: 'note-1',
+      }),
+    )
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'notepad',
+      surfaceInstanceId: 'notepad-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    expect(useNotepadStore.getState().activeNoteId).toBe('note-1')
+    expect(useNotepadStore.getState().notesById['note-1']).toEqual(
+      expect.objectContaining({
+        title: 'Recovered note',
+        body: 'Persisted body',
+        isPinned: true,
+      }),
+    )
+    expect(container?.textContent).toContain('Recovered note')
+    expect(container?.textContent).toContain('Persisted body')
+  })
+
+  it('renders pinned notes as sticky notes in dashboard and unpinning keeps the note in notepad', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Pinned dashboard note',
+      body: 'Remember to validate the first sticky-note widget path.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    expect(container?.textContent).toContain('TO DO')
+    expect(container?.textContent).toContain('Completed')
+    expect(container?.textContent).toContain('Pinned dashboard note')
+    expect(container?.textContent).toContain('Remember to validate the first sticky-note widget path.')
+    expect(container?.querySelector('.DashboardStickyNote')).not.toBeNull()
+
+    const unpinButton = Array.from(
+      container?.querySelectorAll('.DashboardStickyNoteActionButton') ?? [],
+    ).find((button) => button.textContent === 'Unpin') as HTMLButtonElement | undefined
+    expect(unpinButton).not.toBeUndefined()
+
+    await act(async () => {
+      unpinButton?.click()
+    })
+
+    expect(useNotepadStore.getState().notesById[noteId]).toEqual(
+      expect.objectContaining({
+        id: noteId,
+        isPinned: false,
+      }),
+    )
+    expect(container?.querySelector('.DashboardStickyNote')).toBeNull()
+    expect(container?.textContent).toContain('Sticky notes land here.')
+  })
+
+  it('creates a sticky note from dashboard, pins it into TO DO, and starts inline body editing', async () => {
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const addStickyNoteButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Add Sticky Note',
+    ) as HTMLButtonElement | undefined
+    expect(addStickyNoteButton).not.toBeUndefined()
+
+    await act(async () => {
+      addStickyNoteButton?.click()
+    })
+
+    const state = useNotepadStore.getState()
+    const createdNoteId = state.activeNoteId
+    expect(createdNoteId).not.toBeNull()
+    expect(createdNoteId === null ? null : state.notesById[createdNoteId]).toEqual(
+      expect.objectContaining({
+        id: createdNoteId,
+        title: '',
+        body: '',
+        isPinned: true,
+      }),
+    )
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[createdNoteId ?? '']).toEqual(
+      expect.objectContaining({
+        noteId: createdNoteId,
+        laneId: 'todo',
+      }),
+    )
+
+    const bodyInput = container?.querySelector(
+      '[data-dashboard-sticky-note-body-input="true"]',
+    ) as HTMLTextAreaElement | null
+    expect(bodyInput).not.toBeNull()
+    expect(document.activeElement).toBe(bodyInput)
+  })
+
+  it('adds, renames, and deletes dashboard lanes while preserving note placement through lane migration', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Lane migration note',
+      body: 'Move me through a deleted lane.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    vi.mocked(window.prompt).mockImplementationOnce(() => 'Review')
+
+    const addLaneButton = Array.from(container?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Add Lane',
+    ) as HTMLButtonElement | undefined
+    expect(addLaneButton).not.toBeUndefined()
+
+    await act(async () => {
+      addLaneButton?.click()
+    })
+
+    let state = useDashboardStore.getState()
+    const reviewLane = state.lanes.find((lane) => lane.title === 'Review') ?? null
+    expect(reviewLane).not.toBeNull()
+
+    const reviewLaneId = reviewLane?.id ?? ''
+    await act(async () => {
+      useDashboardStore.getState().setStickyNotePlacement(noteId, reviewLaneId, 336, 188)
+    })
+
+    const renameTitleButton = container?.querySelector(
+      `[data-dashboard-lane-title-button="${reviewLaneId}"]`,
+    ) as HTMLButtonElement | null
+    expect(renameTitleButton).not.toBeNull()
+
+    await act(async () => {
+      renameTitleButton?.click()
+    })
+
+    const renameTitleInput = container?.querySelector(
+      `[data-dashboard-lane-title-input="${reviewLaneId}"]`,
+    ) as HTMLInputElement | null
+    expect(renameTitleInput).not.toBeNull()
+
+    await act(async () => {
+      if (renameTitleInput !== null) {
+        renameTitleInput.value = 'Doing'
+        renameTitleInput.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+
+    await act(async () => {
+      renameTitleInput?.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter' }),
+      )
+    })
+
+    state = useDashboardStore.getState()
+    expect(state.lanes.find((lane) => lane.id === reviewLaneId)?.title).toBe('Doing')
+    expect(container?.textContent).toContain('Doing')
+
+    vi.mocked(window.prompt).mockImplementationOnce(() => 'Completed')
+    vi.mocked(window.confirm).mockImplementationOnce(() => true)
+
+    const deleteButton = container?.querySelector(
+      `[data-dashboard-lane-delete-button="${reviewLaneId}"]`,
+    ) as HTMLButtonElement | null
+    expect(deleteButton).not.toBeNull()
+
+    await act(async () => {
+      deleteButton?.click()
+    })
+
+    state = useDashboardStore.getState()
+    expect(state.lanes.some((lane) => lane.id === reviewLaneId)).toBe(false)
+    expect(state.stickyNoteLayoutsByNoteId[noteId]).toEqual(
+      expect.objectContaining({
+        noteId,
+        laneId: 'completed',
+        x: 336,
+        y: 188,
+      }),
+    )
+    expect(window.prompt).toHaveBeenCalledWith(
+      'Move notes from "Doing" to which lane?',
+      'TO DO',
+    )
+    expect(window.confirm).toHaveBeenCalledWith('Delete lane "Doing"?')
+  })
+
+  it('cancels inline lane title editing on Escape without renaming the lane', async () => {
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const titleButton = container?.querySelector(
+      '[data-dashboard-lane-title-button="todo"]',
+    ) as HTMLButtonElement | null
+    expect(titleButton).not.toBeNull()
+
+    await act(async () => {
+      titleButton?.click()
+    })
+
+    const titleInput = container?.querySelector(
+      '[data-dashboard-lane-title-input="todo"]',
+    ) as HTMLInputElement | null
+    expect(titleInput).not.toBeNull()
+
+    await act(async () => {
+      if (titleInput !== null) {
+        titleInput.value = 'Discarded lane name'
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+        titleInput.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' }),
+        )
+      }
+    })
+
+    expect(useDashboardStore.getState().lanes.find((lane) => lane.id === 'todo')?.title).toBe('TO DO')
+    expect(container?.textContent).toContain('TO DO')
+  })
+
+  it('disables lane deletion when only one lane remains', async () => {
+    useDashboardStore.getState().removeLane('todo', 'completed')
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const deleteButton = container?.querySelector(
+      '[data-dashboard-lane-delete-button="completed"]',
+    ) as HTMLButtonElement | null
+    expect(deleteButton?.disabled).toBe(true)
+  })
+
+  it('resizes adjacent dashboard lanes through the vertical splitter and persists the widths', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Resize lane note',
+      body: 'Resize the board lanes without moving me.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const todoLane = container?.querySelector(
+      '[data-dashboard-lane="todo"]',
+    ) as HTMLElement | null
+    const completedLane = container?.querySelector(
+      '[data-dashboard-lane="completed"]',
+    ) as HTMLElement | null
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    const completedLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="completed"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLane, {
+      left: 360,
+      top: 120,
+      width: 520,
+      height: 560,
+    })
+    mockRect(completedLane, {
+      left: 894,
+      top: 120,
+      width: 520,
+      height: 560,
+    })
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 520,
+      height: 480,
+    })
+    mockRect(completedLaneBoard, {
+      left: 894,
+      top: 180,
+      width: 520,
+      height: 480,
+    })
+
+    const resizeHandle = container?.querySelector(
+      '[data-dashboard-lane-resize-handle="todo:completed"]',
+    ) as HTMLDivElement | null
+    const board = container?.querySelector('.DashboardSurfaceBoard') as HTMLDivElement | null
+    const layoutBeforeResize = useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]
+
+    expect(resizeHandle).not.toBeNull()
+    expect(board?.style.gridTemplateColumns).toContain('14px')
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 31,
+          clientX: 887,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 31,
+          clientX: 1287,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 31,
+          clientX: 1287,
+          clientY: 320,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().lanes.find((lane) => lane.id === 'todo')?.width).toBeCloseTo(
+      1.7692307,
+      5,
+    )
+    expect(
+      useDashboardStore.getState().lanes.find((lane) => lane.id === 'completed')?.width,
+    ).toBeCloseTo(0.2307692, 5)
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual(layoutBeforeResize)
+
+    await vi.waitFor(() => {
+      const persisted = JSON.parse(window.localStorage.getItem(dashboardStorageKey) ?? 'null') as
+        | { lanes?: Array<{ id: string; width: number }> }
+        | null
+      expect(persisted?.lanes?.find((lane) => lane.id === 'todo')?.width).toBeCloseTo(1.7692307, 5)
+      expect(persisted?.lanes?.find((lane) => lane.id === 'completed')?.width).toBeCloseTo(
+        0.2307692,
+        5,
+      )
+    })
+  })
+
+  it('edits a sticky note title inline and keeps the same shared note when opening in notepad', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Title before edit',
+      body: 'Keep this note linked to notepad.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const titleButton = container?.querySelector(
+      '[data-dashboard-sticky-note-title-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(titleButton).not.toBeNull()
+
+    await act(async () => {
+      titleButton?.click()
+    })
+
+    const titleInput = container?.querySelector(
+      '[data-dashboard-sticky-note-title-input="true"]',
+    ) as HTMLInputElement | null
+    expect(titleInput).not.toBeNull()
+
+    await act(async () => {
+      if (titleInput !== null) {
+        titleInput.value = 'Dashboard renamed note'
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+        titleInput.dispatchEvent(new Event('change', { bubbles: true }))
+        titleInput.dispatchEvent(new FocusEvent('blur', { bubbles: true }))
+      }
+    })
+
+    expect(useNotepadStore.getState().notesById[noteId]?.title).toBe('Dashboard renamed note')
+
+    const stickyMenuButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(stickyMenuButton).not.toBeNull()
+
+    await act(async () => {
+      stickyMenuButton?.click()
+    })
+
+    const openButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-action="open-in-notepad"]',
+    ) as HTMLButtonElement | null
+    expect(openButton).not.toBeNull()
+
+    await act(async () => {
+      openButton?.click()
+    })
+
+    expect(useNotepadStore.getState().activeNoteId).toBe(noteId)
+    expect(container?.textContent).toContain('Dashboard renamed note')
+  })
+
+  it('edits a sticky note body inline and keeps the same shared note when opening in notepad', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Body edit note',
+      body: 'Before edit',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const bodyButton = container?.querySelector(
+      '[data-dashboard-sticky-note-body-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(bodyButton).not.toBeNull()
+
+    await act(async () => {
+      bodyButton?.click()
+    })
+
+    const bodyInput = container?.querySelector(
+      '[data-dashboard-sticky-note-body-input="true"]',
+    ) as HTMLTextAreaElement | null
+    expect(bodyInput).not.toBeNull()
+
+    await act(async () => {
+      if (bodyInput !== null) {
+        bodyInput.value = 'Updated on the dashboard board.'
+        bodyInput.dispatchEvent(new Event('input', { bubbles: true }))
+        bodyInput.dispatchEvent(new Event('change', { bubbles: true }))
+        bodyInput.dispatchEvent(new FocusEvent('blur', { bubbles: true }))
+      }
+    })
+
+    expect(useNotepadStore.getState().notesById[noteId]?.body).toBe('Updated on the dashboard board.')
+
+    const stickyMenuButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(stickyMenuButton).not.toBeNull()
+
+    await act(async () => {
+      stickyMenuButton?.click()
+    })
+
+    const openButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-action="open-in-notepad"]',
+    ) as HTMLButtonElement | null
+    expect(openButton).not.toBeNull()
+
+    await act(async () => {
+      openButton?.click()
+    })
+
+    expect(useNotepadStore.getState().activeNoteId).toBe(noteId)
+    expect(container?.textContent).toContain('Updated on the dashboard board.')
+  })
+
+  it('cancels sticky note title and body drafts on Escape without persisting them', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Keep original title',
+      body: 'Keep original body',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const titleButton = container?.querySelector(
+      '[data-dashboard-sticky-note-title-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(titleButton).not.toBeNull()
+
+    await act(async () => {
+      titleButton?.click()
+    })
+
+    const titleInput = container?.querySelector(
+      '[data-dashboard-sticky-note-title-input="true"]',
+    ) as HTMLInputElement | null
+    expect(titleInput).not.toBeNull()
+
+    await act(async () => {
+      if (titleInput !== null) {
+        titleInput.value = 'Discarded title'
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+        titleInput.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' }),
+        )
+      }
+    })
+
+    const bodyButton = container?.querySelector(
+      '[data-dashboard-sticky-note-body-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(bodyButton).not.toBeNull()
+
+    await act(async () => {
+      bodyButton?.click()
+    })
+
+    const bodyInput = container?.querySelector(
+      '[data-dashboard-sticky-note-body-input="true"]',
+    ) as HTMLTextAreaElement | null
+    expect(bodyInput).not.toBeNull()
+
+    await act(async () => {
+      if (bodyInput !== null) {
+        bodyInput.value = 'Discarded body'
+        bodyInput.dispatchEvent(new Event('input', { bubbles: true }))
+        bodyInput.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Escape' }),
+        )
+      }
+    })
+
+    expect(useNotepadStore.getState().notesById[noteId]).toEqual(
+      expect.objectContaining({
+        title: 'Keep original title',
+        body: 'Keep original body',
+      }),
+    )
+    expect(container?.textContent).toContain('Keep original title')
+    expect(container?.textContent).toContain('Keep original body')
+  })
+
+  it('opens a sticky note color palette on title bar right click and updates the shared note color', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Color menu note',
+      body: 'Right click the title bar to recolor me.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const titleBar = container?.querySelector('.DashboardStickyNoteTitleBar') as HTMLDivElement | null
+    expect(titleBar).not.toBeNull()
+
+    await act(async () => {
+      titleBar?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 420,
+          clientY: 220,
+        }),
+      )
+    })
+
+    const colorMenu = container?.querySelector(
+      '[data-dashboard-sticky-note-color-menu="true"]',
+    ) as HTMLDivElement | null
+    expect(colorMenu).not.toBeNull()
+
+    const blueSwatch = colorMenu?.querySelector(
+      '[data-note-color-option="blue"]',
+    ) as HTMLButtonElement | null
+    expect(blueSwatch).not.toBeNull()
+
+    await act(async () => {
+      blueSwatch?.click()
+    })
+
+    expect(useNotepadStore.getState().notesById[noteId]?.colorPreset).toBe('blue')
+    const stickyNote = container?.querySelector('.DashboardStickyNote') as HTMLElement | null
+    expect(stickyNote?.getAttribute('data-note-color-preset')).toBe('blue')
+    expect(
+      container?.querySelector('[data-dashboard-sticky-note-color-menu="true"]'),
+    ).toBeNull()
+  })
+
+  it('opens a sticky note burger menu and updates the shared note color from the menu', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Burger color note',
+      body: 'Use the visible menu to recolor me.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const menuButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(menuButton).not.toBeNull()
+
+    await act(async () => {
+      menuButton?.click()
+    })
+
+    const overflowMenu = container?.querySelector(
+      '[data-dashboard-sticky-note-menu="true"]',
+    ) as HTMLDivElement | null
+    expect(overflowMenu).not.toBeNull()
+
+    const blueSwatch = overflowMenu?.querySelector(
+      '[data-note-color-option="blue"]',
+    ) as HTMLButtonElement | null
+    expect(blueSwatch).not.toBeNull()
+
+    await act(async () => {
+      blueSwatch?.click()
+    })
+
+    expect(useNotepadStore.getState().notesById[noteId]?.colorPreset).toBe('blue')
+    const stickyNote = container?.querySelector('.DashboardStickyNote') as HTMLElement | null
+    expect(stickyNote?.getAttribute('data-note-color-preset')).toBe('blue')
+    expect(container?.querySelector('[data-dashboard-sticky-note-menu="true"]')).toBeNull()
+  })
+
+  it('opens the sticky note burger menu from a real pointer click on the menu button', async () => {
+    useNotepadStore.getState().createNote({
+      title: 'Pointer menu note',
+      body: 'Open the overflow menu with pointer events.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const menuButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(menuButton).not.toBeNull()
+
+    await act(async () => {
+      menuButton?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 201,
+          clientX: 585,
+          clientY: 250,
+        }),
+      )
+      menuButton?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 201,
+          clientX: 585,
+          clientY: 250,
+        }),
+      )
+      menuButton?.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 585,
+          clientY: 250,
+        }),
+      )
+    })
+
+    expect(container?.querySelector('[data-dashboard-sticky-note-menu="true"]')).not.toBeNull()
+  })
+
+  it('selects one dashboard sticky note when the user clicks it', async () => {
+    const firstNoteId = useNotepadStore.getState().createNote({
+      title: 'Selected note',
+      body: 'Click me to select.',
+      isPinned: true,
+    })
+    const secondNoteId = useNotepadStore.getState().createNote({
+      title: 'Other note',
+      body: 'I should stay unselected.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const firstStickyNote = container?.querySelector(
+      `[data-note-id="${firstNoteId}"]`,
+    ) as HTMLElement | null
+    const secondStickyNote = container?.querySelector(
+      `[data-note-id="${secondNoteId}"]`,
+    ) as HTMLElement | null
+
+    expect(firstStickyNote).not.toBeNull()
+    expect(secondStickyNote).not.toBeNull()
+
+    await act(async () => {
+      firstStickyNote?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 61,
+          clientX: 420,
+          clientY: 240,
+        }),
+      )
+      firstStickyNote?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 61,
+          clientX: 420,
+          clientY: 240,
+        }),
+      )
+    })
+
+    expect(firstStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('true')
+    expect(secondStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('false')
+  })
+
+  it('selects multiple dashboard sticky notes with a lane-local selection rectangle without mutating placement', async () => {
+    const firstNoteId = useNotepadStore.getState().createNote({
+      title: 'First selected note',
+      body: 'Inside the selection rectangle.',
+      isPinned: true,
+    })
+    const secondNoteId = useNotepadStore.getState().createNote({
+      title: 'Second selected note',
+      body: 'Also inside the selection rectangle.',
+      isPinned: true,
+    })
+    const thirdNoteId = useNotepadStore.getState().createNote({
+      title: 'Unselected note',
+      body: 'Outside the selection rectangle.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(firstNoteId, 'todo', 120, 100)
+    useDashboardStore.getState().setStickyNotePlacement(secondNoteId, 'todo', 320, 220)
+    useDashboardStore.getState().setStickyNotePlacement(thirdNoteId, 'todo', 900, 720)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    const firstLayoutBeforeSelection = useDashboardStore.getState().stickyNoteLayoutsByNoteId[firstNoteId]
+    const secondLayoutBeforeSelection = useDashboardStore.getState().stickyNoteLayoutsByNoteId[secondNoteId]
+    const thirdLayoutBeforeSelection = useDashboardStore.getState().stickyNoteLayoutsByNoteId[thirdNoteId]
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 62,
+          clientX: 390,
+          clientY: 210,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 62,
+          clientX: 930,
+          clientY: 620,
+        }),
+      )
+    })
+
+    expect(
+      container?.querySelector('[data-dashboard-selection-box="todo"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 62,
+          clientX: 930,
+          clientY: 620,
+        }),
+      )
+    })
+
+    const firstStickyNote = container?.querySelector(
+      `[data-note-id="${firstNoteId}"]`,
+    ) as HTMLElement | null
+    const secondStickyNote = container?.querySelector(
+      `[data-note-id="${secondNoteId}"]`,
+    ) as HTMLElement | null
+    const thirdStickyNote = container?.querySelector(
+      `[data-note-id="${thirdNoteId}"]`,
+    ) as HTMLElement | null
+
+    expect(firstStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('true')
+    expect(secondStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('true')
+    expect(thirdStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('false')
+    expect(
+      container?.querySelector('[data-dashboard-selection-box="todo"]'),
+    ).toBeNull()
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[firstNoteId]).toEqual(firstLayoutBeforeSelection)
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[secondNoteId]).toEqual(secondLayoutBeforeSelection)
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[thirdNoteId]).toEqual(thirdLayoutBeforeSelection)
+  })
+
+  it('clears dashboard sticky note selection when the user clicks empty board space', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Clear selection note',
+      body: 'Select me, then clear by clicking empty board space.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    const stickyNote = container?.querySelector(`[data-note-id="${noteId}"]`) as HTMLElement | null
+
+    await act(async () => {
+      stickyNote?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 63,
+          clientX: 420,
+          clientY: 240,
+        }),
+      )
+      stickyNote?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 63,
+          clientX: 420,
+          clientY: 240,
+        }),
+      )
+    })
+
+    expect(stickyNote?.getAttribute('data-dashboard-note-selected')).toBe('true')
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 64,
+          clientX: 390,
+          clientY: 210,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 64,
+          clientX: 390,
+          clientY: 210,
+        }),
+      )
+    })
+
+    expect(stickyNote?.getAttribute('data-dashboard-note-selected')).toBe('false')
+  })
+
+  it('drags a lane-local selected sticky-note set together while preserving relative spacing', async () => {
+    const firstNoteId = useNotepadStore.getState().createNote({
+      title: 'Group move first note',
+      body: 'I move with the selected set.',
+      isPinned: true,
+    })
+    const secondNoteId = useNotepadStore.getState().createNote({
+      title: 'Group move second note',
+      body: 'I should keep my offset.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(firstNoteId, 'todo', 120, 100)
+    useDashboardStore.getState().setStickyNotePlacement(secondNoteId, 'todo', 320, 220)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 65,
+          clientX: 390,
+          clientY: 210,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 65,
+          clientX: 930,
+          clientY: 620,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 65,
+          clientX: 930,
+          clientY: 620,
+        }),
+      )
+    })
+
+    const firstStickyTitleBar = container?.querySelector(
+      `[data-note-id="${firstNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(firstStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      firstStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 66,
+          clientX: 520,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 66,
+          clientX: 640,
+          clientY: 400,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 66,
+          clientX: 640,
+          clientY: 400,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[firstNoteId]).toEqual({
+      noteId: firstNoteId,
+      laneId: 'todo',
+      x: 240,
+      y: 200,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[secondNoteId]).toEqual({
+      noteId: secondNoteId,
+      laneId: 'todo',
+      x: 440,
+      y: 320,
+    })
+  })
+
+  it('aligns a lane-local selected sticky-note set vertically without mutating unselected note placement', async () => {
+    const firstNoteId = useNotepadStore.getState().createNote({
+      title: 'Vertical align first note',
+      body: 'I provide the top-most x anchor.',
+      isPinned: true,
+    })
+    const secondNoteId = useNotepadStore.getState().createNote({
+      title: 'Vertical align second note',
+      body: 'I should snap to the same x edge.',
+      isPinned: true,
+    })
+    const thirdNoteId = useNotepadStore.getState().createNote({
+      title: 'Unselected align note',
+      body: 'I should not move.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(firstNoteId, 'todo', 320, 100)
+    useDashboardStore.getState().setStickyNotePlacement(secondNoteId, 'todo', 140, 260)
+    useDashboardStore.getState().setStickyNotePlacement(thirdNoteId, 'todo', 940, 760)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 67,
+          clientX: 430,
+          clientY: 230,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 67,
+          clientX: 780,
+          clientY: 660,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 67,
+          clientX: 780,
+          clientY: 660,
+        }),
+      )
+    })
+
+    const verticalAlignButton = container?.querySelector(
+      '[data-dashboard-lane-align-vertical-button="todo"]',
+    ) as HTMLButtonElement | null
+    expect(verticalAlignButton).not.toBeNull()
+    expect(verticalAlignButton?.disabled).toBe(false)
+
+    await act(async () => {
+      verticalAlignButton?.click()
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[firstNoteId]).toEqual({
+      noteId: firstNoteId,
+      laneId: 'todo',
+      x: 320,
+      y: 100,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[secondNoteId]).toEqual({
+      noteId: secondNoteId,
+      laneId: 'todo',
+      x: 320,
+      y: 260,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[thirdNoteId]).toEqual({
+      noteId: thirdNoteId,
+      laneId: 'todo',
+      x: 940,
+      y: 760,
+    })
+
+    const firstStickyNote = container?.querySelector(
+      `[data-note-id="${firstNoteId}"]`,
+    ) as HTMLElement | null
+    const secondStickyNote = container?.querySelector(
+      `[data-note-id="${secondNoteId}"]`,
+    ) as HTMLElement | null
+    expect(firstStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('true')
+    expect(secondStickyNote?.getAttribute('data-dashboard-note-selected')).toBe('true')
+  })
+
+  it('keeps horizontal align unavailable until two notes are selected and then aligns them', async () => {
+    const firstNoteId = useNotepadStore.getState().createNote({
+      title: 'Horizontal align first note',
+      body: 'I should snap to the left-most y anchor.',
+      isPinned: true,
+    })
+    const secondNoteId = useNotepadStore.getState().createNote({
+      title: 'Horizontal align second note',
+      body: 'I should share the same y edge once selected.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(firstNoteId, 'todo', 260, 140)
+    useDashboardStore.getState().setStickyNotePlacement(secondNoteId, 'todo', 540, 320)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const horizontalAlignButton = container?.querySelector(
+      '[data-dashboard-lane-align-horizontal-button="todo"]',
+    ) as HTMLButtonElement | null
+    expect(horizontalAlignButton).not.toBeNull()
+    expect(horizontalAlignButton?.disabled).toBe(true)
+
+    const firstStickyNote = container?.querySelector(
+      `[data-note-id="${firstNoteId}"]`,
+    ) as HTMLElement | null
+    expect(firstStickyNote).not.toBeNull()
+
+    await act(async () => {
+      firstStickyNote?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 68,
+          clientX: 520,
+          clientY: 320,
+        }),
+      )
+      firstStickyNote?.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 68,
+          clientX: 520,
+          clientY: 320,
+        }),
+      )
+    })
+
+    expect(horizontalAlignButton?.disabled).toBe(true)
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 69,
+          clientX: 430,
+          clientY: 250,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 69,
+          clientX: 980,
+          clientY: 760,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 69,
+          clientX: 980,
+          clientY: 760,
+        }),
+      )
+    })
+
+    expect(horizontalAlignButton?.disabled).toBe(false)
+
+    await act(async () => {
+      horizontalAlignButton?.click()
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[firstNoteId]).toEqual({
+      noteId: firstNoteId,
+      laneId: 'todo',
+      x: 260,
+      y: 140,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[secondNoteId]).toEqual({
+      noteId: secondNoteId,
+      laneId: 'todo',
+      x: 540,
+      y: 140,
+    })
+  })
+
+  it('middle-mouse drags a dashboard lane camera without mutating sticky-note placement', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Pan lane note',
+      body: 'Pan the lane without moving me.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    const layoutBeforePan = useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]
+
+    expect(todoLaneBoard).not.toBeNull()
+    expect(todoLaneStage).not.toBeNull()
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          pointerId: 21,
+          clientX: 640,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 21,
+          clientX: 580,
+          clientY: 260,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 21,
+          clientX: 580,
+          clientY: 260,
+        }),
+      )
+    })
+
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('-60')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('-60')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1')
+    expect(todoLaneStage?.style.transform).toBe('translate(-60px, -60px) scale(1)')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual(layoutBeforePan)
+  })
+
+  it('keeps lane zoom locked by default and ignores wheel zoom until the lane is unlocked', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Locked zoom note',
+      body: 'Zoom should stay locked until I say otherwise.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    const zoomLockButton = container?.querySelector(
+      '[data-dashboard-lane-zoom-lock-button="todo"]',
+    ) as HTMLButtonElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    const layoutBeforeWheel = useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]
+
+    expect(zoomLockButton?.getAttribute('aria-label')).toBe('Unlock zoom for TO DO')
+    expect(zoomLockButton?.getAttribute('aria-pressed')).toBe('false')
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+          deltaY: -120,
+        }),
+      )
+    })
+
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('0')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('0')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual(layoutBeforeWheel)
+  })
+
+  it('unlocks lane zoom and updates the lane camera through wheel zoom without mutating sticky-note placement', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Unlocked zoom note',
+      body: 'Wheel zoom should move the lane camera only after unlock.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    const zoomLockButton = container?.querySelector(
+      '[data-dashboard-lane-zoom-lock-button="todo"]',
+    ) as HTMLButtonElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    const layoutBeforeWheel = useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]
+
+    await act(async () => {
+      zoomLockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(zoomLockButton?.getAttribute('aria-label')).toBe('Lock zoom for TO DO')
+    expect(zoomLockButton?.getAttribute('aria-pressed')).toBe('true')
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+          deltaY: -120,
+        }),
+      )
+    })
+
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('-24')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('-12')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1.1')
+    expect(todoLaneStage?.style.transform).toBe('translate(-24px, -12px) scale(1.1)')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual(layoutBeforeWheel)
+  })
+
+  it('fits notes back into view for each lane without mutating sticky-note placement', async () => {
+    const todoNoteId = useNotepadStore.getState().createNote({
+      title: 'Todo fit note',
+      body: 'Bring the todo note back into view.',
+      isPinned: true,
+    })
+    const completedNoteId = useNotepadStore.getState().createNote({
+      title: 'Completed fit note',
+      body: 'Bring the completed note back into view.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(todoNoteId, 'todo', 480, 360)
+    useDashboardStore.getState().setStickyNotePlacement(completedNoteId, 'completed', 420, 168)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    mockRect(container?.querySelector('[data-dashboard-lane-board="completed"]'), {
+      left: 1120,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const todoButton = container?.querySelector(
+      '[data-dashboard-lane-fit-button="todo"]',
+    ) as HTMLButtonElement | null
+    const completedButton = container?.querySelector(
+      '[data-dashboard-lane-fit-button="completed"]',
+    ) as HTMLButtonElement | null
+    const todoLayoutBeforeFit = useDashboardStore.getState().stickyNoteLayoutsByNoteId[todoNoteId]
+    const completedLayoutBeforeFit = useDashboardStore.getState().stickyNoteLayoutsByNoteId[completedNoteId]
+
+    expect(todoButton?.disabled).toBe(false)
+    expect(completedButton?.disabled).toBe(false)
+
+    await act(async () => {
+      todoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('-244')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('-218')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[todoNoteId]).toEqual(todoLayoutBeforeFit)
+
+    await act(async () => {
+      completedButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const completedLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="completed"]',
+    ) as HTMLDivElement | null
+    expect(completedLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('-184')
+    expect(completedLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('-26')
+    expect(completedLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[completedNoteId]).toEqual(
+      completedLayoutBeforeFit,
+    )
+  })
+
+  it('fits unlocked dashboard lanes to the full note bounds vertically and horizontally without mutating sticky-note placement', async () => {
+    const tallNoteTopId = useNotepadStore.getState().createNote({
+      title: 'Tall top note',
+      body: 'Top of the tall cluster.',
+      isPinned: true,
+    })
+    const tallNoteBottomId = useNotepadStore.getState().createNote({
+      title: 'Tall bottom note',
+      body: 'Bottom of the tall cluster.',
+      isPinned: true,
+    })
+    const wideNoteLeftId = useNotepadStore.getState().createNote({
+      title: 'Wide left note',
+      body: 'Left edge of the wide cluster.',
+      isPinned: true,
+    })
+    const wideNoteRightId = useNotepadStore.getState().createNote({
+      title: 'Wide right note',
+      body: 'Right edge of the wide cluster.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(tallNoteTopId, 'todo', 120, 100)
+    useDashboardStore.getState().setStickyNotePlacement(tallNoteBottomId, 'todo', 140, 560)
+    useDashboardStore.getState().setStickyNotePlacement(wideNoteLeftId, 'completed', 80, 160)
+    useDashboardStore.getState().setStickyNotePlacement(wideNoteRightId, 'completed', 900, 160)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    const completedLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="completed"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    mockRect(completedLaneBoard, {
+      left: 1120,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const todoUnlockButton = container?.querySelector(
+      '[data-dashboard-lane-zoom-lock-button="todo"]',
+    ) as HTMLButtonElement | null
+    const completedUnlockButton = container?.querySelector(
+      '[data-dashboard-lane-zoom-lock-button="completed"]',
+    ) as HTMLButtonElement | null
+    const todoFitButton = container?.querySelector(
+      '[data-dashboard-lane-fit-button="todo"]',
+    ) as HTMLButtonElement | null
+    const completedFitButton = container?.querySelector(
+      '[data-dashboard-lane-fit-button="completed"]',
+    ) as HTMLButtonElement | null
+    const tallTopLayoutBeforeFit = useDashboardStore.getState().stickyNoteLayoutsByNoteId[tallNoteTopId]
+    const tallBottomLayoutBeforeFit =
+      useDashboardStore.getState().stickyNoteLayoutsByNoteId[tallNoteBottomId]
+    const wideLeftLayoutBeforeFit = useDashboardStore.getState().stickyNoteLayoutsByNoteId[wideNoteLeftId]
+    const wideRightLayoutBeforeFit =
+      useDashboardStore.getState().stickyNoteLayoutsByNoteId[wideNoteRightId]
+
+    await act(async () => {
+      todoUnlockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      completedUnlockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      todoFitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('0')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('-34')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('0.64')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[tallNoteTopId]).toEqual(tallTopLayoutBeforeFit)
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[tallNoteBottomId]).toEqual(
+      tallBottomLayoutBeforeFit,
+    )
+
+    await act(async () => {
+      completedFitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const completedLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="completed"]',
+    ) as HTMLDivElement | null
+    expect(completedLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('-21')
+    expect(completedLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('0')
+    expect(completedLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('0.62')
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[wideNoteLeftId]).toEqual(
+      wideLeftLayoutBeforeFit,
+    )
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[wideNoteRightId]).toEqual(
+      wideRightLayoutBeforeFit,
+    )
+  })
+
+  it('disables the lane fit action when a lane has no notes', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Only todo note',
+      body: 'Completed lane should stay disabled.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(noteId, 'todo', 184, 164)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const todoButton = container?.querySelector(
+      '[data-dashboard-lane-fit-button="todo"]',
+    ) as HTMLButtonElement | null
+    const completedButton = container?.querySelector(
+      '[data-dashboard-lane-fit-button="completed"]',
+    ) as HTMLButtonElement | null
+
+    expect(todoButton?.disabled).toBe(false)
+    expect(completedButton?.disabled).toBe(true)
+  })
+
+  it('drags a dashboard sticky note correctly after the lane camera has moved', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Camera drag note',
+      body: 'Drag me after panning the lane camera.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 1,
+          pointerId: 31,
+          clientX: 640,
+          clientY: 320,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 31,
+          clientX: 720,
+          clientY: 380,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 31,
+          clientX: 720,
+          clientY: 380,
+        }),
+      )
+    })
+
+    const stickyTitleBar = container?.querySelector('.DashboardStickyNoteTitleBar') as HTMLDivElement | null
+    expect(stickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      stickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 32,
+          clientX: 504,
+          clientY: 284,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 32,
+          clientX: 604,
+          clientY: 364,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 32,
+          clientX: 604,
+          clientY: 364,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'todo',
+      x: 124,
+      y: 104,
+    })
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('80')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('60')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1')
+  })
+
+  it('drags a dashboard sticky note correctly after lane zoom unlock changes the lane camera', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Zoom drag note',
+      body: 'Drag me after zooming the lane camera.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector(
+      '[data-dashboard-lane-board="todo"]',
+    ) as HTMLDivElement | null
+    const zoomLockButton = container?.querySelector(
+      '[data-dashboard-lane-zoom-lock-button="todo"]',
+    ) as HTMLButtonElement | null
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    await act(async () => {
+      zoomLockButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      todoLaneBoard?.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 600,
+          clientY: 300,
+          deltaY: -120,
+        }),
+      )
+    })
+
+    const stickyTitleBar = container?.querySelector('.DashboardStickyNoteTitleBar') as HTMLDivElement | null
+    expect(stickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      stickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 44,
+          clientX: 400,
+          clientY: 220,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 44,
+          clientX: 510,
+          clientY: 310,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 44,
+          clientX: 510,
+          clientY: 310,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'todo',
+      x: 124,
+      y: 106,
+    })
+    const todoLaneStage = container?.querySelector(
+      '[data-dashboard-lane-stage="todo"]',
+    ) as HTMLDivElement | null
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-x')).toBe('-24')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-y')).toBe('-12')
+    expect(todoLaneStage?.getAttribute('data-dashboard-camera-zoom')).toBe('1.1')
+  })
+
+  it('attaches a dashboard sticky note on same-lane drop when its title bar overlaps another note title bar', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Attachment parent',
+      body: 'Drop another title bar onto me.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Attachment child',
+      body: 'I should attach on drop.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 520, 320)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 21,
+          clientX: 900,
+          clientY: 520,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 21,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 21,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 220,
+      y: 146,
+      parentNoteId: parentNoteId,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[parentNoteId]?.parentNoteId).toBeUndefined()
+  })
+
+  it('attaches a dashboard sticky note on same-lane drop when its title bar overlaps the parent note body only', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Body parent',
+      body: 'Drop onto any visible part of me.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Body child',
+      body: 'I should attach from parent-body overlap too.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 520, 320)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 121,
+          clientX: 900,
+          clientY: 520,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 121,
+          clientX: 600,
+          clientY: 390,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 121,
+          clientX: 600,
+          clientY: 390,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 220,
+      y: 190,
+      parentNoteId: parentNoteId,
+    })
+  })
+
+  it('resizes a dashboard sticky note from the south-east corner and persists the new width and height', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Resizable note',
+      body: 'Grow me from the corner.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const southEastHandle = container?.querySelector(
+      `[data-note-id="${noteId}"] [data-dashboard-sticky-note-resize-handle="south-east"]`,
+    ) as HTMLButtonElement | null
+    expect(southEastHandle).not.toBeNull()
+
+    await act(async () => {
+      southEastHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 301,
+          clientX: 632,
+          clientY: 400,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 301,
+          clientX: 712,
+          clientY: 460,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 301,
+          clientX: 712,
+          clientY: 460,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'todo',
+      x: 24,
+      y: 24,
+      width: 328,
+      height: 256,
+    })
+    expect(JSON.parse(window.localStorage.getItem(dashboardStorageKey) ?? 'null')).toEqual(
+      expect.objectContaining({
+        stickyNoteLayoutsByNoteId: expect.objectContaining({
+          [noteId]: expect.objectContaining({
+            width: 328,
+            height: 256,
+          }),
+        }),
+      }),
+    )
+  })
+
+  it('resizes a dashboard sticky note from the west edge while keeping menu and title-bar drag behavior reachable', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Resize then use',
+      body: 'The menu and drag should still work.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const westHandle = container?.querySelector(
+      `[data-note-id="${noteId}"] [data-dashboard-sticky-note-resize-handle="west"]`,
+    ) as HTMLButtonElement | null
+    expect(westHandle).not.toBeNull()
+
+    await act(async () => {
+      westHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 302,
+          clientX: 384,
+          clientY: 302,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 302,
+          clientX: 424,
+          clientY: 302,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 302,
+          clientX: 424,
+          clientY: 302,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'todo',
+      x: 64,
+      y: 24,
+      width: 208,
+      height: 196,
+    })
+
+    const menuButton = container?.querySelector(
+      `[data-note-id="${noteId}"] [data-dashboard-sticky-note-menu-button="true"]`,
+    ) as HTMLButtonElement | null
+    expect(menuButton).not.toBeNull()
+
+    await act(async () => {
+      menuButton?.click()
+    })
+
+    expect(container?.querySelector('[data-dashboard-sticky-note-menu="true"]')).not.toBeNull()
+
+    const stickyTitleBar = container?.querySelector(
+      `[data-note-id="${noteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(stickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      stickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 303,
+          clientX: 520,
+          clientY: 220,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 303,
+          clientX: 620,
+          clientY: 290,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 303,
+          clientX: 620,
+          clientY: 290,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'todo',
+      x: 164,
+      y: 94,
+      width: 208,
+      height: 196,
+    })
+  })
+
+  it('attaches a dashboard sticky note against a resized parent note body', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Resized parent',
+      body: 'My larger body should accept attachments.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Resized body child',
+      body: 'Attach me against the larger parent body.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNoteFrame(parentNoteId, {
+      x: 200,
+      y: 140,
+      width: 380,
+      height: 300,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 620, 420)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 304,
+          clientX: 980,
+          clientY: 620,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 304,
+          clientX: 720,
+          clientY: 470,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 304,
+          clientX: 720,
+          clientY: 470,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[parentNoteId]).toEqual({
+      noteId: parentNoteId,
+      laneId: 'todo',
+      x: 200,
+      y: 140,
+      width: 380,
+      height: 300,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 360,
+      y: 270,
+      parentNoteId: parentNoteId,
+    })
+  })
+
+  it('chooses the strongest same-lane title-bar overlap as the dashboard sticky note attachment parent', async () => {
+    const leftParentNoteId = useNotepadStore.getState().createNote({
+      title: 'Left parent',
+      body: 'Smaller overlap.',
+      isPinned: true,
+    })
+    const rightParentNoteId = useNotepadStore.getState().createNote({
+      title: 'Right parent',
+      body: 'Larger overlap.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Overlap child',
+      body: 'Pick the strongest parent.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(leftParentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(rightParentNoteId, 'todo', 340, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 560, 320)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 22,
+          clientX: 940,
+          clientY: 520,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 22,
+          clientX: 700,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 22,
+          clientX: 700,
+          clientY: 346,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 320,
+      y: 146,
+      parentNoteId: rightParentNoteId,
+    })
+  })
+
+  it('keeps an ordinary same-lane dashboard sticky note drop detached when no title bars overlap', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Detached parent',
+      body: 'Start attached, end detached.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Detached child',
+      body: 'Move away from overlap.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 23,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 23,
+          clientX: 940,
+          clientY: 540,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 23,
+          clientX: 940,
+          clientY: 540,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 560,
+      y: 340,
+    })
+  })
+
+  it('drags an attached dashboard sticky-note child subtree with its parent while preserving relative spacing', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Subtree parent',
+      body: 'My child should follow me.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Subtree child',
+      body: 'I should move with my parent.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const parentStickyTitleBar = container?.querySelector(
+      `[data-note-id="${parentNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(parentStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      parentStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 24,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 24,
+          clientX: 720,
+          clientY: 430,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 24,
+          clientX: 720,
+          clientY: 430,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[parentNoteId]).toEqual({
+      noteId: parentNoteId,
+      laneId: 'todo',
+      x: 320,
+      y: 224,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 340,
+      y: 230,
+      parentNoteId: parentNoteId,
+    })
+  })
+
+  it('attaches one dashboard sticky note on drop and then carries it when the parent is dragged next', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Follow parent',
+      body: 'Move me second.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Attach then follow',
+      body: 'Attach first, then follow.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 520, 320)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 202,
+          clientX: 900,
+          clientY: 520,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 202,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 202,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 220,
+      y: 146,
+      parentNoteId: parentNoteId,
+    })
+
+    const parentStickyTitleBar = container?.querySelector(
+      `[data-note-id="${parentNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(parentStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      parentStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 203,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 203,
+          clientX: 720,
+          clientY: 430,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 203,
+          clientX: 720,
+          clientY: 430,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[parentNoteId]).toEqual({
+      noteId: parentNoteId,
+      laneId: 'todo',
+      x: 320,
+      y: 224,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 340,
+      y: 230,
+      parentNoteId: parentNoteId,
+    })
+  })
+
+  it('renders an attached dashboard child above its parent when they overlap', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Layer parent',
+      body: 'I should render beneath my child.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Layer child',
+      body: 'I should render above my parent.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const parentStickyNote = container?.querySelector(
+      `[data-note-id="${parentNoteId}"]`,
+    ) as HTMLElement | null
+    const childStickyNote = container?.querySelector(
+      `[data-note-id="${childNoteId}"]`,
+    ) as HTMLElement | null
+    expect(parentStickyNote).not.toBeNull()
+    expect(childStickyNote).not.toBeNull()
+    expectStickyNoteToRenderAbove(container, 'todo', childNoteId, parentNoteId)
+  })
+
+  it('keeps an attached dashboard child above its parent while the parent subtree is dragged', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Dragging layer parent',
+      body: 'My child should still stay on top.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Dragging layer child',
+      body: 'Stay above during drag.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const parentStickyTitleBar = container?.querySelector(
+      `[data-note-id="${parentNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(parentStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      parentStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 401,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 401,
+          clientX: 680,
+          clientY: 410,
+        }),
+      )
+    })
+
+    const parentStickyNote = container?.querySelector(
+      `[data-note-id="${parentNoteId}"]`,
+    ) as HTMLElement | null
+    const childStickyNote = container?.querySelector(
+      `[data-note-id="${childNoteId}"]`,
+    ) as HTMLElement | null
+    expect(parentStickyNote?.classList.contains('isDragging')).toBe(true)
+    expect(childStickyNote?.classList.contains('isDragging')).toBe(true)
+    expectStickyNoteToRenderAbove(container, 'todo', childNoteId, parentNoteId)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 401,
+          clientX: 680,
+          clientY: 410,
+        }),
+      )
+    })
+  })
+
+  it('double-click lifts one dashboard sticky note above the normal attachment stack', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Lifted parent',
+      body: 'I normally render beneath my child.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Lifted child',
+      body: 'I normally stay on top.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    expectStickyNoteToRenderAbove(container, 'todo', childNoteId, parentNoteId)
+
+    const parentStickyNote = container?.querySelector(
+      `[data-note-id="${parentNoteId}"]`,
+    ) as HTMLElement | null
+    expect(parentStickyNote).not.toBeNull()
+
+    await act(async () => {
+      parentStickyNote?.dispatchEvent(
+        new MouseEvent('dblclick', {
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expectStickyNoteToRenderAbove(container, 'todo', parentNoteId, childNoteId)
+  })
+
+  it('double-click again clears dashboard sticky note focus lift and restores attachment order', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Restored parent',
+      body: 'I should go back underneath after the lift clears.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Restored child',
+      body: 'I should return to the top.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const parentStickyNote = container?.querySelector(
+      `[data-note-id="${parentNoteId}"]`,
+    ) as HTMLElement | null
+    expect(parentStickyNote).not.toBeNull()
+
+    await act(async () => {
+      parentStickyNote?.dispatchEvent(
+        new MouseEvent('dblclick', {
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expectStickyNoteToRenderAbove(container, 'todo', parentNoteId, childNoteId)
+
+    await act(async () => {
+      parentStickyNote?.dispatchEvent(
+        new MouseEvent('dblclick', {
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expectStickyNoteToRenderAbove(container, 'todo', childNoteId, parentNoteId)
+  })
+
+  it('drags a dashboard sticky-note child with its own descendant subtree while keeping direct child drag behavior unchanged', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Nested subtree parent',
+      body: 'My child may move away.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Nested subtree child',
+      body: 'My descendant should follow me.',
+      isPinned: true,
+    })
+    const grandchildNoteId = useNotepadStore.getState().createNote({
+      title: 'Nested subtree grandchild',
+      body: 'I should keep following the child.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 180, 120)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 200, 126)
+    useDashboardStore.getState().setStickyNotePlacement(grandchildNoteId, 'todo', 220, 132)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(grandchildNoteId, childNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    const todoLaneBoard = container?.querySelector('[data-dashboard-lane-board="todo"]')
+    mockRect(todoLaneBoard, {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const childStickyTitleBar = container?.querySelector(
+      `[data-note-id="${childNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(childStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      childStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 25,
+          clientX: 600,
+          clientY: 332,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 25,
+          clientX: 840,
+          clientY: 520,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 25,
+          clientX: 840,
+          clientY: 520,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[parentNoteId]).toEqual({
+      noteId: parentNoteId,
+      laneId: 'todo',
+      x: 180,
+      y: 120,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'todo',
+      x: 440,
+      y: 314,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[grandchildNoteId]).toEqual({
+      noteId: grandchildNoteId,
+      laneId: 'todo',
+      x: 460,
+      y: 320,
+      parentNoteId: childNoteId,
+    })
+  })
+
+  it('drags an attached dashboard sticky-note subtree into another lane together and preserves attachment links', async () => {
+    const parentNoteId = useNotepadStore.getState().createNote({
+      title: 'Cross-lane subtree parent',
+      body: 'Carry my child with me.',
+      isPinned: true,
+    })
+    const childNoteId = useNotepadStore.getState().createNote({
+      title: 'Cross-lane subtree child',
+      body: 'I should stay attached after the move.',
+      isPinned: true,
+    })
+    useDashboardStore.getState().setStickyNotePlacement(parentNoteId, 'todo', 200, 140)
+    useDashboardStore.getState().setStickyNotePlacement(childNoteId, 'todo', 220, 146)
+    useDashboardStore.getState().setStickyNoteAttachmentParent(childNoteId, parentNoteId)
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    mockRect(container?.querySelector('[data-dashboard-lane-board="completed"]'), {
+      left: 1120,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const parentStickyTitleBar = container?.querySelector(
+      `[data-note-id="${parentNoteId}"] .DashboardStickyNoteTitleBar`,
+    ) as HTMLDivElement | null
+    expect(parentStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      parentStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 26,
+          clientX: 600,
+          clientY: 346,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 26,
+          clientX: 1260,
+          clientY: 390,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 26,
+          clientX: 1260,
+          clientY: 390,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[parentNoteId]).toEqual({
+      noteId: parentNoteId,
+      laneId: 'completed',
+      x: 100,
+      y: 184,
+    })
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[childNoteId]).toEqual({
+      noteId: childNoteId,
+      laneId: 'completed',
+      x: 120,
+      y: 190,
+      parentNoteId: parentNoteId,
+    })
+  })
+
+  it('drags a dashboard sticky note between the TO DO and Completed lanes and preserves the note record', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Finish lane task',
+      body: 'This note should move cleanly between the two dashboard lanes.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    mockRect(container?.querySelector('[data-dashboard-lane-board="completed"]'), {
+      left: 1120,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const stickyTitleBar = container?.querySelector('.DashboardStickyNoteTitleBar') as HTMLDivElement | null
+    expect(stickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      stickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 11,
+          clientX: 400,
+          clientY: 220,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 11,
+          clientX: 1240,
+          clientY: 330,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 11,
+          clientX: 1240,
+          clientY: 330,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual(
+      expect.objectContaining({
+        noteId,
+        laneId: 'completed',
+      }),
+    )
+    expect(useNotepadStore.getState().notesById[noteId]?.isPinned).toBe(true)
+    expect(
+      container?.querySelector('.DashboardSurfaceLane[data-dashboard-lane="completed"] .DashboardStickyNote'),
+    ).not.toBeNull()
+    const completedStickyTitleBar = container?.querySelector(
+      '.DashboardSurfaceLane[data-dashboard-lane="completed"] .DashboardStickyNoteTitleBar',
+    ) as HTMLDivElement | null
+    expect(completedStickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      completedStickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 12,
+          clientX: 1240,
+          clientY: 330,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 12,
+          clientX: 520,
+          clientY: 280,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 12,
+          clientX: 520,
+          clientY: 280,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual(
+      expect.objectContaining({
+        noteId,
+        laneId: 'todo',
+      }),
+    )
+    expect(
+      container?.querySelector('.DashboardSurfaceLane[data-dashboard-lane="todo"] .DashboardStickyNote'),
+    ).not.toBeNull()
+  })
+
+  it('drags a dashboard sticky note from TO DO into the Completed lane and persists the dropped placement', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Cross lane drag',
+      body: 'This note should land inside the completed lane after drop.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+    mockRect(container?.querySelector('[data-dashboard-lane-board="completed"]'), {
+      left: 1120,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const stickyTitleBar = container?.querySelector('.DashboardStickyNoteTitleBar') as HTMLDivElement | null
+    expect(stickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      stickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 9,
+          clientX: 400,
+          clientY: 220,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 9,
+          clientX: 1240,
+          clientY: 330,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 9,
+          clientX: 1240,
+          clientY: 330,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'completed',
+      x: 104,
+      y: 134,
+    })
+    expect(
+      container?.querySelector('.DashboardSurfaceLane[data-dashboard-lane="completed"] .DashboardStickyNote'),
+    ).not.toBeNull()
+    expect(
+      JSON.parse(window.localStorage.getItem(dashboardStorageKey) ?? 'null'),
+    ).toEqual(
+      expect.objectContaining({
+        stickyNoteLayoutsByNoteId: expect.objectContaining({
+          [noteId]: expect.objectContaining({
+            noteId,
+            laneId: 'completed',
+            x: 104,
+            y: 134,
+          }),
+        }),
+      }),
+    )
+  })
+
+  it('opens a sticky note in notepad from a slotted dashboard surface', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Open from dashboard',
+      body: 'Switch the current slot into notepad and focus this note.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const menuButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(menuButton).not.toBeNull()
+
+    await act(async () => {
+      menuButton?.click()
+    })
+
+    const openButton = container?.querySelector(
+      '[data-dashboard-sticky-note-menu-action="open-in-notepad"]',
+    ) as HTMLButtonElement | null
+    expect(openButton).not.toBeNull()
+
+    await act(async () => {
+      openButton?.click()
+    })
+
+    const secondarySlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slot) => slot.slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlot?.surfaceKind).toBe('notepad')
+    expect(useNotepadStore.getState().activeNoteId).toBe(noteId)
+    expect(container?.textContent).toContain('Open from dashboard')
+    expect(container?.textContent).toContain('Switch the current slot into notepad and focus this note.')
+  })
+
+  it('opens a sticky note in notepad from a floating dashboard surface while preserving detached host mode', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Floating dashboard handoff',
+      body: 'Detached dashboard hosts should swap into notepad cleanly.',
+      isPinned: true,
+    })
+
+    let dashboardSlotId: string | null = null
+    await act(async () => {
+      dashboardSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'dashboard',
+        surfaceInstanceId: 'dashboard-surface-1',
+      })
+      useWorkspaceStore.getState().detachViewportSlotSurface(dashboardSlotId ?? '', 'floating')
+    })
+
+    ;({ container, root } = await renderAppShell())
+
+    const floatingDashboard = container?.querySelector(
+      '.DashboardFloatingWindow[data-workspace-surface-instance-id="dashboard-surface-1"]',
+    ) as HTMLDivElement | null
+    expect(floatingDashboard).not.toBeNull()
+
+    const menuButton = floatingDashboard?.querySelector(
+      '[data-dashboard-sticky-note-menu-button="true"]',
+    ) as HTMLButtonElement | null
+    expect(menuButton).not.toBeNull()
+
+    await act(async () => {
+      menuButton?.click()
+    })
+
+    const openButton = floatingDashboard?.querySelector(
+      '[data-dashboard-sticky-note-menu-action="open-in-notepad"]',
+    ) as HTMLButtonElement | null
+    expect(openButton).not.toBeNull()
+
+    await act(async () => {
+      openButton?.click()
+    })
+
+    expect(useNotepadStore.getState().activeNoteId).toBe(noteId)
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'notepad',
+        hostMode: 'floating',
+      }),
+    )
+    expect(
+      container?.querySelector('.DashboardFloatingWindow[data-workspace-surface-instance-id="dashboard-surface-1"]'),
+    ).toBeNull()
+    expect(
+      container?.querySelector('.NotepadFloatingWindow[data-workspace-surface-instance-id="dashboard-surface-1"]'),
+    ).not.toBeNull()
+  })
+
+  it('persists dragged sticky-note placement through dashboard widget storage', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Drag me',
+      body: 'Move this card and keep the layout.',
+      isPinned: true,
+    })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+    mockRect(container?.querySelector('[data-dashboard-lane-board="todo"]'), {
+      left: 360,
+      top: 180,
+      width: 720,
+      height: 480,
+    })
+
+    const stickyTitleBar = container?.querySelector('.DashboardStickyNoteTitleBar') as HTMLDivElement | null
+    expect(stickyTitleBar).not.toBeNull()
+
+    await act(async () => {
+      stickyTitleBar?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          pointerId: 1,
+          clientX: 400,
+          clientY: 220,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 560,
+          clientY: 360,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          clientX: 560,
+          clientY: 360,
+        }),
+      )
+    })
+
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+      noteId,
+      laneId: 'todo',
+      x: 184,
+      y: 164,
+    })
+    expect(
+      JSON.parse(window.localStorage.getItem(dashboardStorageKey) ?? 'null'),
+    ).toEqual(
+      expect.objectContaining({
+        stickyNoteLayoutsByNoteId: expect.objectContaining({
+          [noteId]: expect.objectContaining({
+            noteId,
+            laneId: 'todo',
+            x: 184,
+            y: 164,
+          }),
+        }),
+      }),
+    )
+  })
+
+  it('hydrates persisted dashboard widget layouts independently from workspace-layout restore', async () => {
+    const noteId = useNotepadStore.getState().createNote({
+      title: 'Recovered dashboard note',
+      body: 'Pinned notes should land back on the same board coordinates.',
+      isPinned: true,
+    })
+    const persistedDashboardStateJson = JSON.stringify({
+      version: 2,
+      lanes: [
+        { id: 'todo', title: 'TO DO', order: 0, width: 1 },
+        { id: 'completed', title: 'Completed', order: 1, width: 1 },
+      ],
+      stickyNoteLayoutsByNoteId: {
+        [noteId]: {
+          noteId,
+          laneId: 'completed',
+          x: 420,
+          y: 168,
+        },
+      },
+    })
+    window.localStorage.setItem(dashboardStorageKey, persistedDashboardStateJson)
+    const originalStorageGetItem = Storage.prototype.getItem
+    const storageGetItemSpy = vi
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(function (this: Storage, key: string) {
+        if (this === window.localStorage && key === dashboardStorageKey) {
+          return persistedDashboardStateJson
+        }
+        return Reflect.apply(originalStorageGetItem, this, [key]) as string | null
+      })
+    useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    try {
+      ;({ container, root } = await renderAppShell())
+      await vi.waitFor(() => {
+        expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId[noteId]).toEqual({
+          noteId,
+          laneId: 'completed',
+          x: 420,
+          y: 168,
+        })
+      })
+      const stickyNote = container?.querySelector(
+        '.DashboardSurfaceLane[data-dashboard-lane="completed"] .DashboardStickyNote',
+      ) as HTMLElement | null
+      expect(stickyNote?.style.left).toBe('420px')
+      expect(stickyNote?.style.top).toBe('168px')
+    } finally {
+      storageGetItemSpy.mockRestore()
+    }
   })
 
   it('clears a non-primary model viewport popout when the child window closes', async () => {

@@ -2462,3 +2462,19 @@ These can reinforce each other without becoming the same feature.
   - richer saved test scenarios
   - setup comparison workflows
   - later ties to studies, AI help, and manufacture validation
+
+### [ ] - [18] - Viewport runtime inspector - show model stats, worker cards, and rebuild impact under the ParaHook Generator panel
+
+- ParaHook could eventually expand the top-left `ParaHook Generator v20` title card into a viewport-local runtime inspector
+- the compact closed state can keep the current title, overall state, and progress bar
+- the expanded state could reveal:
+  - viewport and model stats such as triangles, lines, points, and FPS
+  - current worker activity as named cards instead of one anonymous loading bar
+  - build order visibility so the user can see what is queued, active, done, reused, or errored
+  - change-impact visibility so the user can understand what rebuilt after a parameter edit and what did not need to change
+- this would be especially useful once larger procedural models exist, because users will want proof of:
+  - what is rebuilding
+  - what stayed cached or reused
+  - which spaghetti or dependency regions were affected by the last change
+- a dedicated planning doc now lives at:
+  - `docs/Human-Plans/Wish-Features/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector.md`
