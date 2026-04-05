@@ -118,6 +118,9 @@ export function ExtrudeFeatureView({
     offsetDriven && typeof offsetVirtualInputState?.drivenValue === 'number'
       ? offsetVirtualInputState.drivenValue
       : feature.params.offset?.value ?? 0
+  const extrudeType = feature.params.extrudeType ?? 'Body'
+  const typeSummary =
+    extrudeType === 'Walls' ? 'Uncapped side-wall output' : 'Capped body output'
 
   const renderLinkedInputStatus = (
     label: string,
@@ -145,6 +148,14 @@ export function ExtrudeFeatureView({
 
   return (
     <div className="SpaghettiFeatureBody" {...SP_INTERACTIVE_PROPS}>
+      <div className="SpaghettiFeatureSectionHeader">
+        <span>Type</span>
+      </div>
+      <div className="SpaghettiFeatureLinkedStatus">
+        <span className="SpaghettiFeatureLinkedBadge">{extrudeType}</span>
+        <span className="SpaghettiFeatureLinkedValue">{typeSummary}</span>
+      </div>
+
       <div className="SpaghettiFeatureSectionHeader">
         <span>Depth</span>
       </div>
@@ -203,9 +214,9 @@ export function ExtrudeFeatureView({
       />
 
       <div className="fsPrev_extrudeSummary">
-        Profile: {profileSummary}, Depth: {formatStableNumber(depthValue)}, Taper: {formatStableNumber(
-          taperValue,
-        )}, Offset: {formatStableNumber(offsetValue)}
+        Type: {extrudeType}, Result: {typeSummary}, Profile: {profileSummary}, Depth:{' '}
+        {formatStableNumber(depthValue)}, Taper: {formatStableNumber(taperValue)}, Offset:{' '}
+        {formatStableNumber(offsetValue)}
       </div>
 
       <div className="SpaghettiFeatureSectionHeader">

@@ -1,3 +1,5 @@
+import type { SketchPlaneTransform } from '../../app/spaghetti/features/featureTypes'
+import { projectSketchPointToWorld } from '../../shared/sketchPlaneFrame'
 import type { Face, MeshPack, Point2, Shape3D, Wire } from './cadTypes'
 
 type SketchPlane = 'XY' | 'XZ' | 'YZ'
@@ -53,40 +55,41 @@ export const faceFromWire = (wire: Wire): Face => ({
   wire,
 })
 
-const toPlanePoint3 = (plane: SketchPlane, point: Point2, depth = 0): [number, number, number] => {
-  if (plane === 'XZ') {
-    return [point.x, depth, point.y]
-  }
-  if (plane === 'YZ') {
-    return [depth, point.x, point.y]
-  }
-  return [point.x, point.y, depth]
-}
-
-const extrudeMesh = (wire: Wire, plane: SketchPlane, depth: number): MeshPack => {
+const extrudeMesh = (
+  wire: Wire,
+  plane: SketchPlane,
+  depth: number,
+  planeTransform?: SketchPlaneTransform,
+  options?: {
+    capped?: boolean
+  },
+): MeshPack => {
   if (!Number.isFinite(depth) || depth <= 0) {
     throw new Error('Extrude depth must be positive and finite.')
   }
 
+  const capped = options?.capped !== false
   const loop = wire.vertices
   const n = loop.length
   const vertices: number[] = []
   const indices: number[] = []
 
   for (const point of loop) {
-    const [x, y, z] = toPlanePoint3(plane, point, 0)
-    vertices.push(x, y, z)
+    const worldPoint = projectSketchPointToWorld(plane, planeTransform, point, 0)
+    vertices.push(worldPoint.x, worldPoint.y, worldPoint.z)
   }
   for (const point of loop) {
-    const [x, y, z] = toPlanePoint3(plane, point, depth)
-    vertices.push(x, y, z)
+    const worldPoint = projectSketchPointToWorld(plane, planeTransform, point, depth)
+    vertices.push(worldPoint.x, worldPoint.y, worldPoint.z)
   }
 
-  for (let index = 1; index < n - 1; index += 1) {
-    indices.push(0, index + 1, index)
-  }
-  for (let index = 1; index < n - 1; index += 1) {
-    indices.push(n, n + index, n + index + 1)
+  if (capped) {
+    for (let index = 1; index < n - 1; index += 1) {
+      indices.push(0, index + 1, index)
+    }
+    for (let index = 1; index < n - 1; index += 1) {
+      indices.push(n, n + index, n + index + 1)
+    }
   }
   for (let index = 0; index < n; index += 1) {
     const next = (index + 1) % n
@@ -101,10 +104,14 @@ export const extrudeFaceAlongZ = (
   face: Face,
   depth: number,
   metadata: Pick<Shape3D, 'bodyId' | 'featureId' | 'op' | 'partKey'>,
+  planeTransform?: SketchPlaneTransform,
+  options?: {
+    capped?: boolean
+  },
 ): Shape3D => ({
   kind: 'extrusion',
   ...metadata,
-  mesh: extrudeMesh(face.wire, 'XY', depth),
+  mesh: extrudeMesh(face.wire, 'XY', depth, planeTransform, options),
 })
 
 export const extrudeFaceOnPlane = (
@@ -112,10 +119,14 @@ export const extrudeFaceOnPlane = (
   plane: SketchPlane,
   depth: number,
   metadata: Pick<Shape3D, 'bodyId' | 'featureId' | 'op' | 'partKey'>,
+  planeTransform?: SketchPlaneTransform,
+  options?: {
+    capped?: boolean
+  },
 ): Shape3D => ({
   kind: 'extrusion',
   ...metadata,
-  mesh: extrudeMesh(face.wire, plane, depth),
+  mesh: extrudeMesh(face.wire, plane, depth, planeTransform, options),
 })
 
 export const mergeMeshPacks = (meshes: readonly MeshPack[]): MeshPack => {

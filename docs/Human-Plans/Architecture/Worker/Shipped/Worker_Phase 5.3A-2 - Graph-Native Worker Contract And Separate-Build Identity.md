@@ -189,7 +189,7 @@ This is the canonical identity for:
 Why `output entry` wins in this phase:
 - it matches the current graph publication seam better than legacy part-family names
 - it matches current `Browser` and project-content ownership better than a raw `slot`-only identity
-- it is more stable for later `Receive` and `Pasta Path` consumption than `published object`, which is a downstream projection layer
+- it is more stable for later `Receive` and `Build Path` consumption than `published object`, which is a downstream projection layer
 
 Locked implications:
 - `published object` is not the canonical worker build unit

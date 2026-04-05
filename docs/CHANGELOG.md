@@ -65,6 +65,2079 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1068 -->
+### [1068] - 2026-04-05 13:23 - `Extrude-3.1 Follow-up - Current-State Type Row Param Commit Path`
+<!-- ENTRY 1068 -->
+HUMAN SUMMARY: `Changed the live \`Geometry/Extrude\` param write path so the visible \`Type\` row now commits through the current-state graph-command flow instead of a stale \`NodeView\` graph snapshot. This narrows the remaining enum-row bug surface to real canvas interaction behavior instead of stale param commits.`  
+#### Scope / Constraints Honored
+- Kept this follow-up limited to the live `Extrude` param commit path in the canvas row.
+- Left `Body / Walls` runtime semantics, enum-row styling, and later `Extrude-3.3` direction work unchanged.
+- Preserved the existing `setNodeParams` graph command and only changed how `NodeView` applies it.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so `updateExtrudeParams` now uses `applyGraphCommand(setNodeParamsCommand(...))` instead of computing a next graph from the captured `graph` snapshot and pushing it through `setGraph`.
+- This aligns `Extrude` row writes with the current-state canvas command path already used elsewhere in `SpaghettiCanvas`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+
+#### Behavior Changes
+- `Geometry/Extrude` `Type` and `Depth` row edits now commit against the live current graph state instead of a potentially stale `NodeView` snapshot.
+
+#### Verification Steps
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1067 -->
+### [1067] - 2026-04-05 13:04 - `Extrude-3.1 Phase 5 - Primitive Enum Row Value Ownership Parity`
+<!-- ENTRY 1067 -->
+HUMAN SUMMARY: `Aligned the live \`Geometry/Extrude\` \`Type\` row to the same local-versus-driven ownership rule already proven by \`Depth\`. Unwired enum rows now stay on the authored \`Body / Walls\` value, while real incoming whole-number wires still own the effective displayed slot and disable local editing honestly.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to primitive enum-row value ownership parity.
+- Preserved the existing `Body / Walls` authored-state and runtime geometry semantics.
+- Left `Direction`, `Wall Thickness`, `Taper Angle`, and later `Extrude-3` semantics out of scope.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so `Geometry/Extrude` only treats evaluated numeric `Type` input as authoritative when a real whole-number `Type` wire exists.
+- Added focused regressions in `src/app/spaghetti/selectors/selectNodeVm.test.ts` and refreshed the shared helper wording in `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts` so the enum row now explicitly follows the same ownership contract as `Depth`.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+
+#### Behavior Changes
+- Unwired `Geometry/Extrude` `Type` rows now keep the authored `Body / Walls` value after arrow clicks, menu selection, and drag changes.
+- Driven `Type` rows still follow the effective whole-number-mapped slot and disable local editing.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx src/app/components/ParaSelect.test.tsx`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1066 -->
+### [1066] - 2026-04-05 12:52 - `Extrude-3.1 Follow-up - Unwired Type Selector State Sync Fix`
+<!-- ENTRY 1066 -->
+HUMAN SUMMARY: `Fixed the live \`Geometry/Extrude\` \`Type\` row so unwired selector changes no longer snap back to \`Body\`. The selector VM now only treats evaluated numeric input as authoritative when a real incoming whole-number wire exists, which makes the visible arrows, drag handle, and dropdown menu finally stay on the authored \`Body / Walls\` choice.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the live `Extrude Type` selector state-sync bug.
+- Preserved the existing `Body / Walls` runtime geometry behavior and the whole-number driven enum-input contract.
+- Left `Direction`, `Wall Thickness`, `Taper Angle`, and later `Extrude-3` semantics out of scope.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so the effective `Geometry/Extrude` type only follows `evaluation.inputsByNodeId[nodeId].Type` when a real whole-number input edge is connected.
+- Added a focused regression in `src/app/spaghetti/selectors/selectNodeVm.test.ts` proving unwired extrudes keep the authored `Walls` selection instead of snapping back to the evaluator's default `0 -> Body`.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+
+#### Behavior Changes
+- Unwired `Geometry/Extrude` `Type` rows now keep the authored `Body / Walls` value after arrow clicks, menu selection, and drag changes.
+- Wired `Type` rows still use rounded/clamped whole-number input to choose the effective enum slot.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/components/ParaSelect.test.tsx`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1065 -->
+### [1065] - 2026-04-05 12:42 - `Extrude-3.1 Follow-up - ParaSelect-Backed Type Row Interaction Parity Repair`
+<!-- ENTRY 1065 -->
+HUMAN SUMMARY: `Restored the live \`Geometry/Extrude\` \`Type\` row to the proven \`ParaSelect\` interaction core while keeping the settled node-row shell styling. The enum row now gets its visible arrows, drag handle, fill, and dropdown menu behavior from the same tested selector path that already works elsewhere in the app, and the node-row CSS no longer clips that custom menu stack.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the live `Extrude Type` row interaction parity repair.
+- Preserved the existing `Body / Walls` authored-state and runtime geometry semantics.
+- Explicitly left `Direction`, `Wall Thickness`, `Taper Angle`, and later `Extrude-3` semantics out of scope.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` so the node enum row now hosts a real `ParaSelect` behavior core again while keeping the port shell and pin framing in place.
+- Updated `src/app/theme/surfaces/spaghetti.css` so the node-row selector track no longer clips the custom dropdown menu, gives the handle/button stack the correct z-order, and applies dedicated node-row menu styling for the visible `Type` row.
+- Tightened `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx` so the focused enum-row coverage now follows the actual `ParaSelect` value/drag behavior instead of the abandoned custom lane expectations.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- The visible `Geometry/Extrude` `Type` row now uses the same proven `ParaSelect` step/menu/drag behavior path as the working selectors elsewhere in the app.
+- The custom `Type` dropdown menu can render out of the node-row track instead of being clipped inside it.
+- The enum row keeps the settled node-shell look while regaining the tested selector interaction model.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/components/ParaSelect.test.tsx`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- The broader `NodeView` suites remain blocked before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1064 -->
+### [1064] - 2026-04-05 12:22 - `Extrude-3.1 Follow-up - Shell-Owned Enum Row Interaction Repair`
+<!-- ENTRY 1064 -->
+HUMAN SUMMARY: `Rebuilt the live \`Geometry/Extrude\` \`Type\` row onto the same shell-owned primitive-row pattern that made \`Depth\` stable. The visible enum arrows, fill, and marker now come from the node row itself instead of the older embedded \`ParaSelect\` chrome, so the row is finally trustworthy enough to test the shipped \`Body / Walls\` behavior from the node UI.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared `Extrude Type` enum-row interaction repair.
+- Preserved the existing `Body / Walls` authored-state and runtime geometry contract.
+- Explicitly left `Direction`, `Wall Thickness`, `Taper Angle`, and further `Extrude-3` semantics out of scope.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` so node enum rows now own their shell, endcaps, lane, fill, and marker directly instead of embedding the older `ParaSelect` custom-mode widget path.
+- Updated `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts` so the renderer gets explicit local/effective labels plus selected/displayed slot indices and option counts.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/theme/surfaces/spaghetti.css` so the `Type` row now uses the settled `Depth`-style shell language with discrete enum fill behavior.
+- Added focused regressions in `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`, refreshed `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`, and tightened the static/dynamic `NodeView` assertions around the visible enum row controls.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- Unwired `Geometry/Extrude` `Type` rows now step `Body <-> Walls` from the visible left/right endcaps.
+- The enum fill and marker now visibly snap between the discrete authored slots.
+- Driven enum rows still disable local edits while showing the effective driven slot honestly.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` still fails before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1063 -->
+### [1063] - 2026-04-05 12:02 - `Extrude-3.2 Phase 3 - Type Surface Honesty Cleanup`
+<!-- ENTRY 1063 -->
+HUMAN SUMMARY: `Finished the visible `Geometry/Extrude` `Body / Walls` cleanup by aligning the live node summary and the feature-style extrude surface to the now-shipped geometry meaning. `Body` now reads as a capped result, `Walls` now reads as uncapped side walls, and the remaining surface wording no longer sounds like the older placeholder type story.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to `Extrude 3.2 Phase 3 - Type Surface Honesty Cleanup`.
+- Left the current row order, selector behavior, and single `SolidBody` output lane unchanged.
+- Explicitly deferred `Direction`, `Wall Thickness`, `Taper Angle`, and `Operation`.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live extrude summary copy is now type-aware in both ready and waiting states.
+- Updated `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx` so the feature-style extrude surface now explicitly surfaces `Type` and uses matching `Body / Walls` result wording in its summary text.
+- Refreshed `src/app/spaghetti/canvas/NodeView.test.tsx` to record the new visible `Body / Walls` node-summary wording.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+
+#### Behavior Changes
+- Ready `Extrude` nodes now say `Body ready ... (capped result)` or `Walls ready ... (uncapped side walls)` instead of using one generic summary.
+- Waiting `Extrude` nodes now keep the same explicit capped-versus-uncapped authored story.
+- The feature-style extrude surface now exposes `Type` and uses matching result wording instead of leaving that meaning implied.
+
+#### Verification Steps
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx` still fails before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1062 -->
+### [1062] - 2026-04-05 11:55 - `Extrude-3.2 Phase 2 - Body Versus Walls Geometry Meaning`
+<!-- ENTRY 1062 -->
+HUMAN SUMMARY: `Made the authored \`Geometry/Extrude\` \`Body / Walls\` selector mean something real in shipped geometry. The compiler and worker runtime now carry the authored type through to execution, \`Body\` stays capped, \`Walls\` emits uncapped side-wall geometry, and the live node copy no longer says that split is still deferred.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to `Extrude 3.2 Phase 2 - Body Versus Walls Geometry Meaning`.
+- Preserved the current single `SolidBody` output lane instead of widening into a new artifact family.
+- Explicitly left `Direction`, depth splitting, `Wall Thickness`, `Taper Angle`, and `Operation` out of scope.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/features/featureTypes.ts`, `src/app/spaghetti/features/featureSchema.ts`, and `src/app/spaghetti/features/compileFeatureStack.ts` so authored extrude features now carry `extrudeType: Body | Walls` through the canonical feature-stack schema and compiled IR.
+- Updated `src/app/spaghetti/compiler/compileGraph.ts` so graph-native `Geometry/Extrude` compilation now preserves the authored `Body / Walls` mode inside the runtime payload.
+- Updated `src/worker/cad/cadKernelAdapter.ts` and `src/worker/cad/featureStackRuntime.ts` so `Body` remains a capped extrusion while `Walls` emits uncapped side-wall geometry through the current first output lane.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the visible extrude summary copy now matches the shipped geometry split instead of saying that walls geometry is deferred to a future phase.
+- Added focused compiler/runtime/build regressions proving `Walls` survives compilation and emits uncapped meshes.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/features/compileFeatureStack.test.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/app/spaghetti/features/featureSchema.ts`
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/worker/cad/cadKernelAdapter.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+
+#### Behavior Changes
+- `Geometry/Extrude` now generates a capped mesh for `Body` and an uncapped side-wall mesh for `Walls`.
+- The graph-native compile/runtime path now preserves the authored extrude type instead of lowering both modes to the same generic extrude geometry.
+- The live extrude node copy no longer claims the `Walls` geometry split is still waiting on a future phase.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/features/compileFeatureStack.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1061 -->
+### [1061] - 2026-04-05 11:41 - `Extrude-3.2 Phase 1 - Type Names And Authored State Contract`
+<!-- ENTRY 1061 -->
+HUMAN SUMMARY: `Renamed the live \`Geometry/Extrude\` type selector from the placeholder \`Basic / Twist\` story to the real authored \`Body / Walls\` contract, aligned the selector VM and row state with those names, and kept older stored extrude params compatible by normalizing them onto the new canonical values.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the `Extrude 3.2 Phase 1` authored-state contract work.
+- Preserved the shared enum-row template from `Extrude-3.1` instead of reopening that row-family foundation.
+- Explicitly deferred the actual capped-versus-uncapped geometry split to `Extrude 3.2 Phase 2`.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/registry/nodeRegistry.ts` so `Body` and `Walls` are now the canonical `Geometry/Extrude` type options, while older stored `Basic` / `Twist` values still normalize cleanly for compatibility.
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so the live selector VM now reports local and effective extrude type state through the same canonical `Body / Walls` language.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the visible shared `Type` row now offers `Body` and `Walls`, and the old placeholder copy no longer appears in the live authored surface.
+- Refreshed the focused enum/extrude tests to prove the renamed selector contract and whole-number-driven enum mapping still behave correctly.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- The live `Extrude Type` row now uses `Body` and `Walls` instead of `Basic` and `Twist`.
+- Whole-number-driven `Type` input still maps deterministically by slot index, but now resolves to `Body` / `Walls`.
+- Older stored `Basic` / `Twist` values continue to load by normalizing to `Body` / `Walls`.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx` still fails before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1060 -->
+### [1060] - 2026-04-05 11:10 - `Extrude-3.1 Phase 4 - Enum Row Fill And Endcap Cleanup`
+<!-- ENTRY 1060 -->
+HUMAN SUMMARY: `Finished the enum-row cleanup pass by moving the shared \`Extrude Type\` row onto the sturdier custom \`ParaSelect\` track path, fixing the fill/handle response and endcap stepping there, and tightening the enum chevrons to the same settled geometry already used by the \`Depth\` row.`  
+#### Scope / Constraints Honored
+- Kept this pass narrow to the shared enum-row cleanup issues left over after `Extrude-3.1 Phase 3`.
+- Preserved the real `Type` input pin plus whole-number-driven enum contract.
+- Left the broader `Extrude-3` authored semantics and any graph-port-type expansion untouched.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` so the enum row now uses the custom `ParaSelect` track path instead of the simpler native selector path.
+- Hardened `src/app/components/ParaSelect.tsx` by stopping endcap `pointerdown` bubbling, aligning the custom value handle with the live fill percentage, and switching the cap chevrons to the exact `Depth` SVG geometry.
+- Tightened `src/app/theme/surfaces/spaghetti.css` so the enum custom track clips correctly inside the row shell and the handle/marker lane renders as a stable node-row control.
+- Extended `src/app/components/ParaSelect.test.tsx` to prove custom-mode driven fill, endcap stepping, and handle scrub all move together.
+
+#### Files Changed
+- `src/app/components/ParaSelect.test.tsx`
+- `src/app/components/ParaSelect.tsx`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- `Extrude Type` now uses the stronger custom selector track, so the fill/marker behavior is the same shared path used by the working selector surfaces.
+- The enum endcap arrows now step more reliably and visually match the settled `Depth` chevrons more closely.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/components/ParaSelect.test.tsx src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1059 -->
+### [1059] - 2026-04-05 10:56 - `Extrude-3.1 Phase 3 - Whole-Number Driven Enum Input`
+<!-- ENTRY 1059 -->
+HUMAN SUMMARY: `Finished the \`Extrude Type\` enum-row ladder by giving \`Geometry/Extrude\` a real unitless-number \`Type\` input pin, mapping whole-number numeric wires deterministically to \`Basic\` / \`Twist\`, and making the shared enum row show the driven effective slot while preserving the local authored fallback value.`  
+#### Scope / Constraints Honored
+- Kept this first driven enum contract on existing number ports instead of widening the graph to a new enum/string port kind.
+- Preserved the one-line enum row shell and the `SketchProfile -> Type -> Depth` input rhythm from `Extrude 3.1 Phase 2`.
+- Left the later `Body/Profile` authored-semantics rename and broader `Extrude-3` type/extent meaning work untouched.
+
+#### Summary of Implementation
+- Added a real `Type` input port plus deterministic whole-number-to-slot helpers in `src/app/spaghetti/registry/nodeRegistry.ts`, and used that numeric input during `Geometry/Extrude` compute-time type resolution.
+- Extended `src/app/spaghetti/selectors/selectNodeVm.ts` so extrude view-model state now carries the local authored type, driven state, and effective displayed type separately.
+- Reworked `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts` so the shared enum-row helper now splits local fallback text from the displayed driven slot plus disabled/driven state.
+- Updated `src/app/components/ParaSelect.tsx` so fill/marker can follow a driven effective value while the visible text still shows the preserved local authored fallback.
+- Rebuilt `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` into a true pin-bearing shared input row with stable enum color treatment and drop-state handling, then wired that real endpoint into `src/app/spaghetti/canvas/NodeView.tsx`.
+- Added focused regression coverage for the helper, selector, selector VM, and static extrude row fixtures.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts`
+- `src/app/spaghetti/canvas/typeColors.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- `Geometry/Extrude` now exposes a real `Type` input pin using a stable enum-row color.
+- Wiring a whole-number numeric source into `Extrude Type` now rounds/clamps to the valid enum slot range and drives the effective `Basic` / `Twist` selection.
+- While driven, the shared enum row disables local authored editing, keeps the local fallback visible, and snaps fill/marker to the driven effective slot.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/components/ParaSelect.test.tsx src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- Direct `NodeView` suites still remain blocked before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1058 -->
+### [1058] - 2026-04-05 10:33 - `Extrude-3.1 Phase 2 - Enum Row Interactive Shielding Fix`
+<!-- ENTRY 1058 -->
+HUMAN SUMMARY: `Fixed the shared \`Extrude Type\` enum row so its arrow/endcap clicks stop bubbling into the canvas drag layer, which lets the right-side step control reliably advance from \`Basic\` to \`Twist\` the same way the isolated shared selector already does.`  
+#### Scope / Constraints Honored
+- Kept this follow-up narrow to the enum-row interaction bug.
+- Reused the existing shared interactive shielding pattern instead of redesigning the enum row again.
+- Left the later pin-driven enum behavior for `Extrude 3.1 Phase 3`.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` so the shared enum row now uses `SP_INTERACTIVE_PROPS` like the working port-row controls.
+- This stops pointer-down on the enum-row controls from bubbling into the node/canvas drag path before the selector click can complete.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+
+#### Behavior Changes
+- Clicking the right enum-row endcap now reliably advances `Extrude Type` from `Basic` to `Twist` in-node instead of being swallowed by canvas interaction.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/components/ParaSelect.test.tsx`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1057 -->
+### [1057] - 2026-04-05 10:21 - `Extrude-3.1 Phase 2 - Enum Row Visual Shell Parity`
+<!-- ENTRY 1057 -->
+HUMAN SUMMARY: `Settled the first live \`Extrude Type\` enum row into the same calmer node-row language used by \`SketchProfile\` and \`Depth\` by reordering the input stack, removing the extra nested selector-box feel, and reusing primitive-style chevron endcaps through the shared \`ParaSelect\` path.`  
+#### Scope / Constraints Honored
+- Kept this pass focused on visual shell parity for the shared enum row.
+- Left the later enum input pin, port color, and whole-number-driven behavior for `Extrude 3.1 Phase 3`.
+- Reused the existing `Basic/Twist` param and selector behavior without widening the graph schema.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the `Extrude` input stack now reads `SketchProfile -> Type -> Depth`.
+- Simplified `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` to one visible shell and reused shared chevron-cap rendering from `src/app/components/ParaSelect.tsx`.
+- Reworked `src/app/theme/surfaces/spaghetti.css` so the enum row shell, track, fill, marker, label lane, and selected-value lane now read closer to the settled `Depth` row instead of a nested `ParaSelect` widget.
+- Tightened `src/app/spaghetti/canvas/NodeView.test.tsx` to assert the new enum-row shell and row ordering.
+
+#### Files Changed
+- `src/app/components/ParaSelect.tsx`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+
+#### Behavior Changes
+- `Extrude Type` now renders after `SketchProfile` and before `Depth` under `Inputs`.
+- The shared enum row now uses the calmer primitive-row shell language with one visible shell and chevron endcaps.
+
+#### Verification Steps
+- Passed `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/components/ParaSelect.test.tsx`
+- Passed `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx` still fails before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1056 -->
+### [1056] - 2026-04-05 09:58 - `Extrude-3.1 - Shared Enum Input Row And Type Selector`
+<!-- ENTRY 1056 -->
+HUMAN SUMMARY: `Added the first shared enum-row template through a new \`StructuredWireEnumRow\` plus helper, then used it to move \`Extrude Type\` out of the old local Details-hosted button group and into the node \`Inputs\` rail. This keeps the first adoption narrow by reusing the existing \`Basic/Twist\` param instead of widening into a new graph enum port type in the same pass.`  
+#### Scope / Constraints Honored
+- Kept this pass focused on the reusable enum-row template plus the first live `Extrude Type` adoption.
+- Reused the existing `extrudeType` node param and current `Basic/Twist` selector pair.
+- Avoided widening the graph port schema into a new enum/string port kind during this first template pass.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts` as the first shared helper for enum-row value/options wiring.
+- Added `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` as the first shared row-owned enum selector view, reusing `ParaSelect`.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so `Geometry/Extrude` now renders `Type` under `Inputs` and no longer uses the old local Details-hosted button group.
+- Updated `src/app/theme/surfaces/spaghetti.css` so the new enum row fits the existing Spaghetti input-shell rhythm.
+- Added focused helper coverage in `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`, refreshed the static extrude render expectations in `src/app/spaghetti/canvas/NodeView.test.tsx`, and tightened the interactive geometry-mode expectations in `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.ts`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- `Extrude Type` now renders as a shared one-line enum control row under `Inputs`.
+- The old `Details` rail no longer exists on the current extrude node template because it only hosted the old local type buttons.
+- Changing the shared `Type` row writes back to `node.params.extrudeType` through the new shared path.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/components/ParaSelect.test.tsx`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- Still blocked before collection: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` (`Worker is not defined`)
+
+<!-- ENTRY 1055 -->
+### [1055] - 2026-04-05 03:08 - `Nodes-2.5C - Primitive Row Endcap Width Expansion`
+<!-- ENTRY 1055 -->
+HUMAN SUMMARY: `Expanded both primitive \`Depth\` row endcaps by 3px while keeping the left side anchored left and the right side anchored right, so the step controls have more breathing room and the label lane can align a little closer to `SketchProfile`. This keeps the current slider behavior intact while giving the primitive row cleaner endcap proportions.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to primitive row endcap width and resulting label-lane spacing.
+- Preserved the current chevron offsets, fill behavior, and step-button wiring.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive row grid now allocates 15px endcap columns instead of 12px.
+- Matched the primitive endcap button width and min-width to those larger columns so each endcap expands inward from its anchored outer edge.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row endcaps are wider and the content lane sits slightly closer to the target alignment against `SketchProfile`.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1054 -->
+### [1054] - 2026-04-05 03:09 - `Nodes-2.5C - Primitive Row Label Lane Right Nudge`
+<!-- ENTRY 1054 -->
+HUMAN SUMMARY: `Nudged the primitive \`Depth\` row content lane 2px to the right so the label sits a little closer to the desired alignment against \`SketchProfile\`. This keeps the endcaps, fill, and marker behavior intact while making the left-side text lane feel less cramped against the fill edge.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to primitive row content-lane spacing.
+- Preserved the current endcap widths, fill behavior, and slider sync logic.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive lane-content left padding increases from `2px` to `4px`.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row label and value lane now sit 2px farther right inside the slider track.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1053 -->
+### [1053] - 2026-04-05 03:08 - `Nodes-2.5C - Primitive Row Wider Endcaps`
+<!-- ENTRY 1053 -->
+HUMAN SUMMARY: `Widened both primitive \`Depth\` row endcaps by 3px while keeping each one anchored to its outer edge. This gives the chevrons a little more breathing room and helps the `Depth` label lane sit closer to the `SketchProfile` alignment without changing the slider behavior.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive row endcap widths and resulting label-lane positioning.
+- Preserved the current endcap alignment offsets, fill behavior, and step-button wiring.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive row grid now uses 15px endcap columns instead of 12px.
+- Matched the endcap button width and min-width to the new 15px columns so the left endcap expands inward from the left and the right endcap expands inward from the right.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row endcaps are wider, and the label lane should sit slightly closer to the `SketchProfile` text alignment.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1052 -->
+### [1052] - 2026-04-05 03:05 - `Nodes-2.5C - Primitive Row Left Chevron Offset`
+<!-- ENTRY 1052 -->
+HUMAN SUMMARY: `Matched the primitive \`Depth\` row left chevron to the same offset treatment as the right chevron so both endcaps land symmetrically inside their buttons. This keeps the current SVG icon approach intact while cleaning up the last obvious imbalance between the two step controls.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive row left chevron alignment.
+- Preserved the current endcap layout, fill behavior, and step-button wiring.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the left primitive endcap icon now receives a matching horizontal offset opposite the right icon.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row left chevron now sits farther toward the visual center of the left endcap, matching the right-side alignment treatment.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1051 -->
+### [1051] - 2026-04-05 03:04 - `Nodes-2.5C - Primitive Row Right Chevron Offset`
+<!-- ENTRY 1051 -->
+HUMAN SUMMARY: `Nudged the primitive \`Depth\` row right chevron slightly left after it still looked visually offset inside the right endcap. This keeps the current SVG icon approach intact while correcting the last obvious horizontal alignment issue without disturbing the left icon or the button layout.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive row right chevron alignment.
+- Preserved the current endcap layout, fill behavior, and step-button wiring.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the right primitive endcap icon receives a small leftward transform inside its button box.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row right chevron now sits slightly farther left inside the right endcap, closer to the visual center of the button.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1050 -->
+### [1050] - 2026-04-05 03:03 - `Nodes-2.5C - Primitive Row Chevron Horizontal Centering`
+<!-- ENTRY 1050 -->
+HUMAN SUMMARY: `Rebalanced the primitive \`Depth\` row SVG chevrons after they still looked visually anchored to the right inside their endcap boxes. This keeps the same SVG icon approach while tightening the actual chevron geometry and icon width so both arrows sit more centrally left-to-right.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to primitive row endcap icon geometry.
+- Preserved the current endcap layout, fill behavior, and step-button wiring.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` to rebalance the SVG polyline points for the left and right primitive chevrons.
+- Updated `src/app/theme/surfaces/spaghetti.css` to tighten the icon width and explicitly center the SVG with auto margins inside the endcap boxes.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row chevrons should now sit more evenly centered left-to-right inside the endcaps.
+
+#### Verification Steps
+- Not run: focused visual markup/CSS-only follow-up pass
+
+<!-- ENTRY 1049 -->
+### [1049] - 2026-04-05 03:02 - `Nodes-2.5C - Primitive Row SVG Chevron Endcaps`
+<!-- ENTRY 1049 -->
+HUMAN SUMMARY: `Replaced the primitive \`Depth\` row border-drawn chevrons with explicit SVG chevrons after the prior icon pass still read like slashes instead of arrows. This keeps the endcap layout and step behavior intact while making the arrow shape visually unambiguous.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive row endcap icon shape.
+- Preserved the current endcap layout, fill behavior, and step-button wiring.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so the primitive row endcaps now render tiny inline SVG chevrons.
+- Updated `src/app/theme/surfaces/spaghetti.css` so the endcap icon styling targets SVG polylines instead of the previous border-rotation glyph construction.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row endcaps now render crisp SVG chevrons instead of slash-like border glyphs.
+
+#### Verification Steps
+- Not run: focused visual markup/CSS-only follow-up pass
+
+<!-- ENTRY 1048 -->
+### [1048] - 2026-04-05 03:00 - `Nodes-2.5C - Primitive Row Centered Chevron Icons`
+<!-- ENTRY 1048 -->
+HUMAN SUMMARY: `Replaced the primitive \`Depth\` row endcap glyphs with tiny drawn chevrons so the left and right controls can be centered precisely inside their endcap boxes. This keeps the current step-button behavior intact while fixing the remaining visual drift caused by font-based glyph bearings.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive row endcap icon rendering.
+- Preserved the current primitive row layout, fill behavior, and step-button wiring.
+- Avoided any interaction, helper, or selector changes.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so each primitive endcap now renders a dedicated glyph span instead of a text character.
+- Added `src/app/theme/surfaces/spaghetti.css` styles for small drawn chevrons based on borders and rotation, allowing exact horizontal and vertical centering inside the endcap buttons.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row left and right step controls now use centered drawn chevron icons instead of font-based symbols.
+
+#### Verification Steps
+- Not run: focused visual markup/CSS-only follow-up pass
+
+<!-- ENTRY 1047 -->
+### [1047] - 2026-04-05 02:59 - `Nodes-2.5C - Primitive Row Shell Inset And Grid Fix`
+<!-- ENTRY 1047 -->
+HUMAN SUMMARY: `Fixed the remaining primitive \`Depth\` row height blocker by giving the row the same shell inset rhythm the profile row uses and by stopping the internal lane, dividers, and endcaps from stretching full shell height. This keeps the working slider behavior intact while making the primitive row occupy the shell more like `SketchProfile` instead of reading as a taller full-bleed control.`  
+#### Scope / Constraints Honored
+- Kept this pass focused on the primitive row shell inset, internal stretch behavior, and related layout correctness.
+- Preserved the current fill, marker, continuous-track layout, and slider sync behavior.
+- Avoided any helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive row shell regains a small vertical inset instead of using zero top/bottom padding.
+- Stopped the primitive row internals from stretching full shell height by centering the grid items and constraining the divider and lane heights.
+- Corrected the right primitive endcap to use the actual fifth grid column instead of the previous out-of-range column assignment.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row should now visually occupy the shell more like `SketchProfile`, with centered text and less tall full-bleed chrome.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1046 -->
+### [1046] - 2026-04-05 02:55 - `Nodes-2.5C - Primitive Row Height Matches Input Rhythm`
+<!-- ENTRY 1046 -->
+HUMAN SUMMARY: `Tightened the primitive \`Depth\` row onto the same `14px` content-lane rhythm the normal collapsed input rows use so it sits much closer to the `SketchProfile` row height. This keeps the current primitive slider behavior intact while pulling the row shell and all internal text back onto the standard geometry-input vertical rhythm.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to primitive row height and vertical text centering.
+- Preserved the current fill, marker, continuous-track layout, and working slider sync behavior.
+- Avoided any markup, helper, selector, or interaction changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive row shell, endcaps, lane, label, value wrap, input, and unit all use the same `14px` internal lane height as the regular geometry input headers.
+- Kept all primitive row content vertically centered by tightening the shared line-height and min-height values together instead of adding one-off offsets.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now sits closer to the same visual height and centered text rhythm as `SketchProfile`.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1045 -->
+### [1045] - 2026-04-05 02:54 - `Nodes-2.5C - Primitive Row Empty Track Transparency`
+<!-- ENTRY 1045 -->
+HUMAN SUMMARY: `Removed the primitive \`Depth\` row empty-track tint so only the filled portion carries color and the unfilled area now reads as the normal row surface. This keeps the current fill/marker behavior intact while matching the calmer transparent background visible across the rest of the input row.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive row empty-track background.
+- Preserved the current fill, marker, continuous-track layout, and slider sync behavior.
+- Avoided any markup, helper, or selector changes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive slider lane background is transparent instead of using a darker empty-track tint.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now colors only the filled portion; the unfilled area reads as the normal row surface.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1044 -->
+### [1044] - 2026-04-05 02:52 - `Nodes-2.5C - Primitive Row Chevron Endcaps`
+<!-- ENTRY 1044 -->
+HUMAN SUMMARY: `Swapped the primitive \`Depth\` row endcap glyphs from raw angle-bracket text to chevron-style icons so the step controls read more like real row controls. This keeps the current primitive row layout and behavior intact while making the endcaps look calmer and more intentional.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly limited to the primitive endcap glyphs.
+- Preserved the current primitive row layout, fill behavior, and step-button wiring.
+- Avoided any CSS or behavior changes beyond the displayed icon shape.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so the primitive row endcaps now render single-chevron glyphs instead of raw `<` and `>` characters.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row step controls now display chevron-style icons instead of plain angle brackets.
+
+#### Verification Steps
+- Not run: tiny markup-only visual follow-up pass
+
+<!-- ENTRY 1043 -->
+### [1043] - 2026-04-05 02:51 - `Nodes-2.5C - Primitive Row Fill Color Returns To Port Tint`
+<!-- ENTRY 1043 -->
+HUMAN SUMMARY: `Retuned the primitive \`Depth\` row fill so it uses the port/pin tint again instead of the temporary blue \`ParaSlider\` parity color. This keeps the now-working local fill/marker sync behavior intact while restoring the row’s color language back to the socket type.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly visual and limited to primitive-row fill color.
+- Preserved the current continuous-track layout, marker behavior, and local-value sync fix.
+- Avoided any further markup, helper, or selector changes.
+
+#### Summary of Implementation
+- Updated the primitive fill gradient in `src/app/theme/surfaces/spaghetti.css` to use `var(--sp-port-color)` again.
+- Matched the driven-state fill back to the same port-tinted family in a muted form.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row fill now reads in the pin/port color family again while keeping the current working fill and marker response.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1042 -->
+### [1042] - 2026-04-05 02:49 - `Nodes-2.5C - Primitive Row Fill Marker Data Sync Fix`
+<!-- ENTRY 1042 -->
+HUMAN SUMMARY: `Fixed the live \`Depth\` primitive-row sync bug by making the fill and marker follow the local editable value when the row is not wire-driven, instead of always following the resolved effective value. This keeps driven rows on the effective-value path while finally letting unwired local edits and drag gestures move the track visuals with the number the user is editing.`  
+#### Scope / Constraints Honored
+- Kept the fix focused on the primitive numeric-row data-source mismatch rather than reopening the row layout again.
+- Preserved the current one-line primitive row shell, drag lane, endcaps, and direct value editing.
+- Left the existing driven-message copy and `effectiveDepthMm` selector logic unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts` so `displayedTrackValue` now follows `localFallbackValue` when the row is not driven, and only follows `effectiveValue` when the row is wire-driven.
+- Tightened `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts` to lock that local-versus-driven track-source split explicitly.
+- Extended `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` so the primitive drag regression now checks the inline fill width and marker position alongside the visible numeric value.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Unwired primitive numeric rows now keep their fill and marker in sync with the local value the user is editing.
+- Driven primitive numeric rows still render their track against the resolved effective value and keep editing disabled.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` but it still fails before collection on the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1041 -->
+### [1041] - 2026-04-05 02:44 - `Nodes-2.5C - Primitive Row Continuous Track Fix`
+<!-- ENTRY 1041 -->
+HUMAN SUMMARY: `Fixed the structural mismatch that was making the primitive \`Depth\` row look half full at maximum value by collapsing the custom slider lane and separate value lane into one continuous track, matching the working \`ParaSlider\` layout more closely. This keeps the current endcaps and direct numeric editing intact while letting the fill and marker span the full usable control width instead of stopping at the old lane boundary.`  
+#### Scope / Constraints Honored
+- Kept the change focused on the primitive `Depth` row layout and its related static expectations.
+- Preserved the one-line primitive row model, edge step controls, drag lane, and direct inline value editing.
+- Avoided reopening the broader node-row contract or helper-layer decisions.
+
+#### Summary of Implementation
+- Rebuilt the primitive row structure in `src/app/spaghetti/canvas/PortView.tsx` so the label and editable numeric value now share one continuous slider track.
+- Simplified the primitive row grid in `src/app/theme/surfaces/spaghetti.css` to remove the separate value-lane column and let the fill/marker span the full track.
+- Updated the focused primitive-row structure expectations in `src/app/spaghetti/canvas/NodeView.test.tsx` and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` to look for the continuous-track value wrap instead of the removed value-lane container.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now presents one continuous slider track, so the fill and marker can represent the whole control width instead of only the left-side lane.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1040 -->
+### [1040] - 2026-04-05 02:38 - `Nodes-2.5C - Primitive Row ParaSlider Fill Parity`
+<!-- ENTRY 1040 -->
+HUMAN SUMMARY: `Retuned the primitive \`Depth\` row slider lane to use the stronger blue \`ParaSlider\` track-fill language instead of the weaker white/gray number-port tint that was making low, medium, and high values read almost the same. This keeps the current primitive row shell and lane split intact while making the fill visibly react more like the working sketch-plane sliders.`  
+#### Scope / Constraints Honored
+- Kept this pass strictly focused on primitive row fill readability.
+- Preserved the current primitive shell layout, marker split, drag lane, and direct value editing.
+- Avoided further markup or helper-contract changes.
+
+#### Summary of Implementation
+- Updated the primitive slider-lane background in `src/app/theme/surfaces/spaghetti.css` to a darker `ParaSlider`-style track.
+- Replaced the weak white/gray primitive fill gradient with the stronger blue `ParaSlider` fill treatment so slider motion is easier to see.
+- Tuned the driven-state fill to use the same visual family in a muted form.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row fill should now read much closer to the working sketch-plane `ParaSlider`, making drag changes more visually obvious.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1039 -->
+### [1039] - 2026-04-05 02:38 - `Nodes-2.5C - Primitive Row Fill And Marker Split`
+<!-- ENTRY 1039 -->
+HUMAN SUMMARY: `Patched the primitive \`Depth\` row to stop faking the slider marker with the fill edge and instead render a separate marker layer alongside a stronger fill body, following the proven \`ParaSlider\` visual model more closely. This keeps the current one-line primitive shell intact while making the slider lane read more honestly as a real track with a real filled amount.`  
+#### Scope / Constraints Honored
+- Kept the change narrowly focused on the primitive `Depth` row fill and marker rendering.
+- Preserved the existing endcap, value-lane, drag, and direct-edit behavior.
+- Avoided reopening the broader node-row architecture or changing the helper contract.
+
+#### Summary of Implementation
+- Added a dedicated primitive-row marker element in `src/app/spaghetti/canvas/PortView.tsx` so the marker is no longer implied by the fill edge alone.
+- Reworked the primitive slider-lane styling in `src/app/theme/surfaces/spaghetti.css` so the fill body uses a clearer gradient and the marker has its own visible layer, similar to the working `ParaSlider` track treatment.
+- Tuned the driven-state styling so the same fill/marker split survives in muted form when the row is wire-driven.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now renders a separate marker and a clearer fill body inside the slider lane, which should make low, medium, and high values read more distinctly.
+
+#### Verification Steps
+- Ran `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1038 -->
+### [1038] - 2026-04-05 02:30 - `Nodes-2.5C - Primitive Row Typography Height Alignment`
+<!-- ENTRY 1038 -->
+HUMAN SUMMARY: `Normalized the primitive \`Depth\` row typography so the left and right arrows, the \`Depth\` label, and the right-side numeric value all sit on the same vertical rhythm. This keeps the current shell/fill layout intact while fixing the mismatched text-height look across the one-line primitive row.`
+#### Scope / Constraints Honored
+- Kept this pass strictly focused on the primitive row text and control alignment.
+- Preserved the current primitive lane structure and fill behavior.
+- Avoided any new markup or behavior changes.
+
+#### Summary of Implementation
+- Tightened the primitive endcap, label, value-wrap, input, and unit typography in `src/app/theme/surfaces/spaghetti.css` onto one shared 18px vertical rhythm.
+- Matched the arrow glyph styling more closely to the label/value weight so the whole row reads as one coherent lane.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row text and arrow controls now share a more consistent height and baseline.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1037 -->
+### [1037] - 2026-04-05 02:30 - `Nodes-2.5C - Primitive Row Shell Padding And Fill Visibility Follow-Up`
+<!-- ENTRY 1037 -->
+HUMAN SUMMARY: `Followed up on the rebuilt primitive \`Depth\` row by removing the inherited input-port shell padding that was still shifting the whole row grid to the right, and by strengthening the slider-lane fill so low versus high values read more clearly. This keeps the new slider-lane/value-lane structure intact while correcting the shared-shell offset that was still making the left arrow and label feel indented.`
+#### Scope / Constraints Honored
+- Kept this pass strictly focused on the live primitive `Depth` row follow-up under the shipped `Nodes-2.5C` structure.
+- Preserved the slider-lane/value-lane split, drag, step controls, and direct-edit behavior.
+- Avoided any new markup or contract changes.
+
+#### Summary of Implementation
+- Removed the inherited left/right `SpaghettiPortMain` padding for primitive rows in `src/app/theme/surfaces/spaghetti.css` so the primitive grid now starts flush against the real row shell.
+- Strengthened the primitive slider-lane fill and its right-edge marker so value changes are easier to read across the full lane.
+- Tightened the lane/value padding balance so the `Depth` label starts closer to the same visual rhythm as nearby collapsed rows.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Primitive numeric rows no longer inherit the normal input-port shell padding, so their internal lane layout sits closer to the actual shell edge.
+- The primitive slider fill is more visible across the lane for low versus high values.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1036 -->
+### [1036] - 2026-04-05 02:25 - `Nodes-2.5C - Primitive Row Visual Parity Rebuild`
+<!-- ENTRY 1036 -->
+HUMAN SUMMARY: `Rebuilt the live primitive \`Depth\` row around a real slider-lane versus value-lane split, so the fill no longer shares the same middle lane as the right-side value and the row now reads closer to the intended one-line primitive numeric contract. This keeps the shell-edge step controls, drag, direct edit, and driven-state behavior while replacing the old over-partitioned center-lane layout.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the live primitive `Depth` row rebuild under the locked `Nodes-2.5B` lane contract.
+- Preserved one-line primitive-row behavior and avoided widening into broader row-family adoption.
+- Kept `structuredWireNumericRowProps` behavior-facing instead of moving visual layout policy into the helper.
+
+#### Summary of Implementation
+- Rebuilt the primitive row markup in `src/app/spaghetti/canvas/PortView.tsx` so the `Depth` row now has separate slider and value lanes instead of one shared middle lane.
+- Updated `src/app/theme/surfaces/spaghetti.css` so the fill is rendered as a dedicated horizontal lane with plain percentage width plus a small non-zero minimum, while the value lane stays visually separate from the fill.
+- Tightened the focused `NodeView` row tests so the primitive row structure now asserts the separate value lane explicitly.
+- Closed the `Nodes-2.5` subphase ladder in the node docs after the live proving surface was materially corrected.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now renders the fill inside a dedicated slider lane instead of under a combined center lane shared with the value.
+- The value/unit display now lives in its own lane, making the fill length and slider lane easier to read at low versus high depth values.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx` but the existing `Worker is not defined` startup path still fails before collection.
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` but the existing `Worker is not defined` startup path still fails before collection.
+
+<!-- ENTRY 1035 -->
+### [1035] - 2026-04-05 02:05 - `Nodes-2.5 - Primitive Numeric Row Endcap Chrome And Fill Width Polish`
+<!-- ENTRY 1035 -->
+HUMAN SUMMARY: `Polished the shipped primitive \`Depth\` row again by stripping the remaining visible endcap button chrome and widening the port-colored fill so it reads like a real bar across the available lane instead of a skinny bright sliver near the divider. This keeps the reusable primitive-row renderer intact while bringing the live visuals closer to the locked \`Nodes-2.5\` direction.`
+#### Scope / Constraints Honored
+- Kept this pass strictly focused on the primitive numeric row visual polish.
+- Preserved the shipped shell-owned primitive-row structure, drag lane, and step controls.
+- Avoided any new markup or behavior changes outside the row styling.
+
+#### Summary of Implementation
+- Tightened the primitive endcap CSS in `src/app/theme/surfaces/spaghetti.css` so the left and right step controls stop showing inherited button chrome.
+- Reworked the primitive fill gradients so the lane tint stays visible across the filled width instead of collapsing into a narrow highlight near the divider.
+- Softened the divider line slightly so it reads as a separator rather than the fill itself.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Primitive numeric row endcaps now read as arrow-only edge controls.
+- The visible fill now spans the intended filled width more clearly across the center lane.
+
+#### Verification Steps
+- Not run: focused visual CSS-only follow-up pass
+
+<!-- ENTRY 1034 -->
+### [1034] - 2026-04-05 01:53 - `Nodes-2.5 - Primitive Numeric Row Style And Reuse`
+<!-- ENTRY 1034 -->
+HUMAN SUMMARY: `Finished the live extrude \`Depth\` row as the first reusable primitive numeric row by moving it onto a shell-owned one-line renderer with endcap step controls, divider-bounded fill, center-lane drag, and inline right-side value editing. This locks the post-\`Nodes-2\` scalar-row visual language in both code and docs without widening into the broader \`Nodes-3\` row-family work.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the primitive numeric row renderer proven by `Geometry/Extrude` `Depth`.
+- Preserved the existing `structuredWireNumericRowProps` behavior-facing contract instead of pushing visual layout rules into the helper.
+- Avoided any broader composite, collection, or output-row rollout.
+
+#### Summary of Implementation
+- Rebuilt the primitive numeric branch in `src/app/spaghetti/canvas/PortView.tsx` around a stricter shell layout with far-edge endcaps, vertical dividers, a divider-bounded center drag lane, and shell-owned fill.
+- Restyled the primitive-row CSS in `src/app/theme/surfaces/spaghetti.css` so the row now reads as one calm collapsed-row lane instead of a nested slider control.
+- Tightened focused `NodeView` and primitive-row helper tests to assert the reusable primitive-row structure plus center-lane drag and endcap stepping behavior.
+- Closed the dedicated `Nodes-2.5` note and refreshed the umbrella node-template doc to record that the primitive scalar-row visual language is now shipped.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Primitive numeric rows now have explicit shell endcaps and divider-bounded fill instead of free-positioned inner arrow controls.
+- `Depth` keeps one-line primitive behavior while preserving drag, step, direct edit, and driven-state support in the same row shell.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1033 -->
+### [1033] - 2026-04-05 01:47 - `Nodes-2C - Depth Primitive Content Lane Spacing Fix`
+<!-- ENTRY 1033 -->
+HUMAN SUMMARY: `Corrected the rebuilt primitive \`Depth\` row spacing so the edge arrows no longer overlap the label or value text. The row now reserves a larger internal content lane between the left and right arrow gutters, and the fill starts inside that same safe lane instead of under the left edge controls.`
+#### Scope / Constraints Honored
+- Kept this pass strictly focused on the primitive `Depth` row spacing regression.
+- Preserved the current drag lane, edge arrows, and row-owned numeric renderer.
+- Avoided any broader markup or behavior changes.
+
+#### Summary of Implementation
+- Widened the primitive row’s left/right content gutters in `src/app/theme/surfaces/spaghetti.css`.
+- Shifted the fill start inward to the same safe lane and nudged the edge arrows slightly outward while keeping them inside the shell.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row label and value now have their own safe content lane and no longer collide with the edge arrows.
+
+#### Verification Steps
+- Not run: focused visual spacing follow-up pass
+
+<!-- ENTRY 1032 -->
+### [1032] - 2026-04-05 01:44 - `Nodes-2C - Depth Primitive Fill Visibility And Shell Bounds`
+<!-- ENTRY 1032 -->
+HUMAN SUMMARY: `Fixed two follow-up issues in the rebuilt primitive \`Depth\` row by constraining the edge-arrow layout back inside the port shell and making the fill bar visibly present at low non-zero depths. The row now respects its shell bounds better and no longer lets the port-colored fill disappear just because the active value is near the low end of a large range.`
+#### Scope / Constraints Honored
+- Kept this pass strictly focused on the primitive `Depth` row layout/fill regression.
+- Preserved the dedicated row-owned renderer, drag lane, and edge-arrow treatment from the previous rebuild.
+- Avoided any new structure or behavior changes outside this follow-up correction.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so the primitive fill width now uses a minimum visible footprint whenever the value is non-zero.
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive row uses `box-sizing: border-box` and keeps the fill slightly inset from the shell edge.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row arrows now stay inside the node shell more reliably.
+- The primitive `Depth` fill bar remains visible even when the numeric value is small relative to the full slider range.
+
+#### Verification Steps
+- Not run: focused visual/layout follow-up pass
+
+<!-- ENTRY 1031 -->
+### [1031] - 2026-04-05 01:42 - `Nodes-2C - Depth Primitive Drag And Edge Arrow Alignment`
+<!-- ENTRY 1031 -->
+HUMAN SUMMARY: `Restored middle-lane drag on the rebuilt primitive \`Depth\` row and moved the step arrows out to the left and right row edges. The compact numeric row now behaves more like a real slider again while keeping the cleaner single-shell presentation from the previous rebuild.`
+#### Scope / Constraints Honored
+- Kept this pass focused on primitive `Depth` row interaction/layout only.
+- Preserved the custom row-owned numeric renderer and the single-shell visual treatment.
+- Avoided widening back into the generic `ParaSlider` track path.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so the primitive `Depth` row now supports pointer-drag across the middle lane again.
+- Moved the row-owned step arrows to absolute left/right edge positions and stopped the arrows plus input from interfering with the drag lane.
+- Tightened the arrow sizing and adjusted the primitive-row spacing in `src/app/theme/surfaces/spaghetti.css`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Users can drag across the middle of the primitive `Depth` row again to change the value.
+- The step arrows now sit at the left and right edges of the row and read more like compact edge controls than inline buttons.
+
+#### Verification Steps
+- Not run: focused interaction/layout follow-up pass
+
+<!-- ENTRY 1030 -->
+### [1030] - 2026-04-05 01:32 - `Nodes-2C - Depth Primitive Numeric Row Rebuild`
+<!-- ENTRY 1030 -->
+HUMAN SUMMARY: `Rebuilt the primitive extrude \`Depth\` row as dedicated row-owned markup in \`PortView\` instead of continuing to skin an embedded \`ParaSlider\`. The row now uses one shell, flat port-colored fill, inline left/right step arrows, and a direct right-side numeric field with \`mm\`, which removes the inset-box look and clipping artifacts from the earlier slider-based approach.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the primitive `Depth` row only and left the managed `ExtrusionProfile` row path unchanged.
+- Preserved the current primitive-row classification and the existing pin/socket wiring behavior.
+- Left the generic `ParaSlider` component intact for every other surface.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so primitive numeric rows now render through dedicated row-owned markup with step arrows, fill layer, and inline value field.
+- Simplified `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts` so the `Depth` helper now passes behavior-facing primitive-row data instead of `ParaSlider` visual hooks.
+- Reworked the primitive-row styling in `src/app/theme/surfaces/spaghetti.css` so the outer port shell is the only visible container and the row height/typography match the nearby `SketchProfile` row more closely.
+- Refreshed focused expectations in `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row no longer renders an embedded `ParaSlider` track.
+- `Depth` now shows small left/right step arrows inside the row and keeps the editable numeric value inline on the right with `mm`.
+- The row fill is now a flat port-colored background layer drawn directly inside the outer port shell.
+
+#### Verification Steps
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation still fails before test collection in this runner path because `BuildDispatcher` construction hits `Worker is not defined`
+
+<!-- ENTRY 1029 -->
+### [1029] - 2026-04-05 01:32 - `Nodes-2C - Depth Primitive Row Single-Shell Cleanup`
+<!-- ENTRY 1029 -->
+HUMAN SUMMARY: `Removed the remaining box-inside-a-box look from the primitive \`Depth\` row by making the outer port shell act as the slider container. The compact \`ParaSlider\` track no longer draws its own inset border, so the row reads as one cleaner control and sits a little shorter as well.`
+#### Scope / Constraints Honored
+- Kept this pass strictly visual and limited to the primitive `Depth` row shell integration.
+- Preserved the primitive `Depth` behavior, port-color fill treatment, and existing slider interaction model.
+- Avoided any broader row behavior or architecture changes.
+
+#### Summary of Implementation
+- Added a primitive-row modifier class on the shared port shell in `src/app/spaghetti/canvas/PortView.tsx`.
+- Updated `src/app/theme/surfaces/spaghetti.css` so the primitive `ParaSlider` now uses the outer row shell as its visual container instead of drawing an inset bordered track inside it.
+- Tightened the remaining vertical padding slightly while removing the extra inner chrome.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now reads as one unified slider row instead of a slider nested inside a separate bordered box.
+
+#### Verification Steps
+- Not run: visual CSS-only shell integration pass
+
+<!-- ENTRY 1028 -->
+### [1028] - 2026-04-05 01:30 - `Nodes-2C - Depth Primitive Label Typography Match`
+<!-- ENTRY 1028 -->
+HUMAN SUMMARY: `Adjusted the primitive \`Depth\` slider label so it now matches the nearby \`SketchProfile\` row typography more closely. The node-specific slider content padding is now flattened and the left label uses the same size, weight, and calmer spacing as the standard collapsed input-row text.`
+#### Scope / Constraints Honored
+- Kept this pass strictly visual and limited to the compact primitive `Depth` row typography/alignment.
+- Preserved the primitive `Depth` behavior, slider interaction, and recent height match.
+- Avoided any further structural or behavioral row changes.
+
+#### Summary of Implementation
+- Flattened the inner primitive slider content padding in `src/app/theme/surfaces/spaghetti.css`.
+- Updated the node-specific primitive slider label styling to match the nearby `SketchProfile` row text rhythm more closely.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The `Depth` label now reads closer to the standard collapsed input-row typography and alignment, instead of looking like standalone slider text.
+
+#### Verification Steps
+- Not run: visual CSS-only tightening pass
+
+<!-- ENTRY 1027 -->
+### [1027] - 2026-04-05 01:28 - `Nodes-2C - Depth Primitive Row Height Match`
+<!-- ENTRY 1027 -->
+HUMAN SUMMARY: `Tightened the compact primitive \`Depth\` slider again so it now matches the visual lane height of the nearby \`SketchProfile\` row more closely. This keeps the primitive row treatment intact while removing the remaining extra height from the inner slider track and value chip.`
+#### Scope / Constraints Honored
+- Kept this pass strictly visual and limited to matching the primitive `Depth` row height to the existing `SketchProfile` row rhythm.
+- Preserved the primitive `Depth` behavior, pin placement, port-color fill, and existing `ParaSlider` interaction model.
+- Avoided any additional structure or behavior changes.
+
+#### Summary of Implementation
+- Reduced the compact primitive slider lane from the previous tightened size down to the same `18px` visual rhythm used by the nearby extrude profile row header styling.
+- Tightened the inner value chip, fill inset, marker inset, and horizontal padding in `src/app/theme/surfaces/spaghetti.css`.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` row now matches the height of the neighboring collapsed input rows more closely, especially `SketchProfile`.
+
+#### Verification Steps
+- Not run: visual CSS-only tightening pass
+
+<!-- ENTRY 1026 -->
+### [1026] - 2026-04-05 01:27 - `Nodes-2C - Depth Primitive Row Height Tightening`
+<!-- ENTRY 1026 -->
+HUMAN SUMMARY: `Tightened the new primitive \`Depth\` slider row so its height now sits closer to the other collapsed node rows. This keeps the one-line primitive treatment but removes the taller toolbar-like feel from the compact slider band.`
+#### Scope / Constraints Honored
+- Kept this pass strictly visual and limited to the compact primitive `Depth` row skin.
+- Preserved the new one-line primitive behavior, port-color fill treatment, and existing slider interaction model.
+- Avoided widening into another row-architecture change.
+
+#### Summary of Implementation
+- Reduced the compact primitive slider track height and inner control sizing in `src/app/theme/surfaces/spaghetti.css`.
+- Tightened the fill, marker, content padding, and value-chip sizing so the row aligns more closely with the other collapsed node rows.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The primitive `Depth` slider now occupies a shorter visual band and better matches the height rhythm of the other collapsed rows.
+
+#### Verification Steps
+- Not run: visual CSS-only tightening pass
+
+<!-- ENTRY 1025 -->
+### [1025] - 2026-04-05 01:25 - `Nodes-2C - Depth Primitive Row Cleanup`
+<!-- ENTRY 1025 -->
+HUMAN SUMMARY: `Converted the extrude \`Depth\` row from a managed expandable numeric row into a one-line primitive parameter row. \`Depth\` now renders as a compact node-skinned \`ParaSlider\` with the pin on the left, the label inside the control, the editable \`mm\` value on the right, and a fill bar tinted from the port color.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the live `Geometry/Extrude` `Depth` row instead of widening into broader `Nodes-3` primitive/composite rollout.
+- Removed only the `Depth` row from the managed row-controller path while preserving the shared managed-row behavior for `ExtrusionProfile`.
+- Reused the existing `ParaSlider` behavior and only added a node-specific visual skin instead of inventing another slider component.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so `Depth` no longer uses the managed `collapsed / essentials / expanded` row controller path.
+- Narrowed `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts` so the helper now returns primitive-slider config for `Depth` instead of explanation-body content.
+- Updated `src/app/spaghetti/canvas/PortView.tsx` to support a one-line primitive `ParaSlider` render path inside the port row itself.
+- Added the node-specific compact slider styling in `src/app/theme/surfaces/spaghetti.css` and widened `src/app/components/ParaSlider.tsx` slightly so the node row can pass a dedicated class.
+- Refreshed focused coverage in `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`.
+
+#### Files Changed
+- `src/app/components/ParaSlider.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The extrude `Depth` row is now always a one-line primitive parameter row instead of an expandable managed numeric row.
+- `Depth` no longer shows a chevron, attached explanation body, or `Depth Value` section in any node mode.
+- The compact slider fill now follows the port color so the primitive parameter feels connected to the wire language.
+
+#### Verification Steps
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts src/app/components/ParaSlider.test.tsx`
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation still fails before test collection in this runner path because `BuildDispatcher` construction hits `Worker is not defined`
+
+<!-- ENTRY 1024 -->
+### [1024] - 2026-04-05 01:09 - `Nodes-2C - Extrude Depth ParaSlider Adoption`
+<!-- ENTRY 1024 -->
+HUMAN SUMMARY: `Swapped the managed extrude \`Depth\` row off the older spaghetti number-field presentation and onto the repo’s real \`ParaSlider\` control. The shared numeric-row seam now knows how to request a proper slider rendering, so \`Depth\` keeps the newer `SWR` row behavior while finally looking like the intended current control family.`
+#### Scope / Constraints Honored
+- Kept this pass narrow to visual/editor cleanup for the already-shipped `Nodes-2C` `Depth` row instead of widening into new row-family architecture or `Nodes-3`.
+- Preserved the existing managed-row `collapsed / essentials / expanded` behavior and the shared numeric-row helper seam.
+- Reused the app’s existing `ParaSlider` component instead of inventing another node-local slider.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/PortView.tsx` so numeric row inputs can opt into a `ParaSlider` render path.
+- Updated `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts` so the live extrude `Depth` row now requests the `ParaSlider` renderer with unit-aware display formatting.
+- Added a basic disabled mode to `src/app/components/ParaSlider.tsx` so wire-driven numeric rows can still render the same control family honestly.
+- Refreshed focused coverage in `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/components/ParaSlider.test.tsx`.
+
+#### Files Changed
+- `src/app/components/ParaSlider.tsx`
+- `src/app/components/ParaSlider.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The managed extrude `Depth` row now renders with a real `ParaSlider` instead of the older spaghetti number-field presentation.
+- Driven `Depth` rows keep the same slider family visible while exposing disabled state instead of falling back to a mismatched control.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/components/ParaSlider.test.tsx src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1023 -->
+### [1023] - 2026-04-05 01:02 - `Nodes-2C - Managed Numeric Row Adoption In Extrude`
+<!-- ENTRY 1023 -->
+HUMAN SUMMARY: `Closed `Nodes-2C` by making the live extrude `Depth` row the first visibly managed numeric `SWR` row. `Depth` now uses the shared row controller for `collapsed / essentials / expanded` behavior while still consuming the extracted numeric-row helper, so the broader `Nodes-2` lane can now close with one real reusable numeric row proven in live code.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on visible `Depth` adoption in `Extrude` instead of widening into broader numeric-row rollout, output/composite/collection work, or another extraction pass.
+- Preserved the `Nodes-2A` numeric-row contract and the `Nodes-2B` extracted helper seam.
+- Reused the shared row-controller path rather than inventing a second numeric-row state mechanism.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live extrude `Depth` row now uses the shared managed-row controller path as a numeric `SWR` row.
+- Narrowed the visible state model so `Depth` now reads as:
+  - `collapsed` summary only
+  - `essentials` inline editor
+  - `expanded` inline editor plus explanation body
+- Refreshed focused visible-adoption coverage in `src/app/spaghetti/canvas/NodeView.test.tsx` and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The live extrude `Depth` row now behaves like a real managed numeric row instead of an always-open generic inline number field.
+- `Depth` now uses visible `collapsed / essentials / expanded` row behavior aligned with the shared `SWR` model.
+- The broader `Nodes-2` lane is now complete because one reusable numeric row is contract-locked, extracted, and visibly proven in live code.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts src/app/spaghetti/canvas/nodeTemplateContract.test.ts`
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation still fails before test collection in this runner path because `BuildDispatcher` construction hits `Worker is not defined`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1022 -->
+### [1022] - 2026-04-05 00:57 - `Nodes-2B - Shared Numeric Row Helper Extraction`
+<!-- ENTRY 1022 -->
+HUMAN SUMMARY: `Closed `Nodes-2B` by extracting the live extrude `Depth` numeric-row prop assembly into one shared helper seam. The row-family contract still lives in `nodeTemplateContract`, the generic row renderer still lives in `PortView`, and `NodeView` now consumes one reusable numeric-row prop bundle instead of rebuilding that logic inline.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on extracting the first shared numeric-row props seam without widening into a new renderer, output/composite/collection work, or the later visible adoption cleanup in `Nodes-2C`.
+- Preserved the `Nodes-2A` contract wording and the existing `PortView` rendering path.
+- Kept the first proving case anchored on the live extrude `Depth` row.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts` as the first shared numeric-row props/helper seam.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live extrude `Depth` row now consumes that helper instead of assembling unit-aware summary, driven messaging, body copy, and value-input props inline.
+- Added focused coverage in `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The first reusable numeric-row seam now exists in code instead of only as a contract-plus-one-off adoption.
+- The live `Depth` row behavior stays the same to the user, but its summary, driven-message, attached-body, and inline editor props are now built through one shared numeric-row helper.
+- `Nodes-2C` can now focus on visible family adoption cleanup instead of first-time extraction.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireNumericRowProps.test.ts`
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/nodeTemplateContract.test.ts`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1021 -->
+### [1021] - 2026-04-05 00:42 - `Nodes-2A - Reference And Numeric Row Contract Lock`
+<!-- ENTRY 1021 -->
+HUMAN SUMMARY: `Closed `Nodes-2A` by locking the first explicit reusable `reference row` and `numeric row` contract in code, then applying that contract language to the live extrude `Depth` row so unit-aware summary text and wire-driven fallback messaging now have one stable source before the later numeric-row extraction pass.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on contract locking rather than widening into the later `Nodes-2B` helper extraction or broader row-family rollout.
+- Preserved the existing shared shell and managed reference-row controller path from `Nodes-1`.
+- Kept `Depth` as the first numeric-row proving case without reopening output/composite/collection work.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/canvas/nodeTemplateContract.ts` with the first explicit reusable `reference row` and `numeric row` contract objects plus unit-aware numeric-row summary and driven-message builders.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live extrude `Depth` row now uses that contract language for header summary, wire-driven fallback messaging, and numeric-row explanation copy while still staying on the current non-extracted render path.
+- Refreshed focused coverage in `src/app/spaghetti/canvas/nodeTemplateContract.test.ts` and `src/app/spaghetti/canvas/NodeView.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/nodeTemplateContract.ts`
+- `src/app/spaghetti/canvas/nodeTemplateContract.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The first explicit reusable `numeric row` contract is now code-side, unit-aware, and defined separately from one-off node markup.
+- The live extrude `Depth` row now shows contract-backed unit-aware summary text and, when wire-driven, an explicit message that the wire owns the effective value while the local fallback value is preserved.
+- `Nodes-2B` can now extract a shared numeric-row seam from one locked contract instead of mixed local assumptions.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/nodeTemplateContract.test.ts`
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Result: direct invocation still fails before test collection in this runner path because `BuildDispatcher` construction hits `Worker is not defined`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1020 -->
+### [1020] - 2026-04-05 00:26 - `Nodes-1 - Sketch Node Shell Simplification`
+<!-- ENTRY 1020 -->
+HUMAN SUMMARY: `Simplified the `Geometry/Sketch` node so it now reads as `Inputs -> Outputs` without the old middle `Sketch` review block. Plane setup stays attached to the `SketchPlane` input row, draw stays attached to `SketchDraw`, and profile consumption now lives entirely through the grouped sketch outputs.` 
+#### Scope / Constraints Honored
+- Kept this pass narrow to the requested sketch-node cleanup instead of widening into a new profile-review tool, selector row, or broader `Nodes-2` row-family work.
+- Preserved the managed-row cycle behavior for `SketchPlane`, `SketchDraw`, and sketch output rows.
+- Left `Geometry/Extrude` on the shared shell path unchanged except for the shared shell now supporting optional middle content.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/GeometryNodeShell.tsx` so the shared shell can omit the middle content block when a node family does not need it.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so `Geometry/Sketch` no longer renders the old middle `Plane` / `Review` section stack and no longer advertises a review-session chip from node chrome.
+- Refreshed `src/app/spaghetti/canvas/NodeView.test.tsx` and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` so the sketch expectations now match the slimmer shell and row-driven interaction model.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/GeometryNodeShell.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- `Geometry/Sketch` no longer renders the middle `Sketch` block or the old `Review` action inside the node shell.
+- Sketch plane editing remains available through the `SketchPlane` managed input row, and sketch drawing remains attached to the `SketchDraw` managed input row.
+- Closed profiles are now surfaced only through the grouped sketch output rows, so users expand the output array and pin from the profile they want.
+
+#### Verification Steps
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation still fails before test collection in this runner path because `BuildDispatcher` construction hits `Worker is not defined`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1019 -->
+### [1019] - 2026-04-05 00:09 - `Nodes-1C - Shared Foundation Adoption In Sketch And Extrude`
+<!-- ENTRY 1019 -->
+HUMAN SUMMARY: `Closed `Nodes-1C` by turning the extracted row-controller seam into a real first-family adoption path: `NodeView` now builds shared managed-row props for both `Sketch` and `Extrude`, and `Geometry/Extrude` now renders through `GeometryNodeShell` so the first proving families share both row control and shell framing. This keeps the pass narrow and forward-looking: `Depth` and the broader reusable row-family rollout still belong to `Nodes-2`.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on first-family adoption cleanup instead of widening into `Nodes-2` numeric-row work, output-row standardization, or broader toolbar redesign.
+- Preserved the existing managed row behavior for `SketchPlane`, `SketchDraw`, sketch outputs, and the extrude `SketchProfile` row.
+- Preserved the already-landed collapsed-mode wiring-surface behavior while moving more ownership onto the shared foundation.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/canvas/structuredWireRowController.ts` with one shared controller-builder that packages managed row mode, cycle behavior, and row-toggle labels behind a reusable seam.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so `SketchPlane`, `SketchDraw`, sketch output rows, and the extrude `SketchProfile` row all consume that shared managed-row props seam instead of repeating family-local row glue.
+- Moved `Geometry/Extrude` onto `src/app/spaghetti/canvas/GeometryNodeShell.tsx` and aligned the extrude output-lane styling in `src/app/theme/surfaces/spaghetti.css` so the first proving families now share shell framing as well as row control.
+- Refreshed focused coverage in `src/app/spaghetti/canvas/structuredWireRowController.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/structuredWireRowController.ts`
+- `src/app/spaghetti/canvas/structuredWireRowController.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The first managed `Sketch` and `Extrude` rows now share one explicit controller-building seam for row mode, row cycling, and row-toggle labels.
+- `Geometry/Extrude` now uses the shared geometry shell frame with the same `Inputs / Details / Outputs` block structure already proven by `Sketch`.
+- The visible row behavior remains aligned with the earlier `Nodes-1A` and `Nodes-1B` work while the shared foundation is now the live path in both first proving families.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/structuredWireRowController.test.ts`
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation still fails before test collection in this runner path because `BuildDispatcher` construction hits `Worker is not defined`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1018 -->
+### [1018] - 2026-04-04 23:53 - `Nodes-1B - Shared Structured Wire Row Helper Extraction`
+<!-- ENTRY 1018 -->
+HUMAN SUMMARY: `Extracted the first real shared helper layer for managed node rows by moving row-mode derivation, row-cycle transitions, and row-toggle label generation out of the family-local `NodeView` bands into one reusable `structuredWireRowController` seam. This keeps `Nodes-1B` focused on extraction, not redesign: the first `Sketch` and `Extrude` managed rows now use the shared controller while the broader row-type work still belongs to later phases.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on extracting the first shared row-controller helper layer instead of widening into full row-type redesign or broader toolbar work.
+- Preserved the existing managed row behavior for `SketchPlane`, `SketchDraw`, sketch outputs, and extrude profile rows.
+- Left `Depth`, output-row standardization, and wider family cleanup for later phases.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/canvas/structuredWireRowController.ts` as the new shared helper seam for deriving row mode, cycling row state, and building row-toggle labels.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the first managed `Sketch` and `Extrude` rows now consume that shared helper instead of repeating family-local `collapsed / essentials / expanded` logic and label branching.
+- Added focused helper coverage in `src/app/spaghetti/canvas/structuredWireRowController.test.ts` and kept the earlier contract coverage in `src/app/spaghetti/canvas/nodeTemplateContract.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/structuredWireRowController.ts`
+- `src/app/spaghetti/canvas/structuredWireRowController.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The first managed `Sketch` and `Extrude` rows now share one explicit row-controller seam for mode and label behavior.
+- Family-local duplication around row-mode calculation and row cycling is reduced inside `NodeView.tsx`.
+- The visible row behavior remains the same while the ownership behind it is now shared.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/nodeTemplateContract.test.ts src/app/spaghetti/canvas/structuredWireRowController.test.ts`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1017 -->
+### [1017] - 2026-04-04 23:40 - `Nodes-1A - Shared Shell And Structured Wire Rows Contract Lock`
+<!-- ENTRY 1017 -->
+HUMAN SUMMARY: `Locked the first live code-side contract for the new node-template foundation by adding one shared `nodeTemplateContract` module and moving the core shell/section/row defaults onto it. This keeps `Nodes-1A` narrow: it does not extract the full helper layer yet, but it gives the canvas one stable place to define `SWR`, collapsed wiring-surface visibility, and shared row-density defaults before the later extraction pass.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on contract locking rather than helper extraction or row-type redesign.
+- Preserved the recently landed behavior that collapsed node mode keeps wiring surfaces visible.
+- Did not widen into `Depth` numeric-row standardization, output-row work, or broader toolbar cleanup.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/canvas/nodeTemplateContract.ts` as the first explicit code seam for the shared node-template contract, including shell areas, `Structured Wire Rows` family ordering, wiring-surface section defaults, geometry-block defaults, and row-density defaults.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so its generic section/body logic and managed geometry-block defaults now read from that contract instead of relying only on scattered local conditionals.
+- Updated `src/app/spaghetti/canvas/PortView.tsx` to use the shared `StructuredWireRowMode` type, reducing local drift around row-state naming.
+- Added focused coverage in `src/app/spaghetti/canvas/nodeTemplateContract.test.ts` so the new shell and row-default rules are locked independently of the heavier `NodeView` store/build import path.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/nodeTemplateContract.ts`
+- `src/app/spaghetti/canvas/nodeTemplateContract.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The node-template shell and `SWR` defaults now have one explicit shared code home instead of existing only as local `NodeView` logic.
+- Collapsed-mode wiring-surface visibility is now locked by a dedicated contract helper.
+- Row-density defaults are now defined once and reused by the main canvas template logic.
+
+#### Verification Steps
+- Passed: `npm.cmd exec vitest run src/app/spaghetti/canvas/nodeTemplateContract.test.ts`
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1016 -->
+### [1016] - 2026-04-04 23:12 - `Node Template - Collapsed Mode Pin Visibility Cleanup`
+<!-- ENTRY 1016 -->
+HUMAN SUMMARY: `Changed node-template collapsed mode so it no longer hides the `Inputs` and `Outputs` sections by default. Collapsed mode now acts as a compact pin-density mode: the wiring rows stay visible, while the extended row bodies stay closed unless the user opens them manually.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on node-mode versus section-visibility behavior instead of widening into a broader template redesign.
+- Preserved manual section and rail toggles, so users can still explicitly collapse `Inputs`, `Outputs`, or other blocks when they want to.
+- Left non-pin content such as drivers and feature-stack behavior unchanged for collapsed mode in this pass.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so generic template `inputs` and `outputs` sections remain body-visible by default even when the node is in `collapsed`.
+- Updated the managed geometry-shell block defaults so collapsed sketch-style nodes now keep `Inputs` and `Outputs` rails open by default while the managed pin rows themselves remain compact and closed.
+- Refreshed focused node-view expectations so collapsed mode now asserts visible input/output pin surfaces instead of fully hidden section bodies.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The top-left node `-` mode no longer auto-collapses `Inputs` and `Outputs`.
+- In collapsed mode, users still see the node's input and output pins/wiring rows.
+- Extended row content remains closed by default, so collapsed mode still reads as compact rather than expanded.
+
+#### Verification Steps
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation currently fails before test collection because these suites import store/build wiring that constructs `BuildDispatcher` and hits `Worker is not defined` in this runner path
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1015 -->
+### [1015] - 2026-04-04 23:06 - `Extrude-2.1 - SketchProfile Row Visual Parity`
+<!-- ENTRY 1015 -->
+HUMAN SUMMARY: `Pushed the dedicated `Geometry/Extrude` `SketchProfile` input closer to the sketch-row look by giving that one row its own full-width layout and the same horizontal pill treatment used by the decent sketch managed inputs. This stays narrowly visual and structural: the row keeps the earlier managed behavior, while `Depth` and the broader extrude toolbar migration remain separate follow-on work.` 
+#### Scope / Constraints Honored
+- Kept this pass focused on the dedicated extrude profile input row instead of widening into full sketch-node cleanup or the broader `Extrude-2` toolbar shell.
+- Preserved the underlying `ExtrusionProfile` wire/runtime contract and the previously landed row behavior from `Extrude-2.1`.
+- Left the `Depth` input functional while only the profile row now spans the wider sketch-style input lane.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/canvas/PortView.tsx` and `src/app/spaghetti/canvas/NodeView.tsx` so the dedicated extrude profile row can carry its own targeted class and render in a primary full-width input stack separate from the smaller `Depth` row.
+- Updated `src/app/theme/surfaces/spaghetti.css` so `SpaghettiExtrudeProfilePortRow` overrides the older template-section stacked-label styling and instead uses the same horizontal pill/header language as the decent sketch managed input rows.
+- Refreshed the focused canvas tests to assert the new extrude profile row class and layout hook are present in both static render and interaction coverage.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The extrude `SketchProfile` input now renders as a full-width row instead of inheriting the older half-width stacked template styling.
+- That row now uses the same horizontal header/pill language as the decent sketch managed input rows while keeping the existing managed expand-cycle behavior.
+- The `Depth` row remains on the older smaller template lane so this pass does not accidentally redesign the whole extrude input section.
+
+#### Verification Steps
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation currently fails before test collection because these suites import store/build wiring that constructs `BuildDispatcher` and hits `Worker is not defined` in this runner path
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1014 -->
+### [1014] - 2026-04-04 22:54 - `Extrude-2.1 - Extrude Profile Input Row And Pin Parity`
+<!-- ENTRY 1014 -->
+HUMAN SUMMARY: `Upgraded the dedicated `Geometry/Extrude` profile input from a plain fallback row into a managed row-and-pin surface that matches the decent `SketchPlane` / `SketchDraw` input-row language. The row now reads as `SketchProfile`, opens by default in essentials mode, and cycles through collapsed, essentials, and expanded states with clearer attached-body guidance while leaving the underlying wire/runtime contract and the rest of the extrude surface unchanged.` 
+#### Scope / Constraints Honored
+- Kept this pass strictly on the `ExtrusionProfile` row and pin instead of widening into the full extrude toolbar shell, sketch-node cleanup, or `Extrude-1B` contract convergence.
+- Preserved the current underlying `ExtrusionProfile` wire/runtime port contract rather than renaming the port id as part of this UI slice.
+- Left `Depth`, extrude body publishing, and the earlier authored-plane / preview-alignment runtime fixes functionally unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the dedicated `template="extrude"` render path now treats `ExtrusionProfile` as a managed geometry row with the same collapsed / essentials / expanded cycle used by the decent managed sketch input rows.
+- Replaced the old long fallback resolved-value hint with a shorter row summary plus attached-body guidance, and changed the visible row label to `SketchProfile` so the downstream extrude input reads more like a continuation of the upstream sketch output model.
+- Extended the focused node-canvas regressions to cover the new row label, default-open essentials state, and row-cycle behavior for the extrude profile input.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The dedicated extrude profile input no longer reads like a generic fallback row jammed into the template.
+- In essentials mode, the profile row now opens by default with managed attached-body guidance.
+- The row label now reads `SketchProfile` while the internal port contract remains `ExtrusionProfile`.
+
+#### Verification Steps
+- Attempted: `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Result: direct invocation currently fails before test collection because these suites import store/build wiring that constructs `BuildDispatcher` and hits `Worker is not defined` in this runner path
+- Passed: `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1013 -->
+### [1013] - 2026-04-04 22:20 - `Extrude-1A - Graph Preview Grouping Gate`
+<!-- ENTRY 1013 -->
+HUMAN SUMMARY: `Patched the remaining project-mode viewer grouping seam so ordinary graph-owned preview solids no longer get routed through content-object pivots by default. Graph preview meshes now stay in their authored world placement unless an active content-object transform session or explicit object transform override actually needs grouping.` 
+#### Scope / Constraints Honored
+- Kept this pass on the Phase 4 viewer-grouping seam instead of reopening accepted build state, draft-preview authority, or worker extrude math.
+- Narrowed the fix to graph-owned project-mode content-object grouping in `ViewerHost` rather than changing global viewer selection, visibility, or viewer-key identity behavior.
+- Preserved content-object transform tooling by still grouping parts when an active object transform session or non-null object transform override exists.
+
+#### Summary of Implementation
+- Updated `src/app/components/ViewerHost.tsx` so `contentObjectTransformGroups` now only includes project-mode graph solids for objects that currently have an active content-object transform session or a non-null content-object transform override.
+- Added focused `ViewerHost` regressions proving ordinary project-mode graph preview solids are no longer grouped into content-object pivots by default, while an actively transformed object still receives grouping.
+- Refreshed the existing published-object transform test to the new narrower grouping contract.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Bugs/12_GeometrySketch-Extrude-OutputPreview-Authored-Coordinate-Drift.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Ordinary project-mode graph preview solids now stay out of viewer content-object pivot centering unless an object transform tool is actually active for that object or an explicit object transform override exists.
+- Active content-object transform behavior still groups the relevant object so gizmo-driven object transforms continue to work.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/components/ViewerHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1012 -->
+### [1012] - 2026-04-04 22:10 - `Extrude-1A - Active Draft Extrude Preview Override`
+<!-- ENTRY 1012 -->
+HUMAN SUMMARY: `Patched the project-mode active viewport so a qualifying `Geometry/Sketch -> Geometry/Extrude -> System/OutputPreview` body now follows live sketch-plane draft edits without mutating accepted build state. The new override is transient and viewport-local: accepted and published outputs stay commit-based, while the active viewer remaps the current extrude mesh from the committed sketch plane frame into the draft sketch plane frame.` 
+#### Scope / Constraints Honored
+- Kept this pass on the Phase 3 active-viewport authority seam instead of widening into browser publishing semantics, worker extrude math, or the later viewer grouping investigation.
+- Left accepted build bundles and accepted preview bundles untouched; the live behavior is a viewer-local override only.
+- Narrowed the first shipped slice to the reproduced graph-native `Geometry/Sketch -> Geometry/Extrude -> System/OutputPreview` path.
+
+#### Summary of Implementation
+- Added `src/app/components/activeDraftExtrudePreview.ts` to detect when a live `sketchPlanePickSession` owns a qualifying project-mode extrude preview and to remap that mesh artifact from the committed sketch plane frame into the draft plane frame.
+- Updated `src/app/components/ViewerHost.tsx` so project-mode preview assembly uses that transient override while sketch-plane draft editing is active, then falls back to the normal accepted-output path when the draft session ends.
+- Added focused `ViewerHost` regression coverage proving the active project-mode body moves with draft translation changes and then reverts to the original accepted artifact when the draft session is canceled.
+
+#### Files Changed
+- `src/app/components/activeDraftExtrudePreview.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Bugs/12_GeometrySketch-Extrude-OutputPreview-Authored-Coordinate-Drift.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- During an active sketch-plane pick session, the qualifying extrude body in the main project-mode viewer now follows live draft plane/origin movement instead of staying on the last accepted mesh placement.
+- Canceling or ending the draft session returns the viewer to the ordinary accepted-output artifact path.
+- Accepted build state remains unchanged while the live draft override is active.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/components/ViewerHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1011 -->
+### [1011] - 2026-04-04 21:41 - `Extrude-1A - Active Viewport Freshness Proof`
+<!-- ENTRY 1011 -->
+HUMAN SUMMARY: `Completed the `Bug 12` Phase 1 proof slice by adding focused `ViewerHost` regression coverage that shows the active project-mode viewport starts body rendering from accepted output artifacts while visible sketch overlays can follow newer sketch transform state. This does not change runtime behavior yet, but it locks in the main conclusion that the remaining extrude mismatch is now a preview freshness / authority seam rather than another worker coordinate-loss bug.` 
+#### Scope / Constraints Honored
+- Kept this slice on proof and regression coverage only instead of widening into the later draft-preview UX decision or active viewport authority patch.
+- Left worker extrude math unchanged because the existing graph-native coordinate regressions remain valid.
+- Used the real `ViewerHost` mock viewer seam so the proof stays attached to the live viewport path.
+
+#### Summary of Implementation
+- Added a new `ViewerHost` regression in `src/app/components/ViewerHost.test.tsx` covering the active project-mode path where:
+  - body rendering starts from accepted output artifacts
+  - a newer committed sketch transform updates the visible sketch overlay
+  - accepted build output remains unchanged
+- Verified the focused viewer host suite and full repo typecheck remain green.
+
+#### Files Changed
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Bugs/12_GeometrySketch-Extrude-OutputPreview-Authored-Coordinate-Drift.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- No shipped runtime behavior changed in this slice.
+- The repo now has a focused regression proving that active extrude/body freshness can lag behind newer sketch overlay state in the project-mode viewport path.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/components/ViewerHost.test.tsx`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1010 -->
+### [1010] - 2026-04-04 21:22 - `Extrude-1A - Start Face Preview Readability`
+<!-- ENTRY 1010 -->
+HUMAN SUMMARY: `Confirmed that graph-native extrude meshes already honor authored sketch-local coordinates away from the local origin, then fixed the remaining preview readability issue by rendering runtime part materials double-sided. `Geometry/Extrude` now reads as coming out of the sketch more clearly because the start face on the sketch plane is no longer hidden by back-face culling.` 
+#### Scope / Constraints Honored
+- Kept this pass on the viewer presentation seam after the authored-plane and authored-world-space alignment fixes.
+- Did not reopen `Extrude-1B`, plural profile work, or `taper/offset` runtime support.
+- Limited the material tweak to runtime part materials managed by `Viewer.ts`.
+
+#### Summary of Implementation
+- Added a focused regression in `src/worker/cad/featureStackRuntime.test.ts` proving graph-native extrude meshes preserve sketch-local coordinates even when the source profile is authored away from `(0, 0)`.
+- Updated `src/viewer/Viewer.ts` so runtime part materials render with `DoubleSide`, keeping the sketch-plane start cap visible instead of letting the far cap dominate the preview.
+
+#### Files Changed
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Graph-native extrude preview meshes are now verified to preserve authored sketch-local coordinates away from the local origin.
+- Runtime CAD preview solids now render both sides of their caps, which makes the extrusion read as attached to the sketch plane instead of visually offset behind a culled start face.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/worker/cad/featureStackRuntime.test.ts`
+
+<!-- ENTRY 1009 -->
+### [1009] - 2026-04-04 21:10 - `Extrude-1A - OutputPreview Mesh Alignment`
+<!-- ENTRY 1009 -->
+HUMAN SUMMARY: `Finished the remaining `Extrude-1A` preview-side alignment fix so mesh-backed `Geometry/Extrude` previews now stay in authored world space instead of being re-laid out like gallery display items inside `OutputPreview`. The viewer also now consumes artifact mesh coordinates directly, which keeps transformed extrude bodies aligned to the same scene-space sketch plane frame as the sketch overlay.` 
+#### Scope / Constraints Honored
+- Kept this slice on the preview bridge after the earlier worker-side `Extrude-1A` fix, without widening into `Extrude-1B`, plural profile work, or `taper/offset` runtime support.
+- Preserved slot-scoped viewer identity and content-object ownership behavior for `OutputPreview`.
+- Left legacy `box` artifact preview layout behavior intact in this pass.
+
+#### Summary of Implementation
+- Added `src/viewer/previewPartPlacement.ts` as a small viewer placement helper that keeps mesh artifacts at authored origin while preserving the existing layout path for legacy box artifacts.
+- Updated `src/viewer/Viewer.ts` so `setParts(...)` now uses that placement helper and no longer repositions mesh artifacts by `xCursor` or bounding-box normalization.
+- Updated `src/viewer/artifactMeshGeometry.ts` so artifact meshes are now converted into viewer geometry without the older `(x, z, y)` axis remap or winding flip.
+- Updated `src/viewer/artifactMeshGeometry.test.ts` and added `src/viewer/previewPartPlacement.test.ts` to cover direct scene-space mesh conversion and authored-origin mesh placement.
+- Extended `src/worker/cad/featureStackRuntime.test.ts` with a compile-to-build-to-viewer regression proving a transformed `Geometry/Sketch -> Geometry/Extrude -> OutputPreview` mesh still lands on the authored sketch plane frame after viewer conversion.
+
+#### Files Changed
+- `src/viewer/previewPartPlacement.ts`
+- `src/viewer/previewPartPlacement.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/artifactMeshGeometry.ts`
+- `src/viewer/artifactMeshGeometry.test.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Mesh-backed preview artifacts now render at their authored world-space coordinates instead of being shifted into preview-layout slots.
+- `Geometry/Sketch` overlays and mesh-backed `Geometry/Extrude` previews now share the same scene-space coordinate convention in the viewer.
+- Legacy box artifacts still use the older preview layout path.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/viewer/artifactMeshGeometry.test.ts src/viewer/previewPartPlacement.test.ts src/worker/cad/featureStackRuntime.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/viewer/geometrySketchOverlay.test.ts`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1008 -->
+### [1008] - 2026-04-04 20:57 - `Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude`
+<!-- ENTRY 1008 -->
+HUMAN SUMMARY: `Implemented the first real `Extrude-1A` authored-plane fix so graph-native `Geometry/Sketch -> Geometry/Extrude -> OutputPreview` bodies now honor the source sketch plane transform instead of extruding from only the base `XY/XZ/YZ` plane enum. The worker runtime and viewer-side sketch math now share one extracted plane-frame contract, which keeps translated and rotated sketch-driven extrudes attached to the authored sketch plane.`
+#### Scope / Constraints Honored
+- Kept this slice on the narrow `Extrude-1A` placement repair without widening into `Extrude-1B` contract convergence, plural profile authoring, or `taper/offset` runtime support.
+- Preserved the current positive-depth single-profile graph-native seam.
+- Kept `OutputPreview` topology-only for this fix instead of layering on a separate viewer-only placement correction.
+
+#### Summary of Implementation
+- Added `src/shared/sketchPlaneFrame.ts` as the worker-safe shared sketch-plane frame helper that resolves authored `plane + planeTransform` into world-space axes and point projection.
+- Updated `src/app/spaghetti/compiler/compileGraph.ts` so graph-native extrude IR now carries `planeTransform` from the source `Geometry/Sketch` node alongside the existing plane and profile selection.
+- Updated `src/app/spaghetti/features/compileFeatureStack.ts` and `src/worker/cad/featureStackRuntime.ts` so the runtime payload, validators, and sketch runtime context now understand optional `planeTransform` data.
+- Updated `src/worker/cad/cadKernelAdapter.ts` so extrude mesh generation builds both the bottom and top faces directly from the resolved sketch plane frame instead of from the older plane-only point remap.
+- Updated `src/viewer/sketch/sketchPlaneMath.ts` to consume the shared helper so the viewer and worker now follow the same plane-frame math instead of drifting implementations.
+- Added focused regressions in `src/app/spaghetti/compiler/compileGraph.test.ts` and `src/worker/cad/featureStackRuntime.test.ts`, while keeping the extracted viewer math covered by `src/viewer/geometrySketchOverlay.test.ts`.
+
+#### Files Changed
+- `src/shared/sketchPlaneFrame.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/cadKernelAdapter.ts`
+- `src/viewer/sketch/sketchPlaneMath.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Graph-native `Geometry/Extrude` bodies now follow authored sketch translation, world rotation, and in-plane rotation instead of falling back to only the base sketch plane enum.
+- `Sketch -> Extrude -> OutputPreview` now produces mesh placement from the same resolved sketch plane frame used by the viewer-side sketch projection rules.
+- Existing untransformed sketch extrudes continue to use the same positive-depth single-profile path.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/features/compileFeatureStack.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts src/viewer/geometrySketchOverlay.test.ts`
+- `.\node_modules\.bin\tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1007 -->
+### [1007] - 2026-04-04 19:30 - `Dashboard-12 - Smart Align Toggle`
+<!-- ENTRY 1007 -->
+HUMAN SUMMARY: `Added a lane-local `Smart` align toggle so the existing vertical and horizontal dashboard align actions can now optionally redistribute selected sticky notes without overlap, while keeping the original exact-edge align behavior available when the toggle is off.`
+#### Scope / Constraints Honored
+- Kept this slice on `Dashboard-12 / Phase 12.2` without widening into the already-shipped grid action or any global layout preference system.
+- Preserved the current exact-edge align behavior as the default when the toggle is off.
+- Kept the toggle surface-local and lane-local instead of persisting it into the dashboard model.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` with a lane-local smart-align toggle state, a visible `Smart` toolbar button, and new non-overlapping vertical and horizontal redistribution helpers that use real note dimensions plus the shared dashboard gap.
+- Updated `src/app/theme/foundation/base.css` so the new smart-align toggle has an explicit active visual state in the lane toolbar.
+- Added focused regressions in `src/app/AppShell.test.tsx` for smart vertical stacking and smart horizontal stacking while preserving the earlier toggle-off exact-align coverage.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lane headers now include a visible `Smart` align toggle.
+- With the toggle off, vertical and horizontal align behave exactly as before.
+- With the toggle on, vertical align keeps one shared `x` and redistributes `y` without overlap.
+- With the toggle on, horizontal align keeps one shared `y` and redistributes `x` without overlap.
+- Smart align uses real sticky-note width and height, so resized notes stack cleanly.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1006 -->
+### [1006] - 2026-04-04 19:26 - `Dashboard-12 - Grid Defaults To Three Columns`
+<!-- ENTRY 1006 -->
+HUMAN SUMMARY: `Refined the new dashboard lane grid action so its default layout is now a predictable `3` columns wide by as many rows as needed, while still respecting real sticky-note size and row height.`
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up to the shipped `Dashboard-12 / Phase 12.1` grid action without widening into the later smart-align toggle work.
+- Preserved real note-dimension spacing and non-overlap behavior.
+- Changed only the default row-wrapping rule so grid output is more predictable.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` so lane-grid arrangement now places notes in fixed rows of three notes each instead of wrapping based on available width.
+- Preserved the existing left-to-right, top-to-bottom ordering and the tallest-note row-height spacing model.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The dashboard `Grid` action now defaults to `3` columns across and then continues on the next row.
+- Resized notes still keep their real width and height inside the arranged result.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1005 -->
+### [1005] - 2026-04-04 19:10 - `Dashboard-12 - Lane Grid Arrange Action`
+<!-- ENTRY 1005 -->
+HUMAN SUMMARY: `Added a new lane-local `Grid` action to the dashboard toolbar so users can clean up either the selected sticky-note set or, when nothing meaningful is selected, the entire lane into a deterministic non-overlapping grid that respects real note size.`
+#### Scope / Constraints Honored
+- Kept this slice tightly scoped to `Dashboard-12 / Phase 12.1` without widening into the later smart-align toggle behavior.
+- Preserved the existing align actions, attachment semantics, and lane-local ownership model.
+- Used real sticky-note width and height so resized notes arrange honestly instead of snapping to one fixed card size.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` with a reusable lane-grid placement helper plus one new lane-local `Grid` toolbar action.
+- Locked the action to arrange the selected note set when the lane has 2 or more selected notes, and otherwise fall back to arranging the full lane.
+- Added focused dashboard regressions in `src/app/AppShell.test.tsx` for selected-note-only arrangement, full-lane fallback, and resized-note spacing.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md`
+- `docs/Human-Plans/Architecture/Dashboard/Dashboard.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lane headers now include a lane-local `Grid` action.
+- Clicking `Grid` arranges the selected sticky notes when 2 or more notes are selected in that lane.
+- Clicking `Grid` with no meaningful selection now arranges the entire lane instead of doing nothing.
+- Grid arrangement uses real note bounds and prevents overlap while preserving resized note dimensions.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1004 -->
+### [1004] - 2026-04-04 19:01 - `Dashboard-12 - New Lane Auto-Name Cleanup`
+<!-- ENTRY 1004 -->
+HUMAN SUMMARY: `Removed the browser prompt from the lane-local add-lane flow so new dashboard lanes now insert immediately with the default title `New lane`, leaving inline rename as the follow-up path instead of interrupting creation with a prompt.`
+#### Scope / Constraints Honored
+- Kept this pass tightly scoped to the lane-creation naming flow without changing lane insertion order, sticky-note behavior, or lane rename behavior.
+- Preserved the existing insert-after-lane action and the inline lane rename control.
+- Removed only the browser prompt from the create flow so the dashboard surface feels more product-owned and less browser-native.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` so the lane-local `Add Lane` action now inserts a new lane immediately with the default `New lane` title instead of prompting first.
+- Updated `src/app/AppShell.test.tsx` so the lane-creation regression now expects automatic `New lane` insertion and no longer depends on a prompted title.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Clicking a lane-local `Add Lane` button now inserts a new lane immediately as `New lane`.
+- Naming the lane now happens through the existing inline lane-title edit flow instead of a browser prompt.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1003 -->
+### [1003] - 2026-04-04 18:59 - `Dashboard-12 - Full-Height Lane Board Cleanup`
+<!-- ENTRY 1003 -->
+HUMAN SUMMARY: `Removed the duplicate inner `Dashboard` header from the dashboard surface so the lane grid now fills the full interior height of the viewport while the outer workspace window chrome still owns the visible surface title and popout controls.`
+#### Scope / Constraints Honored
+- Kept this pass scoped to dashboard top-shell layout cleanup without changing lane tools, sticky-note behavior, or window chrome.
+- Preserved the existing outer dashboard viewport title bar and controls.
+- Stretched the board area through layout and styling only, without widening into new dashboard interaction work.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` to remove the redundant inner dashboard hero wrapper and render the board grid as the direct full-height surface content.
+- Updated `src/app/theme/foundation/base.css` so the dashboard canvas now behaves as a single full-height column and the board flexes to fill the available interior space instead of reserving space for the removed hero block.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The duplicate inner `Dashboard` heading is gone from the dashboard surface body.
+- Dashboard lanes now fill the full interior height of the surface underneath the outer viewport title bar.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1002 -->
+### [1002] - 2026-04-04 18:56 - `Dashboard-12 - Lane Toolbar Icon Polish`
+<!-- ENTRY 1002 -->
+HUMAN SUMMARY: `Swapped the new lane-local dashboard create actions from text buttons to icon buttons so the lane header toolbar reads as one compact tool strip while keeping the same lane-local note creation and insert-after-lane behavior.`
+#### Scope / Constraints Honored
+- Kept this polish pass tightly scoped to lane-header button presentation without changing any dashboard lane or sticky-note behavior.
+- Preserved the existing lane-local actions, data hooks, and test coverage paths.
+- Kept accessibility explicit by moving the action names into button labels instead of relying on visible text.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` so the lane-local `Add Sticky Note` and `Add Lane` actions now render as icon buttons using the existing small-toolbar button chrome.
+- Added explicit `aria-label` and `title` strings for both icon buttons so the actions remain discoverable and testable without visible text.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Dashboard lane headers now show icon-only create actions for sticky notes and lane insertion.
+- Lane-local create behavior itself is unchanged.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1001 -->
+### [1001] - 2026-04-04 18:47 - `Dashboard-12 - Lane-Local Create Actions Cleanup`
+<!-- ENTRY 1001 -->
+HUMAN SUMMARY: `Moved the dashboard create actions out of the top shell and into each lane header so sticky notes can be created directly in the clicked lane and new lanes can be inserted immediately after the clicked lane without changing stable lane ids.`
+#### Scope / Constraints Honored
+- Kept this cleanup focused on dashboard action placement and lane-insertion behavior without widening into new sticky-note attachment or shell-layout systems.
+- Preserved stable dashboard lane ids while changing only visual lane order through inserted-after placement.
+- Kept the existing prompt-based lane-title flow and inline sticky-note body focus behavior intact.
+
+#### Summary of Implementation
+- Updated `src/app/dashboard/useDashboardStore.ts` with a new `createLaneAfter` action that inserts a new lane directly after a clicked lane while normalizing lane order.
+- Updated `src/app/workspace/DashboardSurface.tsx` to remove the old global hero create buttons, add lane-local `Add Sticky Note` and `Add Lane` actions after `Delete`, and place new sticky notes directly into the clicked lane before starting inline body editing.
+- Added focused coverage in `src/app/dashboard/useDashboardStore.test.ts` for inserted-after lane ordering and refreshed `src/app/AppShell.test.tsx` so dashboard interaction coverage now follows the lane-local toolbar actions.
+
+#### Files Changed
+- `src/app/dashboard/useDashboardStore.ts`
+- `src/app/dashboard/useDashboardStore.test.ts`
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The dashboard top shell no longer owns global `Add Sticky Note` and `Add Lane` buttons.
+- Every dashboard lane header now offers `Add Sticky Note` and `Add Lane` actions after `Delete`.
+- `Add Sticky Note` now creates the note directly inside the clicked lane.
+- `Add Lane` now inserts a new lane immediately after the clicked lane instead of always appending at the end.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 1000 -->
+### [1000] - 2026-04-04 18:39 - `Dashboard-7.10 - Dashboard Hero Copy Cleanup`
+<!-- ENTRY 1000 -->
+HUMAN SUMMARY: `Trimmed the dashboard top shell by removing the extra eyebrow label and long helper sentence from the hero area, leaving the cleaner `Dashboard` title plus the existing board actions in place without changing board behavior.`
+#### Scope / Constraints Honored
+- Kept this pass tightly scoped to the dashboard top-shell text cleanup without widening into broader layout or interaction changes.
+- Preserved the existing dashboard title, board actions, lanes, and sticky-note behavior.
+- Refreshed only the tests that explicitly referenced the removed helper copy.
+
+#### Summary of Implementation
+- Updated `src/app/workspace/DashboardSurface.tsx` to remove the `Workspace Surface` eyebrow and the longer `Calm board shell online...` helper sentence from the dashboard hero.
+- Updated `src/app/AppShell.test.tsx` so dashboard surface expectations now assert the slimmer shell content instead of the removed helper copy.
+
+#### Files Changed
+- `src/app/workspace/DashboardSurface.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The dashboard top shell now renders with a simpler header: the `Dashboard` title and the existing actions only.
+- No board behavior, sticky-note behavior, or lane behavior changed in this pass.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 999 -->
+### [999] - 2026-04-04 18:29 - `Dashboard-7.10 - Sticky Note Resize Handle Chrome Cleanup`
+<!-- ENTRY 999 -->
+HUMAN SUMMARY: `Removed the visible dashboard sticky-note edge and corner resize chrome while keeping the invisible resize hit targets and cursor behavior intact, so notes still resize from their edges and corners without showing debug-looking grab markers.`
+#### Scope / Constraints Honored
+- Kept this cleanup strictly visual by preserving the existing resize hit areas, edge and corner gesture ownership, and sticky-note frame behavior.
+- Did not widen the change into resize math, attachment behavior, or any dashboard model updates.
+- Preserved the current menu layering, focus-lift behavior, and sticky-note chrome outside the resize-handle visuals.
+
+#### Summary of Implementation
+- Updated `src/app/theme/foundation/base.css` to remove the hover and focus-visible pseudo-element rendering for sticky-note resize handles while leaving the underlying invisible handle elements, positions, cursors, and hit targets unchanged.
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Sticky notes no longer show visible edge and corner grab markers.
+- Users can still resize sticky notes by grabbing the same invisible edge and corner hit areas.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
+<!-- ENTRY 998 -->
+### [998] - 2026-04-04 18:14 - `Dashboard-7.10 - Sticky Note Stack Order Drop Fix`
+<!-- ENTRY 998 -->
+HUMAN SUMMARY: `Fixed the dashboard sticky-note post-drop stack-order bug by removing selection from the note z-index rules, so an attached selected parent no longer jumps above its child after drag release while the existing attachment-derived render order, focus lift, and menu layering stay intact.`
+#### Scope / Constraints Honored
+- Kept this fix narrowly focused on the specific post-drop stack-order bug instead of widening into drag logic rewrites, attachment-model changes, or broader sticky-note cleanup.
+- Preserved the existing attachment-derived render ordering, temporary focus-lift override, and menu-open layering behavior.
+- Kept selection as a purely visual state by preserving the highlight treatment while removing its ability to reorder overlapping notes.
+
+#### Summary of Implementation
+- Updated `src/app/theme/foundation/base.css` so `.DashboardStickyNote.isSelected` no longer assigns a z-index, leaving selection styling purely decorative.
+- Extended the focused dashboard stack-order regression in `src/app/AppShell.test.tsx` so the parent subtree drag test now also verifies that the selected parent still settles beneath its attached child after pointer-up.
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Selected dashboard sticky notes no longer reorder overlapping notes just because they are selected.
+- After dragging and dropping an attached parent note, its attached child now remains visually above it even if the parent stays selected.
+- Existing focus-lift and menu-open stacking behavior remains unchanged.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/dashboard/useDashboardStore.test.ts src/app/AppShell.test.tsx -t dashboard`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+- `npm.cmd run build`
+
 <!-- ENTRY 997 -->
 ### [997] - 2026-04-04 14:29 - `Dashboard-7.10 - Phase 10.5 - Sticky Note Focus Lift`
 <!-- ENTRY 997 -->
@@ -3687,23 +5760,23 @@ HUMAN SUMMARY: `Added a focused real-console repro for the still-open split-host
 
 
 <!-- ENTRY 865 -->
-HUMAN SUMMARY: `Updated the architecture roadmap so `Pasta Path` now has an explicit place in the main working queue instead of living only in the catch-all open-family list. The roadmap now frames it as a later derived CAD-command / transform-diff timeline surface that follows the current workspace cleanup ladder and earlier `Edit History` groundwork, rather than reading like a second undo/history system.`  
+HUMAN SUMMARY: `Updated the architecture roadmap so `Build Path` now has an explicit place in the main working queue instead of living only in the catch-all open-family list. The roadmap now frames it as a later derived CAD-command / transform-diff timeline surface that follows the current workspace cleanup ladder and earlier `Edit History` groundwork, rather than reading like a second undo/history system.`  
 #### Scope / Constraints Honored
-- Kept this as a docs-only roadmap interpretation update and did not invent a fake standalone `Pasta Path` phase id before the family is ready.
-- Preserved the current umbrella status of the `Pasta Path` family while making its likely dependency order more explicit.
-- Narrowed the wording so `Pasta Path` no longer reads like it should replace `Spaghetti` or duplicate `Edit History`.
+- Kept this as a docs-only roadmap interpretation update and did not invent a fake standalone `Build Path` phase id before the family is ready.
+- Preserved the current umbrella status of the `Build Path` family while making its likely dependency order more explicit.
+- Narrowed the wording so `Build Path` no longer reads like it should replace `Spaghetti` or duplicate `Edit History`.
 
 #### What Changed
-- Updated `docs/Human-Plans/roadmap/Architecture-roadmap.md` so the `Pasta Path` family read now describes it as a derived scrub-friendly CAD-command / transform-diff surface, explicitly separate from `Edit History`.
-- Added `Pasta Path` into the main `### Suggested Working Order` after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork.
-- Removed `Pasta Path` from the generic `### Other Open Families` list now that it has a more explicit place in the roadmap queue.
+- Updated `docs/Human-Plans/roadmap/Architecture-roadmap.md` so the `Build Path` family read now describes it as a derived scrub-friendly CAD-command / transform-diff surface, explicitly separate from `Edit History`.
+- Added `Build Path` into the main `### Suggested Working Order` after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork.
+- Removed `Build Path` from the generic `### Other Open Families` list now that it has a more explicit place in the roadmap queue.
 
 #### Files Changed
 - `docs/Human-Plans/roadmap/Architecture-roadmap.md`
 - `docs/CHANGELOG.md`
 
 #### Behavior Changes
-- No runtime behavior changed; this is a roadmap and interpretation cleanup so the cross-family plan now shows where `Pasta Path` belongs more honestly.
+- No runtime behavior changed; this is a roadmap and interpretation cleanup so the cross-family plan now shows where `Build Path` belongs more honestly.
 
 #### Verification Steps
 - Read back `docs/Human-Plans/roadmap/Architecture-roadmap.md`

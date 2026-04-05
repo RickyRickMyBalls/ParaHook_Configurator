@@ -22,6 +22,7 @@ type DashboardStoreState = {
   hydratePersistedDashboardState: (state: PersistedDashboardState) => void
   reconcileStickyNoteLayouts: (noteIds: string[]) => void
   createLane: (title?: string) => DashboardLaneId
+  createLaneAfter: (afterLaneId: DashboardLaneId, title?: string) => DashboardLaneId
   renameLane: (laneId: DashboardLaneId, title: string) => void
   removeLane: (laneId: DashboardLaneId, destinationLaneId: DashboardLaneId) => void
   setAdjacentLaneWidths: (
@@ -126,6 +127,31 @@ const createNextLaneId = (lanes: DashboardLaneRecord[]): DashboardLaneId => {
   return `lane-${nextIndex}`
 }
 
+const createInsertedLaneSet = (
+  lanes: DashboardLaneRecord[],
+  afterLaneId: DashboardLaneId | null,
+  title: string,
+  nextLaneId: DashboardLaneId,
+): DashboardLaneRecord[] => {
+  const sortedLanes = sortAndNormalizeLanes(lanes)
+  const insertAfterIndex =
+    afterLaneId === null ? sortedLanes.length - 1 : sortedLanes.findIndex((lane) => lane.id === afterLaneId)
+  const insertedLane: DashboardLaneRecord = {
+    id: nextLaneId,
+    title: normalizeLaneTitle(title, 'New lane'),
+    order: Math.max(0, insertAfterIndex + 1),
+    width: 1,
+  }
+  if (insertAfterIndex < 0) {
+    return sortAndNormalizeLanes([...sortedLanes, insertedLane])
+  }
+  return sortAndNormalizeLanes([
+    ...sortedLanes.slice(0, insertAfterIndex + 1),
+    insertedLane,
+    ...sortedLanes.slice(insertAfterIndex + 1),
+  ])
+}
+
 const createDefaultStickyNoteLayout = (
   noteId: string,
   index: number,
@@ -226,15 +252,18 @@ export const useDashboardStore = create<DashboardStoreState>((set) => ({
       const nextId = createNextLaneId(state.lanes)
       nextLaneId = nextId
       return {
-        lanes: sortAndNormalizeLanes([
-          ...state.lanes,
-          {
-            id: nextId,
-            title: normalizeLaneTitle(title, 'New lane'),
-            order: state.lanes.length,
-            width: 1,
-          },
-        ]),
+        lanes: createInsertedLaneSet(state.lanes, null, title, nextId),
+      }
+    })
+    return nextLaneId
+  },
+  createLaneAfter: (afterLaneId, title = 'New lane') => {
+    let nextLaneId = defaultDashboardLaneId
+    set((state) => {
+      const nextId = createNextLaneId(state.lanes)
+      nextLaneId = nextId
+      return {
+        lanes: createInsertedLaneSet(state.lanes, afterLaneId, title, nextId),
       }
     })
     return nextLaneId

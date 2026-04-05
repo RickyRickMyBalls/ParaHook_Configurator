@@ -21,11 +21,24 @@ import {
   GeometryNodeShell,
   type GeometryNodeShellChip,
 } from './GeometryNodeShell'
+import {
+  getDefaultStructuredWireBlockOpen,
+  getDefaultStructuredWireRowMode,
+  isWiringSurfaceSection,
+  type NodeTemplateBlockId,
+  type StructuredWireRowMode,
+} from './nodeTemplateContract'
+import {
+  createStructuredWireRowController,
+} from './structuredWireRowController'
+import { createStructuredWireNumericRowProps } from './structuredWireNumericRowProps'
+import { createStructuredWireEnumRowProps } from './structuredWireEnumRowProps'
+import { StructuredWireEnumRow } from './StructuredWireEnumRow'
 import { PortView, type PortDetailLine } from './PortView'
 import type { CompositeExpansionDirection } from './compositeExpansion'
 import { NumberField } from './fields/NumberField'
 import { Vec2Field } from './fields/Vec2Field'
-import { getTypeColor } from './typeColors'
+import { getTypeColor, STRUCTURED_WIRE_ENUM_INPUT_COLOR } from './typeColors'
 import { ParaSelect } from '../../components/ParaSelect'
 import { ParaSlider } from '../../components/ParaSlider'
 import { useAppStore } from '../../store/useAppStore'
@@ -69,10 +82,6 @@ const SECTION_IDS = {
   inputs: 'inputs',
   featureStack: 'featureStack',
   outputs: 'outputs',
-  sketchPlane: 'sketch-plane',
-  sketchDraw: 'sketch-draw',
-  sketchEntities: 'sketch-entities',
-  sketchReview: 'sketch-review',
   sketchProfile: 'sketch-profile',
   legacy: 'legacy',
   legacySectionPrefix: 'legacy-section',
@@ -93,7 +102,7 @@ type CompositeContextMenuState = {
   portId: string
 }
 
-type GeometryBlockId = 'inputs' | 'content' | 'outputs'
+type GeometryBlockId = NodeTemplateBlockId
 
 export type FeatureVirtualInputStateByPortId = Record<
   string,
@@ -474,8 +483,7 @@ function NodeViewComponent({
     (state) => state.removeGeometrySketchComponent,
   )
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
-  const graph = useSpaghettiStore((state) => state.graph)
-  const setGraph = useSpaghettiStore((state) => state.setGraph)
+  const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
 
@@ -513,18 +521,6 @@ function NodeViewComponent({
   const isCompositeCollapsed = (sectionId: string, portId: string): boolean =>
     isCollapsed(compositeKey(sectionId, portId))
 
-  const isGeometrySketchManagedSection = (sectionId: string): boolean =>
-    isSketchTemplate &&
-    (sectionId === SECTION_IDS.sketchPlane ||
-      sectionId === SECTION_IDS.sketchDraw ||
-      sectionId === SECTION_IDS.sketchEntities ||
-      sectionId === SECTION_IDS.sketchReview)
-
-  const getSectionOverride = (sectionId: string): boolean | undefined => {
-    const key = sectionKey(sectionId)
-    return Object.prototype.hasOwnProperty.call(collapsedState, key) ? collapsedState[key] : undefined
-  }
-
   const getGeometryPortRowOverride = (
     direction: 'in' | 'out',
     portId: string,
@@ -542,56 +538,38 @@ function NodeViewComponent({
       : undefined
   }
 
-  const isGeometrySectionVisibleForMode = (sectionId: string): boolean => {
-    if (!isGeometrySketchManagedSection(sectionId)) {
-      return true
+  const getGeometryManagedPortConfig = (
+    direction: 'in' | 'out',
+    portId: string,
+  ): { opensInEssentials: boolean } | null => {
+    if (isSketchTemplate) {
+      if (direction === 'in' && (portId === 'SketchPlane' || portId === 'SketchEntities')) {
+        return { opensInEssentials: true }
+      }
+      if (direction === 'out' && (portId === 'SketchProfiles' || portId === 'SketchProfile')) {
+        return { opensInEssentials: false }
+      }
     }
-    return true
-  }
-
-  const isGeometrySectionOpenByDefault = (sectionId: string): boolean => {
-    if (!isGeometrySketchManagedSection(sectionId)) {
-      return !isCollapsedMode
+    if (isExtrudeTemplate && direction === 'in') {
+      if (portId === 'ExtrusionProfile') {
+        return { opensInEssentials: true }
+      }
     }
-    if (nodeMode === 'expanded') {
-      return true
-    }
-    if (nodeMode === 'essentials') {
-      return sectionId === SECTION_IDS.sketchPlane || sectionId === SECTION_IDS.sketchDraw
-    }
-    return false
-  }
-
-  const isGeometrySectionOpen = (sectionId: string): boolean => {
-    const override = getSectionOverride(sectionId)
-    if (override !== undefined) {
-      return override === false
-    }
-    return isGeometrySectionOpenByDefault(sectionId)
+    return null
   }
 
   const isGeometryPortRowManaged = (direction: 'in' | 'out', portId: string): boolean =>
-    isSketchTemplate &&
-    ((direction === 'in' && (portId === 'SketchPlane' || portId === 'SketchEntities')) ||
-      (direction === 'out' && (portId === 'SketchProfiles' || portId === 'SketchProfile')))
+    getGeometryManagedPortConfig(direction, portId) !== null
 
   const isGeometryBlockManaged = (blockId: GeometryBlockId): boolean =>
-    isSketchTemplate && (blockId === 'inputs' || blockId === 'content' || blockId === 'outputs')
+    (isSketchTemplate || isExtrudeTemplate) &&
+    (blockId === 'inputs' || blockId === 'content' || blockId === 'outputs')
 
   const isGeometryBlockOpenByDefault = (blockId: GeometryBlockId): boolean => {
     if (!isGeometryBlockManaged(blockId)) {
       return true
     }
-    if (blockId === 'content') {
-      return true
-    }
-    if (nodeMode === 'expanded') {
-      return true
-    }
-    if (nodeMode === 'essentials') {
-      return blockId === 'inputs'
-    }
-    return false
+    return getDefaultStructuredWireBlockOpen(nodeMode, blockId)
   }
 
   const isGeometryBlockOpen = (blockId: GeometryBlockId): boolean => {
@@ -621,16 +599,13 @@ function NodeViewComponent({
     direction: 'in' | 'out',
     portId: string,
   ): boolean => {
-    if (!isGeometryPortRowManaged(direction, portId)) {
+    const managedConfig = getGeometryManagedPortConfig(direction, portId)
+    if (managedConfig === null) {
       return true
     }
-    if (nodeMode === 'expanded') {
-      return true
-    }
-    if (nodeMode === 'essentials') {
-      return direction === 'in' && (portId === 'SketchPlane' || portId === 'SketchEntities')
-    }
-    return false
+    return (
+      getDefaultStructuredWireRowMode(nodeMode, managedConfig.opensInEssentials) !== 'collapsed'
+    )
   }
 
   const isGeometryPortRowOpen = (direction: 'in' | 'out', portId: string): boolean => {
@@ -639,6 +614,24 @@ function NodeViewComponent({
       return override === false
     }
     return isGeometryPortRowOpenByDefault(direction, portId)
+  }
+
+  const getManagedStructuredWireRowProps = (
+    direction: 'in' | 'out',
+    portId: string,
+    label: string,
+  ) => {
+    const detailsKey = endpointKey(direction, portId)
+    return createStructuredWireRowController({
+      rowOpen: isGeometryPortRowOpen(direction, portId),
+      rowExpanded: expandedDetails[detailsKey] === true,
+      rowKey: geometryPortRowKey(direction, portId),
+      detailsKey,
+      label,
+      direction: direction === 'in' ? 'input' : 'output',
+      setCollapsed,
+      setExpandedDetails,
+    })
   }
 
   const toggleSection = (sectionId: string, forceAllGroupIds?: readonly string[]) => {
@@ -658,16 +651,6 @@ function NodeViewComponent({
   ) => {
     return (event: MouseEvent<HTMLDivElement>) => {
       event.stopPropagation()
-      if (isGeometrySketchManagedSection(sectionId)) {
-        const nextCollapsed = isGeometrySectionOpen(sectionId)
-        setCollapsed(sectionKey(sectionId), nextCollapsed)
-        if (forceAllGroupIds !== undefined && forceAllGroupIds.length > 0) {
-          for (const groupId of forceAllGroupIds) {
-            setCollapsed(groupKey(sectionId, groupId), nextCollapsed)
-          }
-        }
-        return
-      }
       if (event.altKey && forceAllGroupIds !== undefined) {
         toggleSection(sectionId, forceAllGroupIds)
         return
@@ -751,9 +734,7 @@ function NodeViewComponent({
     sectionId: string,
     forceGroupIds: readonly string[] = [],
   ) => {
-    const collapsed = isGeometrySketchManagedSection(sectionId)
-      ? !isGeometrySectionOpen(sectionId)
-      : isSectionCollapsed(sectionId)
+    const collapsed = isSectionCollapsed(sectionId)
     return (
       <div
         className="SpaghettiNodeSectionLabel SpaghettiNodeSectionHeaderHitArea"
@@ -769,8 +750,8 @@ function NodeViewComponent({
   }
 
   const isSectionBodyVisible = (sectionId: string): boolean =>
-    isGeometrySketchManagedSection(sectionId)
-      ? isGeometrySectionVisibleForMode(sectionId) && isGeometrySectionOpen(sectionId)
+    isWiringSurfaceSection(sectionId)
+      ? !isSectionCollapsed(sectionId)
       : !isCollapsedMode && !isSectionCollapsed(sectionId)
 
   const renderTemplateSection = (
@@ -782,9 +763,6 @@ function NodeViewComponent({
       forceGroupIds?: readonly string[]
     },
   ) => {
-    if (isGeometrySketchManagedSection(sectionId) && !isGeometrySectionVisibleForMode(sectionId)) {
-      return null
-    }
     const bodyVisible = isSectionBodyVisible(sectionId)
     return (
       <section
@@ -919,6 +897,7 @@ function NodeViewComponent({
   const renderInputPort = (
     port: PortSpec,
     options?: {
+      portClassName?: string
       endpointPortId?: string
       path?: string[]
       valueBarTone?: 'blue' | 'white'
@@ -930,7 +909,7 @@ function NodeViewComponent({
         event: MouseEvent<HTMLElement>,
         payload: EndpointPayload,
       ) => void
-      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      rowChevronState?: StructuredWireRowMode
       onCycleRowChevron?: () => void
       rowExpanded?: boolean
       onToggleRowExpanded?: () => void
@@ -949,8 +928,16 @@ function NodeViewComponent({
         max?: number
         step?: number
         showSlider?: boolean
+        renderAs?: 'numberField' | 'paraSlider'
+        primitiveRow?: boolean
         disabled?: boolean
         driven?: boolean
+        formatValue?: (value: number) => string
+        displayLabel?: string
+        displayValue?: string
+        displayedTrackValue?: number
+        className?: string
+        hideSliderCaps?: boolean
         onChange: (value: number) => void
       }
     },
@@ -981,6 +968,7 @@ function NodeViewComponent({
     return (
       <PortView
         key={`in-${endpointPortId}-${path?.join('.') ?? 'root'}`}
+        className={options?.portClassName}
         nodeId={node.nodeId}
         direction="in"
         endpointPortId={endpointPortId}
@@ -1033,6 +1021,7 @@ function NodeViewComponent({
   const renderCompositeInputPort = (
     port: PortSpec,
     options?: {
+      portClassName?: string
       endpointPortId?: string
       labelOverride?: string
       resolvedValueLabel?: string
@@ -1042,8 +1031,16 @@ function NodeViewComponent({
         max?: number
         step?: number
         showSlider?: boolean
+        renderAs?: 'numberField' | 'paraSlider'
+        primitiveRow?: boolean
         disabled?: boolean
         driven?: boolean
+        formatValue?: (value: number) => string
+        displayLabel?: string
+        displayValue?: string
+        displayedTrackValue?: number
+        className?: string
+        hideSliderCaps?: boolean
         onChange: (value: number) => void
       }
     },
@@ -1053,6 +1050,7 @@ function NodeViewComponent({
     const tree = getFieldTree(port.type)
     if (!isCompositeFieldNode(tree)) {
       return renderInputPort(port, {
+        portClassName: options?.portClassName,
         endpointPortId,
         labelOverride: options?.labelOverride,
         resolvedValueLabel: options?.resolvedValueLabel,
@@ -1082,6 +1080,7 @@ function NodeViewComponent({
         className={`SpaghettiCompositeGroup spComp_group ${expanded ? 'isExpanded' : ''}`}
       >
         {renderInputPort(port, {
+          portClassName: options?.portClassName,
           endpointPortId,
           labelOverride: options?.labelOverride,
           valueInput: options?.valueInput,
@@ -1119,6 +1118,7 @@ function NodeViewComponent({
                   leafPortPathKey(endpointPortId, leaf.path),
                 )
               return renderInputPort(childPort, {
+                portClassName: options?.portClassName,
                 endpointPortId,
                 path: leaf.path,
                 labelOverride: leafLabel(leaf.path, leaf.node.label),
@@ -1152,9 +1152,10 @@ function NodeViewComponent({
   const renderInputPortByType = (
     port: PortSpec,
     options?: {
+      portClassName?: string
       endpointPortId?: string
       labelOverride?: string
-      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      rowChevronState?: StructuredWireRowMode
       onCycleRowChevron?: () => void
       rowExpanded?: boolean
       onToggleRowExpanded?: () => void
@@ -1171,8 +1172,16 @@ function NodeViewComponent({
         max?: number
         step?: number
         showSlider?: boolean
+        renderAs?: 'numberField' | 'paraSlider'
+        primitiveRow?: boolean
         disabled?: boolean
         driven?: boolean
+        formatValue?: (value: number) => string
+        displayLabel?: string
+        displayValue?: string
+        displayedTrackValue?: number
+        className?: string
+        hideSliderCaps?: boolean
         onChange: (value: number) => void
       }
     },
@@ -1182,6 +1191,7 @@ function NodeViewComponent({
       return renderCompositeInputPort(port, options)
     }
     return renderInputPort(port, {
+      portClassName: options?.portClassName,
       endpointPortId: options?.endpointPortId,
       labelOverride: options?.labelOverride,
       rowChevronState: options?.rowChevronState,
@@ -1211,7 +1221,7 @@ function NodeViewComponent({
       onToggleComposite?: () => void
       showDetailsToggle?: boolean
       details?: PortDetailLine[]
-      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      rowChevronState?: StructuredWireRowMode
       onCycleRowChevron?: () => void
       rowExpanded?: boolean
       onToggleRowExpanded?: () => void
@@ -1345,7 +1355,7 @@ function NodeViewComponent({
       endpointPortId?: string
       labelOverride?: string
       path?: string[]
-      rowChevronState?: 'collapsed' | 'essentials' | 'expanded'
+      rowChevronState?: StructuredWireRowMode
       onCycleRowChevron?: () => void
       rowExpanded?: boolean
       onToggleRowExpanded?: () => void
@@ -2154,25 +2164,15 @@ function NodeViewComponent({
     const effectivePlaneLabel = sketchVm?.planeDriven === true
       ? `${sketchVm.effectivePlane} (wired)`
       : sketchVm?.effectivePlane ?? 'Unassigned'
-    const profileSummary =
-      sketchVm === undefined
-        ? 'Profile review unavailable.'
-        : sketchVm.profileCount === 0
-          ? 'No closed profiles detected yet.'
-          : sketchVm.hasSelectedProfile
-            ? selectedProfile === null
-              ? '1 profile ready for downstream use.'
-              : `Selected ${selectedProfile.profileId.slice(0, 8)} | area ${formatPinValue(selectedProfile.area)}`
-            : `${sketchVm.profileCount} profiles detected; choose one in Review.`
     const headerChips: GeometryNodeShellChip[] = [
       {
         label: sketchVm?.planeDriven === true ? 'wired plane' : 'local plane',
         tone: sketchVm?.planeDriven === true ? 'accent' : 'default',
       },
-      ...(activeSketchSession !== null
+      ...(activeSketchSession?.mode === 'draw'
         ? [
             {
-              label: activeSketchSession.mode === 'draw' ? 'draw session' : 'review session',
+              label: 'draw session',
               tone: 'success' as const,
             },
           ]
@@ -2213,9 +2213,7 @@ function NodeViewComponent({
           ))}
         </div>
       ) : undefined
-    const planeDetailsKey = endpointKey('in', 'SketchPlane')
-    const planeRowOpen = isGeometryPortRowOpen('in', 'SketchPlane')
-    const planeRowExpanded = expandedDetails[planeDetailsKey] === true
+    const planeRowController = getManagedStructuredWireRowProps('in', 'SketchPlane', 'SketchPlane')
     const sessionForNode =
       activeSketchPlanePickSession?.nodeId === node.nodeId ? activeSketchPlanePickSession : null
     const localPlane = sessionForNode?.draftPlane ?? managedSketch?.plane ?? 'XY'
@@ -2225,63 +2223,11 @@ function NodeViewComponent({
       rotationDeg: { x: 0, y: 0, z: 0 },
       inPlaneRotationDeg: 0,
     }
-    const planeRowChevronState: 'collapsed' | 'essentials' | 'expanded' = !planeRowOpen
-      ? 'collapsed'
-      : planeRowExpanded
-        ? 'expanded'
-        : 'essentials'
-    const entitiesDetailsKey = endpointKey('in', 'SketchEntities')
-    const entitiesRowOpen = isGeometryPortRowOpen('in', 'SketchEntities')
-    const entitiesRowExpanded = expandedDetails[entitiesDetailsKey] === true
-    const entitiesRowChevronState: 'collapsed' | 'essentials' | 'expanded' = !entitiesRowOpen
-      ? 'collapsed'
-      : entitiesRowExpanded
-        ? 'expanded'
-        : 'essentials'
-    const cycleSketchPlaneRowMode = () => {
-      if (planeRowChevronState === 'collapsed') {
-        setCollapsed(geometryPortRowKey('in', 'SketchPlane'), false)
-        setExpandedDetails((current) => ({
-          ...current,
-          [planeDetailsKey]: false,
-        }))
-        return
-      }
-      if (planeRowChevronState === 'essentials') {
-        setExpandedDetails((current) => ({
-          ...current,
-          [planeDetailsKey]: true,
-        }))
-        return
-      }
-      setExpandedDetails((current) => ({
-        ...current,
-        [planeDetailsKey]: false,
-      }))
-      setCollapsed(geometryPortRowKey('in', 'SketchPlane'), true)
-    }
-    const cycleSketchEntitiesRowMode = () => {
-      if (entitiesRowChevronState === 'collapsed') {
-        setCollapsed(geometryPortRowKey('in', 'SketchEntities'), false)
-        setExpandedDetails((current) => ({
-          ...current,
-          [entitiesDetailsKey]: false,
-        }))
-        return
-      }
-      if (entitiesRowChevronState === 'essentials') {
-        setExpandedDetails((current) => ({
-          ...current,
-          [entitiesDetailsKey]: true,
-        }))
-        return
-      }
-      setExpandedDetails((current) => ({
-        ...current,
-        [entitiesDetailsKey]: false,
-      }))
-      setCollapsed(geometryPortRowKey('in', 'SketchEntities'), true)
-    }
+    const entitiesRowController = getManagedStructuredWireRowProps(
+      'in',
+      'SketchEntities',
+      'SketchDraw',
+    )
     const renderSketchPlaneSectionTitle = (title: string, hint?: string) => (
       <div className="SpaghettiSketchPlaneControlHeader">
         <div className="SpaghettiSketchPlaneControlTitle">{title}</div>
@@ -2565,46 +2511,12 @@ function NodeViewComponent({
       if (!isGeometryPortRowVisibleForMode('out', port.portId)) {
         return null
       }
-      const detailsKey = endpointKey('out', port.portId)
-      const rowOpen = isGeometryPortRowOpen('out', port.portId)
-      const rowExpanded = expandedDetails[detailsKey] === true
-      const rowChevronState: 'collapsed' | 'essentials' | 'expanded' = !rowOpen
-        ? 'collapsed'
-        : rowExpanded
-          ? 'expanded'
-          : 'essentials'
-      const cycleRowMode = () => {
-        if (rowChevronState === 'collapsed') {
-          setCollapsed(geometryPortRowKey('out', port.portId), false)
-          setExpandedDetails((current) => ({
-            ...current,
-            [detailsKey]: false,
-          }))
-          return
-        }
-        if (rowChevronState === 'essentials') {
-          setExpandedDetails((current) => ({
-            ...current,
-            [detailsKey]: true,
-          }))
-          return
-        }
-        setExpandedDetails((current) => ({
-          ...current,
-          [detailsKey]: false,
-        }))
-        setCollapsed(geometryPortRowKey('out', port.portId), true)
-      }
+      const rowController = getManagedStructuredWireRowProps('out', port.portId, port.label)
 
       return renderOutputPortByType(port, {
-        rowChevronState,
-        onCycleRowChevron: cycleRowMode,
-        rowToggleAriaLabel:
-          rowChevronState === 'collapsed'
-            ? `Open ${port.label} output row`
-            : rowChevronState === 'essentials'
-              ? `Expand ${port.label} output row`
-              : `Collapse ${port.label} output row`,
+        rowChevronState: rowController.rowChevronState,
+        onCycleRowChevron: rowController.onCycleRowChevron,
+        rowToggleAriaLabel: rowController.rowToggleAriaLabel,
         hideDetailsToggle: true,
       })
     }
@@ -2616,11 +2528,8 @@ function NodeViewComponent({
         badge="Geometry"
         headerChips={headerChips}
         summaryChips={summaryChips}
-        contentLabel="Sketch"
         inputRailOpen={isGeometryBlockOpen('inputs')}
         onInputRailToggle={() => toggleGeometryBlock('inputs')}
-        contentOpen={isGeometryBlockOpen('content')}
-        onContentToggle={() => toggleGeometryBlock('content')}
         outputRailOpen={isGeometryBlockOpen('outputs')}
         onOutputRailToggle={() => toggleGeometryBlock('outputs')}
         inputRail={
@@ -2629,19 +2538,14 @@ function NodeViewComponent({
               ? renderInputPortByType(planePort, {
                   endpointPortId: planePort.portId,
                   resolvedValueLabel: effectivePlaneLabel,
-                  rowChevronState: planeRowChevronState,
-                  onCycleRowChevron: cycleSketchPlaneRowMode,
-                  rowToggleAriaLabel:
-                    planeRowChevronState === 'collapsed'
-                      ? 'Open SketchPlane input row'
-                      : planeRowChevronState === 'essentials'
-                        ? 'Expand SketchPlane input row'
-                        : 'Collapse SketchPlane input row',
+                  rowChevronState: planeRowController.rowChevronState,
+                  onCycleRowChevron: planeRowController.onCycleRowChevron,
+                  rowToggleAriaLabel: planeRowController.rowToggleAriaLabel,
                   hideDetailsToggle: true,
                   attachedBodyContent:
-                    planeRowChevronState === 'collapsed'
+                    planeRowController.rowChevronState === 'collapsed'
                       ? undefined
-                      : renderSketchPlaneAttachedBody(planeRowChevronState),
+                      : renderSketchPlaneAttachedBody(planeRowController.rowChevronState),
                 })
               : null}
             {entitiesPort !== undefined
@@ -2651,19 +2555,14 @@ function NodeViewComponent({
                     sketchComponents.length === 0
                       ? 'No sketch entities yet'
                       : `${sketchComponents.length} entities`,
-                  rowChevronState: entitiesRowChevronState,
-                  onCycleRowChevron: cycleSketchEntitiesRowMode,
-                  rowToggleAriaLabel:
-                    entitiesRowChevronState === 'collapsed'
-                      ? 'Open SketchDraw input row'
-                      : entitiesRowChevronState === 'essentials'
-                        ? 'Expand SketchDraw input row'
-                        : 'Collapse SketchDraw input row',
+                  rowChevronState: entitiesRowController.rowChevronState,
+                  onCycleRowChevron: entitiesRowController.onCycleRowChevron,
+                  rowToggleAriaLabel: entitiesRowController.rowToggleAriaLabel,
                   hideDetailsToggle: true,
                   attachedBodyContent:
-                    entitiesRowChevronState === 'collapsed'
+                    entitiesRowController.rowChevronState === 'collapsed'
                       ? undefined
-                      : renderSketchEntitiesAttachedBody(entitiesRowChevronState),
+                      : renderSketchEntitiesAttachedBody(entitiesRowController.rowChevronState),
                 })
               : null}
           </div>
@@ -2674,195 +2573,204 @@ function NodeViewComponent({
           </div>
         }
         diagnostics={diagnosticsContent}
-      >
-        {renderTemplateSection(
-          SECTION_IDS.sketchPlane,
-          'Plane',
-          <div className="SpaghettiSketchSectionBody">
-            <div className="SpaghettiSketchPlaneRow" data-sp-sketch-plane-row="1">
-              <div className="SpaghettiSketchPlaneRowPort">
-                <div className="SpaghettiSketchActionMeta">
-                  <div className="SpaghettiSketchActionTitle">Sketch Plane</div>
-                  <div className="SpaghettiSketchActionHint">
-                    {planePickActive
-                      ? 'Choose XY, XZ, or YZ in the viewer overlay.'
-                      : `Current plane: ${effectivePlaneLabel}.`}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                className={`SpaghettiSketchPlaneAction ${planePickActive ? 'isActive' : ''}`}
-                {...SP_INTERACTIVE_PROPS}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  if (planePickActive) {
-                    cancelSketchPlanePick()
-                    return
-                  }
-                  startSketchPlanePick(node.nodeId)
-                }}
-                aria-label={planePickActive ? 'Cancel plane pick' : 'Pick sketch plane'}
-                title={planePickActive ? 'Cancel plane pick' : 'Pick sketch plane'}
-              >
-                {planePickActive ? 'x' : '+'}
-              </button>
-            </div>
-          </div>,
-        )}
-
-        {renderTemplateSection(
-          SECTION_IDS.sketchReview,
-          'Review',
-          <div className="SpaghettiSketchSectionBody">
-            <div className="SpaghettiSketchActionRow">
-              <div className="SpaghettiSketchActionMeta">
-                <div className="SpaghettiSketchActionTitle">Review</div>
-                <div className="SpaghettiSketchActionHint">{profileSummary}</div>
-              </div>
-              <button
-                type="button"
-                className={`SpaghettiSketchActionButton ${
-                  activeSketchSession?.mode === 'review' ? 'isActive' : ''
-                }`}
-                {...SP_INTERACTIVE_PROPS}
-                disabled={sketchProfiles.length === 0}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  startGeometrySketchSession(node.nodeId, 'review')
-                }}
-              >
-                {activeSketchSession?.mode === 'review' ? 'Resume Review' : 'Review'}
-              </button>
-            </div>
-          </div>,
-        )}
-      </GeometryNodeShell>
+      />
     )
   }
 
   const renderExtrudeTemplate = () => {
     const profilePort = allInputs.find((port) => port.portId === 'ExtrusionProfile')
+    const typePort = allInputs.find((port) => port.portId === 'Type')
     const depthPort = allInputs.find((port) => port.portId === 'Depth')
     const solidBodyPort = allOutputs.find((port) => port.portId === 'SolidBody')
-    const extrudeType = extrudeVm?.extrudeType ?? 'Basic'
+    const extrudeType = extrudeVm?.extrudeType ?? 'Body'
+    const localExtrudeType = extrudeVm?.localExtrudeType ?? extrudeType
     const effectiveDepthMm = extrudeVm?.effectiveDepthMm ?? 20
+    const localDepthMm =
+      typeof node.params.depthMm === 'number' ? node.params.depthMm : effectiveDepthMm
     const profileSummary =
       extrudeVm?.hasProfile === true
         ? `${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
             extrudeVm.profileArea ?? 0,
           )}`
-        : 'Connect one selected SketchProfile from Geometry/Sketch.'
+        : 'Awaiting wire'
+    const bodySummaryReady =
+      extrudeType === 'Walls'
+        ? `Walls ready: ${extrudeVm?.bodyId ?? ''} (uncapped side walls)`
+        : `Body ready: ${extrudeVm?.bodyId ?? ''} (capped result)`
     const bodySummary =
       extrudeVm?.bodyId !== undefined
-        ? `Body ready: ${extrudeVm.bodyId}`
-        : extrudeType === 'Twist'
-          ? 'Twist is visible but deferred in this phase.'
-          : 'Waiting for one profile and positive depth.'
+        ? bodySummaryReady
+        : extrudeType === 'Walls'
+          ? 'Waiting for one profile and positive depth to generate uncapped side walls.'
+          : 'Waiting for one profile and positive depth to generate a capped body.'
+    const profileRowController = getManagedStructuredWireRowProps(
+      'in',
+      'ExtrusionProfile',
+      'SketchProfile',
+    )
+    const renderExtrudeProfileAttachedBody = (mode: 'essentials' | 'expanded') => (
+      <div className="SpaghettiSketchSectionBody">
+        <div className="SpaghettiSketchActionRow">
+          <div className="SpaghettiSketchActionMeta">
+            <div className="SpaghettiSketchActionTitle">Profile Target</div>
+            <div className="SpaghettiSketchActionHint">
+              {extrudeVm?.hasProfile === true
+                ? 'Consume one upstream SketchProfile from Geometry/Sketch as the start face for this extrude.'
+                : 'Wire one SketchProfile from Geometry/Sketch into this extrude.'}
+            </div>
+          </div>
+        </div>
+        {mode === 'expanded' ? (
+          extrudeVm?.hasProfile === true ? (
+            <div className="SpaghettiSketchEntityList" data-sp-extrude-profile-summary="1">
+              <div className="SpaghettiSketchEntityRow" data-sp-extrude-profile-row="summary">
+                <div className="SpaghettiSketchEntityMeta">
+                  <div className="SpaghettiSketchEntityTitle">Resolved SketchProfile</div>
+                  <div className="SpaghettiSketchEntitySummary">{profileSummary}</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="SpaghettiSketchPlaceholder" data-sp-extrude-placeholder="profile">
+              <div className="SpaghettiSketchPlaceholderTitle">No SketchProfile wired yet</div>
+              <div className="SpaghettiSketchPlaceholderBody">
+                Connect one `SketchProfile` output from `Geometry/Sketch`.
+              </div>
+            </div>
+          )
+        ) : null}
+      </div>
+    )
     const updateExtrudeParams = (nextParams: Record<string, unknown>) => {
-      setGraph(
+      applyGraphCommand(
         setNodeParamsCommand({
           nodeId: node.nodeId,
           params: nextParams,
-        })(graph),
+        }),
       )
     }
+    const depthRowProps = createStructuredWireNumericRowProps({
+      effectiveValue: effectiveDepthMm,
+      localFallbackValue: localDepthMm,
+      unitLabel: 'mm',
+      driven: extrudeVm?.depthDriven === true,
+      editorEnabled: showEditors,
+      inputRange: {
+        min: 0.1,
+        max: 2000,
+        step: 0.1,
+      },
+      onChange: (value) => {
+        updateExtrudeParams({
+          ...node.params,
+          depthMm: value,
+        })
+      },
+      formatValueLabel: formatPinValue,
+    })
+    const typeRowProps = createStructuredWireEnumRowProps({
+      label: 'Type',
+      localFallbackValue: localExtrudeType,
+      effectiveValue: extrudeType,
+      driven: extrudeVm?.typeDriven === true,
+      options: [
+        { value: 'Body', label: 'Body' },
+        { value: 'Walls', label: 'Walls' },
+      ],
+      onChange: (value) => {
+        if (value !== 'Body' && value !== 'Walls') {
+          return
+        }
+        updateExtrudeParams({
+          ...node.params,
+          extrudeType: value,
+        })
+      },
+    })
 
     return (
-      <div className="SpaghettiNodeTemplate SpaghettiExtrudeNodeTemplate">
-        {renderTemplateSection(
-          SECTION_IDS.inputs,
-          'Inputs',
-          <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in">
-            {profilePort !== undefined
-              ? renderInputPortByType(profilePort, {
+      <GeometryNodeShell
+        className="SpaghettiExtrudeNodeTemplate"
+        title="Extrude"
+        badge="Geometry"
+        inputRailOpen={isGeometryBlockOpen('inputs')}
+        onInputRailToggle={() => toggleGeometryBlock('inputs')}
+        outputRailOpen={isGeometryBlockOpen('outputs')}
+        onOutputRailToggle={() => toggleGeometryBlock('outputs')}
+        inputRail={
+          <div className="SpaghettiExtrudeInputStack">
+            {profilePort !== undefined ? (
+              <div className="SpaghettiExtrudeInputStackPrimary">
+                {renderInputPortByType(profilePort, {
+                  portClassName: 'SpaghettiExtrudeProfilePortRow',
                   endpointPortId: profilePort.portId,
+                  labelOverride: 'SketchProfile',
                   resolvedValueLabel: profileSummary,
-                })
-              : null}
-            {depthPort !== undefined
-              ? renderInputPortByType(depthPort, {
+                  rowChevronState: profileRowController.rowChevronState,
+                  onCycleRowChevron: profileRowController.onCycleRowChevron,
+                  rowToggleAriaLabel: profileRowController.rowToggleAriaLabel,
+                  hideDetailsToggle: true,
+                  attachedBodyContent:
+                    profileRowController.rowChevronState === 'collapsed'
+                      ? undefined
+                      : renderExtrudeProfileAttachedBody(profileRowController.rowChevronState),
+                })}
+              </div>
+            ) : null}
+            {typePort !== undefined ? (
+              <div className="SpaghettiExtrudeInputStackPrimary">
+                <StructuredWireEnumRow
+                  className="SpaghettiExtrudeTypeRow"
+                  nodeId={node.nodeId}
+                  endpointPortId={typePort.portId}
+                  port={typePort}
+                  setPortElement={(element) =>
+                    onRegisterPortElement(node.nodeId, 'in', typePort.portId, undefined, element)
+                  }
+                  dropState={getInputDropState({
+                    nodeId: node.nodeId,
+                    portId: typePort.portId,
+                  })}
+                  portColorOverride={STRUCTURED_WIRE_ENUM_INPUT_COLOR}
+                  onInputPointerDown={onInputPointerDown}
+                  onInputPointerEnter={onInputPointerEnter}
+                  onInputPointerLeave={onInputPointerLeave}
+                  label={typeRowProps.label}
+                  value={typeRowProps.value}
+                  valueLabel={typeRowProps.valueLabel}
+                  displayedTrackValue={typeRowProps.displayedTrackValue}
+                  displayedTrackLabel={typeRowProps.displayedTrackLabel}
+                  options={typeRowProps.options}
+                  selectedIndex={typeRowProps.selectedIndex}
+                  displayedIndex={typeRowProps.displayedIndex}
+                  optionCount={typeRowProps.optionCount}
+                  disabled={typeRowProps.disabled || !showEditors}
+                  driven={typeRowProps.driven}
+                  drivenMessage={typeRowProps.drivenMessage}
+                  onChange={typeRowProps.onChange}
+                />
+              </div>
+            ) : null}
+            {depthPort !== undefined ? (
+              <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in SpaghettiExtrudeInputStackSecondary">
+                {renderInputPortByType(depthPort, {
                   endpointPortId: depthPort.portId,
-                  resolvedValueLabel: `${formatPinValue(effectiveDepthMm)} mm`,
-                  valueInput: {
-                    value: effectiveDepthMm,
-                    min: 0.1,
-                    max: 2000,
-                    step: 0.1,
-                    disabled: extrudeVm?.depthDriven === true || !showEditors,
-                    driven: extrudeVm?.depthDriven === true,
-                    onChange: (value) => {
-                      updateExtrudeParams({
-                        ...node.params,
-                        depthMm: value,
-                      })
-                    },
-                  },
-                })
-              : null}
-          </div>,
-        )}
-
-        {renderTemplateSection(
-          SECTION_IDS.legacy,
-          'Feature',
-          <div className="SpaghettiSketchSectionBody">
-            <div className="SpaghettiSketchActionRow">
-              <div className="SpaghettiSketchActionMeta">
-                <div className="SpaghettiSketchActionTitle">Extrude Type</div>
-                <div className="SpaghettiSketchActionHint">
-                  `Basic` is executable now; `Twist` stays visible but deferred.
-                </div>
+                  valueInput: depthRowProps.valueInput,
+                })}
               </div>
-              <div className="SpaghettiSketchToolbarButtonRow">
-                <button
-                  type="button"
-                  className={`SpaghettiSketchActionButton ${
-                    extrudeType === 'Basic' ? 'isActive' : ''
-                  }`}
-                  {...SP_INTERACTIVE_PROPS}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    updateExtrudeParams({
-                      ...node.params,
-                      extrudeType: 'Basic',
-                    })
-                  }}
-                >
-                  Basic
-                </button>
-                <button
-                  type="button"
-                  className={`SpaghettiSketchActionButton ${
-                    extrudeType === 'Twist' ? 'isActive' : ''
-                  }`}
-                  {...SP_INTERACTIVE_PROPS}
-                  disabled={true}
-                  title="Twist is deferred"
-                >
-                  Twist
-                </button>
-              </div>
-            </div>
-          </div>,
-        )}
-
-        {renderTemplateSection(
-          SECTION_IDS.outputs,
-          'Outputs',
+            ) : null}
+          </div>
+        }
+        outputRail={
           <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
             {solidBodyPort !== undefined ? renderOutputPortByType(solidBodyPort) : null}
             <div className="SpaghettiSketchPlaceholder" data-sp-extrude-body-summary="1">
               <div className="SpaghettiSketchPlaceholderTitle">SolidBody</div>
               <div className="SpaghettiSketchPlaceholderBody">{bodySummary}</div>
             </div>
-          </div>,
-          {
-            className:
-              'SpaghettiNodeSection SpaghettiTemplateSection SpaghettiTemplateSection--outputs',
-          },
-        )}
-      </div>
+          </div>
+        }
+      />
     )
   }
 

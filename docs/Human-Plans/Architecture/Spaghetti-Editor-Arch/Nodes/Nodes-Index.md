@@ -3,6 +3,27 @@
 ## Doc Header
 
 ### Doc History
+36. 2026-04-05 09:30: Tightened the umbrella node-family read again by locking that `Geometry/Extrude` should prove a titleless header-launcher pattern for family toolbars first, replacing the visible `Extrude Geometry` title with one toolbar-open button while leaving the matching `Sketch` move as a later follow-on instead of widening the current pass
+35. 2026-04-05 02:25: Closed `Nodes-2.5C` after the live primitive `Depth` row was rebuilt around the locked slider-lane versus value-lane contract, so the umbrella node-template read now treats `Nodes-2.5` as shipped follow-on groundwork before the broader `Nodes-3` row-family lane
+34. 2026-04-05 02:24: Closed `Nodes-2.5B` after the primitive-row lane contract was fully locked for the live `Depth` rebuild, so the umbrella node-template read now treats `Nodes-2.5C` as the next implementation-ready parity pass instead of leaving the primitive scalar-row layout still open-ended
+33. 2026-04-05 02:18: Closed `Nodes-2.5A` after the primitive `Depth` row research proved that the current fill math is already different for low versus high values while the live row still fails visually because its fill, label, and value all share one over-partitioned center lane, so the umbrella node-template read can now hand forward into `Nodes-2.5B` as the corrected lane-contract pass
+32. 2026-04-05 02:12: Reopened `Nodes-2.5` and pointed the umbrella node-template read at a new explicit `2.5A` through `2.5C` ladder after the first shipped primitive `Depth` row proved the broad scalar-row direction but still failed the intended visual contract around fill readability, row-text alignment, and endcap anchoring
+31. 2026-04-05 01:53: Closed `Nodes-2.5` after the primitive extrude `Depth` row adopted the reusable shell-owned primitive numeric render mode, so the post-`Nodes-2` scalar-row visual language now reads as shipped groundwork before the broader `Nodes-3` output/composite/collection lane
+30. 2026-04-05 01:53: Added the dedicated future note `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md` so the newly emerging primitive scalar-row visual language proven by extrude `Depth` has its own reusable planning home between the shipped `Nodes-2` row-contract lane and the later broader `Nodes-3` row-family work
+29. 2026-04-05 01:02: Refreshed the umbrella `Nodes-2` read after the visible-adoption pass landed by recording that `Nodes-2C` is now shipped through the first visibly managed numeric `Depth` row in `Extrude`, marking the broader `Nodes-2` lane complete, and handing the next implementation-ready baton forward to `Nodes-3`
+28. 2026-04-05 00:57: Refreshed the umbrella `Nodes-2` read after the numeric-row extraction pass landed by recording that `Nodes-2B` is now shipped through the first shared numeric-row props/helper seam while `Nodes-2C` becomes the next implementation-ready visible adoption cleanup slice
+27. 2026-04-05 00:42: Refreshed the umbrella `Nodes-2` read after the contract-locking pass landed by recording that `Nodes-2A` is now shipped through the first explicit reusable reference-row and numeric-row contract plus the first unit-aware `Depth` contract language in live code, while `Nodes-2B` becomes the next implementation-ready extraction slice
+26. 2026-04-05 00:34: Added the dedicated future doc `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`, narrowed the umbrella `Nodes-2` section so it now points at that real execution home instead of carrying the whole row-family ladder inline, and refreshed the docs-map surfaces so the next node-template phase is discoverable
+25. 2026-04-05 00:09: Refreshed the umbrella `Nodes-1` read after the first-family adoption pass landed by recording that `Nodes-1C` is now shipped through the shared managed-row props seam plus `GeometryNodeShell` adoption in `Extrude`, marking the broader `Nodes-1` foundation complete, and handing the next implementation-ready baton forward to `Nodes-2`
+24. 2026-04-04 23:53: Refreshed the umbrella `Nodes-1` read again after the helper extraction pass landed by recording that `Nodes-1B` is now shipped through the new shared structured-row controller seam while `Nodes-1C` becomes the next implementation-ready adoption cleanup pass
+23. 2026-04-04 23:43: Refreshed the umbrella node-template read after `Nodes-1A` closed by preparing `Nodes-1B` as the next implementation-ready extraction slice, keeping the umbrella `Nodes-1` section aligned with the new helper-layer focus instead of leaving the next step as a vague extraction note
+22. 2026-04-04 23:40: Refreshed the umbrella `Nodes-1` read after the contract-locking pass landed by recording that `Nodes-1A` is now shipped through the new `nodeTemplateContract` seam while the broader `Nodes-1` umbrella remains open for extraction and first-family adoption
+21. 2026-04-04 23:28: Added the dedicated future doc `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md` and narrowed the umbrella `Nodes-1` section so it now points at that real phase home with explicit `Nodes-1A` through `Nodes-1C` subphases instead of carrying the whole shared-template foundation inline by itself
+20. 2026-04-04 23:27: Added explicit completion markers to the `Nodes-1` through `Nodes-4` phase headings so this umbrella node-template ladder now matches the standard `[ ]` / `[x]` phase-title format used elsewhere, while intentionally leaving `Nodes-1` unchecked because the shared shell plus `SWR` contract is directionally clearer but not yet fully implemented or extracted across families
+19. 2026-04-04 23:23: Reworked the new node-template direction into explicit `Nodes-1` through `Nodes-4` phase sections using the same `## phase` plus `### Summary / Questions / Spec` planning shape used elsewhere, so this file now reads like a proper executable node-template ladder instead of only a thematic architecture note
+18. 2026-04-04 23:21: Rewrote this umbrella node index away from the older sketch-command and stale `EWR` rollout framing so it now acts as the canonical node-template planning surface, renamed the row-tree concept to `Structured Wire Rows` (`SWR`), and locked the new goal that `Sketch`, `Extrude`, and later node families should standardize around one shared shell plus reusable input/output row primitives instead of accumulating one-off node UIs
+17. 2026-04-04 22:28: Refreshed the `Geometry/Extrude` status again after the landed authored-plane plus preview-alignment repair ladder and the new `Extrude-2` toolbar-polish planning doc, so this umbrella node index now records that Extrude already shipped its first placement-truth fix and next needs node enrichment plus later contract convergence
+16. 2026-04-04 20:35: Refreshed the `Geometry/Extrude` family status after the dedicated `Nodes/Extrude/extrude-index.md` doc and new `Extrude-1A` / `Extrude-1B` future phase docs were added, so this umbrella node index now stops claiming Extrude has no real family surface and instead records the current transform-fix-first planning split
 15. 2026-03-23 13:50: Marked `[3.2A-0.1] Sketch To Extrude To Preview Contract Repair` complete after widening the graph-native preview artifact contract to allow mesh outputs, moving the standalone phase record into `Nodes-Fondation/Shipped/`, and updating this node-family index so the immediate post-foundation geometry-fidelity cleanup now reads as landed groundwork before the later `EWR` phases
 14. 2026-03-22 14:04: Moved the planned `Flip` boolean in the `Geometry/Sketch` input tree so it now hangs directly under `Plane` instead of under `Transform`, keeping the sketch-plane hierarchy aligned with the intended surface layout where plane orientation owns the flip toggle while `Transform` stays focused on `Vec3` motion channels
 13. 2026-03-22 14:00: Renamed the local `Nodes-Index.md` phase ladder to match the roadmap-owned `[3.2A-1]` through `[3.2A-4]` naming, so the node-family planning surface now lines up directly with the `3.2A` mini-family in `roadmap.md` instead of still using generic `Phase 1` through `Phase 4` headings
@@ -21,21 +42,22 @@
 
 ### Purpose
 
-This file is the umbrella planning index for the `Nodes` family under `Spaghetti-Editor-Arch`.
+This file is the umbrella planning index for node-template architecture under `Spaghetti-Editor-Arch`.
 
 Use it to answer:
-- which node families already have real planning/docs here
-- which node families still need dedicated docs
-- what sketch authoring commands already exist
-- what AutoCAD-style commands still need to be added
-- where later `Extrude` and `Loft` planning should branch
+- what the shared node-template system should be
+- how input and output rows should be structured
+- which row types should be reusable across node families
+- which node families already have enough surface area to standardize
+- where dedicated family docs should branch once the template language is stable
 
 ### How To Use This File
 
-- use `Node Family Inventory` to see what is already real versus still missing
-- use `Current Command Inventory` to see what the sketch node already ships
-- use `Needed Command Backlog` to plan the next AutoCAD-like command waves
-- use `Doc Split Follow-Ons` when deciding which missing node-family docs should be created next
+- use `Template Direction` to understand the intended node-shell rules
+- use `Structured Wire Rows` to shape reusable input/output row primitives
+- use `Row Type Inventory` when implementing or cleaning up a specific node
+- use `Node Family Adoption` to decide where the next standardization pass should land
+- use `Doc Split Follow-Ons` when deciding which missing family docs should be created next
 
 ### Scope Note
 
@@ -45,12 +67,14 @@ It is mainly about:
 - `Geometry/Sketch`
 - `Geometry/Extrude`
 - `Geometry/Loft`
+- shared node shell / section / row behavior
+- reusable pin-bearing row primitives
 
 It is not the main home for:
-- camera/view commands
-- global console architecture
+- sketch command backlog details
 - browser/content hierarchy
 - generic viewer gizmo architecture
+- deep feature-stack runtime internals
 
 Those still belong in their own canonical docs.
 
@@ -58,11 +82,23 @@ Those still belong in their own canonical docs.
 
 ### Short Version
 
-Right now `Sketch` is the only geometry-node family in this folder with a real architecture/planning surface.
+We should use this surface as the canonical planning home for the shared node-template system.
 
-`Extrude` and `Loft` already exist as product directions in the roadmap, but their `Nodes/` folders are still placeholders and need dedicated family docs.
+The old `Expandable Wireable Rows` (`EWR`) direction was pointing at the right shape, but the better forward name is:
 
-For AutoCAD-style command growth, almost all of the immediate work belongs to `Geometry/Sketch`, not to `Extrude` or `Loft`.
+- `Structured Wire Rows` (`SWR`)
+
+`SWR` means:
+- every important input and output is a real row
+- rows can be compact, essentials, or expanded
+- rows may reveal richer attached bodies or child rows
+- pins belong to rows, not to a separate disconnected mini-system
+- node mode controls row density, while section headers control section visibility
+
+So the new direction is:
+- one shared node shell language
+- one shared row language
+- family-specific content only where the row primitives are not enough
 
 ### Node Family Inventory
 
@@ -80,18 +116,21 @@ Current role:
 - sketch-plane setup and transform
 - sketch draw authoring
 - committed sketch entity selection/delete
-- later sketch browser exposure and export planning
+- first proving ground for managed node-row behavior
 
 #### [~] `Geometry/Extrude`
 
 Status:
-- roadmap family exists
-- node/runtime work has shipped at the foundation level
-- this `Nodes/Extrude/` folder does not yet have a dedicated node-family doc
+- real family surface exists
+- authored-plane and preview-alignment repair work has shipped
+- dedicated family doc now exists
+- current node enrichment work is actively proving how shared template rows should extend beyond sketch
 
 Current gap:
-- needs one `Extrude` architecture/index doc in this folder
-- needs the same family split treatment `Sketch` now has
+- still needs later graph-node versus feature-stack contract convergence
+- still needs a fuller dedicated toolbar
+- should prove a titleless node-header launcher pattern for that toolbar on `Extrude` before the same move reaches `Sketch`
+- still needs later numeric-row and output-row standardization on top of the now-shared shell and first managed-row foundation
 
 #### [ ] `Geometry/Loft`
 
@@ -102,158 +141,170 @@ Status:
 
 Current gap:
 - needs one `Loft` architecture/index doc in this folder
-- should be planned after `Sketch` and `Extrude` are more stable
+- should be planned after the shared row language is more stable
 
-### Current Command Inventory
+## [x] Nodes-1 - Shared Shell And Structured Wire Rows
 
-This is the current practical AutoCAD-like command surface that already exists or is already clearly shipped in `Geometry/Sketch`.
+### Summary
 
-#### [x] Draw Commands
+Lock the shared node-template contract before more families drift apart.
 
-- `line`
-- `pline`
-- `rectangle`
-- `rec`
-- `circle`
-- `cc`
+This umbrella now has a dedicated future-phase home:
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md`
 
-#### [x] Draw Interaction Rules
+That doc now owns the actual `Nodes-1A` through `Nodes-1C` breakdown.
 
-- multi-step point sessions
-- viewport-owned live ghost preview
-- hybrid viewport plus typed input
-- immediate commit after the final accepted step
-- return to idle `Sketch Draw` after commit
+Current status:
+- `Nodes-1A` is shipped
+- `Nodes-1B` is shipped
+- `Nodes-1C` is shipped
+- `Nodes-2` is the next implementation-ready slice
 
-#### [x] Entity Selection And Delete
+### Questions
 
-- single-click entity selection
-- blue `Window Selection`
-- green `Crossing Selection`
-- `delete`
-- `del`
-- viewport `Delete`
+- Is `Nodes-1` now too large to stay only as one umbrella checkbox?
+- Should the real execution work live in `Nodes-1A` through `Nodes-1C` instead of remaining only inline here?
 
-#### [~] Sketch-Plane Authoring Commands
+### Spec
 
-This family already has real command growth, but it is not the main AutoCAD command backlog this file is tracking.
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Nodes-1` future doc for the actual subphase ladder and execution-ready details.
+- `Nodes-1` is now complete because the shared shell and `SWR` foundation are both documented and materially extracted into the first live families.
 
-Current known shipped/planned shape includes:
-- source setup
-- transform / move / rotate ownership
-- move-axis leaves
-- transform history
+## [x] Nodes-2 - Reference And Numeric Row Standardization
 
-Primary canonical source:
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
+### Summary
 
-### Needed Command Backlog
+Prove the first reusable row primitives on live nodes.
 
-This is the first practical inventory of what still needs to be added so `Sketch Draw` can feel much closer to AutoCAD.
+This umbrella now has a dedicated future-phase home:
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`
 
-The list is grouped by value and risk, not by final implementation order.
+That doc now owns the actual `Nodes-2A` through `Nodes-2C` breakdown.
 
-#### [ ] Tier 1 - Core Missing Commands
+Current status:
+- `Nodes-2A` is shipped
+- `Nodes-2B` is shipped
+- `Nodes-2C` is shipped
+- `Nodes-2.5A` is shipped
+- `Nodes-2.5B` is shipped
+- `Nodes-2.5C` is shipped
+- `Nodes-3` remains the next broader implementation-ready slice
 
-These are the highest-value next commands after the currently shipped `Line / PLine / Rectangle / Circle / Selection / Delete` baseline.
+### Questions
 
-- endpoint snap
-- move
-- copy
-- rotate
-- mirror
-- offset
-- trim
-- extend
+- Is `Nodes-2` now large enough that the real execution work should live in `Nodes-2A` through `Nodes-2C` instead of only inline here?
+- Is `Depth` still the canonical first numeric-row proving case?
 
-#### [ ] Tier 2 - Strong Follow-On Commands
+### Spec
 
-These deepen day-to-day sketch usefulness after the first modify set is stable.
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Nodes-2` future doc for the actual subphase ladder and execution-ready details.
+- `Nodes-2` is now complete because:
+  - the reusable `reference row` and `numeric row` contracts are locked
+  - the first shared numeric-row seam exists in code
+  - `Depth` visibly proves that seam in `Geometry/Extrude`
 
-- arc
-- polygon
-- fillet
-- chamfer
-- scale
-- explode
-- join
+### Follow-On Note
 
-#### [ ] Tier 3 - Richer Drafting Commands
+The post-`Nodes-2` primitive scalar-row visual cleanup now has its own dedicated note:
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md`
 
-These are useful, but they should not block the first "honest AutoCAD-like" sketch workflow.
+Use that note when the question is:
+- how a primitive float-like row should look
+- how `Depth` should differ from expandable managed rows
+- how later primitive numeric rows should reuse the same shell/fill/endcap style
 
-- ellipse
-- spline
-- slot
-- array
-- stretch
-- construction line / centerline
+That follow-on is now shipped through the corrected live extrude `Depth` row.
 
-#### [ ] Tier 4 - Selection And Snap Growth
+## [ ] Nodes-3 - Output, Composite, And Collection Rows
 
-These support the command families above and will matter once modify commands start chaining together.
+### Summary
 
-- midpoint snap
-- center snap
-- intersection snap
-- tangent snap
-- perpendicular snap
-- nearest snap
-- quadrant snap
-- additive selection
-- subtractive selection
-- fence selection
-- select last
-- select previous
+Standardize the rest of the row families after reference and numeric rows are stable.
 
-### Recommended Near-Term Order
+This phase covers:
+- `artifact / output row`
+  - examples: `SolidBody`, sketch profile outputs
+- `composite row`
+  - examples: `Vec2`, `Vec3`, transform channels
+- `collection row`
+  - examples: later extrude multi-profile, loft sections, loft rails
 
-If the goal is the fewest commands that make sketching start to feel honestly CAD-like, the next best order is:
+### Questions
 
-1. endpoint snap
-2. move
-3. copy
-4. offset
-5. trim
-6. extend
-7. rotate
-8. mirror
+- Which output rows should stay compact summaries versus gain richer attached bodies?
+- Which parent rows truly own child rows, and which should stay single-row surfaces?
+- Are collection rows locked as one coherent wire target with expandable member rows instead of loose flat lists?
 
-Reason:
-- snaps make the current draw commands immediately more usable
-- `move / copy / offset / trim / extend` create the first real edit loop
-- `rotate / mirror` are important, but they can follow once selection and modify ownership are proven
+### Spec
+
+- Output rows must use the same `SWR` language as inputs; they should not remain a lesser parallel system.
+- Composite rows should only expand when the type truly owns child structure.
+- Safe child-row owners include:
+  - `Vec2`
+  - `Vec3`
+  - transform groups
+  - profile collections
+  - later loft rails / sections
+- Avoid fake nesting for simple scalar rows just because a node has too many controls elsewhere.
+
+## [ ] Nodes-4 - Family Adoption And Loft Readiness
+
+### Summary
+
+Apply the shared row system cleanly across families and prepare `Loft` to adopt it after the core primitives are stable.
+
+This phase keeps `Sketch` and `Extrude` from hardening into unrelated custom systems and makes sure `Loft` benefits from the shared architecture instead of defining it prematurely.
+
+### Questions
+
+- When are the shared row primitives stable enough that `Loft` should get its own dedicated family doc?
+- Which remaining custom markup in `Sketch` and `Extrude` is worth extracting, and which should stay family-specific?
+- How much toolbar enrichment should land before versus after the shared row layer is extracted?
+
+### Spec
+
+- `Sketch` should continue proving managed row behavior, but its current markup should not be mistaken for the final extracted system.
+- `Extrude` should prove:
+  - reference-row parity beyond sketch
+  - the first reusable numeric row via `Depth`
+  - later toolbar integration without breaking the row system
+  - the first titleless node-header launcher button for a family toolbar before `Sketch` adopts the same pattern
+- `Loft` should be planned after:
+  - reference row
+  - numeric row
+  - composite row
+  - collection row
+  are clearer.
+- If shared template work grows beyond this umbrella surface, split it into a dedicated node-template architecture doc rather than duplicating rules across family docs.
 
 ### What I Have Versus What I Need
 
 #### What I Have
 
-- one real `Sketch` node family doc with shipped and future phase structure
-- shipped sketch draw commands for:
-  - `Line`
-  - `PLine`
-  - `Rectangle`
-  - `Circle`
-- shipped sketch entity selection/delete
-- placeholder `Extrude` and `Loft` node-family folders
+- one usable shared shell direction
+- one working managed-row proving family in sketch
+- one second proving family in extrude
+- current proof that collapsed node mode should preserve visible wiring surfaces
+- enough live code to start extracting shared row primitives safely
 
 #### What I Need
 
-- one umbrella `Nodes` index
-- one dedicated `Extrude` family doc
-- one dedicated `Loft` family doc
-- one growing sketch-command inventory for AutoCAD-style planning
-- the first modify-command wave after the current draw baseline
-- the first snap wave beyond current plain cursor projection
+- one canonical `SWR` implementation helper layer
+- one reusable numeric row
+- one reusable output-row treatment
+- one explicit rule for composite child rows
+- one explicit rule for collection rows
+- one dedicated `Loft` family doc after those basics are clearer
 
 ### Doc Split Follow-Ons
 
 The next docs that should likely be created under this folder are:
 
-- `Nodes/Extrude/Extrude-Index.md`
 - `Nodes/Loft/Loft-Index.md`
 
-After that, if the sketch command backlog becomes too large for `Sketch.md`, it should split into its own family index plus command-focused future docs rather than keeping every command backlog inside one giant sketch architecture file.
+After that, if the shared row/template work grows beyond this umbrella surface, it should split into a dedicated node-template architecture doc rather than overloading individual family docs with duplicate template rules.
 
 
 ## Nodes
@@ -465,20 +516,20 @@ Checklist rule for this section:
 
 #### Param Nodes
 
-- [x] `Param/Number`
-- [x] `Param/Boolean`
-- [x] `Param/Vec2`
+- [L] `Param/Number`
+- [L] `Param/Boolean`
+- [L] `Param/Vec2`
 
 #### Primitive Nodes
 
-- [x] `Primitive/Number`
-- [x] `Primitive/Vec2`
-- [x] `Primitive/SplineFromPoints`
+- [L] `Primitive/Number`
+- [L] `Primitive/Vec2`
+- [L] `Primitive/SplineFromPoints`
 
 #### Utility Nodes
 
-- [~] `Utility/IdentitySpline2`
-- [~] `Utility/IdentityNumberMm`
+- [L] `Utility/IdentitySpline2`
+- [L] `Utility/IdentityNumberMm`
 
 ### Legacy
 
@@ -490,222 +541,3 @@ Checklist rule for this section:
 
 - [L] `toeLoft`
   - not a node family, but still a live legacy output-type seam in ports/compiler/tests and should be removed once graph-native solid-body output typing fully replaces it
-
-
-## Main Questions / Decisions
-
-### [ ] - `Q1` - Should `Geometry/Sketch` use separate top-level `EWR` roots for `SketchPlane`, `SketchDraw`, and `SketchProfiles` rather than one parent `Sketch` `EWR` that contains all three?
-
-#### Suggestion
-
-Yes. Keep `Geometry/Sketch` as the node shell, and make `SketchPlane`, `SketchDraw`, and `SketchProfiles` separate top-level `EWR` roots. Do not create one parent `Sketch` `EWR` that mixes those three under a single expandable row, because that would blur input/output ownership and make pin direction less honest. The current sketch row work should still be treated as the first proving slice for the shared `EWR` contract rather than the final generalized framework.
-
-### [ ] - `Q2` - Should `EWR` stay sketch-first until `SketchPlane`, `Sketch Draw`, and `SketchProfiles` all fit the same row-tree contract?
-
-#### Suggestion
-
-Yes. Keep `EWR` sketch-first until those three surfaces all fit one honest row-tree path with acceptable expand/collapse behavior, child ordering, and pin exposure. Do not branch into `Extrude`, `Loft`, or non-geometry families before that proof exists.
-
-### [ ] - `Q3` - Should the first `EWR` phase lock only the shared row contract, or should it also absorb sketch-specific workflow ownership like `Draw`, plane picking, and review?
-
-#### Suggestion
-
-Lock only the shared row contract in the first phase. The base `EWR` type should own generic row concerns like hierarchy, labels, optional pins, and ordering, while sketch-specific workflow ownership stays outside the base model and plugs into it through sketch-owned actions or row content.
-
-### [ ] - `Q4` - Should the first `EWR` contract support both object rows and primitive value rows from day one?
-
-#### Suggestion
-
-Yes. The first contract should support both object rows and primitive value rows immediately. Without that, the row tree cannot honestly represent the intended sketch hierarchy where objects like `SketchPoint` expand into value layers like `Vec2 -> X / Y Float`.
-
-### [ ] - `Q5` - Should downstream geometry nodes consume child sketch rows from the `EWR` hierarchy rather than relying on duplicated top-level outputs?
-
-#### Suggestion
-
-Yes. The long-term direction should be that downstream geometry nodes consume child rows from the `EWR` hierarchy, especially `SketchProfile` rows under `SketchProfiles`, instead of depending on duplicated top-level outputs that split the source of truth.
-
-
-
-
-## Phases
-
-### [x] [3.2A-0.1] - Sketch To Extrude To Preview Contract Repair
-
-- [x] repair the current graph-native geometry fidelity gap before broader `EWR` work expands
-- [x] verify the code path for `Sketch Draw -> SketchProfile -> Geometry/Extrude -> Output Preview` can publish real authored extruded shape data
-- [x] replace the current box-only preview flattening for graph-native extrude results without widening into the full worker rewrite
-- [x] keep this phase as a narrow post-foundation cleanup under shipped `[3.2A-0]`, not as the first `EWR` phase
-
-#### [ ] - `q1` Should this cleanup count as the first `EWR` phase?
-
-##### Suggestion
-
-No. Treat it as a post-foundation geometry contract repair under `[3.2A-0.1]`. `EWR` should still begin later at `[3.2A-1]`.
-
-#### [ ] - `q2` What is the primary seam this cleanup should repair?
-
-##### Suggestion
-
-Treat the main seam as `Shape3D mesh -> PartArtifact -> Viewer`, with any remaining sketch-profile compile fixes kept secondary and narrow.
-
-### [ ] [3.2A-1] - EWR Foundation And Shared Row Contract
-
-- [ ] lock the shared `Expandable Wireable Rows` (`EWR`) vocabulary
-- [ ] define one base `WireableRowNode` / `WireableRowTree` shape for:
-  - object rows
-  - value rows
-  - expandable child rows
-  - optional output pins
-- [ ] lock the primitive value-row set for the first wave:
-  - `Float`
-  - `Boolean`
-  - `Vec2`
-  - `Vec3`
-- [ ] define the base row behaviors:
-  - expand / collapse
-  - label
-  - pin exposure
-  - child ordering
-- [ ] keep this phase contract-first:
-  - shared row data/model
-  - shared row behavior rules
-  - no sketch-specific draw/review workflow ownership in the base type
-- [ ] keep this phase framework-only and avoid pulling full sketch authoring behavior into the same cut
-
-#### [ ] - `q1` Should every EWR row type be wireable by default, or should some rows be display-only?
-
-##### Suggestion
-
-Make every EWR row wireable by default unless there is a strong reason not to. That keeps the mental model simple: if the row exists in the tree, it can expose a pin.
-
-#### [ ] - `q2` Should the first row-tree contract support both object rows and primitive value rows from day one?
-
-##### Suggestion
-
-Yes. Do not ship an object-only tree first. The whole point of the deeper hierarchy is that objects like `SketchPoint` can expand into primitive value rows like `Float`.
-
-#### [ ] - `q3` Should the first EWR implementation live inside geometry-node surfaces only?
-
-##### Suggestion
-
-Yes. Start with geometry-node surfaces. Do not try to generalize the same row-tree into every node family before the geometry path proves the model.
-
-#### [ ] - `q4` Should the current `Geometry/Sketch` row work be treated as the reusable system already, or as the first proving slice for it?
-
-##### Suggestion
-
-Treat it as the first proving slice. The current sketch row work is valuable because it exposes the right pressure, but it should not be mistaken for the final shared framework yet. Extract the common row contract in this phase, then let the first real reuse happen through the sketch tree instead of through premature cross-family generalization.
-
-### [ ] [3.2A-2] - Geometry Sketch EWR Vertical Slice
-
-- [ ] ship the first honest `Geometry/Sketch` EWR tree
-- [ ] expose `SketchPlane` and `Sketch Draw` as expandable input rows
-- [ ] expose `SketchProfiles` as the one top-level profile output row
-- [ ] expand `SketchProfiles` into per-profile rows
-- [ ] expand profile rows into member `SketchEntity` rows
-- [ ] expand entity rows into:
-  - `SketchLine`
-  - `SketchCircle`
-  - `SketchRectangle`
-  - `SketchPLine`
-- [ ] expand point/value leaves:
-  - `SketchPoint -> Vec2 -> X / Y Float`
-- [ ] keep composite-versus-atomic rules honest:
-  - `Rectangle` and `PLine` stay first-class composite entities
-  - `Line` stays atomic
-- [ ] use this phase to prove one shared row path across:
-  - `SketchPlane`
-  - `Sketch Draw`
-  - `SketchProfiles`
-- [ ] do not expand beyond `Geometry/Sketch` until those three surfaces fit the same contract cleanly
-
-#### [ ] - `q1` Should `Geometry/Sketch` keep only one top-level profile output row?
-
-##### Suggestion
-
-Yes. Keep `SketchProfiles` as the one top-level profile output. Let the per-profile rows live underneath it as expandable child EWR rows instead of exposing a second top-level selected-profile output by default.
-
-#### [ ] - `q2` Should profile-member entity rows be editable there, or only reference/navigate back to the authored entity rows?
-
-##### Suggestion
-
-Keep them reference-first in the first cut. They should be inspectable, highlightable, and wireable, but editing ownership should stay in the authored entity rows under the sketch tree.
-
-#### [ ] - `q3` Should `SketchPlane > Transform` use full 3D value rows from the first EWR slice?
-
-##### Suggestion
-
-Yes. Keep `Transform` focused on `Move`, `Rotate`, and later `Scale` as `Vec3 -> X / Y / Z Float`, while `Plane` owns the separate `Flip` boolean. That keeps the row tree aligned with the intended surface layout instead of mixing the orientation toggle into the motion channels.
-
-#### [ ] - `q4` What should count as the exit condition before `EWR` expands into downstream geometry nodes?
-
-##### Suggestion
-
-Do not branch into `Extrude`, `Loft`, or non-geometry adoption until `SketchPlane`, `Sketch Draw`, and `SketchProfiles` are all running through the same honest row-tree contract with acceptable expand/collapse behavior, pin exposure, and child ordering. `Geometry/Sketch` should prove the model first.
-
-### [ ] [3.2A-3] - Downstream Geometry Node Hierarchy Expansion
-
-- [ ] give `Geometry/Extrude` a real EWR-shaped contract
-- [ ] create the first real `Geometry/Loft` family contract
-- [ ] define `Geometry/Revolve`, `Geometry/Sweep`, and `Geometry/Boolean` as later geometry-node follow-ons with explicit input/output rows
-- [ ] keep downstream geometry consumers wired around:
-  - `SketchProfile`
-  - `SolidBody`
-- [ ] create dedicated family docs for:
-  - `Nodes/Extrude/Extrude-Index.md`
-  - `Nodes/Loft/Loft-Index.md`
-
-#### [ ] - `q1` Should downstream geometry nodes consume child `SketchProfile` rows directly rather than a second top-level sketch-profile output?
-
-##### Suggestion
-
-Yes. Let downstream nodes consume the child `SketchProfile` rows exposed under `SketchProfiles`. That matches the EWR hierarchy and avoids duplicating profile truth at the sketch-node top level.
-
-#### [ ] - `q2` Should `Extrude` stay the only shipped downstream geometry consumer before `Loft` starts?
-
-##### Suggestion
-
-Yes. Keep `Extrude` as the first real downstream geometry consumer. Make `Loft` the next one only after the `SketchProfiles -> SketchProfile -> SolidBody` path is stable.
-
-#### [ ] - `q3` Should `Revolve`, `Sweep`, and `Boolean` stay planning-only in this phase?
-
-##### Suggestion
-
-Yes. Give them explicit contracts in the doc, but do not force implementation in the same wave as `Extrude` and `Loft`.
-
-### [ ] [3.2A-4] - Registry Alignment And Legacy Cleanup
-
-- [ ] align the real registry/read surfaces to the newer node-family planning language
-- [ ] keep `Output` nodes in the live inventory:
-  - `System/OutputPreview`
-  - `Output/Assembled`
-- [ ] review how far non-geometry families should adopt EWR:
-  - `Part`
-  - `Output`
-  - `Param`
-  - `Primitive`
-  - `Utility`
-- [ ] clean up or retire legacy seams:
-  - `Part/CubeProof`
-  - `toeLoft`
-- [ ] prune overlap between:
-  - `Nodes-Index.md`
-  - `Spaghetti-Types.md`
-
-#### [ ] - `q1` Should non-geometry node families adopt full EWR in the same shape as `Geometry/Sketch`?
-
-##### Suggestion
-
-Not immediately. Let geometry prove the row model first. Then adopt EWR selectively where the hierarchy actually helps instead of forcing every node family into the same depth.
-
-#### [ ] - `q2` Should `toeLoft` be treated as a real legacy-migration target in this family?
-
-##### Suggestion
-
-Yes. Keep it explicitly marked `[L]` until graph-native body typing fully replaces it in ports, validators, and downstream wiring.
-
-#### [ ] - `q3` When should `Spaghetti-Types.md` stop acting like the old umbrella node index?
-
-##### Suggestion
-
-After `Extrude-Index.md` and `Loft-Index.md` exist and the geometry-family docs are stable enough that `Spaghetti-Types.md` can go back to being primarily a vocabulary/type-system bridge instead of carrying overlapping node-family planning.

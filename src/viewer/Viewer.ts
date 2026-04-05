@@ -7,6 +7,7 @@ import {
   BufferGeometry,
   Clock,
   Color,
+  DoubleSide,
   DirectionalLight,
   EdgesGeometry,
   Float32BufferAttribute,
@@ -66,6 +67,7 @@ import {
   type ReferencePartDescriptor,
 } from './referencePartDescriptors'
 import { createViewerGeometryFromArtifactMesh } from './artifactMeshGeometry'
+import { resolveViewerPartPlacement } from './previewPartPlacement'
 import {
   buildGeometrySketchRenderPolylines,
   collectGeometrySketchSelectionIds,
@@ -668,20 +670,8 @@ export class Viewer {
       }
       const mesh = new Mesh(geometry, material)
       mesh.name = partKeyStr
-      let lengthForCursor = 0
-      if (artifact.kind === 'box') {
-        mesh.position.set(xCursor + artifact.params.length / 2, artifact.params.height / 2, 0)
-        lengthForCursor = artifact.params.length
-      } else {
-        const bounds = geometry.boundingBox ?? new Box3().setFromObject(mesh)
-        const length = bounds.max.x - bounds.min.x
-        mesh.position.set(
-          xCursor - bounds.min.x,
-          -bounds.min.y,
-          -((bounds.min.z + bounds.max.z) / 2),
-        )
-        lengthForCursor = length
-      }
+      const placement = resolveViewerPartPlacement(artifact, geometry, xCursor)
+      mesh.position.set(placement.position.x, placement.position.y, placement.position.z)
       mesh.visible = visibility[partKeyStr] ?? true
       mesh.castShadow = this.currentViewSettings.shadowsEnabled
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
@@ -724,7 +714,9 @@ export class Viewer {
       }
       this.partMeshes.set(partKeyStr, mesh)
       this.partSelectionOutlines.set(partKeyStr, selectionOutline)
-      xCursor += Math.max(lengthForCursor, 0.2) + 0.2
+      if (placement.lengthForCursor > 0) {
+        xCursor += placement.lengthForCursor + 0.2
+      }
     }
 
     for (const [objectId, pivot] of this.contentObjectPivots.entries()) {
@@ -2111,6 +2103,8 @@ export class Viewer {
     material.emissiveIntensity = clamp(preset.emissiveIntensity, 0, 2)
     material.opacity = clamp(preset.opacity, 0, 1)
     material.transparent = preset.transparent || material.opacity < 1
+    // Runtime CAD previews should remain legible from either side of the authored sketch plane.
+    material.side = DoubleSide
     material.wireframe = this.currentViewSettings.wireframe
     material.needsUpdate = true
   }

@@ -22,7 +22,7 @@ type GeometryNodeShellProps = {
   onOutputRailToggle?: () => void
   inputRail: ReactNode
   outputRail: ReactNode
-  children: ReactNode
+  children?: ReactNode
   diagnostics?: ReactNode
 }
 
@@ -57,6 +57,8 @@ export function GeometryNodeShell({
   children,
   diagnostics,
 }: GeometryNodeShellProps) {
+  const showContent = children !== undefined && children !== null
+
   return (
     <div
       className={`SpaghettiNodeTemplate SpaghettiGeometryNodeShell${
@@ -104,23 +106,25 @@ export function GeometryNodeShell({
           {inputRailOpen ? <div className="SpaghettiGeometryNodeRailBody">{inputRail}</div> : null}
         </section>
 
-        <section
-          className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--content"
-          data-sp-geometry-block="content"
-          data-sp-geometry-block-open={contentOpen ? '1' : '0'}
-        >
-          <button
-            type="button"
-            className="SpaghettiGeometryNodeRailToggle"
-            onClick={onContentToggle}
+        {showContent ? (
+          <section
+            className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--content"
+            data-sp-geometry-block="content"
+            data-sp-geometry-block-open={contentOpen ? '1' : '0'}
           >
-            <span className="SpaghettiGeometryNodeRailChevron" aria-hidden="true">
-              {contentOpen ? '\u25BE' : '\u25B8'}
-            </span>
-            <span className="SpaghettiGeometryNodeRailLabel">{contentLabel}</span>
-          </button>
-          {contentOpen ? <div className="SpaghettiGeometryNodeContent">{children}</div> : null}
-        </section>
+            <button
+              type="button"
+              className="SpaghettiGeometryNodeRailToggle"
+              onClick={onContentToggle}
+            >
+              <span className="SpaghettiGeometryNodeRailChevron" aria-hidden="true">
+                {contentOpen ? '\u25BE' : '\u25B8'}
+              </span>
+              <span className="SpaghettiGeometryNodeRailLabel">{contentLabel}</span>
+            </button>
+            {contentOpen ? <div className="SpaghettiGeometryNodeContent">{children}</div> : null}
+          </section>
+        ) : null}
 
         <section
           className="SpaghettiGeometryNodeStackSection SpaghettiGeometryNodeStackSection--outputs"

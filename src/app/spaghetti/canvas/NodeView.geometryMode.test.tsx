@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
-import type { SketchNodeVm } from '../selectors'
+import type { ExtrudeNodeVm, SketchNodeVm } from '../selectors'
 import { NodeView } from './NodeView'
 import { useSpaghettiUiStore } from './state/spaghettiUiStore'
 import { selectNodeMode, useSpaghettiStore } from '../store/useSpaghettiStore'
@@ -47,6 +47,22 @@ const sketchVm: SketchNodeVm = {
   hasSelectedProfile: false,
 }
 
+const extrudeNode: SpaghettiNode = {
+  nodeId: 'node-extrude-1',
+  type: 'Geometry/Extrude',
+  params: {
+    extrudeType: 'Body',
+    depthMm: 30,
+  },
+}
+
+const extrudeVm: ExtrudeNodeVm = {
+  extrudeType: 'Body',
+  effectiveDepthMm: 30,
+  depthDriven: false,
+  hasProfile: false,
+}
+
 const sketchInputPortDetails = {
   SketchPlane: [
     { text: 'type: plane' },
@@ -74,6 +90,38 @@ const allOutputs: PortSpec[] = [
     portId: 'SketchProfile',
     label: 'SketchProfile',
     type: { kind: 'sketchProfile' },
+  },
+]
+
+const extrudeInputs: PortSpec[] = [
+  {
+    portId: 'ExtrusionProfile',
+    label: 'ExtrusionProfile',
+    type: { kind: 'sketchProfile' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+  {
+    portId: 'Type',
+    label: 'Type',
+    type: { kind: 'number', unit: 'unitless' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+  {
+    portId: 'Depth',
+    label: 'Depth',
+    type: { kind: 'number', unit: 'mm' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+]
+
+const extrudeOutputs: PortSpec[] = [
+  {
+    portId: 'SolidBody',
+    label: 'SolidBody',
+    type: { kind: 'solidBody' },
   },
 ]
 
@@ -163,12 +211,126 @@ function SketchNodeHarness() {
   )
 }
 
+function ExtrudeNodeHarness() {
+  const graphNode = useSpaghettiStore((state) => state.graph.nodes[0] ?? null)
+  const nodeMode = useSpaghettiStore((state) =>
+    graphNode === null ? 'essentials' : selectNodeMode(state, graphNode.nodeId),
+  )
+  if (graphNode === null) {
+    return null
+  }
+  return (
+    <NodeView
+      node={graphNode}
+      x={0}
+      y={0}
+      title="Extrude"
+      nodeMode={nodeMode}
+      template="extrude"
+      extrudeVm={extrudeVm}
+      allInputs={extrudeInputs}
+      allOutputs={extrudeOutputs}
+      inputCompositeState={emptyCompositeState}
+      compositeExpansionRevision={0}
+      getCompositeExpanded={() => false}
+      setCompositeExpanded={() => {
+        // no-op for test
+      }}
+      selected={false}
+      getInputDropState={() => null}
+      getOutputDropState={() => null}
+      onPresetChange={() => {
+        // no-op for test
+      }}
+      onDriverNumberChange={() => {
+        // no-op for test
+      }}
+      onUtilityNumberValueChange={() => {
+        // no-op for test
+      }}
+      onUtilityBooleanValueChange={() => {
+        // no-op for test
+      }}
+      onUtilityVec2AxisChange={() => {
+        // no-op for test
+      }}
+      outputRowMinHeight={40}
+      onOutputRowMinHeightChange={() => {
+        // no-op for test
+      }}
+      pinDotSize={8}
+      onPinDotSizeChange={() => {
+        // no-op for test
+      }}
+      onNodeHeaderPointerDown={() => {
+        // no-op for test
+      }}
+      onNodeBodyPointerDown={() => {
+        // no-op for test
+      }}
+      onNodeTitleClick={() => {
+        // no-op for test
+      }}
+      onRegisterPortElement={() => {
+        // no-op for test
+      }}
+      onOutputPointerDown={() => {
+        // no-op for test
+      }}
+      onOutputPointerEnter={() => {
+        // no-op for test
+      }}
+      onOutputPointerLeave={() => {
+        // no-op for test
+      }}
+      onInputPointerDown={() => {
+        // no-op for test
+      }}
+      onInputPointerEnter={() => {
+        // no-op for test
+      }}
+      onInputPointerLeave={() => {
+        // no-op for test
+      }}
+    />
+  )
+}
+
 const findSketchOutputRow = (root: HTMLElement | null | undefined, label: string): HTMLElement | null => {
   const rows = Array.from(root?.querySelectorAll('.SpaghettiPort--out') ?? [])
   const match = rows.find(
     (row) => row.querySelector('.SpaghettiPortName')?.textContent?.trim() === label,
   )
   return match instanceof HTMLElement ? match : null
+}
+
+const findSketchInputRow = (
+  root: HTMLElement | null | undefined,
+  label: string,
+): HTMLElement | null => {
+  const rows = Array.from(root?.querySelectorAll('.SpaghettiPort--in') ?? [])
+  const match = rows.find(
+    (row) => row.querySelector('.SpaghettiPortName')?.textContent?.trim() === label,
+  )
+  return match instanceof HTMLElement ? match : null
+}
+
+const findExtrudeInputRow = (
+  root: HTMLElement | null | undefined,
+  label: string,
+): HTMLElement | null => {
+  const rows = Array.from(root?.querySelectorAll('.SpaghettiPort--in') ?? [])
+  const match = rows.find(
+    (row) => row.querySelector('.SpaghettiPortName')?.textContent?.trim() === label,
+  )
+  return match instanceof HTMLElement ? match : null
+}
+
+const findExtrudeTypeRow = (
+  root: HTMLElement | null | undefined,
+): HTMLElement | null => {
+  const row = root?.querySelector('[data-sp-enum-row="1"]')
+  return row instanceof HTMLElement ? row : null
 }
 
 describe('NodeView geometry mode behavior', () => {
@@ -211,37 +373,279 @@ describe('NodeView geometry mode behavior', () => {
     document.body.innerHTML = ''
   })
 
-  it('keeps collapsed geometry nodes collapsed and opens only the clicked section', async () => {
+  it('keeps collapsed sketch nodes compact and opens only the clicked input row', async () => {
     await act(async () => {
       root?.render(<SketchNodeHarness />)
     })
 
-    const planeSection = container?.querySelector('[data-sp-section-id="sketch-plane"]')
-    const drawSection = container?.querySelector('[data-sp-section-id="sketch-draw"]')
-    const entitiesSection = container?.querySelector('[data-sp-section-id="sketch-entities"]')
-    const reviewSection = container?.querySelector('[data-sp-section-id="sketch-review"]')
-    expect(planeSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
-    expect(drawSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
-    expect(entitiesSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
-    expect(reviewSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
+    const planeRow = findSketchInputRow(container, 'SketchPlane')
+    expect(planeRow?.getAttribute('data-sp-port-row-open')).toBe('0')
+    expect(container?.querySelector('[data-sp-geometry-block="content"]')).toBeNull()
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('collapsed')
 
-    const sectionHeader = planeSection?.querySelector('.SpaghettiNodeSectionHeaderHitArea')
-    expect(sectionHeader).not.toBeNull()
+    const planeLabel = planeRow?.querySelector('.SpaghettiPortName')
+    expect(planeLabel).not.toBeNull()
 
     await act(async () => {
-      sectionHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      planeLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('collapsed')
-    expect(planeSection?.getAttribute('data-sp-section-body-visible')).toBe('1')
-    expect(drawSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
-    expect(entitiesSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
-    expect(reviewSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
-    expect(container?.textContent).toContain('Current plane: XY.')
+    expect(planeRow?.getAttribute('data-sp-port-row-open')).toBe('1')
+    expect(container?.textContent).toContain('Origin Plane')
   })
 
-  it('keeps collapsed geometry nodes collapsed and opens only the clicked inputs block', async () => {
+  it('cycles the extrude SketchProfile row through collapsed, essentials, and expanded without widening into toolbar work', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const inputRow = container?.querySelector('.SpaghettiPort--in')
+    const inputLabel = inputRow?.querySelector('.SpaghettiPortName')
+    const inputsBlock = container?.querySelector('[data-sp-geometry-block="inputs"]')
+    const contentBlock = container?.querySelector('[data-sp-geometry-block="content"]')
+    const outputsBlock = container?.querySelector('[data-sp-geometry-block="outputs"]')
+
+    expect(container?.querySelector('.SpaghettiGeometryNodeShell')).not.toBeNull()
+    expect(inputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
+    expect(contentBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
+    expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
+    expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
+    expect(inputRow?.classList.contains('SpaghettiExtrudeProfilePortRow')).toBe(true)
+    expect(inputRow?.textContent).toContain('SketchProfile')
+    expect(inputRow?.textContent).toContain('Awaiting wire')
+
+    await act(async () => {
+      inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
+    expect(inputRow?.textContent).toContain('Profile Target')
+    expect(inputRow?.textContent).toContain(
+      'Wire one SketchProfile from Geometry/Sketch into this extrude.',
+    )
+    expect(inputRow?.textContent).not.toContain('No SketchProfile wired yet')
+
+    await act(async () => {
+      inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
+    expect(inputRow?.textContent).toContain('No SketchProfile wired yet')
+
+    await act(async () => {
+      inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
+    expect(inputRow?.textContent).toContain('Awaiting wire')
+  })
+
+  it('keeps the extrude Depth row as a one-line primitive slider across node modes', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const depthRow = findExtrudeInputRow(container, 'Depth')
+    const increaseButton = depthRow?.querySelector(
+      '[aria-label="Increase Depth"]',
+    ) as HTMLButtonElement | null
+
+    expect(depthRow?.getAttribute('data-sp-port-row-open')).toBe('1')
+    expect(depthRow?.textContent).toContain('30 mm')
+    expect(depthRow?.querySelector('.SpaghettiPortPrimitiveValueRow')).not.toBeNull()
+    expect(depthRow?.querySelector('.SpaghettiPortPrimitiveLane')).not.toBeNull()
+    expect(depthRow?.querySelector('.SpaghettiPortPrimitiveValueWrap')).not.toBeNull()
+    expect(depthRow?.querySelectorAll('.SpaghettiPortPrimitiveDivider').length).toBe(2)
+    expect(depthRow?.querySelector('.SpaghettiPortChevron--leading')).toBeNull()
+    expect(depthRow?.textContent).not.toContain('Depth Value')
+
+    await act(async () => {
+      increaseButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const updatedDepthRow = findExtrudeInputRow(container, 'Depth')
+    expect(updatedDepthRow?.textContent).toContain('30.1 mm')
+  })
+
+  it('updates the extrude Depth row from the center primitive drag lane', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const depthRow = findExtrudeInputRow(container, 'Depth')
+    const dragLane = depthRow?.querySelector('.SpaghettiPortPrimitiveLane') as HTMLDivElement | null
+    const initialFill = depthRow?.querySelector('.SpaghettiPortPrimitiveFill') as HTMLDivElement | null
+    const initialMarker = depthRow?.querySelector(
+      '.SpaghettiPortPrimitiveValueMarker',
+    ) as HTMLDivElement | null
+    expect(dragLane).not.toBeNull()
+    expect(initialFill?.style.width).toBe('1.495%')
+    expect(initialMarker?.style.left).toBe('1.495%')
+
+    if (dragLane !== null) {
+      dragLane.getBoundingClientRect = () =>
+        ({
+          left: 0,
+          right: 100,
+          top: 0,
+          bottom: 18,
+          width: 100,
+          height: 18,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }) as DOMRect
+    }
+
+    await act(async () => {
+      dragLane?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 75,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+    })
+
+    const updatedDepthRow = findExtrudeInputRow(container, 'Depth')
+    const updatedFill = updatedDepthRow?.querySelector(
+      '.SpaghettiPortPrimitiveFill',
+    ) as HTMLDivElement | null
+    const updatedMarker = updatedDepthRow?.querySelector(
+      '.SpaghettiPortPrimitiveValueMarker',
+    ) as HTMLDivElement | null
+    expect(updatedDepthRow?.textContent).toContain('1500.0 mm')
+    expect(updatedFill?.style.width).toBe('74.999%')
+    expect(updatedMarker?.style.left).toBe('74.999%')
+  })
+
+  it('updates the shared extrude Type enum row from the visible ParaSelect controls', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    expect(container?.querySelector('[data-sp-geometry-block="content"]')).toBeNull()
+
+    const typeRow = findExtrudeTypeRow(container)
+    const nextButton = typeRow?.querySelector(
+      '[aria-label="Next Type"]',
+    ) as HTMLButtonElement | null
+    const initialFill = typeRow?.querySelector('.ParaSelectFill') as HTMLDivElement | null
+    const initialMarker = typeRow?.querySelector(
+      '.ParaSelectValueHandle',
+    ) as HTMLButtonElement | null
+    const initialValue = typeRow?.querySelector('.ParaSelectValue') as HTMLSpanElement | null
+    const trackButton = typeRow?.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Type"]',
+    ) as HTMLButtonElement | null
+
+    expect(typeRow).not.toBeNull()
+    expect(typeRow?.querySelector('.ParaSelectNative')).not.toBeNull()
+    expect(trackButton).not.toBeNull()
+    expect(initialValue?.textContent).toBe('Body')
+    expect(initialFill?.style.width).toBe('0%')
+    expect(initialMarker?.style.left).toBe('0%')
+
+    await act(async () => {
+      nextButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    let updatedNode = useSpaghettiStore.getState().graph.nodes[0]
+    let updatedTypeRow = findExtrudeTypeRow(container)
+    let updatedFill = updatedTypeRow?.querySelector(
+      '.ParaSelectFill',
+    ) as HTMLDivElement | null
+    let updatedMarker = updatedTypeRow?.querySelector(
+      '.ParaSelectValueHandle',
+    ) as HTMLButtonElement | null
+    let updatedValue = updatedTypeRow?.querySelector('.ParaSelectValue') as HTMLSpanElement | null
+
+    expect(updatedNode?.params.extrudeType).toBe('Walls')
+    expect(updatedValue?.textContent).toContain('Walls')
+    expect(updatedFill?.style.width).toBe('100%')
+    expect(updatedMarker?.style.left).toBe('100%')
+
+    const previousButtonAfterNext = updatedTypeRow?.querySelector(
+      '[aria-label="Previous Type"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      previousButtonAfterNext?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    updatedNode = useSpaghettiStore.getState().graph.nodes[0]
+    updatedTypeRow = findExtrudeTypeRow(container)
+    updatedFill = updatedTypeRow?.querySelector('.ParaSelectFill') as HTMLDivElement | null
+    updatedMarker = updatedTypeRow?.querySelector(
+      '.ParaSelectValueHandle',
+    ) as HTMLButtonElement | null
+    updatedValue = updatedTypeRow?.querySelector('.ParaSelectValue') as HTMLSpanElement | null
+
+    expect(updatedNode?.params.extrudeType).toBe('Body')
+    expect(updatedValue?.textContent).toContain('Body')
+    expect(updatedFill?.style.width).toBe('0%')
+    expect(updatedMarker?.style.left).toBe('0%')
+  })
+
+  it('keeps collapsed geometry node input and output blocks open while rows stay compact', async () => {
     await act(async () => {
       root?.render(<SketchNodeHarness />)
     })
@@ -249,9 +653,9 @@ describe('NodeView geometry mode behavior', () => {
     const inputsBlock = container?.querySelector('[data-sp-geometry-block="inputs"]')
     const sketchBlock = container?.querySelector('[data-sp-geometry-block="content"]')
     const outputsBlock = container?.querySelector('[data-sp-geometry-block="outputs"]')
-    expect(inputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('0')
-    expect(sketchBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
-    expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('0')
+    expect(inputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
+    expect(sketchBlock).toBeNull()
+    expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
 
     const inputsToggle = inputsBlock?.querySelector('.SpaghettiGeometryNodeRailToggle')
     expect(inputsToggle).not.toBeNull()
@@ -261,9 +665,9 @@ describe('NodeView geometry mode behavior', () => {
     })
 
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('collapsed')
-    expect(inputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
-    expect(sketchBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
-    expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('0')
+    expect(inputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('0')
+    expect(sketchBlock).toBeNull()
+    expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
     expect(container?.querySelector('.SpaghettiPort--in')).not.toBeNull()
     expect(container?.querySelector('.SpaghettiPort--in')?.getAttribute('data-sp-port-row-open')).toBe(
       '0',
@@ -273,32 +677,21 @@ describe('NodeView geometry mode behavior', () => {
     expect(container?.querySelector('[data-sp-geometry-port-row="in:SketchPlane"]')).toBeNull()
   })
 
-  it('uses essentials defaults for sketch sections', async () => {
+  it('uses essentials defaults for sketch managed rows', async () => {
     await act(async () => {
       useSpaghettiStore.getState().setNodeMode('node-sketch-1', 'essentials')
       root?.render(<SketchNodeHarness />)
     })
 
-    expect(
-      container
-        ?.querySelector('[data-sp-section-id="sketch-plane"]')
-        ?.getAttribute('data-sp-section-body-visible'),
-    ).toBe('1')
-    expect(
-      container
-        ?.querySelector('[data-sp-section-id="sketch-draw"]')
-        ?.getAttribute('data-sp-section-body-visible'),
-    ).toBe('1')
-    expect(
-      container
-        ?.querySelector('[data-sp-section-id="sketch-entities"]')
-        ?.getAttribute('data-sp-section-body-visible'),
-    ).toBe('0')
-    expect(
-      container
-        ?.querySelector('[data-sp-section-id="sketch-review"]')
-        ?.getAttribute('data-sp-section-body-visible'),
-    ).toBe('0')
+    expect(findSketchInputRow(container, 'SketchPlane')?.getAttribute('data-sp-port-row-open')).toBe(
+      '1',
+    )
+    expect(findSketchOutputRow(container, 'SketchProfiles')?.getAttribute('data-sp-port-row-open')).toBe(
+      '0',
+    )
+    expect(findSketchOutputRow(container, 'SketchProfile')?.getAttribute('data-sp-port-row-open')).toBe(
+      '0',
+    )
   })
 
   it('uses row-mode defaults for sketch shell blocks', async () => {
@@ -312,11 +705,7 @@ describe('NodeView geometry mode behavior', () => {
         ?.querySelector('[data-sp-geometry-block="inputs"]')
         ?.getAttribute('data-sp-geometry-block-open'),
     ).toBe('1')
-    expect(
-      container
-        ?.querySelector('[data-sp-geometry-block="content"]')
-        ?.getAttribute('data-sp-geometry-block-open'),
-    ).toBe('1')
+    expect(container?.querySelector('[data-sp-geometry-block="content"]')).toBeNull()
     expect(
       container
         ?.querySelector('[data-sp-geometry-block="outputs"]')
@@ -351,51 +740,39 @@ describe('NodeView geometry mode behavior', () => {
     ).toBe('0')
   })
 
-  it('lets the sketch block collapse without changing node mode', async () => {
+  it('omits the sketch middle block while keeping node mode behavior intact', async () => {
     await act(async () => {
       useSpaghettiStore.getState().setNodeMode('node-sketch-1', 'essentials')
       root?.render(<SketchNodeHarness />)
     })
 
-    const contentBlock = container?.querySelector('[data-sp-geometry-block="content"]')
-    const contentToggle = contentBlock?.querySelector('.SpaghettiGeometryNodeRailToggle')
-    expect(contentBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
-    expect(container?.querySelector('[data-sp-section-id="sketch-plane"]')).not.toBeNull()
-
-    await act(async () => {
-      contentToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    })
-
+    expect(container?.querySelector('[data-sp-geometry-block="content"]')).toBeNull()
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('essentials')
-    expect(contentBlock?.getAttribute('data-sp-geometry-block-open')).toBe('0')
-    expect(container?.querySelector('[data-sp-section-id="sketch-plane"]')).toBeNull()
   })
 
-  it('preserves a manual close from expanded when switching to essentials', async () => {
+  it('preserves a manual sketch input-row close from expanded when switching to essentials', async () => {
     await act(async () => {
       useSpaghettiStore.getState().setNodeMode('node-sketch-1', 'expanded')
       root?.render(<SketchNodeHarness />)
     })
 
-    const entitiesSection = container?.querySelector('[data-sp-section-id="sketch-entities"]')
-    const entitiesHeader = entitiesSection?.querySelector('.SpaghettiNodeSectionHeaderHitArea')
-    expect(entitiesSection?.getAttribute('data-sp-section-body-visible')).toBe('1')
+    const planeRow = findSketchInputRow(container, 'SketchPlane')
+    const planeLabel = planeRow?.querySelector('.SpaghettiPortName')
+    expect(planeRow?.getAttribute('data-sp-port-row-open')).toBe('1')
 
     await act(async () => {
-      entitiesHeader?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      planeLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
-    expect(entitiesSection?.getAttribute('data-sp-section-body-visible')).toBe('0')
+    expect(planeRow?.getAttribute('data-sp-port-row-open')).toBe('0')
 
     await act(async () => {
       useSpaghettiStore.getState().setNodeMode('node-sketch-1', 'essentials')
     })
 
-    expect(
-      container
-        ?.querySelector('[data-sp-section-id="sketch-entities"]')
-        ?.getAttribute('data-sp-section-body-visible'),
-    ).toBe('0')
+    expect(findSketchInputRow(container, 'SketchPlane')?.getAttribute('data-sp-port-row-open')).toBe(
+      '0',
+    )
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('essentials')
   })
 

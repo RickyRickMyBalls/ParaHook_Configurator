@@ -24,7 +24,7 @@
 1. 2026-03-22 14:57: Turned `Worker` into a real family folder by adding `Future/` and `Shipped/` structure plus the roadmap-aligned `[5.3A]` mini-family read, so the worker architecture now mirrors the newer umbrella-plus-standalone-phase-doc pattern already used by `AppShell` instead of staying one flat architecture note with no future/shipped doc landing zones
 1. 2026-03-22 14:57: Added the workspace-modes boundary note that tiled/windowed/pop-out shell placement must preserve one shared worker/build truth for `Browser` and `Console`, while also locking that workspace-layout follow-through as a separate phase family rather than widening the worker cleanup lane
 1. 2026-03-22 14:54: Added the startup legacy-cleanup rule that the graph-first app must stop booting into fallback `baseplate` / `heelKick` / `toeHook` worker rows, tying that removal to the worker phases so legacy default instances, legacy build-stats ordering, legacy `assembled` startup narration, and old part-derivation fallback do not survive the graph-native cutover
-1. 2026-03-22 14:44: Added the worker-sequencing clarification that separate-build ownership and a graph-native request contract must land before any broad cleanup refactor, and that `Pasta Path` timeline scrubbing should be treated as a later downstream consumer of that cleaner build seam instead of driving the first worker cut
+1. 2026-03-22 14:44: Added the worker-sequencing clarification that separate-build ownership and a graph-native request contract must land before any broad cleanup refactor, and that `Build Path` timeline scrubbing should be treated as a later downstream consumer of that cleaner build seam instead of driving the first worker cut
 1. 2026-03-20 12:24: Added the user-controlled execution-cost direction for the worker, including preview versus final paths, per-part detail controls, and the possibility of fast Three.js preview geometry alongside slower exact worker builds
 1. 2026-03-20 12:13: Added the explicit rebuild-ownership rule that child rebuilds must not imply parent assembly/component rebuilds, and tied that requirement to the worker planning phases
 1. 2026-03-20 10:12: Added a dedicated `phases` roadmap section so the worker cleanup can be planned as explicit execution phases
@@ -422,7 +422,7 @@ That means:
 
 Only after that seam is real should the code be broadly cleaned up or refactored around the new boundaries.
 
-`Pasta Path` should influence the target direction, but it should not drive the first worker cut.
+`Build Path` should influence the target direction, but it should not drive the first worker cut.
 
 Timeline scrubbing depends on more than separate building:
 - stable graph-to-step mapping
@@ -436,8 +436,8 @@ So the safe ordering is:
 3. add separate-building plus timeline scrubbing as a later consumer layer
 
 Blunt rule:
-- separate building is a prerequisite for `Pasta Path`
-- `Pasta Path` is not the prerequisite for separate building
+- separate building is a prerequisite for `Build Path`
+- `Build Path` is not the prerequisite for separate building
 
 Related UI rule:
 - the first downstream consumers of separate-build truth are the `Browser` and `Console`
@@ -497,7 +497,7 @@ This refactor should happen after the build contract and separate-build ownershi
 
 #### 5. Treat Timeline Scrubbing As A Later Consumer
 
-`Pasta Path` and timeline scrubbing should sit downstream of the cleaner build seam.
+`Build Path` and timeline scrubbing should sit downstream of the cleaner build seam.
 
 That later phase should consume:
 - a stable separate-build model
@@ -642,7 +642,7 @@ Decision:
 - the worker core is anonymized
 - the permanent core should know build units and typed ids, not `HeelKick`, `Baseplate`, or other foothook-family names as architectural truth
 - all surviving foothook-specific compatibility should move behind one dedicated compatibility adapter seam
-- later product families such as `Pasta Path` or other non-foothook runtimes should not require deleting foothook assumptions from the worker core because those assumptions should no longer live there
+- later product families such as `Build Path` or other non-foothook runtimes should not require deleting foothook assumptions from the worker core because those assumptions should no longer live there
 
 #### [x] q2 - What exactly should startup do when the active graph has no real buildable units yet?
 
@@ -792,7 +792,7 @@ Suggestion:
   - transient interaction preview
 - worker draft preview
 - accepted final
-- Browser may not need to show every transient layer all the time, but the underlying semantics should still distinguish them so Console and later `Pasta Path` work do not collapse them into one ambiguous "built" state
+- Browser may not need to show every transient layer all the time, but the underlying semantics should still distinguish them so Console and later `Build Path` work do not collapse them into one ambiguous "built" state
 
 Decision:
 - coexistence is allowed, but not through the existing overloaded word `lane`

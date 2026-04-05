@@ -38,6 +38,7 @@ import {
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
+import { applyActiveDraftExtrudePreviewOverride } from './activeDraftExtrudePreview'
 import {
   selectSharedViewerComposition,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
@@ -293,12 +294,30 @@ export function ViewerHost(props: ViewerHostProps) {
     ],
   )
 
+  const activeDraftProjectViewerParts = useMemo(
+    () =>
+      applyActiveDraftExtrudePreviewOverride({
+        graphDocumentsById,
+        preferredGraphDocumentId: viewerTargetGraphDocumentId,
+        renderedParts: renderedProjectPartSet.parts,
+        viewerParts: renderedProjectPartSet.viewerParts,
+        sketchPlanePickSession,
+      }),
+    [
+      graphDocumentsById,
+      renderedProjectPartSet.parts,
+      renderedProjectPartSet.viewerParts,
+      sketchPlanePickSession,
+      viewerTargetGraphDocumentId,
+    ],
+  )
+
   const previewList = useMemo(
     () => {
       if (sharedViewerComposition !== null) {
         return {
           items: [],
-          viewerParts: renderedProjectPartSet.viewerParts,
+          viewerParts: activeDraftProjectViewerParts,
         }
       }
       const currentProjectGraphDocumentIds = currentProject.graphDocuments
@@ -307,7 +326,7 @@ export function ViewerHost(props: ViewerHostProps) {
       if (currentProjectGraphDocumentIds.length > 0) {
         return {
           items: [],
-          viewerParts: renderedProjectPartSet.viewerParts,
+          viewerParts: activeDraftProjectViewerParts,
         }
       }
       if (viewerTargetPreviewPreparation === null) {
@@ -356,6 +375,7 @@ export function ViewerHost(props: ViewerHostProps) {
       currentProject,
       graphDocumentsById,
       graphRuntimeByDocumentId,
+      activeDraftProjectViewerParts,
       renderedProjectPartSet,
       sharedViewerComposition,
       viewerTargetGraphDocumentId,
@@ -681,8 +701,26 @@ export function ViewerHost(props: ViewerHostProps) {
   }, [referenceWorkspace])
   const contentObjectTransformGroups = useMemo(
     () => {
+      const activeObjectId = referenceWorkspace.activeContentObjectTransformSession?.objectId ?? null
+      const groupedObjectIds = new Set<string>()
+      if (activeObjectId !== null) {
+        groupedObjectIds.add(activeObjectId)
+      }
+      Object.entries(referenceWorkspace.contentObjectTransformOverrideById).forEach(
+        ([objectId, override]) => {
+          if (override !== null) {
+            groupedObjectIds.add(objectId)
+          }
+        },
+      )
+      if (groupedObjectIds.size === 0) {
+        return []
+      }
       const partKeysByObjectId = new Map<string, Set<string>>()
       renderedProjectPartSet.parts.forEach((part) => {
+        if (!groupedObjectIds.has(part.objectId)) {
+          return
+        }
         const currentPartKeys = partKeysByObjectId.get(part.objectId) ?? new Set<string>()
         currentPartKeys.add(part.viewerKey)
         partKeysByObjectId.set(part.objectId, currentPartKeys)
@@ -692,7 +730,11 @@ export function ViewerHost(props: ViewerHostProps) {
         partKeys: [...partKeys],
       }))
     },
-    [renderedProjectPartSet],
+    [
+      referenceWorkspace.activeContentObjectTransformSession,
+      referenceWorkspace.contentObjectTransformOverrideById,
+      renderedProjectPartSet,
+    ],
   )
   const activeViewerTransformHistoryOverlay = useMemo<ViewerTransformHistoryOverlayVm | null>(() => {
     const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)

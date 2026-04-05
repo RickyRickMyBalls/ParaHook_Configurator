@@ -3,19 +3,19 @@
 ## Doc Header
 
 ### Doc History
-26. 2026-04-01 18:03: Promoted `Pasta Path` out of the catch-all open-family list into the main `### Suggested Working Order`, placing it after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork while also tightening the family read so it now describes a scrub-friendly derived CAD-command diff surface rather than a second undo/history system
+26. 2026-04-01 18:03: Promoted `Build Path` out of the catch-all open-family list into the main `### Suggested Working Order`, placing it after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork while also tightening the family read so it now describes a scrub-friendly derived CAD-command diff surface rather than a second undo/history system
 25. 2026-04-01 17:59: Reordered the roadmap `### Suggested Working Order` so the live `Workspace 7.5-7` through `Workspace 7.5-11` cleanup ladder now sits explicitly ahead of `Workspace 5.3`, removed the already-shipped `App Shell` ladder from the active queue, and added one deferred later `AppShell` cleanup follow-on after the current workspace cleanup stack instead of leaving that future pass implicit
 24. 2026-04-01 13:36: Added the shipped `App Shell` ladder into the `### Suggested Working Order` section after that checklist was reformatted into numbered `####` family blocks, keeping the earlier shell groundwork visible in-sequence instead of only down in shipped reference
 23. 2026-04-01 13:31: Normalized the visible roadmap checklist naming toward family-first architecture labels such as `Workspace 1`, `Layers 1`, `View Toolbar 1`, and `App Shell 1`, while keeping older bracketed or dashed ids only as secondary references in parentheses so the working order reads more like the newer family docs
 22. 2026-04-01 13:25: Reworked the roadmap `## To do` section into a cleaner grouped sequence after comparing it against the newer workspace and family docs, keeping shipped items visible, pulling `Layers` into the near-term open-family ladder, and demoting stale standalone backlog shorthand like a future `AppShell` refactor or vague worker follow-on until those become real source-doc phases
 21. 2026-03-31 11:05: Added `Workspace Modes` into this cross-family roadmap and rebuilt the `## To do` checklist from the live family docs, so the roadmap now reflects the shipped `Workspace 0.1` through `Workspace 6` work plus the active `Workspace 5.3` and `Workspace 7.x` follow-ons instead of the stale older shorthand list
 20. 2026-03-28 14:06: Refreshed the source-doc pointers in this cross-family roadmap after a docs audit by replacing stale `Layers.md` and archived Spaghetti explainer paths with the real live family index docs, so the roadmap now points at the current umbrella files that actually exist in the repo
-19. 2026-03-28 13:19: Reordered the roadmap `## To do` list so the new `Edit History` groundwork now sits ahead of later `Pasta Path` sync, and replaced the old roadmap-only `PastaPath-1` placeholder with a descriptive `PastaPath-first-standalone-phase-doc` checklist item so the near-term sequence stays aligned with the current family source docs
-18. 2026-03-28 13:16: Added the new `Edit History` family to this cross-family roadmap, wiring in the first open `Edit History 1` through `Edit History 5` ladder so the roadmap now tracks canonical undo/redo foundation, graph and parameter commit coverage, Browser-plus-Console parity, transform commit integration, and later `Pasta Path` sync beside the older architecture families
+19. 2026-03-28 13:19: Reordered the roadmap `## To do` list so the new `Edit History` groundwork now sits ahead of later `Build Path` sync, and replaced the old roadmap-only `BuildPath-1` placeholder with a descriptive `BuildPath-first-standalone-phase-doc` checklist item so the near-term sequence stays aligned with the current family source docs
+18. 2026-03-28 13:16: Added the new `Edit History` family to this cross-family roadmap, wiring in the first open `Edit History 1` through `Edit History 5` ladder so the roadmap now tracks canonical undo/redo foundation, graph and parameter commit coverage, Browser-plus-Console parity, transform commit integration, and later `Build Path` sync beside the older architecture families
 17. 2026-03-26 20:03: Added the new `Export` family to this cross-family roadmap, wiring in the first open `Export-1` through `Export-4` ladder so the roadmap now tracks the export toolbar surface, target collection, format-specific settings, and later project/spaghetti save-export neighbors beside the older architecture families
 16. 2026-03-26 15:40: Added the new `Layers` family to this cross-family roadmap, wiring in the open `Layers-1` through `Layers-4` ladder so the roadmap now tracks layer foundation, manager-plus-console controls, sketch entity ownership, and authored 3D object visibility beside the older architecture families
 15. 2026-03-25 22:17: Cleaned up this cross-family roadmap after shipping `Browser-6 - BrowserPanel Structure And Row-Family Cleanup`, updated the Browser family read to the post-Browser-6 state with eleven shipped cuts, and advanced the remaining open Browser architecture work to the smaller `Browser-7` follow-on bucket
-14. 2026-03-25 21:55: Added a practical `To do` checklist section to this cross-family roadmap, rewriting the near-term sequence from the current live architecture families instead of the older roadmap-lane labels so the file now has one Browser-to-Pasta-Path working list for what to finish before the first honest `Pasta Path` cut
+14. 2026-03-25 21:55: Added a practical `To do` checklist section to this cross-family roadmap, rewriting the near-term sequence from the current live architecture families instead of the older roadmap-lane labels so the file now has one Browser-to-Build-Path working list for what to finish before the first honest `Build Path` cut
 13. 2026-03-25 21:49: Marked `[5.1G] Surface-Agnostic Command Ownership And Adapter Expansion` shipped in this cross-family roadmap, updated the Console family read so shared workspace-selection outcomes and shared view commands now count as landed owner-first console groundwork, and left the Console family partial only because the smaller `[4.1I5]` staged-grammar hardening follow-on still remains open
 12. 2026-03-25 21:25: Refreshed this cross-family roadmap against the newer Browser and Master Spaghetti source docs, so the Browser family now acknowledges both `Browser-6` and the later `Browser-7` cleanup bucket while the Spaghetti Editor family notes the existing standalone `Master Spaghetti-1` follow-on instead of reading like that ladder is still purely undecided
 11. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` shipped in this cross-family roadmap, updated the Worker family read to a fully shipped seven-phase worker ladder, and closed the Worker architecture family as complete until a new follow-on family is introduced
@@ -27,7 +27,7 @@
 5. 2026-03-25 09:44: Marked `Browser-5.1 - Reference Selection Cleanup` shipped in this cross-family roadmap, updated the Browser family read to six shipped Browser cuts, and advanced the remaining open Browser follow-ons to `Browser-5.2` grouped parent multi-selection plus `Browser-6` panel/row-family cleanup
 4. 2026-03-25 02:41: Reworked the `Nodes` section in this roadmap into subfamily groupings, so `Nodes` now breaks into foldable `Sketch` and `Extrude` `###` sections with the individual node-family tasks moved down to `####` headings instead of one long flat phase list
 3. 2026-03-25 02:38: Reworked this roadmap from a split `Quick Checklist` plus later repeated family summaries into one foldable family-by-family status map, so each architecture family now uses a status-marked `##` heading and foldable `###` phase headings instead of duplicating checklist bullets and separate lower sections
-2. 2026-03-25 02:32: Expanded this roadmap so it also tracks the current architecture-family state for `Pasta Path`, `Radio`, `Camera Controls`, and `View Toolbar`, keeping the cross-family checklist aligned with the newer docs beyond the original `Browser` / `Console` / `Spaghetti Editor` / `Nodes` / `Worker` / `AppShell` set
+2. 2026-03-25 02:32: Expanded this roadmap so it also tracks the current architecture-family state for `Build Path`, `Radio`, `Camera Controls`, and `View Toolbar`, keeping the cross-family checklist aligned with the newer docs beyond the original `Browser` / `Console` / `Spaghetti Editor` / `Nodes` / `Worker` / `AppShell` set
 1. 2026-03-25 01:45: Created this roadmap as the architecture-family tracker for the current `Browser`, `Console`, `Spaghetti Editor`, `Nodes`, `Worker`, and `AppShell` phase docs, so the newer folderized architecture planning surfaces have one compact cross-family status map under `docs/Human-Plans/roadmap/`
 
 ### Purpose
@@ -49,7 +49,7 @@ This file covers:
 - `Edit History`
 - `Export`
 - `Layers`
-- `Pasta Path`
+- `Build Path`
 - `Radio`
 - `Camera Controls`
 - `View Toolbar`
@@ -93,8 +93,8 @@ The `Workspace Modes` family now belongs in that tracker too because it has a re
   - `docs/Human-Plans/Architecture/Export/Export-Index.md`
 - `Layers`
   - `docs/Human-Plans/Architecture/Layers/Layers-index.md`
-- `Pasta Path`
-  - `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `Build Path`
+  - `docs/Human-Plans/Architecture/Build-Path/Build-Path-Index.md`
 - `Radio`
   - `docs/Human-Plans/Architecture/Radio/Radio.md`
 - `Camera Controls`
@@ -200,13 +200,13 @@ Current read:
   - graph and parameter commit coverage
   - Browser/content organization plus Console parity
   - committed transform integration and shared dispatch
-  - later `Pasta Path` sync and derived-reader follow-through
+  - later `Build Path` sync and derived-reader follow-through
 
 ### [ ] Edit History 1 - Canonical Entry And Transaction Foundation
 ### [ ] Edit History 2 - Spaghetti Graph And Parameter Commit Coverage
 ### [ ] Edit History 3 - Browser Content Organization And Console Parity
 ### [ ] Edit History 4 - Viewer Transform Commit Integration And Shared Dispatch
-### [ ] Edit History 5 - Pasta Path Sync, Derived Readers, And Later History UX
+### [ ] Edit History 5 - Build Path Sync, Derived Readers, And Later History UX
 
 ## [ ] Layers
 ### Info
@@ -263,14 +263,14 @@ Current read:
 ### [ ] Export-3 - Format-Specific Settings And Detail Controls
 ### [ ] Export-4 - Project File, Spaghetti File, And Later Export Neighbors
 
-## [~] Pasta Path
+## [~] Build Path
 ### Info
 
 Source doc:
-- `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md`
+- `docs/Human-Plans/Architecture/Build-Path/Build-Path-Index.md`
 
 Current read:
-- `Pasta Path` has a clear umbrella architecture direction, but not a real standalone phase ladder yet
+- `Build Path` has a clear umbrella architecture direction, but not a real standalone phase ladder yet
 - the current family doc is still mainly:
   - concept
   - placement recommendation
@@ -285,7 +285,7 @@ Current read:
   - earlier `Edit History` groundwork next so the timeline can consume a canonical committed-diff seam without becoming the undo/history system itself
 - the next cleanup for this family is still probably to branch the first real standalone phase doc into `Future/` once the first honest read-only scrub slice is tightened around that narrower role
 
-### [~] Pasta Path - Umbrella Concept And First Questions
+### [~] Build Path - Umbrella Concept And First Questions
 
 ## [~] Radio
 ### Info
@@ -583,8 +583,8 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Edit History 4`
 - [ ] `Edit History 5`
 
-#### [~] - 8 - Pasta Path
-- [~] `Pasta Path - Umbrella Concept And First Questions`
+#### [~] - 8 - Build Path
+- [~] `Build Path - Umbrella Concept And First Questions`
 
 #### [ ] - 9 - Export
 - [ ] `Export 1`
@@ -631,5 +631,5 @@ The likely next maintenance pass for this file is:
 - add more family notes only when a source architecture doc gains a real new phase
 - avoid inventing roadmap-only phase ids that do not exist in the family source docs
 - keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own
-- let `Pasta Path` stay marked as an umbrella concept family until its first standalone execution phase exists
+- let `Build Path` stay marked as an umbrella concept family until its first standalone execution phase exists
 - keep the workspace checklist synced to the native `Workspace-Modes` family docs instead of reviving the older `Workspace-1/2/3` shorthand again

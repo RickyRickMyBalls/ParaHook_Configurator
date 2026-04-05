@@ -45,6 +45,7 @@ const makeFixtureNodeDef = (config: {
 
 const numberMmType: PortType = { kind: 'number', unit: 'mm' }
 const numberDegType: PortType = { kind: 'number', unit: 'deg' }
+const defaultPlaneTransform = createDefaultSketchPlaneTransform()
 
 const fixtureNodeDefs: Record<string, NodeDefinition> = {
   'Test/NumberMmSource': makeFixtureNodeDef({
@@ -100,6 +101,7 @@ vi.mock('../registry/nodeRegistry', async () => {
 import { compileSpaghettiGraph, computeFeatureStackIrParts } from './compileGraph'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
+import { createDefaultSketchPlaneTransform } from '../features/featureTypes'
 
 const cubeNode = (nodeId: string = 'n-cube') => ({
   nodeId,
@@ -268,6 +270,7 @@ describe('compileSpaghettiGraph determinism', () => {
         op: 'sketch',
         featureId: 'cube-sketch-1',
         plane: 'XY',
+        planeTransform: defaultPlaneTransform,
         profilesResolved: [
           {
             area: 450,
@@ -289,6 +292,7 @@ describe('compileSpaghettiGraph determinism', () => {
           sketchFeatureId: 'cube-sketch-1',
           profileId: 'cube-profile-1',
         },
+        extrudeType: 'Body',
         depthResolved: 25,
         taperResolved: 0,
         offsetResolved: 0,
@@ -409,6 +413,7 @@ describe('compileSpaghettiGraph determinism', () => {
         op: 'sketch',
         featureId: 'cube-sketch-1',
         plane: 'XY',
+        planeTransform: defaultPlaneTransform,
         profilesResolved: [
           {
             area: 240,
@@ -430,6 +435,7 @@ describe('compileSpaghettiGraph determinism', () => {
           sketchFeatureId: 'cube-sketch-1',
           profileId: 'cube-profile-1',
         },
+        extrudeType: 'Body',
         depthResolved: 20,
         taperResolved: 0,
         offsetResolved: 0,
@@ -904,6 +910,11 @@ describe('compileSpaghettiGraph determinism', () => {
   })
 
   it('compiles Geometry/Sketch -> Geometry/Extrude into graph-native runtime IR with the full selected sketch profile shape preserved', () => {
+    const planeTransform = {
+      ...createDefaultSketchPlaneTransform(),
+      translation: { x: 12, y: -4, z: 7 },
+      rotationDeg: { x: 0, y: 0, z: 90 },
+    }
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -915,6 +926,7 @@ describe('compileSpaghettiGraph determinism', () => {
               type: 'sketch',
               featureId: 'sketch-1',
               plane: 'XZ',
+              planeTransform,
               components: [
                 {
                   rowId: 'row-1',
@@ -973,7 +985,7 @@ describe('compileSpaghettiGraph determinism', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
-            extrudeType: 'Basic',
+            extrudeType: 'Body',
             depthMm: 30,
           },
         },
@@ -1028,6 +1040,7 @@ describe('compileSpaghettiGraph determinism', () => {
         op: 'sketch',
         featureId: 'n-sketch',
         plane: 'XZ',
+        planeTransform,
         profilesResolved: [
           {
             profileId: expect.any(String),
@@ -1051,13 +1064,109 @@ describe('compileSpaghettiGraph determinism', () => {
           sketchFeatureId: 'n-sketch',
           profileId: expect.any(String),
         },
+        extrudeType: 'Body',
         depthResolved: 30,
         taperResolved: 0,
         offsetResolved: 0,
         plane: 'XZ',
+        planeTransform,
         bodyId: 'n-extrude:body',
       },
     ])
+  })
+
+  it('keeps Geometry/Extrude walls type in the graph-native runtime IR payload', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 20 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 20 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Walls',
+            depthMm: 12,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    expect(evaluation.ok).toBe(true)
+
+    const result = computeFeatureStackIrParts(graph, {
+      resolvedInputsByNodeId: evaluation.inputsByNodeId,
+    })
+    expect(result.warnings).toEqual([])
+
+    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+      | {
+          op: 'extrude'
+          extrudeType: 'Body' | 'Walls'
+        }
+      | undefined
+
+    expect(extrudeOp?.extrudeType).toBe('Walls')
   })
 
   it('preserves the selected sketch profile loop instead of rebuilding an empty loop proxy', () => {
@@ -1109,7 +1218,7 @@ describe('compileSpaghettiGraph determinism', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
-            extrudeType: 'Basic',
+            extrudeType: 'Body',
             depthMm: 12,
           },
         },

@@ -1,3 +1,4 @@
+import type { SketchPlaneTransform } from '../../app/spaghetti/features/featureTypes'
 import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
 import {
   extrudeFaceOnPlane,
@@ -25,6 +26,7 @@ type IRSketch = {
   op: 'sketch'
   featureId: string
   plane?: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
   profilesResolved: IRProfileResolved[]
 }
 
@@ -38,8 +40,10 @@ type IRExtrude = {
   op: 'extrude'
   featureId: string
   profileRef: IRProfileRef | null
+  extrudeType?: 'Body' | 'Walls'
   depthResolved: number
   plane?: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
   bodyId?: string
 }
 
@@ -52,6 +56,7 @@ export type FeatureStackIRPayload = {
 
 type SketchRuntime = {
   plane: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
   profiles: Map<string, Wire>
 }
 
@@ -82,11 +87,25 @@ const isProfileResolved = (value: unknown): value is IRProfileResolved =>
   Array.isArray(value.vertices) &&
   value.vertices.every(isPoint2)
 
+const isVec3Literal = (value: unknown): value is SketchPlaneTransform['translation'] =>
+  isRecord(value) &&
+  typeof value.x === 'number' &&
+  typeof value.y === 'number' &&
+  typeof value.z === 'number'
+
+const isSketchPlaneTransform = (value: unknown): value is SketchPlaneTransform =>
+  isRecord(value) &&
+  typeof value.offsetMm === 'number' &&
+  isVec3Literal(value.translation) &&
+  isVec3Literal(value.rotationDeg) &&
+  typeof value.inPlaneRotationDeg === 'number'
+
 const isSketchOp = (value: unknown): value is IRSketch =>
   isRecord(value) &&
   value.op === 'sketch' &&
   typeof value.featureId === 'string' &&
   (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
+  (value.planeTransform === undefined || isSketchPlaneTransform(value.planeTransform)) &&
   Array.isArray(value.profilesResolved) &&
   value.profilesResolved.every(isProfileResolved)
 
@@ -100,8 +119,10 @@ const isExtrudeOp = (value: unknown): value is IRExtrude =>
   isRecord(value) &&
   value.op === 'extrude' &&
   typeof value.featureId === 'string' &&
+  (value.extrudeType === undefined || value.extrudeType === 'Body' || value.extrudeType === 'Walls') &&
   typeof value.depthResolved === 'number' &&
   (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
+  (value.planeTransform === undefined || isSketchPlaneTransform(value.planeTransform)) &&
   (value.bodyId === undefined || typeof value.bodyId === 'string') &&
   (value.profileRef === null || isProfileRef(value.profileRef))
 
@@ -192,6 +213,7 @@ const runSketch = (
 
   context.sketches.set(feature.featureId, {
     plane: feature.plane ?? 'XY',
+    planeTransform: feature.planeTransform,
     profiles: sketchProfiles,
   })
 }
@@ -222,6 +244,10 @@ const runExtrude = (
       : context.sketches.get(sketchFeatureId)?.profiles.get(profileId)
   const planeFromSketch =
     sketchFeatureId === undefined ? undefined : context.sketches.get(sketchFeatureId)?.plane
+  const planeTransformFromSketch =
+    sketchFeatureId === undefined
+      ? undefined
+      : context.sketches.get(sketchFeatureId)?.planeTransform
   const wire = wireFromSketch ?? context.profiles.get(profileId)
 
   if (wire === undefined) {
@@ -251,6 +277,8 @@ const runExtrude = (
   try {
     const face = faceFromWire(wire)
     const sketchPlane = feature.plane ?? planeFromSketch ?? 'XY'
+    const sketchPlaneTransform = feature.planeTransform ?? planeTransformFromSketch
+    const capped = feature.extrudeType !== 'Walls'
     const shape =
       sketchPlane === 'XY'
         ? extrudeFaceAlongZ(face, feature.depthResolved, {
@@ -258,13 +286,13 @@ const runExtrude = (
             featureId: feature.featureId,
             op: 'extrude',
             partKey,
-          })
+          }, sketchPlaneTransform, { capped })
         : extrudeFaceOnPlane(face, sketchPlane, feature.depthResolved, {
             bodyId,
             featureId: feature.featureId,
             op: 'extrude',
             partKey,
-          })
+          }, sketchPlaneTransform, { capped })
     context.bodies.set(bodyKey, shape)
     context.bodyTrace.push({
       bodyKey,

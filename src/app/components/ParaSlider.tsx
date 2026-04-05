@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -28,6 +29,9 @@ type ParaSliderProps = {
   onActivate?: () => void
   onContextMenu?: (event: ReactMouseEvent<HTMLElement>) => void
   hideCaps?: boolean
+  disabled?: boolean
+  className?: string
+  style?: CSSProperties
   onChangeEnd?: (value: number) => void
 }
 
@@ -96,6 +100,9 @@ export function ParaSlider({
   onActivate,
   onContextMenu,
   hideCaps = false,
+  disabled = false,
+  className,
+  style,
   onChangeEnd,
 }: ParaSliderProps) {
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -312,7 +319,7 @@ export function ParaSlider({
     event: ReactPointerEvent<HTMLElement>,
     mode: 'value' | 'clamp-min' | 'clamp-max',
   ) => {
-    if (event.button !== 0) {
+    if (event.button !== 0 || disabled) {
       return
     }
     let dragValue = normalizedValue
@@ -374,6 +381,9 @@ export function ParaSlider({
   }
 
   const handleTrackPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (disabled) {
+      return
+    }
     onActivate?.()
     if (isEditingClamp && onClampChange !== undefined) {
       const trackElement = trackRef.current
@@ -394,6 +404,9 @@ export function ParaSlider({
   }
 
   const changeByStep = (direction: -1 | 1) => {
+    if (disabled) {
+      return
+    }
     const nextValue =
       allowWrap && !isEditingClamp
         ? wrapValue(normalizedValue + direction * step, min, max)
@@ -407,6 +420,11 @@ export function ParaSlider({
   }
 
   const commitValueInput = () => {
+    if (disabled) {
+      setValueInput(editableValueText)
+      setIsValueEditing(false)
+      return
+    }
     const parsedValue = Number(valueInput)
     if (!Number.isFinite(parsedValue)) {
       setValueInput(editableValueText)
@@ -489,6 +507,9 @@ export function ParaSlider({
   }
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (disabled) {
+      return
+    }
     switch (event.key) {
       case 'ArrowLeft':
       case 'ArrowDown':
@@ -514,12 +535,19 @@ export function ParaSlider({
   }
 
   return (
-    <div className={`ParaSlider${hideCaps ? ' isCapless' : ''}`} onContextMenu={onContextMenu}>
+    <div
+      className={`ParaSlider${hideCaps ? ' isCapless' : ''}${disabled ? ' isDisabled' : ''}${
+        className === undefined || className.length === 0 ? '' : ` ${className}`
+      }`}
+      style={style}
+      onContextMenu={onContextMenu}
+    >
       {hideCaps ? null : (
         <button
           type="button"
           className="ParaSliderCap ParaSliderCap--left"
           aria-label={`Decrease ${label}`}
+          disabled={disabled}
           onClick={() => changeByStep(-1)}
           onContextMenu={onContextMenu}
         >
@@ -530,12 +558,13 @@ export function ParaSlider({
         ref={trackRef}
         className={`ParaSliderTrack ${isEditingClamp ? 'isClampEditing' : ''}`}
         role="slider"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         aria-label={label}
         aria-valuemin={effectiveClampMin}
         aria-valuemax={effectiveClampMax}
         aria-valuenow={normalizedValue}
         aria-valuetext={formatValue(normalizedValue)}
+        aria-disabled={disabled}
         onPointerDown={handleTrackPointerDown}
         onKeyDown={handleKeyDown}
         onContextMenu={onContextMenu}
@@ -585,13 +614,14 @@ export function ParaSlider({
             <>
               <input
                 className="ParaSliderValueInput ParaSliderClampInput ParaSliderClampInput--min"
-                type="number"
-                step={fineStep}
-                value={clampMinInput}
-                aria-label={`Edit minimum ${label} clamp`}
-                onPointerDown={(event) => {
-                  event.stopPropagation()
-                }}
+              type="number"
+              step={fineStep}
+              value={clampMinInput}
+              aria-label={`Edit minimum ${label} clamp`}
+              disabled={disabled}
+              onPointerDown={(event) => {
+                event.stopPropagation()
+              }}
                 onFocus={() => setIsClampMinEditing(true)}
                 onInput={(event) => setClampMinInput((event.target as HTMLInputElement).value)}
                 onChange={(event) => setClampMinInput(event.target.value)}
@@ -610,13 +640,14 @@ export function ParaSlider({
               />
               <input
                 className="ParaSliderValueInput ParaSliderClampInput ParaSliderClampInput--max"
-                type="number"
-                step={fineStep}
-                value={clampMaxInput}
-                aria-label={`Edit maximum ${label} clamp`}
-                onPointerDown={(event) => {
-                  event.stopPropagation()
-                }}
+              type="number"
+              step={fineStep}
+              value={clampMaxInput}
+              aria-label={`Edit maximum ${label} clamp`}
+              disabled={disabled}
+              onPointerDown={(event) => {
+                event.stopPropagation()
+              }}
                 onFocus={() => setIsClampMaxEditing(true)}
                 onInput={(event) => setClampMaxInput((event.target as HTMLInputElement).value)}
                 onChange={(event) => setClampMaxInput(event.target.value)}
@@ -645,6 +676,7 @@ export function ParaSlider({
               step={fineStep}
               value={valueInput}
               aria-label={`Edit ${label} value`}
+              disabled={disabled}
               onPointerDown={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
@@ -669,11 +701,15 @@ export function ParaSlider({
               type="button"
               className="ParaSliderValueButton"
               aria-label={`Edit ${label} value`}
+              disabled={disabled}
               onPointerDown={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
               }}
               onClick={() => {
+                if (disabled) {
+                  return
+                }
                 onActivate?.()
                 setValueInput(editableValueText)
                 setIsValueEditing(true)
@@ -690,6 +726,7 @@ export function ParaSlider({
           type="button"
           className="ParaSliderCap ParaSliderCap--right"
           aria-label={`Increase ${label}`}
+          disabled={disabled}
           onClick={() => changeByStep(1)}
           onContextMenu={onContextMenu}
         >

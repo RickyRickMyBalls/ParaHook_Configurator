@@ -493,6 +493,7 @@ const renderExtrudeNode = (options: {
   extrudeVm: ExtrudeNodeVm
   allInputs: PortSpec[]
   allOutputs: PortSpec[]
+  nodeMode?: 'collapsed' | 'essentials' | 'expanded'
 }): string => {
   seedGraphForRender(options.node)
   return renderToStaticMarkup(
@@ -501,7 +502,7 @@ const renderExtrudeNode = (options: {
       x={0}
       y={0}
       title="Extrude"
-      nodeMode="essentials"
+      nodeMode={options.nodeMode ?? 'essentials'}
       template="extrude"
       extrudeVm={options.extrudeVm}
       allInputs={options.allInputs}
@@ -685,7 +686,7 @@ describe('NodeView part section order', () => {
     expect(html.includes('Sketch: 0 profiles')).toBe(true)
   })
 
-  it('collapsed mode keeps section shells and hides all section bodies', () => {
+  it('collapsed mode keeps input and output section bodies visible while hiding non-pin sections', () => {
     const html = renderPartNode(
       baseNode({
         featureStack: [
@@ -731,11 +732,12 @@ describe('NodeView part section order', () => {
       },
     )
 
-    expect(html.includes('data-sp-section-body-visible="0"')).toBe(true)
+    expect(html.includes('data-sp-section-id="inputs" data-sp-section-body-visible="1"')).toBe(true)
+    expect(html.includes('data-sp-section-id="outputs" data-sp-section-body-visible="1"')).toBe(true)
     expect(html.includes('Width Driver')).toBe(false)
-    expect(html.includes('Depth Input')).toBe(false)
+    expect(html.includes('Depth Input')).toBe(true)
     expect(html.includes('Sketch: 0 profiles')).toBe(false)
-    expect(html.includes('Body Output')).toBe(false)
+    expect(html.includes('Body Output')).toBe(true)
   })
 
   it('section toggles operate independently', () => {
@@ -1490,17 +1492,15 @@ describe('NodeView part section order', () => {
     expect(html.includes('ParaSelect')).toBe(true)
     expect(html.includes('ParaSlider')).toBe(true)
     expect(html.includes('SpaghettiGeometryNodeRailLabel">Inputs<')).toBe(true)
-    expect(html.includes('SpaghettiGeometryNodeRailLabel">Sketch<')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="content"')).toBe(false)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Sketch<')).toBe(false)
     expect(html.includes('SpaghettiGeometryNodeRailLabel">Outputs<')).toBe(true)
     expect(html.includes('Geometry')).toBe(true)
-    expect(html.includes('Plane')).toBe(true)
     expect(html.includes('Draw')).toBe(true)
-    expect(html.includes('data-sp-sketch-plane-row="1"')).toBe(true)
     expect(html.includes('Expand SketchDraw input row')).toBe(true)
     expect(html.includes('Open the viewer-side sketch toolbar')).toBe(true)
     expect(html.includes('No sketch entities yet')).toBe(true)
-    expect(html.includes('Review')).toBe(true)
-    expect(html.includes('No closed profiles detected yet.')).toBe(false)
+    expect(html.includes('Review')).toBe(false)
     expect(html.includes('Draw/Edit Curves Inside')).toBe(false)
     expect(html.includes('Close/Select Profile')).toBe(false)
   })
@@ -1511,12 +1511,12 @@ describe('NodeView part section order', () => {
         nodeId: 'node-extrude-1',
         type: 'Geometry/Extrude',
         params: {
-          extrudeType: 'Basic',
+          extrudeType: 'Body',
           depthMm: 30,
         },
       },
       extrudeVm: {
-        extrudeType: 'Basic',
+        extrudeType: 'Body',
         effectiveDepthMm: 30,
         depthDriven: false,
         hasProfile: true,
@@ -1529,6 +1529,13 @@ describe('NodeView part section order', () => {
           portId: 'ExtrusionProfile',
           label: 'ExtrusionProfile',
           type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -1550,12 +1557,340 @@ describe('NodeView part section order', () => {
     })
 
     expect(html.includes('SpaghettiExtrudeNodeTemplate')).toBe(true)
-    expect(html.includes('ExtrusionProfile')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeShell')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="inputs"')).toBe(true)
+    expect(html.includes('data-sp-geometry-block="content"')).toBe(false)
+    expect(html.includes('data-sp-geometry-block="outputs"')).toBe(true)
+    expect(html.includes('SpaghettiExtrudeInputStack')).toBe(true)
+    expect(html.includes('data-sp-enum-row="1"')).toBe(true)
+    expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(true)
+    expect(html.includes('SketchProfile')).toBe(true)
+    expect(html.includes('Type')).toBe(true)
+    expect(html.includes('ParaSelect')).toBe(true)
+    expect(html.includes('ParaSelectNative')).toBe(true)
+    expect(html.includes('SpaghettiPortEnumValueRow')).toBe(true)
+    expect(html.includes('ParaSelectTrackButton')).toBe(true)
+    expect(html.includes('ParaSelectMenu')).toBe(false)
+    expect(html.includes('aria-label="Previous Type"')).toBe(true)
+    expect(html.includes('aria-label="Next Type"')).toBe(true)
+    expect(html.includes('data-sp-port-row-open="1"')).toBe(true)
+    expect(html.includes('Profile Target')).toBe(true)
+    expect(
+      html.includes(
+        'Consume one upstream SketchProfile from Geometry/Sketch as the start face for this extrude.',
+      ),
+    ).toBe(true)
     expect(html.includes('Depth')).toBe(true)
-    expect(html.includes('Extrude Type')).toBe(true)
-    expect(html.includes('Basic')).toBe(true)
-    expect(html.includes('Twist')).toBe(true)
-    expect(html.includes('Body ready: node-extrude-1:body')).toBe(true)
+    expect(html.includes('30 mm')).toBe(true)
+    expect(html.includes('ParaSlider')).toBe(false)
+    expect(html.includes('SpaghettiPortPrimitiveValueRow')).toBe(true)
+    expect(html.includes('SpaghettiPortPrimitiveLane')).toBe(true)
+    expect(html.includes('SpaghettiPortPrimitiveValueWrap')).toBe(true)
+    expect(html.includes('SpaghettiPortPrimitiveDivider')).toBe(true)
+    expect(html.includes('SpaghettiPortPrimitiveEndcap--left')).toBe(true)
+    expect(html.includes('SpaghettiPortPrimitiveEndcap--right')).toBe(true)
+    expect(html.includes('aria-label="Decrease Depth"')).toBe(true)
+    expect(html.includes('aria-label="Increase Depth"')).toBe(true)
+    expect(html.includes('Depth Value')).toBe(false)
+    expect(html.includes('local fallback depth in millimeters')).toBe(false)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Inputs<')).toBe(true)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Details<')).toBe(false)
+    expect(html.includes('SpaghettiGeometryNodeRailLabel">Outputs<')).toBe(true)
+    expect(html.includes('Body')).toBe(true)
+    expect(html.includes('Walls')).toBe(true)
+    expect(html.includes('SpaghettiPortMain--enumValue')).toBe(true)
+    expect(html.includes('SpaghettiPortAnchor--in')).toBe(true)
+    const sketchProfileRowIndex = html.indexOf('SpaghettiExtrudeProfilePortRow')
+    const typeRowIndex = html.indexOf('data-sp-enum-row="1"')
+    const depthRowIndex = html.indexOf('SpaghettiPortPrimitiveValueRow')
+    expect(sketchProfileRowIndex).toBeGreaterThan(-1)
+    expect(typeRowIndex).toBeGreaterThan(sketchProfileRowIndex)
+    expect(depthRowIndex).toBeGreaterThan(typeRowIndex)
+    expect(html.includes('Body ready: node-extrude-1:body (capped result)')).toBe(true)
+  })
+
+  it('renders the dedicated extrude template empty state as a managed SketchProfile input row', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        effectiveDepthMm: 30,
+        depthDriven: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('SketchProfile')).toBe(true)
+    expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(true)
+    expect(html.includes('Awaiting wire')).toBe(true)
+    expect(html.includes('Wire one SketchProfile from Geometry/Sketch into this extrude.')).toBe(
+      true,
+    )
+    expect(html.includes('Depth Value')).toBe(false)
+    expect(html.includes('No SketchProfile wired yet')).toBe(false)
+  })
+
+  it('renders walls copy as uncapped side-wall output in the dedicated extrude template', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Walls',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Walls',
+        effectiveDepthMm: 30,
+        depthDriven: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('Waiting for one profile and positive depth to generate uncapped side walls.')).toBe(
+      true,
+    )
+  })
+
+  it('renders the dedicated extrude type row as driven while showing the effective enum slot', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Walls',
+        localExtrudeType: 'Body',
+        typeDriven: true,
+        effectiveDepthMm: 30,
+        depthDriven: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('data-sp-enum-selected-index="0"')).toBe(true)
+    expect(html.includes('data-sp-enum-displayed-index="1"')).toBe(true)
+    expect(html.includes('data-sp-enum-option-count="2"')).toBe(true)
+    expect(html.includes('Wire drives the effective value. Local fallback stays at Body.')).toBe(
+      true,
+    )
+    expect(html.includes('Walls')).toBe(true)
+    expect(html.includes('disabled=""')).toBe(true)
+  })
+
+  it('renders the dedicated extrude depth row with driven fallback messaging when wired', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          depthMm: 20,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        effectiveDepthMm: 42,
+        depthDriven: true,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('42 mm')).toBe(true)
+    expect(html.includes('Wire drives the effective value. Local fallback stays at 20 mm.')).toBe(
+      true,
+    )
+    expect(html.includes('value="20"')).toBe(true)
+    expect(html.includes('ParaSlider')).toBe(false)
+    expect(html.includes('SpaghettiPortPrimitiveValueRow')).toBe(true)
+    expect(html.includes('SpaghettiPortPrimitiveDrivenMessage')).toBe(true)
+    expect(html.includes('disabled=""')).toBe(true)
+  })
+
+  it('keeps the dedicated extrude depth row primitive in expanded mode', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          depthMm: 30,
+        },
+      },
+      nodeMode: 'expanded',
+      extrudeVm: {
+        extrudeType: 'Body',
+        effectiveDepthMm: 30,
+        depthDriven: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('Depth Value')).toBe(false)
+    expect(html.includes('SpaghettiPortPrimitiveValueRow')).toBe(true)
+    expect(html.includes('data-sp-port-row-open="1"')).toBe(true)
   })
 })
 

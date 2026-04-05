@@ -13,19 +13,53 @@ type ParaSelectMenuAction = {
 type ParaSelectProps = {
   label: string
   value: string
+  displayedValue?: string
   options: ParaSelectOption[]
   onChange: (value: string) => void
   menuMode?: 'native' | 'custom'
   menuActions?: ParaSelectMenuAction[]
+  capGlyph?: 'text' | 'chevron'
+  disabled?: boolean
+}
+
+function ParaSelectCapIcon({
+  direction,
+  glyph,
+}: {
+  direction: 'left' | 'right'
+  glyph: 'text' | 'chevron'
+}) {
+  if (glyph === 'chevron') {
+    return (
+      <svg
+        className="ParaSelectCapIcon"
+        viewBox="0 0 8 8"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <polyline
+          points={
+            direction === 'left'
+              ? '5.25,1.5 2.75,4 5.25,6.5'
+              : '2.75,1.5 5.25,4 2.75,6.5'
+          }
+        />
+      </svg>
+    )
+  }
+  return <>{direction === 'left' ? '<' : '>'}</>
 }
 
 export function ParaSelect({
   label,
   value,
+  displayedValue,
   options,
   onChange,
   menuMode = 'native',
   menuActions = [],
+  capGlyph = 'text',
+  disabled = false,
 }: ParaSelectProps) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -36,13 +70,20 @@ export function ParaSelect({
     options.findIndex((option) => option.value === value),
   )
   const selectedOption = options[selectedIndex] ?? options[0] ?? { value: '', label: '' }
+  const displayedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === (displayedValue ?? value)),
+  )
   const canCycle = options.length > 1
   const selectedFillPercent =
-    options.length <= 1 ? 100 : (selectedIndex / Math.max(1, options.length - 1)) * 100
+    options.length <= 1 ? 100 : (displayedIndex / Math.max(1, options.length - 1)) * 100
   const fillPercent = dragPreviewPercent ?? selectedFillPercent
 
   const changeByStep = (direction: -1 | 1) => {
     if (options.length === 0) {
+      return
+    }
+    if (disabled) {
       return
     }
     const nextIndex =
@@ -143,6 +184,9 @@ export function ParaSelect({
     if (event.button !== 0 || menuMode !== 'custom' || options.length === 0) {
       return
     }
+    if (disabled) {
+      return
+    }
     event.preventDefault()
     event.stopPropagation()
     setIsMenuOpen(false)
@@ -187,10 +231,13 @@ export function ParaSelect({
           type="button"
           className="ParaSelectCap ParaSelectCap--left"
           aria-label={`Previous ${label}`}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+          }}
           onClick={() => changeByStep(-1)}
-          disabled={!canCycle}
+          disabled={!canCycle || disabled}
         >
-          {'<'}
+          <ParaSelectCapIcon direction="left" glyph={capGlyph} />
         </button>
         <label className="ParaSelectTrack">
           <div className="ParaSelectFill" style={{ width: `${fillPercent}%` }} />
@@ -206,6 +253,7 @@ export function ParaSelect({
             className="ParaSelectNative"
             aria-label={label}
             value={selectedOption.value}
+            disabled={disabled}
             onChange={(event) => onChange(event.target.value)}
           >
             {options.map((option) => (
@@ -219,10 +267,13 @@ export function ParaSelect({
           type="button"
           className="ParaSelectCap ParaSelectCap--right"
           aria-label={`Next ${label}`}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+          }}
           onClick={() => changeByStep(1)}
-          disabled={!canCycle}
+          disabled={!canCycle || disabled}
         >
-          {'>'}
+          <ParaSelectCapIcon direction="right" glyph={capGlyph} />
         </button>
       </div>
     )
@@ -234,10 +285,13 @@ export function ParaSelect({
         type="button"
         className="ParaSelectCap ParaSelectCap--left"
         aria-label={`Previous ${label}`}
+        onPointerDown={(event) => {
+          event.stopPropagation()
+        }}
         onClick={() => changeByStep(-1)}
-        disabled={!canCycle}
+        disabled={!canCycle || disabled}
       >
-        {'<'}
+        <ParaSelectCapIcon direction="left" glyph={capGlyph} />
       </button>
       <div
         ref={trackRef}
@@ -249,6 +303,7 @@ export function ParaSelect({
           aria-label={label}
           aria-haspopup="listbox"
           aria-expanded={isMenuOpen}
+          disabled={disabled}
           onClick={handleTrackToggle}
         >
           <div className="ParaSelectFill" style={{ width: `${fillPercent}%` }} />
@@ -264,13 +319,14 @@ export function ParaSelect({
           type="button"
           className="ParaSelectValueHandle"
           aria-label={`Drag ${label} selection`}
-          style={{ left: `${selectedFillPercent}%` }}
+          style={{ left: `${fillPercent}%` }}
           onPointerDown={handleValueHandlePointerDown}
         />
         <select
           className="ParaSelectNative"
           aria-label={label}
           value={selectedOption.value}
+          disabled={disabled}
           tabIndex={-1}
           onChange={(event) => handleNativeChange(event.target.value)}
         >
@@ -317,10 +373,13 @@ export function ParaSelect({
         type="button"
         className="ParaSelectCap ParaSelectCap--right"
         aria-label={`Next ${label}`}
+        onPointerDown={(event) => {
+          event.stopPropagation()
+        }}
         onClick={() => changeByStep(1)}
-        disabled={!canCycle}
+        disabled={!canCycle || disabled}
       >
-        {'>'}
+        <ParaSelectCapIcon direction="right" glyph={capGlyph} />
       </button>
     </div>
   )

@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+1. 2026-04-04 19:08: Added the dedicated future doc `Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md` so the newly requested lane grid and smart-align layout-tool ideas can move forward in one focused planning home separate from the broader `Dashboard-7` backlog, and repointed this backlog so `Phase 12` now refers outward to that new doc instead of trying to hold the next layout-tool details inline
+1. 2026-04-04 18:37: Added `Phase 12 - Dashboard Top Shell Cleanup` as the new post-attachment board-shell polish bucket so the remaining dashboard top-panel cleanup can move forward as its own explicit phase after the sticky-note attachment and sizing ladder, while leaving the older `Phase 11` placeholder in place until the direct-drag detach doc truth is cleaned up separately
 1. 2026-04-04 12:30: Moved the post-`Phase 10` sticky-note attachment-hit and resizing follow-on into the new dedicated future doc `Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`, replacing the broader backlog's inline `Phase 10.1` through `Phase 10.4` detail with a pointer to that new planning home while keeping `Dashboard-7` as the umbrella board-tools backlog surface
 1. 2026-04-04 12:30: Locked the post-`Phase 10` attachment and sizing follow-on order by splitting the old next-step blob into explicit `Phase 10.1` through `Phase 10.4` subphases for full-body parent attachment hit area, variable-bounds refactor, resizable sticky-note foundation, and resize-plus-attachment polish, while keeping the recommendation that note resizing should not land before the attachment-hit and bounds-contract cleanup
 1. 2026-04-04 12:13: Closed `Phase 10 - Move Attached Note Subtrees` after widening the existing sticky-note drag seam so directly dragged parent notes now carry their full attached descendant subtree through live preview and final placement commit, adding one batched dashboard placement commit to preserve attachment links across cross-lane subtree movement, and covering parent-child follow, nested child-subtree follow, and cross-lane subtree carry through focused AppShell regressions while leaving direct-drag detach staged for `Phase 11`
@@ -125,6 +127,11 @@ Reason:
 12. `Phase 11 - Detach Children By Direct Drag`
 Reason:
 - direct child drag should break the old parent relationship cleanly, and that detach rule deserves its own narrow polish pass after subtree movement is trustworthy
+
+13. `Phase 12 - Dashboard Top Shell Cleanup`
+Reason:
+- the remaining visible dashboard-shell cleanup is now primarily the top panel and surrounding board chrome, so it should move forward as its own explicit polish bucket after the sticky-note attachment and sizing ladder
+ - the next lane-layout-tool follow-on now lives in the dedicated future doc `Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md`
 
 ### Notes
 
@@ -1202,7 +1209,7 @@ That doc now stages:
 - `Phase 10.3 - Resizable Sticky Notes Foundation`
 - `Phase 10.4 - Resize Polish And Attachment Compatibility`
 
-## [ ] Phase 11 - Detach Children By Direct Drag
+## [`didnt need`] Phase 11 - Detach Children By Direct Drag
 
 ### Summary
 
@@ -1222,3 +1229,24 @@ That doc now stages:
 
 #### Suggestion:
 - direct child drag should detach immediately at drag start, because that matches the user’s intent to pull a note back out of the attached tree instead of still carrying old parent ownership through the move
+
+## [ ] Phase 12 - Dashboard Top Shell Cleanup
+
+### Summary
+
+#### Purpose:
+- clean up the top dashboard shell so the board feels thinner, calmer, and less prototype-like now that the sticky-note interaction stack has mostly landed
+
+#### Main work:
+- simplify and thin the top dashboard panel area
+- reduce extra chrome and vertical density around the board header
+- tighten the relationship between the dashboard hero/top shell and the lane board beneath it
+- leave sticky-note behavior, attachment semantics, and note ownership unchanged
+
+#### Suggested scope:
+- treat this as board-shell cleanup only, not another sticky-note behavior phase
+- prefer simplifying or removing top-shell chrome before adding new controls
+- if a global lane-height control still belongs in the product, evaluate it inside this phase instead of assuming it must ship exactly as first imagined
+
+#### Suggestion:
+- start by making the dashboard top shell visually smaller and quieter, then only keep controls that still feel justified after the chrome is reduced

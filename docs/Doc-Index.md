@@ -4,6 +4,17 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+220. 2026-04-05 11:19: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md` as the dedicated future home for the first post-`Extrude-3.1` authored-semantics lock, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the broader Extrude lane now points at that focused `3.2` follow-on directly, and kept the docs maps aligned with the new future phase
+219. 2026-04-05 09:41: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md` as the dedicated future home for task `1` from the broader `Extrude-3` lane, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the new reusable enum-row direction is explicit, and kept the docs maps aligned with that new focused Extrude phase
+218. 2026-04-05 09:22: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` as the next dedicated Extrude-family task-stack doc for getting the feature working more properly, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family index now points at that new `Type`-first lane, and kept the published docs listings aligned with the added future phase
+217. 2026-04-05 01:53: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md` as a focused post-`Nodes-2` planning note for the new primitive scalar-row visual language, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella node-template read now points at that reusable row-style follow-on explicitly, and kept the published docs listings aligned with the new node-row note
+216. 2026-04-05 00:34: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md` as the dedicated future doc for the next reusable row-family lane, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella `Nodes-2` section now points at that real execution home, and kept the published docs listings aligned with the new node-template phase surface
+215. 2026-04-04 23:28: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md` as the first dedicated future doc for the shared node-template foundation, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella `Nodes-1` section now points at that real subphase home, and kept the published docs listings aligned with the new node-template phase surface
+214. 2026-04-04 22:37: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md` as the first dedicated subphase under `Extrude-2`, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the next Extrude execution slice now reads as a row-only managed-input-pin parity pass, and kept the published docs listings aligned with that new focused future doc
+213. 2026-04-04 22:28: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md` as the next Extrude-family planning home for node enrichment plus a dedicated extrude toolbar, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so it now records the landed authored-plane and preview-alignment repair ladder plus the new `Extrude-2` direction, updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella node-family read matches that newer Extrude status, and kept the published docs listings aligned with the new future phase
+212. 2026-04-04 22:23: Added the new top-level `docs/Vision.md` summary doc to the canonical docs map as a fast vision-alignment surface for agent rules and day-to-day decision checks, and refreshed the root docs listing so that short pointer now sits beside the longer `docs/Human-Plans/roadmap/Vision-roadmap.md` north-star doc
+211. 2026-04-04 20:35: Added the new `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md` and `Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md` phase docs to the docs map, updated `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the broad `Extrude-1` umbrella now splits into those implementation-ready follow-ons, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the node-family inventory records the real Extrude doc surface, and kept the published docs listings aligned with the new node-family phase split
+210. 2026-04-04 19:08: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md` to the docs map as the dedicated planning home for the next dashboard lane-layout-tool follow-on, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that new `Dashboard-12` grid-and-smart-align lane, refreshed `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md` so it points outward to that new dedicated doc, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
 209. 2026-04-04 12:30: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md` to the docs map as the dedicated post-`Dashboard-7 / Phase 10` planning home for sticky-note attachment-hit widening plus later resizing, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that new `7.10` follow-on, refreshed `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md` so it points forward to the new dedicated doc, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
 208. 2026-04-04 08:58: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md` to the docs map as the next dashboard-family backlog surface after shipped `Dashboard-6`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at that new board-tools and surface-polish bucket, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
 207. 2026-04-04 07:56: Added `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-6 - User-Managed Board Lanes And Resizable Columns.md` to the docs map as the next dashboard-family follow-on after shipped `Dashboard-5.2`, updated `docs/Human-Plans/Architecture/Dashboard/Dashboard.md` so the umbrella dashboard doc now points at user-managed lanes plus vertical divider resizing as the next structural board phase, and kept the `Architecture/Dashboard/` subtree discoverable as the canonical dashboard planning home
@@ -85,7 +96,7 @@
 132. 2026-03-28 19:47: Refreshed the Browser subtree again after shipping `Browser-9.5 - Library Object Rows And Direct Placement Drag`, adding the new shipped phase record under `Browser/Shipped/` while keeping the standalone future planning surface listed for Browser-9 history
 131. 2026-03-28 19:24: Refreshed the Browser subtree in the docs map and added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`, so the Browser family listing now matches the current `Future/` and `Shipped/` phase surfaces instead of stopping at the older Browser-7-only future map
 130. 2026-03-28 14:06: Refreshed the live docs map after a repo audit by adding `docs/Human-Plans/Architecture/Architecture Setup.md`, fixing stale `Layers.md` and `master spaghetti-index.md` references to the real live index files, correcting the `Phase-Plans` and `Human-Plans` folder-map paths, and pruning dead Spaghetti editor file pointers from the architecture subtree
-129. 2026-03-28 13:07: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md` to the architecture docs map, created the new folderized `Edit-History` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so canonical undo/redo planning now has its own umbrella home separate from `Pasta-Path`
+129. 2026-03-28 13:07: Added `docs/Human-Plans/Architecture/Edit-History/Edit-History-Index.md` to the architecture docs map, created the new folderized `Edit-History` family with `Future/` and `Shipped/`, and refreshed the architecture subtree so canonical undo/redo planning now has its own umbrella home separate from `Build-Path`
 128. 2026-03-27 19:44: Renamed the live `Camera-Controls` phase-doc filenames from `5.0H-*` to `Camera-*`, refreshed `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md` to the new `Camera-1` through `Camera-5.1` ladder, and updated the camera-controls subtree so the docs map now points at the new live file names while older historical entries keep the earlier numbering
 127. 2026-03-27 17:50: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-5.1 - Viewer Object Window Selection.md` to the architecture docs map, refreshed the `Camera-Controls` family index, and updated the camera-controls subtree so 3D viewer marquee selection now has a dedicated implementation-ready planning surface under `Future/`
 126. 2026-03-27 09:40: Added `docs/Human-Plans/Wish-Features/Collaberate/Collaberate.md` to the docs map, added a direct wishlist pointer from `docs/Human-Plans/Wish-Features/WISHLIST.md`, and refreshed the `Wish-Features` subtree so the new collaboration branch is discoverable beside `WISHLIST.md`
@@ -140,7 +151,7 @@
 77. 2026-03-22 14:57: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md` to the architecture docs map, turned `Worker` into a folderized family with `Future/` and `Shipped/`, and refreshed the architecture subtree so the new `[5.3A]` worker mini-family now has a dedicated implementation-ready phase-doc landing zone like `AppShell`
 76. 2026-03-22 14:56: Added `docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase 5.0H-1 - Sketch Draw Camera Blocking.md` to the architecture docs map and refreshed `Camera_Controls-Index.md`, so the first camera-controls cut now has a dedicated implementation-ready future planning surface under the `Camera-Controls` family instead of living only in the umbrella index
 75. 2026-03-22 14:12: Moved the shipped `5.0F-2` AppShell window/dock extraction record from `Future/` to `Shipped/`, refreshed `AppShell-Index.md` to the fully shipped `[5.0F]` state, and updated the AppShell subtree listing so the docs map now shows both AppShell cleanup phase records under `Shipped/`
-74. 2026-03-22 14:06: Added `docs/Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md` to the architecture docs map as the new umbrella planning surface for the `Pasta Path` timeline/history concept, separating the graph-to-timeline vision, partial-evaluation scrub direction, and later family growth from the existing `Spaghetti Editor` and `Workspace` architecture docs
+74. 2026-03-22 14:06: Added `docs/Human-Plans/Architecture/Build-Path/Build-Path-Index.md` to the architecture docs map as the new umbrella planning surface for the `Build Path` timeline/history concept, separating the graph-to-timeline vision, partial-evaluation scrub direction, and later family growth from the existing `Spaghetti Editor` and `Workspace` architecture docs
 73. 2026-03-22 13:28: Added `docs/Human-Plans/Architecture/AppShell/Future/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md` to the architecture docs map and refreshed `AppShell-Index.md` to the post-`5.0F-1` state, so the remaining AppShell browser/editor controller cleanup now has a dedicated implementation-ready future planning surface
 72. 2026-03-22 13:10: Moved the shipped `5.0F-1` AppShell runtime-host record from `Future/` to `Shipped/`, updated the AppShell subtree listing to the shipped path, and kept `AppShell-Index.md` as the umbrella family doc while the broader `[5.0F]` lane stays open for the later window/dock extraction
 71. 2026-03-22 12:49: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` to the architecture docs map as the new umbrella planning surface for geometry node families, separating the real `Sketch` command inventory plus missing AutoCAD-style backlog from the still-placeholder `Extrude` and `Loft` folders
@@ -478,6 +489,7 @@ Rule notes:
 - `Chill-Log.md`
 - `Doc-Index.md`
 - `index.md`
+- `Vision.md`
 - Agents
 ## -Agents
     - `Agents-Planning.md`
@@ -560,7 +572,7 @@ Rule notes:
         - `Export/Export-Index.md`
         - `Glossary.md`
         - `Layers/Layers-index.md`
-        - `Pasta-Path/Pasta-Path-Index.md`
+        - `Build-Path/Build-Path-Index.md`
         - `Radio/Radio.md`
         - `Sampler.md`
         - `Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
@@ -700,8 +712,8 @@ Rule notes:
             - `Future/Layers_Phase Layers-2 - Layer Manager And Console Command Surface.md`
             - `Future/Layers_Phase Layers-3 - Sketch Entity Layer Ownership.md`
             - `Future/Layers_Phase Layers-4 - Authored 3D Object Layer Ownership And Visibility.md`
-#### -------Pasta-Path
-            - `Pasta-Path-Index.md`
+#### -------Build-Path
+            - `Build-Path-Index.md`
 #### -------View-Toolbar
             - `ThreeViewier.md`
             - `View-Toolbar-Index.md`
@@ -732,8 +744,18 @@ Rule notes:
             - `Spaghetti-Editor-index.md`
             - `Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
             - `Nodes/Nodes-Index.md`
+            - `Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md`
+            - `Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`
+            - `Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md`
+            - `Nodes/Extrude/extrude-index.md`
             - `Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
             - `Nodes/Sketch/Sketch.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md`
             - `Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md`
             - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-2 - SketchDraw Staged Command Routing.md`
             - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-3 - Shared Sketch Command Tree And Scope Providers.md`

@@ -195,6 +195,7 @@ export type ExtrudeFeature = {
     profileRef: ProfileReference | null
   }
   params: {
+    extrudeType?: ExtrudeResultType
     depth: NumberExpression
     taper?: NumberExpression
     offset?: NumberExpression
@@ -212,6 +213,8 @@ export type ProfileReference = {
   profileId: string
   profileIndex?: number
 }
+
+export type ExtrudeResultType = 'Body' | 'Walls'
 
 export const isPartNodeType = (nodeType: string): boolean => nodeType.startsWith('Part/')
 

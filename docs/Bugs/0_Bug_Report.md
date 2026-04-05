@@ -1,6 +1,7 @@
 # 0 - Bug Report
 
 ## Doc History
+11. 2026-04-04 21:31: Added `Bug 12` for the still-open post-`Extrude-1A` viewport mismatch where `Geometry/Sketch -> Geometry/Extrude -> OutputPreview` now honors plane placement better but the blue body can still drift from the live sketch coordinates or stay behind while sketch origin/plane draft moves, and linked the new note into the master bug list as the active follow-on to the older extrude preview bug family
 10. 2026-04-01 10:42: Added `Bug 11` for the new post-`Workspace 7.5-5` multi-floating `Spaghetti Editor` blank-screen regression, indexing the report that opening a second floating editor can still collapse the visible app into the same dark blank-screen family and linking the new note into the master bug list as the current follow-on to the earlier workspace blank-surface bugs
 9. 2026-03-30 14:42: Added `Bug 10` to capture the stronger Console-versus-Spaghetti popup comparison finding, indexing the fact that Console popout already works as a single-owner child-window surface while Spaghetti popup still mixes workspace placement truth with legacy viewport/runtime truth, and linked the new note into the master bug list as the concrete repair-planning companion to `Bug 9`
 8. 2026-03-30 13:54: Added `Bug 9` for the still-open post-`Workspace 5.2` detached Spaghetti Editor popup blank-surface regression, linked it to the `Workspace 5.2` split-brain surface-ownership seam, and recorded the full sequence of popup lifecycle, focus, layout, and render-ownership fixes already attempted so far
@@ -66,6 +67,7 @@ It is mainly:
 Current practical order:
 
 - `Bug 11` - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
+- `Bug 12` - Geometry/Sketch extrude preview drifts from live sketch coordinates
 - `Bug 9` - Workspace 5.2 detached Spaghetti Editor popup opens blank
 - `Bug 10` - Workspace 5.2 detached Spaghetti popup still mixes ownership unlike Console
 - `Bug 8` - Workspace 5.2 startup can collapse into a dark blue-black screen
@@ -90,10 +92,42 @@ Current practical order:
 - `Bug 9` - `[investigating]` - Workspace 5.2 detached Spaghetti Editor popup opens but stays blank
 - `Bug 10` - `[planned]` - Workspace 5.2 detached Spaghetti popup still mixes workspace and legacy viewport ownership unlike Console
 - `Bug 11` - `[investigating]` - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
+- `Bug 12` - `[investigating]` - Geometry/Sketch extrude preview can still drift from live sketch coordinates or lag behind sketch origin / plane draft edits
 
 
 
 ## Current Known Bugs
+
+### Bug 12 - Geometry/Sketch extrude preview can still drift from live sketch coordinates
+
+Status:
+- `[investigating]`
+
+Problem:
+- after the recent `Extrude-1A` fixes, `Geometry/Sketch -> Geometry/Extrude -> OutputPreview` now behaves better on authored planes
+- but the blue body can still appear offset from the cyan sketch outline
+- and moving sketch origin / sketch-plane draft can move the overlay while the body remains behind
+
+Strongest current likely cause:
+- the live viewport appears to mix two authorities
+- sketch overlay is live/session-driven
+- graph mesh preview is still driven by accepted build outputs or otherwise non-draft-aware preview state
+- viewer grouping/pivot anchoring remains a secondary seam worth ruling out, but no longer looks like the strongest first suspect
+
+Likely ownership:
+- `SP`
+- `VR`
+
+Likely files:
+- `src/app/components/ViewerHost.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/viewer/Viewer.ts`
+
+Related docs:
+- `/docs/Bugs/12_GeometrySketch-Extrude-OutputPreview-Authored-Coordinate-Drift.md`
+- `/docs/Bugs/4_GeometrySketch-Extrude-Profile-Handoff-Regression.md`
+- `/docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
 
 ### Bug 11 - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
 

@@ -115,6 +115,7 @@ describe('compileFeatureStack', () => {
       profileIndex: 0,
     })
     expect(ir[1].bodyId).toBe('body-1')
+    expect(ir[1].extrudeType).toBe('Body')
     expect(ir[1].depthResolved).toBe(7)
     expect(ir[1].taperResolved).toBe(0)
     expect(ir[1].offsetResolved).toBe(0)
@@ -168,6 +169,7 @@ describe('compileFeatureStack', () => {
         op: 'extrude',
         featureId: 'extrude-1',
         profileRef: null,
+        extrudeType: 'Body',
         depthResolved: 7,
         taperResolved: 0,
         offsetResolved: 0,

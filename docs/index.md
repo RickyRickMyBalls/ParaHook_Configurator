@@ -3,6 +3,15 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-04-05 11:19: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.2` future doc out of the broader `Extrude-3` authored-semantics ladder, so the docs landing page now points directly at the focused real-type-contract follow-on beside `Extrude-3` and the finished `Extrude-3.1` groundwork
+17. 2026-04-05 09:41: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.1` future doc out of task `1` under `Extrude-3`, so the docs landing page now points directly at the reusable enum-row follow-on beside the broader type-and-mode completion lane
+16. 2026-04-05 09:22: Refreshed the hosted Extrude docs listing after adding the new published `Extrude-3` future task-stack doc, so the docs landing page now points directly at the `Type`-first functional-completion lane alongside the earlier placement, contract, and toolbar follow-ons
+15. 2026-04-05 01:53: Refreshed the hosted Nodes listing after adding the dedicated `Nodes-2.5` future note for primitive numeric row style and reuse, so the docs landing page can point directly at the new scalar-row visual-language follow-on beside the earlier `Nodes-1` and `Nodes-2` node-template phase docs
+14. 2026-04-04 23:28: Refreshed the hosted Nodes listing after adding the dedicated `Nodes-1` future doc for the shared node-template foundation, so the docs landing page can now point directly at the new `Structured Wire Rows` execution home instead of only the umbrella node index
+13. 2026-04-04 22:37: Refreshed the hosted Extrude docs listing again after carving the first focused `Extrude-2.1` subphase out of the broader toolbar-polish bucket, adding the new published row-and-pin parity doc so the next Extrude execution slice is discoverable directly from the docs landing page
+12. 2026-04-04 22:28: Refreshed the hosted Extrude docs listing after the authored-plane and preview-alignment repair ladder landed by updating the family summary text in place and adding the new published `Extrude-2` future doc for node enrichment plus the first dedicated extrude toolbar
+11. 2026-04-04 22:23: Added the new top-level `docs/Vision.md` summary doc to the hosted docs landing page as a direct start-here pointer for the repo's non-negotiable direction, and refreshed the published file inventory so that shorter agent-facing vision surface is listed alongside the deeper canonical roadmap vision
+10. 2026-04-04 20:35: Refreshed the hosted docs landing page after splitting the broad `Extrude-1` umbrella into the new published `Extrude-1A` and `Extrude-1B` future docs, adding direct quick links for the implementation-ready authored-plane fix and its contract-cleanup follow-on so the live docs surface now exposes the real current Extrude execution order
 9. 2026-03-28 14:06: Refreshed the live docs landing page after a repo audit by fixing the `Spaghetti Editor` and `Layers` quick links, replacing stale published-file entries with the real current index docs, pruning dead Spaghetti editor file pointers, and adding the new `Architecture Setup.md` file to the published inventory
 8. 2026-03-27 15:29: Added a full current `docs/` file inventory to the MkDocs landing page, separating files that are published in the hosted site from files that still live in the repo but are excluded by `mkdocs.yml`
 7. 2026-03-27 12:20: Removed the temporary manual top-level `mkdocs.yml` nav and returned the hosted site to inferred navigation, so new folders and docs under included paths appear automatically again without needing hand-maintained sidebar entries
@@ -51,6 +60,14 @@ This page is meant to feel like a launcher, not a raw repo dump.
   Main project direction, active lanes, and longer-term sequencing.
 
   [Open Roadmap](Human-Plans/roadmap/roadmap.md)
+
+- __Vision__
+
+  ---
+
+  Short non-negotiable direction summary with a pointer to the deeper canonical north-star.
+
+  [Open Vision](Vision.md)
 
 - __System Map__
 
@@ -118,7 +135,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   ---
 
-  Shared node-family entry point for sketch, extrude, and graph growth.
+  Shared node-family entry point for sketch, extrude, graph growth, and the new `Nodes-1` template-foundation lane.
 
   [Open Nodes](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md)
 
@@ -226,9 +243,23 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   ---
 
-  Extrude-family index and transform-aware follow-on direction.
+  Extrude-family index plus the landed authored-placement repair read, the later contract-cleanup follow-on, and the new node-enrichment toolbar phase.
 
   [Open Extrude](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md)
+
+  [Extrude-1A](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md)
+
+  [Extrude-1B](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md)
+
+  [Extrude-2](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md)
+
+  [Extrude-2.1](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md)
+
+  [Extrude-3](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md)
+
+  [Extrude-3.1](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md)
+
+  [Extrude-3.2](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md)
 
 - __Camera Controls__
 
@@ -246,13 +277,13 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   [Open View Toolbar](Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md)
 
-- __Pasta Path__
+- __Build Path__
 
   ---
 
   History and timeline concept umbrella for the wider graph workflow.
 
-  [Open Pasta Path](Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md)
+  [Open Build Path](Human-Plans/Architecture/Build-Path/Build-Path-Index.md)
 
 - __Engine Architecture__
 
@@ -381,6 +412,7 @@ This is the current full `docs/` file list from the repo.
 [published] Chill-Log.md
 [published] Doc-Index.md
 [published] Doc-Log.md
+[published] Vision.md
 [published] Human-Plans/Architecture/AppShell/AppShell-Index.md
 [published] Human-Plans/Architecture/AppShell/Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md
 [published] Human-Plans/Architecture/AppShell/Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md
@@ -442,13 +474,23 @@ This is the current full `docs/` file list from the repo.
 [published] Human-Plans/Architecture/Layers/Future/Layers_Phase Layers-4 - Authored 3D Object Layer Ownership And Visibility.md
 [published] Human-Plans/Architecture/Layers/Layers-index.md
 [published] Human-Plans/Architecture/Layers/Shipped/.gitkeep
-[published] Human-Plans/Architecture/Pasta-Path/Pasta-Path-Index.md
+[published] Human-Plans/Architecture/Build-Path/Build-Path-Index.md
 [published] Human-Plans/Architecture/Radio/Radio.md
 [published] Human-Plans/Architecture/Radio/Radio_Phase 11
 [published] Human-Plans/Architecture/Sampler.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Future/Sketch_Phase 3.2B-4 - Sketch Exposure And Browser Structure.md

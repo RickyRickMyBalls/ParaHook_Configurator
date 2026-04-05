@@ -317,6 +317,7 @@ const extrudeFeatureSchema = z
       .strict(),
     params: z
       .object({
+        extrudeType: z.enum(['Body', 'Walls']).optional(),
         depth: numberExpressionSchema,
         taper: numberExpressionSchema.optional(),
         offset: numberExpressionSchema.optional(),

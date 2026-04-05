@@ -36,7 +36,7 @@ But the current result truth is still too coarse:
 This phase exists to make result truth explicit enough that:
 - Browser can present separate-build ownership honestly
 - Console can narrate runtime truth honestly
-- later `Pasta Path` history/scrub work can move across accepted result snapshots without guessing what changed
+- later `Build Path` history/scrub work can move across accepted result snapshots without guessing what changed
 
 ### Scope
 
@@ -51,7 +51,7 @@ This phase does not cover:
 - the dispatcher boundary
 - empty-startup/runtime fallback deletion
 - the final deletion of the compatibility adapter
-- a full `Pasta Path` history UI
+- a full `Build Path` history UI
 - broader Browser panel cleanup unrelated to build/result truth
 
 ## Doc Body
@@ -379,7 +379,7 @@ Recommended order:
 - update worker/build transcript publishing so completion summaries can read shared bundle facts instead of guessing them
 - keep lifecycle transcript wording shallow and deterministic
 
-### Pasta Path Foundation
+### Build Path Foundation
 
 This phase should create versioned accepted-result truth.
 
@@ -388,7 +388,7 @@ That means:
 - each bundle should carry stable request/session identity
 - each bundle should classify what rebuilt, what stayed, and what was evicted
 
-That is the real foundation for later `Pasta Path` work:
+That is the real foundation for later `Build Path` work:
 - a scrubber can move across accepted bundle revisions
 - Browser layers/filters can operate over typed result entries
 - history/snapshot tooling does not need to infer change meaning from flat arrays and side effects
@@ -403,7 +403,7 @@ Hard caution:
 
 - once result semantics are explicit, the final graph-native worker cutover can remove coarse compatibility layers without leaving Browser/Console dependent on legacy shape reconstruction
 
-#### Later `Pasta Path` work should consume accepted result bundles, not flat artifact arrays
+#### Later `Build Path` work should consume accepted result bundles, not flat artifact arrays
 
 - later history/scrub/layer tools should treat the accepted bundle as the unit of snapshot truth
 
@@ -429,7 +429,7 @@ Required written outputs from this phase:
 5. `Result-Class Coexistence`
 6. `Browser Truth`
 7. `Console Truth`
-8. `Pasta Path Foundation`
+8. `Build Path Foundation`
 9. `Later-Phase Handoff`
 
 Suggested execution steps:
@@ -452,7 +452,7 @@ Suggested verification:
   - true parent rebuild
 - confirm Console can narrate rebuilt/retained/evicted truth without introducing new semantic categories
 - confirm result-class precedence prevents transient/draft/final conflicts for the same result entry
-- confirm the accepted bundle is stable enough to act as later `Pasta Path` snapshot truth
+- confirm the accepted bundle is stable enough to act as later `Build Path` snapshot truth
 
 Recommended verification files:
 - `src/app/buildDispatcher.test.ts`
@@ -489,4 +489,4 @@ Definition of done:
 - transient/draft/final coexistence semantics are explicit and precedence-ordered
 - Browser parent rows can distinguish aggregate status from true atomic rebuild
 - Console narrates shared facts without becoming the owner of semantics
-- the accepted result surface is strong enough to serve as the later `Pasta Path` snapshot foundation
+- the accepted result surface is strong enough to serve as the later `Build Path` snapshot foundation

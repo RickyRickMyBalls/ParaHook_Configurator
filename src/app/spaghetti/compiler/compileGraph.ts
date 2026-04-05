@@ -2,9 +2,13 @@ import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { compileFeatureStack, type FeatureStackIR } from '../features/compileFeatureStack'
 import { getEffectiveFeatureStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
-import type { ProfileLoop } from '../features/featureTypes'
+import {
+  createDefaultSketchPlaneTransform,
+  type ProfileLoop,
+  type SketchPlaneTransform,
+} from '../features/featureTypes'
 import { applyFeatureVirtualInputOverrides } from '../features/featureVirtualPorts'
-import { getNodeDef } from '../registry/nodeRegistry'
+import { getNodeDef, readGeometryExtrudeTypeFromParams } from '../registry/nodeRegistry'
 import type { SpaghettiDiagnostic } from './validateGraph'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
 import { tessellateProfileLoop } from './runtimeTessellation'
@@ -56,6 +60,7 @@ type RuntimeFeatureOp =
       op: 'sketch'
       featureId: string
       plane?: 'XY' | 'XZ' | 'YZ'
+      planeTransform?: SketchPlaneTransform
       profilesResolved: Array<{
         profileId: string
         area: number
@@ -66,10 +71,12 @@ type RuntimeFeatureOp =
       op: 'extrude'
       featureId: string
       profileRef: { sketchFeatureId: string; profileId: string } | null
+      extrudeType: 'Body' | 'Walls'
       depthResolved: number
       taperResolved: number
       offsetResolved: number
       plane?: 'XY' | 'XZ' | 'YZ'
+      planeTransform?: SketchPlaneTransform
       bodyId?: string
     }
 
@@ -104,6 +111,9 @@ const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureS
           ...('plane' in operation && operation.plane !== undefined
             ? { plane: operation.plane }
             : {}),
+          ...('planeTransform' in operation && operation.planeTransform !== undefined
+            ? { planeTransform: operation.planeTransform }
+            : {}),
           profilesResolved: operation.profilesResolved.map((profile) => ({
             profileId: profile.profileId,
             area: profile.area,
@@ -128,11 +138,15 @@ const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureS
                 sketchFeatureId: operation.profileRef.sketchFeatureId,
                 profileId: operation.profileRef.profileId,
               },
+        extrudeType: operation.extrudeType,
         depthResolved: operation.depthResolved,
         taperResolved: operation.taperResolved,
         offsetResolved: operation.offsetResolved,
         ...('plane' in operation && operation.plane !== undefined
           ? { plane: operation.plane }
+          : {}),
+        ...('planeTransform' in operation && operation.planeTransform !== undefined
+          ? { planeTransform: operation.planeTransform }
           : {}),
         bodyId: operation.bodyId,
       })
@@ -178,6 +192,28 @@ const getHeelKickAnchorPortMapping = (): HeelKickAnchorPortMapping => ({
 const isSketchPlane = (value: unknown): value is 'XY' | 'XZ' | 'YZ' =>
   value === 'XY' || value === 'XZ' || value === 'YZ'
 
+const isVec3Literal = (
+  value: unknown,
+): value is SketchPlaneTransform['translation'] =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { x?: unknown }).x === 'number' &&
+  Number.isFinite((value as { x: number }).x) &&
+  typeof (value as { y?: unknown }).y === 'number' &&
+  Number.isFinite((value as { y: number }).y) &&
+  typeof (value as { z?: unknown }).z === 'number' &&
+  Number.isFinite((value as { z: number }).z)
+
+const isSketchPlaneTransform = (value: unknown): value is SketchPlaneTransform =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { offsetMm?: unknown }).offsetMm === 'number' &&
+  Number.isFinite((value as { offsetMm: number }).offsetMm) &&
+  isVec3Literal((value as { translation?: unknown }).translation) &&
+  isVec3Literal((value as { rotationDeg?: unknown }).rotationDeg) &&
+  typeof (value as { inPlaneRotationDeg?: unknown }).inPlaneRotationDeg === 'number' &&
+  Number.isFinite((value as { inPlaneRotationDeg: number }).inPlaneRotationDeg)
+
 const isProfileLoopLike = (value: unknown): value is ProfileLoop =>
   typeof value === 'object' &&
   value !== null &&
@@ -217,6 +253,21 @@ const readGeometrySketchPlaneFromNode = (
   return isSketchPlane(rawPlane) ? rawPlane : 'XY'
 }
 
+const readGeometrySketchPlaneTransformFromNode = (
+  node: SpaghettiGraph['nodes'][number] | undefined,
+): SketchPlaneTransform => {
+  const rawTransform =
+    typeof node?.params === 'object' &&
+    node.params !== null &&
+    typeof (node.params as { sketch?: unknown }).sketch === 'object' &&
+    (node.params as { sketch?: unknown }).sketch !== null
+      ? ((node.params as { sketch: { planeTransform?: unknown } }).sketch.planeTransform)
+      : undefined
+  return isSketchPlaneTransform(rawTransform)
+    ? rawTransform
+    : createDefaultSketchPlaneTransform()
+}
+
 const findWholeIncomingEdge = (
   graph: SpaghettiGraph,
   nodeId: string,
@@ -245,6 +296,7 @@ const buildGeometryExtrudeOps = (
       candidate.nodeId === sourceProfileEdge?.from.nodeId && candidate.type === 'Geometry/Sketch',
   )
   const plane = readGeometrySketchPlaneFromNode(sourceSketchNode)
+  const planeTransform = readGeometrySketchPlaneTransformFromNode(sourceSketchNode)
   const depthParam =
     typeof node.params.depthMm === 'number' && Number.isFinite(node.params.depthMm)
       ? node.params.depthMm
@@ -266,6 +318,7 @@ const buildGeometryExtrudeOps = (
       op: 'sketch',
       featureId: sourceSketchNode.nodeId,
       plane,
+      planeTransform,
       profilesResolved: [
         {
           profileId: profileInput.profileId,
@@ -285,10 +338,12 @@ const buildGeometryExtrudeOps = (
     op: 'extrude',
     featureId: node.nodeId,
     profileRef,
+    extrudeType: readGeometryExtrudeTypeFromParams(node.params),
     depthResolved,
     taperResolved: 0,
     offsetResolved: 0,
     plane,
+    planeTransform,
     bodyId: `${node.nodeId}:body`,
   })
   return ops

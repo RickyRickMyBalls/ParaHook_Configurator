@@ -49,7 +49,7 @@ This phase does not cover:
 - new preview-generation modes
 - broader Viewer redesign
 - product-level feature expansion unrelated to worker contract deletion
-- later `Pasta Path` history UI
+- later `Build Path` history UI
 
 ## Doc Body
 

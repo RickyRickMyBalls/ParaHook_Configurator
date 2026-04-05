@@ -34,6 +34,7 @@ type DashboardSurfaceProps = {
 const stickyNoteWidth = defaultDashboardStickyNoteWidth
 const stickyNoteHeight = defaultDashboardStickyNoteHeight
 const stickyNoteGridGap = 24
+const stickyNoteGridColumns = 3
 const stickyNotePadding = 16
 const stickyNoteTitleBarHeight = 34
 const laneFitPadding = 48
@@ -296,6 +297,80 @@ const resolveStickyNoteDefaultPlacement = (
   y: stickyNoteGridGap + Math.floor(index / 3) * (dimensions.height + stickyNoteGridGap),
 })
 
+const resolveLaneGridPlacements = (
+  laneId: DashboardLaneId,
+  layouts: DashboardStickyNoteLayout[],
+): Array<{ noteId: string; laneId: DashboardLaneId; x: number; y: number }> => {
+  const sortedLayouts = [...layouts].sort(sortLayoutsForVerticalAlign)
+  const placements: Array<{ noteId: string; laneId: DashboardLaneId; x: number; y: number }> = []
+  let currentY = stickyNoteGridGap
+
+  for (let index = 0; index < sortedLayouts.length; index += stickyNoteGridColumns) {
+    const rowLayouts = sortedLayouts.slice(index, index + stickyNoteGridColumns)
+    let currentX = stickyNoteGridGap
+    let currentRowHeight = 0
+
+    rowLayouts.forEach((layout) => {
+      const dimensions = resolveStickyNoteDimensions(layout)
+      placements.push({
+        noteId: layout.noteId,
+        laneId,
+        x: currentX,
+        y: currentY,
+      })
+
+      currentX += dimensions.width + stickyNoteGridGap
+      currentRowHeight = Math.max(currentRowHeight, dimensions.height)
+    })
+
+    currentY += currentRowHeight + stickyNoteGridGap
+  }
+
+  return placements
+}
+
+const resolveSmartAlignedPlacements = ({
+  laneId,
+  direction,
+  layouts,
+}: {
+  laneId: DashboardLaneId
+  direction: 'vertical' | 'horizontal'
+  layouts: DashboardStickyNoteLayout[]
+}): Array<{ noteId: string; laneId: DashboardLaneId; x: number; y: number }> => {
+  const sortedLayouts =
+    direction === 'vertical'
+      ? [...layouts].sort(sortLayoutsForVerticalAlign)
+      : [...layouts].sort(sortLayoutsForHorizontalAlign)
+  const anchorLayout = sortedLayouts[0]
+  if (anchorLayout === undefined) {
+    return []
+  }
+
+  let nextCoordinate = direction === 'vertical' ? anchorLayout.y : anchorLayout.x
+  return sortedLayouts.map((layout) => {
+    const dimensions = resolveStickyNoteDimensions(layout)
+    const placement =
+      direction === 'vertical'
+        ? {
+            noteId: layout.noteId,
+            laneId,
+            x: anchorLayout.x,
+            y: nextCoordinate,
+          }
+        : {
+            noteId: layout.noteId,
+            laneId,
+            x: nextCoordinate,
+            y: anchorLayout.y,
+          }
+
+    nextCoordinate +=
+      (direction === 'vertical' ? dimensions.height : dimensions.width) + stickyNoteGridGap
+    return placement
+  })
+}
+
 const resolveResizedStickyNoteFrame = ({
   originLayout,
   direction,
@@ -513,7 +588,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
   const lanes = useDashboardStore((state) => state.lanes)
   const stickyNoteLayoutsByNoteId = useDashboardStore((state) => state.stickyNoteLayoutsByNoteId)
   const reconcileStickyNoteLayouts = useDashboardStore((state) => state.reconcileStickyNoteLayouts)
-  const createLane = useDashboardStore((state) => state.createLane)
+  const createLaneAfter = useDashboardStore((state) => state.createLaneAfter)
   const renameLane = useDashboardStore((state) => state.renameLane)
   const removeLane = useDashboardStore((state) => state.removeLane)
   const setAdjacentLaneWidths = useDashboardStore((state) => state.setAdjacentLaneWidths)
@@ -598,6 +673,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
   const [editingLaneTitleDraft, setEditingLaneTitleDraft] = useState('')
   const [laneCameras, setLaneCameras] = useState<Record<string, DashboardLaneCamera>>({})
   const [laneZoomUnlockedById, setLaneZoomUnlockedById] = useState<Record<string, boolean>>({})
+  const [smartAlignEnabledByLane, setSmartAlignEnabledByLane] = useState<Record<string, boolean>>({})
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([])
   const [liftedStickyNoteId, setLiftedStickyNoteId] = useState<string | null>(null)
   const [selectionBox, setSelectionBox] = useState<DashboardSelectionBox | null>(null)
@@ -632,6 +708,22 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
 
   useEffect(() => {
     setLaneZoomUnlockedById((current) => {
+      const next: Record<string, boolean> = {}
+      let didChange = Object.keys(current).length !== lanes.length
+      lanes.forEach((lane) => {
+        if (current[lane.id] === undefined) {
+          next[lane.id] = false
+          didChange = true
+          return
+        }
+        next[lane.id] = current[lane.id]
+      })
+      return didChange ? next : current
+    })
+  }, [lanes])
+
+  useEffect(() => {
+    setSmartAlignEnabledByLane((current) => {
       const next: Record<string, boolean> = {}
       let didChange = Object.keys(current).length !== lanes.length
       lanes.forEach((lane) => {
@@ -1059,24 +1151,23 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
 
   const resolveLaneTitle = (laneId: DashboardLaneId): string => findLane(laneId)?.title ?? 'Lane'
 
-  const promptForLaneTitle = (initialTitle: string, fallbackTitle: string): string | null => {
-    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
-      return fallbackTitle
-    }
-    const response = window.prompt('Lane title', initialTitle)
-    if (response === null) {
-      return null
-    }
-    const trimmedTitle = response.trim()
-    return trimmedTitle.length > 0 ? trimmedTitle : fallbackTitle
+  const handleCreateLaneAfter = (laneId: DashboardLaneId) => {
+    createLaneAfter(laneId, 'New lane')
   }
 
-  const handleCreateLane = () => {
-    const nextTitle = promptForLaneTitle('New lane', 'New lane')
-    if (nextTitle === null) {
-      return
-    }
-    createLane(nextTitle)
+  const handleCreateStickyNoteInLane = (laneId: DashboardLaneId) => {
+    const noteId = createNote({
+      title: '',
+      body: '',
+      isPinned: true,
+    })
+    const nextPlacement = resolveStickyNoteDefaultPlacement(
+      noteId,
+      laneId,
+      (pinnedNotesByLane[laneId] ?? []).length,
+    )
+    setStickyNotePlacement(noteId, laneId, nextPlacement.x, nextPlacement.y)
+    setPendingBodyFocusNoteId(noteId)
   }
 
   const handleStartLaneRename = (laneId: DashboardLaneId) => {
@@ -1121,6 +1212,16 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
     if (anchorLayout === undefined) {
       return
     }
+    if (smartAlignEnabledByLane[laneId] === true) {
+      setStickyNotePlacements(
+        resolveSmartAlignedPlacements({
+          laneId,
+          direction,
+          layouts: selectedLayouts,
+        }),
+      )
+      return
+    }
     selectedLayouts.forEach((layout) => {
       setStickyNotePlacement(
         layout.noteId,
@@ -1129,6 +1230,25 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
         direction === 'horizontal' ? anchorLayout.y : layout.y,
       )
     })
+  }
+
+  const handleArrangeLaneNotesIntoGrid = (laneId: DashboardLaneId) => {
+    const selectedLayouts = (selectedNoteIdsByLane[laneId] ?? [])
+      .map((noteId) => effectiveStickyNoteLayoutsByNoteId[noteId] ?? null)
+      .filter((layout): layout is DashboardStickyNoteLayout => layout !== null)
+
+    const targetLayouts =
+      selectedLayouts.length >= 2
+        ? selectedLayouts
+        : (pinnedNotesByLane[laneId] ?? [])
+            .map((note) => effectiveStickyNoteLayoutsByNoteId[note.id] ?? null)
+            .filter((layout): layout is DashboardStickyNoteLayout => layout !== null)
+
+    if (targetLayouts.length < 2) {
+      return
+    }
+
+    setStickyNotePlacements(resolveLaneGridPlacements(laneId, targetLayouts))
   }
 
   const resolveMigrationDestination = (
@@ -1267,37 +1387,6 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
       onPointerDownCapture={onActivate}
     >
       <div className="DashboardSurfaceCanvas">
-        <div className="DashboardSurfaceHero">
-          <div className="DashboardSurfaceHeroCopy">
-            <span className="DashboardSurfaceEyebrow">Workspace Surface</span>
-            <h2 className="DashboardSurfaceTitle">Dashboard</h2>
-            <p className="DashboardSurfaceCopy">
-              Calm board shell online. Sticky notes, notepad links, and small widgets can layer in
-              here in later phases without changing the workspace foundation again.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="DashboardSurfaceCreateButton"
-            onClick={() => {
-              const noteId = createNote({
-                title: '',
-                body: '',
-                isPinned: true,
-              })
-              setPendingBodyFocusNoteId(noteId)
-            }}
-          >
-            Add Sticky Note
-          </button>
-          <button
-            type="button"
-            className="DashboardSurfaceCreateButton DashboardSurfaceCreateButton--secondary"
-            onClick={handleCreateLane}
-          >
-            Add Lane
-          </button>
-        </div>
         <div
           className="DashboardSurfaceBoard"
           data-dashboard-board="true"
@@ -1312,6 +1401,7 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
               {(() => {
                 const selectedNoteIdsInLane = selectedNoteIdsByLane[lane.id] ?? []
                 const alignActionsEnabled = selectedNoteIdsInLane.length >= 2
+                const laneNoteCount = (pinnedNotesByLane[lane.id] ?? []).length
                 return (
               <section
                 ref={(element) => {
@@ -1421,6 +1511,25 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
                     </button>
                     <button
                       type="button"
+                      className={`DashboardSurfaceLaneHeaderButton${
+                        smartAlignEnabledByLane[lane.id] === true ? ' isActive' : ''
+                      }`}
+                      data-dashboard-lane-smart-align-button={lane.id}
+                      aria-label={`${
+                        smartAlignEnabledByLane[lane.id] === true ? 'Disable' : 'Enable'
+                      } smart align for ${lane.title}`}
+                      aria-pressed={smartAlignEnabledByLane[lane.id] === true}
+                      onClick={() => {
+                        setSmartAlignEnabledByLane((current) => ({
+                          ...current,
+                          [lane.id]: !(current[lane.id] ?? false),
+                        }))
+                      }}
+                    >
+                      Smart
+                    </button>
+                    <button
+                      type="button"
                       className="DashboardSurfaceLaneFitButton"
                       data-dashboard-lane-align-vertical-button={lane.id}
                       aria-label={`Align selected ${lane.title} notes vertically`}
@@ -1437,6 +1546,28 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
                       >
                         <path
                           d="M8.75 2a.75.75 0 0 0-1.5 0v12a.75.75 0 0 0 1.5 0V2ZM4 4.25a.75.75 0 0 0 0 1.5h2.25v-1.5H4Zm0 6a.75.75 0 0 0 0 1.5h2.25v-1.5H4Zm5.75-6v1.5H12a.75.75 0 0 0 0-1.5H9.75Zm0 6v1.5H12a.75.75 0 0 0 0-1.5H9.75Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="DashboardSurfaceLaneFitButton"
+                      data-dashboard-lane-grid-button={lane.id}
+                      aria-label={`Arrange ${lane.title} notes into a grid`}
+                      disabled={laneNoteCount === 0}
+                      onClick={() => {
+                        handleArrangeLaneNotesIntoGrid(lane.id)
+                      }}
+                    >
+                      <svg
+                        className="DashboardSurfaceLaneFitIcon"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M3 2.75A.75.75 0 0 0 2.25 3.5v2A.75.75 0 0 0 3 6.25h2A.75.75 0 0 0 5.75 5.5v-2A.75.75 0 0 0 5 2.75H3Zm4 0a.75.75 0 0 0-.75.75v2A.75.75 0 0 0 7 6.25h2a.75.75 0 0 0 .75-.75v-2A.75.75 0 0 0 9 2.75H7Zm4 0a.75.75 0 0 0-.75.75v2a.75.75 0 0 0 .75.75h2a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 0-.75-.75h-2ZM3 7.25a.75.75 0 0 0-.75.75v2c0 .41.34.75.75.75h2a.75.75 0 0 0 .75-.75V8A.75.75 0 0 0 5 7.25H3Zm4 0a.75.75 0 0 0-.75.75v2c0 .41.34.75.75.75h2a.75.75 0 0 0 .75-.75V8A.75.75 0 0 0 9 7.25H7Zm4 0a.75.75 0 0 0-.75.75v2c0 .41.34.75.75.75h2a.75.75 0 0 0 .75-.75V8a.75.75 0 0 0-.75-.75h-2Z"
                           fill="currentColor"
                         />
                       </svg>
@@ -1474,10 +1605,62 @@ export function DashboardSurface(props: DashboardSurfaceProps) {
                     >
                       Delete
                     </button>
+                    <button
+                      type="button"
+                      className="DashboardSurfaceLaneFitButton"
+                      data-dashboard-lane-add-note-button={lane.id}
+                      aria-label={`Add sticky note to ${lane.title}`}
+                      title={`Add sticky note to ${lane.title}`}
+                      onClick={() => {
+                        handleCreateStickyNoteInLane(lane.id)
+                      }}
+                    >
+                      <svg
+                        className="DashboardSurfaceLaneFitIcon"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M4 2.75A1.75 1.75 0 0 0 2.25 4.5v7A1.75 1.75 0 0 0 4 13.25h6.5a1.75 1.75 0 0 0 1.75-1.75V9.75a.75.75 0 0 0-1.5 0v1.75a.25.25 0 0 1-.25.25H4a.25.25 0 0 1-.25-.25v-7A.25.25 0 0 1 4 4.25h3a.75.75 0 0 0 0-1.5H4Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M11 2.25a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0V6H8.75a.75.75 0 0 1 0-1.5h1.5V3a.75.75 0 0 1 .75-.75Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="DashboardSurfaceLaneFitButton"
+                      data-dashboard-lane-add-lane-button={lane.id}
+                      aria-label={`Add lane after ${lane.title}`}
+                      title={`Add lane after ${lane.title}`}
+                      onClick={() => {
+                        handleCreateLaneAfter(lane.id)
+                      }}
+                    >
+                      <svg
+                        className="DashboardSurfaceLaneFitIcon"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M3.25 3.75a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-8.5Zm5.5 0a.5.5 0 0 1 .5-.5h1v9.5h-1a.5.5 0 0 1-.5-.5v-8.5Z"
+                          fill="currentColor"
+                        />
+                        <path
+                          d="M12.25 6.25a.75.75 0 0 1 .75.75v1h1a.75.75 0 0 1 0 1.5h-1v1a.75.75 0 0 1-1.5 0v-1h-1a.75.75 0 0 1 0-1.5h1V7a.75.75 0 0 1 .75-.75Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </button>
                   </div>
                   <span className="DashboardSurfaceLaneCount">
-                    {(pinnedNotesByLane[lane.id] ?? []).length} note
-                    {(pinnedNotesByLane[lane.id] ?? []).length === 1 ? '' : 's'}
+                    {laneNoteCount} note
+                    {laneNoteCount === 1 ? '' : 's'}
                   </span>
                 </div>
                 <div

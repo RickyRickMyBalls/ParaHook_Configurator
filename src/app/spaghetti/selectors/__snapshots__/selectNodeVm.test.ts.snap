@@ -360,6 +360,7 @@ exports[`selectNodeVm > matches stable NodeVm contract snapshot 1`] = `
       "template": "part",
     },
     "driverWarningByRowId": {},
+    "extrudeVm": undefined,
     "featureRowIndexById": {},
     "featureRows": [],
     "featureVirtualInputStateByPortId": {},
@@ -523,6 +524,7 @@ exports[`selectNodeVm > matches stable NodeVm contract snapshot 1`] = `
     "presetOptions": [
       "default",
     ],
+    "sketchVm": undefined,
     "template": "part",
     "title": "Baseplate",
     "uiSections": [

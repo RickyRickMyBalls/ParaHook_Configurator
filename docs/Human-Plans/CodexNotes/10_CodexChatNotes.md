@@ -21,6 +21,58 @@
 
 ## Session 1 Notes
 
+##### [158] 2026-04-04 22:20 - Bug 12 Phase 4 Should Target Viewer Pivot Centering For Graph-Owned Preview Solids
+
+New read:
+
+- after the active draft override landed, the strongest remaining placement seam is now viewer pivot centering in project mode
+- `ViewerHost` still feeds graph-owned preview solids into `contentObjectTransformGroups`
+- `Viewer.setParts(...)` then adds those meshes under content-object pivots and calls `anchorContentObjectPivotToBoundsCenter(...)`
+
+Why this matters:
+
+- that helper subtracts mesh-bounds center from child meshes and moves the pivot to the center
+- the visible sketch overlay does not go through the same recentering path
+- so graph-owned extrude bodies can still look attached to viewer/object center instead of authored sketch origin
+
+Planning consequence:
+
+- Phase 4 should first prove the placement delta with a focused regression
+- if proven, graph-owned preview solids should skip pivot-centering by default unless an active content-object transform case actually needs it
+
+##### [157] 2026-04-04 22:10 - Bug 12 Phase 3 Should Patch ViewerHost Project-Mode Authority, Not Accepted Build Truth
+
+Implementation read:
+
+- the main active-viewport seam is now `ViewerHost` project-mode assembly, where `previewList` prefers `renderedProjectPartSet.viewerParts`
+- that project-mode path is still accepted-build based through `selectRenderedProjectPartSet(...)`
+
+Important nuance:
+
+- `acceptedPreviewBuildOutputs` exist for direct viewer-target preview, but they are not sufficient for draft sketch-plane/origin editing because the live draft transform still lives in `sketchPlanePickSession.draftTransform` and is not committed to graph runtime yet
+
+Planning consequence:
+
+- the next implementation pass should add a transient active-viewport override driven by draft session state
+- it should not rewrite accepted build state or published output semantics
+- keep the first slice narrow to the qualifying `Geometry/Sketch -> Geometry/Extrude -> System/OutputPreview` path
+##### [156] 2026-04-04 22:03 - Bug 12 Phase 2 Preview Rule Should Favor Live Draft Solid In The Active Viewport
+
+Decision:
+
+- for `Geometry/Sketch -> Geometry/Extrude -> System/OutputPreview`, the active editing viewport should live-update the extrude body during sketch-plane/origin draft edits
+
+Reasoning:
+
+- the current bug is now best understood as a split between live sketch overlay authority and accepted-output body authority
+- if the active viewport keeps a stale body while the sketch moves, the preview reads as broken even when commit-based outputs are internally consistent
+- the active editing surface should present one authored-shape story during draft manipulation
+
+Boundary:
+
+- this does not require changing accepted-output semantics for browser, project, or published surfaces
+- later we may expose user control for this behavior, but the default implementation direction should be live draft solid preview in the active viewport
+
 ##### [152] 2026-03-15 23:16 - `[2.1E]` Should Be Planned As Left-Dock Shell Completion, Not As More Browser-Only Polish
 
 Current framing:

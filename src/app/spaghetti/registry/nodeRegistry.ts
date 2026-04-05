@@ -243,9 +243,10 @@ const geometrySketchParamsSchema = z
     sketch: sketchFeatureSchema,
   })
   .strict()
+const geometryExtrudeStoredTypeSchema = z.enum(['Basic', 'Twist', 'Body', 'Walls'])
 const geometryExtrudeParamsSchema = z
   .object({
-    extrudeType: z.enum(['Basic', 'Twist']).optional(),
+    extrudeType: geometryExtrudeStoredTypeSchema.optional(),
     depthMm: z.number().finite().optional(),
   })
   .strict()
@@ -276,6 +277,25 @@ const defaultHeelKickProfileABaseCtrl = { x: 6, y: 4 }
 const defaultHeelKickProfileBEnd = { x: 34, y: -24 }
 const defaultHeelKickProfileBEndCtrl = { x: 26, y: -20 }
 const defaultHeelKickProfileBBaseCtrl = { x: 7, y: -8 }
+export const GEOMETRY_EXTRUDE_TYPE_OPTIONS = ['Body', 'Walls'] as const
+export type GeometryExtrudeType = (typeof GEOMETRY_EXTRUDE_TYPE_OPTIONS)[number]
+const clampExtrudeTypeIndex = (value: number): number =>
+  Math.min(GEOMETRY_EXTRUDE_TYPE_OPTIONS.length - 1, Math.max(0, Math.round(value)))
+export const mapWholeNumberToGeometryExtrudeType = (
+  value: number,
+): GeometryExtrudeType => GEOMETRY_EXTRUDE_TYPE_OPTIONS[clampExtrudeTypeIndex(value)] ?? 'Body'
+export const getGeometryExtrudeTypeIndex = (value: GeometryExtrudeType): number =>
+  GEOMETRY_EXTRUDE_TYPE_OPTIONS.indexOf(value)
+
+export const normalizeGeometryExtrudeType = (value: unknown): GeometryExtrudeType => {
+  if (value === 'Basic') {
+    return 'Body'
+  }
+  if (value === 'Twist') {
+    return 'Walls'
+  }
+  return value === 'Walls' ? 'Walls' : 'Body'
+}
 
 const toFiniteNumberOr = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback
@@ -313,13 +333,13 @@ const readManagedSketchFeatureFromParams = (params: Record<string, unknown>): Sk
   return parsed.success ? parsed.data.sketch : createManagedSketchFeature()
 }
 
-const readGeometryExtrudeTypeFromParams = (
+export const readGeometryExtrudeTypeFromParams = (
   params: Record<string, unknown>,
-): 'Basic' | 'Twist' => {
+): GeometryExtrudeType => {
   const parsed = geometryExtrudeParamsSchema.safeParse(params)
   return parsed.success && parsed.data.extrudeType !== undefined
-    ? parsed.data.extrudeType
-    : 'Basic'
+    ? normalizeGeometryExtrudeType(parsed.data.extrudeType)
+    : 'Body'
 }
 
 const readGeometryExtrudeDepthMmFromParams = (params: Record<string, unknown>): number => {
@@ -435,7 +455,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     label: 'Extrude',
     paramsSchema: geometryExtrudeParamsSchema,
     defaultParams: {
-      extrudeType: 'Basic',
+      extrudeType: 'Body',
       depthMm: defaultGeometryExtrudeDepthMm,
     },
     template: 'extrude',
@@ -445,6 +465,13 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         label: 'ExtrusionProfile',
         type: { kind: 'sketchProfile' },
         optional: true,
+      },
+      {
+        portId: 'Type',
+        label: 'Type',
+        type: { kind: 'number', unit: 'unitless' },
+        optional: true,
+        maxConnectionsIn: 1,
       },
       {
         portId: 'Depth',
@@ -461,7 +488,11 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
       },
     ],
     compute: ({ nodeId, params, inputs }) => {
-      const extrudeType = readGeometryExtrudeTypeFromParams(params)
+      const extrudeType =
+        typeof inputs.Type === 'number' && Number.isFinite(inputs.Type)
+          ? mapWholeNumberToGeometryExtrudeType(inputs.Type)
+          : readGeometryExtrudeTypeFromParams(params)
+      void extrudeType
       const depth =
         typeof inputs.Depth === 'number' && Number.isFinite(inputs.Depth)
           ? inputs.Depth
@@ -471,7 +502,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         typeof profile === 'object' &&
         profile !== null &&
         typeof (profile as { profileId?: unknown }).profileId === 'string'
-      const canPublishBody = extrudeType === 'Basic' && hasProfile && depth > 0
+      const canPublishBody = hasProfile && depth > 0
       return {
         SolidBody: canPublishBody ? { bodyId: `${nodeId}:body` } : null,
       }

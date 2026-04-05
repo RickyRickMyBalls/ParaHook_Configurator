@@ -796,9 +796,9 @@ That suggests a healthy future split:
   - authored 3D object layer ownership
   - Browser/viewport visibility and selection fully honoring layer membership
 
-### [ ] - [06] - Pasta Path - enriched history / feature tree for graph-native CAD
+### [ ] - [06] - Build Path - enriched history / feature tree for graph-native CAD
 
-- ParaHook should have `Pasta Path` because a normal linear history tree is not enough for what the app is becoming
+- ParaHook should have `Build Path` because a normal linear history tree is not enough for what the app is becoming
 - this is basically ParaHook's answer to:
   - history tree
   - feature timeline
@@ -822,7 +822,7 @@ That suggests a healthy future split:
 
 #### Core concept worth keeping
 
-- `Pasta Path` should be a hybrid surface between:
+- `Build Path` should be a hybrid surface between:
   - the source-of-truth `Spaghetti` graph
   - a scrub-friendly history/timeline surface
 - the graph stays the source of truth
@@ -833,7 +833,7 @@ That suggests a healthy future split:
 
 - a normal feature tree assumes one mostly linear ordered stack
 - ParaHook has graph logic, branching, and parallel construction paths
-- so `Pasta Path` should support:
+- so `Build Path` should support:
   - one primary left-to-right execution story
   - grouped feature-like steps instead of raw noisy nodes everywhere
   - parallel rows when branch structure actually matters
@@ -869,12 +869,12 @@ That suggests a healthy future split:
 
 - `Spaghetti Editor`
   - full graph authoring
-- `Pasta Path`
+- `Build Path`
   - condensed temporal/history surface
 - both should describe the same build from different viewpoints
 - scrubbing the path should sync back to `Spaghetti`
   - not just change geometry silently
-- if the user selects a step in `Pasta Path`, it should be easier to find the relevant graph logic behind it
+- if the user selects a step in `Build Path`, it should be easier to find the relevant graph logic behind it
 
 #### Useful first mapping rule
 
@@ -900,9 +900,9 @@ That suggests a healthy future split:
 
 - accepted graph/build results should be the stable history foundation
 - do not treat every transient preview gesture as permanent history truth
-- keep `Pasta Path` derived from the same accepted build state the rest of the app trusts
+- keep `Build Path` derived from the same accepted build state the rest of the app trusts
 - highlight sync between:
-  - `Pasta Path`
+  - `Build Path`
   - `Spaghetti`
   - viewport result state
   should be part of the real value, not an afterthought
@@ -918,7 +918,7 @@ That suggests a healthy future split:
 #### Small possible rollout
 
 - `v1`
-  - slim read-only `Pasta Path` mode
+  - slim read-only `Build Path` mode
   - deterministic grouped left-to-right timeline
   - one scrub playhead with filtered model-state render
   - sync/highlight back to `Spaghetti`

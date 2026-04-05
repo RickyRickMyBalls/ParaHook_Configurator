@@ -118,6 +118,85 @@ describe('ParaSelect', () => {
     expect(marker?.style.left).toBe('100%')
   })
 
+  it('lets the visible fill follow a driven displayed value while the authored value text stays local', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSelect
+          label="Type"
+          value="Basic"
+          displayedValue="Twist"
+          options={[
+            { value: 'Basic', label: 'Basic' },
+            { value: 'Twist', label: 'Twist' },
+          ]}
+          onChange={() => {}}
+          menuMode="custom"
+          disabled
+        />,
+      )
+    })
+
+    const fill = container.querySelector('.ParaSelectFill') as HTMLDivElement | null
+    const marker = container.querySelector('.ParaSelectValueHandle') as HTMLButtonElement | null
+    const value = container.querySelector('.ParaSelectValue') as HTMLSpanElement | null
+    const next = container.querySelector(
+      'button[aria-label="Next Type"]',
+    ) as HTMLButtonElement | null
+
+    expect(fill?.style.width).toBe('100%')
+    expect(marker?.style.left).toBe('100%')
+    expect(value?.textContent).toContain('Basic')
+    expect(next?.disabled).toBe(true)
+  })
+
+  it('advances the custom enum track with the endcap arrows and updates fill state', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    const ControlledSelect = () => {
+      const [value, setValue] = useState('Basic')
+      return (
+        <ParaSelect
+          label="Type"
+          value={value}
+          options={[
+            { value: 'Basic', label: 'Basic' },
+            { value: 'Twist', label: 'Twist' },
+          ]}
+          onChange={setValue}
+          menuMode="custom"
+          capGlyph="chevron"
+        />
+      )
+    }
+
+    await act(async () => {
+      root?.render(<ControlledSelect />)
+    })
+
+    const next = container.querySelector(
+      'button[aria-label="Next Type"]',
+    ) as HTMLButtonElement | null
+    const fill = container.querySelector('.ParaSelectFill') as HTMLDivElement | null
+    const marker = container.querySelector('.ParaSelectValueHandle') as HTMLButtonElement | null
+
+    expect(fill?.style.width).toBe('0%')
+    expect(marker?.style.left).toBe('0%')
+
+    await act(async () => {
+      next?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+      next?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(fill?.style.width).toBe('100%')
+    expect(marker?.style.left).toBe('100%')
+  })
+
   it('opens a styled menu and selects an option from the track button', async () => {
     const onChange = vi.fn()
     container = document.createElement('div')
@@ -268,7 +347,7 @@ describe('ParaSelect', () => {
 
     expect(container.textContent).toContain('Graph 2')
     expect(fill?.style.width).toBe('58.333333333333336%')
-    expect(handle?.style.left).toBe('50%')
+    expect(handle?.style.left).toBe('58.333333333333336%')
 
     await act(async () => {
       window.dispatchEvent(

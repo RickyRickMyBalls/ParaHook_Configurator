@@ -3,6 +3,28 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-04-05 13:04: Marked `Extrude 3.1 Phase 5 - Primitive Enum Row Value Ownership Parity` shipped after the live `Geometry/Extrude` `Type` row stopped treating the evaluator’s default unwired numeric input as authoritative and now follows the same local-versus-driven ownership rule already proven by `Depth`, so this family now points at `Phase 6` only as a final integration-hardening reserve
+27. 2026-04-05 12:57: Reopened the `Extrude-3.1` ladder after the live `Type` row still showed the classic primitive-row ownership mismatch, so this family now adds `Extrude 3.1 Phase 5 - Primitive Enum Row Value Ownership Parity` plus `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup` as explicit post-`Phase 4` homes for aligning enum-row local-versus-driven behavior with `Depth` and for any final live-surface hardening still needed after that
+26. 2026-04-05 12:02: Marked `Extrude 3.2 Phase 3 - Type Surface Honesty Cleanup` shipped after the remaining visible `Body / Walls` wording drift was removed from the live node summary and the feature-style extrude surface, so this family now points forward into `Extrude-3.3` as the next broader authored-row follow-on
+25. 2026-04-05 11:55: Marked `Extrude 3.2 Phase 2 - Body Versus Walls Geometry Meaning` shipped after the authored `Body / Walls` split began flowing through the graph-native compiler and worker runtime as real capped-versus-uncapped extrude geometry while staying on the current first `SolidBody` output lane, so this family now points at `Extrude 3.2 Phase 3 - Type Surface Honesty Cleanup` as the next follow-on
+24. 2026-04-05 11:41: Marked `Extrude 3.2 Phase 1 - Type Names And Authored State Contract` shipped after the live `Extrude Type` row and selector VM stopped speaking the placeholder `Basic / Twist` story and now normalize onto the real authored `Body / Walls` contract, so this family now points at `Extrude 3.2 Phase 2 - Body Versus Walls Geometry Meaning` as the next honest follow-on
+23. 2026-04-05 11:19: Added the dedicated future phase `Extrude-3.2 - Real Type Modes Contract` by carving the first post-`Extrude-3.1` authored-semantics lock out of the broader `Extrude-3` umbrella, so the family now has one explicit home for deciding the real extrude type choices and what each one means before extent, taper, and runtime-convergence follow-ons land
+22. 2026-04-05 11:10: Marked `Extrude 3.1 Phase 4 - Enum Row Fill And Endcap Cleanup` shipped after the shared enum row moved onto the sturdier custom `ParaSelect` track path, its fill and step arrows began responding through the same shared interaction logic, and its endcap chevrons were tightened to the same settled geometry as `Depth`, so the full `Extrude-3.1` ladder now reads as finished enum-row groundwork
+21. 2026-04-05 11:02: Added `Extrude 3.1 Phase 4 - Enum Row Fill And Endcap Cleanup` to the `Extrude-3.1` ladder after the real driven `Type` input contract shipped, so the family now has one narrow follow-on for fixing the still-broken enum fill response, unreliable step arrows, and the remaining mismatch against the settled `Depth` endcap treatment before the broader `Extrude-3` authored-semantics work resumes
+20. 2026-04-05 10:56: Marked `Extrude 3.1 Phase 3 - Whole-Number Driven Enum Input` shipped after `Geometry/Extrude` gained a real unitless-number `Type` input pin with stable enum-row color treatment and deterministic whole-number-driven `Basic` / `Twist` selection, so the full `Extrude-3.1` ladder now reads as shipped groundwork and the next honest follow-on returns to the broader `Extrude-3` authored-semantics stack
+19. 2026-04-05 10:21: Marked `Extrude 3.1 Phase 2 - Enum Row Visual Shell Parity` shipped after the live `Extrude` input stack settled into `SketchProfile -> Type -> Depth`, the shared enum row shed its nested selector-box look, and the family index now points at `Extrude 3.1 Phase 3` as the next honest enum-row step
+18. 2026-04-05 10:08: Reworked `Extrude-3.1` into a real `3.1-1` through `3.1-3` ladder after the first shared enum-row foundation shipped, so the family now treats the landed shared row template as `Phase 3.1-1`, stages enum-row visual shell parity next in `Phase 3.1-2`, and keeps the later whole-number-driven enum-input contract visible as `Phase 3.1-3`
+17. 2026-04-05 09:58: Marked `Extrude-3.1 - Enum Input Row And Type Selector` directionally shipped after the repo gained the first shared enum-row helper plus shared `StructuredWireEnumRow` view, moved `Extrude Type` into `Inputs`, and deleted the old local `Details`-hosted button group, while recording that real wire-bearing enum ports still need a later graph type-system lane
+16. 2026-04-05 09:41: Added the dedicated future phase `Extrude-3.1 - Enum Input Row And Type Selector` by carving task `1` out of the broader `Extrude-3` stack, locking that the first explicit `Extrude Type` control should become the first reusable primitive `enum input row`, and refreshing this family index so that narrower follow-on is visible beside the wider functional-completion lane
+15. 2026-04-05 09:30: Tightened the Extrude family toolbar direction by locking that `Extrude-2` should remove the visible `Extrude Geometry` title from the node template, reuse that header area for one button that opens the extrude toolbar, and prove that titleless launcher pattern on `Extrude` before `Sketch` follows later
+14. 2026-04-05 09:28: Tightened the Extrude family read again by locking that the authored extrude controls should all live under `Inputs`, the old node `Details` section should be deleted, and the node shell should settle into `Inputs` plus `Outputs` while the later toolbar and feature-completion lanes continue
+13. 2026-04-05 09:22: Added the dedicated future phase `Extrude-3 - Type Modes And Functional Completion` as the first explicit task stack for getting `Extrude` functionally closer to a real authored feature after the placement-repair and toolbar-polish setup passes, locking task `1` to a `Type` `ParaSelector` with `Body` and `Profile` while updating this family index so that broader feature-completion lane is now discoverable beside `Extrude-1B` and `Extrude-2`
+12. 2026-04-04 22:54: Marked `Extrude-2.1 - Extrude Input Pin Template Parity` complete after the dedicated extrude template adopted the managed row-and-pin treatment for its `ExtrusionProfile` input, keeping the broader `Extrude-2` toolbar shell open while updating this family index so the next enrichment work now starts after that landed row-only polish slice
+11. 2026-04-04 22:37: Added the dedicated future subphase `Extrude-2.1 - Extrude Input Pin Template Parity`, tightened it into an implementation-ready row-only slice grounded in the decent `SketchPlane` / `SketchDraw` managed input-row language, and updated this family index so the next `Extrude-2` execution step now points at that narrower input-row parity work instead of a vague broad toolbar start
+10. 2026-04-04 22:28: Refreshed this `Extrude` family index after the landed authored-plane and preview-alignment repair ladder so it now records what actually fixed `Sketch -> Extrude -> OutputPreview`, marks `Extrude-1A` as shipped work inside the umbrella family read, and seeds the next `Extrude-2` node-enrichment plus dedicated-toolbar phase
+9. 2026-04-04 20:44: Reformatted the live `Extrude` phase ladder to match the newer dashboard-family phase style so the umbrella `Extrude-1` block now reads as one `##` phase with only `### Summary`, `### Questions`, and `### Spec`, while the dedicated `Extrude-1A` and `Extrude-1B` future docs now use that same three-section phase shape too
+8. 2026-04-04 20:35: Split the broad `Extrude-1` umbrella into the narrower future subphases `Extrude-1A` and `Extrude-1B`, making the immediate authored-plane placement bug implementation-ready as a standalone graph-native transform-propagation spec while pushing graph-node versus feature-stack contract convergence plus visible-parameter honesty into a separate follow-on phase
+7. 2026-04-04 20:29: Refreshed this index against the live code so it now records that mesh-backed `OutputPreview` rendering is no longer the main extrude blocker, while the real open seams are `planeTransform` not flowing through extrude IR/runtime, the split graph-node versus feature-stack extrude contracts, the still-aspirational plural `EWR` profile direction, and the visible-but-not-runtime-honest `taper/offset` feature-stack parameters
 6. 2026-03-25: Aligned the extrude-family vision with the broader `EWR` node direction, locking the long-term model so `Sketch` exposes child `SketchProfile` rows under `SketchProfiles` while `Extrude` normalizes one or more selected/wired sketch profiles into a real plural input contract instead of pretending repeated single-profile links are the final shape
 5. 2026-03-25: Expanded the extrude vision from single-profile consumption to multi-profile selection, locking the direction that one extrude node can collect and own multiple upstream sketch-profile references through either viewport picking or spaghetti wiring
 4. 2026-03-25: Added the intended Fusion-style sketch-to-extrude workflow and explicit ownership split, locking the direction that `Sketch` owns plane/transform/entities/profiles while `Extrude` owns profile selection plus extrusion parameters and resolves profile references from any sketch during command-driven authoring
@@ -23,15 +45,23 @@ Use it to answer:
 
 ### Why This Doc Exists
 
-The current `Geometry/Extrude` path exists, but it is still closer to a proof of concept than a finished authored feature family.
+The current `Geometry/Extrude` path is no longer just a broken proof-of-concept seam.
 
-Right now it can publish a first-pass body preview from a sketch profile, but the full product contract is still thin:
-- profile ownership is narrow
-- transform-aware runtime behavior is incomplete
+The first real authored-placement repair ladder has now landed:
+- graph-native extrude carries authored sketch `planeTransform`
+- worker mesh generation uses the resolved sketch plane frame
+- mesh-backed `OutputPreview` renders authored artifact geometry in world space instead of a display-only layout space
+- active sketch-plane/origin draft edits can drive a transient live extrude preview in the active viewport
+- ordinary project-mode graph preview solids no longer get recentered through content-object pivots by default
+
+But the full product contract is still thin:
+- profile ownership is still narrow
+- the graph-node and feature-stack extrude contracts do not yet line up cleanly
 - extent/boolean/body-management behavior is still missing
+- there is still no dedicated extrude toolbar or richer authored-node polish surface
 - browser and console behavior are not yet fully developed as an extrude family
 
-This doc exists so future extrude work can land against one clear architecture/index surface instead of continuing as isolated fixes.
+This doc exists so later extrude work can land against one clear architecture/index surface instead of continuing as isolated fixes.
 
 ### Scope
 
@@ -53,13 +83,50 @@ This doc does not cover:
 
 ParaHook should treat `Extrude` as a real authored solid-feature family, not just as a temporary sketch-profile consumer.
 
-The current `Geometry/Extrude` node is a useful first seam, but it is not yet a complete product surface.
+The immediate authored-plane bug is now fixed well enough that `Sketch -> Extrude -> OutputPreview` can stay truthful in normal use.
 
 The next real extrude work should center on:
-- profile-to-body contract cleanup
-- transform-aware preview/runtime alignment
+- node enrichment and a dedicated extrude toolbar
+- graph-node versus feature-stack contract cleanup
+- making visible extrude parameters honest
+- keeping the node shell to `Inputs` plus `Outputs` instead of regrowing a `Details` section
+- removing the visible `Extrude Geometry` title and using that header area for one toolbar-open button
+- carrying the now-landed shared enum-row template from `Extrude Type` into the broader authored type/mode semantics
 - richer extent/body behavior
 - cleaner browser/console ownership
+
+The current dedicated follow-on docs for that stack are:
+- `Extrude-3 - Type Modes And Functional Completion`
+- `Extrude-3.1 - Enum Input Row And Type Selector`
+- `Extrude-3.2 - Real Type Modes Contract`
+
+The current `Extrude-3.1` status is:
+- `Phase 3.1-1 - Shared Enum Row Foundation And First Extrude Adoption`
+- `Phase 3.1-2 - Enum Row Visual Shell Parity`
+- `Phase 3.1-3 - Whole-Number Driven Enum Input`
+- `Phase 3.1-4 - Enum Row Fill And Endcap Cleanup`
+- `Phase 3.1-5 - Primitive Enum Row Value Ownership Parity`
+- `Phase 3.1-6 - Enum Row Integration Verification And Cleanup`
+
+That means the remaining `Extrude-3.1` work is now only:
+- final live-surface integration cleanup if needed through `Phase 6`
+
+After that, the next honest broader extrude follow-on returns to the `Extrude-3` authored-semantics lane:
+- real type meaning
+- extent-mode meaning
+- later depth-row splitting and taper follow-ons
+
+The immediate dedicated home for that next semantics lock is:
+- `Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md`
+
+The current `Extrude-3.2` status is:
+- `Phase 1 - Type Names And Authored State Contract` shipped
+- `Phase 2 - Body Versus Walls Geometry Meaning` shipped
+- `Phase 3 - Type Surface Honesty Cleanup` shipped
+
+That means the next honest broader extrude follow-on now moves into:
+- `Extrude-3.3`
+- `Direction` modes and depth-row branching
 
 ### Core Naming Decisions
 
@@ -91,13 +158,48 @@ Right now the repo already has a meaningful first extrude seam:
 - a sketch profile can drive a first-pass output preview
 - the worker can emit a first mesh-backed extrude artifact
 - the viewer can render that artifact
+- the old box-only preview collapse is no longer the main blocker
+- the authored-plane placement bug has now been repaired through a linked runtime-plus-viewer ladder:
+  - graph-native extrude carries `planeTransform`
+  - worker mesh generation uses the resolved sketch plane frame
+  - preview meshes now stay in authored world space
+  - live sketch-plane/origin draft edits can temporarily re-drive the active extrude preview
+  - project-mode graph preview solids no longer route through always-on content-object pivot centering
 
 But the current system is still underdeveloped:
-- it behaves like a proof-of-concept path
-- transformed sketch placement is not yet carried cleanly through the full extrude runtime contract
+- it is still the first honest extrude seam, not a finished feature family
+- the repo currently has two different extrude surfaces instead of one canonical contract:
+  - the graph node exposes `ExtrusionProfile + Depth -> SolidBody`
+  - the feature-stack path exposes `profileRef + depth/taper/offset -> bodyId`
+- the long-term plural `EWR` profile-input direction is still architectural intent, not the current implementation contract
+- the feature-stack `taper` and `offset` controls are visible today but runtime still behaves as depth-only
 - extent semantics are thin
 - body-management semantics are thin
+- the authored node surface is still sparse and does not yet have a dedicated extrude toolbar
 - the feature family does not yet have a mature architecture roadmap like `Sketch`
+
+### Current Code Read
+
+The current code read matters because some earlier extrude assumptions are now stale.
+
+- the user-facing `Sketch -> Extrude -> OutputPreview` placement bug is no longer the next main phase target:
+  - `planeTransform` now flows through the graph-native compile/runtime path
+  - viewer-side mesh preview no longer re-lays out authored artifact geometry as display-only gallery content
+  - active draft sketch-plane edits have a transient preview bridge in the active viewport
+  - ordinary graph preview solids no longer go through always-on pivot centering
+- the next major blocker is now contract split:
+  - `Geometry/Extrude` graph-node behavior is still much simpler than the feature-stack extrude behavior and editor surface
+  - future work should pick a canonical extrude contract instead of letting both surfaces drift
+- the next major user-facing gap is surface quality:
+  - there is still no dedicated extrude toolbar
+  - the node surface is still too thin for a solid-feature family that now has a trustworthy viewport result
+  - the node shell should stay on `Inputs` plus `Outputs` only as the authored controls grow
+  - the current visible `Extrude Geometry` title is a weaker use of header space than a direct toolbar-open button
+- the plural `EWR` profile-input direction is still useful long-term guidance, but it should not be mistaken for the next direct implementation target while the repo is still single-profile in practice
+- `taper` and `offset` are now user-visible debt:
+  - they already exist in the feature-stack UI/compiler shape
+  - but runtime does not yet honor them
+  - that makes them a real contract-honesty problem rather than only later backlog
 
 ### Main Architecture Direction
 
@@ -184,11 +286,13 @@ Keep shipped and future extrude work as standalone docs in:
 - `Future/`
 
 Recommended early future phase themes:
+- contract convergence between the graph-node and feature-stack extrude paths
 - transform-aware extrude preview/runtime alignment
-- plural profile-input contract aligned with `EWR`
+- making visible extrude parameters honest
+- plural profile-input contract aligned with `EWR` after the single-profile contract stops drifting
 - richer extent modes
 - body ownership and boolean behavior
-- taper/offset/thickness follow-ons
+- taper/offset/thickness follow-ons after first-cut honesty
 - browser and console cleanup for authored extrudes
 
 ### Folder Structure
@@ -203,111 +307,328 @@ This folder should use:
 
 ### Current Status
 
-Shipped phase docs:
+Landed repair ladder now recorded in this family read:
+- `Extrude-1A` worker/runtime placement repair is landed
+- the post-`Extrude-1A` viewer/output-preview drift ladder in `docs/Bugs/12_GeometrySketch-Extrude-OutputPreview-Authored-Coordinate-Drift.md` is closed through its active-viewport and grouping-gate fixes
+
+Standalone shipped phase docs:
 - none yet
 
-Future phase docs:
-- none yet
+Active future phase docs:
+- `Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md`
+- `Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md`
+- `Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
+- `Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
+
+Historical planning doc still worth keeping:
+- `Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
+  - original implementation-ready plan for the landed placement repair
 
 ### Suggested Starting Backlog
 
 The highest-value next extrude planning cuts are probably:
-- transform-aware sketch/profile consumption so extrude preview actually emerges from the authored sketch plane
-- viewport profile-pick authoring so an extrude command can select one or more profiles from any sketch and commit the right profile references
-- graph-wire profile authoring so dragging spaghetti lines from sketch outputs to extrude input lands on that same profile-reference model
-- EWR-aligned plural extrude input so multiple selected/wired `SketchProfile` rows become one honest plural contract on the extrude side
-- one honest runtime contract for plane plus transform instead of plane-only fallback behavior
+- shipping `Extrude-2` node enrichment and the first dedicated extrude toolbar now that viewport placement is trustworthy
+- removing the visible `Extrude Geometry` title and using that header area as the one-button extrude-toolbar launcher
+- locking the first real feature-completion task stack in `Extrude-3`, starting with:
+  - `Type` as a `ParaSelector`
+  - `Body`
+  - `Profile`
+- deleting the old node `Details` section so those authored controls live under `Inputs` and the node stays `Inputs` plus `Outputs`
+- deciding the first honest toolbar surface for:
+  - profile target summary and re-pick
+  - depth
+  - direction / flip
+  - start / review / commit flow
+- choosing one canonical extrude contract that both the graph node and the feature-stack path can converge toward
+- making `taper/offset` honest by either implementing them in runtime or deferring/hiding them from the visible authored surface until the kernel path supports them
+- keeping the shipped authored-plane and preview-alignment repair ladder under regression coverage instead of reopening it as the primary next extrude target
 - a clearer authored model for body identity, result ownership, and later boolean operations
 
 ## Extrude Phase Ladder
 
 ### Why This Needs A Real First Phase
 
-The current extrude path already exists in code, but it still behaves like a proof-of-concept seam.
+The current extrude path already exists in code, and its first real placement repair has now shipped.
 
-The first real extrude phase should not try to solve every later feature concern at once.
+That fix still needed a real first phase because the original bug was crossing compile, runtime, viewer, and active-viewport authority seams at the same time.
 
-The safest first focus is:
-- make preview/runtime placement honest
-- make sketch-to-extrude contract honest
+The same principle still matters going forward:
+- keep placement truth guarded
 - keep richer feature growth for later phases
+- do not widen the next phase until the current authored surface is honest
 
-### [ ] Extrude-1 - Transform-Aware Preview And Runtime Alignment
-#### header
-##### Purpose
+## [~] Extrude-1 - Transform-Aware Preview And Runtime Alignment Family
 
-Make `Geometry/Extrude` emerge from the authored sketch/profile location and orientation instead of behaving like a plane-only fallback build.
+### Summary
 
-##### Owns
+#### Purpose:
+- make `Geometry/Extrude` emerge from the authored sketch/profile location and orientation instead of behaving like a plane-only fallback build
 
+#### Owns:
 - the first canonical extrude placement contract between sketch and extrude
+- the first canonical ownership split between the graph-node and feature-stack extrude contracts
 - carrying enough sketch-plane transform truth into the extrude build/runtime path
 - aligning viewer preview and worker/runtime output so they describe the same body placement
-- proving the first transform-aware path still behaves correctly when one extrude consumes multiple upstream profiles
+- proving the first transform-aware path for the current single-profile seam before widening further
 - first regression coverage for translated and rotated sketch-driven extrudes
 
-##### Does Not Own
-
+#### Does not own:
 - final boolean behavior
 - advanced extent modes
-- taper growth beyond the current placeholder seam
+- full plural `EWR` rollout for multi-profile extrude authoring
 - body combine/cut/intersect feature semantics
 - broader browser or console redesign for extrude
 
-##### Locked Direction
-
-The first real `Extrude` fix should treat the current mismatch as a contract problem, not as a viewer-only visual patch.
-
-Hard rules:
+#### Current family read:
+- the first real `Extrude` fix should treat the current mismatch as a contract problem, not as a viewer-only visual patch
 - the viewer preview must not invent a different body placement story than the runtime mesh
 - extrude should consume upstream sketch/profile placement truth rather than ignoring it
 - the first fix should preserve the current sketch-owns-profile and extrude-owns-body split
-- one extrude node must be allowed to consume multiple profile references
-- multi-profile consumption should be modeled honestly as a plural contract, not as a permanent singular-port workaround
+- the first shipped fix should define one canonical extrude contract for the current single-profile seam before widening into plural-profile authoring
+- do not let the graph-node and feature-stack extrude surfaces keep drifting as separate product stories
+- visible parameters must be honest:
+  - if `taper` and `offset` stay exposed, the architecture should treat their runtime support as real debt
+  - do not describe them as merely future work while they are already part of the authored surface
 - do not duplicate sketch transform logic in multiple drifting formats if one shared contract can be used
 
-Recommended first outcome:
+#### Done shape:
 - translated sketch on `XY` extrudes from the translated profile
 - rotated or in-plane-rotated sketch extrudes from the rotated profile
 - `XZ` and `YZ` extrudes still work after the transform-aware contract lands
+- the graph-node and feature-stack extrude paths point at the same first-cut placement and parameter story
 
-#### Questions / Decisions
+#### Current shipped output:
+- graph-native `Geometry/Extrude` now carries authored sketch `planeTransform` through compile/runtime and generates mesh geometry from the resolved sketch plane frame
+- mesh-backed preview artifacts now render in authored world space instead of being re-laid out as display-only parts
+- active sketch-plane/origin draft edits can temporarily re-drive the active extrude preview without mutating accepted build truth
+- ordinary project-mode graph preview solids no longer route through content-object pivot-centering unless an actual transform-tool session or override needs that grouping
+- the original screenshot-class bug where the body sat on the viewer origin instead of the sketch origin is now treated as fixed by the landed repair ladder
 
-##### [x] q1 - Where should the canonical sketch placement contract live for the first real extrude fix?
+#### Why this needs a split:
+- `Extrude-1` is too broad to ship honestly as one unchecked block
+- the repo currently has two different jobs hiding inside the same umbrella:
+  - the immediate user-facing bug:
+    - `Sketch -> Extrude -> OutputPreview` does not honor the authored sketch plane transform
+  - the follow-on contract cleanup:
+    - the graph node and feature-stack extrude surfaces do not yet line up cleanly
+    - visible `taper/offset` parameters are not yet runtime-honest
+- the first one should become an implementation-ready narrow fix now
+- the second one should stay a separate follow-on so the authored-plane bug can land without waiting for the broader contract cleanup
 
-Question:
-- should the first fix carry `plane + planeTransform` through the feature-stack/runtime IR directly, or should the system resolve fully world-space profile/body geometry earlier and keep the worker extrude seam mostly geometry-only?
+#### Sub-phase breakdown:
+- `[x] Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude`
+  - landed first implementation-ready fix for the authored-plane placement bug
+  - canonical target:
+    - `Geometry/Sketch -> Geometry/Extrude -> System/OutputPreview`
+  - historical planning doc:
+    - `Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
+- `[ ] Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence`
+  - follow-on cleanup after `Extrude-1A`
+  - owns the first canonical single-profile extrude contract and visible-parameter honesty
+  - standalone future doc:
+    - `Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md`
 
-Suggestion:
-- carry `plane + planeTransform` through the IR first
-- keep the contract explicit instead of hiding transform resolution in a viewer-only or compile-only side path
-- this is the safer first step because it keeps the authored sketch truth readable while avoiding an immediate larger world-geometry refactor
+### Questions
 
-Decision:
-- lock the first real extrude fix to carry `plane + planeTransform` through the feature-stack/runtime IR
-- keep sketch placement truth explicit
-- do not flatten sketch placement away into an earlier hidden world-geometry conversion as the primary first fix
+#### [x] Question 1 - Where should the canonical sketch placement contract live for the first real extrude fix?
 
-##### [ ] q2 - Should the first implementation transform the input profile before extrusion or extrude in local plane space and transform the produced mesh afterward?
+##### Locked answer
+- carry `plane + planeTransform` through the feature-stack/runtime IR first
 
-Question:
-- for the first real fix, is it cleaner to move profile vertices into resolved world placement before building the mesh, or to keep the current local-plane extrusion and apply one resulting transform to mesh vertices after the fact?
+##### Why
+- it keeps the contract explicit instead of hiding transform resolution in a viewer-only or compile-only side path
+- it is the safer first step because it keeps the authored sketch truth readable while avoiding an immediate larger world-geometry refactor
 
-Suggestion:
-- prefer one explicit post-extrude mesh transform if it can cleanly reuse the existing sketch-plane basis math
-- this keeps the current local profile derivation and local plane extrusion logic more intact for the first cut
-- if the mesh-transform path becomes messy around normals/winding or later boolean needs, switch to resolved-world profile generation instead
+#### [x] Question 2 - Should `Extrude-1` be split into sub-phases?
 
-##### [ ] q3 - What exact regression matrix should gate the first shipped extrude alignment phase?
+##### Locked answer
+- yes
+- `Extrude-1` now acts as the umbrella family block
+- `Extrude-1A` is the immediate implementation-ready first ship target
+- `Extrude-1B` is the follow-on cleanup after the placement seam is truthful
 
-Question:
-- what is the minimum test set that proves the first real extrude alignment fix is honest without pulling later boolean/extent behavior into scope?
+##### Why
+- the authored-plane placement fix should not ship inside the same unchecked phase as graph-node versus feature-stack contract cleanup and visible-parameter honesty
+- splitting the immediate placement bug into `Extrude-1A` keeps the first shipped fix narrow enough to implement and verify cleanly
 
-Suggestion:
-- require at least:
+#### [x] Question 3 - What is the first practical execution order inside `Extrude-1` now?
+
+##### Locked answer
+- `Extrude-1A` landed first
+- keep `Extrude-1B` as the later contract-honesty follow-on
+- do not reopen the placement ladder as the next main job unless a new regression proves that a still-missing seam remains
+
+##### Why
+- the authored-plane and viewer-origin bug needed to be removed before later surface polish could be read honestly
+- later contract cleanup should now land on top of that truthful path instead of reopening the old placement drift
+
+### Spec
+
+Locked first-cut direction:
+- use `Extrude-1` as the umbrella family phase only
+- ship the immediate authored-plane placement repair through `Extrude-1A`
+- stage graph-node versus feature-stack contract convergence plus visible-parameter honesty in `Extrude-1B`
+- keep the first shipped repair focused on the current single-profile graph-native seam
+- do not widen this first family pass into plural `EWR` profile rollout
+
+Suggested execution order:
+1. Keep the landed `Extrude-1A` repair ladder under regression coverage.
+2. Run `Extrude-2` for node enrichment and the first dedicated extrude toolbar.
+3. Continue into `Extrude-1B` when the next contract-honesty cleanup is ready.
+
+Verification matrix for the umbrella family:
 - translated `XY` sketch -> extrude stays attached
 - rotated `XY` sketch -> extrude matches sketch orientation
 - in-plane-rotated sketch -> extrude matches local profile rotation
 - `XZ` translated sketch -> extrude stays attached
 - `YZ` translated sketch -> extrude stays attached
-- keep this first matrix focused on placement/orientation truth only
+- simple graph-node `Geometry/Sketch -> Geometry/Extrude` and feature-stack extrude cases agree on the same first-cut placement contract once both subphases are complete
+
+## [ ] Extrude-2 - Node Enrichment And Toolbar Polish
+
+### Summary
+
+#### Purpose:
+- turn the now-truthful first-pass extrude result into a more usable authored surface with a dedicated extrude toolbar
+
+#### Owns:
+- the first dedicated `Extrude` toolbar
+- a richer node-facing extrude surface for the current honest single-profile seam
+- toolbar, node, and console wording alignment for active extrude authoring
+- a clearer user flow for reviewing profile target, depth, and direction without widening the kernel contract yet
+
+#### Does not own:
+- reopening the landed `Extrude-1A` placement repair
+- the full graph-node versus feature-stack contract cleanup from `Extrude-1B`
+- plural profile-input rollout
+- boolean or richer extent-family behavior
+- `taper/offset` runtime support unless a later contract-honesty phase explicitly takes that work
+
+#### Current seam read:
+- the viewport result is finally trustworthy enough that surface polish is now worth doing
+- the current `Geometry/Extrude` node still reads as a thin proof surface compared to `Sketch`
+- there is still no dedicated extrude toolbar, so the user has no single focused place to review or tweak active extrude authoring
+- the first toolbar must stay honest to the currently supported runtime contract instead of exposing future-only controls too early
+
+Current strongest read:
+- the next highest-value extrude improvement is no longer another placement fix
+- it is a clearer authored surface centered on one dedicated extrude toolbar, one direct node-level launcher button, and better node polish
+
+#### Sub-phase breakdown:
+- `[x] Extrude-2.1 - Extrude Input Pin Template Parity`
+  - first dedicated execution slice inside `Extrude-2`
+  - owns matching the `ExtrusionProfile` row and pin to the decent managed sketch-row language already visible on `SketchPlane` and `SketchDraw`
+  - dedicated future doc:
+    - `Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
+
+### Questions
+
+#### [x] Question 1 - Should the first enrichment phase create a dedicated extrude toolbar?
+
+##### Locked answer
+- yes
+
+##### Why
+- `Extrude` now has a trustworthy viewport result and needs a matching authored control surface
+- the current node-only surface is too thin for repeated day-to-day extrude authoring
+
+#### [x] Question 2 - Should the new toolbar become the durable source of truth for extrude data?
+
+##### Locked answer
+- no
+- the graph node and store remain the durable source of truth
+- the toolbar is the active authoring surface layered on top of that stored node data
+
+##### Why
+- this keeps the repo aligned with the existing authored-graph truth model
+- it avoids creating a second hidden extrude state model
+
+#### [x] Question 3 - What should the first toolbar expose?
+
+##### Locked answer
+- expose only the currently honest first-pass controls:
+  - current profile target summary
+  - profile re-pick / review entry
+  - depth
+  - direction / flip
+  - lightweight start / review / commit flow affordances
+- defer future-only controls until they are backed by a real runtime contract
+
+##### Why
+- the first toolbar should make the current extrude seam easier to use, not pretend the later feature family is already shipped
+- honest narrower controls are better than another surface with visible no-op debt
+
+#### [x] Question 4 - Should `Extrude-2` wait for `Extrude-1B`?
+
+##### Locked answer
+- no
+- `Extrude-2` can begin now as long as it stays inside the current honest single-profile runtime surface
+
+##### Why
+- the user-facing toolbar and node polish do not need to wait for the full later contract-convergence lane
+- this keeps the next improvement focused on workflow quality while `Extrude-1B` remains the deeper contract-honesty follow-on
+
+### Spec
+
+Locked first-cut direction:
+- create one dedicated extrude toolbar as the main active extrude authoring surface
+- keep the graph node as the durable authored truth
+- align toolbar labels, node summary text, and console wording around the same first-pass single-profile contract
+- keep the first toolbar honest to the already-supported runtime behavior
+- do not widen this phase into boolean, plural profile, or no-op parameter growth
+
+Likely implementation seams:
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+- one new dedicated extrude-toolbar surface and its host wiring near the existing workspace or spaghetti toolbar surfaces
+
+Suggested execution order:
+1. Keep the landed `Extrude-2.1` row-and-pin polish under regression coverage.
+2. Define the first toolbar shell and how it activates from the current extrude node flow.
+3. Mirror the honest current extrude controls into that toolbar:
+   - profile target summary
+   - depth
+   - direction / flip
+4. Refresh node summary text so the node and toolbar describe the same authored state.
+5. Keep `taper/offset` and richer extent controls out of the first toolbar unless the underlying runtime contract becomes honest first.
+6. Add focused UI coverage for toolbar visibility, node-toolbar sync, and unchanged extrude build behavior.
+
+Acceptance checks:
+- the user has one dedicated toolbar for active extrude authoring
+- the toolbar and node surface describe the same current extrude state
+- the first toolbar exposes only honest currently supported controls
+- the landed authored-plane and preview-alignment fixes remain unchanged by the new surface work
+
+Definition of done:
+- `Geometry/Extrude` no longer relies only on a thin node surface for everyday authoring
+- the first extrude toolbar exists and feels aligned with the current runtime truth
+- later contract cleanup can still proceed separately through `Extrude-1B`
+
+## [ ] Extrude-3 - Type Modes And Functional Completion
+
+### Summary
+
+#### Purpose:
+- stack the remaining authored tasks needed to make `Extrude` work more like a real feature instead of staying a thin depth-first proof surface
+
+#### Owns:
+- the first explicit feature-completion task stack after the landed placement repair
+- adding `Type` as a real authored extrude selector
+- defining what `Body` and `Profile` mean before more extrude controls widen the drift
+
+#### Does not own:
+- reopening `Extrude-1A`
+- replacing the broader `Extrude-2` toolbar shell work
+- plural `EWR` profile rollout
+- boolean family growth
+
+#### Current strongest read:
+- after placement truth and the first row/template work, the next missing authored lever is `Type`
+- that should become explicit before more extrude feature surface grows around an implied always-body contract
+
+#### Dedicated future doc:
+- `Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
+- `Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md`

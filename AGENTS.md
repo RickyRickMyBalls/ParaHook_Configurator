@@ -21,9 +21,10 @@ For every implementation change or document change, Codex must update the requir
 Canonical tracking files:
 - `docs/CHANGELOG.md` for code and shipped implementation work
 - `docs/Doc-Log.md` for document changes
-- `docs/Chill-Log.md` when chill mode is active
 
-Canonical docs-structure references:
+Canonical direction and docs-structure references:
+- `docs/Vision.md`
+- `docs/Human-Plans/roadmap/Vision-roadmap.md`
 - `docs/Doc-Index.md`
 - `docs/Phase-Plans/00_Phase-Setup.md`
 
@@ -37,9 +38,9 @@ When Codex references repo files in responses:
 - do not assume the repo root and the current workspace root are different unless the environment clearly shows that they are
 
 Examples:
-- valid in this workspace chat client: `[Chill Log](./docs/Chill-Log.md)`
+- valid in this workspace chat client: `[Doc Log](./docs/Doc-Log.md)`
 - valid in this workspace chat client: `[AGENTS.md](./AGENTS.md)`
-- fallback only if needed: `C:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\docs\Chill-Log.md`
+- fallback only if needed: `C:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\docs\Doc-Log.md`
 
 ## CHANGELOG Rule
 
@@ -77,7 +78,6 @@ Use it for:
 
 Do not use it for:
 - shipped code or runtime behavior changes that belong in `docs/CHANGELOG.md`
-- temporary chill-mode batch logging
 
 Requirements:
 1. Never delete or rewrite previous entries unless the user explicitly asks for doc-log cleanup.
@@ -86,54 +86,13 @@ Requirements:
 4. Use the current system time.
 5. Keep wording deterministic so diffs remain stable.
 
-## Chill Mode Rule
+## Vision Alignment Rule
 
-The user may explicitly switch the repo into `chill mode`.
-
-While chill mode is active:
-- log small rapid edits in `docs/Chill-Log.md`
-- do not add a full `docs/CHANGELOG.md` entry for every small code/doc edit
-- keep the chill log clear enough that it can be consolidated later
-
-Chill mode ends only when the user explicitly asks to update the changelog or gives a clearly equivalent instruction.
-
-When chill mode ends:
-- read the active chill batch
-- consolidate code/system work into one new `docs/CHANGELOG.md` entry unless the user asks for a different treatment
-- consolidate document-only work into `docs/Doc-Log.md` unless the user asks for a different treatment
-
-## Planning Mode Rule
-
-The user may explicitly switch the repo into `planning mode`.
-
-While planning mode is active:
-- read `docs/Agents/Agents-Planning.md`
-- follow its planning-specific workflow
-- stay focused on architecture, product direction, salvageable systems, refactor candidates, new objects, and retirement candidates
-- avoid drifting into implementation unless the user explicitly asks for code or file edits
-- do not add `docs/CHANGELOG.md` entries for planning-mode work
-- record planning-mode batch progress in the active `docs/Human-Plans/CodexNotes/N_CodexChatNotes.md` file under its top-of-file `Planning-Batch` section
-- keep `Planning-Batch` entries numbered newest-first
-- when a doc is created or edited during planning mode, follow normal `docs/Doc-Index.md` local doc-history rules in that doc and log the change in `docs/Doc-Log.md` unless chill mode is active
-
-Planning mode ends only when the user explicitly exits it or clearly switches back to normal implementation work.
-
-## Historian Mode Rule
-
-The user may explicitly switch the repo into `historian mode`.
-
-Use historian mode only when the user explicitly asks for history processing.
-
-Historian workflow:
-1. Read the target `docs/Archive/History/# - chatgpt.md` file or other explicitly requested history file.
-2. Add a structured readable summary near the top of that same file.
-3. Preserve the raw transcript underneath, preferably wrapped in an HTML comment.
-4. Update `docs/Archive/History/0 - compiled-HISTORY.md` with a short index entry.
-
-Rule:
-- keep the compiled history file short
-- keep the detailed write-up in the specific history file
-- do not delete raw history unless the user explicitly asks
+Before making product, UX, architecture, naming, ownership, or workflow-structure decisions:
+- read `docs/Vision.md` first
+- use `docs/Human-Plans/roadmap/Vision-roadmap.md` as the deeper canonical north-star source
+- prefer the vision over local convenience unless the user explicitly directs otherwise
+- preserve the long-range direction captured under `What Must Stay True`
 
 ## Phase Docs Rule
 
@@ -159,30 +118,13 @@ Active task implementation rule:
 - updating only the task doc's local checklist, status text, or `Doc History` is not enough for completed implementation work
 - prefer using the task's canonical phase prefix/title in the changelog entry so the shipped work stays tied to the execution spec that drove it
 
-## Codex Chat Capture Rule
-
-When a new long-form Codex working session begins, use the next
-`docs/Human-Plans/CodexNotes/N_CodexChatNotes.md` file as the running
-notes surface for:
-- key project decisions
-- important architecture clarifications
-- phase/prefix rule changes
-- docs workflow decisions
-- strong conclusions about current direction
-
-`N_CodexChatNotes.md` is the conversation-facing working capture.
-`N_CodexContext.md` in `docs/Archive/CodexContext/` is the later distilled handoff summary.
-
-Do not wait until the end of the session to record major reusable decisions if
-the chat is clearly producing project knowledge that should survive the session.
-
 ## Required Sequence
 
 When Codex performs implementation work:
 1. Implement the requested change.
 2. Run verification when requested or when it is reasonably needed.
-3. If code/system behavior changed, update `docs/CHANGELOG.md` unless chill mode is active or the user explicitly says not to.
-4. If docs changed, update `docs/Doc-Log.md` unless chill mode is active or the user explicitly says not to.
+3. If code/system behavior changed, update `docs/CHANGELOG.md` unless the user explicitly says not to.
+4. If docs changed, update `docs/Doc-Log.md` unless the user explicitly says not to.
 5. If the implementation came from an active task in `docs/Phase-Plans/Tasks/`, make sure the changelog entry is a full permanent entry, not just task-doc maintenance.
 
 Do not skip required maintenance updates silently.

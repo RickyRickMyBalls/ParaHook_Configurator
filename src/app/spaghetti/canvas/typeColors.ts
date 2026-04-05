@@ -20,5 +20,6 @@ export const TYPE_COLOR_MAP = {
 } as const
 
 const DEFAULT_TYPE_COLOR = '#ffffff'
+export const STRUCTURED_WIRE_ENUM_INPUT_COLOR = '#8ea2ff'
 
 export const getTypeColor = (kind: PortKind): string => TYPE_COLOR_MAP[kind] ?? DEFAULT_TYPE_COLOR

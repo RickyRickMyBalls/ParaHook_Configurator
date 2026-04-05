@@ -339,4 +339,67 @@ describe('selectNodeVm', () => {
     const mutatedVm = selectNodeVm(mutated, evaluateSpaghettiGraph(mutated))
     expect(mutatedVm.nodes).toEqual(baseVm.nodes)
   })
+
+  it('maps a whole-number unitless Type input into the shared extrude enum row contract', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-type-driver',
+          type: 'Primitive/Number',
+          params: { value: 1, unit: 'unitless' },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-type-drive',
+          from: { nodeId: 'node-type-driver', portId: 'value' },
+          to: { nodeId: 'node-extrude-1', portId: 'Type' },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeType).toBe('Walls')
+    expect(extrudeVm?.localExtrudeType).toBe('Body')
+    expect(extrudeVm?.typeDriven).toBe(true)
+  })
+
+  it('keeps the authored extrude type when the Type input is unwired', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Walls',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeType).toBe('Walls')
+    expect(extrudeVm?.localExtrudeType).toBe('Walls')
+    expect(extrudeVm?.typeDriven).toBe(false)
+  })
 })

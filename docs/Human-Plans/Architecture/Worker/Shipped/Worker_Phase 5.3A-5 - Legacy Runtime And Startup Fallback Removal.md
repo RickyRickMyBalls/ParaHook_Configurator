@@ -50,7 +50,7 @@ This phase does not cover:
 - richer final result semantics for Browser/Console truth
 - the final deletion of every compatibility protocol shape
 - Viewer UX polish for transient approximation previews
-- full `Pasta Path` rollback/filter semantics
+- full `Build Path` rollback/filter semantics
 
 ## Doc Body
 

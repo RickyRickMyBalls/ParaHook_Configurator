@@ -80,6 +80,28 @@ describe('useDashboardStore', () => {
     expect(state.lanes.map((lane) => lane.id)).toEqual(['completed'])
   })
 
+  it('inserts a new lane directly after the clicked lane while preserving stable lane ids', () => {
+    const reviewLaneId = useDashboardStore.getState().createLaneAfter('todo', 'Review')
+
+    let state = useDashboardStore.getState()
+    expect(reviewLaneId).toBe('lane-1')
+    expect(state.lanes.map((lane) => `${lane.id}:${lane.title}`)).toEqual([
+      'todo:TO DO',
+      'lane-1:Review',
+      'completed:Completed',
+    ])
+
+    const qaLaneId = useDashboardStore.getState().createLaneAfter(reviewLaneId, 'QA')
+    state = useDashboardStore.getState()
+    expect(qaLaneId).toBe('lane-2')
+    expect(state.lanes.map((lane) => `${lane.id}:${lane.title}`)).toEqual([
+      'todo:TO DO',
+      'lane-1:Review',
+      'lane-2:QA',
+      'completed:Completed',
+    ])
+  })
+
   it('round-trips dashboard persistence with lanes and laneId-based layouts', () => {
     const reviewLaneId = useDashboardStore.getState().createLane('Review')
     useDashboardStore.getState().reconcileStickyNoteLayouts(['note-1', 'note-2'])

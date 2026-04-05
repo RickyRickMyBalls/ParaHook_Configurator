@@ -3,8 +3,8 @@
 ## Doc Header
 
 ### Doc History
-2. 2026-03-28 13:15: Locked the initial `Edit History` questions into explicit decisions, added a first `Edit History 1` through `Edit History 5` phase ladder, and tightened the family so canonical authored history, transaction boundaries, surface scope, console parity, and later `Pasta Path` sync now read as one sequenced implementation plan instead of only an umbrella concept
-1. 2026-03-28 13:07: Created this folder-root architecture index for the new `Edit-History` family, establishing canonical authored-change history for global undo/redo, locking its relationship to `Pasta Path` as a derived scrub reader instead of a competing history owner, and reserving `Future/` and `Shipped/` for later standalone planning and shipped records
+2. 2026-03-28 13:15: Locked the initial `Edit History` questions into explicit decisions, added a first `Edit History 1` through `Edit History 5` phase ladder, and tightened the family so canonical authored history, transaction boundaries, surface scope, console parity, and later `Build Path` sync now read as one sequenced implementation plan instead of only an umbrella concept
+1. 2026-03-28 13:07: Created this folder-root architecture index for the new `Edit-History` family, establishing canonical authored-change history for global undo/redo, locking its relationship to `Build Path` as a derived scrub reader instead of a competing history owner, and reserving `Future/` and `Shipped/` for later standalone planning and shipped records
 
 ### Purpose
 
@@ -15,7 +15,7 @@ This file is the umbrella index for the `Edit-History` family.
 Use it to answer:
 - what should count as canonical authored edit history in ParaHook
 - how `Ctrl+Z` and `Ctrl+Y` should behave across the main editing surfaces
-- how `Edit History` should differ from `Pasta Path` scrub/traversal
+- how `Edit History` should differ from `Build Path` scrub/traversal
 - what transaction and coalescing rules are implied by sliders, drags, and console-issued edits
 - how future standalone planning docs under this family should be organized
 
@@ -51,14 +51,14 @@ The current codebase already has several local history-like systems:
 - command recall in the console
 - committed transform history for viewer transform
 - sketch-local draft/history behavior
-- later `Pasta Path` scrub planning
+- later `Build Path` scrub planning
 
 But those are not the same thing as one app-wide authored undo/redo model.
 
 `Edit History` exists to define that missing canonical layer:
 - `Edit History` owns authored mutation history
 - `Ctrl+Z` and `Ctrl+Y` traverse that authored history
-- `Pasta Path` reads that truth and should visually respond to it, but should not become a second competing undo owner
+- `Build Path` reads that truth and should visually respond to it, but should not become a second competing undo owner
 
 ## Doc Body
 
@@ -75,23 +75,23 @@ A single canonical edit-history system for ParaHook that makes authored changes 
 - `Transactions`
   - continuous live interaction can update the UI freely, but history should commit one meaningful entry when the interaction is released or confirmed
 - `Derived Readers`
-  - surfaces such as `Pasta Path`, transform overlays, and Browser labels should refresh from canonical history state rather than store their own conflicting undo truths
+  - surfaces such as `Build Path`, transform overlays, and Browser labels should refresh from canonical history state rather than store their own conflicting undo truths
 
-### Relationship To Pasta Path
+### Relationship To Build Path
 
-`Edit History` and `Pasta Path` should coordinate, but they should not be the same system.
+`Edit History` and `Build Path` should coordinate, but they should not be the same system.
 
 Recommended relationship:
 - `Edit History`
   - canonical authored-change history
   - source of truth for undo/redo
-- `Pasta Path`
+- `Build Path`
   - derived scrub/traversal surface
   - reflects the current authored history state
   - should visually change when undo/redo changes authored truth
 
 Important rule:
-- moving a `Pasta Path` playhead is navigation state, not automatically an authored edit
+- moving a `Build Path` playhead is navigation state, not automatically an authored edit
 - `Ctrl+Z` should normally undo authored changes, not timeline navigation
 
 ### Surface Scope
@@ -126,7 +126,7 @@ The first `Edit History` cut should stay disciplined:
 - do not treat every navigation state change as authored history
 - do not make camera movement part of canonical undo/redo
 - do not record every slider tick or gizmo drag frame as its own history step
-- do not let `Pasta Path` become a second owner of undo truth
+- do not let `Build Path` become a second owner of undo truth
 - do not require every derived visual surface to invent custom history storage before canonical edit history exists
 
 ### Transaction Rules
@@ -220,32 +220,32 @@ Recommended first proof:
 - `Ctrl+Z` and `Ctrl+Y` route through one shared dispatch layer
 - transform entry/live drag remains separate from canonical commit history
 
-### [ ] Edit History 5 - Pasta Path Sync, Derived Readers, And Later History UX
+### [ ] Edit History 5 - Build Path Sync, Derived Readers, And Later History UX
 
-- make `Pasta Path` and other derived history readers respond to canonical authored undo/redo truth
-- keep `Pasta Path` as a scrub/read surface instead of a second undo owner
+- make `Build Path` and other derived history readers respond to canonical authored undo/redo truth
+- keep `Build Path` as a scrub/read surface instead of a second undo owner
 - define how later history UI, labels, timeline emphasis, or audit surfaces read from canonical entries
 - leave collaboration, multiplayer branching, and more advanced history visualization to later follow-ons unless needed earlier
 
 Recommended first proof:
-- `Pasta Path` visibly changes when authored undo/redo changes the canonical model state
+- `Build Path` visibly changes when authored undo/redo changes the canonical model state
 - timeline scrub remains navigation state, not an authored edit by default
 - derived readers can rebuild from canonical history without inventing duplicate undo models
 
 ## Questions / Decisions
 
-### [x] q1 - should `Edit History` be the canonical authored history for ParaHook, with `Pasta Path` reading that truth instead of owning a second undo model?
+### [x] q1 - should `Edit History` be the canonical authored history for ParaHook, with `Build Path` reading that truth instead of owning a second undo model?
 
 #### Suggestion
 
-Yes. `Edit History` should be the canonical authored history. `Pasta Path` should derive its scrub/read surface from that truth and should visually respond when undo/redo changes the authored state.
+Yes. `Edit History` should be the canonical authored history. `Build Path` should derive its scrub/read surface from that truth and should visually respond when undo/redo changes the authored state.
 
 Decision:
 
 - yes
 - `Edit History` should be the canonical authored history for ParaHook
-- `Pasta Path` should read and visually respond to canonical authored history changes
-- `Pasta Path` should not become a second competing undo owner
+- `Build Path` should read and visually respond to canonical authored history changes
+- `Build Path` should not become a second competing undo owner
 
 ### [x] q2 - should the first cut prioritize authored data edits and explicitly exclude pure navigation/view-state changes such as camera orbit and temporary selection-only state?
 

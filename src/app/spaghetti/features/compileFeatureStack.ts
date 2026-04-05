@@ -1,7 +1,13 @@
 import { resolveNumberExpression } from './expressions'
 import { deriveProfilesWithDiagnostics } from './profileDerivation'
 import { getEffectiveFeatureStack } from './featureDependencies'
-import type { FeatureStack, ProfileLoop, ProfileReference } from './featureTypes'
+import type {
+  ExtrudeResultType,
+  FeatureStack,
+  ProfileLoop,
+  ProfileReference,
+  SketchPlaneTransform,
+} from './featureTypes'
 
 type Point2 = {
   x: number
@@ -26,6 +32,7 @@ export type IRSketch = {
   op: 'sketch'
   featureId: string
   plane?: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
   profilesResolved: IRSketchProfileResolved[]
 }
 
@@ -40,10 +47,12 @@ export type IRExtrude = {
   op: 'extrude'
   featureId: string
   profileRef: IRProfileReference | null
+  extrudeType: ExtrudeResultType
   depthResolved: number
   taperResolved: number
   offsetResolved: number
   plane?: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
   bodyId?: string
 }
 
@@ -97,6 +106,7 @@ export const compileFeatureStack = (stack: FeatureStack): FeatureStackIR => {
         op: 'sketch',
         featureId: feature.featureId,
         plane: feature.plane,
+        planeTransform: feature.planeTransform,
         profilesResolved,
       })
       continue
@@ -154,6 +164,7 @@ export const compileFeatureStack = (stack: FeatureStack): FeatureStackIR => {
       op: 'extrude',
       featureId: feature.featureId,
       profileRef,
+      extrudeType: feature.params.extrudeType ?? 'Body',
       depthResolved: resolveNumberExpression(feature.params.depth),
       taperResolved: resolveNumberExpression(
         feature.params.taper ?? {

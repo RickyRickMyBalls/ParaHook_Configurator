@@ -10,6 +10,11 @@ import {
 } from '../features/featureDependencies'
 import { isFeatureVirtualInputPortId } from '../features/featureVirtualPorts'
 import { getNodeDef, type NodeUiSection } from '../registry/nodeRegistry'
+import {
+  mapWholeNumberToGeometryExtrudeType,
+  readGeometryExtrudeTypeFromParams,
+  type GeometryExtrudeType,
+} from '../registry/nodeRegistry'
 import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import {
   normalizeOutputPreviewParams,
@@ -220,7 +225,9 @@ export type SketchNodeVm = {
 }
 
 export type ExtrudeNodeVm = {
-  extrudeType: 'Basic' | 'Twist'
+  extrudeType: GeometryExtrudeType
+  localExtrudeType?: GeometryExtrudeType
+  typeDriven?: boolean
   effectiveDepthMm: number
   depthDriven: boolean
   hasProfile: boolean
@@ -582,11 +589,19 @@ const buildNodeVm = (
         return undefined
       }
 
-      const rawType =
-        typeof node.params.extrudeType === 'string' &&
-        (node.params.extrudeType === 'Basic' || node.params.extrudeType === 'Twist')
-          ? node.params.extrudeType
-          : 'Basic'
+      const rawType = readGeometryExtrudeTypeFromParams(node.params)
+      const wholeIncomingForType = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'Type' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+      const typeInput = evaluation.inputsByNodeId[node.nodeId]?.Type
+      const effectiveType =
+        wholeIncomingForType.length > 0 &&
+        typeof typeInput === 'number' &&
+        Number.isFinite(typeInput)
+          ? mapWholeNumberToGeometryExtrudeType(typeInput)
+          : rawType
       const rawDepth = node.params.depthMm
       const localDepthMm =
         typeof rawDepth === 'number' && Number.isFinite(rawDepth) ? rawDepth : 20
@@ -600,9 +615,10 @@ const buildNodeVm = (
           edge.to.portId === 'Depth' &&
           (edge.to.path === undefined || edge.to.path.length === 0),
       )
-
       return {
-        extrudeType: rawType,
+        extrudeType: effectiveType,
+        localExtrudeType: rawType,
+        typeDriven: wholeIncomingForType.length > 0,
         effectiveDepthMm,
         depthDriven: wholeIncomingForDepth.length > 0,
         hasProfile: isProfileOutputLike(profileInput),

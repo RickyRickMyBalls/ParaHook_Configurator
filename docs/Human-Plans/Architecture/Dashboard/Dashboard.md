@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+79. 2026-04-04 19:30: Closed `Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md` `Phase 12.2 - Smart Align Toggle For Non-Overlapping Stack Alignment` after shipping the lane-local toggle plus non-overlapping align widening through `DashboardSurface.tsx` and focused AppShell regressions, then updated this umbrella doc so the `Dashboard-12` layout-tools ladder now reads as landed through both the grid action and smart-align follow-on
+78. 2026-04-04 19:33: Tightened `Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md` by preparing `Phase 12.2 - Smart Align Toggle For Non-Overlapping Stack Alignment` for implementation around the live lane-local align seam plus the shipped real-note bounds contract in `DashboardSurface.tsx`, then updated this umbrella doc so the next dashboard layout-tools command now reads as that explicit visible-toggle smart-align widening pass
+77. 2026-04-04 19:10: Closed `Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md` `Phase 12.1 - Arrange Notes Into A Lane Grid` after shipping the lane-local grid arrange action through `DashboardSurface.tsx` plus focused AppShell coverage, then updated this umbrella doc so the next dashboard layout-tools command now reads as `Phase 12.2 - Smart Align Toggle For Non-Overlapping Stack Alignment`
+76. 2026-04-04 19:08: Added the dedicated future doc `Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md` so the next dashboard lane-layout-tool follow-on now has one canonical planning home for one-shot lane grid arrangement plus the later smart-align toggle widening, and updated this umbrella doc so the next `Dashboard-12` planning read points there instead of leaving those new layout actions only in chat
+75. 2026-04-04 18:37: Added `Phase 12 - Dashboard Top Shell Cleanup` inside `Future/Dashboard_Phase Dashboard-7 - Dashboard Board Tools And Surface Polish Backlog.md` so the remaining dashboard top-panel and board-shell cleanup now has its own explicit later phase after the sticky-note attachment and sizing ladder, and updated this umbrella doc so that future dashboard-shell polish is now named directly instead of living only as a loose earlier `Phase 7` note
 74. 2026-04-04 14:29: Closed `Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md` `Phase 10.5 - Sticky Note Focus Lift` after shipping the temporary double-click lifted-note override on top of the attachment-aware stack order, then updated this umbrella doc so the next dashboard attachment follow-on now returns to `Phase 11` direct-drag child detach
 73. 2026-04-04 14:25: Tightened `Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md` by preparing `Phase 10.5 - Sticky Note Focus Lift` for implementation around the shipped attachment-aware stack order in `DashboardSurface.tsx`, the sticky-note shell interactions in `DashboardStickyNoteCard.tsx`, and the focused AppShell overlap regressions, then updated this umbrella doc so the next dashboard attachment-and-resize command now reads as one explicit temporary double-click front-lift override pass
 72. 2026-04-04 13:33: Closed `Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md` `Phase 10.4 - Attachment Stack Layering Polish` after shipping attachment-aware sticky-note render ordering so children stay visually above parents at rest and during parent-subtree drag, then updated this umbrella doc so the next dashboard attachment-and-resize command now reads as `Phase 10.5 - Sticky Note Focus Lift`
@@ -127,6 +132,9 @@ The next backlog phase doc now lives in:
 The next attachment-and-resize phase doc now lives in:
 - `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-7.10 - Sticky Attachment Bounds And Resizable Notes.md`
 
+The next dashboard layout-tools phase doc now lives in:
+- `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md`
+
 The previously implementation-ready phase doc now lives in:
 - `docs/Human-Plans/Architecture/Dashboard/Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md`
 
@@ -212,11 +220,15 @@ That `Phase 7` next backlog now means:
   - `Phase 10.4` has now shipped there for default attachment stack layering so children stay visually above parents even while the parent subtree is dragged
   - `Phase 10.5` has now shipped there for the temporary double-click focus-lift override without permanently breaking the attachment-derived stack order
 - `Phase 11` is now the implementation-ready next command after the attachment-hit and resizing ladder stabilised
-- the remaining backlog is now split into:
-  - `Phase 6` for selection-aware burger-menu actions
-  - `Phase 7` for dashboard shell and global lane-height polish
-  - `Dashboard-7.10` for sticky attachment bounds and resizable notes
-  - `Phase 11` for child detachment by direct drag
+- `Phase 12` now follows in `Dashboard-7` as the later dashboard top-shell cleanup bucket for thinning and calming the top board chrome after the sticky-note stack work
+- the next dedicated `Dashboard-12` layout-tools follow-on now lives in `Future/Dashboard_Phase Dashboard-12 - Lane Layout Tools And Smart Align.md`
+  - `Phase 12.1` there has now shipped as the one-shot lane grid arrange action
+  - `Phase 12.2` there has now shipped as the smart-align toggle widening for non-overlapping vertical and horizontal stack alignment
+  - the remaining backlog is now split into:
+    - `Phase 6` for selection-aware burger-menu actions
+    - `Phase 7` for dashboard shell and global lane-height polish
+    - `Dashboard-7.10` for sticky attachment bounds and resizable notes
+    - `Phase 11` for child detachment by direct drag
 
 Use this file for:
 - feature intent

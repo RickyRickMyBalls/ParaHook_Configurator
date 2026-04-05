@@ -2303,6 +2303,231 @@
   gap: 4px;
 }
 
+.SpaghettiPortPrimitiveValueRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 15px 1px minmax(0, 1fr) 1px 15px;
+  align-items: center;
+  width: 100%;
+  height: 14px;
+  min-height: 14px;
+  overflow: hidden;
+}
+
+.SpaghettiPortMain--primitiveValue {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.SpaghettiPortPrimitiveEndcap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  min-width: 15px;
+  min-height: 14px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(241, 243, 248, 0.92);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  cursor: pointer;
+  box-sizing: border-box;
+  appearance: none;
+  font-size: 0;
+  border-radius: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.SpaghettiPortPrimitiveEndcap:hover,
+.SpaghettiPortPrimitiveEndcap:focus-visible {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 1);
+}
+
+.SpaghettiPortPrimitiveEndcap--left {
+  grid-column: 1;
+}
+
+.SpaghettiPortPrimitiveEndcap--right {
+  grid-column: 5;
+}
+
+.SpaghettiPortPrimitiveEndcap:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
+}
+
+.SpaghettiPortPrimitiveEndcapIcon {
+  display: block;
+  width: 6px;
+  height: 7px;
+  overflow: visible;
+  margin: 0 auto;
+}
+
+.SpaghettiPortPrimitiveEndcap--left .SpaghettiPortPrimitiveEndcapIcon {
+  transform: translateX(-1px);
+}
+
+.SpaghettiPortPrimitiveEndcap--right .SpaghettiPortPrimitiveEndcapIcon {
+  transform: translateX(-3px);
+}
+
+.SpaghettiPortPrimitiveEndcapIcon polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.SpaghettiPortPrimitiveDivider {
+  align-self: center;
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.SpaghettiPortPrimitiveLane {
+  position: relative;
+  grid-column: 3;
+  min-width: 0;
+  height: 14px;
+  min-height: 14px;
+  overflow: hidden;
+  cursor: ew-resize;
+  background: transparent;
+}
+
+.SpaghettiPortPrimitiveFill {
+  position: absolute;
+  inset: 1px auto 1px 0;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sp-port-color) 40%, rgba(255, 255, 255, 0.08) 60%) 0%,
+    color-mix(in srgb, var(--sp-port-color) 22%, rgba(255, 255, 255, 0.04) 78%) 100%
+  );
+  pointer-events: none;
+}
+
+.SpaghettiPortPrimitiveValueMarker {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(247, 249, 255, 0.96);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.42);
+  pointer-events: none;
+}
+
+.SpaghettiPortPrimitiveLaneContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 14px;
+  padding: 0 6px 0 4px;
+}
+
+.SpaghettiPortPrimitiveLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 14px;
+  color: rgba(241, 243, 248, 0.95);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 14px;
+  pointer-events: none;
+}
+
+.SpaghettiPortPrimitiveValueWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  min-height: 14px;
+  line-height: 14px;
+  pointer-events: none;
+}
+
+.SpaghettiPortPrimitiveValueInput {
+  width: 56px;
+  min-width: 56px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(247, 249, 255, 0.96);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  vertical-align: middle;
+  text-align: right;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  pointer-events: auto;
+}
+
+.SpaghettiPortPrimitiveValueInput::-webkit-outer-spin-button,
+.SpaghettiPortPrimitiveValueInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.SpaghettiPortPrimitiveUnit {
+  color: rgba(247, 249, 255, 0.96);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+}
+
+.SpaghettiPortPrimitiveDrivenMessage {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.SpaghettiPort--driven .SpaghettiPortPrimitiveFill {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sp-port-color) 20%, rgba(255, 255, 255, 0.04) 80%) 0%,
+    color-mix(in srgb, var(--sp-port-color) 10%, rgba(255, 255, 255, 0.03) 90%) 100%
+  );
+}
+
+.SpaghettiPort--driven .SpaghettiPortPrimitiveValueMarker {
+  background: rgba(232, 236, 247, 0.58);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.28);
+}
+
+.SpaghettiPort--driven .SpaghettiPortPrimitiveLabel,
+.SpaghettiPort--driven .SpaghettiPortPrimitiveValueInput,
+.SpaghettiPort--driven .SpaghettiPortPrimitiveUnit {
+  opacity: 0.78;
+}
+
 .SpaghettiPortChevron {
   min-width: 16px;
   min-height: 16px;
@@ -3260,17 +3485,427 @@
   left: calc(-4px - (var(--sp-port-dot-size, 8px) / 2));
 }
 
+.SpaghettiExtrudeInputStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.SpaghettiExtrudeInputStackPrimary {
+  width: 100%;
+  max-width: 100%;
+}
+
+.SpaghettiPortMain--enumValue {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-color: color-mix(in srgb, var(--sp-port-color) 78%, rgba(255, 255, 255, 0.9) 22%);
+}
+
+.SpaghettiPortEnumValueRow,
+.SpaghettiEnumInputRow {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.SpaghettiPortEnumValueRow {
+  width: 100%;
+  min-width: 0;
+  display: block;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelect,
+.SpaghettiEnumInputRow .ParaSelect {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) 15px;
+  align-items: center;
+  min-height: 14px;
+  height: 14px;
+}
+
+.SpaghettiPortEnumValueRow button.ParaSelectCap,
+.SpaghettiPortEnumValueRow button.ParaSelectCap:hover,
+.SpaghettiEnumInputRow button.ParaSelectCap,
+.SpaghettiEnumInputRow button.ParaSelectCap:hover {
+  width: 15px;
+  min-width: 15px;
+  min-height: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(241, 243, 248, 0.92);
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+
+.SpaghettiPortEnumValueRow button.ParaSelectCap--left,
+.SpaghettiEnumInputRow button.ParaSelectCap--left {
+  grid-column: 1;
+}
+
+.SpaghettiPortEnumValueRow button.ParaSelectCap--right,
+.SpaghettiEnumInputRow button.ParaSelectCap--right {
+  grid-column: 3;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectCapIcon,
+.SpaghettiEnumInputRow .ParaSelectCapIcon {
+  display: block;
+  width: 6px;
+  height: 7px;
+  overflow: visible;
+  margin: 0 auto;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectCap--left .ParaSelectCapIcon,
+.SpaghettiEnumInputRow .ParaSelectCap--left .ParaSelectCapIcon {
+  transform: translateX(-1px);
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectCap--right .ParaSelectCapIcon,
+.SpaghettiEnumInputRow .ParaSelectCap--right .ParaSelectCapIcon {
+  transform: translateX(-3px);
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectCapIcon polyline,
+.SpaghettiEnumInputRow .ParaSelectCapIcon polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrack,
+.SpaghettiEnumInputRow .ParaSelectTrack {
+  position: relative;
+  grid-column: 2;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0;
+  min-height: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrack--custom,
+.SpaghettiEnumInputRow .ParaSelectTrack--custom {
+  overflow: visible;
+  isolation: isolate;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrack--custom.isMenuOpen,
+.SpaghettiEnumInputRow .ParaSelectTrack--custom.isMenuOpen {
+  z-index: 30;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrack::before,
+.SpaghettiPortEnumValueRow .ParaSelectTrack::after,
+.SpaghettiEnumInputRow .ParaSelectTrack::before,
+.SpaghettiEnumInputRow .ParaSelectTrack::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrack::before,
+.SpaghettiEnumInputRow .ParaSelectTrack::before {
+  left: 0;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrack::after,
+.SpaghettiEnumInputRow .ParaSelectTrack::after {
+  right: 0;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectTrackButton,
+.SpaghettiPortEnumValueRow .ParaSelectTrackButton:hover,
+.SpaghettiPortEnumValueRow .ParaSelectTrackButton:focus-visible,
+.SpaghettiEnumInputRow .ParaSelectTrackButton,
+.SpaghettiEnumInputRow .ParaSelectTrackButton:hover,
+.SpaghettiEnumInputRow .ParaSelectTrackButton:focus-visible {
+  position: relative;
+  width: 100%;
+  min-height: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectFill,
+.SpaghettiEnumInputRow .ParaSelectFill {
+  position: absolute;
+  inset: 1px auto 1px 1px;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sp-port-color) 42%, rgba(255, 255, 255, 0.08) 58%) 0%,
+    color-mix(in srgb, var(--sp-port-color) 22%, rgba(255, 255, 255, 0.04) 78%) 100%
+  );
+  pointer-events: none;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectValueMarker,
+.SpaghettiEnumInputRow .ParaSelectValueMarker {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(247, 249, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.42);
+  pointer-events: none;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectValueHandle,
+.SpaghettiEnumInputRow .ParaSelectValueHandle {
+  top: 1px;
+  bottom: 1px;
+  width: 6px;
+  margin-left: -3px;
+  z-index: 2;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectValueHandle::before,
+.SpaghettiEnumInputRow .ParaSelectValueHandle::before {
+  width: 2px;
+  background: rgba(247, 249, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.42);
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectContent,
+.SpaghettiEnumInputRow .ParaSelectContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 14px;
+  padding: 0 8px 0 4px;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectLabel,
+.SpaghettiPortEnumValueRow .ParaSelectValue,
+.SpaghettiEnumInputRow .ParaSelectLabel,
+.SpaghettiEnumInputRow .ParaSelectValue {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  letter-spacing: 0;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectLabel,
+.SpaghettiEnumInputRow .ParaSelectLabel {
+  color: rgba(241, 243, 248, 0.95);
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectValue,
+.SpaghettiEnumInputRow .ParaSelectValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(247, 249, 255, 0.96);
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectChevron,
+.SpaghettiEnumInputRow .ParaSelectChevron {
+  opacity: 0.76;
+}
+
+.SpaghettiPortEnumValueRow .ParaSelectMenu,
+.SpaghettiEnumInputRow .ParaSelectMenu {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: -1px;
+  right: -1px;
+  min-width: auto;
+  gap: 0;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--sp-port-color) 52%, rgba(255, 255, 255, 0.24) 48%);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: rgba(22, 25, 33, 0.98);
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow: clip;
+  z-index: 40;
+}
+
+.SpaghettiPortEnumValueRow button.ParaSelectMenuOption,
+.SpaghettiPortEnumValueRow button.ParaSelectMenuOption:hover,
+.SpaghettiEnumInputRow button.ParaSelectMenuOption,
+.SpaghettiEnumInputRow button.ParaSelectMenuOption:hover {
+  min-height: 22px;
+  width: 100%;
+  padding: 0 8px;
+  border: none;
+  border-radius: 0;
+  background: rgba(44, 48, 58, 0.98);
+  color: rgba(241, 243, 248, 0.94);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: left;
+}
+
+.SpaghettiPortEnumValueRow button.ParaSelectMenuOption + button.ParaSelectMenuOption,
+.SpaghettiEnumInputRow button.ParaSelectMenuOption + button.ParaSelectMenuOption {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.SpaghettiPortEnumValueRow button.ParaSelectMenuOption:hover,
+.SpaghettiPortEnumValueRow button.ParaSelectMenuOption.isSelected,
+.SpaghettiEnumInputRow button.ParaSelectMenuOption:hover,
+.SpaghettiEnumInputRow button.ParaSelectMenuOption.isSelected {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sp-port-color) 34%, rgba(64, 78, 112, 0.96) 66%) 0%,
+    color-mix(in srgb, var(--sp-port-color) 20%, rgba(42, 54, 82, 0.98) 80%) 100%
+  );
+  color: rgba(248, 250, 255, 0.98);
+}
+
+.SpaghettiPort--driven .SpaghettiPortEnumValueRow .ParaSelectFill {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sp-port-color) 24%, rgba(255, 255, 255, 0.04) 76%) 0%,
+    color-mix(in srgb, var(--sp-port-color) 14%, rgba(255, 255, 255, 0.03) 86%) 100%
+  );
+}
+
+.SpaghettiPort--driven .SpaghettiPortEnumValueRow .ParaSelectValueMarker {
+  background: rgba(232, 236, 247, 0.58);
+  box-shadow: 0 0 0 1px rgba(10, 12, 16, 0.28);
+}
+
+.SpaghettiPort--driven .SpaghettiPortEnumValueRow .ParaSelectLabel,
+.SpaghettiPort--driven .SpaghettiPortEnumValueRow .ParaSelectValue {
+  opacity: 0.78;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 calc(var(--sp-pin-gutter) - 15px) 0 2px;
+  background: transparent;
+  border-radius: 0;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortMain {
+  --sp-port-color: inherit;
+  --sp-port-main-pad-y: 2px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 18px;
+  height: auto;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortHeaderLeft {
+  margin-left: -10px;
+  gap: 3px;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortHeaderRight {
+  min-width: 0;
+  max-width: 46%;
+  margin-left: auto;
+  align-self: center;
+  overflow: hidden;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortName,
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortType {
+  display: inline-flex;
+  align-items: center;
+  min-height: 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortName {
+  position: static;
+  margin: 0;
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(241, 243, 248, 0.95);
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortType {
+  position: static;
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sp-port-color);
+  opacity: 1;
+}
+
+.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .SpaghettiTemplateSection--outputs {
   order: 3;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiNodePortColumn--out {
+.SpaghettiTemplateSection--outputs .SpaghettiNodePortColumn--out,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiNodePortColumn--out {
   width: calc(50% - 2px);
   max-width: calc(50% - 2px);
   margin-left: auto;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out {
   width: 100%;
   margin-left: auto;
   margin-right: 0;
@@ -3283,11 +3918,13 @@
   border-color: color-mix(in srgb, var(--sp-port-color) 42%, rgba(96, 122, 172, 0.34));
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPortAnchor--out {
+.SpaghettiTemplateSection--outputs .SpaghettiPortAnchor--out,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPortAnchor--out {
   right: -8px;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeader {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeader,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortHeader {
   position: relative;
   min-height: 16px;
   width: 100%;
@@ -3298,7 +3935,9 @@
 }
 
 .SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName,
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortName,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortType {
   display: inline-flex;
   align-items: center;
   font-size: 8px;
@@ -3312,7 +3951,8 @@
   opacity: 0.96;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortName {
   position: static;
   grid-row: 1;
   margin: 0;
@@ -3322,7 +3962,8 @@
   color: rgba(226, 234, 248, 0.95);
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortType {
   position: static;
   grid-row: 3;
   align-self: end;
@@ -3332,7 +3973,8 @@
   color: var(--sp-port-color);
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeaderRight {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeaderRight,
+.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortHeaderRight {
   position: static;
   grid-row: 3;
   align-self: end;

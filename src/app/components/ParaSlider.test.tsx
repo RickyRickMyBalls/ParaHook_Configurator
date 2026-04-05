@@ -210,6 +210,46 @@ describe('ParaSlider', () => {
     expect(handleClampChange).toHaveBeenNthCalledWith(2, { min: 0.65, max: 0.9 })
   })
 
+  it('disables direct value editing and track focus when disabled', async () => {
+    const handleChange = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSlider
+          label="Depth"
+          min={0.1}
+          max={2000}
+          step={0.1}
+          value={20}
+          disabled
+          onChange={handleChange}
+          formatValue={(nextValue) => `${nextValue.toFixed(1)} mm`}
+          displayValue="20 mm"
+          hideCaps
+        />,
+      )
+    })
+
+    const track = container.querySelector('.ParaSliderTrack') as HTMLDivElement | null
+    const valueButton = container.querySelector(
+      'button[aria-label="Edit Depth value"]',
+    ) as HTMLButtonElement | null
+
+    expect(track?.getAttribute('tabindex')).toBe('-1')
+    expect(track?.getAttribute('aria-disabled')).toBe('true')
+    expect(valueButton?.disabled).toBe(true)
+
+    await act(async () => {
+      valueButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('input[aria-label="Edit Depth value"]')).toBeNull()
+    expect(handleChange).not.toHaveBeenCalled()
+  })
+
   it('uses 10x finer sensitivity and step quantization while shift-dragging the value', async () => {
     const handleChange = vi.fn()
     container = document.createElement('div')
