@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+24. 2026-04-06 21:02: Added the new standalone future phase doc for `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership`, and tightened the fly-navigation family so the next runtime cut now has its own implementation-ready planning surface grounded in the finished `Camera-6.1` seam audit
+23. 2026-04-06 20:52: Marked `[Camera-6.1] Fly Navigation Research And Seam Audit` complete after locking the live viewer pointer seam, shared keyboard-routing seam, console auto-capture dependency, camera-controller helper direction, and viewport-local `contextmenu` suppression seam, and advanced the fly-navigation family so `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership` is now the next open runtime cut
+22. 2026-04-06 20:33: Broke the new fly-navigation work into a small `Camera-6.*` ladder, added the standalone future phase doc for `[Camera-6.1] Fly Navigation Research And Seam Audit`, and recast `Camera-6` as the umbrella fly-navigation family phase so implementation can start from one concrete seam read before keyboard, camera-motion, and context-menu changes land
+21. 2026-04-06 20:20: Added the new standalone future phase doc for `[Camera-6] Hold-To-Fly First-Person Camera Navigation`, so the camera-controls family now has an implementation-ready planning surface for temporary RMB-held fly navigation with WASD vertical movement, console input blocking, and viewport context-menu suppression on fly release
 20. 2026-03-27 19:44: Renamed the live camera-controls phase ladder from `5.0H-*` to `Camera-*`, moved the standalone phase docs to matching `Camera-1` through `Camera-5.1` filenames, and kept the older `5.0H-*` labels only in historical log entries so the family can start phasing out the mixed numbering system cleanly
 19. 2026-03-27 17:50: Added the new standalone future phase doc for `[5.0H-5.1] Viewer Object Window Selection`, so the camera-controls family now gives 3D viewer marquee selection its own implementation-ready planning surface under `Future/` instead of leaving it implied under the broader shared input-owner follow-on
 18. 2026-03-22 22:32: Marked `[5.0H-4] Camera Console Commands` complete after shipping the first root/scoped `Zoom` family plus console `Pan` / `Orbit`, moved the standalone phase record into `Shipped/`, and advanced the camera-controls family so only the later shared input-owner model remains open
@@ -49,6 +53,9 @@ Use this folder like this:
 - `Future/`
   - later standalone camera-controls execution docs if the family needs them
   - `Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`
+  - `Camera_Controls_Phase Camera-6 - Hold-To-Fly First-Person Camera Navigation.md`
+  - `Camera_Controls_Phase Camera-6.1 - Fly Navigation Research And Seam Audit.md`
+  - `Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
 - `Shipped/`
   - later shipped records for completed camera-controls cuts if the family grows enough to justify them
   - `Camera_Controls_Phase Camera-1 - Sketch Draw Camera Blocking.md`
@@ -63,6 +70,9 @@ Current phase ladder:
 - `[Camera-4] Camera Console Commands`
 - `[Camera-5] Shared View Input Owner Model`
 - `[Camera-5.1] Viewer Object Window Selection`
+- `[Camera-6] Hold-To-Fly First-Person Camera Navigation`
+- `[Camera-6.1] Fly Navigation Research And Seam Audit`
+- `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership`
 
 ### Why This Doc Exists
 
@@ -519,3 +529,37 @@ CheckList:
 - [ ] support right-to-left `Crossing` selection with intersection capture
 - [ ] keep gizmo/widget hits and camera gestures from stealing an active marquee drag after selection owns the pointer
 - [ ] push the final captured objects into shared app selection truth instead of a viewer-local selection cache
+
+### [ ] `[Camera-6]` - `Hold-To-Fly First-Person Camera Navigation`
+
+CheckList:
+- [ ] add one standalone future umbrella doc for fly navigation:
+  - [ ] `Future/Camera_Controls_Phase Camera-6 - Hold-To-Fly First-Person Camera Navigation.md`
+- [ ] break fly navigation into narrow subphases before implementation widens across viewer, keyboard, and console seams
+- [ ] use `[Camera-6.1]` to lock the first seam audit and implementation read
+- [ ] follow with one later implementation cut for temporary `RMB`-held fly navigation once the seam audit is concrete
+
+### [x] `[Camera-6.1]` - `Fly Navigation Research And Seam Audit`
+
+CheckList:
+- [x] add one standalone future phase doc for the fly-navigation seam audit:
+  - [x] `Future/Camera_Controls_Phase Camera-6.1 - Fly Navigation Research And Seam Audit.md`
+- [x] audit the current viewer pointer, keyboard, and camera-controller seams that would own fly mode
+- [x] identify how fly mode should suppress console typing without weakening the broader input-routing model
+- [x] identify how viewport-local `contextmenu` suppression should attach to the same `RMB` fly interaction
+- [x] decide whether the first implementation cut should remain non-pointer-lock and perspective-only
+- [x] record the recommended narrow follow-on implementation slice after the seam audit
+
+### [ ] `[Camera-6.2]` - `Hold-To-Fly Runtime And Input Ownership`
+
+CheckList:
+- [ ] add one standalone future phase doc for the first fly runtime cut:
+  - [ ] `Future/Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
+- [ ] let held `RMB` arm a temporary fly session in the model viewport when no higher-priority viewer owner already claims the interaction
+- [ ] route mouse look plus:
+  - [ ] `W` / `A` / `S` / `D` for planar movement
+  - [ ] `Space` and `Shift` for vertical movement
+- [ ] add one explicit keyboard-routing owner so console auto-capture stands down while fly mode is active
+- [ ] keep existing viewer shortcuts like gizmo `W` / `E` / `R` / `Q` dormant while fly mode owns the keyboard
+- [ ] add viewport-local `contextmenu` suppression for the same fly interaction
+- [ ] stop fly movement immediately on `RMB` release and restore the normal camera/input ownership path cleanly

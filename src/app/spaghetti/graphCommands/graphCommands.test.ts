@@ -55,6 +55,23 @@ describe('graphCommands', () => {
     expect(graph.ui).toBeUndefined()
   })
 
+  it('addNode can stamp the initial node mode for a newly created node', () => {
+    const graph = baseGraph()
+    const command = addNode({
+      node: {
+        nodeId: 'node-c',
+        type: 'Part/HeelKick',
+        params: {},
+      },
+      nodeMode: 'expanded',
+    })
+    const next = command(graph)
+
+    expect(next.ui?.nodeModesByNodeId).toEqual({
+      'node-c': 'expanded',
+    })
+  })
+
   it('removeNode removes the node and related edges', () => {
     const graph = baseGraph()
     const next = removeNode('node-a')(graph)

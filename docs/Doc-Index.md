@@ -4,6 +4,12 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+226. 2026-04-06 10:44: Clarified the architecture phase-planning rules so the default pattern is one plan doc with internal `Phase 1`, `Phase 2`, `Phase 3` sections, and child docs like `3.1`, `3.2`, `3.3` are only for cases where one internal phase becomes large enough to need its own multi-phase ladder
+225. 2026-04-06 10:37: Extended the architecture planning rules to cover parent future docs like `Extrude-3` that branch into child ladders such as `Extrude-3.1`, `Extrude-3.2`, and `Extrude-3.3`, each with its own dedicated plan doc and internal `Phase 1`, `Phase 2`, `Phase 3` breakdown when needed
+224. 2026-04-06 10:31: Added an `Architecture Phase Setup Rule` that standardizes the flow from a new umbrella phase entry in a family index to a matching `Future/` plan doc with its own `Doc Header` / `Doc Body` and numbered `## [ ]` or `## [x]` subphases, so Codex has one clearer setup pattern for architecture index files and phase-plan files
+223. 2026-04-06 10:23: Tightened the repo-wide `Doc History Rule` so it now states the numbering order explicitly: history starts at `1`, each new entry increments by `1`, new entries are inserted at the top, and the top entry must therefore always be the highest number
+222. 2026-04-06 10:18: Added a shared `Architecture Doc Outline Rule` so architecture family docs have one clear default outline shape for umbrella indexes and standalone phase docs, and mirrored that guidance in `docs/Human-Plans/Architecture/Architecture Setup.md` to keep the local folder setup note aligned with the repo-wide docs rules
+221. 2026-04-06 08:17: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md` as the dedicated future home for the post-`Extrude-3.2` direction selector and depth-row branching lane, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the broader Extrude lane now points directly at that focused `3.3` follow-on, and kept the docs maps aligned with the new future phase
 220. 2026-04-05 11:19: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md` as the dedicated future home for the first post-`Extrude-3.1` authored-semantics lock, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the broader Extrude lane now points at that focused `3.2` follow-on directly, and kept the docs maps aligned with the new future phase
 219. 2026-04-05 09:41: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md` as the dedicated future home for task `1` from the broader `Extrude-3` lane, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the new reusable enum-row direction is explicit, and kept the docs maps aligned with that new focused Extrude phase
 218. 2026-04-05 09:22: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md` as the next dedicated Extrude-family task-stack doc for getting the feature working more properly, refreshed `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family index now points at that new `Type`-first lane, and kept the published docs listings aligned with the added future phase
@@ -364,11 +370,101 @@ Use it to answer:
 - use `## Doc Body` for the main content the user works inside most often
 - inside `Doc Body`, use deeper heading levels so VS Code can collapse whole sections cleanly
 
+#### Architecture Doc Outline Rule
+
+- architecture docs under `docs/Human-Plans/Architecture/` should keep one obvious distinction between:
+  - umbrella family docs that explain a feature lane
+  - standalone phase docs that drive one narrower execution slice
+- umbrella family docs should usually read in this order:
+  - family purpose and scope
+  - current architecture direction or bottom-line position
+  - current phase ladder, checklist, or family map
+  - deeper questions, decisions, and links to standalone phase docs
+- standalone phase docs should usually read in this order:
+  - phase goal and scope
+  - locked direction or non-goals
+  - questions and decisions that affect implementation
+  - implementation spec, checklist, or shipped notes
+- avoid mixing long-lived family explanation and one-off execution detail at the same heading level when a dedicated phase doc would keep the umbrella doc cleaner
+- if an umbrella architecture doc grows large, keep the umbrella doc as the scan surface and move execution-heavy detail into `Future/` or `Shipped/` docs instead of letting the root doc become the only place that holds everything
+
+#### Architecture Phase Setup Rule
+
+- when a new architecture idea belongs to an existing family, set it up in two linked layers:
+  - the family index gets one umbrella phase entry
+  - `Future/` gets one dedicated plan doc for that umbrella phase
+- the family index entry should:
+  - introduce the umbrella phase name
+  - explain the short purpose and boundary of the idea
+  - link to the dedicated `Future/` plan doc
+  - include a short phase breakdown only when that helps the reader scan the expected subphases
+- the matching `Future/` plan doc should use the normal canonical shape:
+  - `# <Phase Name>`
+  - `## Doc Header`
+  - `## Doc Body`
+- default pattern:
+  - one `Future/` plan doc should hold the real implementation breakdown for that idea
+  - inside that plan doc, the work should usually be broken into internal `##` sections such as `Phase 1`, `Phase 2`, and `Phase 3`
+- each breakdown section should:
+  - represent one concrete subphase or implementation slice
+  - start with one checklist marker such as `[ ]`, `[~]`, or `[x]`
+  - use a stable numbered name such as `<Family/Phase> - Phase 1 - <Title>`
+- preferred flow:
+  - capture the new idea first as one umbrella phase in the family index
+  - then create the matching `Future/` plan doc
+  - then break that plan doc into numbered `##` subphases
+  - later, when a subphase becomes large enough to deserve its own standalone doc, split it out without making the family index compete as a second execution source
+- default ownership rule:
+  - the family index is the scan surface
+  - the `Future/` plan doc is the execution-planning surface
+  - deeper standalone subphase docs are optional follow-ons when one subphase becomes too large for the shared plan doc
+- command-intent rule:
+  - the phase breakdown should be explicit enough that a later instruction like `prep phase 2` or `implement phase 1` has one obvious meaning from the current plan-doc context
+- naming should stay consistent inside one family, but older filename variations can remain when they are already established and not causing confusion
+
+#### Architecture Child-Phase Ladder Rule
+
+- some `Future/` plan docs are themselves umbrella ladders rather than final execution homes
+- this is the exception pattern, not the default
+- first prefer one plan doc with internal `Phase 1`, `Phase 2`, `Phase 3` sections
+- use this pattern when one future phase is broad enough to break into named child phases such as:
+  - `Extrude-3`
+  - `Extrude-3.1`
+  - `Extrude-3.2`
+  - `Extrude-3.3`
+- in that case, the parent `Future/` doc should act as the roadmap umbrella for the child ladder
+- the parent doc should usually:
+  - explain the broader phase purpose
+  - list the child phases in order
+  - link to any dedicated child docs
+  - record which child phases are shipped versus still open
+  - avoid remaining the only detailed implementation source once a child phase has its own dedicated doc
+- each child phase doc should then become its own planning surface
+- when a child phase doc still needs further breakdown, it may use numbered internal sections such as:
+  - `## [ ] <Child Phase> Phase 1 - <Title>`
+  - `## [ ] <Child Phase> Phase 2 - <Title>`
+  - `## [x] <Child Phase> Phase N - <Title>`
+- preferred nesting order:
+  - family index
+  - parent `Future/` umbrella doc
+  - child phase doc such as `3.1` or `3.2`
+  - internal `Phase 1`, `Phase 2`, `Phase 3` sections inside that child doc when needed
+- split a child phase into its own doc when:
+  - the child has its own real execution ladder
+  - the parent umbrella doc would become too dense if all of that detail stayed inline
+  - the child needs durable history that should not be buried inside the parent roadmap
+- if the plan doc is still readable and one later command like `implement phase 1` can still resolve clearly inside that single doc, do not split it into `3.1` / `3.2` child docs yet
+- once a child doc exists, keep the parent umbrella doc as the roadmap surface and keep the child doc as the detailed planning surface instead of duplicating the full implementation spec in both places
+
 #### Doc History Rule
 
 - this is the canonical repo-wide rule for local `Doc History` sections under `docs/`
 - docs created or edited under `docs/` should maintain a local `Doc History` section near the top unless the doc is intentionally temporary
-- `Doc History` entries should be numbered newest-first
+- `Doc History` numbering starts at `1` for the first recorded entry
+- each new `Doc History` entry increments that number by `1`
+- new `Doc History` entries are inserted at the top of the list
+- because new entries are added at the top, the top entry must always have the highest number
+- do not renumber older entries when adding a new one unless the history block is already incorrect and needs repair
 - each entry should include:
   - `YYYY-MM-DD HH:MM`
   - a short one-line description of the doc change
@@ -756,6 +852,7 @@ Rule notes:
             - `Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
             - `Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
             - `Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md`
+            - `Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md`
             - `Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md`
             - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-2 - SketchDraw Staged Command Routing.md`
             - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-3 - Shared Sketch Command Tree And Scope Providers.md`

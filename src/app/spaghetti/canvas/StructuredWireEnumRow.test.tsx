@@ -98,6 +98,7 @@ describe('StructuredWireEnumRow', () => {
     expect(marker?.style.left).toBe('0%')
 
     await act(async () => {
+      next?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
       next?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
@@ -114,7 +115,7 @@ describe('StructuredWireEnumRow', () => {
     expect(marker?.style.left).toBe('0%')
   })
 
-  it('opens the menu from the track and supports dragging the visible handle', async () => {
+  it('opens the menu from the track and commits both menu and native-select changes', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)
     root = createRoot(container)
@@ -176,56 +177,25 @@ describe('StructuredWireEnumRow', () => {
     expect(wallsOption).not.toBeUndefined()
 
     await act(async () => {
+      wallsOption?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
       wallsOption?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     const value = container.querySelector('.ParaSelectValue') as HTMLSpanElement | null
     expect(value?.textContent).toContain('Walls')
 
-    const track = container.querySelector('.ParaSelectTrack') as HTMLDivElement | null
-    const handle = container.querySelector(
-      'button.ParaSelectValueHandle[aria-label="Drag Type selection"]',
-    ) as HTMLButtonElement | null
+    const native = container.querySelector(
+      '.ParaSelectNative[aria-label="Type"]',
+    ) as HTMLSelectElement | null
     const fill = container.querySelector('.ParaSelectFill') as HTMLDivElement | null
 
-    if (track !== null) {
-      track.getBoundingClientRect = () =>
-        ({
-          left: 0,
-          right: 100,
-          top: 0,
-          bottom: 14,
-          width: 100,
-          height: 14,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        }) as DOMRect
-    }
-
     await act(async () => {
-      handle?.dispatchEvent(
-        new PointerEvent('pointerdown', {
-          bubbles: true,
-          cancelable: true,
-          button: 0,
-          clientX: 10,
-        }),
-      )
-      window.dispatchEvent(
-        new PointerEvent('pointermove', {
-          bubbles: true,
-          cancelable: true,
-          clientX: 10,
-        }),
-      )
-      window.dispatchEvent(
-        new PointerEvent('pointerup', {
-          bubbles: true,
-          cancelable: true,
-          clientX: 10,
-        }),
-      )
+      if (native !== null) {
+        native.value = 'Body'
+        native.dispatchEvent(new Event('change', { bubbles: true }))
+      }
     })
 
     expect(value?.textContent).toContain('Body')

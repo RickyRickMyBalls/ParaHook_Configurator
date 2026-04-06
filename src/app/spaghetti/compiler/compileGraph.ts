@@ -8,7 +8,12 @@ import {
   type SketchPlaneTransform,
 } from '../features/featureTypes'
 import { applyFeatureVirtualInputOverrides } from '../features/featureVirtualPorts'
-import { getNodeDef, readGeometryExtrudeTypeFromParams } from '../registry/nodeRegistry'
+import {
+  getNodeDef,
+  mapWholeNumberToGeometryExtrudeDirection,
+  readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeTypeFromParams,
+} from '../registry/nodeRegistry'
 import type { SpaghettiDiagnostic } from './validateGraph'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
 import { tessellateProfileLoop } from './runtimeTessellation'
@@ -72,7 +77,10 @@ type RuntimeFeatureOp =
       featureId: string
       profileRef: { sketchFeatureId: string; profileId: string } | null
       extrudeType: 'Body' | 'Walls'
+      extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
       depthResolved: number
+      startDepthResolved?: number
+      endDepthResolved?: number
       taperResolved: number
       offsetResolved: number
       plane?: 'XY' | 'XZ' | 'YZ'
@@ -139,7 +147,16 @@ const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureS
                 profileId: operation.profileRef.profileId,
               },
         extrudeType: operation.extrudeType,
+        ...('extrudeDirection' in operation && operation.extrudeDirection !== undefined
+          ? { extrudeDirection: operation.extrudeDirection }
+          : {}),
         depthResolved: operation.depthResolved,
+        ...('startDepthResolved' in operation && operation.startDepthResolved !== undefined
+          ? { startDepthResolved: operation.startDepthResolved }
+          : {}),
+        ...('endDepthResolved' in operation && operation.endDepthResolved !== undefined
+          ? { endDepthResolved: operation.endDepthResolved }
+          : {}),
         taperResolved: operation.taperResolved,
         offsetResolved: operation.offsetResolved,
         ...('plane' in operation && operation.plane !== undefined
@@ -290,6 +307,7 @@ const buildGeometryExtrudeOps = (
   const resolvedInputs = resolvedInputsByNodeId?.[node.nodeId] ?? {}
   const profileInput = resolvedInputs.ExtrusionProfile
   const depthInput = resolvedInputs.Depth
+  const directionInput = resolvedInputs.Direction
   const sourceProfileEdge = findWholeIncomingEdge(graph, node.nodeId, 'ExtrusionProfile')
   const sourceSketchNode = graph.nodes.find(
     (candidate) =>
@@ -297,12 +315,34 @@ const buildGeometryExtrudeOps = (
   )
   const plane = readGeometrySketchPlaneFromNode(sourceSketchNode)
   const planeTransform = readGeometrySketchPlaneTransformFromNode(sourceSketchNode)
+  const extrudeDirection =
+    typeof directionInput === 'number' && Number.isFinite(directionInput)
+      ? mapWholeNumberToGeometryExtrudeDirection(directionInput)
+      : readGeometryExtrudeDirectionFromParams(node.params)
   const depthParam =
     typeof node.params.depthMm === 'number' && Number.isFinite(node.params.depthMm)
       ? node.params.depthMm
       : 20
   const depthResolved =
     typeof depthInput === 'number' && Number.isFinite(depthInput) ? depthInput : depthParam
+  const startDepthInput = resolvedInputs.StartDepth
+  const startDepthParam =
+    typeof node.params.startDepthMm === 'number' && Number.isFinite(node.params.startDepthMm)
+      ? node.params.startDepthMm
+      : depthParam
+  const startDepthResolved =
+    typeof startDepthInput === 'number' && Number.isFinite(startDepthInput)
+      ? startDepthInput
+      : startDepthParam
+  const endDepthInput = resolvedInputs.EndDepth
+  const endDepthParam =
+    typeof node.params.endDepthMm === 'number' && Number.isFinite(node.params.endDepthMm)
+      ? node.params.endDepthMm
+      : depthParam
+  const endDepthResolved =
+    typeof endDepthInput === 'number' && Number.isFinite(endDepthInput)
+      ? endDepthInput
+      : endDepthParam
   const profileRef =
     sourceSketchNode !== undefined && isProfileInputLike(profileInput)
       ? {
@@ -339,7 +379,17 @@ const buildGeometryExtrudeOps = (
     featureId: node.nodeId,
     profileRef,
     extrudeType: readGeometryExtrudeTypeFromParams(node.params),
-    depthResolved,
+    extrudeDirection,
+    depthResolved:
+      extrudeDirection === 'TwoSides'
+        ? startDepthResolved + endDepthResolved
+        : depthResolved,
+    ...(extrudeDirection === 'TwoSides'
+      ? {
+          startDepthResolved,
+          endDepthResolved,
+        }
+      : {}),
     taperResolved: 0,
     offsetResolved: 0,
     plane,

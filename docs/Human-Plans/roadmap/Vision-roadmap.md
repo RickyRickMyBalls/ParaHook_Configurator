@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+11. 2026-04-06 11:07: Tightened the north-star geometry and export direction so the vision now explicitly targets graph-authored geometry compiling into a B-rep-capable execution layer whose downstream results feed both preview meshes and clean `.step` export, replacing the stale wording that spoke as if Replicad were already the current worker geometry engine
 10. 2026-03-26 19:02: Updated the vision doc against the newer architecture families so the north-star now explicitly includes real CAD-style authored layers, transform as a cross-surface target-local system, and the hybrid workspace/layout direction instead of leaving those ideas only in the detailed architecture docs
 9. 2026-03-18 21:35: Performed a large cleanup pass to refocus this file as a true vision document, replacing the older lane-and-phase-heavy middle section with cleaner `Core System Shape`, `What Must Stay True`, `Desired End State`, `Major Future Feature Families`, and `High-Level Growth Path` sections while preserving the important product and architecture direction
 8. 2026-03-18 21:22: Tightened the vision doc slightly by adding the long-term app-wide `Console` command-language direction into the higher-level `Product Vision` and `User Experience Shape` sections, so that idea now lives in the north-star document instead of only in the detailed console architecture notes
@@ -72,7 +73,7 @@ The product should eventually feel like:
 - a workspace layout system where major tool surfaces can live in coherent `Windowed`, `Tiled`, and later pop-out placements without becoming separate feature concepts
 - an app-wide `Console` that can later evolve into a command language for navigating and acting across workspace, graph, node, and feature domains
 - real CAD-style authored control systems such as `Layers` and `Transform`, shared across Browser, Console, viewer, and toolbar surfaces instead of being trapped inside one panel
-- a deterministic build pipeline that turns authored graph truth into geometry and exportable outputs
+- a deterministic build pipeline that turns authored graph truth into executable geometry truth, then derives preview meshes and clean exportable outputs from that same downstream result
 
 The intended app is closer to:
 - "node-based CAD studio"
@@ -89,7 +90,7 @@ GraphDocument
    ->
 Compile / Evaluate
    ->
-Graph Runtime Memory
+Geometry Execution Truth
    ->
 Published Output Declaration
    ->
@@ -100,7 +101,8 @@ Viewer / Workspace Presentation
 
 The important direction is:
 - authored graph truth first
-- derived runtime and published-output truth second
+- derived geometry execution truth second
+- published-output truth third
 - project/browser composition third
 - viewer and workspace presentation last
 
@@ -112,6 +114,7 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 
 - Graph-authored state is the intended long-term source of truth for graph-native work.
 - Compile/build/preview memory should stay attached to explicit graph or project identity whenever possible.
+- Preview meshes, exported files, and later publish payloads should derive from the same downstream executed geometry truth rather than each inventing their own geometry owner.
 - Shared services are fine; shared truth is not.
 
 #### 2. General CAD Direction, Not Permanent Foothook Lock-In
@@ -142,6 +145,7 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 - `OutputPreview` is only the first pass of that graph-owned output declaration surface.
 - Output structure should become clearer over time, not more implicit.
 - The Browser should not infer project hierarchy from final meshes alone.
+- Clean export outputs such as `.step` should come from the same explicit geometry handoff, not from a separate export-only geometry reconstruction seam.
 
 #### 5. Build And View Are Different Systems
 
@@ -149,7 +153,7 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 - Viewer-only changes should remain rebuild-free whenever possible.
 - Geometry truth should stay out of viewer presentation state.
 - `Content` rows are part of the build/generate surface, not just passive selection rows.
-- Replicad is the current worker-side geometry engine, so ParaHook should expose chunked rebuild control instead of pretending one giant opaque rebuild is always trustworthy.
+- The current mesh-first runtime is transitional. The long-range execution target should be a B-rep-capable worker seam so chunked rebuild control, preview meshes, and clean CAD export can all stay honest against one executed geometry source.
 
 #### 6. Authored Content Owns Visibility, Layers, And Transform History
 
@@ -179,6 +183,7 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 
 - Node registry contracts, compile IR, worker request/result shapes, routing identity, and output declaration seams should stay explicit.
 - Prefer clear typed seams over implicit reach-in behavior between app, graph, worker, and viewer layers.
+- Geometry nodes should compile toward a kernel-facing contract that can preserve B-rep-capable meaning instead of flattening too early into preview-mesh-only data.
 
 #### 10. Legacy Removal Must Happen By Replacement
 
@@ -202,6 +207,7 @@ ParaHook should keep moving toward explicit ownership at each layer instead of h
 - Worker request/result contracts are graph-native.
 - Compile/build/preview memory is routed by explicit identity.
 - Viewer presentation reads from explicit project/graph output surfaces instead of ad hoc global buckets.
+- Geometry execution should keep enough kernel-facing fidelity that clean `.step` export can come from executed shapes instead of requiring export-time reconstruction from preview meshes.
 - Feature Stack should not be permanently trapped as embedded part-node data.
 
 #### User Experience Shape
@@ -231,7 +237,8 @@ These are the main long-range feature families the product still needs. They are
 - richer sketch and feature authoring
 - cleaner wire, driver, and param readability
 - later feature-stack growth beyond the current thin foundation
-- geometry nodes increasingly aligned with a Replicad-like command vocabulary while still packaged as honest graph-native node surfaces
+- geometry nodes increasingly aligned with a kernel-friendly command vocabulary while still packaged as honest graph-native node surfaces
+- long-range node semantics should be chosen so they can map cleanly into a B-rep-capable execution layer and later clean CAD export
 
 #### 3. Browser And Content Workspace
 
@@ -251,6 +258,7 @@ These are the main long-range feature families the product still needs. They are
 
 - graph-native worker contracts
 - stronger runtime geometry execution and diagnostics
+- a B-rep-capable execution seam that can feed both preview meshing and clean `.step` export
 - explicit publish/output structure
 - truthful row-level build state and later build control
 
@@ -277,6 +285,7 @@ These are the main long-range feature families the product still needs. They are
 #### 9. Export, Ecosystem, And Advanced Systems
 
 - richer export depth
+- clean CAD export grounded in the same executed geometry truth as preview, especially `.step`
 - stronger assembly/composition behavior
 - later publish/receive behavior
 - future advanced systems such as simulation, patterns, and generative tooling
@@ -302,6 +311,7 @@ The broad maturity order should stay:
 
 - replace graph-to-legacy request translation with a graph-native worker contract
 - remove the long-lived `BoxParams` dependency from graph-native execution
+- replace the current preview-mesh-first geometry shortcut with a B-rep-capable execution seam before treating clean CAD export as solved
 - collapse the app-wide `Legacy` versus `Spaghetti` split when the graph-native workspace can stand alone
 
 #### 4. Expand Capability After The Core Is Honest

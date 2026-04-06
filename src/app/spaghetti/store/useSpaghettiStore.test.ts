@@ -1878,7 +1878,7 @@ describe('useSpaghettiStore graph normalization', () => {
     })
   })
 
-  it('setNodeMode omits default essentials entries from stored graph state', () => {
+  it('setNodeMode omits default collapsed entries from stored graph state', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -1897,11 +1897,24 @@ describe('useSpaghettiStore graph normalization', () => {
     }
 
     useSpaghettiStore.getState().setGraph(graph)
-    useSpaghettiStore.getState().setNodeMode('node-baseplate-1', 'essentials')
+    useSpaghettiStore.getState().setNodeMode('node-baseplate-1', 'collapsed')
 
     const state = useSpaghettiStore.getState()
-    expect(selectNodeMode(state, 'node-baseplate-1')).toBe('essentials')
+    expect(selectNodeMode(state, 'node-baseplate-1')).toBe('collapsed')
     expect(state.graph.ui?.nodeModesByNodeId).toBeUndefined()
+  })
+
+  it('cycles the new node spawn mode through collapsed, essentials, and expanded', () => {
+    expect(useSpaghettiStore.getState().newNodeSpawnMode).toBe('collapsed')
+
+    useSpaghettiStore.getState().cycleNewNodeSpawnMode()
+    expect(useSpaghettiStore.getState().newNodeSpawnMode).toBe('essentials')
+
+    useSpaghettiStore.getState().cycleNewNodeSpawnMode()
+    expect(useSpaghettiStore.getState().newNodeSpawnMode).toBe('expanded')
+
+    useSpaghettiStore.getState().cycleNewNodeSpawnMode()
+    expect(useSpaghettiStore.getState().newNodeSpawnMode).toBe('collapsed')
   })
 
   it('setGraph dedupes OutputPreview nodes and removes edges referencing removed duplicates', () => {

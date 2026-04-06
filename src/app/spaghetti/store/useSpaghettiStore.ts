@@ -53,7 +53,7 @@ import { prepareGraphPreviewPreparation, type GraphPreviewPreparation } from '..
 import { getNodeDef } from '../registry/nodeRegistry'
 import { ensureOutputPreviewSingletonPatch } from '../system/ensureOutputPreviewSingleton'
 import { ensureOutputPreviewSlotsPatch } from '../system/ensureOutputPreviewSlots'
-import type { ViewMode } from '../canvas/rowViewMode'
+import { getNextViewMode, type ViewMode } from '../canvas/rowViewMode'
 import type {
   EdgeEndpoint,
   EditorViewport,
@@ -406,6 +406,7 @@ export type SpaghettiStoreState = {
   activeEditorViewportId: string
   editorViewportHeaderCollapsedById: Record<string, boolean>
   editorViewportCanvasToolbarVisibleById: Record<string, boolean>
+  newNodeSpawnMode: NodeRowMode
   editorViewportSelectedNodeIdById: Record<string, string | null>
   editorViewportSelectedEdgeIdById: Record<string, string | null>
   editorViewportConsolePreviewNodeIdById: Record<string, string | null>
@@ -429,6 +430,8 @@ export type SpaghettiStoreState = {
   setManyNodePos: (updates: NodePosUpdate[]) => void
   ensureNodePositions: () => void
   setNodeMode: (nodeId: string, mode: NodeRowMode) => void
+  setNewNodeSpawnMode: (mode: NodeRowMode) => void
+  cycleNewNodeSpawnMode: () => void
   addEdge: (edge: SpaghettiEdge) => void
   removeEdge: (edgeId: string) => void
   insertEdgeWaypoint: (edgeId: string, x: number, y: number, insertIndex?: number) => void
@@ -732,7 +735,7 @@ const defaultXStart = 40
 const defaultYStart = 40
 const defaultXStep = 280
 const defaultYStep = 200
-const defaultNodeRowMode: NodeRowMode = 'essentials'
+const defaultNodeRowMode: NodeRowMode = 'collapsed'
 const defaultEditorViewportId = 'editor-viewport-1'
 // Spawn new floating editors just to the right of the left dock/title-status stack.
 export const defaultViewportPosition: EditorViewportPosition = defaultEditorSurfacePosition
@@ -3143,6 +3146,10 @@ export const selectActiveEditorViewport = (
   state: Pick<SpaghettiStoreState, 'editorViewportsById' | 'activeEditorViewportId'>,
 ): EditorViewport | null => selectEditorViewportById(state, state.activeEditorViewportId)
 
+export const selectNewNodeSpawnMode = (
+  state: Pick<SpaghettiStoreState, 'newNodeSpawnMode'>,
+): NodeRowMode => state.newNodeSpawnMode
+
 export const selectOrderedEditorViewports = (
   state: Pick<SpaghettiStoreState, 'editorViewportsById' | 'editorViewportOrder'>,
 ): EditorViewport[] =>
@@ -3163,6 +3170,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   editorViewportCanvasFitRequest: null,
   editorViewportHeaderCollapsedById: {},
   editorViewportCanvasToolbarVisibleById: {},
+  newNodeSpawnMode: defaultNodeRowMode,
   editorViewportSelectedNodeIdById: {},
   editorViewportSelectedEdgeIdById: {},
   editorViewportConsolePreviewNodeIdById: {},
@@ -3272,6 +3280,17 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         ...withUpdatedActiveGraphDocumentState(state, nextGraph),
       }
     })
+  },
+  setNewNodeSpawnMode: (mode) => {
+    if (!isNodeRowMode(mode)) {
+      return
+    }
+    set({ newNodeSpawnMode: mode })
+  },
+  cycleNewNodeSpawnMode: () => {
+    set((state) => ({
+      newNodeSpawnMode: getNextViewMode(state.newNodeSpawnMode),
+    }))
   },
   addEdge: (edge) => {
     get().applyGraphCommand(addEdgeCommand(edge))

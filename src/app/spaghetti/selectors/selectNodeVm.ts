@@ -11,8 +11,12 @@ import {
 import { isFeatureVirtualInputPortId } from '../features/featureVirtualPorts'
 import { getNodeDef, type NodeUiSection } from '../registry/nodeRegistry'
 import {
+  mapWholeNumberToGeometryExtrudeDirection,
   mapWholeNumberToGeometryExtrudeType,
+  readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeTaperAngleDegFromParams,
   readGeometryExtrudeTypeFromParams,
+  type GeometryExtrudeDirection,
   type GeometryExtrudeType,
 } from '../registry/nodeRegistry'
 import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
@@ -228,8 +232,25 @@ export type ExtrudeNodeVm = {
   extrudeType: GeometryExtrudeType
   localExtrudeType?: GeometryExtrudeType
   typeDriven?: boolean
+  extrudeDirection: GeometryExtrudeDirection
+  localExtrudeDirection?: GeometryExtrudeDirection
+  directionDriven?: boolean
+  localDepthMm: number
   effectiveDepthMm: number
+  depthVisible: boolean
   depthDriven: boolean
+  localStartDepthMm: number
+  effectiveStartDepthMm: number
+  startDepthVisible: boolean
+  startDepthDriven: boolean
+  localEndDepthMm: number
+  effectiveEndDepthMm: number
+  endDepthVisible: boolean
+  endDepthDriven: boolean
+  localTaperAngleDeg?: number
+  effectiveTaperAngleDeg?: number
+  taperVisible: boolean
+  taperDriven?: boolean
   hasProfile: boolean
   profileId?: string
   profileArea?: number
@@ -602,12 +623,51 @@ const buildNodeVm = (
         Number.isFinite(typeInput)
           ? mapWholeNumberToGeometryExtrudeType(typeInput)
           : rawType
+      const rawDirection = readGeometryExtrudeDirectionFromParams(node.params)
+      const wholeIncomingForDirection = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'Direction' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+      const directionInput = evaluation.inputsByNodeId[node.nodeId]?.Direction
+      const effectiveDirection =
+        wholeIncomingForDirection.length > 0 &&
+        typeof directionInput === 'number' &&
+        Number.isFinite(directionInput)
+          ? mapWholeNumberToGeometryExtrudeDirection(directionInput)
+          : rawDirection
       const rawDepth = node.params.depthMm
       const localDepthMm =
         typeof rawDepth === 'number' && Number.isFinite(rawDepth) ? rawDepth : 20
       const depthInput = evaluation.inputsByNodeId[node.nodeId]?.Depth
       const effectiveDepthMm =
         typeof depthInput === 'number' && Number.isFinite(depthInput) ? depthInput : localDepthMm
+      const rawStartDepth = node.params.startDepthMm
+      const localStartDepthMm =
+        typeof rawStartDepth === 'number' && Number.isFinite(rawStartDepth)
+          ? rawStartDepth
+          : localDepthMm
+      const startDepthInput = evaluation.inputsByNodeId[node.nodeId]?.StartDepth
+      const effectiveStartDepthMm =
+        typeof startDepthInput === 'number' && Number.isFinite(startDepthInput)
+          ? startDepthInput
+          : localStartDepthMm
+      const rawEndDepth = node.params.endDepthMm
+      const localEndDepthMm =
+        typeof rawEndDepth === 'number' && Number.isFinite(rawEndDepth)
+          ? rawEndDepth
+          : localDepthMm
+      const endDepthInput = evaluation.inputsByNodeId[node.nodeId]?.EndDepth
+      const effectiveEndDepthMm =
+        typeof endDepthInput === 'number' && Number.isFinite(endDepthInput)
+          ? endDepthInput
+          : localEndDepthMm
+      const localTaperAngleDeg = readGeometryExtrudeTaperAngleDegFromParams(node.params)
+      const taperAngleInput = evaluation.inputsByNodeId[node.nodeId]?.TaperAngle
+      const effectiveTaperAngleDeg =
+        typeof taperAngleInput === 'number' && Number.isFinite(taperAngleInput)
+          ? taperAngleInput
+          : localTaperAngleDeg
       const profileInput = evaluation.inputsByNodeId[node.nodeId]?.ExtrusionProfile
       const profileOutput = evaluation.outputsByNodeId[node.nodeId]?.SolidBody
       const wholeIncomingForDepth = incoming.filter(
@@ -615,12 +675,44 @@ const buildNodeVm = (
           edge.to.portId === 'Depth' &&
           (edge.to.path === undefined || edge.to.path.length === 0),
       )
+      const wholeIncomingForStartDepth = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'StartDepth' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+      const wholeIncomingForEndDepth = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'EndDepth' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+      const wholeIncomingForTaperAngle = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'TaperAngle' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
       return {
         extrudeType: effectiveType,
         localExtrudeType: rawType,
         typeDriven: wholeIncomingForType.length > 0,
+        extrudeDirection: effectiveDirection,
+        localExtrudeDirection: rawDirection,
+        directionDriven: wholeIncomingForDirection.length > 0,
+        localDepthMm,
         effectiveDepthMm,
+        depthVisible: effectiveDirection !== 'TwoSides',
         depthDriven: wholeIncomingForDepth.length > 0,
+        localStartDepthMm,
+        effectiveStartDepthMm,
+        startDepthVisible: effectiveDirection === 'TwoSides',
+        startDepthDriven: wholeIncomingForStartDepth.length > 0,
+        localEndDepthMm,
+        effectiveEndDepthMm,
+        endDepthVisible: effectiveDirection === 'TwoSides',
+        endDepthDriven: wholeIncomingForEndDepth.length > 0,
+        localTaperAngleDeg,
+        effectiveTaperAngleDeg,
+        taperVisible: effectiveType === 'Body' && effectiveDirection === 'OneSide',
+        taperDriven: wholeIncomingForTaperAngle.length > 0,
         hasProfile: isProfileOutputLike(profileInput),
         ...(isProfileOutputLike(profileInput)
           ? {

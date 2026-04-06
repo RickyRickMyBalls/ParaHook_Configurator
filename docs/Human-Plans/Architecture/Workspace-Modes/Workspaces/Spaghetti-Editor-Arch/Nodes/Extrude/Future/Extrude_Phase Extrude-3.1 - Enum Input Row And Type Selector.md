@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-04-05 20:55: Closed `Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace` after the live `Geometry/Extrude` node stopped sourcing unwired `Type` row state from the selector VM alone and now reuses the authored `node.params.extrudeType` as the local source of truth unless a real `Type` wire is driving the row, which re-aligns the visible `Body / Walls` row state with the same compiled/runtime extrude type truth used by the graph and worker paths
+19. 2026-04-05 20:44: Tightened `Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace` into an implementation-ready end-to-end debug slice by grounding it in the exact `NodeView`, `selectNodeVm`, `compileGraph`, and `featureStackRuntime` seams, locking the required proof chain across stored params, selector VM, and built/runtime `extrudeType`, and adding a focused verification target that keeps the next pass diagnostic instead of reopening more row polish
+18. 2026-04-05 20:41: Reopened the `Extrude-3.1` ladder by adding `Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace` after the live app still showed a split between the visible `Type` row state and the actual `Body / Walls` result, locking the next step as one narrow end-to-end truth-trace across node params, selector VM, and compile/runtime output before more row polish happens
+17. 2026-04-05 20:36: Closed `Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace` after the live `Type` row was traced back to a drifted hand-rolled enum interaction path, the row moved back onto the real `ParaSelect` behavior core, node-row drag was re-enabled, and the focused pointer-first enum-row regressions plus selector tests now prove the visible `Body / Walls` write path end-to-end strongly enough to hand the family forward again
+16. 2026-04-05 20:13: Tightened `Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace` into an implementation-ready truth-finding slice by grounding it in the actual live seams across `StructuredWireEnumRow.tsx`, `NodeView.tsx`, `selectNodeVm.ts`, and `SpaghettiCanvas.tsx`, locking the exact write-chain checkpoints that must be proven before any more enum-row redesign happens
+15. 2026-04-05 20:10: Reopened the `Extrude-3.1` ladder by adding `Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace` after the supposedly-final `Phase 6` still failed in the real node surface, locking the next step as a narrow truth-finding slice that traces visible `Type` row interactions through `onChange`, node-param writes, and the next selector/render pass before any more shell or widget redesign happens
+14. 2026-04-05 20:05: Closed `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup` after the live `Extrude Type` row dropped the still-flaky bespoke canvas enum interaction path in favor of a simpler visible-arrow plus center-menu commit flow that keeps the settled node-row shell look while restoring trustworthy local `Body / Walls` selection on the real node surface
+13. 2026-04-05 13:27: Tightened `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup` into an implementation-ready final live-surface slice by grounding it in the now-shipped enum-row ownership and `Body / Walls` semantics work, locking the current strongest read that the remaining bug is real canvas integration rather than enum state, and narrowing the next pass to visible arrows, center menu, and trustworthy live node interaction only
 12. 2026-04-05 13:04: Closed `Extrude 3.1 Phase 5 - Primitive Enum Row Value Ownership Parity` after the shared enum row adopted the same unwired-versus-driven ownership rule already proven by `Depth`, so unwired `Type` rows now stay on the authored `Body / Walls` value while real incoming whole-number wires still own the effective displayed slot and the family now points at `Phase 6` only as a final live-surface cleanup reserve
 11. 2026-04-05 12:57: Reopened the `Extrude-3.1` ladder by adding `Extrude 3.1 Phase 5 - Primitive Enum Row Value Ownership Parity` and `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup`, so the shared enum row now has explicit post-`Phase 4` homes for adopting the same unwired-versus-driven ownership contract already proven by `Depth` and for any final live-surface hardening still needed after that parity repair
 10. 2026-04-05 11:10: Closed `Extrude 3.1 Phase 4 - Enum Row Fill And Endcap Cleanup` after the shared enum row switched onto the sturdier custom `ParaSelect` track path, the enum fill/marker and step arrows started responding through the same shared interaction logic, and the enum endcap chevrons were tightened to the exact settled `Depth` geometry so the full `Extrude-3.1` ladder now reads as finished enum-row groundwork
@@ -74,7 +82,12 @@ Current baseline:
 - `Phase 3.1-5` is now shipped and locks the same value-ownership rule as `Depth`:
   - no wire in -> local authored value owns the row and editing stays enabled
   - wire in -> effective wire value owns the row and local editing is disabled
-- `Phase 3.1-6` is reserved as the final shared enum-row hardening slice if any visible menu/arrow/drag integration gaps still remain after the ownership parity fix lands
+- `Phase 3.1-6` shipped one attempted live-surface repair
+- `Phase 3.1-7` is now also shipped and closes the remaining live write/render drift by restoring the row to the proven `ParaSelect` behavior core and re-enabling the node-row scrub handle
+- `Phase 3.1-8` is now the next follow-on because the live app still shows a possible split between:
+  - the visible `Type` row state
+  - the stored node param
+  - the actual `Body / Walls` result
 
 Locked recommendation:
 - keep the already-shipped shared row foundation as `Phase 3.1-1`
@@ -82,7 +95,9 @@ Locked recommendation:
 - treat the driven whole-number enum-input contract as shipped in `Phase 3.1-3`
 - treat `Phase 3.1-4` as the first post-driven cleanup slice, not the final one
 - treat `Phase 3.1-5` as shipped and aligned with the already-proven `Depth` value-ownership contract
-- keep `Phase 3.1-6` available for final app-surface integration cleanup if the repaired row still needs hardening after `Phase 3.1-5`
+- treat `Phase 3.1-6` as one shipped repair attempt
+- treat `Phase 3.1-7` as the now-shipped final truth-finding and cleanup slice that closes the remaining live `Type` row drift
+- treat `Phase 3.1-8` as one new end-to-end source-of-truth trace before any more enum-row polish or broader authored work resumes
 - hand the later authored-semantics work forward to the broader `Extrude-3` ladder instead of mixing those semantics into the remaining `3.1` row-behavior cleanup
 
 Why this order is healthier:
@@ -141,6 +156,21 @@ Reason:
 6. `Phase 3.1-6 - Enum Row Integration Verification And Cleanup`
 Reason:
 - if the row still has visible menu, arrow, drag, or shell-integration issues after ownership parity lands, those should have one final dedicated cleanup slice instead of being folded into the broader `Extrude-3.2+` semantics ladder
+
+7. `Phase 3.1-7 - Enum Row Live Write And Render Trace`
+Reason:
+- the visible `Type` row still does not behave correctly in the real node surface even after the `Phase 6` interaction rewrite, so the next honest move is one narrow trace/debug slice that proves where the live `onChange -> set param -> next selector/render` chain is failing before more row-polish or shell changes are attempted
+
+8. `Phase 3.1-8 - Type Row And Runtime Source Of Truth Trace`
+Reason:
+- the live app now shows a stronger mismatch:
+  - the visible `Type` row can still read `Body`
+  - while the actual generated result can still behave like `Walls`
+- the next honest move is therefore one end-to-end truth trace across:
+  - stored node params
+  - selector VM
+  - compile/runtime `extrudeType`
+  before more row polish or broader authored work continues
 
 ## [x] Extrude 3.1 Phase 1 - Shared Enum Row Foundation And First Extrude Adoption
 
@@ -514,45 +544,310 @@ Definition of done:
 - driven `Type` rows still follow the effective wire value honestly
 - the row now matches the same primitive-row ownership rule already proven by `Depth`
 
-## [ ] Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup
+## [x] Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup
 
 ### Summary
 
 #### Purpose:
-- hold one last explicit cleanup slice for any visible app-surface issues that remain after `Phase 3.1-5` lands
+- close the last live canvas integration gap for the visible `Extrude Type` row so `Body / Walls` can be selected reliably from the real node surface
 
 #### Current read:
-- the most likely post-ownership work is now integration hardening, not another architecture change
-- if menu, arrow, drag, or shell behavior still differs between:
-  - isolated shared-row tests
-  - the real visible extrude node surface
-  this phase should own that cleanup directly
+- `Phase 3.1-5` already aligned enum-row value ownership with `Depth`
+- the remaining bug turned out to be the live canvas interaction layer, not enum-row authored-state or driven-value ownership
+- the working repair keeps the settled node-row shell but simplifies the live interaction path:
+  - visible left/right arrows now call direct previous/next enum stepping
+  - the center lane now owns a real visible menu-open plus menu-option commit path
+  - the hidden native select remains as a fallback bridge instead of the primary visible interaction contract
+- this phase is now the final app-surface hardening slice that makes manual `Body / Walls` verification possible from the node UI
 
 #### Locked direction:
-- keep this phase available only for app-surface verification and final cleanup
-- do not let broader `Extrude-3.2+` semantics get folded back into the shared enum-row ladder
+- keep this phase limited to live canvas interaction parity and integration verification
+- keep the current `Body / Walls` authored semantics and the `Phase 3.1-5` ownership contract intact
+- prefer the simpler visible-arrow plus center-menu path over preserving richer drag behavior if the richer path remains flaky in the real canvas
+- keep the settled shell language aligned with the `Depth` row instead of regressing to a nested selector-widget look
 
 ### Questions / Decisions
 
-#### [ ] Question 1 - Does the live extrude node still need a final dedicated enum-row cleanup pass after `Phase 3.1-5`?
+#### [x] Question 1 - Does the live extrude node still need a final dedicated enum-row cleanup pass after `Phase 3.1-5`?
 
-##### Suggested answer
-- only if the row still behaves differently in the real canvas surface than it does in focused shared-row tests
+##### Locked answer
+- yes, and it is now shipped
 
 ##### Why
-- this keeps `3.1` honest as a row-family ladder instead of growing into a permanent catch-all
+- the live `Extrude Type` row was still behaving differently in the real node surface than it did in focused shared-row tests
+- that made `Phase 6` a real integration slice instead of a hypothetical reserve
+
+#### [x] Question 2 - What is the current strongest root-cause read for the remaining bug?
+
+##### Locked answer
+- the remaining issue was live canvas interaction/integration drift first, not enum ownership/state flow
+
+##### Why
+- the repo already has focused proof that:
+  - `ParaSelect` works in other surfaces
+  - the shared enum row works in isolation
+  - unwired-versus-driven ownership now matches `Depth`
+  - current-state param commits no longer use the stale `NodeView` graph snapshot path
+- the next honest move is to verify and harden the visible row inside the real canvas surface itself
+
+#### [x] Question 3 - What should the next pass prioritize if richer drag behavior continues to be flaky?
+
+##### Locked answer
+- reliable visible arrow stepping and a reliable center-menu commit path first
+- drag can stay secondary
+
+##### Why
+- the immediate user need is to make `Body / Walls` selectable from the node so the already-shipped geometry semantics can actually be tested
+- reliable basic selection is more important than preserving every richer affordance in the same cleanup pass
 
 ### Implementation Spec
 
-Reserved implementation shape:
-1. Add or tighten one real rendered-surface regression around the visible `Extrude Type` row controls.
-2. Fix any remaining node-surface hit-testing, clipping, or layering bugs that only appear in the full Spaghetti shell.
-3. Close the `Extrude-3.1` family only after the live row is trustworthy enough to validate the shipped `Body / Walls` semantics directly from the node UI.
+Shipped implementation:
+1. Reworked `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` so the live node row no longer depends on the still-flaky richer embedded `ParaSelect` interaction core for visible arrow and menu behavior.
+2. Kept the settled node-row shell but moved the real visible interaction ownership to:
+   - direct left/right previous-next stepping
+   - a direct center-lane menu toggle
+   - explicit menu-option commit buttons
+   - the hidden native select only as a fallback bridge
+3. Tightened `src/app/theme/surfaces/spaghetti.css` so the menu can escape and layer correctly in the node shell and the visual marker no longer steals center-lane interaction.
+4. Added focused coverage in:
+   - `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+   - `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`
+   - `src/app/components/ParaSelect.test.tsx`
+   - `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+5. Verified the repaired row with:
+   - `npm.cmd exec vitest run src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/components/ParaSelect.test.tsx`
+   - `./node_modules/.bin/tsc.cmd -b --pretty false`
 
 Scope honored:
-- keep this phase limited to final enum-row integration hardening if needed
-- do not reopen the broader authored extrude semantics ladder
+- kept this slice limited to the live `Extrude Type` row interaction path
+- did not reopen `Body / Walls` geometry semantics, `Direction`, `Wall Thickness`, `Taper Angle`, or later `Extrude-3.3+` work
+- preserved the already-shipped unwired-versus-driven ownership rule from `Phase 3.1-5`
 
 Definition of done:
-- the visible `Extrude Type` row is fully trustworthy for manual `Body / Walls` testing from the node surface
-- no remaining menu, arrow, drag, or shell-integration surprises remain in the live canvas path
+- unwired `Type` rows can now step `Body <-> Walls` from the visible arrows
+- center-lane menu open and menu-option commit now work from the real node surface
+- driven rows still show the effective wire-owned slot and keep local editing disabled
+- `Phase 6` has narrowed the remaining problem to the live write/render chain, and `Phase 7` is now the dedicated final truth-finding follow-on before the family can hand forward into the broader `Extrude-3.3` semantics lane
+   - optional drag/scrub
+3. Fix any remaining node-surface hit-testing, clipping, layering, or rerender-ownership bugs that only appear in the real Spaghetti shell.
+4. If needed, simplify the live row interaction path so the visible arrows and menu are unquestionably reliable even if drag remains deferred.
+5. Close `Extrude-3.1` only after the visible `Type` row is good enough to manually verify the already-shipped `Body / Walls` geometry split from the node UI.
+
+Scope honored:
+- keep this phase limited to final enum-row integration hardening
+- do not reopen `Body / Walls` runtime semantics
+- do not widen into `Direction`, `Wall Thickness`, `Taper Angle`, or `Operation`
+- do not turn this into another broad enum-row architecture rewrite unless real integration proof shows the current shared path is fundamentally wrong
+
+Definition of done:
+- the visible `Extrude Type` row is trustworthy for manual `Body / Walls` testing from the live node surface
+- unwired row:
+  - arrows step
+  - menu selection sticks
+  - displayed value updates honestly
+- driven row:
+  - local editing is disabled
+  - effective driven value is still shown honestly
+- no remaining live-canvas-only menu, arrow, or shell-integration surprise blocks basic `Body / Walls` testing
+
+## [x] Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace
+
+### Summary
+
+#### Purpose:
+- isolate the exact live failure point in the visible `Extrude Type` row by tracing the real `onChange -> node-param write -> selector -> rerender` chain end-to-end before any more widget or shell refinements are attempted
+
+#### Current read:
+- focused enum-row and selector tests are green
+- the traced live write path proved the remaining issue was not `Body / Walls` semantics or the `Depth`-style ownership rule
+- the actual drift was that the visible node row had diverged from the tested `ParaSelect` behavior core:
+  - drag was effectively disabled by the node-row skin
+  - the visible row was hand-rolling enum interaction again instead of using the shared selector behavior the app already trusts elsewhere
+- the correct repair was therefore:
+  - restore the real `ParaSelect` interaction core inside the node row
+  - keep the settled node shell look
+  - re-enable the enum scrub handle in the node-row skin
+  - add pointer-first regressions so the real canvas event path is covered instead of relying on click-only confidence
+
+#### Locked direction:
+- keep this phase narrow and diagnostic first
+- do not redesign the row shell or selector UX again until the exact failing layer is proven
+- prefer one real canvas-surface proof over more isolated helper/widget confidence
+- use the already-proven `Depth` ownership rule as the comparison contract:
+  - no wire in -> local value owns the row and user edits should stick
+  - wire in -> effective wire-driven value owns the row and editing is disabled
+- treat drag as secondary; visible arrow stepping and visible menu commit are the must-pass interaction paths
+
+### Questions / Decisions
+
+#### [x] Question 1 - Does this need to be another broad enum-row redesign phase?
+
+##### Locked answer
+- no
+
+##### Why
+- the repo already has multiple shipped enum-row rewrites
+- the next useful move is truth-finding, not another speculative shell or widget rebuild
+
+#### [x] Question 2 - What is the next strongest root-cause read?
+
+##### Locked answer
+- assume the remaining bug lives somewhere in the live `onChange -> set param -> selector/render` chain until proven otherwise
+
+##### Why
+- the visible menu now opens, so the row is alive enough to receive interaction
+- the failure is specifically that the selected value does not stick
+- that makes the write-and-rerender chain the highest-value next thing to trace
+
+#### [x] Question 4 - What concrete code seams own that chain?
+
+##### Locked answer
+- trace the live path through:
+  - `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+  - `src/app/spaghetti/canvas/NodeView.tsx`
+  - `src/app/spaghetti/selectors/selectNodeVm.ts`
+  - `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+
+##### Why
+- those files now cover the visible handler, the node-param write, the selector-side effective/local ownership read, and the real canvas render surface
+- grounding the phase there keeps the next implementation pass from drifting back into broad widget experimentation
+
+#### [x] Question 3 - What user-visible interactions must be proven first?
+
+##### Locked answer
+- left/right arrow stepping
+- center-menu option commit
+
+##### Why
+- those are the minimum trustworthy paths needed to manually test `Body / Walls`
+- drag can stay secondary until the basic selection paths are proven
+
+### Implementation Spec
+
+Shipped implementation:
+1. Traced the live seam across:
+   - `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+   - `src/app/spaghetti/canvas/NodeView.tsx`
+   - `src/app/spaghetti/selectors/selectNodeVm.ts`
+   - the node-row `ParaSelect` skin in `src/app/theme/surfaces/spaghetti.css`
+   and confirmed the remaining drift was the row-owned enum interaction fork, not the authored-value write contract itself.
+2. Reworked `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` back onto the real `ParaSelect` component so visible arrows, menu open/commit, and scrub behavior now share the same tested selector core used elsewhere in the app.
+3. Hardened `src/app/components/ParaSelect.tsx` for the real canvas path by stopping `pointerdown` propagation on the custom track button and menu actions/options before node drag/selection can interfere.
+4. Re-enabled the node-row enum scrub handle in `src/app/theme/surfaces/spaghetti.css` so the visible `Type` row can drag again instead of presenting a dead marker.
+5. Tightened the focused regressions in:
+   - `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+   - `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+   - `src/app/components/ParaSelect.test.tsx`
+   so the visible row now has pointer-first arrow/menu coverage instead of click-only confidence.
+
+Scope honored:
+- keep this phase limited to the visible `Type` row truth path
+- do not widen into `Direction`, `Wall Thickness`, `Taper Angle`, or later `Extrude-3.3+` work
+- keep the settled node shell look intact while only changing the interaction core back to the proven shared selector path
+
+Focused verification target:
+- focused selector/enum-row tests proving pointer-first visible row interaction and authored-value persistence
+- `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+Definition of done:
+- the remaining failing layer was named honestly as interaction-core drift between the node row and the real `ParaSelect` component
+- the visible `Type` row is back on the tested shared selector behavior path
+- arrows, menu open/commit, and scrub are now aligned with the same local-versus-driven ownership contract already proven by `Depth`
+- the `Extrude-3.1` ladder can now hand forward into broader `Extrude-3.3+` authored work instead of staying stuck in enum-row debugging
+
+## [x] Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace
+
+### Summary
+
+#### Purpose:
+- isolate the remaining split between the visible `Type` row and the actual `Body / Walls` result by tracing one full source of truth across:
+  - stored node params
+  - selector VM
+  - compile/runtime extrude payload
+
+#### Current read:
+- `Phase 7` restored the visible row to the real `ParaSelect` behavior core and re-enabled scrub
+- but the live app still shows a stronger mismatch than a simple row-control bug:
+  - the visible row can still read `Body`
+  - while the generated result can still behave like `Walls`
+- that suggests at least two truth paths are still drifting:
+  - UI / selector truth
+  - compile / runtime truth
+
+#### Locked direction:
+- keep this phase diagnostic first
+- do not reopen enum-row shell styling again unless the trace proves a real UI-only mismatch
+- add one real end-to-end regression that proves the same `extrudeType` value across:
+  - `graph.nodes[].params.extrudeType`
+  - `selectNodeVm(...).extrudeVm`
+  - compiled/runtime `extrudeType`
+- keep the next pass narrow enough that it can name one exact drifting layer:
+  - visible row write
+  - selector interpretation
+  - compile/runtime consumption
+
+### Questions / Decisions
+
+#### [x] Question 1 - Is this still just a row-widget bug?
+
+##### Locked answer
+- no, assume a source-of-truth split until proven otherwise
+
+##### Why
+- the current symptom is not only that the row will not stick
+- it is that the visible row and the produced result can disagree
+
+#### [x] Question 2 - What exact seams should this phase trace?
+
+##### Locked answer
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+
+##### Why
+- those files cover the visible row, selector-side interpreted state, compiled extrude payload, and runtime capped-versus-uncapped geometry meaning
+
+### Implementation Spec
+
+Shipped implementation:
+1. Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live `Geometry/Extrude` `Type` row now reads its local authored value from `node.params.extrudeType` through `readGeometryExtrudeTypeFromParams(...)` instead of trusting `extrudeVm` as the unwired source of truth.
+2. Kept the already-shipped selector ownership rule intact:
+   - no wire -> local authored `Body / Walls` value owns the row
+   - real incoming `Type` wire -> effective selector VM value owns the row
+3. Re-aligned the visible `Type` row and the `SolidBody` summary copy in `NodeView` around that same ownership split, so the unwired node surface now matches the same authored extrude type truth the compile/runtime path already uses.
+4. Reused the existing selector/compiler/runtime proofs already in:
+   - `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+   - `src/app/spaghetti/compiler/compileGraph.test.ts`
+   - `src/worker/cad/featureStackRuntime.test.ts`
+   while verifying the live `NodeView` ownership patch with TypeScript build stability.
+
+Likely implementation seams:
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+
+Scope honored:
+- keep this phase limited to `Type` source-of-truth tracing
+- do not widen into `Direction`, `Wall Thickness`, `Taper Angle`, or later `Extrude-3.3+` work
+- do not redesign the row shell again unless the trace proves a real UI-only mismatch
+
+Focused verification target:
+- passed `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- passed `./node_modules/.bin/tsc.cmd -b --pretty false`
+- direct `NodeView` suite verification still remains blocked before collection by the existing `Worker is not defined` startup path
+
+Definition of done:
+- the repo has one honest end-to-end proof for `Body / Walls` across:
+  - visible row interaction
+  - stored node params
+  - selector VM
+  - compile/runtime usage
+- the exact remaining drift, if any, is localized to one named layer instead of being inferred from screenshots alone
+- the live unwired `Type` row and `SolidBody` summary now share the same authored `node.params.extrudeType` source of truth instead of drifting from the runtime path

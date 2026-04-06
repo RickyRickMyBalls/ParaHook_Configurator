@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-04-06 08:17: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.3` future doc out of the broader `Extrude-3` authored follow-on ladder, so the docs landing page now points directly at the focused direction-modes and depth-row-contract follow-on beside `Extrude-3.2`
 18. 2026-04-05 11:19: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.2` future doc out of the broader `Extrude-3` authored-semantics ladder, so the docs landing page now points directly at the focused real-type-contract follow-on beside `Extrude-3` and the finished `Extrude-3.1` groundwork
 17. 2026-04-05 09:41: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.1` future doc out of task `1` under `Extrude-3`, so the docs landing page now points directly at the reusable enum-row follow-on beside the broader type-and-mode completion lane
 16. 2026-04-05 09:22: Refreshed the hosted Extrude docs listing after adding the new published `Extrude-3` future task-stack doc, so the docs landing page now points directly at the `Type`-first functional-completion lane alongside the earlier placement, contract, and toolbar follow-ons
@@ -261,6 +262,8 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   [Extrude-3.2](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md)
 
+  [Extrude-3.3](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md)
+
 - __Camera Controls__
 
   ---
@@ -488,6 +491,7 @@ This is the current full `docs/` file list from the repo.
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md
+[published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md
 [published] Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md

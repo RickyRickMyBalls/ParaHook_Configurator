@@ -3,6 +3,25 @@
 ## Doc Header
 
 ### Doc History
+47. 2026-04-06 10:49: Marked `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` shipped after the graph-native `Geometry/Extrude` node began hiding `Taper Angle` outside the first honest `Body + OneSide` support set while preserving authored taper state non-destructively, then refreshed the family handoff so `Extrude 3.4 Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup` now reads as the next honest slice
+46. 2026-04-06 10:42: Tightened `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` into an implementation-ready next slice by locking the first honest support set to `Body + OneSide`, choosing hidden-over-disabled behavior for unsupported combinations, and keeping the work scoped to selector plus `NodeView` visibility truth before any taper runtime widening
+45. 2026-04-06 10:38: Marked `Extrude 3.4 Phase 1 - Taper Angle Names And Authored State Contract` shipped after the graph-native `Geometry/Extrude` node gained the real `Taper Angle` row and authored taper ownership state, then refreshed the family handoff so `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` now reads as the next honest slice
+44. 2026-04-06 10:15: Tightened `Extrude 3.4 Phase 1 - Taper Angle Names And Authored State Contract` inside `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty.md` into an implementation-ready next slice by locking the first row id, authored param direction, visible row order, and focused verification plan, so the family now points at one sharper taper-state task instead of a broad taper umbrella
+43. 2026-04-06 10:10: Added the dedicated future phase `Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty` after the graph-native node-side `Extrude-3.3` ladder closed, refreshed the family read so the next honest authored follow-on is now a dedicated taper-and-visibility lane instead of one paragraph inside the broader `Extrude-3` umbrella, and kept later runtime/result convergence work visible behind that new execution home
+42. 2026-04-06 09:53: Corrected the shipped `Extrude-3.3` `Symmetric` read so the visible `Depth` value now means total centered span in the graph-native runtime, making `Depth = 20` resolve to `10` per side instead of `20` per side
+41. 2026-04-06 09:50: Marked `Extrude 3.3 Phase 3 - Direction Runtime Meaning And Surface Honesty Cleanup` shipped after the graph-native `Geometry/Extrude` path began carrying authored `OneSide / TwoSides / Symmetric` meaning through compile/runtime execution and live node wording, closing the node-side `Extrude-3.3` ladder while keeping older feature-stack direction parity explicitly out of scope for a later follow-on
+40. 2026-04-06 09:31: Tightened `Extrude 3.3 Phase 3 - Direction Runtime Meaning And Surface Honesty Cleanup` into an implementation-ready next slice by locking the first graph-native runtime owner, the `OneSide / TwoSides / Symmetric` meanings, the explicit direction-aware IR fields, and the decision to keep older feature-stack direction parity out of scope for that cut
+39. 2026-04-06 08:58: Marked `Extrude 3.3 Phase 2 - Depth Row Surface Split And Visibility Rules` shipped after the live `Geometry/Extrude` node gained honest direction-aware `Depth` versus `Start Depth / End Depth` row visibility plus non-destructive split-depth fallback behavior, then refreshed the family summary so `Extrude 3.3 Phase 3 - Direction Runtime Meaning And Surface Honesty Cleanup` now reads as the next honest follow-on
+38. 2026-04-06 08:46: Marked `Extrude 3.3 Phase 1 - Direction Names And Authored State Contract` shipped after the live node gained the real authored `Direction` row and selector-owned direction state, then refreshed the family summary so `Extrude 3.3 Phase 2 - Depth Row Surface Split And Visibility Rules` now reads as the next honest implementation-ready follow-on
+37. 2026-04-06 08:17: Added the dedicated future phase `Extrude-3.3 - Direction Modes And Depth Row Contract` after the full `Extrude-3.2` `Body / Walls` contract landed, refreshed the family summary so the next honest authored follow-on is now the `Direction` selector plus later depth-row branching lane, and kept the broader `Extrude-3` umbrella aligned with that new focused execution home
+36. 2026-04-05 20:55: Marked `Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace` shipped after the live unwired `Geometry/Extrude` `Type` row and the visible `SolidBody` summary stopped drifting from the authored `node.params.extrudeType` truth already used by the compiler/runtime path, so the `Extrude-3.1` ladder is closed again and the family can hand forward into `Extrude-3.3`
+35. 2026-04-05 20:44: Tightened `Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace` into an implementation-ready end-to-end debug slice by locking the exact `NodeView`, selector, compile, and runtime seams plus the required visible-row and built-result proof chain, so this family now points at one sharply scoped next step instead of a vague reopened reserve
+34. 2026-04-05 20:41: Reopened the `Extrude-3.1` family again by adding `Extrude 3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace` after the live app still showed a mismatch between the visible `Type` row and the actual `Body / Walls` result, so this family now points at one explicit end-to-end truth-trace across node params, selector VM, and compile/runtime output before more enum-row polish happens
+33. 2026-04-05 20:36: Marked `Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace` shipped after the visible `Type` row was traced back to a drifted hand-rolled enum interaction path, restored onto the real shared `ParaSelect` behavior core, and reconnected to node-row scrub behavior, so the `Extrude-3.1` ladder now reads as closed groundwork again and can hand forward into broader authored extrude work
+32. 2026-04-05 20:13: Tightened `Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace` into an implementation-ready debug slice by grounding it in the real visible row, node write, selector, and canvas render seams, so this family now points at one explicit live-chain truth-finding pass instead of another broad enum-row redesign
+31. 2026-04-05 20:10: Reopened the `Extrude-3.1` family again by adding `Extrude 3.1 Phase 7 - Enum Row Live Write And Render Trace` after the shipped `Phase 6` interaction repair still failed to make the visible `Type` row stick on `Walls`, so this family now treats the next honest step as a narrow truth-finding pass through the live `onChange`, node-param write, and selector/render chain before more enum-row redesign happens
+30. 2026-04-05 20:05: Marked `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup` shipped after the live `Extrude Type` row adopted a simpler direct-arrow plus center-menu interaction path that finally makes `Body / Walls` selection trustworthy from the real node surface, so this family now treats the full `Extrude-3.1` enum-row ladder as closed groundwork and hands forward into `Extrude-3.3`
+29. 2026-04-05 13:27: Tightened `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup` into an implementation-ready final live-canvas slice focused on the still-broken visible `Type` row, so this family now treats `Phase 6` as a real next task centered on arrow/menu reliability and real canvas-surface trustworthiness rather than a vague post-`Phase 5` reserve
 28. 2026-04-05 13:04: Marked `Extrude 3.1 Phase 5 - Primitive Enum Row Value Ownership Parity` shipped after the live `Geometry/Extrude` `Type` row stopped treating the evaluator’s default unwired numeric input as authoritative and now follows the same local-versus-driven ownership rule already proven by `Depth`, so this family now points at `Phase 6` only as a final integration-hardening reserve
 27. 2026-04-05 12:57: Reopened the `Extrude-3.1` ladder after the live `Type` row still showed the classic primitive-row ownership mismatch, so this family now adds `Extrude 3.1 Phase 5 - Primitive Enum Row Value Ownership Parity` plus `Extrude 3.1 Phase 6 - Enum Row Integration Verification And Cleanup` as explicit post-`Phase 4` homes for aligning enum-row local-versus-driven behavior with `Depth` and for any final live-surface hardening still needed after that
 26. 2026-04-05 12:02: Marked `Extrude 3.2 Phase 3 - Type Surface Honesty Cleanup` shipped after the remaining visible `Body / Walls` wording drift was removed from the live node summary and the feature-style extrude surface, so this family now points forward into `Extrude-3.3` as the next broader authored-row follow-on
@@ -99,6 +118,7 @@ The current dedicated follow-on docs for that stack are:
 - `Extrude-3 - Type Modes And Functional Completion`
 - `Extrude-3.1 - Enum Input Row And Type Selector`
 - `Extrude-3.2 - Real Type Modes Contract`
+- `Extrude-3.3 - Direction Modes And Depth Row Contract`
 
 The current `Extrude-3.1` status is:
 - `Phase 3.1-1 - Shared Enum Row Foundation And First Extrude Adoption`
@@ -107,9 +127,14 @@ The current `Extrude-3.1` status is:
 - `Phase 3.1-4 - Enum Row Fill And Endcap Cleanup`
 - `Phase 3.1-5 - Primitive Enum Row Value Ownership Parity`
 - `Phase 3.1-6 - Enum Row Integration Verification And Cleanup`
+- `Phase 3.1-7 - Enum Row Live Write And Render Trace`
+- `Phase 3.1-8 - Type Row And Runtime Source Of Truth Trace`
 
-That means the remaining `Extrude-3.1` work is now only:
-- final live-surface integration cleanup if needed through `Phase 6`
+That means the `Extrude-3.1` ladder is now closed again:
+  - the shared enum-row groundwork is fully shipped
+  - the live unwired `Type` row now shares the same authored `Body / Walls` source of truth as the compile/runtime path
+  - current handoff:
+    - move forward into the broader authored extrude follow-ons under `Extrude-3.2` and `Extrude-3.3`
 
 After that, the next honest broader extrude follow-on returns to the `Extrude-3` authored-semantics lane:
 - real type meaning
@@ -127,6 +152,41 @@ The current `Extrude-3.2` status is:
 That means the next honest broader extrude follow-on now moves into:
 - `Extrude-3.3`
 - `Direction` modes and depth-row branching
+
+The immediate dedicated home for that next direction/depth contract is:
+- `Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md`
+
+The current `Extrude-3.3` status is:
+- `Phase 1 - Direction Names And Authored State Contract` shipped
+- `Phase 2 - Depth Row Surface Split And Visibility Rules` shipped
+- `Phase 3 - Direction Runtime Meaning And Surface Honesty Cleanup` shipped
+
+That means the graph-native node-side `Extrude-3.3` ladder is now closed:
+- the authored `Direction` contract now reaches compile/runtime meaning
+- `TwoSides` and `Symmetric` no longer build through the old one-sided extent assumption
+- live node waiting/output wording now matches the first shipped direction semantics
+
+What remains outside this closed `Extrude-3.3` cut is:
+- any later older feature-stack extrude direction parity work
+- later authored extrude follow-ons such as taper/thickness/operation questions under the broader `Extrude-3` lane
+
+That means the immediate next honest authored follow-on now is:
+- `Extrude-3.4`
+- `Taper Angle` and type-aware surface honesty
+
+The immediate dedicated home for that next taper lane is:
+- `Future/Extrude_Phase Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty.md`
+
+The current `Extrude-3.4` status is:
+- `Phase 1 - Taper Angle Names And Authored State Contract` shipped
+- `Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` shipped
+- current handoff:
+  - `Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup`
+  - first shipped visible support set:
+    - `Body + OneSide`
+
+The immediate next implementation-ready slice inside that taper lane now is:
+- `Extrude 3.4 Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup`
 
 ### Core Naming Decisions
 

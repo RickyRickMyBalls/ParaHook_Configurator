@@ -72,6 +72,11 @@ import type {
 } from '../selectors'
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { setNodeParams as setNodeParamsCommand } from '../graphCommands/setNodeParams'
+import {
+  readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeTaperAngleDegFromParams,
+  readGeometryExtrudeTypeFromParams,
+} from '../registry/nodeRegistry'
 
 const DEV = import.meta.env.DEV
 const DEV_PROBE_NODE_ID_KEY = '__SP_PROBE_NODE_ID'
@@ -2580,29 +2585,61 @@ function NodeViewComponent({
   const renderExtrudeTemplate = () => {
     const profilePort = allInputs.find((port) => port.portId === 'ExtrusionProfile')
     const typePort = allInputs.find((port) => port.portId === 'Type')
+    const directionPort = allInputs.find((port) => port.portId === 'Direction')
     const depthPort = allInputs.find((port) => port.portId === 'Depth')
+    const startDepthPort = allInputs.find((port) => port.portId === 'StartDepth')
+    const endDepthPort = allInputs.find((port) => port.portId === 'EndDepth')
+    const taperAnglePort = allInputs.find((port) => port.portId === 'TaperAngle')
     const solidBodyPort = allOutputs.find((port) => port.portId === 'SolidBody')
-    const extrudeType = extrudeVm?.extrudeType ?? 'Body'
-    const localExtrudeType = extrudeVm?.localExtrudeType ?? extrudeType
+    const localExtrudeType = readGeometryExtrudeTypeFromParams(node.params)
+    const localExtrudeDirection = readGeometryExtrudeDirectionFromParams(node.params)
+    const localTaperAngleDeg =
+      extrudeVm?.localTaperAngleDeg ?? readGeometryExtrudeTaperAngleDegFromParams(node.params)
+    const typeDriven = extrudeVm?.typeDriven === true
+    const directionDriven = extrudeVm?.directionDriven === true
+    const effectiveExtrudeType =
+      typeDriven ? (extrudeVm?.extrudeType ?? localExtrudeType) : localExtrudeType
+    const effectiveExtrudeDirection =
+      directionDriven ? (extrudeVm?.extrudeDirection ?? localExtrudeDirection) : localExtrudeDirection
+    const effectiveTaperAngleDeg = extrudeVm?.effectiveTaperAngleDeg ?? localTaperAngleDeg
     const effectiveDepthMm = extrudeVm?.effectiveDepthMm ?? 20
     const localDepthMm =
-      typeof node.params.depthMm === 'number' ? node.params.depthMm : effectiveDepthMm
+      extrudeVm?.localDepthMm ??
+      (typeof node.params.depthMm === 'number' ? node.params.depthMm : effectiveDepthMm)
+    const effectiveStartDepthMm = extrudeVm?.effectiveStartDepthMm ?? localDepthMm
+    const localStartDepthMm =
+      extrudeVm?.localStartDepthMm ??
+      (typeof node.params.startDepthMm === 'number' ? node.params.startDepthMm : localDepthMm)
+    const effectiveEndDepthMm = extrudeVm?.effectiveEndDepthMm ?? localDepthMm
+    const localEndDepthMm =
+      extrudeVm?.localEndDepthMm ??
+      (typeof node.params.endDepthMm === 'number' ? node.params.endDepthMm : localDepthMm)
+    const depthVisible = effectiveExtrudeDirection !== 'TwoSides'
+    const startDepthVisible = effectiveExtrudeDirection === 'TwoSides'
+    const endDepthVisible = effectiveExtrudeDirection === 'TwoSides'
+    const taperVisible = effectiveExtrudeType === 'Body' && effectiveExtrudeDirection === 'OneSide'
     const profileSummary =
       extrudeVm?.hasProfile === true
         ? `${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
             extrudeVm.profileArea ?? 0,
           )}`
         : 'Awaiting wire'
+    const depthRequirementLabel =
+      effectiveExtrudeDirection === 'TwoSides'
+        ? 'positive Start Depth and End Depth'
+        : effectiveExtrudeDirection === 'Symmetric'
+          ? 'positive symmetric Depth'
+          : 'positive Depth'
     const bodySummaryReady =
-      extrudeType === 'Walls'
+      effectiveExtrudeType === 'Walls'
         ? `Walls ready: ${extrudeVm?.bodyId ?? ''} (uncapped side walls)`
         : `Body ready: ${extrudeVm?.bodyId ?? ''} (capped result)`
     const bodySummary =
       extrudeVm?.bodyId !== undefined
         ? bodySummaryReady
-        : extrudeType === 'Walls'
-          ? 'Waiting for one profile and positive depth to generate uncapped side walls.'
-          : 'Waiting for one profile and positive depth to generate a capped body.'
+        : effectiveExtrudeType === 'Walls'
+          ? `Waiting for one profile and ${depthRequirementLabel} to generate uncapped side walls.`
+          : `Waiting for one profile and ${depthRequirementLabel} to generate a capped body.`
     const profileRowController = getManagedStructuredWireRowProps(
       'in',
       'ExtrusionProfile',
@@ -2668,10 +2705,67 @@ function NodeViewComponent({
       },
       formatValueLabel: formatPinValue,
     })
+    const startDepthRowProps = createStructuredWireNumericRowProps({
+      effectiveValue: effectiveStartDepthMm,
+      localFallbackValue: localStartDepthMm,
+      unitLabel: 'mm',
+      driven: extrudeVm?.startDepthDriven === true,
+      editorEnabled: showEditors,
+      inputRange: {
+        min: 0.1,
+        max: 2000,
+        step: 0.1,
+      },
+      onChange: (value) => {
+        updateExtrudeParams({
+          ...node.params,
+          startDepthMm: value,
+        })
+      },
+      formatValueLabel: formatPinValue,
+    })
+    const endDepthRowProps = createStructuredWireNumericRowProps({
+      effectiveValue: effectiveEndDepthMm,
+      localFallbackValue: localEndDepthMm,
+      unitLabel: 'mm',
+      driven: extrudeVm?.endDepthDriven === true,
+      editorEnabled: showEditors,
+      inputRange: {
+        min: 0.1,
+        max: 2000,
+        step: 0.1,
+      },
+      onChange: (value) => {
+        updateExtrudeParams({
+          ...node.params,
+          endDepthMm: value,
+        })
+      },
+      formatValueLabel: formatPinValue,
+    })
+    const taperAngleRowProps = createStructuredWireNumericRowProps({
+      effectiveValue: effectiveTaperAngleDeg,
+      localFallbackValue: localTaperAngleDeg,
+      unitLabel: 'deg',
+      driven: extrudeVm?.taperDriven === true,
+      editorEnabled: showEditors,
+      inputRange: {
+        min: -45,
+        max: 45,
+        step: 0.1,
+      },
+      onChange: (value) => {
+        updateExtrudeParams({
+          ...node.params,
+          taperAngleDeg: value,
+        })
+      },
+      formatValueLabel: formatPinValue,
+    })
     const typeRowProps = createStructuredWireEnumRowProps({
       label: 'Type',
       localFallbackValue: localExtrudeType,
-      effectiveValue: extrudeType,
+      effectiveValue: effectiveExtrudeType,
       driven: extrudeVm?.typeDriven === true,
       options: [
         { value: 'Body', label: 'Body' },
@@ -2684,6 +2778,26 @@ function NodeViewComponent({
         updateExtrudeParams({
           ...node.params,
           extrudeType: value,
+        })
+      },
+    })
+    const directionRowProps = createStructuredWireEnumRowProps({
+      label: 'Direction',
+      localFallbackValue: localExtrudeDirection,
+      effectiveValue: effectiveExtrudeDirection,
+      driven: extrudeVm?.directionDriven === true,
+      options: [
+        { value: 'OneSide', label: 'One Side' },
+        { value: 'TwoSides', label: 'Two Sides' },
+        { value: 'Symmetric', label: 'Symmetric' },
+      ],
+      onChange: (value) => {
+        if (value !== 'OneSide' && value !== 'TwoSides' && value !== 'Symmetric') {
+          return
+        }
+        updateExtrudeParams({
+          ...node.params,
+          extrudeDirection: value,
         })
       },
     })
@@ -2751,11 +2865,79 @@ function NodeViewComponent({
                 />
               </div>
             ) : null}
-            {depthPort !== undefined ? (
+            {directionPort !== undefined ? (
+              <div className="SpaghettiExtrudeInputStackPrimary">
+                <StructuredWireEnumRow
+                  className="SpaghettiExtrudeDirectionRow"
+                  nodeId={node.nodeId}
+                  endpointPortId={directionPort.portId}
+                  port={directionPort}
+                  setPortElement={(element) =>
+                    onRegisterPortElement(
+                      node.nodeId,
+                      'in',
+                      directionPort.portId,
+                      undefined,
+                      element,
+                    )
+                  }
+                  dropState={getInputDropState({
+                    nodeId: node.nodeId,
+                    portId: directionPort.portId,
+                  })}
+                  portColorOverride={STRUCTURED_WIRE_ENUM_INPUT_COLOR}
+                  onInputPointerDown={onInputPointerDown}
+                  onInputPointerEnter={onInputPointerEnter}
+                  onInputPointerLeave={onInputPointerLeave}
+                  label={directionRowProps.label}
+                  value={directionRowProps.value}
+                  valueLabel={directionRowProps.valueLabel}
+                  displayedTrackValue={directionRowProps.displayedTrackValue}
+                  displayedTrackLabel={directionRowProps.displayedTrackLabel}
+                  options={directionRowProps.options}
+                  selectedIndex={directionRowProps.selectedIndex}
+                  displayedIndex={directionRowProps.displayedIndex}
+                  optionCount={directionRowProps.optionCount}
+                  disabled={directionRowProps.disabled || !showEditors}
+                  driven={directionRowProps.driven}
+                  drivenMessage={directionRowProps.drivenMessage}
+                  onChange={directionRowProps.onChange}
+                />
+              </div>
+            ) : null}
+            {depthPort !== undefined && depthVisible ? (
               <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in SpaghettiExtrudeInputStackSecondary">
                 {renderInputPortByType(depthPort, {
                   endpointPortId: depthPort.portId,
+                  drivenMessage: depthRowProps.drivenMessage,
                   valueInput: depthRowProps.valueInput,
+                })}
+              </div>
+            ) : null}
+            {startDepthPort !== undefined && startDepthVisible ? (
+              <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in SpaghettiExtrudeInputStackSecondary">
+                {renderInputPortByType(startDepthPort, {
+                  endpointPortId: startDepthPort.portId,
+                  drivenMessage: startDepthRowProps.drivenMessage,
+                  valueInput: startDepthRowProps.valueInput,
+                })}
+              </div>
+            ) : null}
+            {endDepthPort !== undefined && endDepthVisible ? (
+              <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in SpaghettiExtrudeInputStackSecondary">
+                {renderInputPortByType(endDepthPort, {
+                  endpointPortId: endDepthPort.portId,
+                  drivenMessage: endDepthRowProps.drivenMessage,
+                  valueInput: endDepthRowProps.valueInput,
+                })}
+              </div>
+            ) : null}
+            {taperAnglePort !== undefined && taperVisible ? (
+              <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--in SpaghettiExtrudeInputStackSecondary">
+                {renderInputPortByType(taperAnglePort, {
+                  endpointPortId: taperAnglePort.portId,
+                  drivenMessage: taperAngleRowProps.drivenMessage,
+                  valueInput: taperAngleRowProps.valueInput,
                 })}
               </div>
             ) : null}

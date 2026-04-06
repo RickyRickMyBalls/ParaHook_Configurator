@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { ParaSelect } from '../../components/ParaSelect'
 import { SP_INTERACTIVE_PROPS } from '../spInteractive'
 import type { PortSpec } from '../schema/spaghettiTypes'
@@ -71,6 +71,8 @@ export function StructuredWireEnumRow({
   const portColorStyle = {
     '--sp-port-color': socketColor,
   } as CSSProperties
+  const canCycle = !disabled && optionCount > 1
+  const renderedValue = disabled ? displayedTrackValue : value
 
   return (
     <div
@@ -114,13 +116,18 @@ export function StructuredWireEnumRow({
         <div className="SpaghettiPortEnumValueRow">
           <ParaSelect
             label={label}
-            value={disabled ? displayedTrackValue : value}
+            value={renderedValue}
             displayedValue={displayedTrackValue}
             options={options}
-            onChange={onChange}
+            onChange={(nextValue) => {
+              if (disabled || nextValue === value) {
+                return
+              }
+              onChange(nextValue)
+            }}
             menuMode="custom"
             capGlyph="chevron"
-            disabled={disabled}
+            disabled={!canCycle}
           />
           {drivenMessage !== undefined ? (
             <span className="SpaghettiPortPrimitiveDrivenMessage">{drivenMessage}</span>

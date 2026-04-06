@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-06 11:07: Tightened the operational vision summary so it now explicitly says graph-authored geometry should flow into a B-rep-capable execution layer, with preview meshes and clean export outputs such as `.step` derived downstream from that same geometry truth instead of becoming separate hidden owners
 1. 2026-04-04 22:23: Added this short agent-facing vision summary as the fast operating pointer for repo rules and day-to-day decision checks, distilling the non-negotiable direction from `docs/Human-Plans/roadmap/Vision-roadmap.md` into one simpler surface that can be referenced directly from `AGENTS.md`
 
 ### Purpose
@@ -30,9 +31,9 @@ If this file and the canonical vision doc ever drift:
 
 3. `Graph Documents` and `Content` must stay distinct. Authoring identity and project/published hierarchy are different surfaces, and `Content` should not collapse into a second graph list.
 
-4. Graph output handoff should become more explicit over time, not more implicit. The Browser should not infer long-term structure only from final meshes.
+4. Graph output handoff should become more explicit over time, not more implicit. The Browser should not infer long-term structure only from final meshes, and clean export outputs should not require a second hidden source of geometry truth.
 
-5. Build/generate controls and viewer presentation controls are different systems. Viewer-only changes should stay rebuild-free whenever possible, and geometry truth should not get trapped inside viewer state.
+5. Build/generate controls and viewer presentation controls are different systems. Viewer-only changes should stay rebuild-free whenever possible, and geometry truth should not get trapped inside viewer state. Preview meshes should stay downstream from the geometry execution truth rather than becoming the canonical authored/export surface.
 
 6. Layers, visibility, and transform history should become authored content systems shared across Browser, Console, viewer, toolbar, and workspace reads, not one-off behavior owned by whichever surface happened to ship first.
 
@@ -40,7 +41,7 @@ If this file and the canonical vision doc ever drift:
 
 8. The workspace should stay one hybrid surface model. `Windowed`, `Tiled`, and later pop-out placement are shell variations, not separate feature concepts with duplicated ownership.
 
-9. Contracts, schema, IR, routing identity, and worker/result seams should stay explicit. Prefer typed boundaries over reach-in shortcuts between app, graph, worker, Browser, and viewer layers.
+9. Contracts, schema, IR, routing identity, and worker/result seams should stay explicit. Prefer typed boundaries over reach-in shortcuts between app, graph, worker, Browser, and viewer layers. The long-range worker direction should stay B-rep-capable so preview meshes and clean `.step` export can both derive from the same executed geometry truth.
 
 10. Transitional legacy seams are allowed only as a replacement path. Do not make the legacy bridge, product-specific scaffolding, or temporary compatibility layers the permanent architecture.
 
@@ -51,11 +52,13 @@ Prefer changes that:
 - keep Browser/project hierarchy real and legible
 - reduce one-off feature shell behavior
 - strengthen shared authored systems such as Layers and Transform
+- move preview and export farther downstream from one explicit geometry execution truth
 - make contracts and published outputs more explicit
 
 Be careful with changes that:
 - solve a local problem by inventing another hidden owner
 - make `Content` behave like another graph list
 - deepen product-specific branching in shared systems
+- let preview meshes or export adapters become the de facto source of geometry truth
 - trap authored behavior inside viewer-only or panel-only state
 - extend temporary legacy bridges without a clear replacement goal

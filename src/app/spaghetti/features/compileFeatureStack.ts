@@ -9,6 +9,8 @@ import type {
   SketchPlaneTransform,
 } from './featureTypes'
 
+type GeometryExtrudeDirection = 'OneSide' | 'TwoSides' | 'Symmetric'
+
 type Point2 = {
   x: number
   y: number
@@ -48,7 +50,10 @@ export type IRExtrude = {
   featureId: string
   profileRef: IRProfileReference | null
   extrudeType: ExtrudeResultType
+  extrudeDirection?: GeometryExtrudeDirection
   depthResolved: number
+  startDepthResolved?: number
+  endDepthResolved?: number
   taperResolved: number
   offsetResolved: number
   plane?: 'XY' | 'XZ' | 'YZ'

@@ -127,6 +127,8 @@ export function CollapsedEditor({
   onSetViewMode,
 }: CollapsedEditorProps) {
   const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
+  const newNodeSpawnMode = useSpaghettiStore((state) => state.newNodeSpawnMode)
+  const cycleNewNodeSpawnMode = useSpaghettiStore((state) => state.cycleNewNodeSpawnMode)
 
   const sortedNodes = useMemo(() => [...(graph?.nodes ?? [])].sort(compareByNodeId), [graph?.nodes])
   const nodesById = useMemo(() => {
@@ -177,6 +179,9 @@ export function CollapsedEditor({
               Collapsed
             </button>
           </div>
+          <button type="button" onClick={cycleNewNodeSpawnMode}>
+            Spawn: {newNodeSpawnMode}
+          </button>
         </div>
       ) : null}
       <div className="SpaghettiCollapsedHeader">

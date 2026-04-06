@@ -1,4 +1,7 @@
-import type { SketchPlaneTransform } from '../../app/spaghetti/features/featureTypes'
+import {
+  createDefaultSketchPlaneTransform,
+  type SketchPlaneTransform,
+} from '../../app/spaghetti/features/featureTypes'
 import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
 import {
   extrudeFaceOnPlane,
@@ -41,7 +44,10 @@ type IRExtrude = {
   featureId: string
   profileRef: IRProfileRef | null
   extrudeType?: 'Body' | 'Walls'
+  extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
   depthResolved: number
+  startDepthResolved?: number
+  endDepthResolved?: number
   plane?: 'XY' | 'XZ' | 'YZ'
   planeTransform?: SketchPlaneTransform
   bodyId?: string
@@ -120,7 +126,13 @@ const isExtrudeOp = (value: unknown): value is IRExtrude =>
   value.op === 'extrude' &&
   typeof value.featureId === 'string' &&
   (value.extrudeType === undefined || value.extrudeType === 'Body' || value.extrudeType === 'Walls') &&
+  (value.extrudeDirection === undefined ||
+    value.extrudeDirection === 'OneSide' ||
+    value.extrudeDirection === 'TwoSides' ||
+    value.extrudeDirection === 'Symmetric') &&
   typeof value.depthResolved === 'number' &&
+  (value.startDepthResolved === undefined || typeof value.startDepthResolved === 'number') &&
+  (value.endDepthResolved === undefined || typeof value.endDepthResolved === 'number') &&
   (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
   (value.planeTransform === undefined || isSketchPlaneTransform(value.planeTransform)) &&
   (value.bodyId === undefined || typeof value.bodyId === 'string') &&
@@ -277,17 +289,68 @@ const runExtrude = (
   try {
     const face = faceFromWire(wire)
     const sketchPlane = feature.plane ?? planeFromSketch ?? 'XY'
-    const sketchPlaneTransform = feature.planeTransform ?? planeTransformFromSketch
+    const basePlaneTransform = feature.planeTransform ?? planeTransformFromSketch
+    const extrudeDirection = feature.extrudeDirection ?? 'OneSide'
+    const startDepthResolved =
+      extrudeDirection === 'TwoSides'
+        ? feature.startDepthResolved ?? feature.depthResolved
+        : extrudeDirection === 'Symmetric'
+          ? feature.depthResolved / 2
+          : 0
+    const endDepthResolved =
+      extrudeDirection === 'TwoSides'
+        ? feature.endDepthResolved ?? feature.depthResolved
+        : extrudeDirection === 'Symmetric'
+          ? feature.depthResolved / 2
+          : feature.depthResolved
+    const extrusionDepthResolved =
+      extrudeDirection === 'OneSide'
+        ? feature.depthResolved
+        : startDepthResolved + endDepthResolved
+    const hasValidDirectionDepths =
+      extrudeDirection === 'TwoSides'
+        ? Number.isFinite(startDepthResolved) &&
+          Number.isFinite(endDepthResolved) &&
+          startDepthResolved > 0 &&
+          endDepthResolved > 0
+        : Number.isFinite(feature.depthResolved) && feature.depthResolved > 0
+    if (!hasValidDirectionDepths) {
+      pushDiagnostic(
+        diagnostics,
+        partKey,
+        feature.featureId,
+        'invalid_extrude_depth',
+        `Extrude skipped because ${extrudeDirection} requires positive depth values.`,
+      )
+      return executionIndex
+    }
+    const sketchPlaneTransform =
+      startDepthResolved <= 0
+        ? basePlaneTransform
+        : {
+            ...(basePlaneTransform ?? createDefaultSketchPlaneTransform()),
+            translation: {
+              ...(basePlaneTransform?.translation ??
+                createDefaultSketchPlaneTransform().translation),
+            },
+            rotationDeg: {
+              ...(basePlaneTransform?.rotationDeg ??
+                createDefaultSketchPlaneTransform().rotationDeg),
+            },
+            offsetMm:
+              (basePlaneTransform?.offsetMm ??
+                createDefaultSketchPlaneTransform().offsetMm) - startDepthResolved,
+          }
     const capped = feature.extrudeType !== 'Walls'
     const shape =
       sketchPlane === 'XY'
-        ? extrudeFaceAlongZ(face, feature.depthResolved, {
+        ? extrudeFaceAlongZ(face, extrusionDepthResolved, {
             bodyId,
             featureId: feature.featureId,
             op: 'extrude',
             partKey,
           }, sketchPlaneTransform, { capped })
-        : extrudeFaceOnPlane(face, sketchPlane, feature.depthResolved, {
+        : extrudeFaceOnPlane(face, sketchPlane, extrusionDepthResolved, {
             bodyId,
             featureId: feature.featureId,
             op: 'extrude',

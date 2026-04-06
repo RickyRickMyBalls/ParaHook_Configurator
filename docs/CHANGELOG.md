@@ -65,6 +65,354 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1079 -->
+### [1079] - 2026-04-06 10:49 - `Extrude-3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules`
+<!-- ENTRY 1079 -->
+HUMAN SUMMARY: `Made the live graph-native \`Geometry/Extrude\` taper row honest by restricting visible \`Taper Angle\` support to \`Body + OneSide\`, hiding the row for every other currently unsupported type/direction combination, and preserving the authored \`taperAngleDeg\` state non-destructively so switching back restores the previous taper value without widening runtime meaning yet.`  
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on `Extrude-3.4 Phase 2` visibility/editability truth for the graph-native `Geometry/Extrude` node surface.
+- Preserved the shipped `Body / Walls`, `Direction / Depth`, and authored `Taper Angle` state contracts.
+- Did not widen into compile/runtime taper meaning, worker changes, disabled explanation copy, `Wall Thickness`, `Operation`, or older feature-stack extrude parity.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so the extrude selector VM now publishes explicit `taperVisible` truth alongside the existing type, direction, depth, and taper ownership fields.
+- Refreshed `src/app/spaghetti/canvas/NodeView.tsx` so the live `Taper Angle` row now only renders when the current effective authored combination is `Type = Body` and `Direction = OneSide`, keeping the visible row order unchanged when the row is present.
+- Preserved authored taper state by leaving `taperAngleDeg` untouched when the row is hidden, so returning to the supported combination restores the previous local or driven taper value naturally.
+- Added focused proof coverage in `src/app/spaghetti/selectors/selectNodeVm.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` for supported visibility, unsupported hidden states, stale-selector safety, and the updated `ExtrudeNodeVm` fixture contract.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+
+#### Behavior Changes
+- `Taper Angle` is now visible only for `Geometry/Extrude` when `Type = Body` and `Direction = OneSide`.
+- `Taper Angle` is now hidden for `Walls`, `TwoSides`, and `Symmetric` combinations instead of implying broader support than the current graph-native path actually owns.
+- Hiding the row does not clear the authored `taperAngleDeg` value, so switching back to `Body + OneSide` restores the previous taper state.
+- No compile/runtime taper geometry change is implied yet by this surface cleanup.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1078 -->
+### [1078] - 2026-04-06 10:38 - `Extrude-3.4 Phase 1 - Taper Angle Names And Authored State Contract`
+<!-- ENTRY 1078 -->
+HUMAN SUMMARY: `Added the first graph-native \`Geometry/Extrude\` taper-row contract by giving the node a real \`Taper Angle\` input port and authored \`taperAngleDeg\` param, carrying local-versus-effective taper ownership through the selector VM, and surfacing the new row in the live node after the current depth rows without widening into taper runtime meaning yet.`  
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on `Extrude-3.4 Phase 1` for the graph-native `Geometry/Extrude` authored row/state contract.
+- Preserved the shipped `Body / Walls` and `Direction / Depth` behavior from `Extrude-3.2` and `Extrude-3.3`.
+- Did not widen into compile/runtime taper semantics, type-aware taper visibility, `Wall Thickness`, `Operation`, or older feature-stack extrude parity.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/registry/nodeRegistry.ts` so `Geometry/Extrude` now owns an authored `taperAngleDeg` param, a `readGeometryExtrudeTaperAngleDegFromParams` reader, a default `taperAngleDeg: 0`, and a real `TaperAngle` degree input port.
+- Extended `src/app/spaghetti/selectors/selectNodeVm.ts` so the extrude selector VM now carries `localTaperAngleDeg`, `effectiveTaperAngleDeg`, and `taperDriven` alongside the existing type/direction/depth ownership fields.
+- Refreshed `src/app/spaghetti/canvas/NodeView.tsx` so the dedicated extrude template now renders `Taper Angle` after the current depth row set and passes the numeric-row driven fallback messaging through the same primitive row contract already used by the row helper.
+- Added focused proof coverage in `src/app/spaghetti/registry/extrudeParams.test.ts`, `src/app/spaghetti/selectors/selectNodeVm.test.ts`, and `src/app/spaghetti/canvas/NodeView.test.tsx`, including a test-only degree-number source for selector coverage.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/registry/extrudeParams.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes
+- `Geometry/Extrude` now shows a real `Taper Angle` input row after the current depth row set.
+- The taper row now owns explicit authored `deg` state through `taperAngleDeg` and can speak local-versus-driven ownership honestly in the selector and node surface.
+- No graph-native taper geometry/runtime behavior is implied yet by the presence of the new row.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/registry/extrudeParams.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1077 -->
+### [1077] - 2026-04-06 09:53 - `Extrude-3.3 Follow-up - Symmetric Depth Total-Span Correction`
+<!-- ENTRY 1077 -->
+HUMAN SUMMARY: `Corrected the shipped graph-native \`Geometry/Extrude\` \`Symmetric\` math so the visible \`Depth\` value now means total centered span, which makes \`Depth = 20\` extrude `10` on each side instead of incorrectly extruding `20` on each side.`  
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the `Symmetric` depth interpretation in the graph-native extrude runtime.
+- Preserved the shipped `OneSide` and `TwoSides` semantics from `Extrude-3.3 Phase 3`.
+- Did not widen into older feature-stack direction authoring, node-row redesign, or other extrude follow-ons.
+
+#### Summary of Implementation
+- Updated `src/worker/cad/featureStackRuntime.ts` so `Symmetric` now derives `startDepthResolved` and `endDepthResolved` as `depthResolved / 2` each.
+- Refreshed `src/worker/cad/featureStackRuntime.test.ts` so the runtime proof now asserts the corrected centered-span behavior with a `Depth` of `20` producing extents from `-10` to `10`.
+- Updated the shipped `Extrude-3.3` planning docs so they now describe `Symmetric Depth` as total centered span rather than per-side mirrored magnitude.
+
+#### Files Changed
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md`
+- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+
+#### Behavior Changes
+- `Geometry/Extrude` `Symmetric` now treats the authored `Depth` as total centered span.
+- A symmetric `Depth` of `20` now builds `10` backward and `10` forward instead of doubling the visible authored span.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/worker/cad/featureStackRuntime.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1076 -->
+### [1076] - 2026-04-06 09:50 - `Extrude-3.3 Phase 3 - Direction Runtime Meaning And Surface Honesty Cleanup`
+<!-- ENTRY 1076 -->
+HUMAN SUMMARY: `Finished the graph-native \`Geometry/Extrude\` direction contract by carrying authored \`OneSide / TwoSides / Symmetric\` meaning through registry publish truth, compile IR, worker runtime execution, and live node waiting copy, while keeping the older feature-stack extrude authoring surface explicitly out of scope for this first cut.`  
+#### Scope / Constraints Honored
+- Kept this pass focused on `Extrude-3.3 Phase 3` for the graph-native `Geometry/Extrude` node path.
+- Preserved backward compatibility for older feature-stack extrude IR by defaulting missing `extrudeDirection` to one-sided behavior.
+- Did not widen into `ExtrudeFeatureView`, feature-stack direction authoring, `Taper Angle`, `Wall Thickness`, or `Operation`.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/registry/nodeRegistry.ts` so graph-node `SolidBody` publication is now direction-aware: `OneSide` and `Symmetric` require positive `Depth`, while `TwoSides` requires positive `Start Depth` and `End Depth`.
+- Extended `src/app/spaghetti/compiler/compileGraph.ts` and `src/app/spaghetti/features/compileFeatureStack.ts` so graph-native extrude IR now carries explicit `extrudeDirection` plus split-depth fields, with `Symmetric` keeping `depthResolved` as the mirrored per-side magnitude instead of silently overloading it as total span.
+- Updated `src/worker/cad/featureStackRuntime.ts` so worker execution now honors the three authored meanings honestly: one-sided forward extent, two-sided backward-plus-forward extent, and symmetric mirrored extent from one magnitude.
+- Refreshed `src/app/spaghetti/canvas/NodeView.tsx` waiting-copy wording so the visible body summary references `Start Depth + End Depth` for `TwoSides` and symmetric depth language for `Symmetric`.
+- Added focused proof coverage in `src/app/spaghetti/compiler/evaluateGraph.test.ts`, `src/app/spaghetti/compiler/compileGraph.test.ts`, `src/worker/cad/featureStackRuntime.test.ts`, and `src/app/spaghetti/canvas/NodeView.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes
+- `Geometry/Extrude` `TwoSides` now builds as a real backward-plus-forward extent using `Start Depth` and `End Depth`.
+- `Geometry/Extrude` `Symmetric` now builds equally on both sides of the source profile plane instead of behaving like another one-sided extrude with renamed UI.
+- Graph-native compile output now carries explicit direction-aware extrude fields instead of hiding all modes behind one forward-only depth assumption.
+- Live node waiting copy now matches the direction-aware runtime contract instead of reusing generic one-sided depth wording for every mode.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1075 -->
+### [1075] - 2026-04-06 09:27 - `Bug 14 - NodeView Test Worker Startup Coupling Harness Repair`
+<!-- ENTRY 1075 -->
+HUMAN SUMMARY: `Repaired the direct \`NodeView\` Vitest suites by installing a local \`MockWorker\` before module evaluation, converting the fragile eager imports to dynamic setup imports, and rebasing the dormant assertions onto the current geometry-shell contract so both files now collect and run instead of crashing on \`Worker is not defined\`.`  
+#### Scope / Constraints Honored
+- Kept this pass scoped to the `Bug 14` test-infra/bootstrap coupling cleanup and did not widen into a `BuildDispatcher` or worker-runtime refactor.
+- Followed the narrower local-harness direction already documented in `docs/Bugs/2026-04-06-14_nodeview-tests-worker-startup-coupling.md`.
+- Preserved the current `NodeView` and geometry-shell implementation, only repairing the test harness and stale expectations needed to make the suites honest again.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.test.tsx` and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` so both suites now install a local `MockWorker`, call `vi.resetModules()`, and dynamically import `NodeView` plus store dependencies only after the browser-worker seam is stubbed.
+- Reworked the geometry-mode harness so the live extrude test fixture now derives `extrudeVm` values from current node params, letting the existing depth-row interaction tests observe real UI updates instead of a frozen fixture snapshot.
+- Tightened helper selectors and expectation text in both suites to match the current geometry-shell contract: no phantom content block on sketch/extrude templates, current block-open defaults, current `ParaSelect` text content, and the primitive depth-row DOM.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx` now collects and executes directly instead of failing during startup with `ReferenceError: Worker is not defined`.
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` now collects and executes directly instead of failing during startup with the same eager-worker bootstrap crash.
+- The repaired `NodeView` suites now assert against the current geometry-shell and primitive-row behavior rather than older stale DOM assumptions that had been hidden behind the startup failure.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- Ran `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1074 -->
+### [1074] - 2026-04-06 09:05 - `Extrude-3.3 Phase 2 Follow-up - TwoSides Depth Row Visibility Source Of Truth Fix`
+<!-- ENTRY 1074 -->
+HUMAN SUMMARY: `Fixed the live \`Geometry/Extrude\` \`TwoSides\` row swap so changing the unwired authored \`Direction\` to \`TwoSides\` now immediately hides the single \`Depth\` row and shows \`Start Depth + End Depth\` even if selector-owned depth-visibility flags lag behind for a frame.`  
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the live `TwoSides` depth-row visibility bug in the `Geometry/Extrude` node surface.
+- Preserved the shipped `Extrude-3.3 Phase 2` row contract and left runtime/compiler direction meaning unchanged.
+- Avoided widening into the separate `Worker`-test harness issue that still blocks the `NodeView` suite at startup.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so unwired extrude depth-row visibility now derives directly from the current effective authored `Direction` instead of trusting selector-owned visibility flags as the primary source of truth.
+- Kept the selector VM fields intact for deeper state/reporting, but moved the visible row swap onto the same local-versus-driven ownership rule already used by the enum row itself.
+- Added a regression test in `src/app/spaghetti/canvas/NodeView.test.tsx` covering the stale-selector shape where the node params already read `TwoSides` while the old VM still says `OneSide`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+
+#### Behavior Changes
+- Switching an unwired `Geometry/Extrude` node to `TwoSides` now immediately swaps the visible depth rows to `Start Depth` and `End Depth`.
+- The single `Depth` row no longer remains visible just because a stale selector VM still carries the old one-sided visibility flags.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/registry/extrudeParams.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`, but that suite is still blocked at startup by the existing `Worker is not defined` test-environment path.
+
+<!-- ENTRY 1073 -->
+### [1073] - 2026-04-06 08:58 - `Extrude-3.3 Phase 2 - Depth Row Surface Split And Visibility Rules`
+<!-- ENTRY 1073 -->
+HUMAN SUMMARY: `Made the live \`Geometry/Extrude\` depth-row surface honest by adding real \`StartDepth / EndDepth\` input ports plus authored params, switching the visible input stack to \`Depth\` for \`OneSide / Symmetric\` and \`Start Depth + End Depth\` for \`TwoSides\`, and carrying local fallback, effective value, driven state, and visibility through the selector VM without widening into final runtime direction semantics yet.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to `Extrude-3.3 Phase 2` row visibility, naming, and authored depth-state truth for the live `Geometry/Extrude` node.
+- Preserved the shipped `Type` and `Direction` enum-row contracts and kept compile/runtime direction meaning deferred to `Extrude-3.3 Phase 3`.
+- Kept the split non-destructive by preserving hidden `startDepthMm` / `endDepthMm` params and using `depthMm` as the first local fallback when the split values are still missing.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/registry/nodeRegistry.ts` so `Geometry/Extrude` now accepts authored `startDepthMm` and `endDepthMm` params plus real `StartDepth` and `EndDepth` input ports alongside the existing `Depth` port.
+- Extended `src/app/spaghetti/selectors/selectNodeVm.ts` so `extrudeVm` now carries local fallback values, effective values, driven ownership, and visibility flags for `Depth`, `Start Depth`, and `End Depth`, with `TwoSides` falling back from `depthMm` until split params are authored.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live `Extrude` input stack now renders depth rows honestly by direction: `OneSide -> Depth`, `TwoSides -> Start Depth + End Depth`, and `Symmetric -> Depth`.
+- Added focused contract coverage in `src/app/spaghetti/registry/extrudeParams.test.ts` and `src/app/spaghetti/selectors/selectNodeVm.test.ts`, and refreshed the dormant `NodeView` fixture shapes in the test files so the TypeScript contract stays consistent.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/registry/extrudeParams.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- `Geometry/Extrude` now owns real `Start Depth` and `End Depth` row ids in the node input contract.
+- `One Side` and `Symmetric` show the single `Depth` row, while `Two Sides` hides that row and shows `Start Depth` plus `End Depth`.
+- Unwired `TwoSides` rows now reuse `depthMm` as their first local fallback until `startDepthMm` and `endDepthMm` are authored explicitly.
+- Switching away from `TwoSides` now hides the split rows without deleting their authored values.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/registry/extrudeParams.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`, but that suite is still blocked at startup by the existing `Worker is not defined` test-environment path.
+
+<!-- ENTRY 1072 -->
+### [1072] - 2026-04-06 08:41 - `Extrude-3.3 Phase 1 - Direction Names And Authored State Contract`
+<!-- ENTRY 1072 -->
+HUMAN SUMMARY: `Implemented the first honest \`Geometry/Extrude\` direction contract by adding a real authored \`Direction\` row under \`Inputs\`, locking the internal values to \`OneSide / TwoSides / Symmetric\`, and carrying that local-versus-driven state through the selector VM without widening into the later depth split or runtime meaning work.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to `Extrude-3.3 Phase 1` authored-state work for the live `Geometry/Extrude` node.
+- Preserved the existing `Type` and `Depth` ownership contracts and left runtime/compiler direction semantics unchanged.
+- Deferred the `Start Depth` / `End Depth` surface split, `Symmetric` depth handling, `Taper Angle`, `Wall Thickness`, and `Operation` to later phases.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/registry/nodeRegistry.ts` so `Geometry/Extrude` now owns an authored `extrudeDirection` param, defaulting to `OneSide`, plus a real `Direction` input port using the locked internal values `OneSide`, `TwoSides`, and `Symmetric`.
+- Added shared direction normalization and whole-number mapping helpers in the registry so old extrudes without authored direction still read as `OneSide` while future direction wires can reuse the same enum-input contract as `Type`.
+- Extended `src/app/spaghetti/selectors/selectNodeVm.ts` so `extrudeVm` now carries local/effective direction state and honest `directionDriven` ownership alongside the existing `Type` and `Depth` fields.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the live extrude input stack now renders `SketchProfile -> Type -> Direction -> Depth`, with the new `Direction` row using the same unwired-versus-driven enum-row behavior already proven by `Type`.
+- Added focused direction-contract coverage in `src/app/spaghetti/registry/extrudeParams.test.ts` and `src/app/spaghetti/selectors/selectNodeVm.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/registry/extrudeParams.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- `Geometry/Extrude` now exposes a real `Direction` enum row under `Inputs`.
+- Unwired extrudes now author and persist `One Side`, `Two Sides`, or `Symmetric` as explicit node params through the same visible enum-row path used by `Type`.
+- Real incoming `Direction` wires now override the effective displayed slot through the selector VM while keeping the local fallback value intact for later unwired reads.
+- The live extrude row order now reads `SketchProfile -> Type -> Direction -> Depth`.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/registry/extrudeParams.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`, but those suites are still blocked at startup by the existing `Worker is not defined` test-environment path.
+
+<!-- ENTRY 1071 -->
+### [1071] - 2026-04-05 20:55 - `Extrude-3.1 Phase 8 - Type Row And Runtime Source Of Truth Trace`
+<!-- ENTRY 1071 -->
+HUMAN SUMMARY: `Closed the remaining \`Geometry/Extrude\` \`Type\` truth split by making the live unwired node row and visible \`SolidBody\` summary read from the same authored \`node.params.extrudeType\` source that the compiler/runtime path already uses. Real \`Type\` wires still override that local value through the selector VM, but unwired \`Body / Walls\` rows no longer drift from the actual built result.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the `Geometry/Extrude` `Type` source-of-truth split between the visible node surface and the compile/runtime path.
+- Preserved the existing `Body / Walls` authored semantics, the shipped enum-row interaction work, and the current whole-number-driven `Type` wire contract.
+- Left `Direction`, `Wall Thickness`, `Taper Angle`, `Operation`, and broader `Extrude-3.3+` authored work unchanged.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the unwired `Geometry/Extrude` `Type` row now reads its local authored value from `node.params.extrudeType` through `readGeometryExtrudeTypeFromParams(...)` instead of trusting `extrudeVm` as the local source of truth.
+- Re-aligned the visible `SolidBody` summary copy in `NodeView` around that same ownership split, so the unwired node surface now matches the authored `Body / Walls` value that the graph compiler and worker runtime already consume.
+- Kept the shipped selector contract intact so real incoming `Type` wires still promote the effective `extrudeVm.extrudeType` value and disable local editing honestly.
+- Reused the existing focused selector/compiler/runtime proofs to verify that the same authored `Body / Walls` value still flows through selector VM interpretation, compile-time extrude payloads, and worker runtime capped-versus-uncapped geometry meaning.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+
+#### Behavior Changes
+- Unwired `Geometry/Extrude` `Type` rows now display and summarize the authored `Body / Walls` value from `node.params.extrudeType`, so the visible row and `SolidBody` summary no longer drift from the built result.
+- Real incoming `Type` wires still override the row through the selector VM and keep local editing disabled, so driven enum behavior remains unchanged.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1070 -->
+### [1070] - 2026-04-05 20:36 - `Extrude-3.1 Phase 7 - Enum Row Live Write And Render Trace`
+<!-- ENTRY 1070 -->
+HUMAN SUMMARY: `Closed the remaining live \`Geometry/Extrude\` \`Type\` row drift by restoring the node row to the real shared \`ParaSelect\` interaction core, re-enabling enum scrub in the node skin, and hardening the visible pointer-first menu/arrow path. This finally lines the row back up with the same local-vs-driven ownership contract already proven by \`Depth\` while keeping the settled node shell look.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the live `Extrude Type` row write/render path and the shared enum-row interaction core it depends on.
+- Preserved the already-shipped `Body / Walls` authored semantics, the `Phase 3.1-5` local-versus-driven ownership rule, and the settled node-row shell styling.
+- Left `Direction`, `Wall Thickness`, `Taper Angle`, `Operation`, and broader `Extrude-3.3+` authored work unchanged.
+
+#### Summary of Implementation
+- Restored `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` to the real `ParaSelect` component so visible arrows, menu open/commit, and scrub behavior now share the same tested selector core used elsewhere in the app.
+- Hardened `src/app/components/ParaSelect.tsx` by stopping `pointerdown` propagation on the custom track button and custom menu options/actions before live node drag or selection can interfere with the visible control path.
+- Re-enabled the node-row enum scrub handle in `src/app/theme/surfaces/spaghetti.css` so the `Type` row marker is interactive again instead of presenting a dead visual handle.
+- Kept the tolerant `Geometry/Extrude` param readers in `src/app/spaghetti/registry/nodeRegistry.ts` so authored `extrudeType` survives even when extra extrude params are present on the node.
+- Tightened the focused regressions in `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`, `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`, `src/app/components/ParaSelect.test.tsx`, `src/app/spaghetti/selectors/selectNodeVm.test.ts`, and `src/app/spaghetti/registry/extrudeParams.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/components/ParaSelect.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/registry/extrudeParams.test.ts`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/components/ParaSelect.test.tsx`
+
+#### Behavior Changes
+- Unwired `Geometry/Extrude` `Type` rows now use the real shared selector behavior path again, so visible arrows, menu selection, and drag scrub all target the authored `Body / Walls` value instead of a drifted node-local enum interaction fork.
+- The node-row enum handle is interactive again, so the visible marker can scrub selection instead of acting like a dead decoration.
+- `Geometry/Extrude` authored type reads now remain stable even when additional extrude params are present on the node param object.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/components/ParaSelect.test.tsx src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+- Attempted `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` but it is still blocked before collection by the existing `Worker is not defined` startup path
+
+<!-- ENTRY 1069 -->
+### [1069] - 2026-04-05 20:05 - `Extrude-3.1 Phase 6 - Enum Row Integration Verification And Cleanup`
+<!-- ENTRY 1069 -->
+HUMAN SUMMARY: `Closed the last live-canvas gap in the \`Geometry/Extrude\` \`Type\` row by replacing the still-flaky visible enum interaction path with simpler direct arrow stepping plus center-menu commits while keeping the settled node-row shell look. This makes the node-level \`Body / Walls\` selector trustworthy enough for real manual geometry verification.`  
+#### Scope / Constraints Honored
+- Kept this pass limited to the live `Extrude Type` row interaction path.
+- Preserved the already-shipped `Body / Walls` authored semantics and the `Phase 3.1-5` unwired-versus-driven ownership rule.
+- Left `Direction`, `Wall Thickness`, `Taper Angle`, `Operation`, and broader `Extrude-3.3+` work unchanged.
+
+#### Summary of Implementation
+- Reworked `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx` so the live node row no longer depends on the richer but flaky embedded `ParaSelect` interaction path for visible arrow and menu behavior.
+- Moved visible interaction ownership to direct previous/next endcap stepping plus a center-lane menu toggle and explicit menu-option commit buttons, while keeping the hidden native select as a fallback bridge.
+- Tightened `src/app/theme/surfaces/spaghetti.css` so the enum-row menu can layer correctly inside the node shell and the visual marker no longer steals center-lane interaction.
+- Added focused regressions in `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx` and kept the supporting enum-row/selector coverage green in `src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts`, `src/app/spaghetti/selectors/selectNodeVm.test.ts`, and `src/app/components/ParaSelect.test.tsx`.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx`
+
+#### Behavior Changes
+- Unwired `Geometry/Extrude` `Type` rows now use a simpler visible interaction path that reliably steps and commits `Body / Walls` from the node row itself.
+- Driven `Type` rows still show the effective wire-owned slot and keep local editing disabled.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/canvas/StructuredWireEnumRow.test.tsx src/app/spaghetti/canvas/structuredWireEnumRowProps.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/components/ParaSelect.test.tsx`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
 <!-- ENTRY 1068 -->
 ### [1068] - 2026-04-05 13:23 - `Extrude-3.1 Follow-up - Current-State Type Row Param Commit Path`
 <!-- ENTRY 1068 -->

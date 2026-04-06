@@ -304,6 +304,9 @@ export function ParaSelect({
           aria-haspopup="listbox"
           aria-expanded={isMenuOpen}
           disabled={disabled}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+          }}
           onClick={handleTrackToggle}
         >
           <div className="ParaSelectFill" style={{ width: `${fillPercent}%` }} />
@@ -345,6 +348,9 @@ export function ParaSelect({
                 className={`ParaSelectMenuOption ${
                   option.value === selectedOption.value ? 'isSelected' : ''
                 }`}
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                }}
                 onClick={() => handleOptionClick(option.value)}
                 role="option"
                 aria-selected={option.value === selectedOption.value}
@@ -359,6 +365,9 @@ export function ParaSelect({
                     key={action.label}
                     type="button"
                     className="ParaSelectMenuAction"
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                    }}
                     onClick={() => handleMenuActionClick(action)}
                   >
                     {action.label}

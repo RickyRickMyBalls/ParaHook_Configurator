@@ -244,10 +244,15 @@ const geometrySketchParamsSchema = z
   })
   .strict()
 const geometryExtrudeStoredTypeSchema = z.enum(['Basic', 'Twist', 'Body', 'Walls'])
+const geometryExtrudeStoredDirectionSchema = z.enum(['OneSide', 'TwoSides', 'Symmetric'])
 const geometryExtrudeParamsSchema = z
   .object({
     extrudeType: geometryExtrudeStoredTypeSchema.optional(),
+    extrudeDirection: geometryExtrudeStoredDirectionSchema.optional(),
     depthMm: z.number().finite().optional(),
+    startDepthMm: z.number().finite().optional(),
+    endDepthMm: z.number().finite().optional(),
+    taperAngleDeg: z.number().finite().optional(),
   })
   .strict()
 const defaultBaseplateWidth = 30
@@ -297,6 +302,34 @@ export const normalizeGeometryExtrudeType = (value: unknown): GeometryExtrudeTyp
   return value === 'Walls' ? 'Walls' : 'Body'
 }
 
+export const GEOMETRY_EXTRUDE_DIRECTION_OPTIONS = [
+  'OneSide',
+  'TwoSides',
+  'Symmetric',
+] as const
+export type GeometryExtrudeDirection = (typeof GEOMETRY_EXTRUDE_DIRECTION_OPTIONS)[number]
+const clampExtrudeDirectionIndex = (value: number): number =>
+  Math.min(
+    GEOMETRY_EXTRUDE_DIRECTION_OPTIONS.length - 1,
+    Math.max(0, Math.round(value)),
+  )
+export const mapWholeNumberToGeometryExtrudeDirection = (
+  value: number,
+): GeometryExtrudeDirection =>
+  GEOMETRY_EXTRUDE_DIRECTION_OPTIONS[clampExtrudeDirectionIndex(value)] ?? 'OneSide'
+
+export const normalizeGeometryExtrudeDirection = (
+  value: unknown,
+): GeometryExtrudeDirection => {
+  if (value === 'TwoSides') {
+    return 'TwoSides'
+  }
+  if (value === 'Symmetric') {
+    return 'Symmetric'
+  }
+  return 'OneSide'
+}
+
 const toFiniteNumberOr = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback
 
@@ -336,17 +369,39 @@ const readManagedSketchFeatureFromParams = (params: Record<string, unknown>): Sk
 export const readGeometryExtrudeTypeFromParams = (
   params: Record<string, unknown>,
 ): GeometryExtrudeType => {
-  const parsed = geometryExtrudeParamsSchema.safeParse(params)
-  return parsed.success && parsed.data.extrudeType !== undefined
-    ? normalizeGeometryExtrudeType(parsed.data.extrudeType)
-    : 'Body'
+  return normalizeGeometryExtrudeType(params.extrudeType)
+}
+
+export const readGeometryExtrudeDirectionFromParams = (
+  params: Record<string, unknown>,
+): GeometryExtrudeDirection => {
+  return normalizeGeometryExtrudeDirection(params.extrudeDirection)
+}
+
+export const readGeometryExtrudeTaperAngleDegFromParams = (
+  params: Record<string, unknown>,
+): number => {
+  return typeof params.taperAngleDeg === 'number' && Number.isFinite(params.taperAngleDeg)
+    ? params.taperAngleDeg
+    : 0
 }
 
 const readGeometryExtrudeDepthMmFromParams = (params: Record<string, unknown>): number => {
-  const parsed = geometryExtrudeParamsSchema.safeParse(params)
-  return parsed.success && typeof parsed.data.depthMm === 'number' && Number.isFinite(parsed.data.depthMm)
-    ? parsed.data.depthMm
+  return typeof params.depthMm === 'number' && Number.isFinite(params.depthMm)
+    ? params.depthMm
     : defaultGeometryExtrudeDepthMm
+}
+
+const readGeometryExtrudeStartDepthMmFromParams = (params: Record<string, unknown>): number => {
+  return typeof params.startDepthMm === 'number' && Number.isFinite(params.startDepthMm)
+    ? params.startDepthMm
+    : readGeometryExtrudeDepthMmFromParams(params)
+}
+
+const readGeometryExtrudeEndDepthMmFromParams = (params: Record<string, unknown>): number => {
+  return typeof params.endDepthMm === 'number' && Number.isFinite(params.endDepthMm)
+    ? params.endDepthMm
+    : readGeometryExtrudeDepthMmFromParams(params)
 }
 
 const buildRectangleExtrudeFeatureStack = (config: {
@@ -456,7 +511,9 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     paramsSchema: geometryExtrudeParamsSchema,
     defaultParams: {
       extrudeType: 'Body',
+      extrudeDirection: 'OneSide',
       depthMm: defaultGeometryExtrudeDepthMm,
+      taperAngleDeg: 0,
     },
     template: 'extrude',
     inputs: [
@@ -474,10 +531,36 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         maxConnectionsIn: 1,
       },
       {
+        portId: 'Direction',
+        label: 'Direction',
+        type: { kind: 'number', unit: 'unitless' },
+        optional: true,
+        maxConnectionsIn: 1,
+      },
+      {
         portId: 'Depth',
         label: 'Depth',
         type: { kind: 'number', unit: 'mm' },
         optional: true,
+      },
+      {
+        portId: 'StartDepth',
+        label: 'Start Depth',
+        type: { kind: 'number', unit: 'mm' },
+        optional: true,
+      },
+      {
+        portId: 'EndDepth',
+        label: 'End Depth',
+        type: { kind: 'number', unit: 'mm' },
+        optional: true,
+      },
+      {
+        portId: 'TaperAngle',
+        label: 'Taper Angle',
+        type: { kind: 'number', unit: 'deg' },
+        optional: true,
+        maxConnectionsIn: 1,
       },
     ],
     outputs: [
@@ -493,16 +576,33 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
           ? mapWholeNumberToGeometryExtrudeType(inputs.Type)
           : readGeometryExtrudeTypeFromParams(params)
       void extrudeType
+      const extrudeDirection =
+        typeof inputs.Direction === 'number' && Number.isFinite(inputs.Direction)
+          ? mapWholeNumberToGeometryExtrudeDirection(inputs.Direction)
+          : readGeometryExtrudeDirectionFromParams(params)
+      void extrudeDirection
       const depth =
         typeof inputs.Depth === 'number' && Number.isFinite(inputs.Depth)
           ? inputs.Depth
           : readGeometryExtrudeDepthMmFromParams(params)
+      const startDepth =
+        typeof inputs.StartDepth === 'number' && Number.isFinite(inputs.StartDepth)
+          ? inputs.StartDepth
+          : readGeometryExtrudeStartDepthMmFromParams(params)
+      const endDepth =
+        typeof inputs.EndDepth === 'number' && Number.isFinite(inputs.EndDepth)
+          ? inputs.EndDepth
+          : readGeometryExtrudeEndDepthMmFromParams(params)
       const profile = inputs.ExtrusionProfile
       const hasProfile =
         typeof profile === 'object' &&
         profile !== null &&
         typeof (profile as { profileId?: unknown }).profileId === 'string'
-      const canPublishBody = hasProfile && depth > 0
+      const canPublishBody =
+        hasProfile &&
+        (extrudeDirection === 'TwoSides'
+          ? startDepth > 0 && endDepth > 0
+          : depth > 0)
       return {
         SolidBody: canPublishBody ? { bodyId: `${nodeId}:body` } : null,
       }

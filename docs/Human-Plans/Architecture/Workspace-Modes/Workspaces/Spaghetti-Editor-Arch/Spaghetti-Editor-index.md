@@ -1,8 +1,12 @@
-# Master Spaghetti Index
+# Spaghetti-Editor Index
 
 ## Doc Header
 
 ### Doc History
+8. 2026-04-06: Added the open umbrella phase `Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation` plus the dedicated future doc `Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md` so the proposed new `O` titlebar mode, the cleanup of the current overlay-on-model-viewport experiment, and the restoration of `e` to real essential float-window meaning now have one clean planning home
+7. 2026-04-06: Marked `Spaghetti-Editor 2 - New Node Spawn Mode And Toolbar Cycle Control` shipped after the editor gained the global spawn-mode cycle control and creation-time node-mode stamping, and refreshed the umbrella phase summary so the new-node compact-default cleanup now reads as landed workspace behavior
+6. 2026-04-06: Prepared `Spaghetti-Editor 2` for implementation by adding the dedicated future doc `Future/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`, narrowing the umbrella index entry so the spawn-default and toolbar-cycle work now points at one implementation-ready source of truth
+5. 2026-04-06: Added the open umbrella phase `Spaghetti-Editor 2 - New Node Spawn Mode And Toolbar Cycle Control` so the editor-level cleanup around first-spawn node density and a future global `Collapsed / Essentials / Expanded` spawn-default cycle button has one clean planning home instead of being scattered across node-family docs
 4. 2026-03-28: Corrected the umbrella source-doc pointers after a repo audit by treating this file as the live `Spaghetti-Editor-Arch` entry point, moving the older `Spaghetti-Editor-Explained.md` reference into archived-background context, and replacing the dead local `01.2 - Browser Workspace.md` pointer with the live `Browser` family index
 3. 2026-03-25: Added the standalone future phase doc for `Master Spaghetti-1` under `Spaghetti-Editor-Arch/Future/`, turning the first smart-wiring umbrella phase into an implementation-ready planning surface grounded on the real current `SketchProfile -> Geometry/Extrude -> OutputPreview in:solid:<slotId>` path
 2. 2026-03-25: Added the first explicit `Master Spaghetti` phase section, seeding a new umbrella `Smart Wiring` proving slice so cross-node canvas QoL behavior like sketch-wire-to-output auto-extrude insertion has one narrow workspace-level planning home without turning the whole doc into a mixed execution backlog
@@ -207,7 +211,7 @@ The next useful cleanup direction for this folder is:
 
 ## Phases
 
-### [ ] Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass
+### [ ] Spaghetti-Editor 1 - Smart Wiring And Intent-Aware Auto-Insert First Pass
 
 Standalone phase doc:
 - `Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
@@ -325,3 +329,64 @@ The first implementation should aim for one canonical graph-mutation seam so fut
 - the new extrude output is wired into the target output slot
 - the resulting graph is readable and editable like a normal manually-authored graph
 - the behavior stays narrow and deterministic instead of trying to infer many different missing chains
+
+### [x] Spaghetti-Editor 2 - New Node Spawn Mode And Toolbar Cycle Control
+
+Standalone phase doc:
+- `Future/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
+
+#### Purpose
+
+Add one honest editor-level control for how newly created nodes should appear when they first spawn on the canvas.
+
+This phase should separate:
+- the mode of already-existing nodes
+- the default mode applied to future newly spawned nodes
+
+The goal is to let the user cycle one global `new node spawn mode` preference between:
+- `Collapsed`
+- `Essentials`
+- `Expanded`
+
+without rewriting the visible state of nodes that are already on the graph.
+
+Implementation-ready phase details now live in the standalone doc above.
+
+Short read:
+- add one global `new node spawn mode` preference
+- expose it as a toolbar cycle control
+- stamp that chosen mode onto newly created nodes
+- keep existing nodes untouched
+- ship `Collapsed` as the first default so new nodes open with visible rails and compact one-line rows
+
+Shipped read:
+- the toolbar cycle control is live
+- new nodes now inherit the selected spawn mode at creation time
+- existing nodes do not get restyled when the preference changes
+
+### [ ] Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`
+
+#### Purpose
+
+Add a fourth titlebar option, `O`, so overlay-on-model-viewport becomes a real editor presentation mode instead of continuing to overload `e`.
+
+This phase should separate:
+- float-window density:
+  - `- / e / +`
+- overlay placement:
+  - `O`
+
+Implementation-ready phase details now live in the standalone doc above.
+
+Short read:
+- restore `e` to real essential float-window meaning
+- make `O` the explicit overlay-on-model-viewport mode
+- keep node row-density separate from this mode system
+- add model viewport titlebar messaging plus first overlay controls such as background transparency
+
+Initial phase breakdown:
+- `Spaghetti-Editor 3 - Phase 1 - Window Density Truth And O Mode Entry`
+- `Spaghetti-Editor 3 - Phase 2 - Overlay Titlebar Controls And Surface Cleanup`

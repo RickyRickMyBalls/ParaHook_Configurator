@@ -46,6 +46,8 @@ describe('CollapsedEditor', () => {
 
   beforeEach(() => {
     currentSpaghettiState = {
+      newNodeSpawnMode: 'collapsed',
+      cycleNewNodeSpawnMode: vi.fn(),
       graphDocumentsById: {
         'graph-document-1': {
           graphDocumentId: 'graph-document-1',
@@ -82,6 +84,7 @@ describe('CollapsedEditor', () => {
     )
 
     expect(container.textContent).toContain('Collapsed')
+    expect(container.textContent).toContain('Spawn: collapsed')
     expect(container.querySelector('.SpaghettiCanvasToolbar')).not.toBeNull()
     expect(expandedButton).not.toBeNull()
 
@@ -90,5 +93,23 @@ describe('CollapsedEditor', () => {
     })
 
     expect(rendered.onSetViewMode).toHaveBeenCalledWith('expanded')
+  })
+
+  it('shows the current spawn mode and cycles it from the toolbar', async () => {
+    const rendered = await renderCollapsedEditor()
+    container = rendered.container
+    root = rendered.root
+
+    const spawnButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Spawn: collapsed',
+    )
+
+    expect(spawnButton).not.toBeNull()
+
+    await act(async () => {
+      spawnButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(currentSpaghettiState.cycleNewNodeSpawnMode).toHaveBeenCalledTimes(1)
   })
 })

@@ -581,6 +581,142 @@ describe('executeFeatureStack', () => {
     expect(shape?.mesh.indices.length).toBe(24)
     expect(result.diagnostics).toEqual([])
   })
+
+  it('executes TwoSides graph-native extrudes across the authored start and end depths', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        extrude: [
+          {
+            op: 'sketch',
+            featureId: 'graph-sketch',
+            plane: 'XY',
+            profilesResolved: [
+              {
+                profileId: 'prof-xy',
+                area: 50,
+                vertices: rectangleVertices,
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'graph-extrude',
+            profileRef: {
+              sketchFeatureId: 'graph-sketch',
+              profileId: 'prof-xy',
+            },
+            extrudeDirection: 'TwoSides',
+            depthResolved: 11,
+            startDepthResolved: 4,
+            endDepthResolved: 7,
+            plane: 'XY',
+            bodyId: 'body-xy',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+    const shape = result.bodies['extrude:body-xy']
+    const zValues = (shape?.mesh.vertices ?? []).filter((_, index) => index % 3 === 2)
+
+    expect(shape).toBeDefined()
+    expect(Math.min(...zValues)).toBe(-4)
+    expect(Math.max(...zValues)).toBe(7)
+    expect(result.diagnostics).toEqual([])
+  })
+
+  it('executes Symmetric graph-native extrudes equally on both sides of the sketch plane', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        extrude: [
+          {
+            op: 'sketch',
+            featureId: 'graph-sketch',
+            plane: 'XY',
+            profilesResolved: [
+              {
+                profileId: 'prof-xy',
+                area: 50,
+                vertices: rectangleVertices,
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'graph-extrude',
+            profileRef: {
+              sketchFeatureId: 'graph-sketch',
+              profileId: 'prof-xy',
+            },
+            extrudeDirection: 'Symmetric',
+            depthResolved: 20,
+            plane: 'XY',
+            bodyId: 'body-xy',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+    const shape = result.bodies['extrude:body-xy']
+    const zValues = (shape?.mesh.vertices ?? []).filter((_, index) => index % 3 === 2)
+
+    expect(shape).toBeDefined()
+    expect(Math.min(...zValues)).toBe(-10)
+    expect(Math.max(...zValues)).toBe(10)
+    expect(result.diagnostics).toEqual([])
+  })
+
+  it('emits a direction-aware invalid-depth diagnostic for TwoSides when one split depth is not positive', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        extrude: [
+          {
+            op: 'sketch',
+            featureId: 'graph-sketch',
+            plane: 'XY',
+            profilesResolved: [
+              {
+                profileId: 'prof-xy',
+                area: 50,
+                vertices: rectangleVertices,
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'graph-extrude',
+            profileRef: {
+              sketchFeatureId: 'graph-sketch',
+              profileId: 'prof-xy',
+            },
+            extrudeDirection: 'TwoSides',
+            depthResolved: 5,
+            startDepthResolved: 0,
+            endDepthResolved: 5,
+            plane: 'XY',
+            bodyId: 'body-xy',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(result.bodies).toEqual({})
+    expect(result.diagnostics).toEqual([
+      {
+        partKey: 'extrude',
+        featureId: 'graph-extrude',
+        reason: 'invalid_extrude_depth',
+        message: 'Extrude skipped because TwoSides requires positive depth values.',
+      },
+    ])
+  })
 })
 
 describe('buildModel diagnostics flush', () => {

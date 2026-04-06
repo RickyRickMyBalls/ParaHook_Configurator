@@ -1,9 +1,41 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { z } from 'zod'
 import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
 import { selectDiagnosticsVm } from './selectDiagnosticsVm'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { selectNodeVm } from './selectNodeVm'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import { registry, type NodeDefinition } from '../registry/nodeRegistry'
+
+const testNumberDegSourceType = 'Test/NumberDeg'
+const registryWithTests = registry as unknown as Record<string, NodeDefinition>
+
+beforeAll(() => {
+  registryWithTests[testNumberDegSourceType] = {
+    type: testNumberDegSourceType as never,
+    label: 'Test Number Source (deg)',
+    paramsSchema: z
+      .object({
+        value: z.number(),
+      })
+      .strict(),
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'number', unit: 'deg' },
+      },
+    ],
+    compute: ({ params }) => ({
+      value: params.value,
+    }),
+  }
+})
+
+afterAll(() => {
+  delete registryWithTests[testNumberDegSourceType]
+})
 
 describe('selectNodeVm', () => {
   it('preserves graph.nodes ordering and is deterministic', () => {
@@ -401,5 +433,345 @@ describe('selectNodeVm', () => {
     expect(extrudeVm?.extrudeType).toBe('Walls')
     expect(extrudeVm?.localExtrudeType).toBe('Walls')
     expect(extrudeVm?.typeDriven).toBe(false)
+  })
+
+  it('keeps the authored extrude type when extra extrude params are present', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Walls',
+            depthMm: 20,
+            taperDeg: 3,
+            wallThicknessMm: 1.5,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeType).toBe('Walls')
+    expect(extrudeVm?.localExtrudeType).toBe('Walls')
+    expect(extrudeVm?.typeDriven).toBe(false)
+  })
+
+  it('maps a whole-number unitless Direction input into the shared extrude enum row contract', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-direction-driver',
+          type: 'Primitive/Number',
+          params: { value: 2, unit: 'unitless' },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-direction-drive',
+          from: { nodeId: 'node-direction-driver', portId: 'value' },
+          to: { nodeId: 'node-extrude-1', portId: 'Direction' },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeDirection).toBe('Symmetric')
+    expect(extrudeVm?.localExtrudeDirection).toBe('OneSide')
+    expect(extrudeVm?.directionDriven).toBe(true)
+  })
+
+  it('keeps the authored extrude direction when the Direction input is unwired', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'TwoSides',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeDirection).toBe('TwoSides')
+    expect(extrudeVm?.localExtrudeDirection).toBe('TwoSides')
+    expect(extrudeVm?.directionDriven).toBe(false)
+  })
+
+  it('defaults missing authored extrude direction to OneSide even when extra extrude params are present', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Walls',
+            depthMm: 20,
+            taperDeg: 3,
+            wallThicknessMm: 1.5,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeDirection).toBe('OneSide')
+    expect(extrudeVm?.localExtrudeDirection).toBe('OneSide')
+    expect(extrudeVm?.directionDriven).toBe(false)
+  })
+
+  it('keeps the authored taper angle when the TaperAngle input is unwired', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+            taperAngleDeg: 3,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.localTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.effectiveTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.taperVisible).toBe(true)
+    expect(extrudeVm?.taperDriven).toBe(false)
+  })
+
+  it('keeps taper row ownership honest when the TaperAngle input is wire-driven', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-taper-driver',
+          type: testNumberDegSourceType as never,
+          params: { value: 8.5 },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+            taperAngleDeg: 3,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-taper-drive',
+          from: { nodeId: 'node-taper-driver', portId: 'value' },
+          to: { nodeId: 'node-extrude-1', portId: 'TaperAngle' },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.localTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.effectiveTaperAngleDeg).toBe(8.5)
+    expect(extrudeVm?.taperVisible).toBe(true)
+    expect(extrudeVm?.taperDriven).toBe(true)
+  })
+
+  it('hides taper visibility for Walls even while authored taper state remains intact', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Walls',
+            extrudeDirection: 'OneSide',
+            depthMm: 20,
+            taperAngleDeg: 3,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.localTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.effectiveTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.taperVisible).toBe(false)
+  })
+
+  it('hides taper visibility for unsupported direction modes even while authored taper state remains intact', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'Symmetric',
+            depthMm: 20,
+            taperAngleDeg: 3,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.localTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.effectiveTaperAngleDeg).toBe(3)
+    expect(extrudeVm?.taperVisible).toBe(false)
+  })
+
+  it('falls back TwoSides start and end depth rows from depthMm when split params are missing', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'TwoSides',
+            depthMm: 32,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.depthVisible).toBe(false)
+    expect(extrudeVm?.startDepthVisible).toBe(true)
+    expect(extrudeVm?.endDepthVisible).toBe(true)
+    expect(extrudeVm?.localDepthMm).toBe(32)
+    expect(extrudeVm?.effectiveDepthMm).toBe(32)
+    expect(extrudeVm?.localStartDepthMm).toBe(32)
+    expect(extrudeVm?.effectiveStartDepthMm).toBe(32)
+    expect(extrudeVm?.startDepthDriven).toBe(false)
+    expect(extrudeVm?.localEndDepthMm).toBe(32)
+    expect(extrudeVm?.effectiveEndDepthMm).toBe(32)
+    expect(extrudeVm?.endDepthDriven).toBe(false)
+  })
+
+  it('keeps split depth row ownership honest when TwoSides start and end depth rows are wire-driven', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-start-depth-driver',
+          type: 'Param/Number',
+          params: { value: 12 },
+        },
+        {
+          nodeId: 'node-end-depth-driver',
+          type: 'Param/Number',
+          params: { value: 18 },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'TwoSides',
+            depthMm: 20,
+            startDepthMm: 6,
+            endDepthMm: 7,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-start-depth-drive',
+          from: { nodeId: 'node-start-depth-driver', portId: 'value' },
+          to: { nodeId: 'node-extrude-1', portId: 'StartDepth' },
+        },
+        {
+          edgeId: 'edge-end-depth-drive',
+          from: { nodeId: 'node-end-depth-driver', portId: 'value' },
+          to: { nodeId: 'node-extrude-1', portId: 'EndDepth' },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.extrudeDirection).toBe('TwoSides')
+    expect(extrudeVm?.localExtrudeDirection).toBe('TwoSides')
+    expect(extrudeVm?.directionDriven).toBe(false)
+    expect(extrudeVm?.depthVisible).toBe(false)
+    expect(extrudeVm?.startDepthVisible).toBe(true)
+    expect(extrudeVm?.endDepthVisible).toBe(true)
+    expect(extrudeVm?.localStartDepthMm).toBe(6)
+    expect(extrudeVm?.effectiveStartDepthMm).toBe(12)
+    expect(extrudeVm?.startDepthDriven).toBe(true)
+    expect(extrudeVm?.localEndDepthMm).toBe(7)
+    expect(extrudeVm?.effectiveEndDepthMm).toBe(18)
+    expect(extrudeVm?.endDepthDriven).toBe(true)
   })
 })

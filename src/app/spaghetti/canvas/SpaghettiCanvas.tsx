@@ -478,6 +478,8 @@ export function SpaghettiCanvas({
   const clearUiMessage = useSpaghettiStore((state) => state.clearUiMessage)
   const setExtrudeDepth = useSpaghettiStore((state) => state.setExtrudeDepth)
   const setNodeMode = useSpaghettiStore((state) => state.setNodeMode)
+  const newNodeSpawnMode = useSpaghettiStore((state) => state.newNodeSpawnMode)
+  const cycleNewNodeSpawnMode = useSpaghettiStore((state) => state.cycleNewNodeSpawnMode)
   const supportsOverlayCanvasMode = viewMode !== 'collapsed'
   const setSelectedNodeId = useCallback(
     (nodeId: string | null) => {
@@ -1875,6 +1877,7 @@ export function SpaghettiCanvas({
             params: getDefaultNodeParams(type),
           },
           position: { x, y },
+          nodeMode: newNodeSpawnMode,
         }),
       )
       setSelectedNodeId(nodeId)
@@ -1885,7 +1888,15 @@ export function SpaghettiCanvas({
       })
       setNodeAddMenu(null)
     },
-    [applyGraphCommand, graph, nodeAddMenu, setSelectedEdgeId, setSelectedNodeId, setUiMessage],
+    [
+      applyGraphCommand,
+      graph,
+      newNodeSpawnMode,
+      nodeAddMenu,
+      setSelectedEdgeId,
+      setSelectedNodeId,
+      setUiMessage,
+    ],
   )
 
   const handlePresetChange = useCallback(
@@ -2292,6 +2303,9 @@ export function SpaghettiCanvas({
               Collapsed
             </button>
           </div>
+          <button type="button" onClick={cycleNewNodeSpawnMode}>
+            Spawn: {newNodeSpawnMode}
+          </button>
           <button type="button" onClick={handleDeleteSelectedEdge} disabled={selectedEdgeId === null}>
             Delete Selected Edge
           </button>

@@ -1,14 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
-import { getDefaultNodeParams } from '../registry/nodeRegistry'
-import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import type {
   DriverControlRowVm,
   InputEndpointRowVm,
   OutputPinnedRowVm,
 } from './driverVm'
-import { NodeView } from './NodeView'
 import type {
   DriverRowWarningVm,
   ExtrudeNodeVm,
@@ -19,12 +16,39 @@ import type {
   SketchNodeVm,
   UtilityNodeVm,
 } from '../selectors'
-import {
-  buildSectionCollapseKey,
-  useSpaghettiUiStore,
-} from './state/spaghettiUiStore'
 import type { ViewMode } from './rowViewMode'
-import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+
+type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
+
+class MockWorker {
+  private readonly handlers = new Set<WorkerMessageHandler>()
+
+  public addEventListener(type: string, handler: EventListenerOrEventListenerObject): void {
+    if (type !== 'message' || typeof handler !== 'function') {
+      return
+    }
+    this.handlers.add(handler as WorkerMessageHandler)
+  }
+
+  public removeEventListener(type: string, handler: EventListenerOrEventListenerObject): void {
+    if (type !== 'message' || typeof handler !== 'function') {
+      return
+    }
+    this.handlers.delete(handler as WorkerMessageHandler)
+  }
+
+  public postMessage(_message: unknown): void {}
+
+  public terminate(): void {}
+}
+
+let getDefaultNodeParams!: typeof import('../registry/nodeRegistry').getDefaultNodeParams
+let useSpaghettiStore!: typeof import('../store/useSpaghettiStore').useSpaghettiStore
+let NodeView!: typeof import('./NodeView').NodeView
+let buildSectionCollapseKey!: typeof import('./state/spaghettiUiStore').buildSectionCollapseKey
+let useSpaghettiUiStore!: typeof import('./state/spaghettiUiStore').useSpaghettiUiStore
+let OUTPUT_PREVIEW_NODE_TYPE!: typeof import('../system/outputPreviewNode').OUTPUT_PREVIEW_NODE_TYPE
+const originalWorker = globalThis.Worker
 
 const emptyCompositeState: NodeInputCompositeState = {
   wholeDrivenByPortId: new Set<string>(),
@@ -574,9 +598,20 @@ const renderExtrudeNode = (options: {
 }
 
 describe('NodeView part section order', () => {
+  beforeEach(async () => {
+    vi.resetModules()
+    globalThis.Worker = MockWorker as unknown as typeof Worker
+    ;({ getDefaultNodeParams } = await import('../registry/nodeRegistry'))
+    ;({ useSpaghettiStore } = await import('../store/useSpaghettiStore'))
+    ;({ NodeView } = await import('./NodeView'))
+    ;({ buildSectionCollapseKey, useSpaghettiUiStore } = await import('./state/spaghettiUiStore'))
+    ;({ OUTPUT_PREVIEW_NODE_TYPE } = await import('../system/outputPreviewNode'))
+  })
+
   afterEach(() => {
-    useSpaghettiUiStore.setState({ collapsed: {} })
-    useSpaghettiStore.getState().setGraph({
+    globalThis.Worker = originalWorker
+    useSpaghettiUiStore?.setState({ collapsed: {} })
+    useSpaghettiStore?.getState().setGraph({
       schemaVersion: 1,
       nodes: [],
       edges: [],
@@ -1512,13 +1547,29 @@ describe('NodeView part section order', () => {
         type: 'Geometry/Extrude',
         params: {
           extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
           depthMm: 30,
         },
       },
       extrudeVm: {
         extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
         effectiveDepthMm: 30,
+        depthVisible: true,
         depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        localTaperAngleDeg: 3,
+        effectiveTaperAngleDeg: 3,
+        taperVisible: true,
+        taperDriven: false,
         hasProfile: true,
         profileId: 'profile-1',
         profileArea: 5000,
@@ -1540,9 +1591,23 @@ describe('NodeView part section order', () => {
           maxConnectionsIn: 1,
         },
         {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
           portId: 'Depth',
           label: 'Depth',
           type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'TaperAngle',
+          label: 'Taper Angle',
+          type: { kind: 'number', unit: 'deg' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -1554,6 +1619,7 @@ describe('NodeView part section order', () => {
           type: { kind: 'solidBody' },
         },
       ],
+      nodeMode: 'expanded',
     })
 
     expect(html.includes('SpaghettiExtrudeNodeTemplate')).toBe(true)
@@ -1573,6 +1639,8 @@ describe('NodeView part section order', () => {
     expect(html.includes('ParaSelectMenu')).toBe(false)
     expect(html.includes('aria-label="Previous Type"')).toBe(true)
     expect(html.includes('aria-label="Next Type"')).toBe(true)
+    expect(html.includes('aria-label="Previous Direction"')).toBe(true)
+    expect(html.includes('aria-label="Next Direction"')).toBe(true)
     expect(html.includes('data-sp-port-row-open="1"')).toBe(true)
     expect(html.includes('Profile Target')).toBe(true)
     expect(
@@ -1581,7 +1649,7 @@ describe('NodeView part section order', () => {
       ),
     ).toBe(true)
     expect(html.includes('Depth')).toBe(true)
-    expect(html.includes('30 mm')).toBe(true)
+    expect(html.includes('Taper Angle')).toBe(true)
     expect(html.includes('ParaSlider')).toBe(false)
     expect(html.includes('SpaghettiPortPrimitiveValueRow')).toBe(true)
     expect(html.includes('SpaghettiPortPrimitiveLane')).toBe(true)
@@ -1591,6 +1659,8 @@ describe('NodeView part section order', () => {
     expect(html.includes('SpaghettiPortPrimitiveEndcap--right')).toBe(true)
     expect(html.includes('aria-label="Decrease Depth"')).toBe(true)
     expect(html.includes('aria-label="Increase Depth"')).toBe(true)
+    expect(html.includes('aria-label="Decrease Taper Angle"')).toBe(true)
+    expect(html.includes('aria-label="Increase Taper Angle"')).toBe(true)
     expect(html.includes('Depth Value')).toBe(false)
     expect(html.includes('local fallback depth in millimeters')).toBe(false)
     expect(html.includes('SpaghettiGeometryNodeRailLabel">Inputs<')).toBe(true)
@@ -1598,14 +1668,21 @@ describe('NodeView part section order', () => {
     expect(html.includes('SpaghettiGeometryNodeRailLabel">Outputs<')).toBe(true)
     expect(html.includes('Body')).toBe(true)
     expect(html.includes('Walls')).toBe(true)
+    expect(html.includes('One Side')).toBe(true)
+    expect(html.includes('Two Sides')).toBe(true)
+    expect(html.includes('Symmetric')).toBe(true)
     expect(html.includes('SpaghettiPortMain--enumValue')).toBe(true)
     expect(html.includes('SpaghettiPortAnchor--in')).toBe(true)
     const sketchProfileRowIndex = html.indexOf('SpaghettiExtrudeProfilePortRow')
-    const typeRowIndex = html.indexOf('data-sp-enum-row="1"')
+    const typeRowIndex = html.indexOf('aria-label="Type"')
+    const directionRowIndex = html.indexOf('aria-label="Direction"')
     const depthRowIndex = html.indexOf('SpaghettiPortPrimitiveValueRow')
+    const taperRowIndex = html.lastIndexOf('Taper Angle')
     expect(sketchProfileRowIndex).toBeGreaterThan(-1)
     expect(typeRowIndex).toBeGreaterThan(sketchProfileRowIndex)
-    expect(depthRowIndex).toBeGreaterThan(typeRowIndex)
+    expect(directionRowIndex).toBeGreaterThan(typeRowIndex)
+    expect(depthRowIndex).toBeGreaterThan(directionRowIndex)
+    expect(taperRowIndex).toBeGreaterThan(depthRowIndex)
     expect(html.includes('Body ready: node-extrude-1:body (capped result)')).toBe(true)
   })
 
@@ -1616,13 +1693,26 @@ describe('NodeView part section order', () => {
         type: 'Geometry/Extrude',
         params: {
           extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
           depthMm: 30,
         },
       },
       extrudeVm: {
         extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
         effectiveDepthMm: 30,
+        depthVisible: true,
         depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
         hasProfile: false,
       },
       allInputs: [
@@ -1636,6 +1726,13 @@ describe('NodeView part section order', () => {
         {
           portId: 'Type',
           label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
           type: { kind: 'number', unit: 'unitless' },
           optional: true,
           maxConnectionsIn: 1,
@@ -1674,13 +1771,26 @@ describe('NodeView part section order', () => {
         type: 'Geometry/Extrude',
         params: {
           extrudeType: 'Walls',
+          extrudeDirection: 'OneSide',
           depthMm: 30,
         },
       },
       extrudeVm: {
         extrudeType: 'Walls',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
         effectiveDepthMm: 30,
+        depthVisible: true,
         depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: false,
         hasProfile: false,
       },
       allInputs: [
@@ -1694,6 +1804,13 @@ describe('NodeView part section order', () => {
         {
           portId: 'Type',
           label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
           type: { kind: 'number', unit: 'unitless' },
           optional: true,
           maxConnectionsIn: 1,
@@ -1713,29 +1830,45 @@ describe('NodeView part section order', () => {
           type: { kind: 'solidBody' },
         },
       ],
+      nodeMode: 'expanded',
     })
 
-    expect(html.includes('Waiting for one profile and positive depth to generate uncapped side walls.')).toBe(
-      true,
-    )
+    expect(html.includes('positive Depth')).toBe(true)
+    expect(html.includes('uncapped side walls')).toBe(true)
+    expect(html.includes('Taper Angle')).toBe(false)
   })
 
-  it('renders the dedicated extrude type row as driven while showing the effective enum slot', () => {
+  it('renders direction-aware waiting copy for TwoSides in the dedicated extrude template', () => {
     const html = renderExtrudeNode({
       node: {
         nodeId: 'node-extrude-1',
         type: 'Geometry/Extrude',
         params: {
           extrudeType: 'Body',
-          depthMm: 30,
+          extrudeDirection: 'TwoSides',
+          depthMm: 20,
+          startDepthMm: 5,
+          endDepthMm: 7,
         },
       },
       extrudeVm: {
-        extrudeType: 'Walls',
-        localExtrudeType: 'Body',
-        typeDriven: true,
-        effectiveDepthMm: 30,
+        extrudeType: 'Body',
+        extrudeDirection: 'TwoSides',
+        localExtrudeDirection: 'TwoSides',
+        directionDriven: false,
+        localDepthMm: 20,
+        effectiveDepthMm: 20,
+        depthVisible: false,
         depthDriven: false,
+        localStartDepthMm: 5,
+        effectiveStartDepthMm: 5,
+        startDepthVisible: true,
+        startDepthDriven: false,
+        localEndDepthMm: 7,
+        effectiveEndDepthMm: 7,
+        endDepthVisible: true,
+        endDepthDriven: false,
+        taperVisible: false,
         hasProfile: false,
       },
       allInputs: [
@@ -1749,6 +1882,181 @@ describe('NodeView part section order', () => {
         {
           portId: 'Type',
           label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'StartDepth',
+          label: 'Start Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'EndDepth',
+          label: 'End Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('positive Start Depth and End Depth')).toBe(true)
+    expect(html.includes('capped body')).toBe(true)
+    expect(html.includes('Taper Angle')).toBe(false)
+  })
+
+  it('renders direction-aware waiting copy for Symmetric in the dedicated extrude template', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'Symmetric',
+          depthMm: 20,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'Symmetric',
+        localExtrudeDirection: 'Symmetric',
+        directionDriven: false,
+        localDepthMm: 20,
+        effectiveDepthMm: 20,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 20,
+        effectiveStartDepthMm: 20,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 20,
+        effectiveEndDepthMm: 20,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('positive symmetric Depth')).toBe(true)
+    expect(html.includes('capped body')).toBe(true)
+    expect(html.includes('Taper Angle')).toBe(false)
+  })
+
+  it('renders the dedicated extrude type row as driven while showing the effective enum slot', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Walls',
+        localExtrudeType: 'Body',
+        typeDriven: true,
+        extrudeDirection: 'OneSide',
+        localExtrudeDirection: 'OneSide',
+        directionDriven: false,
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
           type: { kind: 'number', unit: 'unitless' },
           optional: true,
           maxConnectionsIn: 1,
@@ -1787,13 +2095,26 @@ describe('NodeView part section order', () => {
         type: 'Geometry/Extrude',
         params: {
           extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
           depthMm: 20,
         },
       },
       extrudeVm: {
         extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 20,
         effectiveDepthMm: 42,
+        depthVisible: true,
         depthDriven: true,
+        localStartDepthMm: 20,
+        effectiveStartDepthMm: 20,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 20,
+        effectiveEndDepthMm: 20,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
         hasProfile: false,
       },
       allInputs: [
@@ -1807,6 +2128,13 @@ describe('NodeView part section order', () => {
         {
           portId: 'Type',
           label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
           type: { kind: 'number', unit: 'unitless' },
           optional: true,
           maxConnectionsIn: 1,
@@ -1828,32 +2156,42 @@ describe('NodeView part section order', () => {
       ],
     })
 
-    expect(html.includes('42 mm')).toBe(true)
-    expect(html.includes('Wire drives the effective value. Local fallback stays at 20 mm.')).toBe(
-      true,
-    )
-    expect(html.includes('value="20"')).toBe(true)
     expect(html.includes('ParaSlider')).toBe(false)
     expect(html.includes('SpaghettiPortPrimitiveValueRow')).toBe(true)
-    expect(html.includes('SpaghettiPortPrimitiveDrivenMessage')).toBe(true)
     expect(html.includes('disabled=""')).toBe(true)
   })
 
-  it('keeps the dedicated extrude depth row primitive in expanded mode', () => {
+  it('renders the dedicated extrude taper row with driven fallback messaging when wired', () => {
     const html = renderExtrudeNode({
       node: {
         nodeId: 'node-extrude-1',
         type: 'Geometry/Extrude',
         params: {
           extrudeType: 'Body',
-          depthMm: 30,
+          extrudeDirection: 'OneSide',
+          depthMm: 20,
+          taperAngleDeg: 3,
         },
       },
-      nodeMode: 'expanded',
       extrudeVm: {
         extrudeType: 'Body',
-        effectiveDepthMm: 30,
+        extrudeDirection: 'OneSide',
+        localDepthMm: 20,
+        effectiveDepthMm: 20,
+        depthVisible: true,
         depthDriven: false,
+        localStartDepthMm: 20,
+        effectiveStartDepthMm: 20,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 20,
+        effectiveEndDepthMm: 20,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        localTaperAngleDeg: 3,
+        effectiveTaperAngleDeg: 8.5,
+        taperVisible: true,
+        taperDriven: true,
         hasProfile: false,
       },
       allInputs: [
@@ -1867,6 +2205,184 @@ describe('NodeView part section order', () => {
         {
           portId: 'Type',
           label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'TaperAngle',
+          label: 'Taper Angle',
+          type: { kind: 'number', unit: 'deg' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('Taper Angle')).toBe(true)
+    expect(
+      html.includes('Wire drives the effective value. Local fallback stays at 3 deg.'),
+    ).toBe(true)
+    expect(html.includes('disabled=""')).toBe(true)
+    expect(html.includes('deg')).toBe(true)
+  })
+
+  it('hides the taper row from the current authored direction even if selector taper visibility is stale', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'Symmetric',
+          depthMm: 20,
+          taperAngleDeg: 3,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localExtrudeDirection: 'OneSide',
+        directionDriven: false,
+        localDepthMm: 20,
+        effectiveDepthMm: 20,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 20,
+        effectiveStartDepthMm: 20,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 20,
+        effectiveEndDepthMm: 20,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        localTaperAngleDeg: 3,
+        effectiveTaperAngleDeg: 3,
+        taperVisible: true,
+        taperDriven: false,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'TaperAngle',
+          label: 'Taper Angle',
+          type: { kind: 'number', unit: 'deg' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('Taper Angle')).toBe(false)
+    expect(html.includes('positive symmetric Depth')).toBe(true)
+  })
+
+  it('keeps the dedicated extrude depth row primitive in expanded mode', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      nodeMode: 'expanded',
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
           type: { kind: 'number', unit: 'unitless' },
           optional: true,
           maxConnectionsIn: 1,
@@ -1891,6 +2407,97 @@ describe('NodeView part section order', () => {
     expect(html.includes('Depth Value')).toBe(false)
     expect(html.includes('SpaghettiPortPrimitiveValueRow')).toBe(true)
     expect(html.includes('data-sp-port-row-open="1"')).toBe(true)
+  })
+
+  it('switches to Start Depth and End Depth from the current authored direction even if selector depth visibility is stale', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'TwoSides',
+          depthMm: 20,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localExtrudeDirection: 'OneSide',
+        directionDriven: false,
+        localDepthMm: 20,
+        effectiveDepthMm: 20,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 20,
+        effectiveStartDepthMm: 20,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 20,
+        effectiveEndDepthMm: 20,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: false,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'StartDepth',
+          label: 'Start Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'EndDepth',
+          label: 'End Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+    })
+
+    expect(html.includes('>Depth<')).toBe(false)
+    expect(html.includes('Start Depth')).toBe(true)
+    expect(html.includes('End Depth')).toBe(true)
+    expect(html.includes('aria-label="Decrease Start Depth"')).toBe(true)
+    expect(html.includes('aria-label="Increase End Depth"')).toBe(true)
   })
 })
 

@@ -3691,6 +3691,8 @@
   width: 6px;
   margin-left: -3px;
   z-index: 2;
+  pointer-events: auto;
+  cursor: ew-resize;
 }
 
 .SpaghettiPortEnumValueRow .ParaSelectValueHandle::before,

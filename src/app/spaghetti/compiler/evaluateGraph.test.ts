@@ -1219,4 +1219,102 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
     expect(result.ok).toBe(true)
     expect(result.outputsByNodeId['n-extrude']?.SolidBody).toBeNull()
   })
+
+  it('publishes one SolidBody for TwoSides when both split depths are positive', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeDirection: 'TwoSides',
+            depthMm: 25,
+            startDepthMm: 5,
+            endDepthMm: 7,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodyId: 'n-extrude:body',
+    })
+  })
+
+  it('publishes null SolidBody for TwoSides when one split depth is not positive', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeDirection: 'TwoSides',
+            depthMm: 25,
+            startDepthMm: 5,
+            endDepthMm: 0,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toBeNull()
+  })
 })

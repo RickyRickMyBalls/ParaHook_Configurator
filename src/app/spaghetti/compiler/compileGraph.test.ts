@@ -1065,6 +1065,7 @@ describe('compileSpaghettiGraph determinism', () => {
           profileId: expect.any(String),
         },
         extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
         depthResolved: 30,
         taperResolved: 0,
         offsetResolved: 0,
@@ -1167,6 +1168,206 @@ describe('compileSpaghettiGraph determinism', () => {
       | undefined
 
     expect(extrudeOp?.extrudeType).toBe('Walls')
+  })
+
+  it('keeps Geometry/Extrude TwoSides direction with explicit split depths in the graph-native runtime IR payload', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 20 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 20 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'TwoSides',
+            depthMm: 12,
+            startDepthMm: 3,
+            endDepthMm: 9,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    expect(evaluation.ok).toBe(true)
+
+    const result = computeFeatureStackIrParts(graph, {
+      resolvedInputsByNodeId: evaluation.inputsByNodeId,
+    })
+    expect(result.warnings).toEqual([])
+
+    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+      | {
+          op: 'extrude'
+          extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
+          depthResolved: number
+          startDepthResolved?: number
+          endDepthResolved?: number
+        }
+      | undefined
+
+    expect(extrudeOp?.extrudeDirection).toBe('TwoSides')
+    expect(extrudeOp?.depthResolved).toBe(12)
+    expect(extrudeOp?.startDepthResolved).toBe(3)
+    expect(extrudeOp?.endDepthResolved).toBe(9)
+  })
+
+  it('keeps Geometry/Extrude Symmetric direction in the graph-native runtime IR payload', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 0 },
+                  b: { kind: 'lit', x: 30, y: 20 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 30, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 20 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 20 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            extrudeDirection: 'Symmetric',
+            depthMm: 6,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    expect(evaluation.ok).toBe(true)
+
+    const result = computeFeatureStackIrParts(graph, {
+      resolvedInputsByNodeId: evaluation.inputsByNodeId,
+    })
+    expect(result.warnings).toEqual([])
+
+    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+      | {
+          op: 'extrude'
+          extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
+          depthResolved: number
+        }
+      | undefined
+
+    expect(extrudeOp?.extrudeDirection).toBe('Symmetric')
+    expect(extrudeOp?.depthResolved).toBe(6)
   })
 
   it('preserves the selected sketch profile loop instead of rebuilding an empty loop proxy', () => {
