@@ -73,6 +73,7 @@ import type {
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
 import type {
+  BuildExecutionIntent,
   BuildResultBundle,
   BuildResultEntry,
   BuildRoutingIdentity,
@@ -80,6 +81,12 @@ import type {
   PartArtifact,
 } from '../../../shared/buildTypes'
 import { DEFAULT_BUILD_EXECUTION_INTENT } from '../../../shared/buildTypes'
+import {
+  cloneGeometryResultBundle,
+  getGeometryResultAuthoritativeHandleId,
+  type GeometryResultBundle,
+} from '../../../shared/geometryResult'
+import { buildDispatcher } from '../../buildDispatcher'
 import { appendConsoleEntry } from '../../console/useConsoleStore'
 import { artifactToPartKeyStr } from '../../parts/partKeyResolver'
 import {
@@ -151,6 +158,7 @@ export type GraphCompileBuildState = {
   inFlightGraphRevision: number | null
   inFlightBuildRequestId: string | null
   inFlightBuildSeq: number | null
+  inFlightExecutionIntent: BuildExecutionIntent | null
 }
 
 export type GraphRuntimeState = {
@@ -158,6 +166,8 @@ export type GraphRuntimeState = {
   previewPreparation: GraphPreviewPreparation
   acceptedBuildBundle: BuildResultBundle | null
   acceptedPreviewBuildBundle: BuildResultBundle | null
+  acceptedAuthoritativeGeometryResult: GeometryResultBundle | null
+  acceptedDraftGeometryResult: GeometryResultBundle | null
   acceptedBuildOutputs: PartArtifact[]
   acceptedPreviewBuildOutputs: PartArtifact[]
   outputSurface: GraphOutputSurface
@@ -175,6 +185,20 @@ export type SharedViewerCompositionState = {
 }
 
 const EMPTY_BUILD_RESULT_ENTRIES: BuildResultEntry[] = []
+
+const releaseAuthoritativeHandleIds = (handleIds: readonly (string | null | undefined)[]): void => {
+  const normalizedHandleIds = [
+    ...new Set(
+      handleIds.filter(
+        (handleId): handleId is string => typeof handleId === 'string' && handleId.length > 0,
+      ),
+    ),
+  ]
+  if (normalizedHandleIds.length === 0) {
+    return
+  }
+  buildDispatcher.releaseAuthoritativeHandles(normalizedHandleIds)
+}
 
 const cloneBuildResultEntry = (entry: BuildResultEntry): BuildResultEntry => ({
   buildUnitId: entry.buildUnitId,
@@ -567,12 +591,15 @@ export type SpaghettiStoreState = {
       pendingAffectedBuildUnitIds?: BuildUnitId[]
       buildRequestId: string
       buildSeq: number
+      executionIntent?: BuildExecutionIntent
     },
   ) => void
   acceptGraphBuildResult: (
     routingIdentity: BuildRoutingIdentity & {
       buildSeq: number
       bundle?: BuildResultBundle
+      draftGeometryResult?: GeometryResultBundle
+      authoritativeGeometryResult?: GeometryResultBundle
     },
   ) => boolean
   clearGraphBuildRequest: (
@@ -2395,6 +2422,7 @@ const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   inFlightGraphRevision: null,
   inFlightBuildRequestId: null,
   inFlightBuildSeq: null,
+  inFlightExecutionIntent: null,
 })
 
 const createGraphRuntimeState = (
@@ -2405,6 +2433,8 @@ const createGraphRuntimeState = (
   const previewPreparation = prepareGraphPreviewPreparation(graph)
   const acceptedBuildBundle = null
   const acceptedPreviewBuildBundle = null
+  const acceptedAuthoritativeGeometryResult = null
+  const acceptedDraftGeometryResult = null
   const acceptedBuildOutputs: PartArtifact[] = []
   const acceptedPreviewBuildOutputs: PartArtifact[] = []
   return {
@@ -2412,6 +2442,8 @@ const createGraphRuntimeState = (
     previewPreparation,
     acceptedBuildBundle,
     acceptedPreviewBuildBundle,
+    acceptedAuthoritativeGeometryResult,
+    acceptedDraftGeometryResult,
     acceptedBuildOutputs,
     acceptedPreviewBuildOutputs,
     outputSurface: buildGraphOutputSurface({
@@ -2467,6 +2499,9 @@ const withUpdatedGraphRuntimeGraph = (
   }
   const acceptedBuildBundle = runtime?.acceptedBuildBundle ?? null
   const acceptedPreviewBuildBundle = runtime?.acceptedPreviewBuildBundle ?? null
+  const acceptedAuthoritativeGeometryResult =
+    runtime?.acceptedAuthoritativeGeometryResult ?? null
+  const acceptedDraftGeometryResult = runtime?.acceptedDraftGeometryResult ?? null
   const acceptedBuildOutputs = runtime?.acceptedBuildOutputs ?? []
   const acceptedPreviewBuildOutputs = runtime?.acceptedPreviewBuildOutputs ?? []
   return {
@@ -2474,6 +2509,8 @@ const withUpdatedGraphRuntimeGraph = (
     previewPreparation,
     acceptedBuildBundle,
     acceptedPreviewBuildBundle,
+    acceptedAuthoritativeGeometryResult,
+    acceptedDraftGeometryResult,
     acceptedBuildOutputs,
     acceptedPreviewBuildOutputs,
     outputSurface: buildGraphOutputSurface({
@@ -3067,15 +3104,48 @@ export const selectGraphAcceptedBuildOutputsByDocumentId = (
 ): PartArtifact[] =>
   selectGraphRuntimeByDocumentId(state, graphDocumentId)?.acceptedBuildOutputs ?? EMPTY_PART_ARTIFACTS
 
+export const selectGraphAcceptedGeometryResultByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
+  graphDocumentId: string,
+): GeometryResultBundle | null =>
+  selectGraphRuntimeByDocumentId(state, graphDocumentId)?.acceptedAuthoritativeGeometryResult ??
+  null
+
+export const selectGraphAcceptedDraftGeometryResultByDocumentId = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
+  graphDocumentId: string,
+): GeometryResultBundle | null =>
+  selectGraphRuntimeByDocumentId(state, graphDocumentId)?.acceptedDraftGeometryResult ?? null
+
 export const selectViewerTargetGraphAcceptedBuildOutputs = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
 ): PartArtifact[] =>
   selectViewerTargetGraphRuntime(state)?.acceptedBuildOutputs ?? EMPTY_PART_ARTIFACTS
 
+export const selectViewerTargetGraphAcceptedGeometryResult = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GeometryResultBundle | null =>
+  selectViewerTargetGraphRuntime(state)?.acceptedAuthoritativeGeometryResult ?? null
+
+export const selectViewerTargetGraphAcceptedAuthoritativeGeometryResult = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GeometryResultBundle | null =>
+  selectViewerTargetGraphRuntime(state)?.acceptedAuthoritativeGeometryResult ?? null
+
 export const selectViewerTargetGraphAcceptedPreviewBuildOutputs = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
 ): PartArtifact[] =>
   selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildOutputs ?? EMPTY_PART_ARTIFACTS
+
+export const selectViewerTargetGraphAcceptedPreviewGeometryResult = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GeometryResultBundle | null =>
+  selectViewerTargetGraphRuntime(state)?.acceptedDraftGeometryResult ?? null
+
+export const selectViewerTargetGraphAcceptedDraftGeometryResult = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GeometryResultBundle | null =>
+  selectViewerTargetGraphRuntime(state)?.acceptedDraftGeometryResult ?? null
 
 export const selectViewerTargetGraphCompileResult = (
   state: Pick<
@@ -5748,6 +5818,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               inFlightGraphRevision: runtime.compileBuild.currentGraphRevision,
               inFlightBuildRequestId: options.buildRequestId,
               inFlightBuildSeq: options.buildSeq,
+              inFlightExecutionIntent:
+                options.executionIntent === undefined ? null : { ...options.executionIntent },
             },
             previewPreparation: {
               ...runtime.previewPreparation,
@@ -5761,13 +5833,23 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   acceptGraphBuildResult: (routingIdentity) => {
     let accepted = false
+    const authoritativeHandleIdsToRelease: string[] = []
+    const incomingAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+      routingIdentity.authoritativeGeometryResult,
+    )
     set((state) => {
       const trackedGraphDocumentId = state.graphDocumentIdByBuildSeq[routingIdentity.buildSeq]
       if (trackedGraphDocumentId !== routingIdentity.graphDocumentId) {
+        if (incomingAuthoritativeHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(incomingAuthoritativeHandleId)
+        }
         return state
       }
       const runtime = state.graphRuntimeByDocumentId[routingIdentity.graphDocumentId]
       if (runtime === undefined) {
+        if (incomingAuthoritativeHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(incomingAuthoritativeHandleId)
+        }
         return state
       }
       const compileBuild = runtime.compileBuild
@@ -5778,6 +5860,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         (compileBuild.latestAcceptedBuildSeq !== null &&
           routingIdentity.buildSeq <= compileBuild.latestAcceptedBuildSeq)
       ) {
+        if (incomingAuthoritativeHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(incomingAuthoritativeHandleId)
+        }
         return state
       }
 
@@ -5805,6 +5890,34 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         targetBuildUnitIds: compileBuild.pendingTargetBuildUnitIds,
       })
       const acceptedPreviewBuildBundle = acceptedBuildBundle
+      const previousAcceptedAuthoritativeGeometryResult =
+        runtime.acceptedAuthoritativeGeometryResult
+      const previousAcceptedDraftGeometryResult = runtime.acceptedDraftGeometryResult
+      const acceptedAuthoritativeGeometryResult =
+        routingIdentity.authoritativeGeometryResult === undefined
+          ? previousAcceptedAuthoritativeGeometryResult === null
+            ? null
+            : cloneGeometryResultBundle(previousAcceptedAuthoritativeGeometryResult)
+          : cloneGeometryResultBundle(routingIdentity.authoritativeGeometryResult)
+      const acceptedDraftGeometryResult =
+        routingIdentity.draftGeometryResult === undefined
+          ? previousAcceptedDraftGeometryResult === null
+            ? null
+            : cloneGeometryResultBundle(previousAcceptedDraftGeometryResult)
+          : cloneGeometryResultBundle(routingIdentity.draftGeometryResult)
+      const previousAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+        previousAcceptedAuthoritativeGeometryResult,
+      )
+      const nextAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+        acceptedAuthoritativeGeometryResult,
+      )
+      if (
+        previousAuthoritativeHandleId !== null &&
+        nextAuthoritativeHandleId !== null &&
+        previousAuthoritativeHandleId !== nextAuthoritativeHandleId
+      ) {
+        authoritativeHandleIdsToRelease.push(previousAuthoritativeHandleId)
+      }
       const acceptedBuildOutputs = bundleToAcceptedBuildOutputs(acceptedBuildBundle)
       const acceptedPreviewBuildOutputs = bundleToAcceptedBuildOutputs(acceptedPreviewBuildBundle)
 
@@ -5824,9 +5937,12 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               inFlightGraphRevision: null,
               inFlightBuildRequestId: null,
               inFlightBuildSeq: null,
+              inFlightExecutionIntent: null,
             },
             acceptedBuildBundle,
             acceptedPreviewBuildBundle,
+            acceptedAuthoritativeGeometryResult,
+            acceptedDraftGeometryResult,
             acceptedBuildOutputs,
             acceptedPreviewBuildOutputs,
             outputSurface: buildGraphOutputSurface({
@@ -5840,6 +5956,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
       }
     })
+    releaseAuthoritativeHandleIds(authoritativeHandleIdsToRelease)
     return accepted
   },
   clearGraphBuildRequest: (routingIdentity) => {
@@ -5877,6 +5994,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               inFlightGraphRevision: null,
               inFlightBuildRequestId: null,
               inFlightBuildSeq: null,
+              inFlightExecutionIntent: null,
             },
           },
         },
@@ -5932,6 +6050,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       ...loadedDocument,
       graph: nextGraph,
     }
+    const previousAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+      get().graphRuntimeByDocumentId[graphDocumentId]?.acceptedAuthoritativeGeometryResult,
+    )
 
     set((current) =>
       withBrowserViewportState(current, {
@@ -5956,6 +6077,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         fallbackGraphDocumentId: graphDocumentId,
       }),
     )
+    releaseAuthoritativeHandleIds([previousAuthoritativeHandleId])
 
     return graphDocumentId
   },

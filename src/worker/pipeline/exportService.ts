@@ -5,11 +5,19 @@ const toBase64 = (value: string): string => btoa(value)
 export const exportService = async (
   request: ExportRequest,
 ): Promise<ExportResult> => {
-  const descriptor = `${request.schemaVersion}:${request.format}:${request.buildRequestId}`
+  const buildRequestId = request.input.request.buildRequestId
+  const descriptor = [
+    request.schemaVersion,
+    request.format,
+    request.input.schemaVersion,
+    request.input.request.graphDocumentId,
+    buildRequestId,
+    request.input.authoritativeHandle.handleId,
+  ].join(':')
   return {
     requestId: request.requestId,
     format: request.format,
-    filename: `parahook-${request.buildRequestId}.${request.format}`,
+    filename: `parahook-${buildRequestId}.${request.format}`,
     dataBase64: toBase64(descriptor),
   }
 }

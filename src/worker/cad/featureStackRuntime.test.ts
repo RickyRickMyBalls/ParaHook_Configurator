@@ -67,6 +67,35 @@ const rectangleVertices = [
   { x: 0, y: 5 },
 ]
 
+const emptyProfileLoop = {
+  segments: [],
+  winding: 'CCW' as const,
+}
+
+const resolvedProfile = (
+  profileId: string,
+  area: number,
+  verticesProxy: Array<{ x: number; y: number }> = rectangleVertices,
+) => ({
+  profileId,
+  profileIndex: 0,
+  area,
+  loop: emptyProfileLoop,
+  verticesProxy,
+})
+
+const profileRef = (sketchFeatureId: string, profileId: string) => ({
+  sketchFeatureId,
+  profileId,
+  profileIndex: 0,
+})
+
+const defaultExtrudeFields = {
+  extrudeType: 'Body' as const,
+  taperResolved: 0,
+  offsetResolved: 0,
+}
+
 const roundMeshSlice = (values: number[]): number[] =>
   values.map((value) => Number(value.toFixed(6)))
 
@@ -78,20 +107,14 @@ const basePayload = (): FeatureStackIRPayload => ({
         op: 'sketch',
         featureId: 'sketch-1',
         profilesResolved: [
-          {
-            profileId: 'prof-a',
-            area: 50,
-            vertices: rectangleVertices,
-          },
+          resolvedProfile('prof-a', 50),
         ],
       },
       {
         op: 'extrude',
         featureId: 'extrude-1',
-        profileRef: {
-          sketchFeatureId: 'sketch-1',
-          profileId: 'prof-a',
-        },
+        profileRef: profileRef('sketch-1', 'prof-a'),
+        ...defaultExtrudeFields,
         depthResolved: 3,
         bodyId: 'body-a',
       },
@@ -300,26 +323,20 @@ describe('executeFeatureStack', () => {
       op: 'sketch',
       featureId: 'sketch-1',
       profilesResolved: [
-        { profileId: 'prof-a', area: 50, vertices: rectangleVertices },
-        {
-          profileId: 'prof-b',
-          area: 9,
-          vertices: [
-            { x: 20, y: 0 },
-            { x: 23, y: 0 },
-            { x: 23, y: 3 },
-            { x: 20, y: 3 },
-          ],
-        },
+        resolvedProfile('prof-a', 50),
+        resolvedProfile('prof-b', 9, [
+          { x: 20, y: 0 },
+          { x: 23, y: 0 },
+          { x: 23, y: 3 },
+          { x: 20, y: 3 },
+        ]),
       ],
     }
     payload.parts.baseplate.push({
       op: 'extrude',
       featureId: 'extrude-2',
-      profileRef: {
-        sketchFeatureId: 'sketch-1',
-        profileId: 'prof-b',
-      },
+      profileRef: profileRef('sketch-1', 'prof-b'),
+      ...defaultExtrudeFields,
       depthResolved: 2,
       bodyId: 'body-b',
     })
@@ -336,12 +353,13 @@ describe('executeFeatureStack', () => {
           {
             op: 'sketch',
             featureId: 'z-sketch',
-            profilesResolved: [{ profileId: 'z-prof', area: 1, vertices: rectangleVertices }],
+            profilesResolved: [resolvedProfile('z-prof', 1)],
           },
           {
             op: 'extrude',
             featureId: 'z-extrude',
-            profileRef: { sketchFeatureId: 'z-sketch', profileId: 'z-prof' },
+            profileRef: profileRef('z-sketch', 'z-prof'),
+            ...defaultExtrudeFields,
             depthResolved: 1,
             bodyId: 'body-z',
           },
@@ -350,12 +368,13 @@ describe('executeFeatureStack', () => {
           {
             op: 'sketch',
             featureId: 'a-sketch',
-            profilesResolved: [{ profileId: 'a-prof', area: 1, vertices: rectangleVertices }],
+            profilesResolved: [resolvedProfile('a-prof', 1)],
           },
           {
             op: 'extrude',
             featureId: 'a-extrude',
-            profileRef: { sketchFeatureId: 'a-sketch', profileId: 'a-prof' },
+            profileRef: profileRef('a-sketch', 'a-prof'),
+            ...defaultExtrudeFields,
             depthResolved: 1,
             bodyId: 'body-a',
           },
@@ -376,12 +395,13 @@ describe('executeFeatureStack', () => {
           {
             op: 'sketch',
             featureId: 'cube-2-sketch',
-            profilesResolved: [{ profileId: 'prof-2', area: 1, vertices: rectangleVertices }],
+            profilesResolved: [resolvedProfile('prof-2', 1)],
           },
           {
             op: 'extrude',
             featureId: 'cube-2-extrude',
-            profileRef: { sketchFeatureId: 'cube-2-sketch', profileId: 'prof-2' },
+            profileRef: profileRef('cube-2-sketch', 'prof-2'),
+            ...defaultExtrudeFields,
             depthResolved: 1,
             bodyId: 'cube-body-1',
           },
@@ -390,12 +410,13 @@ describe('executeFeatureStack', () => {
           {
             op: 'sketch',
             featureId: 'cube-1-sketch',
-            profilesResolved: [{ profileId: 'prof-1', area: 1, vertices: rectangleVertices }],
+            profilesResolved: [resolvedProfile('prof-1', 1)],
           },
           {
             op: 'extrude',
             featureId: 'cube-1-extrude',
-            profileRef: { sketchFeatureId: 'cube-1-sketch', profileId: 'prof-1' },
+            profileRef: profileRef('cube-1-sketch', 'prof-1'),
+            ...defaultExtrudeFields,
             depthResolved: 1,
             bodyId: 'cube-body-1',
           },
@@ -419,6 +440,7 @@ describe('executeFeatureStack', () => {
       op: 'extrude',
       featureId: 'extrude-1',
       profileRef: null,
+      ...defaultExtrudeFields,
       depthResolved: 3,
       bodyId: 'body-a',
     }
@@ -433,10 +455,8 @@ describe('executeFeatureStack', () => {
     payload.parts.baseplate.push({
       op: 'extrude',
       featureId: 'extrude-2',
-      profileRef: {
-        sketchFeatureId: 'sketch-1',
-        profileId: 'prof-a',
-      },
+      profileRef: profileRef('sketch-1', 'prof-a'),
+      ...defaultExtrudeFields,
       depthResolved: 6,
       bodyId: 'body-a',
     })
@@ -457,21 +477,13 @@ describe('executeFeatureStack', () => {
             op: 'sketch',
             featureId: 'graph-sketch',
             plane: 'XZ',
-            profilesResolved: [
-              {
-                profileId: 'prof-xz',
-                area: 50,
-                vertices: rectangleVertices,
-              },
-            ],
+            profilesResolved: [resolvedProfile('prof-xz', 50)],
           },
           {
             op: 'extrude',
             featureId: 'graph-extrude',
-            profileRef: {
-              sketchFeatureId: 'graph-sketch',
-              profileId: 'prof-xz',
-            },
+            profileRef: profileRef('graph-sketch', 'prof-xz'),
+            ...defaultExtrudeFields,
             plane: 'XZ',
             depthResolved: 4,
             bodyId: 'body-xz',
@@ -503,21 +515,13 @@ describe('executeFeatureStack', () => {
             featureId: 'graph-sketch',
             plane: 'XY',
             planeTransform,
-            profilesResolved: [
-              {
-                profileId: 'prof-xy',
-                area: 50,
-                vertices: rectangleVertices,
-              },
-            ],
+            profilesResolved: [resolvedProfile('prof-xy', 50)],
           },
           {
             op: 'extrude',
             featureId: 'graph-extrude',
-            profileRef: {
-              sketchFeatureId: 'graph-sketch',
-              profileId: 'prof-xy',
-            },
+            profileRef: profileRef('graph-sketch', 'prof-xy'),
+            ...defaultExtrudeFields,
             plane: 'XY',
             planeTransform,
             depthResolved: 4,
@@ -549,22 +553,15 @@ describe('executeFeatureStack', () => {
             op: 'sketch',
             featureId: 'graph-sketch',
             plane: 'XY',
-            profilesResolved: [
-              {
-                profileId: 'prof-xy',
-                area: 50,
-                vertices: rectangleVertices,
-              },
-            ],
+            profilesResolved: [resolvedProfile('prof-xy', 50)],
           },
           {
             op: 'extrude',
             featureId: 'graph-extrude',
-            profileRef: {
-              sketchFeatureId: 'graph-sketch',
-              profileId: 'prof-xy',
-            },
+            profileRef: profileRef('graph-sketch', 'prof-xy'),
             extrudeType: 'Walls',
+            taperResolved: 0,
+            offsetResolved: 0,
             plane: 'XY',
             depthResolved: 4,
             bodyId: 'body-xy',
@@ -591,25 +588,19 @@ describe('executeFeatureStack', () => {
             op: 'sketch',
             featureId: 'graph-sketch',
             plane: 'XY',
-            profilesResolved: [
-              {
-                profileId: 'prof-xy',
-                area: 50,
-                vertices: rectangleVertices,
-              },
-            ],
+            profilesResolved: [resolvedProfile('prof-xy', 50)],
           },
           {
             op: 'extrude',
             featureId: 'graph-extrude',
-            profileRef: {
-              sketchFeatureId: 'graph-sketch',
-              profileId: 'prof-xy',
-            },
+            profileRef: profileRef('graph-sketch', 'prof-xy'),
+            extrudeType: 'Body',
             extrudeDirection: 'TwoSides',
             depthResolved: 11,
             startDepthResolved: 4,
             endDepthResolved: 7,
+            taperResolved: 0,
+            offsetResolved: 0,
             plane: 'XY',
             bodyId: 'body-xy',
           },
@@ -636,23 +627,17 @@ describe('executeFeatureStack', () => {
             op: 'sketch',
             featureId: 'graph-sketch',
             plane: 'XY',
-            profilesResolved: [
-              {
-                profileId: 'prof-xy',
-                area: 50,
-                vertices: rectangleVertices,
-              },
-            ],
+            profilesResolved: [resolvedProfile('prof-xy', 50)],
           },
           {
             op: 'extrude',
             featureId: 'graph-extrude',
-            profileRef: {
-              sketchFeatureId: 'graph-sketch',
-              profileId: 'prof-xy',
-            },
+            profileRef: profileRef('graph-sketch', 'prof-xy'),
+            extrudeType: 'Body',
             extrudeDirection: 'Symmetric',
             depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
             plane: 'XY',
             bodyId: 'body-xy',
           },
@@ -679,25 +664,19 @@ describe('executeFeatureStack', () => {
             op: 'sketch',
             featureId: 'graph-sketch',
             plane: 'XY',
-            profilesResolved: [
-              {
-                profileId: 'prof-xy',
-                area: 50,
-                vertices: rectangleVertices,
-              },
-            ],
+            profilesResolved: [resolvedProfile('prof-xy', 50)],
           },
           {
             op: 'extrude',
             featureId: 'graph-extrude',
-            profileRef: {
-              sketchFeatureId: 'graph-sketch',
-              profileId: 'prof-xy',
-            },
+            profileRef: profileRef('graph-sketch', 'prof-xy'),
+            extrudeType: 'Body',
             extrudeDirection: 'TwoSides',
             depthResolved: 5,
             startDepthResolved: 0,
             endDepthResolved: 5,
+            taperResolved: 0,
+            offsetResolved: 0,
             plane: 'XY',
             bodyId: 'body-xy',
           },
@@ -720,11 +699,11 @@ describe('executeFeatureStack', () => {
 })
 
 describe('buildModel diagnostics flush', () => {
-  it('keeps cube default dimensions renderable when no cube dimension wires are present', () => {
+  it('keeps cube default dimensions renderable when no cube dimension wires are present', async () => {
     const compileResult = compileSpaghettiGraph(defaultCubeGraph())
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
@@ -742,17 +721,17 @@ describe('buildModel diagnostics flush', () => {
     )
   })
 
-  it('emits a deterministic cube PartArtifact from compiled graph Feature Stack IR', () => {
+  it('emits a deterministic cube PartArtifact from compiled graph Feature Stack IR', async () => {
     const compileResult = compileSpaghettiGraph(cubeGraph())
     expect(compileResult.ok).toBe(true)
     expect(compileResult.buildInputs).toBeDefined()
 
     const compiledBuildData = compiledBuildDataFromCompileResult(compileResult)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData,
     })
-    const repeated = buildModel({
+    const repeated = await buildModel({
       compiledBuildData,
     })
 
@@ -772,7 +751,7 @@ describe('buildModel diagnostics flush', () => {
     )
   })
 
-  it('emits deterministic multi-part cube PartArtifacts from compiled graph Feature Stack IR', () => {
+  it('emits deterministic multi-part cube PartArtifacts from compiled graph Feature Stack IR', async () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -793,7 +772,7 @@ describe('buildModel diagnostics flush', () => {
     const compileResult = compileSpaghettiGraph(graph)
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
@@ -804,7 +783,7 @@ describe('buildModel diagnostics flush', () => {
     expect(parts.find((part) => part.partKeyStr === 'cube#2')?.label).toBe('Cube #2')
   })
 
-  it('emits a graph-native Extrude PartArtifact from Geometry/Sketch -> Geometry/Extrude IR', () => {
+  it('emits a graph-native Extrude PartArtifact from Geometry/Sketch -> Geometry/Extrude IR', async () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -902,7 +881,7 @@ describe('buildModel diagnostics flush', () => {
     const compileResult = compileSpaghettiGraph(graph)
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
@@ -920,7 +899,7 @@ describe('buildModel diagnostics flush', () => {
     )
   })
 
-  it('emits a graph-native mesh PartArtifact for canonical compiled Geometry/Sketch -> Geometry/Extrude builds', () => {
+  it('emits a graph-native mesh PartArtifact for canonical compiled Geometry/Sketch -> Geometry/Extrude builds', async () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -1019,7 +998,7 @@ describe('buildModel diagnostics flush', () => {
     expect(compileResult.ok).toBe(true)
     expect(compileResult.buildInputs).toBeDefined()
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
@@ -1043,7 +1022,7 @@ describe('buildModel diagnostics flush', () => {
     }
   })
 
-  it('keeps transformed graph-native extrude preview mesh aligned to the authored sketch plane frame', () => {
+  it('keeps transformed graph-native extrude preview mesh aligned to the authored sketch plane frame', async () => {
     const planeTransform = {
       ...createDefaultSketchPlaneTransform(),
       translation: { x: 10, y: -2, z: 5 },
@@ -1147,7 +1126,7 @@ describe('buildModel diagnostics flush', () => {
     const compileResult = compileSpaghettiGraph(graph)
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
     const extrude = parts.find((part) => part.partKeyStr === 'extrude')
@@ -1169,7 +1148,7 @@ describe('buildModel diagnostics flush', () => {
     ])
   })
 
-  it('keeps graph-native extrude preview mesh on authored sketch-local coordinates away from the local origin', () => {
+  it('keeps graph-native extrude preview mesh on authored sketch-local coordinates away from the local origin', async () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -1261,7 +1240,7 @@ describe('buildModel diagnostics flush', () => {
     const compileResult = compileSpaghettiGraph(graph)
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
     const extrude = parts.find((part) => part.partKeyStr === 'extrude')
@@ -1283,18 +1262,18 @@ describe('buildModel diagnostics flush', () => {
     ])
   })
 
-  it('keeps cube unresolved at runtime when the extrude feature is disabled', () => {
+  it('keeps cube unresolved at runtime when the extrude feature is disabled', async () => {
     const compileResult = compileSpaghettiGraph(disabledCubeExtrudeGraph())
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
 
     expect(parts.some((part) => part.partKeyStr === 'cube')).toBe(false)
   })
 
-  it('builds an uncapped graph-native extrude mesh for Walls type', () => {
+  it('builds an uncapped graph-native extrude mesh for Walls type', async () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -1392,7 +1371,7 @@ describe('buildModel diagnostics flush', () => {
     const compileResult = compileSpaghettiGraph(graph)
     expect(compileResult.ok).toBe(true)
 
-    const parts = buildModel({
+    const parts = await buildModel({
       compiledBuildData: compiledBuildDataFromCompileResult(compileResult),
     })
     const extrude = parts.find((part) => part.partKeyStr === 'extrude')
@@ -1405,9 +1384,9 @@ describe('buildModel diagnostics flush', () => {
     expect(extrude.mesh.indices.length).toBe(24)
   })
 
-  it('flushes unique warnings once per build', () => {
+  it('flushes unique warnings once per build', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    buildModel({
+    await buildModel({
       compiledBuildData: compiledBuildDataFromResolvedShared({
         sp_featureStackIR: {
           schemaVersion: 1,
@@ -1417,14 +1396,20 @@ describe('buildModel diagnostics flush', () => {
                 op: 'extrude',
                 featureId: 'e1',
                 profileRef: null,
+                extrudeType: 'Body',
                 depthResolved: 1,
+                taperResolved: 0,
+                offsetResolved: 0,
                 bodyId: 'dup',
               },
               {
                 op: 'extrude',
                 featureId: 'e1',
                 profileRef: null,
+                extrudeType: 'Body',
                 depthResolved: 1,
+                taperResolved: 0,
+                offsetResolved: 0,
                 bodyId: 'dup',
               },
             ],

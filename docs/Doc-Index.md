@@ -4,6 +4,11 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+231. 2026-04-07 05:02: Refreshed `docs/Doc-Index.md` after the workspace-family doc move into `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/`, repointing the main architecture inventory plus the `Workspace-Modes`, `Dashboard`, `Browser`, `Console`, `Export`, `Layers`, `Build-Path`, and `Spaghetti-Editor-Arch` subtree listings at their new canonical workspace-family homes
+230. 2026-04-07 04:34: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md` as the dedicated child-doc home for the next authoritative-geometry follow-on after `Model-Viewport-1.2`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` plus `.../Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md` so the family and umbrella phase now point at that new `1.3` doc explicitly, and kept the published docs map aligned with the now-complete `1.1 / 1.2 / 1.3` child-doc set
+229. 2026-04-06 16:41: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.2 - Draft Preview Execution And Viewport Swap Rules.md` as the dedicated child-doc home for the viewport-behavior follow-on after `Model-Viewport-1.1`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` plus `.../Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md` so the family and umbrella phase now point at that new `1.2` doc explicitly, and recorded the matching docs maintenance in `docs/Doc-Log.md`
+228. 2026-04-06 12:49: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.1 - Shared Geometry IR And Result Contract.md` as the dedicated child-doc home for the foundational `Model-Viewport-1.1` contract lane, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` plus `.../Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md` so the family and umbrella phase now hand forward into that new `1.1` doc explicitly, and recorded the matching docs maintenance in `docs/Doc-Log.md`
+227. 2026-04-06 11:36: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` as the new dedicated workspace-family home for the model-viewport geometry-overhaul direction, added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md` as its first umbrella future phase doc, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the workspace umbrella points at that new planning home, and recorded the matching docs maintenance in `docs/Doc-Log.md`
 226. 2026-04-06 10:44: Clarified the architecture phase-planning rules so the default pattern is one plan doc with internal `Phase 1`, `Phase 2`, `Phase 3` sections, and child docs like `3.1`, `3.2`, `3.3` are only for cases where one internal phase becomes large enough to need its own multi-phase ladder
 225. 2026-04-06 10:37: Extended the architecture planning rules to cover parent future docs like `Extrude-3` that branch into child ladders such as `Extrude-3.1`, `Extrude-3.2`, and `Extrude-3.3`, each with its own dedicated plan doc and internal `Phase 1`, `Phase 2`, `Phase 3` breakdown when needed
 224. 2026-04-06 10:31: Added an `Architecture Phase Setup Rule` that standardizes the flow from a new umbrella phase entry in a family index to a matching `Future/` plan doc with its own `Doc Header` / `Doc Body` and numbered `## [ ]` or `## [x]` subphases, so Codex has one clearer setup pattern for architecture index files and phase-plan files
@@ -658,33 +663,42 @@ Rule notes:
         - `Architecture Setup.md`
         - `Audio-Patchbay.md`
         - `AutoCAD-Command-Backlog.md`
-        - `AppShell/AppShell-Index.md`
-        - `Dashboard/Dashboard.md`
-        - `Browser/Browser-Index.md`
-        - `Camera-Controls/Camera_Controls-Index.md`
-        - `Console/Console.md`
-        - `Edit-History/Edit-History-Index.md`
         - `Engine-Architecture.md`
-        - `Export/Export-Index.md`
         - `Glossary.md`
-        - `Layers/Layers-index.md`
-        - `Build-Path/Build-Path-Index.md`
-        - `Radio/Radio.md`
         - `Sampler.md`
-        - `Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
         - `Spaghetti-Types.md`
         - `System-Map.md`
         - `Terminology-Decisions.md`
         - `Toolbar.md`
-        - `Transform/transform-index.md`
         - `Transform-Tool.md`
-        - `View-Toolbar/ThreeViewier.md`
-        - `View-Toolbar/View-Toolbar-Index.md`
         - `v15Theme.md`
-        - `Worker/Worker.md`
-        - `Workspace-Modes/Workspace-Modes-Index.md`
-        #### -------Workspace-Modes
+#### -------Workspace-Modes
             - `Workspace-Modes-Index.md`
+##### ------------Workspaces
+###### -------------Browser
+            - `Workspaces/Browser/Browser-Index.md`
+###### -------------Build-Path
+            - `Workspaces/Build-Path/Build-Path-Index.md`
+###### -------------Console
+            - `Workspaces/Console/Console-Index.md`
+###### -------------Dashboard
+            - `Workspaces/Dashboard/Dashboard.md`
+###### -------------Export
+            - `Workspaces/Export/Export-Index.md`
+###### -------------Layers
+            - `Workspaces/Layers/Layers-index.md`
+###### -------------Model-Viewport
+            - `Workspaces/Model-Viewport/Model-Viewport-Index.md`
+####### --------------Future
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.1 - Shared Geometry IR And Result Contract.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.2 - Draft Preview Execution And Viewport Swap Rules.md`
+            - `Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+###### -------------Radio
+            - `Workspaces/Radio/Radio.md`
+###### -------------Spaghetti-Editor-Arch
+            - `Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+##### ------------Future
             - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
             - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`
             - `Future/Workspace_Phase Workspace-7.2b - Host-Mode Parity And Split-Host Retirement.md`
@@ -693,6 +707,7 @@ Rule notes:
             - `Future/Workspace_Phase Workspace-7.5-4 - Browser And Spaghetti Shell Parity Cleanup.md`
             - `Future/Workspace_Phase Workspace-7.5-5 - Multiple Spaghetti Editor Surface Parity.md`
             - `Future/Workspace_Phase Workspace-7.5-17 - Dashboard And Notepad Surface Onboarding.md`
+##### ------------Shipped
             - `Shipped/Workspace_Phase Workspace-0.1 - Codebase Research And Implementation Audit.md`
             - `Shipped/Workspace_Phase Workspace-1 - Shared Workspace Owner And State Extraction.md`
             - `Shipped/Workspace_Phase Workspace-2 - First Hosted Surface Migration And Transitional Adapters.md`
@@ -723,105 +738,37 @@ Rule notes:
             - `Shipped/Workspace_Phase Workspace-7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize.md`
 #### -------AppShell
             - `AppShell-Index.md`
+        ##### ------------Future
             - `Future/AppShell 4 - Workspace Host Reorganization And Readability Cleanup.md`
+        ##### ------------Shipped
             - `Shipped/AppShell_Phase 5.0F-1 - AppShell Runtime Host Extraction.md`
             - `Shipped/AppShell_Phase 5.0F-2 - AppShell Window And Dock Host Extraction.md`
-#### -------Dashboard
-            - `Dashboard.md`
-            - `Future/Dashboard_Phase Dashboard-1 - Create Dashboard Workspace Foundation.md`
-            - `Future/Dashboard_Phase Dashboard-2 - Create Notepad Workspace And Shared Note Model.md`
-            - `Future/Dashboard_Phase Dashboard-3 - Add Sticky Notes As The First Dashboard Widget.md`
-            - `Future/Dashboard_Phase Dashboard-4 - Add To Do And Completed Board Lanes For Sticky Notes.md`
-            - `Future/Dashboard_Phase Dashboard-4.1 - Drag Sticky Notes Between Board Lanes.md`
-            - `Future/Dashboard_Phase Dashboard-5 - Dashboard Sticky Note Creation And Inline Editing.md`
-            - `Future/Dashboard_Phase Dashboard-5.1 - Pannable Sticky Note Lane Canvases.md`
-            - `Future/Dashboard_Phase Dashboard-5.2 - Real Lane Canvas Camera.md`
-            - `Future/Dashboard_Phase Dashboard-6 - User-Managed Board Lanes And Resizable Columns.md`
-#### -------Browser
-            - `Browser-Index.md`
-            - `Future/Browser_Phase Browser-7 - Browser Cleanup Follow-Ons.md`
-            - `Future/Browser_Phase Browser-7.3 - Reference Transform Session History.md`
-            - `Future/Browser_Phase Browser-7.5 - Final Transform Direction And Phase Split.md`
-            - `Future/Browser_Phase Browser-8.6 - Depth-Lane Drag Interaction.md`
-            - `Future/Browser_Phase Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully.md`
-            - `Future/Browser_Phase Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy.md`
-            - `Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
-            - `Future/Browser_Phase Browser-11 - Real Project-Owned Reference Containers And Full Container Parity.md`
-            - `Future/Browser_Phase Browser-12.1 - Real STEP Import Row Progress.md`
-            - `Shipped/Browser_Phase Browser-12 - Part Row Surface Cleanup And Usability Polish.md`
-            - `Shipped/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
-            - `Shipped/Browser_Phase Browser-1 - Build Policy Icon Surface.md`
-            - `Shipped/Browser_Phase Browser-2 - Cascade And Effective Policy Truth.md`
-            - `Shipped/Browser_Phase Browser-3 - Runtime Build Policy Execution.md`
-            - `Shipped/Browser_Phase Browser-4 - Row Click And Action Ownership Cleanup.md`
-            - `Shipped/Browser_Phase Browser-5 - Selection And Focus Sync.md`
-            - `Shipped/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`
-            - `Shipped/Browser_Phase Browser-5.2 - Implicit Parent Multi-Selection.md`
-            - `Shipped/Browser_Phase Browser-5.3 - Selection To Console Context For Content And References.md`
-            - `Shipped/Browser_Phase Browser-5.4 - Explicit Additive Multi-Select.md`
-            - `Shipped/Browser_Phase Browser-5.5 - Reference Batch Load Queue And Aggregate Progress.md`
-            - `Shipped/Browser_Phase Browser-6 - BrowserPanel Structure And Row-Family Cleanup.md`
-            - `Shipped/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
-            - `Shipped/Browser_Phase Browser-8.2 - Folder CRUD In Browser UI And Console.md`
-            - `Shipped/Browser_Phase Browser-8.3 - Shared Owner Target Entry For Viewer Transform And Multi-Select Prep.md`
-            - `Shipped/Browser_Phase Browser-8.4 - Reparenting And Drop Rules.md`
-            - `Shipped/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md`
-            - `Shipped/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md`
-            - `Shipped/Browser_Phase Browser-8.7 - Pointer-Driven Drag Engine Rebuild.md`
-            - `Shipped/Browser_Phase Browser-8.8.1 - Simple Reliable Rearrange Baseline.md`
-            - `Shipped/Browser_Phase Browser-8.8.2 - Target Clarity And Trust Tuning.md`
-            - `Shipped/Browser_Phase Browser-8.8.3 - Motion And Rearrange Polish.md`
-            - `Shipped/Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md`
-            - `Shipped/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`
-            - `Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`
-            - `Shipped/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`
-            - `Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
-            - `Shipped/Browser_Phase Browser-9.6 - Placement Shelf Removal And Single Object Identity.md`
-            - `Shipped/Browser_Phase Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy.md`
-            - `Shipped/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md`
-            - `Shipped/Browser_Phase Browser-10.2 - Single Browser Tree Derivation.md`
-            - `Shipped/Browser_Phase Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer.md`
-            - `Shipped/Browser_Phase Browser-10.4 - Load And Runtime Traits On Normal Nodes.md`
-            - `Shipped/Browser_Phase Browser-10.5 - Compatibility Seam Retirement.md`
-            - `Shipped/Browser_Phase Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records.md`
-            - `Shipped/Browser_Phase Browser-11.2 - Container Drag And Reparent Parity.md`
-            - `Shipped/Browser_Phase Browser-11.3 - Grouping Label Survival And Tree Simplification.md`
-            - `Shipped/Browser_Phase Browser-11.4 - Adapted Container Seam Retirement.md`
 #### -------Camera-Controls
             - `Camera_Controls-Index.md`
+        ##### ------------Future
             - `Future/Camera_Controls_Phase Camera-5.1 - Viewer Object Window Selection.md`
+        ##### ------------Shipped
             - `Shipped/Camera_Controls_Phase Camera-1 - Sketch Draw Camera Blocking.md`
             - `Shipped/Camera_Controls_Phase Camera-2 - Fusion-Style Model Viewport Camera Baseline.md`
             - `Shipped/Camera_Controls_Phase Camera-3 - Spaghetti Canvas And Model Viewport Coexistence.md`
             - `Shipped/Camera_Controls_Phase Camera-4 - Camera Console Commands.md`
-#### -------Console
-            - `Console.md`
-            - `Shipped/Console_Phase 5.1G - Surface-Agnostic Command Ownership And Adapter Expansion.md`
 #### -------Edit-History
             - `Edit-History-Index.md`
-#### -------Export
-            - `Export-Index.md`
-            - `Future/Export_Phase Export-1 - Toolbar Shell And Format Surface.md`
-#### -------Layers
-            - `Layers-index.md`
-            - `Future/Layers_Phase Layers-1 - Layer State, Membership, And Visibility Foundation.md`
-            - `Future/Layers_Phase Layers-2 - Layer Manager And Console Command Surface.md`
-            - `Future/Layers_Phase Layers-3 - Sketch Entity Layer Ownership.md`
-            - `Future/Layers_Phase Layers-4 - Authored 3D Object Layer Ownership And Visibility.md`
-#### -------Build-Path
-            - `Build-Path-Index.md`
 #### -------View-Toolbar
             - `ThreeViewier.md`
             - `View-Toolbar-Index.md`
+        ##### ------------Future
             - `Future/View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
 #### -------Transform
             - `transform-index.md`
+        ##### ------------Future
             - `Future/Transform_Phase Transform-1 - Reference Session And History Foundation.md`
             - `Future/Transform_Phase Transform-2 - Canonical Hierarchy And Target Ownership.md`
             - `Future/Transform_Phase Transform-8 - Shared Transform Snap Controls.md`
             - `Future/Transform_Phase Transform-12 - Transform Shell Polish And Canonical Adapter Cleanup.md`
             - `Future/Transform_Phase Transform-13.1 - Rotate Snap Preview Lines.md`
             - `Future/Transform_Phase Transform-15.4 - Viewer Transform Capability Cleanup After Parity.md`
+        ##### ------------Shipped
             - `Shipped/Transform_Phase Transform-14 - Viewer Transform Rename And Shared Surface Alignment.md`
             - `Shipped/Transform_Phase Transform-15 - Generated Object Viewer Motion Under Viewer Transform.md`
             - `Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
@@ -829,6 +776,7 @@ Rule notes:
             - `Shipped/Transform_Phase Transform-15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity.md`
 #### -------Worker
             - `Worker.md`
+        ##### ------------Shipped
             - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
             - `Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
             - `Shipped/Worker_Phase 5.3A-3 - Worker Lane Definition And Execution-Intent Model.md`
@@ -836,26 +784,6 @@ Rule notes:
             - `Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
             - `Shipped/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
             - `Shipped/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
-#### -------Spaghetti-Editor-Arch
-            - `Spaghetti-Editor-index.md`
-            - `Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
-            - `Nodes/Nodes-Index.md`
-            - `Nodes/Future/Nodes_Phase Nodes-1 - Shared Shell And Structured Wire Rows.md`
-            - `Nodes/Future/Nodes_Phase Nodes-2 - Reference And Numeric Row Standardization.md`
-            - `Nodes/Future/Nodes_Phase Nodes-2.5 - Primitive Numeric Row Style And Reuse.md`
-            - `Nodes/Extrude/extrude-index.md`
-            - `Nodes/Nodes-Fondation/Shipped/Nodes_Phase 3.2A-0.1 - Sketch To Extrude To Preview Contract Repair.md`
-            - `Nodes/Sketch/Sketch.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md`
-            - `Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md`
-            - `Nodes/Sketch/Shipped/Sketch_Phase 3.2B-Console-1 - SketchDraw Scoped Command Surface.md`
-            - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-2 - SketchDraw Staged Command Routing.md`
-            - `Nodes/Sketch/Future/Sketch_Phase 3.2B-Console-3 - Shared Sketch Command Tree And Scope Providers.md`
 ### ----Bugs
         - `0_Bug_Report.md`
         - `1_BrowserPanel-Startup-Crash.md`

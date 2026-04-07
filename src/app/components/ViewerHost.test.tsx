@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createAuthoritativeGeometryResultBundle } from '../../shared/geometryResult'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 
 let viewerEnsureReferenceLoaded: ReturnType<typeof vi.fn>
@@ -579,6 +580,188 @@ describe('ViewerHost reference loading', () => {
       perspectiveFovDeg: 42,
       orthoViewHeight: 18,
     })
+  })
+
+  it('suppresses draft graph preview parts when the viewport result mode is final', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [{ slotId: 'slot-baseplate' }],
+            },
+          },
+          {
+            nodeId: 'node-baseplate-1',
+            type: 'Baseplate',
+            params: {},
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-1',
+            from: { nodeId: 'node-baseplate-1', portId: 'out:solid' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-baseplate' },
+          },
+        ],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation,
+            acceptedPreviewBuildOutputs: [
+              {
+                id: 'artifact-1',
+                kind: 'box',
+                label: 'Baseplate',
+                partKeyStr: 'baseplate',
+                partKey: { id: 'baseplate', instance: null },
+                params: { width: 10, length: 20, height: 5 },
+              },
+            ],
+          },
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerSetParts.mock.calls.at(-1)?.[0]).toEqual([])
+  })
+
+  it('renders final mode from authoritative mesh preview instead of artifact preview outputs', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const acceptedPreviewArtifact = {
+      id: 'artifact-1',
+      kind: 'box' as const,
+      label: 'Baseplate',
+      partKeyStr: 'baseplate',
+      partKey: { id: 'baseplate', instance: null },
+      params: { width: 10, length: 20, height: 5 },
+    }
+
+    act(() => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [{ slotId: 'slot-baseplate' }],
+            },
+          },
+          {
+            nodeId: 'node-baseplate-1',
+            type: 'Baseplate',
+            params: {},
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-1',
+            from: { nodeId: 'node-baseplate-1', portId: 'out:solid' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-baseplate' },
+          },
+        ],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation,
+            acceptedPreviewBuildOutputs: [acceptedPreviewArtifact],
+            acceptedAuthoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+              request: {
+                graphDocumentId: 'graph-document-1',
+                buildRequestId: 'build-request-1',
+                partKeys: ['baseplate'],
+              },
+              bodies: {},
+              meshPreview: {
+                vertices: [
+                  0, 0, 0,
+                  2, 0, 0,
+                  0, 1, 0,
+                ],
+                indices: [0, 1, 2],
+              },
+              diagnostics: [],
+              trace: [],
+              authoritativeHandle: {
+                resourceType: 'shape_set',
+                handleId: 'shape-set-1',
+              },
+            }),
+          },
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerSetParts.mock.calls.at(-1)?.[0]).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:authoritative-preview',
+        artifact: expect.objectContaining({
+          kind: 'mesh',
+          label: 'Authoritative Preview',
+          partKeyStr: 'graph-document-1:authoritative-preview',
+          mesh: {
+            vertices: [
+              0, 0, 0,
+              2, 0, 0,
+              0, 1, 0,
+            ],
+            indices: [0, 1, 2],
+          },
+        }),
+      }),
+    ])
   })
 
   it('captures real loaded reference part rows into the workspace after load succeeds', async () => {

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+48. 2026-04-07 16:54: Added `Extrude-0 - Graph-Native Authoritative B-Rep Extrude Lowering` to this family index as the new pre-surface foundation phase for replacing the current rectangle-only authoritative shortcut with worker-owned OpenCascade sketch-face to extruded-body lowering, while keeping raw kernel object ownership out of the `Geometry/Extrude` node/editor layer
 47. 2026-04-06 10:49: Marked `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` shipped after the graph-native `Geometry/Extrude` node began hiding `Taper Angle` outside the first honest `Body + OneSide` support set while preserving authored taper state non-destructively, then refreshed the family handoff so `Extrude 3.4 Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup` now reads as the next honest slice
 46. 2026-04-06 10:42: Tightened `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` into an implementation-ready next slice by locking the first honest support set to `Body + OneSide`, choosing hidden-over-disabled behavior for unsupported combinations, and keeping the work scoped to selector plus `NodeView` visibility truth before any taper runtime widening
 45. 2026-04-06 10:38: Marked `Extrude 3.4 Phase 1 - Taper Angle Names And Authored State Contract` shipped after the graph-native `Geometry/Extrude` node gained the real `Taper Angle` row and authored taper ownership state, then refreshed the family handoff so `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` now reads as the next honest slice
@@ -105,6 +106,7 @@ ParaHook should treat `Extrude` as a real authored solid-feature family, not jus
 The immediate authored-plane bug is now fixed well enough that `Sketch -> Extrude -> OutputPreview` can stay truthful in normal use.
 
 The next real extrude work should center on:
+- first authoritative B-rep body lowering for general closed sketch profiles
 - node enrichment and a dedicated extrude toolbar
 - graph-node versus feature-stack contract cleanup
 - making visible extrude parameters honest
@@ -387,6 +389,7 @@ Historical planning doc still worth keeping:
 ### Suggested Starting Backlog
 
 The highest-value next extrude planning cuts are probably:
+- adding `Extrude-0` so `Final` can stop depending on the rectangle-only authoritative shortcut and start building a real OC-backed body from graph-native sketch and extrude truth
 - shipping `Extrude-2` node enrichment and the first dedicated extrude toolbar now that viewport placement is trustworthy
 - removing the visible `Extrude Geometry` title and using that header area as the one-button extrude-toolbar launcher
 - locking the first real feature-completion task stack in `Extrude-3`, starting with:
@@ -413,9 +416,95 @@ The current extrude path already exists in code, and its first real placement re
 That fix still needed a real first phase because the original bug was crossing compile, runtime, viewer, and active-viewport authority seams at the same time.
 
 The same principle still matters going forward:
+- keep authoritative B-rep groundwork separate from node-surface polish
 - keep placement truth guarded
 - keep richer feature growth for later phases
 - do not widen the next phase until the current authored surface is honest
+
+## [ ] Extrude-0 - Graph-Native Authoritative B-Rep Extrude Lowering
+
+### Summary
+
+#### Purpose:
+- replace the current rectangle-only authoritative shortcut with the first real worker-owned OpenCascade extrude-body lowering seam
+
+#### Owns:
+- the first authoritative-path lowering from graph-native sketch/extrude truth into a real OC-backed extruded body
+- consuming one closed sketch-derived profile face instead of only recognized rectangle bounds
+- preserving the current graph-native authored `Geometry/Extrude` contract while moving kernel object construction into the worker authoritative path
+- the first honest `Final` support expansion for closed non-rectangular `Sketch -> Extrude(Body)` graphs
+
+#### Does not own:
+- moving raw OpenCascade object ownership into the `Geometry/Extrude` node/editor layer
+- widening the visible node surface or toolbar
+- plural profile rollout
+- boolean/combine/cut behavior
+- broader taper/offset/thickness semantics beyond the current narrow authoritative support set
+
+#### Current strongest read:
+- draft preview can already show a valid closed-profile extrude that `Final` still refuses to render
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts` currently succeeds only when `getRectangleBounds(...)` recognizes a rectangle and then builds a `BRepPrimAPI_MakeBox` shortcut
+- that means the next missing extrude truth is not more viewer polish, it is real worker-side B-rep body lowering downstream from the existing sketch/extrude graph contract
+
+### Questions
+
+#### [x] Question 1 - Should this phase make the `Geometry/Extrude` node create OpenCascade bodies directly?
+
+##### Locked answer
+- no
+- keep the node and graph contract responsible for authored profile/depth/direction/type truth only
+- construct OC edges, wires, faces, and extruded bodies in the worker authoritative layer
+
+##### Why
+- this keeps authored graph state and worker-owned kernel state cleanly separated
+- it matches the same recommendation already established for the sketch B-rep follow-on
+- it protects the long-range direction that preview and export should derive downstream from one geometry execution truth
+
+#### [x] Question 2 - What should `Extrude-0` ship first?
+
+##### Locked answer
+- ship one narrow authoritative `Body` extrude path that consumes a real lowered sketch face and produces one OC-backed body
+- keep the first support set aligned with the current honest narrow rules:
+  - one closed profile
+  - positive depth
+  - current supported direction/type subset unless a tiny widening is trivial
+
+##### Why
+- this is the smallest real step that removes the rectangle-special-case ceiling now blocking `Final`
+- it lets later surface and authored-mode work land on top of an honest kernel-backed body path
+
+### Spec
+
+Locked first-cut direction:
+- treat `Extrude-0` as a worker-authoritative groundwork phase that happens before broader node-surface follow-ons
+- reuse graph-native sketch and extrude authored truth as input
+- lower that truth into worker-owned OC sketch face plus OC extruded body construction
+- remove rectangle recognition from the critical success path for the first supported authoritative extrude set
+- keep the current node/editor surfaces unchanged unless a tiny honesty fix is required
+
+Likely implementation seams:
+- `src/app/spaghetti/contracts/geometryRequest.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- one new worker-local helper for sketch-face and extruded-body OC lowering
+- focused tests near:
+  - `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+  - graph compile/runtime tests that prove the required sketch/extrude payload stays intact
+
+Suggested execution order:
+1. Reuse or slightly widen the shared sketch/extrude request contract only if the current profile payload is still too rectangle-shaped for real B-rep lowering.
+2. Add one worker-local helper that lowers a closed sketch profile into OC edges, one closed wire, and one planar face.
+3. Add one worker-local helper that extrudes that face into an OC body using the current narrow authoritative depth/direction rules.
+4. Re-route authoritative extrude success through that B-rep seam instead of `getRectangleBounds(...)`.
+5. Add focused coverage for:
+   - supported non-rectangular closed profile success
+   - open/invalid profile honest failure
+   - unchanged draft-versus-final honesty behavior when authoritative lowering still cannot run
+
+Definition of done:
+- a valid closed non-rectangular `Sketch -> Extrude(Body)` graph can reach the authoritative path where it currently cannot
+- `Final` no longer depends on rectangle detection as the only authoritative extrude success path
+- worker-owned OC construction stays downstream from authored graph truth instead of leaking into the node/editor layer
 
 ## [~] Extrude-1 - Transform-Aware Preview And Runtime Alignment Family
 

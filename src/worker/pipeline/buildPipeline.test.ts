@@ -1,9 +1,34 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BUILD_EXECUTION_INTENT, type CompiledBuildData } from '../../shared/buildTypes'
+import { createAuthoritativeGeometryResultBundle } from '../../shared/geometryResult'
 
 const bundleArtifacts = (
   result: { bundle: { entries: Array<{ artifacts: Array<{ partKeyStr: string; kind: string }> }> } },
 ) => result.bundle.entries.flatMap((entry) => entry.artifacts)
+
+const emptyProfileLoop = {
+  segments: [],
+  winding: 'CCW' as const,
+}
+
+const resolvedProfile = (profileId: string, area: number) => ({
+  profileId,
+  profileIndex: 0,
+  area,
+  loop: emptyProfileLoop,
+  verticesProxy: [
+    { x: 0, y: 0 },
+    { x: 20, y: 0 },
+    { x: 20, y: 20 },
+    { x: 0, y: 20 },
+  ],
+})
+
+const resolvedProfileRef = (sketchFeatureId: string, profileId: string) => ({
+  sketchFeatureId,
+  profileId,
+  profileIndex: 0,
+})
 
 const cubeCompiledBuildData = (): CompiledBuildData => ({
   orderedPartKeys: ['cube'],
@@ -17,25 +42,14 @@ const cubeCompiledBuildData = (): CompiledBuildData => ({
             op: 'sketch',
             featureId: 'cube-sketch-1',
             profilesResolved: [
-              {
-                profileId: 'cube-profile-1',
-                area: 400,
-                vertices: [
-                  { x: 0, y: 0 },
-                  { x: 20, y: 0 },
-                  { x: 20, y: 20 },
-                  { x: 0, y: 20 },
-                ],
-              },
+              resolvedProfile('cube-profile-1', 400),
             ],
           },
           {
             op: 'extrude',
             featureId: 'cube-extrude-1',
-            profileRef: {
-              sketchFeatureId: 'cube-sketch-1',
-              profileId: 'cube-profile-1',
-            },
+            profileRef: resolvedProfileRef('cube-sketch-1', 'cube-profile-1'),
+            extrudeType: 'Body',
             depthResolved: 20,
             taperResolved: 0,
             offsetResolved: 0,
@@ -60,25 +74,14 @@ const multiCubeCompiledBuildData = (): CompiledBuildData => ({
             op: 'sketch',
             featureId: 'cube-2-sketch-1',
             profilesResolved: [
-              {
-                profileId: 'cube-2-profile-1',
-                area: 400,
-                vertices: [
-                  { x: 0, y: 0 },
-                  { x: 20, y: 0 },
-                  { x: 20, y: 20 },
-                  { x: 0, y: 20 },
-                ],
-              },
+              resolvedProfile('cube-2-profile-1', 400),
             ],
           },
           {
             op: 'extrude',
             featureId: 'cube-2-extrude-1',
-            profileRef: {
-              sketchFeatureId: 'cube-2-sketch-1',
-              profileId: 'cube-2-profile-1',
-            },
+            profileRef: resolvedProfileRef('cube-2-sketch-1', 'cube-2-profile-1'),
+            extrudeType: 'Body',
             depthResolved: 20,
             taperResolved: 0,
             offsetResolved: 0,
@@ -90,25 +93,14 @@ const multiCubeCompiledBuildData = (): CompiledBuildData => ({
             op: 'sketch',
             featureId: 'cube-1-sketch-1',
             profilesResolved: [
-              {
-                profileId: 'cube-1-profile-1',
-                area: 400,
-                vertices: [
-                  { x: 0, y: 0 },
-                  { x: 20, y: 0 },
-                  { x: 20, y: 20 },
-                  { x: 0, y: 20 },
-                ],
-              },
+              resolvedProfile('cube-1-profile-1', 400),
             ],
           },
           {
             op: 'extrude',
             featureId: 'cube-1-extrude-1',
-            profileRef: {
-              sketchFeatureId: 'cube-1-sketch-1',
-              profileId: 'cube-1-profile-1',
-            },
+            profileRef: resolvedProfileRef('cube-1-sketch-1', 'cube-1-profile-1'),
+            extrudeType: 'Body',
             depthResolved: 20,
             taperResolved: 0,
             offsetResolved: 0,
@@ -126,6 +118,7 @@ const buildRequest = (options: {
   buildRequestId: string
   compiledBuildData: CompiledBuildData
   changedParamIds: string[]
+  executionIntent?: typeof DEFAULT_BUILD_EXECUTION_INTENT
 }) => ({
   type: 'build' as const,
   lane: 'build' as const,
@@ -133,7 +126,11 @@ const buildRequest = (options: {
   projectFileId: 'graph-native-project',
   graphDocumentId: 'graph-document-1',
   buildRequestId: options.buildRequestId,
-  executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+  executionIntent:
+    options.executionIntent ?? {
+      ...DEFAULT_BUILD_EXECUTION_INTENT,
+      geometryTarget: 'draft_preview' as const,
+    },
   buildIdentity: {
     graphRevision: options.seq,
     targetBuildUnitIds: options.compiledBuildData.orderedPartKeys.map(
@@ -147,6 +144,11 @@ const buildRequest = (options: {
   },
   compiledBuildData: options.compiledBuildData,
   changedParamIds: options.changedParamIds,
+})
+
+afterEach(() => {
+  vi.doUnmock('../authoritative/buildAuthoritativeGeometry')
+  vi.restoreAllMocks()
 })
 
 describe('buildPipeline spaghetti stats integration', () => {
@@ -203,6 +205,18 @@ describe('buildPipeline spaghetti stats integration', () => {
     expect(progress.every((message) => message.lane === 'build')).toBe(true)
     expect(progress.some((message) => message.partKey === 's001')).toBe(false)
     expect(result.lane).toBe('build')
+    expect(result.draftGeometryResult).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-1',
+          partKeys: ['cube'],
+        },
+        resultClass: 'draft',
+        status: 'ok',
+      }),
+    )
+    expect(result.authoritativeGeometryResult).toBeUndefined()
     expect(bundleArtifacts(result).some((part) => part.partKeyStr === 'cube')).toBe(true)
   })
 
@@ -289,5 +303,76 @@ describe('buildPipeline spaghetti stats integration', () => {
         { partKey: 'cube#2', state: 'cache_hit' },
       ]),
     )
+  })
+
+  it('passes through authoritative retained geometry emitted by the authoritative adapter seam', async () => {
+    const authoritativeBundle = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-12',
+        partKeys: ['cube'],
+      },
+      bodies: {},
+      meshPreview: null,
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-1',
+      },
+    })
+
+    expect(authoritativeBundle.resultClass).toBe('authoritative')
+    expect(authoritativeBundle.authoritativeHandle).toEqual({
+      resourceType: 'shape_set',
+      handleId: 'shape-set-1',
+    })
+
+    vi.resetModules()
+    const buildAuthoritativeGeometry = vi.fn(async () => ({
+      authoritativeGeometryResult: authoritativeBundle,
+    }))
+    vi.doMock('../authoritative/buildAuthoritativeGeometry', () => ({
+      buildAuthoritativeGeometry,
+    }))
+    const { buildPipeline } = await import('./buildPipeline')
+    const result = await buildPipeline(
+      buildRequest({
+        seq: 12,
+        buildRequestId: 'build-request-12',
+        compiledBuildData: cubeCompiledBuildData(),
+        changedParamIds: ['sp_full'],
+        executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      }),
+      () => {},
+    )
+
+    expect(result.draftGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'draft',
+        status: 'ok',
+        authoritativeHandle: null,
+      }),
+    )
+    expect(result.authoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'authoritative',
+        status: 'ok',
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    )
+    expect(buildAuthoritativeGeometry).toHaveBeenCalledWith({
+      compiledBuildData: expect.objectContaining({
+        orderedPartKeys: ['cube'],
+      }),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-12',
+        partKeys: ['cube'],
+      },
+    })
   })
 })

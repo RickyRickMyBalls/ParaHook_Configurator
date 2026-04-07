@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useWorkspaceStore } from './useWorkspaceStore'
+import {
+  selectActiveViewportResultMode,
+  selectActiveViewportResultModeBehavior,
+  selectViewportResultModeBehaviorById,
+  useWorkspaceStore,
+} from './useWorkspaceStore'
 import { normalizePersistedWorkspaceLayout, serializeWorkspaceLayout } from './workspacePersistence'
 import {
   defaultBrowserHostRouteId,
@@ -265,6 +270,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       projectionMode: 'orthographic',
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
+      viewportResultMode: 'draft',
     })
 
     const state = useWorkspaceStore.getState()
@@ -273,6 +279,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'perspective',
         axisOverlayEnabled: true,
         viewToolbarOpen: false,
+        viewportResultMode: 'auto',
       }),
     )
     expect(state.viewportChromeById['model-viewer-workspace-slot-2']?.localViewState).toEqual(
@@ -280,6 +287,47 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+        viewportResultMode: 'draft',
+      }),
+    )
+  })
+
+  it('defaults viewport result mode to auto and keeps mode ownership viewport-local', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'modelViewer',
+      surfaceInstanceId: 'model-viewer-workspace-slot-2',
+    })
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-workspace-slot-2')
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-workspace-slot-2', 'final')
+
+    const state = useWorkspaceStore.getState()
+    expect(state.viewportChromeById['model-viewer-primary']?.localViewState.viewportResultMode).toBe(
+      'auto',
+    )
+    expect(
+      state.viewportChromeById['model-viewer-workspace-slot-2']?.localViewState.viewportResultMode,
+    ).toBe('final')
+    expect(selectActiveViewportResultMode(state)).toBe('auto')
+
+    useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-workspace-slot-2')
+
+    const nextState = useWorkspaceStore.getState()
+    expect(selectActiveViewportResultMode(nextState)).toBe('final')
+    expect(selectActiveViewportResultModeBehavior(nextState)).toEqual(
+      expect.objectContaining({
+        mode: 'final',
+        allowsDraftDisplay: false,
+        allowsFinalDisplay: true,
+        prefersSkippingDraftWork: true,
+      }),
+    )
+    expect(selectViewportResultModeBehaviorById(nextState, 'model-viewer-primary')).toEqual(
+      expect.objectContaining({
+        mode: 'auto',
+        allowsDraftDisplay: true,
+        allowsFinalDisplay: true,
+        allowsFinalReplacement: true,
       }),
     )
   })
@@ -334,6 +382,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       projectionMode: 'orthographic',
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
+      viewportResultMode: 'draft',
     })
     useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-workspace-slot-2')
 
@@ -362,6 +411,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+        viewportResultMode: 'draft',
       }),
     )
     expect(normalized?.hostRouteOwnershipByRouteId[defaultBrowserHostRouteId]).toEqual(

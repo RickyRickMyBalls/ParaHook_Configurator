@@ -1,3 +1,5 @@
+import type { GeometryResultBundle } from './geometryResult'
+
 export type BoxParams = {
   width: number
   length: number
@@ -18,11 +20,13 @@ export type ViewMode = 'parts'
 export type BuildPhase = 'parts' | 'export'
 export type WorkerLane = 'build' | 'export'
 export type BuildProgressState = 'queued' | 'cache_hit' | 'building' | 'done' | 'error'
+export type GeometryExecutionTarget = 'draft_preview' | 'authoritative'
 export type BuildExecutionIntent = {
   buildMode: 'preview' | 'final'
   quality: 'draft' | 'full'
   updatePolicy: 'auto' | 'defer_until_release' | 'manual'
   outputIntent: 'transient_preview' | 'accepted_final'
+  geometryTarget: GeometryExecutionTarget
 }
 
 export const DEFAULT_BUILD_EXECUTION_INTENT = {
@@ -30,6 +34,7 @@ export const DEFAULT_BUILD_EXECUTION_INTENT = {
   quality: 'full',
   updatePolicy: 'auto',
   outputIntent: 'accepted_final',
+  geometryTarget: 'authoritative',
 } as const satisfies BuildExecutionIntent
 
 export type PartId = string
@@ -313,6 +318,8 @@ export const isBuildResultBundle = (value: unknown): value is BuildResultBundle 
     value.executionIntent.updatePolicy === 'manual') &&
   (value.executionIntent.outputIntent === 'transient_preview' ||
     value.executionIntent.outputIntent === 'accepted_final') &&
+  (value.executionIntent.geometryTarget === 'draft_preview' ||
+    value.executionIntent.geometryTarget === 'authoritative') &&
   isRecord(value.summary) &&
   typeof value.summary.rebuiltCount === 'number' &&
   typeof value.summary.retainedCount === 'number' &&
@@ -328,7 +335,14 @@ export type BuildResult = {
   graphDocumentId: string
   buildRequestId: string
   bundle: BuildResultBundle
+  draftGeometryResult?: GeometryResultBundle
+  authoritativeGeometryResult?: GeometryResultBundle
   changedParamIds?: string[]
+}
+
+export type ReleaseAuthoritativeHandlesRequest = {
+  type: 'release_authoritative_handles'
+  handleIds: string[]
 }
 
 export const buildResultClassFromExecutionIntent = (

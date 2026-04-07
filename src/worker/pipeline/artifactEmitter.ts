@@ -1,3 +1,7 @@
+import {
+  cloneGeometryResultBundle,
+  type GeometryResultBundle,
+} from '../../shared/geometryResult'
 import type {
   BuildExecutionIntent,
   BuildResult,
@@ -88,6 +92,8 @@ export const emitArtifacts = (
     buildRequestId: string
     executionIntent: BuildExecutionIntent
     compiledBuildData?: CompiledBuildData
+    draftGeometryResult?: GeometryResultBundle | null
+    authoritativeGeometryResult?: GeometryResultBundle | null
   },
   parts: PartArtifact[],
   changedParamIds?: string[],
@@ -106,5 +112,16 @@ export const emitArtifacts = (
     compiledBuildData: options.compiledBuildData,
     parts,
   }),
+  ...(options.draftGeometryResult !== undefined && options.draftGeometryResult !== null
+    ? { draftGeometryResult: cloneGeometryResultBundle(options.draftGeometryResult) }
+    : {}),
+  ...(options.authoritativeGeometryResult !== undefined &&
+  options.authoritativeGeometryResult !== null
+    ? {
+        authoritativeGeometryResult: cloneGeometryResultBundle(
+          options.authoritativeGeometryResult,
+        ),
+      }
+    : {}),
   ...(changedParamIds !== undefined ? { changedParamIds: [...changedParamIds] } : {}),
 })

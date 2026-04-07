@@ -189,11 +189,14 @@ export type WorkspaceViewportChromeState = {
   localViewState: WorkspaceViewportLocalViewState
 }
 
+export type WorkspaceViewportResultMode = 'auto' | 'draft' | 'final'
+
 export type WorkspaceViewportLocalViewState = {
   projectionMode: ProjectionMode
   axisOverlayEnabled: boolean
   viewToolbarOpen: boolean
   viewToolbarExpandedAxisWidgetSize: number | null
+  viewportResultMode: WorkspaceViewportResultMode
 }
 
 export type WorkspaceViewportSlot = {
@@ -340,6 +343,7 @@ export const createDefaultWorkspaceViewportLocalViewState =
     axisOverlayEnabled: DEFAULT_VIEW_SETTINGS.axisOverlayEnabled,
     viewToolbarOpen: false,
     viewToolbarExpandedAxisWidgetSize: null,
+    viewportResultMode: 'auto',
   })
 
 export const createWorkspaceSurfaceInstanceIdForSlot = (

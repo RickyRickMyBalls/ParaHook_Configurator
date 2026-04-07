@@ -312,6 +312,12 @@ const normalizeViewportChromeRecord = (
         : localViewState?.viewToolbarExpandedAxisWidgetSize === null
           ? { viewToolbarExpandedAxisWidgetSize: null }
           : {}),
+      ...(localViewState?.viewportResultMode === 'draft' ||
+      localViewState?.viewportResultMode === 'final'
+        ? { viewportResultMode: localViewState.viewportResultMode }
+        : localViewState?.viewportResultMode === 'auto'
+          ? { viewportResultMode: 'auto' as const }
+          : {}),
     },
   }
 }

@@ -5,6 +5,7 @@ import type {
   RefObject,
 } from 'react'
 import { PrimaryViewportLeftDock } from './PrimaryViewportLeftDock'
+import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportFrame, type ViewportFrameHeaderDragOutPayload } from './ViewportFrame'
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './ViewportWorkspaceHost'
@@ -18,6 +19,11 @@ import {
   type WorkspaceViewportSlotId,
 } from './workspaceShellTypes'
 import { type WorkspaceSplitDockSide } from './workspaceSplitTypes'
+import {
+  cycleWorkspaceViewportResultMode,
+  getWorkspaceViewportResultModeLabel,
+  getWorkspaceViewportResultModeShortLabel,
+} from './workspaceViewportResultMode'
 
 type WorkspaceViewportTreeProps = {
   viewportSlotRootNodeId: WorkspaceLayoutNodeId
@@ -106,6 +112,8 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     resolvePrimaryLeftDockBottomInset,
     splitDividerSize = 10,
   } = props
+  const viewportChromeById = useWorkspaceStore((state) => state.viewportChromeById)
+  const setViewportResultMode = useWorkspaceStore((state) => state.setViewportResultMode)
 
   const renderViewportSlot = (slotId: WorkspaceViewportSlotId): ReactNode => {
     const slot = viewportSlotsById[slotId] ?? null
@@ -113,6 +121,16 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
       return null
     }
     const isPrimarySlot = slot.slotId === defaultPrimaryViewportSlotId
+    const viewportResultMode =
+      slot.surfaceKind === 'modelViewer'
+        ? viewportChromeById[slot.surfaceInstanceId]?.localViewState.viewportResultMode ?? 'auto'
+        : 'auto'
+    const nextViewportResultMode =
+      slot.surfaceKind === 'modelViewer'
+        ? cycleWorkspaceViewportResultMode(viewportResultMode)
+        : 'auto'
+    const viewportResultModeLabel = getWorkspaceViewportResultModeLabel(viewportResultMode)
+    const nextViewportResultModeLabel = getWorkspaceViewportResultModeLabel(nextViewportResultMode)
 
     return (
       <ViewportFrame
@@ -126,7 +144,11 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             : undefined
         }
         onPrimaryButtonClick={
-          slot.surfaceKind === 'browser' ? onCycleBrowserPresentationMode : undefined
+          slot.surfaceKind === 'browser'
+            ? onCycleBrowserPresentationMode
+            : slot.surfaceKind === 'modelViewer'
+              ? () => setViewportResultMode(slot.surfaceInstanceId, nextViewportResultMode)
+              : undefined
         }
         primaryButtonLabel={
           slot.surfaceKind === 'browser'
@@ -135,7 +157,9 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
               : browserPresentationMode === 'essentials'
                 ? 'e'
                 : '+'
-            : undefined
+            : slot.surfaceKind === 'modelViewer'
+              ? getWorkspaceViewportResultModeShortLabel(viewportResultMode)
+              : undefined
         }
         primaryButtonAriaLabel={
           slot.surfaceKind === 'browser'
@@ -144,7 +168,9 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
               : browserPresentationMode === 'essentials'
                 ? 'Collapse browser'
                 : 'Expand browser'
-            : undefined
+            : slot.surfaceKind === 'modelViewer'
+              ? `Model Viewport result mode: ${viewportResultModeLabel}. Click to switch to ${nextViewportResultModeLabel}.`
+              : undefined
         }
         primaryButtonTitle={
           slot.surfaceKind === 'browser'
@@ -153,7 +179,9 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
               : browserPresentationMode === 'essentials'
                 ? 'Collapse browser'
                 : 'Expand browser'
-            : undefined
+            : slot.surfaceKind === 'modelViewer'
+              ? `Model Viewport result mode: ${viewportResultModeLabel}. Click to switch to ${nextViewportResultModeLabel}.`
+              : undefined
         }
         primaryButtonExpanded={slot.surfaceKind === 'browser' ? !isBrowserCollapsed : undefined}
         onRequestSurfaceKind={(nextSurfaceKind) =>

@@ -2,6 +2,10 @@ import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { compileFeatureStack, type FeatureStackIR } from '../features/compileFeatureStack'
 import { getEffectiveFeatureStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
+import type {
+  GeometryRequestOp,
+  GeometryRequestPayload,
+} from '../contracts/geometryRequest'
 import {
   createDefaultSketchPlaneTransform,
   type ProfileLoop,
@@ -12,11 +16,11 @@ import {
   getNodeDef,
   mapWholeNumberToGeometryExtrudeDirection,
   readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeTaperAngleDegFromParams,
   readGeometryExtrudeTypeFromParams,
 } from '../registry/nodeRegistry'
 import type { SpaghettiDiagnostic } from './validateGraph'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
-import { tessellateProfileLoop } from './runtimeTessellation'
 
 export type CompileSpaghettiGraphResult = {
   ok: boolean
@@ -32,11 +36,6 @@ export type CompileSpaghettiGraphResult = {
     resolvedParts: Record<string, Record<string, unknown>>
     resolvedShared?: Record<string, unknown>
   }
-}
-
-type FeatureStackIRPayload = {
-  schemaVersion: 1
-  parts: RuntimeFeatureStackParts
 }
 
 type BasePartId = 'baseplate' | 'cube' | 'cubeProof' | 'toeHook' | 'heelKick' | 'extrude'
@@ -58,35 +57,6 @@ const PART_NODE_SPECS: readonly PartNodeSpec[] = [
 const ALWAYS_NUMBERED_PART_IDS = new Set<BasePartId>(['toeHook', 'heelKick'])
 
 export type FeatureStackIrParts = Record<OwnedPartKey, FeatureStackIR>
-type RuntimeFeatureStackParts = Record<OwnedPartKey, RuntimeFeatureOp[]>
-
-type RuntimeFeatureOp =
-  | {
-      op: 'sketch'
-      featureId: string
-      plane?: 'XY' | 'XZ' | 'YZ'
-      planeTransform?: SketchPlaneTransform
-      profilesResolved: Array<{
-        profileId: string
-        area: number
-        vertices: Array<{ x: number; y: number }>
-      }>
-    }
-  | {
-      op: 'extrude'
-      featureId: string
-      profileRef: { sketchFeatureId: string; profileId: string } | null
-      extrudeType: 'Body' | 'Walls'
-      extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
-      depthResolved: number
-      startDepthResolved?: number
-      endDepthResolved?: number
-      taperResolved: number
-      offsetResolved: number
-      plane?: 'XY' | 'XZ' | 'YZ'
-      planeTransform?: SketchPlaneTransform
-      bodyId?: string
-    }
 
 export type FeatureStackIrPartsComputation = {
   parts: FeatureStackIrParts
@@ -107,68 +77,17 @@ const sortDiagnostics = (
   diagnostics: readonly SpaghettiDiagnostic[],
 ): SpaghettiDiagnostic[] => [...diagnostics].sort(compareDiagnostics)
 
-const toRuntimeFeatureStackParts = (parts: FeatureStackIrParts): RuntimeFeatureStackParts => {
-  const out: RuntimeFeatureStackParts = {}
+const toGeometryRequestParts = (parts: FeatureStackIrParts): GeometryRequestPayload['parts'] => {
+  const out: GeometryRequestPayload['parts'] = {}
   for (const [partKey, operations] of Object.entries(parts)) {
-    const runtimeOps: RuntimeFeatureOp[] = []
+    const requestOps: GeometryRequestOp[] = []
     for (const operation of operations) {
-      if (operation.op === 'sketch') {
-        runtimeOps.push({
-          op: 'sketch',
-          featureId: operation.featureId,
-          ...('plane' in operation && operation.plane !== undefined
-            ? { plane: operation.plane }
-            : {}),
-          ...('planeTransform' in operation && operation.planeTransform !== undefined
-            ? { planeTransform: operation.planeTransform }
-            : {}),
-          profilesResolved: operation.profilesResolved.map((profile) => ({
-            profileId: profile.profileId,
-            area: profile.area,
-            vertices:
-              profile.loop.segments.length > 0
-                ? tessellateProfileLoop(profile.loop.segments)
-                : profile.verticesProxy,
-          })),
-        })
-        continue
-      }
       if (operation.op === 'closeProfile') {
         continue
       }
-      runtimeOps.push({
-        op: 'extrude',
-        featureId: operation.featureId,
-        profileRef:
-          operation.profileRef === null
-            ? null
-            : {
-                sketchFeatureId: operation.profileRef.sketchFeatureId,
-                profileId: operation.profileRef.profileId,
-              },
-        extrudeType: operation.extrudeType,
-        ...('extrudeDirection' in operation && operation.extrudeDirection !== undefined
-          ? { extrudeDirection: operation.extrudeDirection }
-          : {}),
-        depthResolved: operation.depthResolved,
-        ...('startDepthResolved' in operation && operation.startDepthResolved !== undefined
-          ? { startDepthResolved: operation.startDepthResolved }
-          : {}),
-        ...('endDepthResolved' in operation && operation.endDepthResolved !== undefined
-          ? { endDepthResolved: operation.endDepthResolved }
-          : {}),
-        taperResolved: operation.taperResolved,
-        offsetResolved: operation.offsetResolved,
-        ...('plane' in operation && operation.plane !== undefined
-          ? { plane: operation.plane }
-          : {}),
-        ...('planeTransform' in operation && operation.planeTransform !== undefined
-          ? { planeTransform: operation.planeTransform }
-          : {}),
-        bodyId: operation.bodyId,
-      })
+      requestOps.push(operation)
     }
-    out[partKey] = runtimeOps
+    out[partKey] = requestOps
   }
   return out
 }
@@ -343,6 +262,11 @@ const buildGeometryExtrudeOps = (
     typeof endDepthInput === 'number' && Number.isFinite(endDepthInput)
       ? endDepthInput
       : endDepthParam
+  const taperInput = resolvedInputs.TaperAngle
+  const taperResolved =
+    typeof taperInput === 'number' && Number.isFinite(taperInput)
+      ? taperInput
+      : readGeometryExtrudeTaperAngleDegFromParams(node.params)
   const profileRef =
     sourceSketchNode !== undefined && isProfileInputLike(profileInput)
       ? {
@@ -390,7 +314,7 @@ const buildGeometryExtrudeOps = (
           endDepthResolved,
         }
       : {}),
-    taperResolved: 0,
+    taperResolved,
     offsetResolved: 0,
     plane,
     planeTransform,
@@ -617,11 +541,11 @@ export const compileSpaghettiGraph = (
     }
   }
 
-  const featureStackIrParts: FeatureStackIRPayload['parts'] = toRuntimeFeatureStackParts(
+  const featureStackIrParts: GeometryRequestPayload['parts'] = toGeometryRequestParts(
     featureStackComputation.parts,
   )
   const hasNonEmptyFeatureStack = featureStackComputation.hasNonEmptyFeatureStack
-  const featureStackIR: FeatureStackIRPayload | undefined = hasNonEmptyFeatureStack
+  const featureStackIR: GeometryRequestPayload | undefined = hasNonEmptyFeatureStack
     ? {
         schemaVersion: 1,
         parts: featureStackIrParts,

@@ -1,4 +1,8 @@
 import {
+  getGeometryResultAuthoritativeHandleId,
+  isGeometryResultBundle,
+} from '../shared/geometryResult'
+import {
   DEFAULT_BUILD_EXECUTION_INTENT,
   isBuildResultBundle,
   LEGACY_RUNTIME_GRAPH_DOCUMENT_ID,
@@ -18,6 +22,10 @@ import type {
 
 type BuildResultHandler = (result: BuildResult) => void
 type WorkerErrorHandler = (error: WorkerError) => void
+type BuildDispatcherWorker = Pick<
+  Worker,
+  'addEventListener' | 'removeEventListener' | 'postMessage' | 'terminate'
+>
 
 type GraphBuildRequestOptions = {
   routingIdentity?: BuildRoutingIdentity
@@ -56,6 +64,27 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
+const isOptionalBuildGeometryResult = (
+  value: unknown,
+  options: {
+    graphDocumentId: string
+    buildRequestId: string
+    expectedResultClass: 'draft' | 'authoritative'
+  },
+): boolean => {
+  if (value === undefined) {
+    return true
+  }
+  if (!isGeometryResultBundle(value)) {
+    return false
+  }
+  return (
+    value.request.graphDocumentId === options.graphDocumentId &&
+    value.request.buildRequestId === options.buildRequestId &&
+    value.resultClass === options.expectedResultClass
+  )
+}
+
 const isBuildResult = (value: unknown): value is BuildResult => {
   if (!isRecord(value)) {
     return false
@@ -71,6 +100,20 @@ const isBuildResult = (value: unknown): value is BuildResult => {
     return false
   }
   if (value.changedParamIds !== undefined && !isStringArray(value.changedParamIds)) {
+    return false
+  }
+  if (
+    !isOptionalBuildGeometryResult(value.draftGeometryResult, {
+      graphDocumentId: value.graphDocumentId,
+      buildRequestId: value.buildRequestId,
+      expectedResultClass: 'draft',
+    }) ||
+    !isOptionalBuildGeometryResult(value.authoritativeGeometryResult, {
+      graphDocumentId: value.graphDocumentId,
+      buildRequestId: value.buildRequestId,
+      expectedResultClass: 'authoritative',
+    })
+  ) {
     return false
   }
   return isBuildResultBundle(value.bundle)
@@ -150,7 +193,7 @@ const isBuildProgress = (value: unknown): value is BuildProgress => {
 }
 
 export class BuildDispatcher {
-  private readonly worker: Worker
+  private readonly worker: BuildDispatcherWorker
   private seqCounter = 0
   private latestRequestedSeq = 0
   private latestResolvedSeq = 0
@@ -160,9 +203,7 @@ export class BuildDispatcher {
   private runtimeHooks: BuildDispatcherRuntimeHooks = {}
 
   public constructor() {
-    this.worker = new Worker(new URL('../worker/worker.ts', import.meta.url), {
-      type: 'module',
-    })
+    this.worker = this.createWorker()
     this.worker.addEventListener('message', this.handleMessage)
   }
 
@@ -224,6 +265,23 @@ export class BuildDispatcher {
     this.worker.terminate()
   }
 
+  public releaseAuthoritativeHandles(handleIds: readonly string[]): void {
+    const normalizedHandleIds = [
+      ...new Set(
+        handleIds.filter(
+          (handleId): handleId is string => typeof handleId === 'string' && handleId.length > 0,
+        ),
+      ),
+    ]
+    if (normalizedHandleIds.length === 0) {
+      return
+    }
+    this.worker.postMessage({
+      type: 'release_authoritative_handles',
+      handleIds: normalizedHandleIds,
+    })
+  }
+
   private readonly handleMessage = (event: MessageEvent<unknown>): void => {
     if (isBuildProgress(event.data)) {
       const ledger = this.getOrCreateRoutingLedger(event.data)
@@ -241,6 +299,7 @@ export class BuildDispatcher {
       if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
         ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
         ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+        this.releaseAuthoritativeHandlesFromResult(event.data)
         return
       }
 
@@ -280,6 +339,30 @@ export class BuildDispatcher {
       this.onWorkerError(event.data)
       this.runtimeHooks.onWorkerError?.(event.data)
     }
+  }
+
+  private releaseAuthoritativeHandlesFromResult(result: BuildResult): void {
+    const authoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+      result.authoritativeGeometryResult,
+    )
+    if (authoritativeHandleId === null) {
+      return
+    }
+    this.releaseAuthoritativeHandles([authoritativeHandleId])
+  }
+
+  private createWorker(): BuildDispatcherWorker {
+    if (typeof Worker === 'undefined') {
+      return {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        postMessage: () => {},
+        terminate: () => {},
+      }
+    }
+    return new Worker(new URL('../worker/worker.ts', import.meta.url), {
+      type: 'module',
+    })
   }
 
   private isGlobalStale(seq: number): boolean {

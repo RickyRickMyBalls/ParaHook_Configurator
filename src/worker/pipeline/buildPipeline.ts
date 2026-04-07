@@ -5,7 +5,7 @@ import type {
   PartArtifact,
 } from '../../shared/buildTypes'
 import { getPartArtifactKey } from '../../shared/buildTypes'
-import { buildModel } from '../buildModel'
+import { buildModelResult } from '../buildModel'
 import { emitArtifacts } from './artifactEmitter'
 import { computeAffectedPartKeys } from './paramRouting'
 import {
@@ -56,8 +56,13 @@ export const buildPipeline = async (
   const { seq, projectFileId, graphDocumentId, buildRequestId, compiledBuildData } = request
   const signatureInput = toBuildSignatureInput(request)
   const buildSignature = makeBuildSignature(signatureInput, ENGINE_MODE, CONTROL_MODE)
-  const parts = buildModel({
+  const { parts, draftGeometryResult, authoritativeGeometryResult } = await buildModelResult({
     compiledBuildData,
+    executionIntent: request.executionIntent,
+    requestIdentity: {
+      graphDocumentId,
+      buildRequestId,
+    },
   })
   const orderedPartKeys = [...compiledBuildData.orderedPartKeys]
   const affectedSet = new Set(computeAffectedPartKeys(request.changedParamIds, orderedPartKeys))
@@ -205,6 +210,8 @@ export const buildPipeline = async (
       buildRequestId,
       executionIntent: request.executionIntent,
       compiledBuildData,
+      draftGeometryResult,
+      authoritativeGeometryResult,
     },
     parts,
     request.changedParamIds,

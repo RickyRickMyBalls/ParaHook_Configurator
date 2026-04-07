@@ -65,6 +65,653 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1097 -->
+### [1097] - 2026-04-07 16:26 - `Model-Viewport 1.3 Phase 9 - Export Gating And On-Demand Authoritative Preparation`
+HUMAN SUMMARY: `Added the first explicit app-side export-preparation decision path so export can reuse accepted authoritative geometry, request one authoritative build when needed, or block honestly when the current graph revision still cannot produce authoritative export truth.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 9` by limiting implementation to export preparation and gating, one small build-intent override seam, focused app/store verification, and the required changelog maintenance without widening into worker export request routing or real `.step` file writing.
+- Preserved the phase 8 export-input contract as the downstream writer handoff and kept export preparation explicitly downstream from retained authoritative geometry instead of from viewport render state.
+- Kept `.step` export honesty intact by refusing draft mesh, artifact-preview, and viewport-only fallback geometry as export truth.
+
+#### Summary of Implementation
+- Expanded `src/shared/exportTypes.ts` so the export family now includes an explicit `ExportPreparationResult` union with `ready`, `pending`, and `blocked` outcomes for app-side export preparation.
+- Updated `src/app/store/useAppStore.ts` to add `prepareGraphDocumentExport(...)` and `prepareSpaghettiExport(...)`, letting the app reuse accepted authoritative retained geometry immediately when `deriveAuthoritativeExportInput(...)` succeeds.
+- Added an explicit `geometryTargetOverride` path to `requestGraphDocumentBuild(...)` in `src/app/store/useAppStore.ts`, so export preparation can force authoritative work even when the active viewport is currently in `Draft`.
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so graph runtime now records `inFlightExecutionIntent`, allowing export preparation to recognize when authoritative work is already pending and return `pending` honestly instead of issuing duplicate blind rebuilds.
+- Tightened export preparation blocking rules in `src/app/store/useAppStore.ts` so the current graph revision returns `blocked` after an accepted authoritative build still yields no reusable retained authoritative geometry.
+- Added focused verification in `src/app/store/useAppStore.test.ts` proving export preparation reuses accepted authoritative geometry, requests one authoritative build and stays pending while it is in flight, and blocks honestly after an authoritative build completes without retained authoritative geometry.
+
+#### Files Changed
+- `src/shared/exportTypes.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The app now has one explicit export-preparation outcome instead of implicitly assuming export is either always ready or should silently rebuild from draft state.
+- Export preparation can force authoritative build intent independently of viewport display mode, which removes the old hidden coupling between `Draft` view mode and export readiness.
+- When authoritative geometry is already accepted, export preparation returns ready immediately; when authoritative work is already in flight, it returns pending; when the current graph revision has already failed to produce authoritative geometry, it blocks honestly.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts src/shared/exportTypes.test.ts src/worker/pipeline/exportService.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1096 -->
+### [1096] - 2026-04-07 09:22 - `Model-Viewport 1.3 Phase 8 - Export Input Contract From Authoritative Results`
+HUMAN SUMMARY: `Published the first shared authoritative export-input contract downstream from retained authoritative geometry, aligned the export stub to consume that contract, and added focused tests proving draft/preview state cannot masquerade as export geometry truth.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 8` by limiting implementation to the shared export-input contract, one retained-result derivation helper, the minimal worker export-stub alignment, focused verification, and the required changelog maintenance without widening into export routing, on-demand authoritative preparation, or real file writing.
+- Kept export geometry truth downstream from retained authoritative results instead of letting viewport render VMs, draft mesh preview state, or artifact-preview outputs become hidden export inputs.
+- Preserved the existing placeholder export lane shape outside this new contract publication so later phases can own worker routing and writer execution separately.
+
+#### Summary of Implementation
+- Expanded `src/shared/exportTypes.ts` so the export seam now publishes an explicit `AuthoritativeExportInput` contract carrying retained request identity plus the worker-owned `shape_set` handle needed for later export writing.
+- Added `isAuthoritativeExportInput`, `createAuthoritativeExportInput(...)`, and `deriveAuthoritativeExportInput(...)` in `src/shared/exportTypes.ts` so export input can be derived from authoritative retained geometry while draft retained results cleanly return `null`.
+- Tightened `ExportRequest` in `src/shared/exportTypes.ts` so export requests now carry the published authoritative input contract rather than a raw `buildRequestId` string.
+- Updated `src/worker/pipeline/exportService.ts` so the current stub consumes `request.input`, keeps filenames tied to retained build identity, and includes authoritative-handle identity in the descriptor instead of pretending `buildRequestId` alone is the worker-side export contract.
+- Added focused verification in `src/shared/exportTypes.test.ts` and `src/worker/pipeline/exportService.test.ts` to prove authoritative retained results derive export input, draft results do not, preview-mesh presence is not required, and the export stub reads the new contract.
+
+#### Files Changed
+- `src/shared/exportTypes.ts`
+- `src/shared/exportTypes.test.ts`
+- `src/worker/pipeline/exportService.ts`
+- `src/worker/pipeline/exportService.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The shared export seam now has one explicit authoritative input contract downstream from retained geometry instead of treating `buildRequestId` as the whole export identity.
+- Draft retained geometry can no longer be converted into export input through the shared helper path; only authoritative retained results with a valid `shape_set` handle derive export input.
+- Export stub consumers now receive retained request identity plus authoritative handle identity through `ExportRequest.input`, keeping export preparation independent from viewport-only preview state.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/shared/exportTypes.test.ts src/worker/pipeline/exportService.test.ts src/shared/geometryResult.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1095 -->
+### [1095] - 2026-04-07 08:59 - `Model-Viewport 1.3 Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
+HUMAN SUMMARY: `Split the viewport render lane so \`Final\` now draws only from authoritative-derived mesh preview data, keeps the draft artifact bridge on the draft lane, and proves the viewer no longer renders draft artifacts under a final label.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 7` by limiting implementation to viewport-result render-source honesty, the first authoritative preview bridge, focused verification, and the required changelog maintenance without widening into export input, export gating, or STEP writing work.
+- Preserved the existing draft/project artifact preview path for `Auto` and `Draft` mode instead of turning the new authoritative bridge into a universal render owner.
+- Kept the first final render bridge viewport-local by deriving it from accepted authoritative retained geometry `meshPreview` data instead of introducing export-side or toolbar-owned geometry state.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectViewportResultState.ts` so the viewport now carries one explicit `renderVm` for what the viewer actually draws, while the existing `previewRenderVm` stays the draft/artifact preview lane.
+- Added the first authoritative viewport render bridge in `src/app/spaghetti/selectors/selectViewportResultState.ts` by converting accepted authoritative retained-result `meshPreview` data into a viewer-ready mesh artifact only when that authoritative result is actually renderable.
+- Tightened final-mode honesty so `retained-final` is emitted only when accepted authoritative geometry has a renderable preview, while `Auto` continues to show the draft bridge and mark final as pending when authoritative geometry is still absent or not yet renderable.
+- Updated `src/app/components/ViewerHost.tsx` so `viewer.setParts(...)` and highlight filtering now read from the new selector-owned `renderVm`, preventing final mode from silently borrowing draft artifact viewer parts.
+- Expanded `src/app/spaghetti/selectors/selectViewportResultState.test.ts`, `src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`, and `src/app/components/ViewerHost.test.tsx` so phase 7 now proves final-unavailable remains empty, non-renderable authoritative results do not masquerade as final, and renderable authoritative results feed the viewer through authoritative mesh preview instead of artifact preview outputs.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Final` mode no longer renders draft/artifact-preview viewer parts when accepted authoritative geometry exists; it now renders only authoritative-derived mesh preview data.
+- Accepted authoritative results without a renderable `meshPreview` no longer appear as visible final geometry; `Final` stays honestly unavailable and `Auto` keeps the draft bridge visible instead of silently promoting a non-renderable authoritative result.
+- Viewer-side highlighted-part filtering now follows the actual rendered lane rather than the draft preview VM, so viewport status and rendered geometry stay aligned.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectViewportResultStatus.test.ts src/app/components/ViewerHost.test.tsx src/app/components/ViewportOverlay.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1094 -->
+### [1094] - 2026-04-07 08:30 - `Model-Viewport 1.3 Phase 6C - Backend Failure Honesty And Focused Verification`
+HUMAN SUMMARY: `Hardened the first OC-backed authoritative worker path so backend boot/build failures now collapse to an honest \`null\` authoritative result, minted \`shape_set\` handles are released on rejected bundle assembly, and focused verification now proves the worker stays honest without widening into Phase 7 viewport cleanup or export work.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 6C` by limiting implementation to authoritative backend-failure honesty, stale-handle safety, focused worker verification, and the required doc maintenance without widening into final viewport-source cleanup, renderable authoritative preview, or export handoff work.
+- Preserved the explicit `1.3` authoritative whitelist by keeping unsupported-but-valid graph-native requests on the existing honest `null` path instead of inventing new backend fallbacks or app/store-visible status shapes.
+- Kept failure handling local to the worker authoritative seam so app/store contracts, dispatcher routing, and viewport selectors did not gain new backend-specific semantics.
+
+#### Summary of Implementation
+- Updated `src/worker/authoritative/buildAuthoritativeGeometry.ts` so OC boot failures and authoritative shape-generation failures now return `authoritativeGeometryResult: null` honestly instead of rejecting the whole build, while unsupported authoritative requests still stay on the existing null-fallback path.
+- Preserved worker-side stale-handle safety by releasing any minted `shape_set` handle when authoritative bundle assembly fails after registration, and by continuing to dispose partially built OC-owned resources before the worker falls back to `null`.
+- Expanded `src/worker/authoritative/buildAuthoritativeGeometry.test.ts` to prove rejected OC boot, partial OC build failure, and post-registration bundle-assembly failure all return `null` honestly without leaking retained worker-owned resources or handles.
+- Refreshed the dedicated `Model-Viewport 1.3` child doc plus the umbrella and family handoff docs so `Phase 6C` now reads as shipped, the lingering stale `Phase 6B` summary status is corrected, and `Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview` is now the next honest follow-on.
+
+#### Files Changed
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Authoritative requests no longer fail the whole worker build when the OC backend fails to initialize or build the first retained-result subset; those paths now fall back to `authoritativeGeometryResult: null`.
+- Rejected authoritative bundle assembly now releases the just-minted worker-owned `shape_set` handle instead of leaving a stale retained backend resource registered.
+- Unsupported authoritative requests remain honest: the worker still returns `null` for non-whitelisted graph-native cases instead of pretending success through a mesh-only bridge.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts src/worker/oc/ocInit.test.ts`
+- `npm.cmd test -- --run src/app/buildDispatcher.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1093 -->
+### [1093] - 2026-04-07 08:00 - `Model-Viewport 1.3 Phase 6B - First Authoritative Retained Result And Shape-Set Registration`
+HUMAN SUMMARY: `Bound the worker-owned authoritative adapter to the real OpenCascade boot seam, resolved the shape-set handle registration circularity inside worker-local store code, and shipped the first non-null authoritative retained-result path for supported graph-native body extrudes without widening into Phase 6C failure hardening or Phase 7 viewport honesty work.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 6B` by landing the first OC-backed retained result, worker-local handle registration, focused verification, and required doc maintenance without widening into backend failure hardening, final viewport-source cleanup, or export handoff work.
+- Preserved the existing shared `shape_set` authoritative handle contract so app/store consumers still read the same worker-owned identity envelope instead of a new OC-specific handle format.
+- Kept backend choice visible only inside worker-local authoritative seams while preserving `buildModel.ts` as an orchestrator and leaving the foothook mesh bridge on the draft path.
+
+#### Summary of Implementation
+- Updated `src/worker/authoritative/buildAuthoritativeGeometry.ts` so authoritative requests now bind to the real OC boot seam, build the first OC-backed retained result for supported rectangular graph-native `Body` extrudes, and stay honest by returning `null` for unsupported authoritative cases.
+- Refactored `src/worker/authoritativeGeometryStore.ts` so worker code now registers `shape_set` handles from owned OC resources instead of requiring a prebuilt authoritative bundle, and release paths now dispose retained backend-owned resources when those handles are dropped.
+- Updated `src/worker/buildModel.ts` and `src/worker/pipeline/buildPipeline.ts` to await the authoritative adapter path while keeping draft-preview requests on the draft bridge and preserving the legacy `buildModel()` artifact wrapper as a draft-preview-first helper for existing callers.
+- Added a Vite-safe worker-side OC bridge in `src/worker/oc/opencascadeBrowser.ts` plus `src/worker/oc/opencascadeTypes.ts`, updated `src/worker/oc/ocInit.ts` to use that local wrapper, and narrowed `src/types/opencascadejs.d.ts` to the direct worker import surface the bundler now consumes.
+- Added focused verification in `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`, refreshed `src/worker/buildModel.test.ts`, `src/worker/pipeline/buildPipeline.test.ts`, `src/worker/cad/featureStackRuntime.test.ts`, and `src/worker/oc/ocInit.test.ts`, then marked `Model-Viewport 1.3 Phase 6B` shipped in the dedicated child doc plus the umbrella/family handoff docs so `Phase 6C - Backend Failure Honesty And Focused Verification` is now next.
+
+#### Files Changed
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `src/worker/authoritativeGeometryStore.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/buildModel.test.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/oc/ocInit.ts`
+- `src/worker/oc/ocInit.test.ts`
+- `src/worker/oc/opencascadeBrowser.ts`
+- `src/worker/oc/opencascadeTypes.ts`
+- `src/types/opencascadejs.d.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Authoritative worker builds can now emit a non-null retained authoritative bundle with a valid worker-owned `shape_set` handle for the first supported OC-backed body-extrude subset.
+- Releasing authoritative handles now disposes the retained worker-owned OC resources attached to that handle instead of only deleting a cloned bundle entry.
+- Worker-side authoritative orchestration is now async end-to-end, while the legacy artifact-only `buildModel()` wrapper stays on the draft-preview path unless a caller explicitly supplies an execution intent.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/worker/oc/ocInit.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1092 -->
+### [1092] - 2026-04-07 07:33 - `Model-Viewport 1.3 Phase 6A - Worker-Side OpenCascade Boot And Dependency Binding`
+HUMAN SUMMARY: `Added the stable \`opencascade.js\` worker dependency, replaced the placeholder \`src/worker/oc/ocInit.ts\` seam with a typed memoized OpenCascade boot helper, and shipped the focused 6A worker-boot slice without widening into retained authoritative results yet.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 6A` by limiting the implementation to worker-local package boot, typed initialization, focused OC boot tests, and the required changelog/doc maintenance without widening into retained authoritative result generation, `shape_set` registration, final viewport cleanup, or export wiring.
+- Preserved the existing separation between authoritative worker boot and import-side STEP support by keeping `occt-import-js` in place for `src/viewer/stepReferenceLoader.ts` while adding `opencascade.js` only for the new worker-local OC seam.
+- Kept package and bootstrap details behind `src/worker/oc/ocInit.ts` and a local ambient type file so shared worker/app contracts still do not import or expose raw package-level OC bootstrap logic.
+
+#### Summary of Implementation
+- Added stable `opencascade.js` to `package.json` and `package-lock.json` as the first concrete worker-side OpenCascade dependency for the authoritative backend ladder.
+- Updated `src/worker/oc/ocInit.ts` so the old `Promise<void>` placeholder seam now initializes `opencascade.js`, memoizes the boot promise, and exposes the typed worker-local getters `warmOc()` and `getOc()`.
+- Added `src/types/opencascadejs.d.ts` so the worker seam can expose a typed initialized OpenCascade surface without leaking package imports into broader contracts.
+- Added `src/worker/oc/ocInit.test.ts` to prove package initialization is requested once, repeated calls reuse the same memoized promise/module, and both exported OC getters stay aligned.
+- Marked `Model-Viewport 1.3 Phase 6A` shipped in the dedicated child doc and refreshed the umbrella/family handoff docs so `Phase 6B - First Authoritative Retained Result And Shape-Set Registration` is now next.
+
+#### Files Changed
+- `package.json`
+- `package-lock.json`
+- `src/worker/oc/ocInit.ts`
+- `src/worker/oc/ocInit.test.ts`
+- `src/types/opencascadejs.d.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The worker now has a real OpenCascade boot seam behind `warmOc()` / `getOc()` instead of a placeholder resolved promise.
+- Repeated worker OC boot requests now reuse one memoized initialization path rather than reinitializing the package.
+- No retained authoritative geometry, `shape_set` registration, viewport final-mode behavior, or export behavior changed in this phase.
+
+#### Verification Steps
+- `cmd /c npx vitest run src/worker/oc/ocInit.test.ts src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts`
+- `cmd /c npm run build`
+
+<!-- ENTRY 1091 -->
+### [1091] - 2026-04-07 07:13 - `Model-Viewport 1.3 Phase 5 - Worker-Owned Authoritative Adapter Contract`
+HUMAN SUMMARY: `Extracted a dedicated worker-owned authoritative builder seam beside \`buildModel.ts\`, routed authoritative requests through that new adapter while keeping the draft foothook bridge separate, and shipped the Phase 5 contract cleanup without widening into OpenCascade.js backend binding yet.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 5` by extracting the worker-owned authoritative adapter boundary, updating focused worker/pipeline tests, and performing the required planning/changelog maintenance without widening into `OpenCascade.js / OCCT` binding, export wiring, or app/store contract changes.
+- Preserved `buildModel.ts` as the worker orchestration seam and kept the foothook compatibility adapter on the draft/mesh bridge path instead of letting it become the authoritative contract.
+- Kept authoritative backend-unavailable behavior explicit by returning `null` from the new adapter seam rather than reintroducing pseudo-authoritative geometry or hidden handle synthesis.
+
+#### Summary of Implementation
+- Added `src/worker/authoritative/buildAuthoritativeGeometry.ts` as the new worker-local authoritative builder module, with a minimal ParaHook-owned input/output contract that currently returns `authoritativeGeometryResult | null`.
+- Updated `src/worker/buildModel.ts` so authoritative requests now delegate through that adapter seam, while draft retained-result creation and foothook-compatible artifact generation remain on the existing draft path.
+- Expanded `src/worker/buildModel.test.ts` to prove authoritative requests route through the new adapter seam, draft-preview requests skip it, and the extracted boundary can later emit authoritative retained geometry without changing the draft path.
+- Updated `src/worker/pipeline/buildPipeline.test.ts` so the pipeline coverage matches the post-Phase-3 honest baseline and proves authoritative retained geometry still propagates correctly when the adapter emits one.
+- Marked `Model-Viewport 1.3 Phase 5` shipped in the dedicated child doc and refreshed the umbrella/family handoff docs so `Phase 6 - First Concrete Authoritative Backend Binding` is now the next step.
+
+#### Files Changed
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/buildModel.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- `buildModel.ts` no longer owns the authoritative-builder placeholder inline; authoritative requests now flow through a dedicated worker-owned adapter seam.
+- Draft-preview requests stay entirely on the draft retained-result plus foothook artifact bridge and do not route through the authoritative adapter.
+- The authoritative adapter currently returns `null`, so backend-unavailable truth now lives behind the extracted worker boundary that `Phase 6` can bind to later.
+- Worker pipeline output remains honest: when the authoritative adapter emits nothing, `authoritativeGeometryResult` is omitted from the build result; when it emits a retained authoritative bundle, the pipeline passes it through unchanged.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts`
+
+<!-- ENTRY 1090 -->
+### [1090] - 2026-04-07 06:17 - `Model-Viewport 1.3 Phase 4 - Explicit Draft/Authoritative Scheduling From Viewport And Build Policy`
+HUMAN SUMMARY: `Taught the app build path to resolve explicit execution intent from active-viewer viewport mode plus browser build-policy context, so visible Draft flows can request \`draft_preview\` honestly while background graph builds stay on the safe authoritative fallback and manual browser builds carry truthful policy hints.`
+#### Scope / Constraints Honored
+- Kept this pass on `Model-Viewport 1.3 Phase 4` by changing only app-side build-intent routing, test coverage, and the required planning/changelog maintenance without widening into worker backend binding, authoritative adapter extraction, export wiring, or a new graph-to-viewport ownership model.
+- Preserved `Build Path` ownership of whether browser/runtime-triggered builds dispatch, and kept `buildDispatcher.ts` as a forwarding seam rather than a new policy owner.
+- Chose the smallest honest scheduling cut by letting only active-viewer-visible graphs honor viewport mode immediately while leaving non-visible/background graphs on the current auto-authoritative fallback until a later phase defines richer ownership.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so `requestGraphDocumentBuild(...)` resolves and forwards an explicit `BuildExecutionIntent` before dispatching a graph build.
+- Wired that resolver to use the active viewer viewport mode for graphs currently visible in the active viewer target or shared composition, mapping `Draft` to `geometryTarget = draft_preview` and leaving `Auto / Final` on `authoritative`.
+- Threaded browser execution-policy context through the same resolver so explicit/manual browser builds now carry truthful `updatePolicy` hints while the existing `selectEffectiveBrowserExecutionPolicy(...)` timing path remains the owner of dispatch timing.
+- Added focused tests in `src/app/store/useAppStore.test.ts` proving visible draft scheduling, active-viewer precedence when model viewports disagree, authoritative fallback for background graphs, and manual browser dispatch intent wiring.
+- Marked `Model-Viewport 1.3 Phase 4` shipped in the dedicated child doc and refreshed the umbrella/family handoff docs so `Phase 5 - Worker-Owned Authoritative Adapter Contract` is now the next step.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- `requestGraphDocumentBuild(...)` no longer relies on the default shared execution intent; active-viewer-visible graphs now resolve a real app-owned `geometryTarget` before dispatch.
+- Visible graphs under `Draft` mode can now request `draft_preview` in normal runtime flows, while visible `Auto / Final` flows still request `authoritative` in this first cut.
+- Graph builds that are not visible in the active viewer now stay on the safe auto-authoritative fallback instead of borrowing a possibly unrelated viewport mode.
+- Explicit browser/manual builds now preserve `updatePolicy = manual` in the dispatched intent while still respecting viewport-driven geometry target selection for visible graphs.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/buildDispatcher.test.ts src/app/workspace/useWorkspaceStore.test.ts`
+
+<!-- ENTRY 1089 -->
+### [1089] - 2026-04-07 06:00 - `Model-Viewport 1.3 Phase 3 - Honest Authoritative Boundary Cleanup`
+HUMAN SUMMARY: `Removed the fake authoritative retained-result path from the worker, made stale authoritative-handle release unconditional on rejected store results, and closed the narrow Model-Viewport 1.3 Phase 3 honesty cleanup without widening into Phase 4 scheduling or backend binding work.`
+#### Scope / Constraints Honored
+- Kept this pass on the narrow `1.3 Phase 3` cleanup target by removing pseudo-authoritative promotion and fixing stale-handle release behavior without widening into live `geometryTarget` scheduling, authoritative adapter extraction, backend binding, or export writing.
+- Preserved the current truthful draft path and the existing explicit `final-unavailable` viewport fallback instead of inventing a temporary replacement for authoritative geometry.
+- Left authoritative backend ownership and runtime scheduling decisions for `Phase 4` through `Phase 6`, matching the current model-viewport planning ladder.
+
+#### Summary of Implementation
+- Updated `src/worker/buildModel.ts` so authoritative requests no longer clone the draft retained geometry bundle into a fake authoritative result or allocate a worker-owned `shape_set` handle before a distinct backend exists.
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so queued authoritative handles gathered during rejected runtime/store paths release even when `acceptGraphBuildResult(...)` returns `false`.
+- Refreshed `src/worker/buildModel.test.ts` and `src/app/spaghetti/store/useSpaghettiStore.test.ts` to prove authoritative requests now return `null` retained authoritative geometry until a real backend exists and that stale rejected authoritative handles still release immediately.
+- Marked `Model-Viewport 1.3 Phase 3` shipped in the dedicated child doc and refreshed the umbrella model-viewport handoff docs so `Phase 4 - Explicit Draft/Authoritative Scheduling From Viewport And Build Policy` is now the next honest step.
+
+#### Files Changed
+- `src/worker/buildModel.ts`
+- `src/worker/buildModel.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Builds that request `geometryTarget = authoritative` now keep the truthful draft retained result path but return `authoritativeGeometryResult = null` until a distinct authoritative backend exists.
+- Rejected stale authoritative results no longer keep their worker-owned handles alive just because store acceptance failed.
+- `Final` mode remains explicitly unavailable when no accepted authoritative retained result exists; this cleanup now matches that already-shipped selector honesty instead of over-claiming authoritative runtime support.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/worker/buildModel.test.ts src/app/buildDispatcher.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+<!-- ENTRY 1088 -->
+### [1088] - 2026-04-07 05:29 - `Model-Viewport 1.3 Phase 2 - Authoritative Execution Path And Retained Result Adoption`
+HUMAN SUMMARY: `Made authoritative execution explicit in the shared build path with \`geometryTarget\`, carried side-by-side draft and authoritative retained geometry through worker/build/store adoption, and taught the viewport's \`Final\` read path to trust the authoritative slot while the existing parts bridge keeps rendering intact.`
+#### Scope / Constraints Honored
+- Kept this pass on `1.3 Phase 2` by shipping the first live authoritative retained-result path and its adoption rules without widening into export-writer behavior, broader backend-selection work, or a new failure taxonomy the runtime cannot yet emit honestly.
+- Preserved the existing mesh-preview render bridge so the viewport can keep drawing through accepted artifact outputs while retained geometry semantics move onto explicit class-owned draft-versus-authoritative slots.
+- Kept authoritative resource ownership worker-side by introducing explicit handle registration and release behavior instead of making the viewport or export surfaces the hidden owner of authoritative geometry lifetime.
+
+#### Summary of Implementation
+- Extended `src/shared/buildTypes.ts` so `BuildExecutionIntent` now carries an explicit `geometryTarget = draft_preview | authoritative` field, and widened `BuildResult` to ship sibling `draftGeometryResult` and `authoritativeGeometryResult` bundles instead of one overloaded retained result.
+- Added `src/worker/authoritativeGeometryStore.ts` plus `src/worker/worker.ts` release-message handling so authoritative `shape_set` resources can be registered, referenced by handle, and released when stale, superseded, or torn down.
+- Updated `src/worker/buildModel.ts` and `src/worker/pipeline/buildPipeline.ts` so the live worker path now emits one draft retained bundle and, when requested, one authoritative retained bundle beside it while keeping downstream part artifacts flowing through the existing foothook bridge.
+- Updated `src/app/buildDispatcher.ts`, `src/app/store/useAppStore.ts`, and `src/app/spaghetti/store/useSpaghettiStore.ts` so accepted runtime state now retains `acceptedDraftGeometryResult` and `acceptedAuthoritativeGeometryResult`, rejects stale authoritative handles honestly, and releases superseded authoritative handles after replacement.
+- Updated `src/app/spaghetti/selectors/selectViewportResultState.ts`, `src/app/components/ViewerHost.tsx`, and `src/app/components/ViewportOverlay.tsx` so `Final` mode now reads authoritative retained geometry explicitly while still rendering through the accepted viewer-parts bridge until later export/render follow-ons land.
+- Added and refreshed focused coverage in shared, worker, dispatcher, selector, and store tests to prove the new authoritative contract, adoption path, and release behavior end to end.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/shared/geometryResult.ts`
+- `src/shared/geometryResult.test.ts`
+- `src/worker/authoritativeGeometryStore.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/buildModel.test.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/worker/worker.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Build requests can now ask for authoritative geometry explicitly through `BuildExecutionIntent.geometryTarget` instead of inferring it from existing `full` or `final` wording.
+- The worker/build path now emits side-by-side retained `draft` and `authoritative` geometry bundles, with authoritative bundles carrying worker-owned `shape_set` handles.
+- Accepted graph runtime state now stores draft and authoritative retained geometry in separate class-owned slots and releases stale or superseded authoritative handles instead of leaking them.
+- The viewport's `Final` result-selection path now treats the authoritative retained slot as the semantic source of truth while continuing to draw via the current accepted viewer-parts bridge.
+
+#### Verification Steps
+- `npm.cmd test -- src/shared/buildTypes.test.ts src/shared/geometryResult.test.ts src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/buildDispatcher.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1087 -->
+### [1087] - 2026-04-07 04:45 - `Model-Viewport 1.3 Phase 1 - Authoritative Result-Class Contract And Honest Placeholder Boundary`
+HUMAN SUMMARY: `Widened the shared retained geometry-result contract so ParaHook can now represent both draft and authoritative bundles, added the first minimal worker-owned \`shape_set\` authoritative handle envelope plus validation helpers, and kept the live worker/build path honestly draft-only while this contract foundation lands.`
+#### Scope / Constraints Honored
+- Kept this pass tightly on `1.3 Phase 1` by widening only the retained-result contract and its shared build-facing typing/validation seams, without adding a live authoritative execution path, export writer behavior, or any backend/library installation.
+- Preserved the current truthful producer baseline by leaving runtime `status` at `ok` only and keeping the live build path on draft bundles with `authoritativeHandle: null`.
+- Added authoritative-capable helpers and validation without making the viewport, export UI, or foothook adapter the hidden owner of authoritative geometry semantics.
+
+#### Summary of Implementation
+- Updated `src/shared/geometryResult.ts` so the canonical retained geometry-result family now supports `resultClass: 'draft' | 'authoritative'`, adds a minimal worker-owned authoritative handle envelope `{ resourceType: 'shape_set', handleId: string }`, and enforces the correct draft-vs-authoritative handle rules in validation and bundle creation.
+- Added `createAuthoritativeGeometryResultBundle(...)` plus focused shared tests in `src/shared/geometryResult.test.ts` proving draft bundles stay valid, authoritative bundles require a real handle, and invalid cross-combinations are rejected.
+- Extended `src/worker/buildModel.test.ts` and `src/worker/pipeline/buildPipeline.test.ts` so the worker/build layer now proves authoritative bundles are representable while current live build results remain draft-only and behaviorally unchanged.
+- Kept the existing live build pipeline untouched beyond compatibility with the widened contract, so `buildModelResult(...)` and `buildPipeline(...)` still emit the same draft retained geometry they did before.
+
+#### Files Changed
+- `src/shared/geometryResult.ts`
+- `src/shared/geometryResult.test.ts`
+- `src/worker/buildModel.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The shared retained geometry-result contract can now represent authoritative bundles in addition to draft bundles.
+- Authoritative retained bundles now require a non-null worker-owned `shape_set` handle, while draft retained bundles remain required to keep `authoritativeHandle: null`.
+- The live runtime still emits draft retained geometry only; this phase adds contract readiness, not authoritative execution.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/shared/geometryResult.test.ts src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/buildDispatcher.test.ts`
+- `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1086 -->
+### [1086] - 2026-04-07 04:28 - `Model-Viewport 1.2 Phase 3 - Top-Left Mode Control And User-Facing Status Honesty`
+HUMAN SUMMARY: `Turned the dead Model Viewport header button into a real viewport-local \`A / D / F\` mode control, added the first selector-owned \`Geometry: ...\` HUD status line, and closed the full \`Model-Viewport 1.2\` viewport-mode ladder with focused shell, selector, and overlay proof.`
+#### Scope / Constraints Honored
+- Kept this pass on `1.2 Phase 3` only by wiring the top-left mode control and the first honest status readout, without widening into Build Path timing changes, authoritative geometry execution, or export behavior.
+- Reused the existing `WorkspaceViewportTree -> ViewportFrame` primary-button seam for the control and the existing `ViewportHud` surface for the first status read, instead of inventing new hidden owners.
+- Kept the user-facing status downstream from the shipped Phase 2 selector by mapping HUD copy from `selectViewportResultState(...)` rather than adding fresh ad hoc component heuristics.
+
+#### Summary of Implementation
+- Added small result-mode UI helpers in `src/app/workspace/workspaceViewportResultMode.ts` for cycling `auto -> draft -> final`, plus the full and short labels used by viewport chrome.
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so `modelViewer` slots now use the existing header primary button as a real `A / D / F` mode control with full-mode aria/title copy while keeping browser and right-click type-picker behavior unchanged.
+- Added `src/app/spaghetti/selectors/selectViewportResultStatus.ts` as the first small status-mapping seam that turns selector-owned viewport result state into stable user-facing labels such as `Draft`, `Final`, `Building Final...`, and `Final Unavailable`.
+- Updated `src/app/components/ViewportOverlay.tsx` to derive the same viewport result state as the viewer path and show a `Geometry: ...` HUD line backed by that status selector.
+- Added focused tests across `workspaceViewportResultMode`, `selectViewportResultStatus`, `ViewportOverlay`, and `AppShell` to prove the new control/status behavior.
+
+#### Files Changed
+- `src/app/workspace/workspaceViewportResultMode.ts`
+- `src/app/workspace/workspaceViewportResultMode.test.ts`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/spaghetti/selectors/selectViewportResultStatus.ts`
+- `src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/AppShell.test.tsx`
+
+#### Behavior Changes
+- Model Viewport header buttons now show `A`, `D`, or `F` and cycle viewport-local result mode on left click.
+- Model Viewport header button accessibility copy now uses the full current/next mode names instead of a dead `-` placeholder.
+- The viewport HUD now exposes an explicit geometry-status line so users can see `Draft`, `Final`, `Building Final...`, `Final Unavailable`, or `Waiting For Geometry` instead of inferring state from raw geometry behavior alone.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/workspace/workspaceViewportResultMode.test.ts src/app/spaghetti/selectors/selectViewportResultStatus.test.ts src/app/components/ViewportOverlay.test.tsx`
+- `npm.cmd exec vitest run src/app/AppShell.test.tsx`
+  - this file still reports 6 unrelated pre-existing failures in the current repo, but the new `uses the model viewport header button as an A D F result-mode control` case passed within that run
+- `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1085 -->
+### [1085] - 2026-04-07 04:14 - `Model-Viewport 1.2 Phase 2 - Draft/Final Selection And Swap State Derivation`
+HUMAN SUMMARY: `Shipped the first selector-owned Model Viewport result-selection seam by deriving one explicit draft/final/fallback read model, moving \`ViewerHost\` onto that contract, and proving that \`Final\` mode now suppresses draft preview instead of silently behaving like \`Auto\`.`
+#### Scope / Constraints Honored
+- Kept this pass on `1.2 Phase 2` only by introducing the derived viewport result-selection seam and wiring `ViewerHost` to consume it, without widening into the top-left mode control UI, status badges, or authoritative-engine work.
+- Preserved the current honest runtime limitation that retained geometry still only carries `draft + ok`, so the new selector can represent `final-unavailable` without pretending final geometry execution already exists.
+- Kept the current viewer render bridge intact by allowing artifact-preview output to remain the visible render source while the selector still carries retained geometry truth and fallback metadata.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/selectors/selectViewportResultState.ts` as the new selector-owned viewport read model, including the first `visibleResultClass`, `visibleSourceKind`, `isPendingFinal`, and `fallbackReason` contract for `Auto / Draft / Final`.
+- Updated `src/app/components/ViewerHost.tsx` to consume that derived selector state instead of inlining draft/final swap rules around preview preparation, accepted preview artifacts, and viewport mode behavior.
+- Added `src/app/spaghetti/selectors/selectViewportResultState.test.ts` to lock the first fallback cases, including `auto` with draft preview available, `final` with only draft truth present, project-composition draft preview, and the no-accepted-geometry case.
+- Added a focused integration proof in `src/app/components/ViewerHost.test.tsx` confirming that `Final` mode suppresses draft graph preview parts when no final result exists yet.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Model viewport preview selection is now derived through one explicit read model instead of ad hoc `ViewerHost` logic.
+- `Auto` keeps draft preview visible while marking final as pending when no final result exists yet.
+- `Final` now suppresses draft graph preview output and produces an explicit `final-unavailable` fallback state instead of silently showing draft geometry like `Auto`.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/components/ViewerHost.test.tsx src/app/workspace/useWorkspaceStore.test.ts src/app/workspace/workspaceViewportResultMode.test.ts`
+- `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1084 -->
+### [1084] - 2026-04-06 16:59 - `Model-Viewport 1.2 Phase 1 - Viewport Result Mode Contract And Ownership`
+HUMAN SUMMARY: `Shipped the first Model Viewport result-mode contract by adding a viewport-local \`Auto / Draft / Final\` state seam, explicit result-mode behavior selectors, and persistence/tests that keep that ownership separate from Build Path timing before any swap logic or UI control wiring lands.`
+#### Scope / Constraints Honored
+- Kept this implementation tightly on `1.2 Phase 1` by adding the result-mode contract and ownership seam only, without widening into draft/final swap derivation, top-left control UI work, or authoritative-engine behavior.
+- Preserved the earlier `Build Path` boundary by keeping viewport result mode separate from Browser build-trigger timing and leaving `Phase 2` to decide visible geometry selection/swap rules later.
+- Reused the existing viewport-local workspace chrome ownership seam instead of introducing a new project-global or shared-composition mode owner too early.
+
+#### Summary of Implementation
+- Extended `WorkspaceViewportLocalViewState` with the new `viewportResultMode` field and defaulted each viewport to `auto` in `src/app/workspace/workspaceShellTypes.ts`.
+- Added `src/app/workspace/workspaceViewportResultMode.ts` as the first explicit behavior helper for `auto`, `draft`, and `final`, including the execution/display flags Phase 1 locked in the doc.
+- Added `setViewportResultMode(...)` plus explicit active/by-id mode selectors and behavior selectors in `src/app/workspace/useWorkspaceStore.ts` so later viewport code can consume one named seam instead of re-deriving mode meaning ad hoc.
+- Updated `src/app/workspace/workspacePersistence.ts` and `src/app/workspace/useWorkspaceStore.test.ts` so per-viewport mode ownership is normalized, serialized, restored, and proven separate across multiple model viewports.
+- Added `src/app/workspace/workspaceViewportResultMode.test.ts` to lock the current `Auto / Draft / Final` behavior contract in focused unit coverage.
+
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceViewportResultMode.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/workspace/workspaceViewportResultMode.test.ts`
+
+#### Behavior Changes
+- Model viewport chrome state now carries an explicit viewport-local `viewportResultMode` value with the first supported values `auto`, `draft`, and `final`.
+- Each viewport defaults to `auto`, and later viewport-local updates no longer need to hide result-mode meaning inside generic local-view patches.
+- The workspace layer now exposes explicit helpers for “active viewport result mode” and “result-mode behavior” so later viewport swap logic can consume one locked contract instead of inventing its own flags.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/workspace/useWorkspaceStore.test.ts src/app/workspace/workspaceViewportResultMode.test.ts`
+- `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1083 -->
+### [1083] - 2026-04-06 16:08 - `Model-Viewport-1.1 Phase 6 - Bundle-Only Retention Guard And Shared Boundary Cleanup`
+HUMAN SUMMARY: `Closed the last two Model-Viewport 1.1 review gaps by preserving retained geometry across bundle-only accepted results and moving the canonical retained geometry-result contract onto a neutral shared seam that worker, transport, and app runtime code can all consume honestly.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly on the two `1.1` close-out issues instead of widening into `1.2` viewport swap behavior, preview policy UI, or authoritative geometry execution.
+- Preserved the current compatibility path where accepted build results may still omit `geometryResult`, but stopped that legacy shape from wiping graph-local retained geometry by accident.
+- Kept the app-side `src/app/spaghetti/contracts/geometryResult.ts` surface available as a re-export shim while moving canonical contract ownership to a neutral shared layer.
+
+#### Summary of Implementation
+- Added `src/shared/geometryResult.ts` as the canonical retained geometry-result contract home and converted `src/app/spaghetti/contracts/geometryResult.ts` into a thin re-export wrapper.
+- Updated `src/shared/buildTypes.ts`, `src/worker/buildModel.ts`, `src/worker/pipeline/artifactEmitter.ts`, `src/worker/products/foothook/buildFoothook.ts`, and `src/worker/products/foothook/foothookCompatibilityAdapter.ts` so shared and worker seams import the retained geometry-result contract from the neutral shared boundary instead of depending upward on an app-owned path.
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so later accepted build results that omit `geometryResult` now preserve the previous retained geometry snapshots instead of resetting both accepted retained-result slots to `null`.
+- Added a focused regression in `src/app/spaghetti/store/useSpaghettiStore.test.ts` covering the mixed flow where an earlier geometry-bearing result is followed by a later bundle-only accepted result.
+
+#### Files Changed
+- `src/shared/geometryResult.ts`
+- `src/app/spaghetti/contracts/geometryResult.ts`
+- `src/shared/buildTypes.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/worker/products/foothook/buildFoothook.ts`
+- `src/worker/products/foothook/foothookCompatibilityAdapter.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/worker/buildModel.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+#### Behavior Changes
+- Accepted build results that do not carry `geometryResult` no longer clear previously retained geometry for that graph.
+- The retained geometry-result contract is now owned by a neutral shared seam, which removes the upward `shared -> app` dependency from the worker/build transport layer.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/buildDispatcher.test.ts src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1082 -->
+### [1082] - 2026-04-06 14:09 - `Model-Viewport-1.1 Phase 4 - Retained Result Adoption And Boundary Cleanup`
+HUMAN SUMMARY: `Completed the Model-Viewport 1.1 close-out pass by carrying the retained geometry-result bundle through the real worker -> build-result -> accepted graph-runtime path, tightening the retained result contract to the current honest producer truth, and decoupling that retained bundle from direct worker mesh/body type ownership.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly on retained-result adoption and boundary cleanup rather than widening into viewport swap UI, preview-policy behavior, or authoritative-kernel selection.
+- Preserved the current artifact/build-bundle family as the downstream app-facing adapter instead of forcing the whole runtime to migrate away from `BuildResultBundle` in the same change set.
+- Kept the current draft mesh executor intact while making its retained result honest enough for later `1.2` and `1.3` work to build on.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/contracts/geometryResult.ts` so the retained geometry-result contract now owns neutral geometry payload types (`GeometryMesh`, `GeometryBody`, `GeometryDiagnostic`, `GeometryTraceBody`) instead of importing worker CAD types directly, and narrowed current producer truth to `resultClass: 'draft'` and `status: 'ok'`.
+- Updated `src/worker/products/foothook/buildFoothook.ts` to adapt raw `executeFeatureStack(...)` output into those contract-owned geometry payloads before creating the retained result bundle.
+- Extended `src/shared/buildTypes.ts`, `src/worker/pipeline/artifactEmitter.ts`, and `src/worker/pipeline/buildPipeline.ts` so the live build-result message can carry the retained `geometryResult` instead of dropping it after artifact adaptation.
+- Updated `src/app/buildDispatcher.ts`, `src/app/store/useAppStore.ts`, and `src/app/spaghetti/store/useSpaghettiStore.ts` so the accepted graph-runtime path now validates, forwards, and stores retained geometry results in graph-local accepted runtime state.
+- Added focused proof in `src/worker/pipeline/buildPipeline.test.ts`, `src/app/buildDispatcher.test.ts`, and `src/app/spaghetti/store/useSpaghettiStore.test.ts` that the retained geometry result survives the live path and stays isolated per graph document.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/geometryResult.ts`
+- `src/shared/buildTypes.ts`
+- `src/worker/products/foothook/buildFoothook.ts`
+- `src/worker/products/foothook/foothookCompatibilityAdapter.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.1 - Shared Geometry IR And Result Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+
+#### Behavior Changes
+- The live worker/build/store path now retains `geometryResult` in accepted graph runtime state instead of dropping it before any production consumer can keep it.
+- The retained geometry-result contract now only claims the currently supported producer truth (`draft + ok`) instead of advertising unsupported statuses or authoritative result classes.
+- The retained geometry-result layer is now expressed in contract-owned geometry payload types rather than direct worker mesh/body types, making the boundary cleaner for later authoritative execution work.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/buildDispatcher.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1081 -->
+### [1081] - 2026-04-06 13:46 - `Model-Viewport-1.1 Phase 3 - Shared Geometry Result Contract`
+<!-- ENTRY 1081 -->
+HUMAN SUMMARY: `Inserted the first retained geometry-result layer between raw worker execution and the existing foothook artifact/build-bundle path by adding a shared \`GeometryResultBundle\` contract, adapting raw \`executeFeatureStack(...)\` output into that retained bundle, and threading real request identity through the worker build path before downstream artifact emission.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the retained geometry-result contract and the first ownership boundaries above raw worker execution and below artifact/build-output routing.
+- Preserved the existing fast mesh-first worker execution seam as the raw draft executor instead of widening into authoritative-kernel implementation.
+- Kept the downstream `BuildResultBundle` family intact as an adapter/output seam rather than forcing the app-facing build pipeline to migrate to a new result family in the same pass.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/contracts/geometryResult.ts` as the shared retained geometry-result contract for `GeometryResultBundle`, request identity, `draft / authoritative` result-class naming, `ok / failed / cancelled / stale` status naming, validators, and snapshot helpers.
+- Updated `src/worker/products/foothook/buildFoothook.ts` so the raw `executeFeatureStack(...)` result now adapts into a retained `draft` geometry-result bundle instead of flowing directly into artifact adaptation.
+- Reworked `src/worker/products/foothook/foothookCompatibilityAdapter.ts` so the current foothook pipeline now has explicit seams for retained geometry-result construction and downstream artifact adaptation from that retained bundle.
+- Added `buildModelResult(...)` in `src/worker/buildModel.ts` so worker callers now have one explicit retained-geometry-plus-artifact boundary while the legacy `buildModel(...)` artifact wrapper remains available for existing callers.
+- Updated `src/worker/pipeline/buildPipeline.ts` to pass real `graphDocumentId` and `buildRequestId` into the retained geometry-result layer before `emitArtifacts(...)` emits the downstream `BuildResultBundle`.
+- Added focused proof coverage in `src/worker/buildModel.test.ts` and kept worker/build-pipeline regressions passing in the existing `featureStackRuntime` and `buildPipeline` suites.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/geometryResult.ts`
+- `src/worker/products/foothook/buildFoothook.ts`
+- `src/worker/products/foothook/foothookCompatibilityAdapter.ts`
+- `src/worker/buildModel.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/buildModel.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.1 - Shared Geometry IR And Result Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+
+#### Behavior Changes
+- Raw worker geometry execution now has one retained `GeometryResultBundle` contract before foothook artifact emission collapses results into `PartArtifact[]`.
+- The retained geometry-result layer now owns explicit request identity, result-class naming, and status naming instead of leaving those concepts implicit or purely downstream.
+- The worker build path now threads real `graphDocumentId` and `buildRequestId` into the retained geometry-result layer before the downstream build/output bundle is emitted.
+- Existing artifact/build-bundle consumers continue to work through adapters while future viewport/export work can build on the retained geometry-result layer directly.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/worker/buildModel.test.ts src/worker/pipeline/buildPipeline.test.ts src/worker/cad/featureStackRuntime.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
+<!-- ENTRY 1080 -->
+### [1080] - 2026-04-06 13:25 - `Model-Viewport-1.1 Phase 2 - Shared Geometry Request / IR Contract`
+<!-- ENTRY 1080 -->
+HUMAN SUMMARY: `Extracted the first canonical geometry-execution request contract into \`GeometryRequestPayload\`, aligned both current compile sources plus the draft worker runtime to that shared family, and stopped the direct graph-native \`Geometry/Extrude\` path from silently zeroing authored taper before execution.`
+#### Scope / Constraints Honored
+- Kept this pass on the shared geometry request contract and compile/runtime adoption only.
+- Preserved the existing fast mesh-first worker as the draft path instead of widening into authoritative result-bundle design.
+- Kept `closeProfile` compile-local so the feature-stack UI/store seam did not lose its current helper contract during the execution-boundary extraction.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/contracts/geometryRequest.ts` as the canonical request-boundary home for `GeometryRequestPayload`, executable sketch/extrude ops, shared profile/reference shapes, and payload validation.
+- Repointed `src/app/spaghetti/features/compileFeatureStack.ts` so executable `sketch` and `extrude` operations now align with the shared request family while `closeProfile` remains local to compile/UI reads.
+- Reworked `src/app/spaghetti/compiler/compileGraph.ts` so packaged `sp_featureStackIR` now carries the shared request shape with preserved `loop`, `verticesProxy`, and `profileIndex` data instead of a second private runtime-only payload, and the direct graph-native `Geometry/Extrude` compile fork now preserves authored `taperResolved`.
+- Updated `src/worker/cad/featureStackRuntime.ts` so the draft mesh runtime validates and consumes the shared request family directly, deriving profile vertices from preserved loops or proxies at execution time instead of forcing that flattening into compile.
+- Added parity and runtime proof coverage in `src/app/spaghetti/compiler/compileGraph.test.ts`, `src/worker/cad/featureStackRuntime.test.ts`, `src/worker/pipeline/buildPipeline.test.ts`, and `src/app/spaghetti/integration/buildInputsToRequest.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/geometryRequest.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.1 - Shared Geometry IR And Result Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+
+#### Behavior Changes
+- Graph-authored executable geometry now compiles toward one shared request contract before worker execution.
+- The packaged `sp_featureStackIR` payload now preserves executable profile shape truth through `loop`, `verticesProxy`, and `profileIndex` instead of compile-time preview-only vertices.
+- The direct graph-native `Geometry/Extrude` path now preserves authored taper into `taperResolved` instead of silently flattening it to zero before execution.
+- The draft worker runtime now adapts the shared request family at execution time instead of defining a narrower permanent request truth.
+
+#### Verification Steps
+- Ran `npm.cmd exec vitest run src/app/spaghetti/compiler/compileGraph.test.ts src/worker/cad/featureStackRuntime.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- Ran `./node_modules/.bin/tsc.cmd -b --pretty false`
+
 <!-- ENTRY 1079 -->
 ### [1079] - 2026-04-06 10:49 - `Extrude-3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules`
 <!-- ENTRY 1079 -->

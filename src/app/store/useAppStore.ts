@@ -20,7 +20,17 @@ import { sketchFeatureSchema } from '../spaghetti/features/featureSchema'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
 import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
-import type { BuildResult, ViewerRenderablePart } from '../../shared/buildTypes'
+import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildExecutionIntent,
+  type BuildResult,
+  type GeometryExecutionTarget,
+  type ViewerRenderablePart,
+} from '../../shared/buildTypes'
+import {
+  deriveAuthoritativeExportInput,
+  type ExportPreparationResult,
+} from '../../shared/exportTypes'
 import { newId } from '../spaghetti/utils/id'
 import {
   REFERENCE_MANIFEST_CATEGORIES,
@@ -46,6 +56,10 @@ import {
   type ReferenceTimelineRange,
 } from '../references/referenceTimeline'
 import { appendConsoleEntry } from '../console/useConsoleStore'
+import {
+  selectViewportResultModeBehaviorById,
+  useWorkspaceStore,
+} from '../workspace/useWorkspaceStore'
 
 type PartsVisibility = Record<string, boolean>
 type BuildPolicy = 'live' | 'release' | 'manual'
@@ -53,6 +67,11 @@ export type BrowserBuildPolicy = 'live' | 'release' | 'manual' | 'off'
 export type BrowserBuildExecutionTarget = {
   kind: 'graph-document'
   graphDocumentId: string
+}
+type GraphDocumentBuildRequestOptions = {
+  browserExecutionPolicy?: BrowserBuildPolicy
+  explicit?: boolean
+  geometryTargetOverride?: GeometryExecutionTarget
 }
 type ProjectFileVersion = 1
 export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
@@ -780,9 +799,14 @@ export type AppState = {
   workerError: string | null
   setSpaghettiGraph: (graph: SpaghettiGraph) => void
   compileGraphDocument: (graphDocumentId: string) => CompileSpaghettiGraphResult
-  requestGraphDocumentBuild: (graphDocumentId: string) => CompileSpaghettiGraphResult
+  requestGraphDocumentBuild: (
+    graphDocumentId: string,
+    options?: GraphDocumentBuildRequestOptions,
+  ) => CompileSpaghettiGraphResult
+  prepareGraphDocumentExport: (graphDocumentId: string) => ExportPreparationResult
   compileSpaghetti: () => CompileSpaghettiGraphResult
   requestSpaghettiBuild: () => CompileSpaghettiGraphResult
+  prepareSpaghettiExport: () => ExportPreparationResult
   setBuildPolicy: (policy: BuildPolicy) => void
   getBrowserGraphBuildPolicy: (graphDocumentId: string) => BrowserBuildPolicy | null
   getBrowserContentBuildPolicy: (rowId: string) => BrowserBuildPolicy | null
@@ -3870,6 +3894,62 @@ export const selectShouldSuppressBrowserGraphRuntimeOutput = (
     graphDocumentId,
   }) === 'off'
 
+const isGraphVisibleInActiveViewer = (
+  state: Pick<SpaghettiStoreState, 'viewerTargetGraphDocumentId' | 'sharedViewerComposition'>,
+  graphDocumentId: string,
+): boolean =>
+  state.viewerTargetGraphDocumentId === graphDocumentId ||
+  state.sharedViewerComposition?.graphDocumentIds.includes(graphDocumentId) === true
+
+const resolveGraphBuildGeometryTarget = (graphDocumentId: string): GeometryExecutionTarget => {
+  const spaghettiState = useSpaghettiStore.getState()
+  if (!isGraphVisibleInActiveViewer(spaghettiState, graphDocumentId)) {
+    return DEFAULT_BUILD_EXECUTION_INTENT.geometryTarget
+  }
+
+  const workspaceState = useWorkspaceStore.getState()
+  const modeBehavior = selectViewportResultModeBehaviorById(
+    workspaceState,
+    workspaceState.activeViewerViewportId,
+  )
+  return modeBehavior.mode === 'draft' ? 'draft_preview' : 'authoritative'
+}
+
+const resolveGraphBuildUpdatePolicy = (
+  options?: GraphDocumentBuildRequestOptions,
+): BuildExecutionIntent['updatePolicy'] => {
+  if (options?.explicit === true || options?.browserExecutionPolicy === 'manual') {
+    return 'manual'
+  }
+  if (options?.browserExecutionPolicy === 'release') {
+    return 'defer_until_release'
+  }
+  return DEFAULT_BUILD_EXECUTION_INTENT.updatePolicy
+}
+
+export const resolveGraphBuildExecutionIntent = (
+  graphDocumentId: string,
+  options?: GraphDocumentBuildRequestOptions,
+): BuildExecutionIntent => ({
+  ...DEFAULT_BUILD_EXECUTION_INTENT,
+  updatePolicy: resolveGraphBuildUpdatePolicy(options),
+  geometryTarget: options?.geometryTargetOverride ?? resolveGraphBuildGeometryTarget(graphDocumentId),
+})
+
+const getCompileErrorMessage = (compileResult: CompileSpaghettiGraphResult): string =>
+  compileResult.diagnostics.errors[0]?.message ?? 'The graph does not currently compile.'
+
+const isCurrentRevisionAuthoritativeUnavailable = (
+  runtime: GraphRuntimeState | null | undefined,
+): boolean =>
+  runtime !== undefined &&
+  runtime !== null &&
+  runtime.compileBuild.inFlightBuildRequestId === null &&
+  runtime.compileBuild.latestAcceptedGraphRevision !== null &&
+  runtime.compileBuild.latestAcceptedGraphRevision === runtime.compileBuild.currentGraphRevision &&
+  runtime.acceptedBuildBundle?.executionIntent.geometryTarget === 'authoritative' &&
+  deriveAuthoritativeExportInput(runtime.acceptedAuthoritativeGeometryResult) === null
+
 export const useAppStore = create<AppState>((set, get) => ({
   lastBuildSeq: 0,
   geomDirty: {},
@@ -3913,7 +3993,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     spaghettiState.setGraphCompileResult(graphDocumentId, compileResult)
     return compileResult
   },
-  requestGraphDocumentBuild: (graphDocumentId) => {
+  requestGraphDocumentBuild: (graphDocumentId, options) => {
     const state = get()
     const spaghettiState = useSpaghettiStore.getState()
     const compileResult = get().compileGraphDocument(graphDocumentId)
@@ -3937,12 +4017,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       return compileResult
     }
     const buildRequestId = newId('build-request')
+    const executionIntent = resolveGraphBuildExecutionIntent(graphDocumentId, options)
     const buildSeq = buildDispatcher.requestGraphBuild({
       routingIdentity: {
         projectFileId: state.currentProject.projectFileId,
         graphDocumentId,
         buildRequestId,
       },
+      executionIntent,
       compiledBuildData: requestBuild.compiledBuildData,
       buildIdentity: {
         graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
@@ -3963,6 +4045,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       pendingAffectedBuildUnitIds: requestBuild.affectedBuildUnitIds,
       buildRequestId,
       buildSeq,
+      executionIntent,
     })
     appendConsoleEntry({
       layer: 'App',
@@ -3972,6 +4055,148 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
     return compileResult
   },
+  prepareGraphDocumentExport: (graphDocumentId) => {
+    const initialRuntime = selectGraphRuntimeByDocumentId(
+      useSpaghettiStore.getState(),
+      graphDocumentId,
+    )
+    const acceptedExportInput = deriveAuthoritativeExportInput(
+      initialRuntime?.acceptedAuthoritativeGeometryResult,
+    )
+    if (acceptedExportInput !== null) {
+      return {
+        status: 'ready',
+        graphDocumentId,
+        input: acceptedExportInput,
+      }
+    }
+
+    const compileResult = get().compileGraphDocument(graphDocumentId)
+    if (!compileResult.ok) {
+      return {
+        status: 'blocked',
+        graphDocumentId,
+        blockedReason: 'compile-invalid',
+        message: getCompileErrorMessage(compileResult),
+      }
+    }
+    if (compileResult.buildInputs === undefined) {
+      return {
+        status: 'blocked',
+        graphDocumentId,
+        blockedReason: 'missing-build-inputs',
+        message: 'The graph has no buildable output to prepare for export.',
+      }
+    }
+
+    const runtimeAfterCompile = selectGraphRuntimeByDocumentId(
+      useSpaghettiStore.getState(),
+      graphDocumentId,
+    )
+    if (runtimeAfterCompile === null || runtimeAfterCompile === undefined) {
+      return {
+        status: 'blocked',
+        graphDocumentId,
+        blockedReason: 'missing-preview-preparation',
+        message: 'The graph runtime is not available for export preparation.',
+      }
+    }
+
+    const currentAcceptedExportInput = deriveAuthoritativeExportInput(
+      runtimeAfterCompile.acceptedAuthoritativeGeometryResult,
+    )
+    if (currentAcceptedExportInput !== null) {
+      return {
+        status: 'ready',
+        graphDocumentId,
+        input: currentAcceptedExportInput,
+      }
+    }
+
+    if (
+      runtimeAfterCompile.compileBuild.inFlightBuildRequestId !== null &&
+      runtimeAfterCompile.compileBuild.inFlightBuildSeq !== null &&
+      runtimeAfterCompile.compileBuild.inFlightExecutionIntent?.geometryTarget ===
+        'authoritative'
+    ) {
+      return {
+        status: 'pending',
+        graphDocumentId,
+        pendingReason: 'awaiting-authoritative-build',
+        buildRequestId: runtimeAfterCompile.compileBuild.inFlightBuildRequestId,
+        buildSeq: runtimeAfterCompile.compileBuild.inFlightBuildSeq,
+      }
+    }
+
+    if (isCurrentRevisionAuthoritativeUnavailable(runtimeAfterCompile)) {
+      return {
+        status: 'blocked',
+        graphDocumentId,
+        blockedReason: 'authoritative-unavailable',
+        message: 'The current graph revision does not have reusable authoritative geometry for export.',
+      }
+    }
+
+    const requestResult = get().requestGraphDocumentBuild(graphDocumentId, {
+      explicit: true,
+      geometryTargetOverride: 'authoritative',
+    })
+    if (!requestResult.ok) {
+      return {
+        status: 'blocked',
+        graphDocumentId,
+        blockedReason: 'compile-invalid',
+        message: getCompileErrorMessage(requestResult),
+      }
+    }
+
+    const runtimeAfterRequest = selectGraphRuntimeByDocumentId(
+      useSpaghettiStore.getState(),
+      graphDocumentId,
+    )
+    const pendingBuildRequestId = runtimeAfterRequest?.compileBuild.inFlightBuildRequestId ?? null
+    const pendingBuildSeq = runtimeAfterRequest?.compileBuild.inFlightBuildSeq ?? null
+    if (
+      pendingBuildRequestId !== null &&
+      pendingBuildSeq !== null &&
+      runtimeAfterRequest?.compileBuild.inFlightExecutionIntent?.geometryTarget === 'authoritative'
+    ) {
+      return {
+        status: 'pending',
+        graphDocumentId,
+        pendingReason: 'requested-authoritative-build',
+        buildRequestId: pendingBuildRequestId,
+        buildSeq: pendingBuildSeq,
+      }
+    }
+
+    const requestedAcceptedExportInput = deriveAuthoritativeExportInput(
+      runtimeAfterRequest?.acceptedAuthoritativeGeometryResult,
+    )
+    if (requestedAcceptedExportInput !== null) {
+      return {
+        status: 'ready',
+        graphDocumentId,
+        input: requestedAcceptedExportInput,
+      }
+    }
+
+    if (isCurrentRevisionAuthoritativeUnavailable(runtimeAfterRequest)) {
+      return {
+        status: 'blocked',
+        graphDocumentId,
+        blockedReason: 'authoritative-unavailable',
+        message: 'The current graph revision does not have reusable authoritative geometry for export.',
+      }
+    }
+
+    return {
+      status: 'blocked',
+      graphDocumentId,
+      blockedReason: 'no-build-targets',
+      message: 'The graph has no exportable build targets to prepare.',
+    }
+  },
   compileSpaghetti: () => {
     const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
     return get().compileGraphDocument(activeGraphDocument.graphDocumentId)
@@ -3979,6 +4204,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   requestSpaghettiBuild: () => {
     const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
     return get().requestGraphDocumentBuild(activeGraphDocument.graphDocumentId)
+  },
+  prepareSpaghettiExport: () => {
+    const activeGraphDocument = selectActiveGraphDocument(useSpaghettiStore.getState())
+    return get().prepareGraphDocumentExport(activeGraphDocument.graphDocumentId)
   },
   setBuildPolicy: (policy) => {
     set((state) => ({
@@ -4123,7 +4352,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         graphDocumentId,
       ),
     }))
-    return get().requestGraphDocumentBuild(graphDocumentId)
+    return get().requestGraphDocumentBuild(graphDocumentId, {
+      browserExecutionPolicy: policy,
+      explicit: isExplicit,
+    })
   },
   beginInteraction: () => {
     set((state) => (state.isInteracting ? state : { isInteracting: true }))
@@ -4163,6 +4395,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       buildRequestId: result.buildRequestId,
       buildSeq: result.seq,
       bundle: result.bundle,
+      draftGeometryResult: result.draftGeometryResult,
+      authoritativeGeometryResult: result.authoritativeGeometryResult,
     })
     if (!acceptedSpaghettiResult) {
       return

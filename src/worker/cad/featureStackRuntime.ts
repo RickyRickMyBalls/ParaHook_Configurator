@@ -2,6 +2,14 @@ import {
   createDefaultSketchPlaneTransform,
   type SketchPlaneTransform,
 } from '../../app/spaghetti/features/featureTypes'
+import { tessellateProfileLoop } from '../../app/spaghetti/compiler/runtimeTessellation'
+import {
+  isGeometryRequestPayload,
+  type GeometryRequestExtrudeOp,
+  type GeometryRequestPayload,
+  type GeometryRequestSketchOp,
+  type GeometryRequestSketchProfile,
+} from '../../app/spaghetti/contracts/geometryRequest'
 import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
 import {
   extrudeFaceOnPlane,
@@ -19,46 +27,13 @@ import type {
   Wire,
 } from './cadTypes'
 
-type IRProfileResolved = {
-  profileId: string
-  area: number
-  vertices: Point2[]
-}
+type IRProfileResolved = GeometryRequestSketchProfile
 
-type IRSketch = {
-  op: 'sketch'
-  featureId: string
-  plane?: 'XY' | 'XZ' | 'YZ'
-  planeTransform?: SketchPlaneTransform
-  profilesResolved: IRProfileResolved[]
-}
+type IRSketch = GeometryRequestSketchOp
 
-type IRProfileRef = {
-  profileId: string
-  sketchFeatureId?: string
-  sourceFeatureId?: string
-}
+type IRExtrude = GeometryRequestExtrudeOp
 
-type IRExtrude = {
-  op: 'extrude'
-  featureId: string
-  profileRef: IRProfileRef | null
-  extrudeType?: 'Body' | 'Walls'
-  extrudeDirection?: 'OneSide' | 'TwoSides' | 'Symmetric'
-  depthResolved: number
-  startDepthResolved?: number
-  endDepthResolved?: number
-  plane?: 'XY' | 'XZ' | 'YZ'
-  planeTransform?: SketchPlaneTransform
-  bodyId?: string
-}
-
-type FeatureOp = IRSketch | IRExtrude
-
-export type FeatureStackIRPayload = {
-  schemaVersion: 1
-  parts: Record<string, FeatureOp[]>
-}
+export type FeatureStackIRPayload = GeometryRequestPayload
 
 type SketchRuntime = {
   plane: 'XY' | 'XZ' | 'YZ'
@@ -80,74 +55,7 @@ export type ExecuteFeatureStackResult = {
   bodyTrace: RuntimeTraceBody[]
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const isPoint2 = (value: unknown): value is Point2 =>
-  isRecord(value) && typeof value.x === 'number' && typeof value.y === 'number'
-
-const isProfileResolved = (value: unknown): value is IRProfileResolved =>
-  isRecord(value) &&
-  typeof value.profileId === 'string' &&
-  typeof value.area === 'number' &&
-  Array.isArray(value.vertices) &&
-  value.vertices.every(isPoint2)
-
-const isVec3Literal = (value: unknown): value is SketchPlaneTransform['translation'] =>
-  isRecord(value) &&
-  typeof value.x === 'number' &&
-  typeof value.y === 'number' &&
-  typeof value.z === 'number'
-
-const isSketchPlaneTransform = (value: unknown): value is SketchPlaneTransform =>
-  isRecord(value) &&
-  typeof value.offsetMm === 'number' &&
-  isVec3Literal(value.translation) &&
-  isVec3Literal(value.rotationDeg) &&
-  typeof value.inPlaneRotationDeg === 'number'
-
-const isSketchOp = (value: unknown): value is IRSketch =>
-  isRecord(value) &&
-  value.op === 'sketch' &&
-  typeof value.featureId === 'string' &&
-  (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
-  (value.planeTransform === undefined || isSketchPlaneTransform(value.planeTransform)) &&
-  Array.isArray(value.profilesResolved) &&
-  value.profilesResolved.every(isProfileResolved)
-
-const isProfileRef = (value: unknown): value is IRProfileRef =>
-  isRecord(value) &&
-  typeof value.profileId === 'string' &&
-  (value.sketchFeatureId === undefined || typeof value.sketchFeatureId === 'string') &&
-  (value.sourceFeatureId === undefined || typeof value.sourceFeatureId === 'string')
-
-const isExtrudeOp = (value: unknown): value is IRExtrude =>
-  isRecord(value) &&
-  value.op === 'extrude' &&
-  typeof value.featureId === 'string' &&
-  (value.extrudeType === undefined || value.extrudeType === 'Body' || value.extrudeType === 'Walls') &&
-  (value.extrudeDirection === undefined ||
-    value.extrudeDirection === 'OneSide' ||
-    value.extrudeDirection === 'TwoSides' ||
-    value.extrudeDirection === 'Symmetric') &&
-  typeof value.depthResolved === 'number' &&
-  (value.startDepthResolved === undefined || typeof value.startDepthResolved === 'number') &&
-  (value.endDepthResolved === undefined || typeof value.endDepthResolved === 'number') &&
-  (value.plane === undefined || value.plane === 'XY' || value.plane === 'XZ' || value.plane === 'YZ') &&
-  (value.planeTransform === undefined || isSketchPlaneTransform(value.planeTransform)) &&
-  (value.bodyId === undefined || typeof value.bodyId === 'string') &&
-  (value.profileRef === null || isProfileRef(value.profileRef))
-
-const isFeatureOp = (value: unknown): value is FeatureOp => isSketchOp(value) || isExtrudeOp(value)
-
-export const isFeatureStackIRPayload = (value: unknown): value is FeatureStackIRPayload => {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !isRecord(value.parts)) {
-    return false
-  }
-  return Object.values(value.parts).every(
-    (operations) => Array.isArray(operations) && operations.every(isFeatureOp),
-  )
-}
+export const isFeatureStackIRPayload = isGeometryRequestPayload
 
 const mergeBodies = (bodies: ReadonlyMap<string, Shape3D>): MeshPack | null => {
   if (bodies.size === 0) {
@@ -178,6 +86,11 @@ const pushDiagnostic = (
   })
 }
 
+const profileVerticesFromResolved = (profile: IRProfileResolved): Point2[] =>
+  profile.loop.segments.length > 0
+    ? tessellateProfileLoop(profile.loop.segments)
+    : profile.verticesProxy
+
 const runSketch = (
   context: RuntimeContext,
   partKey: string,
@@ -188,7 +101,7 @@ const runSketch = (
 
   for (const profile of feature.profilesResolved) {
     try {
-      const wire = wireFromLoop(profile.vertices)
+      const wire = wireFromLoop(profileVerticesFromResolved(profile))
       if (sketchProfiles.has(profile.profileId)) {
         pushDiagnostic(
           diagnostics,
@@ -249,7 +162,7 @@ const runExtrude = (
   }
 
   const profileId = feature.profileRef.profileId
-  const sketchFeatureId = feature.profileRef.sketchFeatureId ?? feature.profileRef.sourceFeatureId
+  const sketchFeatureId = feature.profileRef.sketchFeatureId
   const wireFromSketch =
     sketchFeatureId === undefined
       ? undefined

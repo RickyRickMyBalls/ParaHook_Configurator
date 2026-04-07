@@ -204,6 +204,30 @@ describe('ViewportOverlay sketch session window', () => {
     expect(huds[1]?.style.right).toBe('106px')
   })
 
+  it('shows a final-unavailable geometry HUD status when final mode has no accepted final result', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    const statusLine = container.querySelector(
+      '.ViewportHudResultStatus',
+    ) as HTMLSpanElement | null
+    expect(statusLine?.textContent).toBe('Geometry: Final Unavailable')
+    expect(statusLine?.getAttribute('data-viewport-result-status-kind')).toBe('final-unavailable')
+  })
+
   it('keeps the floating sketch window controls-only without the old embedded preview card', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     await seedSketchSession()

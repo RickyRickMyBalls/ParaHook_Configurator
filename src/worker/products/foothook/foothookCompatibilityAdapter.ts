@@ -1,3 +1,10 @@
+import type {
+  GeometryBody,
+  GeometryDiagnostic,
+  GeometryMesh,
+  GeometryResultBundle,
+  GeometryResultRequestIdentity,
+} from '../../../shared/geometryResult'
 import {
   type ArtifactMesh,
   type CompiledBuildData,
@@ -5,12 +12,12 @@ import {
   type PartArtifact,
 } from '../../../shared/buildTypes'
 import { compareSpaghettiSourcePartKeys } from '../../../shared/buildStatsKeys'
-import type { MeshPack, RuntimeDiagnostic, Shape3D } from '../../cad/cadTypes'
 import { mergeMeshPacks } from '../../cad/cadKernelAdapter'
 import { runFoothookFeatureStack } from './buildFoothook'
 
 export type FoothookCompatibilityBuildInput = {
   compiledBuildData: CompiledBuildData
+  request: GeometryResultRequestIdentity
 }
 
 const GRAPH_PART_LABELS: Record<string, string> = {
@@ -22,7 +29,7 @@ const GRAPH_PART_LABELS: Record<string, string> = {
   toeHook: 'Toe Hook',
 }
 
-const compareShapes = (a: Shape3D, b: Shape3D): number =>
+const compareShapes = (a: GeometryBody, b: GeometryBody): number =>
   compareSpaghettiSourcePartKeys(a.partKey, b.partKey) ||
   a.bodyId.localeCompare(b.bodyId) ||
   a.featureId.localeCompare(b.featureId)
@@ -49,10 +56,10 @@ const toMeshArtifact = (partKeyStr: string, mesh: ArtifactMesh): PartArtifact =>
 }
 
 const deriveFeatureStackMeshArtifacts = (
-  bodies: Record<string, Shape3D>,
+  bodies: Record<string, GeometryBody>,
   existingPartKeys: ReadonlySet<string>,
 ): PartArtifact[] => {
-  const meshesByPartKey = new Map<string, MeshPack[]>()
+  const meshesByPartKey = new Map<string, GeometryMesh[]>()
   const sortedBodies = Object.values(bodies).sort(compareShapes)
 
   for (const body of sortedBodies) {
@@ -76,11 +83,11 @@ const deriveFeatureStackMeshArtifacts = (
     })
 }
 
-const flushDiagnostics = (diagnostics: readonly RuntimeDiagnostic[]): void => {
+const flushDiagnostics = (diagnostics: readonly GeometryDiagnostic[]): void => {
   if (diagnostics.length === 0) {
     return
   }
-  const unique = new Map<string, RuntimeDiagnostic>()
+  const unique = new Map<string, GeometryDiagnostic>()
   for (const diagnostic of diagnostics) {
     const key = `${diagnostic.partKey}|${diagnostic.featureId}|${diagnostic.reason}`
     if (!unique.has(key)) {
@@ -101,15 +108,35 @@ const flushDiagnostics = (diagnostics: readonly RuntimeDiagnostic[]): void => {
 
 export const buildFoothookCompatibleArtifacts = ({
   compiledBuildData,
+  request,
 }: FoothookCompatibilityBuildInput): PartArtifact[] => {
+  const retainedGeometryResult = buildFoothookRetainedGeometryResult({
+    compiledBuildData,
+    request,
+  })
+  return buildFoothookCompatibleArtifactsFromRetainedGeometryResult(retainedGeometryResult)
+}
+
+export const buildFoothookRetainedGeometryResult = ({
+  compiledBuildData,
+  request,
+}: FoothookCompatibilityBuildInput): GeometryResultBundle | null => {
   const sharedBuildData =
     typeof compiledBuildData.resolvedShared === 'object' && compiledBuildData.resolvedShared !== null
       ? compiledBuildData.resolvedShared
       : {}
-  const featureStackResult = runFoothookFeatureStack(sharedBuildData)
-  if (featureStackResult !== null) {
-    flushDiagnostics(featureStackResult.diagnostics)
-    return deriveFeatureStackMeshArtifacts(featureStackResult.bodies, new Set())
+  return runFoothookFeatureStack({
+    profilePatch: sharedBuildData,
+    request,
+  })
+}
+
+export const buildFoothookCompatibleArtifactsFromRetainedGeometryResult = (
+  retainedGeometryResult: GeometryResultBundle | null,
+): PartArtifact[] => {
+  if (retainedGeometryResult === null) {
+    return []
   }
-  return []
+  flushDiagnostics(retainedGeometryResult.diagnostics)
+  return deriveFeatureStackMeshArtifacts(retainedGeometryResult.bodies, new Set())
 }

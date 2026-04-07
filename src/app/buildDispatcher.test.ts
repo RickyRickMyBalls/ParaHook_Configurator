@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BUILD_EXECUTION_INTENT } from '../shared/buildTypes'
+import type { GeometryResultBundle } from '../shared/geometryResult'
 import { emitArtifacts } from '../worker/pipeline/artifactEmitter'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
@@ -40,6 +41,8 @@ const buildResult = (options: {
   graphDocumentId: string
   projectFileId: string
   seq: number
+  draftGeometryResult?: GeometryResultBundle
+  authoritativeGeometryResult?: GeometryResultBundle
 }) =>
   emitArtifacts(
     {
@@ -48,10 +51,31 @@ const buildResult = (options: {
       graphDocumentId: options.graphDocumentId,
       buildRequestId: options.buildRequestId,
       executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      draftGeometryResult: options.draftGeometryResult,
+      authoritativeGeometryResult: options.authoritativeGeometryResult,
     },
     [],
     [],
   )
+
+const buildGeometryResult = (options: {
+  graphDocumentId: string
+  buildRequestId: string
+}): GeometryResultBundle => ({
+  schemaVersion: 1,
+  request: {
+    graphDocumentId: options.graphDocumentId,
+    buildRequestId: options.buildRequestId,
+    partKeys: ['cube'],
+  },
+  resultClass: 'draft',
+  status: 'ok',
+  bodies: {},
+  meshPreview: null,
+  diagnostics: [],
+  trace: [],
+  authoritativeHandle: null,
+})
 
 const compiledBuildData = {
   orderedPartKeys: ['cube'],
@@ -319,6 +343,90 @@ describe('BuildDispatcher runtime hooks and routing', () => {
         seq: 1,
         graphDocumentId: 'graph-a',
       }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('forwards retained geometry results on accepted build messages', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onBuildResult = vi.fn()
+
+    dispatcher.setBuildResultHandler(onBuildResult)
+    requestGraphBuild(dispatcher)
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage(
+      buildResult({
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+        draftGeometryResult: buildGeometryResult({
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-1',
+        }),
+      }),
+    )
+
+    expect(onBuildResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seq: 1,
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+        draftGeometryResult: expect.objectContaining({
+          request: {
+            graphDocumentId: 'graph-a',
+            buildRequestId: 'request-a-1',
+            partKeys: ['cube'],
+          },
+          resultClass: 'draft',
+          status: 'ok',
+        }),
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('releases authoritative handles for stale build results', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+
+    requestGraphBuild(dispatcher)
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-a-2',
+    })
+
+    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage(
+      buildResult({
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+        authoritativeGeometryResult: {
+          ...buildGeometryResult({
+            graphDocumentId: 'graph-a',
+            buildRequestId: 'request-a-1',
+          }),
+          resultClass: 'authoritative',
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-stale-1',
+          },
+        },
+      }),
+    )
+
+    expect(worker.postedMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'release_authoritative_handles',
+          handleIds: ['shape-set-stale-1'],
+        }),
+      ]),
     )
     dispatcher.dispose()
   })

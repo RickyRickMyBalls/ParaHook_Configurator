@@ -1,12 +1,15 @@
-let warmPromise: Promise<void> | null = null
+import { initOpenCascade } from './opencascadeBrowser'
+import type { OpenCascadeInstance } from './opencascadeTypes'
 
-const bootOc = async (): Promise<void> => {
-  await Promise.resolve()
-}
+let warmPromise: Promise<OpenCascadeInstance> | null = null
 
-export const warmOc = (): Promise<void> => {
+const bootOc = async (): Promise<OpenCascadeInstance> => initOpenCascade()
+
+export const warmOc = (): Promise<OpenCascadeInstance> => {
   if (warmPromise === null) {
     warmPromise = bootOc()
   }
   return warmPromise
 }
+
+export const getOc = (): Promise<OpenCascadeInstance> => warmOc()

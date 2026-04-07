@@ -14,6 +14,7 @@ import {
   buildPipeline,
   type ProgressEmitter,
 } from './pipeline/buildPipeline'
+import { releaseAuthoritativeShapeSets } from './authoritativeGeometryStore'
 
 interface WorkerScope {
   postMessage: (message: BuildResult | WorkerError | BuildProgress) => void
@@ -45,8 +46,15 @@ const isBuildExecutionIntent = (value: unknown): value is BuildExecutionIntent =
   const outputIntentValid =
     value.outputIntent === 'transient_preview' ||
     value.outputIntent === 'accepted_final'
-  return buildModeValid && qualityValid && updatePolicyValid && outputIntentValid
+  const geometryTargetValid =
+    value.geometryTarget === 'draft_preview' || value.geometryTarget === 'authoritative'
+  return buildModeValid && qualityValid && updatePolicyValid && outputIntentValid && geometryTargetValid
 }
+
+const isReleaseAuthoritativeHandlesRequest = (
+  value: unknown,
+): value is { type: 'release_authoritative_handles'; handleIds: string[] } =>
+  isRecord(value) && value.type === 'release_authoritative_handles' && isStringArray(value.handleIds)
 
 const isBuildRequest = (value: unknown): value is BuildRequest => {
   if (!isRecord(value)) {
@@ -90,6 +98,11 @@ warmWorker()
 
 workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => {
   warmWorker()
+
+  if (isReleaseAuthoritativeHandlesRequest(event.data)) {
+    releaseAuthoritativeShapeSets(event.data.handleIds)
+    return
+  }
 
   if (!isBuildRequest(event.data)) {
     return

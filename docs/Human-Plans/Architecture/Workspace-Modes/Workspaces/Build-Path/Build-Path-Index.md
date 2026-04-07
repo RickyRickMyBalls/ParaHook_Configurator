@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-04-06 15:46: Added an explicit build-policy ownership rule to the `Build Path` family, locking the recommendation that build policy should govern authoritative/final build timing (`Live / On Release / Manual / Off`) while draft-preview display stays a separate `Model Viewport` result-mode concern instead of letting browser/build cadence and draft/final viewport behavior blur together
 9. 2026-04-05 13:43: Cleaned up stale timeline-era wording after the workspace-viewport rewrite, replacing leftover `timeline` / `strip` language with command-row and build-workspace terminology, renaming the derived step descriptor layer to match the newer row/card model, and softening a few places that were overcommitted to one visual framing
 8. 2026-04-05 13:33: Reframed `Build Path` around the new dedicated workspace-viewport direction, replacing the earlier Fusion-like slim-strip emphasis with a vertical row/card command surface that supports both compressed `List View` and expanded `Branch View`, shared scrub semantics across both views, visible branch merges, and inline toolbar expansion inside each command row
 7. 2026-04-05 13:18: Renamed the `Pasta Path` family to `Build Path`, moved the family folder and index file to `Build-Path/Build-Path-Index.md`, and updated the surrounding docs so the roadmap, wishlist, edit-history relationship, and docs index all use the new name consistently
@@ -119,6 +120,49 @@ Important rule:
 - moving the `Build Path` playhead is navigation state by default
 - it should not silently create undo entries just because the user scrubbed around
 - authored undo/redo should visibly update the `Build Path` surface because the underlying accepted history changed
+
+### Build Policy Boundary
+
+`Build Path` should own build-trigger timing semantics, not draft-versus-final viewport display semantics.
+
+Recommended ownership split:
+
+- `Build Policy`
+  - governs when authoritative/final build work is triggered after authored parameter changes
+  - first honest family:
+    - `Live`
+    - `On Release`
+    - `Manual`
+    - `Off`
+- `Model Viewport`
+  - governs which geometry result class the user sees
+  - should keep owning:
+    - `Auto`
+    - `Draft`
+    - `Final`
+
+Important rule:
+
+- `Build Policy` is mainly about authoritative/final build cadence
+- it should not quietly become the owner of draft preview display rules
+- draft preview may still remain responsive during edits even when final build policy is conservative
+- this keeps `Build Path` responsible for execution timing while `Model Viewport` stays responsible for result presentation and swap honesty
+
+Recommended first interpretation:
+
+- `Live`
+  - start authoritative/final builds during edits
+- `On Release`
+  - wait until drag or edit release, then start authoritative/final build
+- `Manual`
+  - mark dirty state but only start authoritative/final build on explicit request
+- `Off`
+  - do not auto-trigger authoritative/final builds
+
+This keeps the app from overloading one policy with two jobs:
+
+- build cadence
+- viewport result preference
 
 ### Suggested Workspace Placement
 

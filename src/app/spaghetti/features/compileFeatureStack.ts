@@ -2,41 +2,18 @@ import { resolveNumberExpression } from './expressions'
 import { deriveProfilesWithDiagnostics } from './profileDerivation'
 import { getEffectiveFeatureStack } from './featureDependencies'
 import type {
-  ExtrudeResultType,
-  FeatureStack,
-  ProfileLoop,
-  ProfileReference,
-  SketchPlaneTransform,
-} from './featureTypes'
+  GeometryRequestExtrudeOp,
+  GeometryRequestProfileRef,
+  GeometryRequestSketchOp,
+  GeometryRequestSketchProfile,
+} from '../contracts/geometryRequest'
+import type { FeatureStack, ProfileReference } from './featureTypes'
 
-type GeometryExtrudeDirection = 'OneSide' | 'TwoSides' | 'Symmetric'
+type IRProfileReference = GeometryRequestProfileRef
 
-type Point2 = {
-  x: number
-  y: number
-}
+export type IRSketchProfileResolved = GeometryRequestSketchProfile
 
-type IRProfileReference = {
-  sketchFeatureId: string
-  profileId: string
-  profileIndex: number
-}
-
-export type IRSketchProfileResolved = {
-  profileId: string
-  profileIndex: number
-  area: number
-  loop: ProfileLoop
-  verticesProxy: Point2[]
-}
-
-export type IRSketch = {
-  op: 'sketch'
-  featureId: string
-  plane?: 'XY' | 'XZ' | 'YZ'
-  planeTransform?: SketchPlaneTransform
-  profilesResolved: IRSketchProfileResolved[]
-}
+export type IRSketch = GeometryRequestSketchOp
 
 export type IRCloseProfile = {
   op: 'closeProfile'
@@ -45,21 +22,7 @@ export type IRCloseProfile = {
   profileRefResolved: IRProfileReference | null
 }
 
-export type IRExtrude = {
-  op: 'extrude'
-  featureId: string
-  profileRef: IRProfileReference | null
-  extrudeType: ExtrudeResultType
-  extrudeDirection?: GeometryExtrudeDirection
-  depthResolved: number
-  startDepthResolved?: number
-  endDepthResolved?: number
-  taperResolved: number
-  offsetResolved: number
-  plane?: 'XY' | 'XZ' | 'YZ'
-  planeTransform?: SketchPlaneTransform
-  bodyId?: string
-}
+export type IRExtrude = GeometryRequestExtrudeOp
 
 export type FeatureStackIR = Array<IRSketch | IRCloseProfile | IRExtrude>
 

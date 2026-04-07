@@ -8,7 +8,11 @@ import {
 } from 'react'
 import { routeKeyboardInput } from '../inputRouting'
 import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
-import { useAppStore } from '../store/useAppStore'
+import {
+  selectRenderedProjectPartSet,
+  selectShouldSuppressBrowserGraphRuntimeOutput,
+  useAppStore,
+} from '../store/useAppStore'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
@@ -25,9 +29,17 @@ import {
   type ViewportOverlayToolPanelResizeDirection,
 } from './ViewportOverlayToolPanel'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
-import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import {
+  selectSharedViewerComposition,
+  selectViewerTargetGraphAcceptedGeometryResult,
+  selectViewerTargetGraphAcceptedPreviewBuildOutputs,
+  selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  selectViewerTargetGraphPreviewPreparation,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
 import { getTypeColor } from '../spaghetti/canvas/typeColors'
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
+import { resolveWorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
 import type {
   ConsoleBackgroundColorMode,
   ConsoleBackgroundFillMode,
@@ -45,6 +57,9 @@ import {
   labelProfilesForPreview,
   renderProfilePreview,
 } from '../spaghetti/ui/features/profilePreview'
+import { applyActiveDraftExtrudePreviewOverride } from './activeDraftExtrudePreview'
+import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
+import { selectViewportResultStatus } from '../spaghetti/selectors/selectViewportResultStatus'
 import {
   AXIS_WIDGET_TOP,
   COMPACT_AXIS_WIDGET_SIZE,
@@ -437,11 +452,30 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const sketchPlaneToolPanelRef = useRef<HTMLDivElement | null>(null)
   const sketchSessionWindowRef = useRef<HTMLDivElement | null>(null)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
+  const partsVisibility = useAppStore((state) => state.partsVisibility)
+  const currentProject = useAppStore((state) => state.currentProject)
+  const projectContent = useAppStore((state) => state.projectContent)
+  const browserGraphBuildPolicyByGraphDocumentId = useAppStore(
+    (state) => state.browserGraphBuildPolicyByGraphDocumentId,
+  )
+  const browserContentBuildPolicyByRowId = useAppStore(
+    (state) => state.browserContentBuildPolicyByRowId,
+  )
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
+  const graphRuntimeByDocumentId = useSpaghettiStore((state) => state.graphRuntimeByDocumentId)
+  const graphDocumentsById = useSpaghettiStore((state) => state.graphDocumentsById)
   const sketchPlanePickSession = useSpaghettiStore((state) => state.sketchPlanePickSession)
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
+  const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
+  const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
+  const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
+  const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
+  const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
+  const viewerTargetPreviewGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  )
   const activePlanePickNode = useSpaghettiStore((state) => {
     const nodeId = state.sketchPlanePickSession?.nodeId
     if (nodeId === undefined) {
@@ -524,6 +558,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const axisOverlayEnabled = localViewState?.axisOverlayEnabled ?? false
   const viewToolbarOpen = localViewState?.viewToolbarOpen ?? false
   const expandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
+  const viewportResultMode = localViewState?.viewportResultMode ?? 'auto'
   const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarGhostPlaneScale,
   )
@@ -692,6 +727,103 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     useState(true)
   const [sketchSessionSessionExpanded, setSketchSessionSessionExpanded] =
     useState(true)
+  const viewportResultModeBehavior = useMemo(
+    () => resolveWorkspaceViewportResultModeBehavior(viewportResultMode),
+    [viewportResultMode],
+  )
+  const renderedProjectPartSet = useMemo(
+    () =>
+      selectRenderedProjectPartSet({
+        currentProject,
+        projectContent,
+        graphRuntimeByDocumentId,
+        graphDocumentsById,
+        browserGraphBuildPolicyByGraphDocumentId,
+        browserContentBuildPolicyByRowId,
+        partsVisibility,
+        graphDocumentIds: sharedViewerComposition?.graphDocumentIds,
+      }),
+    [
+      browserContentBuildPolicyByRowId,
+      browserGraphBuildPolicyByGraphDocumentId,
+      currentProject,
+      graphDocumentsById,
+      graphRuntimeByDocumentId,
+      partsVisibility,
+      projectContent,
+      sharedViewerComposition,
+    ],
+  )
+  const activeDraftProjectViewerParts = useMemo(
+    () =>
+      applyActiveDraftExtrudePreviewOverride({
+        graphDocumentsById,
+        preferredGraphDocumentId: viewerTargetGraphDocumentId,
+        renderedParts: renderedProjectPartSet.parts,
+        viewerParts: renderedProjectPartSet.viewerParts,
+        sketchPlanePickSession,
+      }),
+    [
+      graphDocumentsById,
+      renderedProjectPartSet.parts,
+      renderedProjectPartSet.viewerParts,
+      sketchPlanePickSession,
+      viewerTargetGraphDocumentId,
+    ],
+  )
+  const currentProjectGraphDocumentIds = useMemo(
+    () =>
+      currentProject.graphDocuments
+        .map((document) => document.graphDocumentId)
+        .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined),
+    [currentProject.graphDocuments, graphDocumentsById],
+  )
+  const viewportResultState = useMemo(
+    () =>
+      selectViewportResultState({
+        requestedMode: viewportResultMode,
+        modeBehavior: viewportResultModeBehavior,
+        acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
+        acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
+        acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
+        previewPreparation: viewerTargetPreviewPreparation,
+        viewerTargetGraphDocumentId,
+        suppressViewerTargetArtifactPreview:
+          viewerTargetGraphDocumentId !== null &&
+          selectShouldSuppressBrowserGraphRuntimeOutput(
+            {
+              currentProject,
+              projectContent,
+              browserGraphBuildPolicyByGraphDocumentId,
+              browserContentBuildPolicyByRowId,
+            },
+            viewerTargetGraphDocumentId,
+          ),
+        useProjectDraftPreview:
+          sharedViewerComposition !== null || currentProjectGraphDocumentIds.length > 0,
+        activeDraftProjectViewerParts,
+      }),
+    [
+      activeDraftProjectViewerParts,
+      browserContentBuildPolicyByRowId,
+      browserGraphBuildPolicyByGraphDocumentId,
+      currentProject,
+      currentProjectGraphDocumentIds.length,
+      projectContent,
+      sharedViewerComposition,
+      viewerTargetBuildOutputs,
+      viewerTargetGeometryResult,
+      viewerTargetGraphDocumentId,
+      viewerTargetPreviewGeometryResult,
+      viewerTargetPreviewPreparation,
+      viewportResultMode,
+      viewportResultModeBehavior,
+    ],
+  )
+  const viewportResultStatus = useMemo(
+    () => selectViewportResultStatus(viewportResultState),
+    [viewportResultState],
+  )
   const resizeStateRef = useRef({
     active: false,
     pointerId: -1,
@@ -4271,6 +4403,12 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         </div>
       ) : null}
       <div className="ViewportOverlayWidget ViewportHud" style={viewportHudStyle}>
+        <span
+          className="HudLine ViewportHudResultStatus"
+          data-viewport-result-status-kind={viewportResultStatus.kind}
+        >
+          Geometry: {viewportResultStatus.label}
+        </span>
         <span className="HudLine">Mode: {overlayModeLabel}</span>
         <span className="HudLine">
           Selected: {selectedPartKey === null ? 'none' : selectedPartKey}

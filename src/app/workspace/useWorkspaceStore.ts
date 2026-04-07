@@ -43,6 +43,7 @@ import {
   type WorkspaceViewportSlotId,
   type WorkspaceViewportChromeState,
   type WorkspaceViewportLocalViewState,
+  type WorkspaceViewportResultMode,
   type WorkspaceViewportId,
   type WorkspaceSplitMenuState,
   type WorkspaceSurfacePlacementState,
@@ -52,6 +53,7 @@ import {
   resolveWorkspaceSplitDirectionForDockSide,
   type WorkspaceSplitDockSide,
 } from './workspaceSplitTypes'
+import { resolveWorkspaceViewportResultModeBehavior } from './workspaceViewportResultMode'
 
 type WorkspaceStoreState = {
   leftDockWidth: number
@@ -162,6 +164,10 @@ type WorkspaceStoreState = {
   hydratePersistedWorkspaceLayout: (layout: PersistedWorkspaceLayout) => void
   setActiveViewerViewportId: (viewportId: WorkspaceViewportId) => void
   ensureViewportChrome: (viewportId: WorkspaceViewportId) => void
+  setViewportResultMode: (
+    viewportId: WorkspaceViewportId,
+    viewportResultMode: WorkspaceViewportResultMode,
+  ) => void
   setViewportLocalViewState: (
     viewportId: WorkspaceViewportId,
     patch: Partial<WorkspaceViewportLocalViewState>,
@@ -219,6 +225,7 @@ const createInitialState = (): Omit<
   | 'hydratePersistedWorkspaceLayout'
   | 'setActiveViewerViewportId'
   | 'ensureViewportChrome'
+  | 'setViewportResultMode'
   | 'setViewportLocalViewState'
   | 'ensureEditorSurfacePlacement'
   | 'setEditorSurfaceBinding'
@@ -1402,6 +1409,25 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
       }
     })
   },
+  setViewportResultMode: (viewportId, viewportResultMode) => {
+    set((state) => {
+      const currentChrome =
+        state.viewportChromeById[viewportId] ?? createDefaultWorkspaceViewportChromeState(viewportId)
+      return {
+        viewportChromeById: {
+          ...state.viewportChromeById,
+          [viewportId]: {
+            ...currentChrome,
+            localViewState: {
+              ...createDefaultWorkspaceViewportLocalViewState(),
+              ...currentChrome.localViewState,
+              viewportResultMode,
+            },
+          },
+        },
+      }
+    })
+  },
   setViewportLocalViewState: (viewportId, patch) => {
     set((state) => {
       const currentChrome =
@@ -1485,3 +1511,27 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
     })
   },
 }))
+
+type WorkspaceViewportModeState = Pick<
+  WorkspaceStoreState,
+  'activeViewerViewportId' | 'viewportChromeById'
+>
+
+export const selectViewportResultModeById = (
+  state: WorkspaceViewportModeState,
+  viewportId: WorkspaceViewportId,
+): WorkspaceViewportResultMode =>
+  state.viewportChromeById[viewportId]?.localViewState?.viewportResultMode ?? 'auto'
+
+export const selectActiveViewportResultMode = (
+  state: WorkspaceViewportModeState,
+): WorkspaceViewportResultMode =>
+  selectViewportResultModeById(state, state.activeViewerViewportId)
+
+export const selectViewportResultModeBehaviorById = (
+  state: WorkspaceViewportModeState,
+  viewportId: WorkspaceViewportId,
+) => resolveWorkspaceViewportResultModeBehavior(selectViewportResultModeById(state, viewportId))
+
+export const selectActiveViewportResultModeBehavior = (state: WorkspaceViewportModeState) =>
+  resolveWorkspaceViewportResultModeBehavior(selectActiveViewportResultMode(state))

@@ -275,12 +275,16 @@ describe('compileSpaghettiGraph determinism', () => {
           {
             area: 450,
             profileId: 'cube-profile-1',
-            vertices: [
+            profileIndex: 0,
+            loop: expect.objectContaining({
+              segments: expect.any(Array),
+              winding: 'CCW',
+            }),
+            verticesProxy: [
               { x: 0, y: 0 },
               { x: 30, y: 0 },
               { x: 30, y: 15 },
               { x: 0, y: 15 },
-              { x: 0, y: 0 },
             ],
           },
         ],
@@ -291,6 +295,7 @@ describe('compileSpaghettiGraph determinism', () => {
         profileRef: {
           sketchFeatureId: 'cube-sketch-1',
           profileId: 'cube-profile-1',
+          profileIndex: 0,
         },
         extrudeType: 'Body',
         depthResolved: 25,
@@ -418,12 +423,16 @@ describe('compileSpaghettiGraph determinism', () => {
           {
             area: 240,
             profileId: 'cube-profile-1',
-            vertices: [
+            profileIndex: 0,
+            loop: expect.objectContaining({
+              segments: expect.any(Array),
+              winding: 'CCW',
+            }),
+            verticesProxy: [
               { x: 0, y: 0 },
               { x: 20, y: 0 },
               { x: 20, y: 12 },
               { x: 0, y: 12 },
-              { x: 0, y: 0 },
             ],
           },
         ],
@@ -434,6 +443,7 @@ describe('compileSpaghettiGraph determinism', () => {
         profileRef: {
           sketchFeatureId: 'cube-sketch-1',
           profileId: 'cube-profile-1',
+          profileIndex: 0,
         },
         extrudeType: 'Body',
         depthResolved: 20,
@@ -887,7 +897,7 @@ describe('compileSpaghettiGraph determinism', () => {
               profilesResolved?: Array<{
                 profileId: string
                 area: number
-                vertices: Array<{ x: number; y: number }>
+                verticesProxy: Array<{ x: number; y: number }>
               }>
             }>
           >
@@ -904,7 +914,7 @@ describe('compileSpaghettiGraph determinism', () => {
 
     const sketchOp = baseplateOps.find((operation) => operation.op === 'sketch')
     expect(sketchOp?.profilesResolved?.length ?? 0).toBeGreaterThan(0)
-    const vertices = sketchOp?.profilesResolved?.[0]?.vertices ?? []
+    const vertices = sketchOp?.profilesResolved?.[0]?.verticesProxy ?? []
     expect(vertices.length).toBeGreaterThan(2)
     expect(signedAreaOpenLoop(vertices)).toBeGreaterThanOrEqual(0)
   })
@@ -1045,14 +1055,18 @@ describe('compileSpaghettiGraph determinism', () => {
           {
             profileId: expect.any(String),
             area: 600,
-            vertices: [
+            profileIndex: 0,
+            loop: expect.objectContaining({
+              segments: expect.any(Array),
+              winding: 'CCW',
+            }),
+            verticesProxy: [
               { x: 0, y: 0 },
               { x: 40, y: 0 },
               { x: 40, y: 10 },
               { x: 20, y: 10 },
               { x: 20, y: 20 },
               { x: 0, y: 20 },
-              { x: 0, y: 0 },
             ],
           },
         ],
@@ -1063,6 +1077,7 @@ describe('compileSpaghettiGraph determinism', () => {
         profileRef: {
           sketchFeatureId: 'n-sketch',
           profileId: expect.any(String),
+          profileIndex: 0,
         },
         extrudeType: 'Body',
         extrudeDirection: 'OneSide',
@@ -1074,6 +1089,101 @@ describe('compileSpaghettiGraph determinism', () => {
         bodyId: 'n-extrude:body',
       },
     ])
+  })
+
+  it('preserves authored Geometry/Extrude taper in the shared geometry request payload', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'line-1',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 0 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'line-2',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 10 },
+                },
+                {
+                  rowId: 'row-3',
+                  componentId: 'line-3',
+                  type: 'line',
+                  a: { kind: 'lit', x: 20, y: 10 },
+                  b: { kind: 'lit', x: 0, y: 10 },
+                },
+                {
+                  rowId: 'row-4',
+                  componentId: 'line-4',
+                  type: 'line',
+                  a: { kind: 'lit', x: 0, y: 10 },
+                  b: { kind: 'lit', x: 0, y: 0 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            depthMm: 12,
+            taperAngleDeg: 4.5,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    expect(evaluation.ok).toBe(true)
+
+    const result = computeFeatureStackIrParts(graph, {
+      resolvedInputsByNodeId: evaluation.inputsByNodeId,
+    })
+    expect(result.warnings).toEqual([])
+
+    const extrudeOp = result.parts.extrude?.find((operation) => operation.op === 'extrude') as
+      | {
+          op: 'extrude'
+          taperResolved: number
+        }
+      | undefined
+
+    expect(extrudeOp?.taperResolved).toBe(4.5)
   })
 
   it('keeps Geometry/Extrude walls type in the graph-native runtime IR payload', () => {

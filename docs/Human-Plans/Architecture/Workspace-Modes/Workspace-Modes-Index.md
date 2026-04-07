@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+88. 2026-04-06 11:36: Added the new workspace-family home `Workspaces/Model-Viewport/Model-Viewport-Index.md`, created its first `Model-Viewport 1` future phase doc around the geometry-execution reset plus preview-policy direction, and refreshed this workspace umbrella so `Model Viewport` now has its own dedicated planning home for the draft-preview versus authoritative-geometry overhaul
 87. 2026-04-03 19:38: Promoted `Dashboard` out of `Wish-Features` into the real workspace-family roadmap by adding `Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding.md`, grounding its first `Phase 0` read in the live `Workspace 7.x` surface seams, and refreshing this workspace-family index so the new surface-onboarding lane now sits beside the other active future workspace docs
 86. 2026-04-01 08:35: Added the native `Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity` follow-on under `Workspace-Modes/Future/`, refreshed the `Workspace 7.5` family read so the next multi-editor-shell task now has its own dedicated planning surface instead of hiding only inside `7.5-4`, and kept the workspace-family ladder honest by separating shell-parity cleanup from the later multi-editor surface parity lane
 85. 2026-04-01 02:03: Added the native `Workspace 7.5-4 - Browser And Spaghetti Shell Parity Cleanup` follow-on under `Workspace-Modes/Future/`, refreshed the `Workspace 7.5` family read so the contract-extraction, split-truth migration, and host-adapter retirement work now hand forward into one explicit parity-cleanup plus carry-forward lane, and kept the workspace-family ladder honest by giving the later Browser-versus-Spaghetti cleanup one visible home
@@ -951,6 +952,12 @@ The right mental model is:
   - `Reference Workspace / Comparison`
   - collaboration-facing surfaces such as `Server Browser` or room/session views
   - browser-window `Pop-Out` hosting of supported surfaces
+
+## Workspace-Specific Planning Homes
+
+- `Model Viewport`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+  - dedicated home for the geometry-execution, preview-policy, and authoritative-geometry handoff direction that is too large to keep only inside the umbrella workspace-family doc
 
 
 ## Phases

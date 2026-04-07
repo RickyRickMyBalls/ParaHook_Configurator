@@ -36,31 +36,30 @@ import {
   commitWorkspaceTargetSelection,
 } from '../store/workspaceSelectionCommands'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
-import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
+import {
+  selectViewportResultModeById,
+  useWorkspaceStore,
+} from '../workspace/useWorkspaceStore'
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
+import { resolveWorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
 import { applyActiveDraftExtrudePreviewOverride } from './activeDraftExtrudePreview'
 import {
   selectSharedViewerComposition,
+  selectViewerTargetGraphAcceptedGeometryResult,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
+  selectViewerTargetGraphAcceptedPreviewGeometryResult,
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import type { SketchFeature } from '../spaghetti/features/featureTypes'
-import {
-  selectPreviewRenderVmFromPreparation,
-  type PreviewRenderVm,
-} from '../spaghetti/selectors/selectPreviewRenderVm'
+import { type PreviewRenderVm } from '../spaghetti/selectors/selectPreviewRenderVm'
+import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
 import {
   evaluateReferenceTimelineChannelValue,
   evaluateReferenceTransformOverrideWithTimelines,
   getReferenceTimelineDefaultRange,
   type ReferenceTimelineChannelKey,
 } from '../references/referenceTimeline'
-
-const EMPTY_PREVIEW_LIST: PreviewRenderVm = {
-  items: [],
-  viewerParts: [],
-}
 
 const scaleSnapValuesFromDriver = (
   values: { x: number; y: number; z: number },
@@ -115,9 +114,6 @@ const buildReferenceTransformIdentity = () => ({
   rotationDeg: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
 })
-
-const qualifyViewerKey = (graphDocumentId: string, viewerKey: string): string =>
-  `${graphDocumentId}:${viewerKey}`
 
 const buildViewerTransformHistoryOverlayVm = (
   target: ViewerTransformTarget,
@@ -205,11 +201,18 @@ export function ViewerHost(props: ViewerHostProps) {
   const geometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
+  const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
+  const viewerTargetPreviewGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  )
   const globalView = useUiPrefsStore((state) => state.view)
   const viewportLocalViewState = useWorkspaceStore(
     (state) => state.viewportChromeById[viewportId]?.localViewState ?? null,
+  )
+  const viewportResultMode = useWorkspaceStore((state) =>
+    selectViewportResultModeById(state, viewportId),
   )
   const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarGhostPlaneScale,
@@ -270,6 +273,11 @@ export function ViewerHost(props: ViewerHostProps) {
     [globalView, viewportId, viewportLocalViewState],
   )
 
+  const viewportResultModeBehavior = useMemo(
+    () => resolveWorkspaceViewportResultModeBehavior(viewportResultMode),
+    [viewportResultMode],
+  )
+
   const renderedProjectPartSet = useMemo(
     () =>
       selectRenderedProjectPartSet({
@@ -312,29 +320,26 @@ export function ViewerHost(props: ViewerHostProps) {
     ],
   )
 
-  const previewList = useMemo(
-    () => {
-      if (sharedViewerComposition !== null) {
-        return {
-          items: [],
-          viewerParts: activeDraftProjectViewerParts,
-        }
-      }
-      const currentProjectGraphDocumentIds = currentProject.graphDocuments
+  const currentProjectGraphDocumentIds = useMemo(
+    () =>
+      currentProject.graphDocuments
         .map((document) => document.graphDocumentId)
-        .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined)
-      if (currentProjectGraphDocumentIds.length > 0) {
-        return {
-          items: [],
-          viewerParts: activeDraftProjectViewerParts,
-        }
-      }
-      if (viewerTargetPreviewPreparation === null) {
-        return EMPTY_PREVIEW_LIST
-      }
-      const previewVm = selectPreviewRenderVmFromPreparation(
-        viewerTargetPreviewPreparation,
-        viewerTargetGraphDocumentId !== null &&
+        .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined),
+    [currentProject.graphDocuments, graphDocumentsById],
+  )
+
+  const viewportResultState = useMemo(
+    () =>
+      selectViewportResultState({
+        requestedMode: viewportResultMode,
+        modeBehavior: viewportResultModeBehavior,
+        acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
+        acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
+        acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
+        previewPreparation: viewerTargetPreviewPreparation,
+        viewerTargetGraphDocumentId,
+        suppressViewerTargetArtifactPreview:
+          viewerTargetGraphDocumentId !== null &&
           selectShouldSuppressBrowserGraphRuntimeOutput(
             {
               currentProject,
@@ -343,46 +348,30 @@ export function ViewerHost(props: ViewerHostProps) {
               browserContentBuildPolicyByRowId,
             },
             viewerTargetGraphDocumentId,
-          )
-          ? []
-          : viewerTargetBuildOutputs,
-      )
-      if (viewerTargetGraphDocumentId === null) {
-        return previewVm
-      }
-      return {
-        items: previewVm.items.map((item) => {
-          const viewerKey = qualifyViewerKey(viewerTargetGraphDocumentId, item.viewerKey)
-          return {
-            ...item,
-            viewerKey,
-            viewerPart:
-              item.viewerPart === null
-                ? null
-                : {
-                    ...item.viewerPart,
-                    viewerKey,
-                  },
-          }
-        }),
-        viewerParts: previewVm.viewerParts.map((viewerPart) => ({
-          ...viewerPart,
-          viewerKey: qualifyViewerKey(viewerTargetGraphDocumentId, viewerPart.viewerKey),
-        })),
-      }
-    },
+          ),
+        useProjectDraftPreview:
+          sharedViewerComposition !== null || currentProjectGraphDocumentIds.length > 0,
+        activeDraftProjectViewerParts,
+      }),
     [
-      currentProject,
-      graphDocumentsById,
-      graphRuntimeByDocumentId,
       activeDraftProjectViewerParts,
-      renderedProjectPartSet,
+      browserContentBuildPolicyByRowId,
+      browserGraphBuildPolicyByGraphDocumentId,
+      currentProject,
+      currentProjectGraphDocumentIds.length,
+      projectContent,
       sharedViewerComposition,
-      viewerTargetGraphDocumentId,
       viewerTargetBuildOutputs,
+      viewerTargetGeometryResult,
+      viewerTargetGraphDocumentId,
+      viewerTargetPreviewGeometryResult,
       viewerTargetPreviewPreparation,
+      viewportResultMode,
+      viewportResultModeBehavior,
     ],
   )
+
+  const renderList: PreviewRenderVm = viewportResultState.renderVm
 
   const projectContentRows = useMemo(
     () =>
@@ -420,7 +409,7 @@ export function ViewerHost(props: ViewerHostProps) {
       (typeof projectContentRows)[number],
       { kind: 'assembly' | 'component' | 'object' }
     >
-    const activeViewerPartKeys = new Set(previewList.viewerParts.map((part) => part.viewerKey))
+    const activeViewerPartKeys = new Set(renderList.viewerParts.map((part) => part.viewerKey))
     const filterActiveKeys = (keys: readonly string[]) =>
       keys.filter((key) => activeViewerPartKeys.has(key))
 
@@ -458,7 +447,7 @@ export function ViewerHost(props: ViewerHostProps) {
     }
     return selectedPartKey === null ? [] : filterActiveKeys([selectedPartKey])
   }, [
-    previewList.viewerParts,
+    renderList.viewerParts,
     projectContentRows,
     selectedPartKey,
     workspaceResolvedContentSelection,
@@ -897,10 +886,10 @@ export function ViewerHost(props: ViewerHostProps) {
       return
     }
 
-    viewer.setParts(previewList.viewerParts, partsVisibility, selectedPartKey)
+    viewer.setParts(renderList.viewerParts, partsVisibility, selectedPartKey)
   }, [
     partsVisibility,
-    previewList,
+    renderList,
     selectedPartKey,
   ])
 

@@ -6235,6 +6235,62 @@ describe('AppShell', () => {
     expect(modeButton?.textContent).toBe('-')
   })
 
+  it('uses the model viewport header button as an A D F result-mode control', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const slotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === 'workspace-slot-primary' &&
+        element.getAttribute('data-workspace-surface-kind') === 'modelViewer',
+    ) as HTMLDivElement | undefined
+    const modeButton = slotFrame?.querySelector('.ViewportFrameModeButton') as HTMLButtonElement | null
+
+    expect(modeButton?.textContent).toBe('A')
+    expect(modeButton?.getAttribute('aria-label')).toBe(
+      'Model Viewport result mode: Auto. Click to switch to Draft.',
+    )
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewportResultMode,
+    ).toBe('auto')
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(modeButton?.textContent).toBe('D')
+    expect(modeButton?.getAttribute('aria-label')).toBe(
+      'Model Viewport result mode: Draft. Click to switch to Final.',
+    )
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewportResultMode,
+    ).toBe('draft')
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(modeButton?.textContent).toBe('F')
+    expect(modeButton?.getAttribute('aria-label')).toBe(
+      'Model Viewport result mode: Final. Click to switch to Auto.',
+    )
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewportResultMode,
+    ).toBe('final')
+
+    await act(async () => {
+      modeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(modeButton?.textContent).toBe('A')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewportResultMode,
+    ).toBe('auto')
+  })
+
   it('drags a slotted browser out from the viewport header into floating mode', async () => {
     ;({ container, root } = await renderAppShell())
 
