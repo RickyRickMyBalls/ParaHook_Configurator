@@ -1198,6 +1198,58 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
     })
   })
 
+  it('publishes one SolidBody when whole-port SketchProfiles drives aggregate extrude selection', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+              lineComponent('row-5', 'e5', { x: 140, y: 0 }, { x: 180, y: 0 }),
+              lineComponent('row-6', 'e6', { x: 180, y: 0 }, { x: 180, y: 40 }),
+              lineComponent('row-7', 'e7', { x: 180, y: 40 }, { x: 140, y: 40 }),
+              lineComponent('row-8', 'e8', { x: 140, y: 40 }, { x: 140, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profiles',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodyId: 'n-extrude:body',
+    })
+  })
+
   it('publishes null SolidBody when the selected profile input is missing', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,

@@ -252,6 +252,8 @@ export type ExtrudeNodeVm = {
   taperVisible: boolean
   taperDriven?: boolean
   hasProfile: boolean
+  profileTargetMode?: 'single' | 'allFromSketch'
+  profileCount?: number
   profileId?: string
   profileArea?: number
   bodyId?: string
@@ -670,6 +672,51 @@ const buildNodeVm = (
           : localTaperAngleDeg
       const profileInput = evaluation.inputsByNodeId[node.nodeId]?.ExtrusionProfile
       const profileOutput = evaluation.outputsByNodeId[node.nodeId]?.SolidBody
+      const wholeIncomingForProfile = incoming.filter(
+        (edge) =>
+          edge.to.portId === 'ExtrusionProfile' &&
+          (edge.to.path === undefined || edge.to.path.length === 0),
+      )
+      const resolvedSingleProfile = isProfileOutputLike(profileInput) ? profileInput : null
+      const aggregateProfileSourceNodeId = wholeIncomingForProfile.find(
+        (edge) =>
+          edge.from.portId === 'SketchProfiles' &&
+          (edge.from.path === undefined || edge.from.path.length === 0),
+      )?.from.nodeId
+      const aggregateProfilesFromSource =
+        aggregateProfileSourceNodeId === undefined
+          ? null
+          : evaluation.outputsByNodeId[aggregateProfileSourceNodeId]?.SketchProfiles
+      const resolvedAggregateProfiles = isSketchProfilesLike(profileInput)
+        ? profileInput
+        : isSketchProfilesLike(aggregateProfilesFromSource)
+          ? aggregateProfilesFromSource
+          : null
+      const aggregateProfileWired = wholeIncomingForProfile.some(
+        (edge) =>
+          edge.from.portId === 'SketchProfiles' &&
+          (edge.from.path === undefined || edge.from.path.length === 0),
+      )
+      const singleProfileWired = wholeIncomingForProfile.some(
+        (edge) =>
+          edge.from.portId === 'SketchProfile' &&
+          (edge.from.path === undefined || edge.from.path.length === 0),
+      )
+      const profileTargetMode =
+        resolvedAggregateProfiles !== null || aggregateProfileWired
+          ? 'allFromSketch'
+          : resolvedSingleProfile !== null || singleProfileWired
+            ? 'single'
+            : undefined
+      const profileCount =
+        resolvedAggregateProfiles !== null
+          ? resolvedAggregateProfiles.length
+          : resolvedSingleProfile !== null
+            ? 1
+            : 0
+      const hasResolvedProfileTarget =
+        resolvedSingleProfile !== null ||
+        (resolvedAggregateProfiles !== null && resolvedAggregateProfiles.length > 0)
       const wholeIncomingForDepth = incoming.filter(
         (edge) =>
           edge.to.portId === 'Depth' &&
@@ -713,11 +760,13 @@ const buildNodeVm = (
         effectiveTaperAngleDeg,
         taperVisible: effectiveType === 'Body' && effectiveDirection === 'OneSide',
         taperDriven: wholeIncomingForTaperAngle.length > 0,
-        hasProfile: isProfileOutputLike(profileInput),
-        ...(isProfileOutputLike(profileInput)
+        hasProfile: hasResolvedProfileTarget,
+        ...(profileTargetMode !== undefined ? { profileTargetMode } : {}),
+        ...(profileCount > 0 ? { profileCount } : {}),
+        ...(resolvedSingleProfile !== null
           ? {
-              profileId: profileInput.profileId,
-              profileArea: profileInput.area,
+              profileId: resolvedSingleProfile.profileId,
+              profileArea: resolvedSingleProfile.area,
             }
           : {}),
         ...(

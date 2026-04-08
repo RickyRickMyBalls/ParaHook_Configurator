@@ -33,6 +33,11 @@ const resolvedProfileRef = (sketchFeatureId: string, profileId: string) => ({
   profileIndex: 0,
 })
 
+const profileSelectionAllFromSketch = (sketchFeatureId: string) => ({
+  mode: 'allFromSketch' as const,
+  sketchFeatureId,
+})
+
 const cubeCompiledBuildData = (): CompiledBuildData => ({
   orderedPartKeys: ['cube'],
   resolvedParts: {},
@@ -55,6 +60,48 @@ const cubeCompiledBuildData = (): CompiledBuildData => ({
             taperResolved: 0,
             offsetResolved: 0,
             bodyId: 'cube-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const aggregateCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['aggregate'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        aggregate: [
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-1',
+            profilesResolved: [
+              resolvedProfile('aggregate-profile-1', 400),
+              {
+                ...resolvedProfile('aggregate-profile-2', 100),
+                verticesProxy: [
+                  { x: 30, y: 0 },
+                  { x: 40, y: 0 },
+                  { x: 40, y: 10 },
+                  { x: 30, y: 10 },
+                ],
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'aggregate-extrude-1',
+            profileSelection: profileSelectionAllFromSketch('aggregate-sketch-1'),
+            profileRef: null,
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'aggregate-body-1',
           },
         ],
       },
@@ -122,6 +169,37 @@ describe('buildModel retained geometry result contract', () => {
         }),
       ]),
     )
+  })
+
+  it('keeps aggregate closed-profile extrude ownership on one draft body and one mesh artifact', async () => {
+    const result = await buildModelResult({
+      compiledBuildData: aggregateCompiledBuildData(),
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'draft_preview',
+      },
+      requestIdentity: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-aggregate',
+      },
+    })
+
+    expect(Object.keys(result.draftGeometryResult?.bodies ?? {})).toEqual([
+      'aggregate:aggregate-body-1',
+    ])
+    expect(result.draftGeometryResult?.bodies['aggregate:aggregate-body-1']).toEqual(
+      expect.objectContaining({
+        kind: 'aggregate_extrusion',
+        bodyId: 'aggregate-body-1',
+        featureId: 'aggregate-extrude-1',
+      }),
+    )
+    expect(result.parts).toEqual([
+      expect.objectContaining({
+        partKeyStr: 'aggregate',
+        kind: 'mesh',
+      }),
+    ])
   })
 
   it('routes authoritative requests through the worker-owned authoritative adapter seam', async () => {

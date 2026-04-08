@@ -18,7 +18,7 @@ So the next work should be:
 Immediate implementation target.
 
 ### Key changes
-- Patch the global `window` `pointerdown` clear logic in [AppShell.tsx](./src/app/AppShell.tsx) so split and floating spaghetti interactions are treated as in-bounds workspace clicks, not outside clicks.
+- Patch the global `window` `pointerdown` clear logic in `src/app/AppShell.tsx` so split and floating spaghetti interactions are treated as in-bounds workspace clicks, not outside clicks.
 - Expand the allowlist used by that global handler to include the actual workspace frame and slot surface classes used by split-host spaghetti, not just viewer and floating-window selectors.
 - Keep `Phase 2C` frame-level spaghetti activation intact; `2D` must only stop the later clear from undoing that valid focus.
 - Do not change `ConsoleDock` precedence again in this slice unless the global clear trace proves the replay is not coming from `AppShell`.
@@ -55,7 +55,7 @@ Implementation direction:
 
 ## Test plan
 ### Immediate 2D coverage
-- Extend the real-console repro in [AppShell.consoleLiveFocus.test.tsx](./src/app/AppShell.consoleLiveFocus.test.tsx) so it proves:
+- Extend the real-console repro in `src/app/AppShell.consoleLiveFocus.test.tsx` so it proves:
   - valid spaghetti graph focus lands
   - no later `Returned to root` appears for the same click
 - Add focused AppShell coverage that exercises:

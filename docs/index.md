@@ -114,7 +114,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Browser architecture, shipped cleanup ladder, and open follow-ons.
 
-  [Open Browser](Human-Plans/Architecture/Browser/Browser-Index.md)
+  [Open Browser](Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md)
 
 - __Console__
 
@@ -122,7 +122,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Console command architecture, staged grammar, and workspace command flow.
 
-  [Open Console](Human-Plans/Architecture/Console/Console.md)
+  [Open Console](Human-Plans/Architecture/Workspace-Modes/Workspaces/Console/Console-Index.md)
 
 - __Spaghetti Editor__
 
@@ -130,7 +130,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Main Spaghetti workspace index and umbrella editor direction.
 
-  [Open Spaghetti Editor](Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md)
+  [Open Spaghetti Editor](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md)
 
 - __Nodes__
 
@@ -138,7 +138,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Shared node-family entry point for sketch, extrude, graph growth, and the new `Nodes-1` template-foundation lane.
 
-  [Open Nodes](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md)
+  [Open Nodes](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md)
 
 - __Transform__
 
@@ -162,7 +162,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Layer architecture direction and the current future execution ladder.
 
-  [Open Layers](Human-Plans/Architecture/Layers/Layers-index.md)
+  [Open Layers](Human-Plans/Architecture/Workspace-Modes/Workspaces/Layers/Layers-index.md)
 
 - __Export__
 
@@ -170,7 +170,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Export family entry point for the toolbar and format surface direction.
 
-  [Open Export](Human-Plans/Architecture/Export/Export-Index.md)
+  [Open Export](Human-Plans/Architecture/Workspace-Modes/Workspaces/Export/Export-Index.md)
 
 </div>
 
@@ -238,7 +238,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Current sketch-family architecture and execution ladder.
 
-  [Open Sketch](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md)
+  [Open Sketch](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index.md)
 
 - __Extrude__
 
@@ -246,23 +246,23 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Extrude-family index plus the landed authored-placement repair read, the later contract-cleanup follow-on, and the new node-enrichment toolbar phase.
 
-  [Open Extrude](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md)
+  [Open Extrude](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md)
 
-  [Extrude-1A](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md)
+  [Extrude-1A](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md)
 
-  [Extrude-1B](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md)
+  [Extrude-1B](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence.md)
 
-  [Extrude-2](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md)
+  [Extrude-2](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md)
 
-  [Extrude-2.1](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md)
+  [Extrude-2.1](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md)
 
-  [Extrude-3](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md)
+  [Extrude-3](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md)
 
-  [Extrude-3.1](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md)
+  [Extrude-3.1](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.1 - Enum Input Row And Type Selector.md)
 
-  [Extrude-3.2](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md)
+  [Extrude-3.2](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md)
 
-  [Extrude-3.3](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md)
+  [Extrude-3.3](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-3.3 - Direction Modes And Depth Row Contract.md)
 
 - __Camera Controls__
 
@@ -286,7 +286,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   History and timeline concept umbrella for the wider graph workflow.
 
-  [Open Build Path](Human-Plans/Architecture/Build-Path/Build-Path-Index.md)
+  [Open Build Path](Human-Plans/Architecture/Workspace-Modes/Workspaces/Build-Path/Build-Path-Index.md)
 
 - __Engine Architecture__
 
@@ -310,7 +310,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 
   Umbrella entry point for the broader Spaghetti editor family.
 
-  [Open Master Spaghetti](Human-Plans/Architecture/Spaghetti-Editor-Arch/master%20spaghetti-index.md)
+  [Open Master Spaghetti](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md)
 
 </div>
 
@@ -320,7 +320,7 @@ This page is meant to feel like a launcher, not a raw repo dump.
 - [Main Roadmap](Human-Plans/roadmap/roadmap.md)
 - [Architecture Roadmap](Human-Plans/roadmap/Architecture-roadmap.md)
 - [Vision Roadmap](Human-Plans/roadmap/Vision-roadmap.md)
-- [Nodes Index](Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md)
+- [Nodes Index](Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md)
 - [System Map](Human-Plans/Architecture/System-Map.md)
 - [Bug Report](Bugs/0_Bug_Report.md)
 - [DOC Phase Family](Phase-Plans/14_DOC%20-%20Phase-Plans.md)

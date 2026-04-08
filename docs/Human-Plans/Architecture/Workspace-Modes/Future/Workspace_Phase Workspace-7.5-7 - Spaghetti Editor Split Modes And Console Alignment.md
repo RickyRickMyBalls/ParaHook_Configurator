@@ -67,7 +67,7 @@ It exists because `Spaghetti Editor` split behavior is still carrying too much a
 Before polishing ghost previews, presentation controls, popout, or visual parity, we should first define what split mode actually means and how the console is supposed to follow it.
 
 Report-back note:
-- the narrower live-repair execution in [Workspace_Phase Workspace-7.5-7A - Split Spaghetti Console Live Focus Repair.md](./docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Phase%20Workspace-7.5-7A%20-%20Split%20Spaghetti%20Console%20Live%20Focus%20Repair.md) has now landed and been folded back here
+- the narrower live-repair execution in [Workspace_Phase Workspace-7.5-7A - Split Spaghetti Console Live Focus Repair.md](./Workspace_Phase%20Workspace-7.5-7A%20-%20Split%20Spaghetti%20Console%20Live%20Focus%20Repair.md) has now landed and been folded back here
 - that follow-up resolved the main floating-to-split spaghetti console loop by fixing late root replay, restoring split-click publisher reliability after dock or split, tightening AppShell clear-source handling, and deduping hosted spaghetti activation noise
 - the narrower Browser rollout in `Phase 2F` has now landed too, so the remaining work here is no longer console-context migration drift; it is whether any later `7.5.x` cleanup still needs a separate follow-on phase outside this ladder
 

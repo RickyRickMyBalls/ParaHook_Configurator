@@ -3,6 +3,22 @@
 ## Doc Header
 
 ### Doc History
+64. 2026-04-08 08:33: Added `Extrude-5 - Output Row Standardization And UI Cleanup` to this family index as the next dedicated node-surface cleanup lane, locking that the current `SolidBody` output should be rebuilt around the shared standardized output-row template instead of staying a one-off custom block while the broader all-node rollout can follow later
+63. 2026-04-08 08:26: Marked `Extrude 4 Phase 3C - Focused Verification And Failure Matrix Hardening` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`, then cleaned that child doc plus this family index into a closed shipped-lane read so `Extrude-4` no longer points at stale open `3B/3C` handoff text
+62. 2026-04-08 08:06: Tightened `Extrude 4 Phase 3C - Focused Verification And Failure Matrix Hardening` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the current aggregate compile, draft-runtime, and authoritative-runtime tests, and by locking the remaining work to deterministic ordering plus failure-honesty alignment rather than reopening visible copy or execution semantics
+61. 2026-04-08 08:03: Marked `Extrude 4 Phase 3B - Node Toolbar And Result Copy Honesty` shipped after the visible `Geometry/Extrude` surface stopped claiming aggregate `SketchProfiles` is not executable, the selector-owned extrude VM gained aggregate-aware target-summary state, and the feature-style extrude summaries adopted `Profile Target` wording before the family handoff advances to `Phase 3C - Focused Verification And Failure Matrix Hardening`
+60. 2026-04-08 07:45: Tightened `Extrude 4 Phase 3B - Node Toolbar And Result Copy Honesty` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the stale singular-only `Geometry/Extrude` node copy still living in `NodeView.tsx`, the still-singular feature-panel summary in `ExtrudeFeatureView.tsx`, and the selector-owned summary seam in `selectNodeVm.ts`, while locking that pass to visible honesty only so aggregate closed-profile execution now reads truthfully without reopening runtime or result-ownership work
+59. 2026-04-08 07:42: Marked `Extrude 4 Phase 3A - SolidBody Result Ownership For Aggregate Consumption` shipped after the `Geometry/Extrude` `SolidBody` publish contract began accepting aggregate `SketchProfiles` input as one feature-owned result, the draft/runtime aggregate result kind became explicitly `aggregate_extrusion`, and focused graph plus retained-result tests proved aggregate execution still yields one output token and one retained body artifact before the family handoff advances to `Phase 3B - Node Toolbar And Result Copy Honesty`
+58. 2026-04-08 07:31: Tightened `Extrude 4 Phase 3A - SolidBody Result Ownership For Aggregate Consumption` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the already-live one-output `SolidBody` graph contract, the aggregate compile/runtime result seams, and the recommendation that one aggregate extrude feature should keep publishing one feature-owned result even when disconnected geometry exists underneath
+57. 2026-04-08 07:22: Marked `Extrude 4 Phase 2C - Worker Selection Resolution And Failure Honesty` shipped after the worker draft/runtime and authoritative/runtime paths both began resolving explicit aggregate `allFromSketch` selection without hidden singular fallback, then refreshed the family handoff so the next extrude-owned follow-on inside `Extrude-4` is `Phase 3A - SolidBody Result Ownership For Aggregate Consumption`
+56. 2026-04-08 07:13: Tightened `Extrude 4 Phase 2C - Worker Selection Resolution And Failure Honesty` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the still-singular worker selection seams in `featureStackRuntime.ts` and `buildAuthoritativeGeometry.ts`, and by locking that both runtime paths should resolve the explicit aggregate branch honestly instead of falling back through legacy `profileRef`
+55. 2026-04-08 07:05: Marked `Extrude 4 Phase 2B - Compile Graph And Geometry Request Routing` shipped after whole-port `SketchProfiles -> ExtrusionProfile` wiring became the explicit aggregate compile lane, graph compilation began emitting `profileSelection.mode = 'allFromSketch'` while preserving sketch-derived profile order, and focused parity plus compile tests proved the aggregate branch stays explicit while the family handoff advances to `Extrude 4 Phase 2C - Worker Selection Resolution And Failure Honesty`
+54. 2026-04-08 06:52: Tightened `Extrude 4 Phase 2B - Compile Graph And Geometry Request Routing` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the shipped `profileSelection` payload, the still-rejected whole-port `SketchProfiles -> ExtrusionProfile` aggregate lane, and the recommendation that compile ownership should explicitly map parent whole-port wiring to `mode: 'allFromSketch'` while preserving deterministic sketch/profile order
+53. 2026-04-08 06:28: Marked `Extrude 4 Phase 2A - Explicit Aggregate Selection Payload Contract` shipped after the graph-to-worker extrude request contract gained the explicit `profileSelection` descriptor, both current emit paths began populating its singular branch while preserving the legacy `profileRef` runtime seam, and focused contract tests proved the new payload shape without widening aggregate execution yet
+52. 2026-04-07 21:57: Tightened `Extrude 4 Phase 2A - Explicit Aggregate Selection Payload Contract` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the live singular `profileRef` request boundary plus both current emit paths, and by locking the recommendation to add one explicit extrude-owned `profileSelection` descriptor before later compile routing and worker resolution widening
+51. 2026-04-07 21:43: Marked `Extrude 4 Phase 1 - Closed Profile Reference And Surface Contract` shipped after the live `Geometry/Extrude` surface stopped implying whole-port `SketchProfiles` aggregate execution, the visible profile-target copy now stays explicitly singular around `SketchProfile`, and focused validation coverage now keeps aggregate-to-singular wiring honest while the family handoff advances to `Extrude 4 Phase 2 - Compile And Runtime Selection Contract`
+50. 2026-04-07 21:33: Tightened `Extrude 4 Phase 1 - Closed Profile Reference And Surface Contract` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the live aggregate-versus-singular sketch outputs, the still-singular `Geometry/Extrude` input and `profileRef` compile/runtime contract, and the recommendation to lock authored parent-versus-child meaning first while deferring all-profiles execution to `Phase 2`
+49. 2026-04-07 18:44: Retired the stale open `Extrude-0 - Graph-Native Authoritative B-Rep Extrude Lowering` phase after the narrow worker-authoritative closed-profile `Body` path landed through the shipped `Sketch - 1` ladder, added the dedicated future phase `Extrude-4 - Closed Profile Selection And Consumption Contract`, and refreshed this family read so the next new extrude-owned lane is profile-selection and consumption ownership rather than pre-surface kernel groundwork
 48. 2026-04-07 16:54: Added `Extrude-0 - Graph-Native Authoritative B-Rep Extrude Lowering` to this family index as the new pre-surface foundation phase for replacing the current rectangle-only authoritative shortcut with worker-owned OpenCascade sketch-face to extruded-body lowering, while keeping raw kernel object ownership out of the `Geometry/Extrude` node/editor layer
 47. 2026-04-06 10:49: Marked `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` shipped after the graph-native `Geometry/Extrude` node began hiding `Taper Angle` outside the first honest `Body + OneSide` support set while preserving authored taper state non-destructively, then refreshed the family handoff so `Extrude 3.4 Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup` now reads as the next honest slice
 46. 2026-04-06 10:42: Tightened `Extrude 3.4 Phase 2 - Type-Aware And Direction-Aware Taper Visibility Rules` into an implementation-ready next slice by locking the first honest support set to `Body + OneSide`, choosing hidden-over-disabled behavior for unsupported combinations, and keeping the work scoped to selector plus `NodeView` visibility truth before any taper runtime widening
@@ -105,14 +121,21 @@ ParaHook should treat `Extrude` as a real authored solid-feature family, not jus
 
 The immediate authored-plane bug is now fixed well enough that `Sketch -> Extrude -> OutputPreview` can stay truthful in normal use.
 
+The repo now also has a first narrow authoritative closed-profile `Body` path for supported `Final` builds:
+- worker-owned sketch-loop-to-wire plus face construction
+- prism-style body lowering downstream from graph-authored truth
+- no longer rectangle-only as the sole authoritative success path
+
 The next real extrude work should center on:
-- first authoritative B-rep body lowering for general closed sketch profiles
+- closing the remaining `Extrude-3.4` taper/runtime honesty lane
+- keeping the now-shipped `Extrude-4` closed-profile consumption contract under regression coverage while later open-path or wider sketch-surface follow-ons stay separate
 - node enrichment and a dedicated extrude toolbar
 - graph-node versus feature-stack contract cleanup
 - making visible extrude parameters honest
 - keeping the node shell to `Inputs` plus `Outputs` instead of regrowing a `Details` section
 - removing the visible `Extrude Geometry` title and using that header area for one toolbar-open button
 - carrying the now-landed shared enum-row template from `Extrude Type` into the broader authored type/mode semantics
+- bringing the `SolidBody` output row onto the shared standardized output-row template so `Extrude` stops carrying a one-off output block
 - richer extent/body behavior
 - cleaner browser/console ownership
 
@@ -121,6 +144,8 @@ The current dedicated follow-on docs for that stack are:
 - `Extrude-3.1 - Enum Input Row And Type Selector`
 - `Extrude-3.2 - Real Type Modes Contract`
 - `Extrude-3.3 - Direction Modes And Depth Row Contract`
+- `Extrude-4 - Closed Profile Selection And Consumption Contract`
+- `Extrude-5 - Output Row Standardization And UI Cleanup`
 
 The current `Extrude-3.1` status is:
 - `Phase 3.1-1 - Shared Enum Row Foundation And First Extrude Adoption`
@@ -190,6 +215,22 @@ The current `Extrude-3.4` status is:
 The immediate next implementation-ready slice inside that taper lane now is:
 - `Extrude 3.4 Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup`
 
+The next separate extrude-owned contract lane after that now is:
+- `Extrude-4`
+- `Closed Profile Selection And Consumption Contract`
+
+The dedicated future doc for that lane now is:
+- `Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+
+That lane is now closed for the current shipped subset:
+- one selected child closed profile
+- the parent `SketchProfiles` aggregate as all closed profiles from the source sketch
+- future open-path, wall, or broader sketch-surface work should live in separate follow-on docs instead of reopening this lane
+
+The next dedicated extrude-owned UI cleanup lane after that now is:
+- `Extrude-5`
+- `Output Row Standardization And UI Cleanup`
+
 ### Core Naming Decisions
 
 Use these terms:
@@ -230,6 +271,7 @@ Right now the repo already has a meaningful first extrude seam:
 
 But the current system is still underdeveloped:
 - it is still the first honest extrude seam, not a finished feature family
+- the worker authoritative path now has one narrow real B-rep-backed closed-profile `Body` success lane, and the first honest parent-versus-child closed-profile consumption contract is now shipped for that subset, but wider open-path and later surface follow-ons still remain
 - the repo currently has two different extrude surfaces instead of one canonical contract:
   - the graph node exposes `ExtrusionProfile + Depth -> SolidBody`
   - the feature-stack path exposes `profileRef + depth/taper/offset -> bodyId`
@@ -238,6 +280,7 @@ But the current system is still underdeveloped:
 - extent semantics are thin
 - body-management semantics are thin
 - the authored node surface is still sparse and does not yet have a dedicated extrude toolbar
+- the current `SolidBody` output row still reads like a custom block instead of the calmer standardized output-row template the broader node family wants
 - the feature family does not yet have a mature architecture roadmap like `Sketch`
 
 ### Current Code Read
@@ -252,11 +295,16 @@ The current code read matters because some earlier extrude assumptions are now s
 - the next major blocker is now contract split:
   - `Geometry/Extrude` graph-node behavior is still much simpler than the feature-stack extrude behavior and editor surface
   - future work should pick a canonical extrude contract instead of letting both surfaces drift
+- the next profile-selection gap is now explicit:
+  - the first authoritative closed-profile `Body` path exists downstream from the shipped `Sketch - 1` ladder
+  - the first honest child-versus-parent `SketchProfiles` consumption contract is now shipped for the current closed-profile subset
+  - wider open-path or sketch-surface cleanup can continue in separate follow-on docs instead of reopening the same contract question
 - the next major user-facing gap is surface quality:
   - there is still no dedicated extrude toolbar
   - the node surface is still too thin for a solid-feature family that now has a trustworthy viewport result
   - the node shell should stay on `Inputs` plus `Outputs` only as the authored controls grow
   - the current visible `Extrude Geometry` title is a weaker use of header space than a direct toolbar-open button
+  - the current `SolidBody` output row still needs to move onto the same calmer shared output-row language now expected across nodes
 - the plural `EWR` profile-input direction is still useful long-term guidance, but it should not be mistaken for the next direct implementation target while the repo is still single-profile in practice
 - `taper` and `offset` are now user-visible debt:
   - they already exist in the feature-stack UI/compiler shape
@@ -372,6 +420,7 @@ This folder should use:
 Landed repair ladder now recorded in this family read:
 - `Extrude-1A` worker/runtime placement repair is landed
 - the post-`Extrude-1A` viewer/output-preview drift ladder in `docs/Bugs/12_GeometrySketch-Extrude-OutputPreview-Authored-Coordinate-Drift.md` is closed through its active-viewport and grouping-gate fixes
+- the first narrow worker-authoritative closed-profile `Body` path is landed downstream through the shipped `Sketch - 1` ladder
 
 Standalone shipped phase docs:
 - none yet
@@ -381,6 +430,8 @@ Active future phase docs:
 - `Future/Extrude_Phase Extrude-2 - Node Enrichment And Toolbar Polish.md`
 - `Future/Extrude_Phase Extrude-2.1 - Extrude Input Pin Template Parity.md`
 - `Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
+- `Future/Extrude_Phase Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty.md`
+- `Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
 
 Historical planning doc still worth keeping:
 - `Future/Extrude_Phase Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude.md`
@@ -389,7 +440,9 @@ Historical planning doc still worth keeping:
 ### Suggested Starting Backlog
 
 The highest-value next extrude planning cuts are probably:
-- adding `Extrude-0` so `Final` can stop depending on the rectangle-only authoritative shortcut and start building a real OC-backed body from graph-native sketch and extrude truth
+- finishing `Extrude 3.4 Phase 3 - Graph-Native Taper Runtime Meaning And Surface Honesty Cleanup` so the authored taper surface and runtime stop drifting
+- keeping the now-shipped `Extrude-4` closed-profile consumption contract under regression coverage while later open-path, wall, or sketch-surface follow-ons stay in their own docs
+- adding `Extrude-5 - Output Row Standardization And UI Cleanup` so the current `SolidBody` output row adopts the calmer standardized row template before that output language widens across all nodes
 - shipping `Extrude-2` node enrichment and the first dedicated extrude toolbar now that viewport placement is trustworthy
 - removing the visible `Extrude Geometry` title and using that header area as the one-button extrude-toolbar launcher
 - locking the first real feature-completion task stack in `Extrude-3`, starting with:
@@ -409,102 +462,22 @@ The highest-value next extrude planning cuts are probably:
 
 ## Extrude Phase Ladder
 
-### Why This Needs A Real First Phase
+### Phase Ordering Note
 
-The current extrude path already exists in code, and its first real placement repair has now shipped.
+The current extrude path already exists in code, and the first narrow worker-authoritative closed-profile `Body` path has now shipped through the `Sketch - 1` ladder.
 
-That fix still needed a real first phase because the original bug was crossing compile, runtime, viewer, and active-viewport authority seams at the same time.
+That means:
+- keep `Extrude-0` as historical planning only rather than a live open phase
+- keep the remaining `Extrude-3.4` taper lane visible as the current authored-surface follow-on
+- keep `Extrude-4` as the shipped closed-profile selection and consumption lane for the current subset rather than a still-open next step
+- do not reopen pre-surface kernel groundwork here when the narrow authoritative body path already exists downstream from graph truth
 
 The same principle still matters going forward:
-- keep authoritative B-rep groundwork separate from node-surface polish
+- keep worker-authoritative B-rep grounding separate from node-surface polish
 - keep placement truth guarded
 - keep richer feature growth for later phases
-- do not widen the next phase until the current authored surface is honest
-
-## [ ] Extrude-0 - Graph-Native Authoritative B-Rep Extrude Lowering
-
-### Summary
-
-#### Purpose:
-- replace the current rectangle-only authoritative shortcut with the first real worker-owned OpenCascade extrude-body lowering seam
-
-#### Owns:
-- the first authoritative-path lowering from graph-native sketch/extrude truth into a real OC-backed extruded body
-- consuming one closed sketch-derived profile face instead of only recognized rectangle bounds
-- preserving the current graph-native authored `Geometry/Extrude` contract while moving kernel object construction into the worker authoritative path
-- the first honest `Final` support expansion for closed non-rectangular `Sketch -> Extrude(Body)` graphs
-
-#### Does not own:
-- moving raw OpenCascade object ownership into the `Geometry/Extrude` node/editor layer
-- widening the visible node surface or toolbar
-- plural profile rollout
-- boolean/combine/cut behavior
-- broader taper/offset/thickness semantics beyond the current narrow authoritative support set
-
-#### Current strongest read:
-- draft preview can already show a valid closed-profile extrude that `Final` still refuses to render
-- `src/worker/authoritative/buildAuthoritativeGeometry.ts` currently succeeds only when `getRectangleBounds(...)` recognizes a rectangle and then builds a `BRepPrimAPI_MakeBox` shortcut
-- that means the next missing extrude truth is not more viewer polish, it is real worker-side B-rep body lowering downstream from the existing sketch/extrude graph contract
-
-### Questions
-
-#### [x] Question 1 - Should this phase make the `Geometry/Extrude` node create OpenCascade bodies directly?
-
-##### Locked answer
-- no
-- keep the node and graph contract responsible for authored profile/depth/direction/type truth only
-- construct OC edges, wires, faces, and extruded bodies in the worker authoritative layer
-
-##### Why
-- this keeps authored graph state and worker-owned kernel state cleanly separated
-- it matches the same recommendation already established for the sketch B-rep follow-on
-- it protects the long-range direction that preview and export should derive downstream from one geometry execution truth
-
-#### [x] Question 2 - What should `Extrude-0` ship first?
-
-##### Locked answer
-- ship one narrow authoritative `Body` extrude path that consumes a real lowered sketch face and produces one OC-backed body
-- keep the first support set aligned with the current honest narrow rules:
-  - one closed profile
-  - positive depth
-  - current supported direction/type subset unless a tiny widening is trivial
-
-##### Why
-- this is the smallest real step that removes the rectangle-special-case ceiling now blocking `Final`
-- it lets later surface and authored-mode work land on top of an honest kernel-backed body path
-
-### Spec
-
-Locked first-cut direction:
-- treat `Extrude-0` as a worker-authoritative groundwork phase that happens before broader node-surface follow-ons
-- reuse graph-native sketch and extrude authored truth as input
-- lower that truth into worker-owned OC sketch face plus OC extruded body construction
-- remove rectangle recognition from the critical success path for the first supported authoritative extrude set
-- keep the current node/editor surfaces unchanged unless a tiny honesty fix is required
-
-Likely implementation seams:
-- `src/app/spaghetti/contracts/geometryRequest.ts`
-- `src/app/spaghetti/features/compileFeatureStack.ts`
-- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
-- one new worker-local helper for sketch-face and extruded-body OC lowering
-- focused tests near:
-  - `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
-  - graph compile/runtime tests that prove the required sketch/extrude payload stays intact
-
-Suggested execution order:
-1. Reuse or slightly widen the shared sketch/extrude request contract only if the current profile payload is still too rectangle-shaped for real B-rep lowering.
-2. Add one worker-local helper that lowers a closed sketch profile into OC edges, one closed wire, and one planar face.
-3. Add one worker-local helper that extrudes that face into an OC body using the current narrow authoritative depth/direction rules.
-4. Re-route authoritative extrude success through that B-rep seam instead of `getRectangleBounds(...)`.
-5. Add focused coverage for:
-   - supported non-rectangular closed profile success
-   - open/invalid profile honest failure
-   - unchanged draft-versus-final honesty behavior when authoritative lowering still cannot run
-
-Definition of done:
-- a valid closed non-rectangular `Sketch -> Extrude(Body)` graph can reach the authoritative path where it currently cannot
-- `Final` no longer depends on rectangle detection as the only authoritative extrude success path
-- worker-owned OC construction stays downstream from authored graph truth instead of leaking into the node/editor layer
+- do not widen the next live phase until the current authored surface is honest
+- treat the new `Extrude-5` row cleanup as node-surface standardization work, not as a hidden runtime/result-contract rewrite
 
 ## [~] Extrude-1 - Transform-Aware Preview And Runtime Alignment Family
 
@@ -781,3 +754,130 @@ Definition of done:
 #### Dedicated future doc:
 - `Future/Extrude_Phase Extrude-3 - Type Modes And Functional Completion.md`
 - `Future/Extrude_Phase Extrude-3.2 - Real Type Modes Contract.md`
+
+## [x] Extrude-4 - Closed Profile Selection And Consumption Contract
+
+### Summary
+
+#### Purpose:
+- define how `Geometry/Extrude` should consume closed profiles honestly now that the first narrow worker-authoritative closed-profile `Body` path already exists
+
+#### Owns:
+- the first explicit parent-versus-child closed-profile consumption contract for `Geometry/Extrude`
+- deciding what wiring the parent `SketchProfiles` output versus one child closed profile should mean
+- keeping closed-profile selection ownership in `Extrude` while upstream profile derivation stays in `Sketch`
+- the first honest surface/runtime wording for one-selected-profile versus all-closed-profiles consumption
+
+#### Does not own:
+- reopening the already-landed narrow worker-authoritative B-rep groundwork
+- open-path or wall-style extrusion behavior
+- broader sketch-output cleanup beyond the minimum handoff needed from `Sketch - 2`
+- boolean/body-operation growth
+- unrelated toolbar polish that still belongs to `Extrude-2`
+
+#### Current strongest read:
+- this lane is now shipped for the current closed-profile subset
+- `Geometry/Extrude` now distinguishes and executes:
+  - one selected child closed profile
+  - the parent `SketchProfiles` aggregate as all closed profiles from the source sketch
+- aggregate compile, draft-runtime, authoritative, and visible-surface seams now read intentionally aligned for that shipped subset
+- current status:
+  - `Phase 1 - Closed Profile Reference And Surface Contract`
+    - shipped
+  - `Phase 2A - Explicit Aggregate Selection Payload Contract`
+    - shipped
+  - `Phase 2B - Compile Graph And Geometry Request Routing`
+    - shipped
+  - `Phase 2C - Worker Selection Resolution And Failure Honesty`
+    - shipped
+  - `Phase 3A - SolidBody Result Ownership For Aggregate Consumption`
+    - shipped
+  - `Phase 3B - Node Toolbar And Result Copy Honesty`
+    - shipped
+  - `Phase 3C - Focused Verification And Failure Matrix Hardening`
+    - shipped
+  - family handoff:
+    - closed for the current closed-profile subset
+    - future open-path, wall, or broader sketch-surface work should live in separate follow-on docs
+
+#### Dedicated future doc:
+- `Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+  - historical closeout doc for the shipped `Extrude-4` lane
+
+## [ ] Extrude-5 - Output Row Standardization And UI Cleanup
+
+### Summary
+
+#### Purpose:
+- make the `Geometry/Extrude` `SolidBody` output row look like the shared standardized output-row template instead of a one-off custom block
+
+#### Owns:
+- the first dedicated extrude cleanup for the `SolidBody` output-row shell
+- aligning label lane, value/status lane, pin placement, border treatment, and attached helper body with the calmer shared row language already expected across nodes
+- proving the first extrude-side adoption slice for the broader `Nodes-3` output-row standardization direction
+- making the waiting/help copy feel attached to one reusable output row instead of a separate floating card
+
+#### Does not own:
+- changing extrude compile/runtime behavior
+- changing result ownership or adding new output kinds
+- reopening `Extrude-4` closed-profile selection semantics
+- broad all-node rollout beyond locking the first extrude proving slice
+
+#### Current strongest read:
+- the input side has moved much closer to the shared row-template language, but the output side still reads like a custom tile plus detached note
+- the current `SolidBody` row should become one calmer standardized output row with an attached body, not a visually separate widget living under `Outputs`
+- `Extrude` is the right first proving slice because it already has one stable visible output and a clear before/after mismatch against the intended shared node language
+
+### Questions
+
+#### [x] Question 1 - Should `Extrude-5` stay a UI cleanup phase instead of widening into result-contract work?
+
+##### Locked answer
+- yes
+
+##### Why
+- the current problem is row-template drift, not missing geometry ownership
+- keeping this lane UI-only prevents output-row polish from reopening already-shipped compile/runtime decisions
+
+#### [x] Question 2 - What should the first cleanup target be?
+
+##### Locked answer
+- the `SolidBody` output row plus its attached waiting/help body
+
+##### Why
+- that is the visible mismatch on the current `Geometry/Extrude` surface
+- fixing one stable output row first is the cleanest way to prove the standardized template before widening to other nodes
+
+#### [x] Question 3 - Should `Extrude-5` be treated as part of the broader shared-node row direction?
+
+##### Locked answer
+- yes
+- `Extrude-5` should act as one family-owned proving slice under the broader `Nodes-3` output-row standardization direction
+
+##### Why
+- this keeps the repo aligned with the shared `Structured Wire Rows` goal instead of inventing another extrude-only output style
+- the extrude family can prove the row cleanup locally without pretending the all-node rollout is already complete
+
+### Spec
+
+Locked first-cut direction:
+- rebuild the current `SolidBody` output area around one standardized output-row template
+- keep one visible `SolidBody` output row first instead of widening into multiple result rows
+- align the output row shell with the calmer shared row treatment already proven on the stronger input rows
+- keep the helper/waiting copy visually attached to that row as its body instead of a detached second block
+- use this phase as the first extrude-owned `Nodes-3` adoption slice, not as a separate custom output-system fork
+
+Likely implementation seams:
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- any shared node-row/output-row helper seams that currently own the standardized row template for other node surfaces
+
+Acceptance checks:
+- the `SolidBody` output row reads like the same family as the settled shared row template
+- the output pin placement and row shell no longer feel like a custom tile
+- the attached waiting/help body reads as part of the output row instead of a separate floating panel
+- `Extrude` output semantics stay unchanged while the visible row structure becomes cleaner
+
+Definition of done:
+- `Geometry/Extrude` no longer ships one-off output-row chrome beside otherwise standardized input rows
+- the family now has one explicit planning home for output-row cleanup before that same template language widens across all nodes

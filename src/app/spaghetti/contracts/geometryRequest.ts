@@ -13,6 +13,18 @@ export type GeometryRequestProfileRef = {
   profileIndex: number
 }
 
+export type GeometryRequestExtrudeProfileSelection =
+  | {
+      mode: 'single'
+      sketchFeatureId: string
+      profileId: string
+      profileIndex: number
+    }
+  | {
+      mode: 'allFromSketch'
+      sketchFeatureId: string
+    }
+
 export type GeometryRequestSketchProfile = {
   profileId: string
   profileIndex: number
@@ -36,6 +48,7 @@ export type GeometryRequestExtrudeType = 'Body' | 'Walls'
 export type GeometryRequestExtrudeOp = {
   op: 'extrude'
   featureId: string
+  profileSelection?: GeometryRequestExtrudeProfileSelection | null
   profileRef: GeometryRequestProfileRef | null
   extrudeType: GeometryRequestExtrudeType
   extrudeDirection?: GeometryRequestExtrudeDirection
@@ -60,7 +73,38 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const isPoint2 = (value: unknown): value is GeometryRequestPoint2 =>
-  isRecord(value) && typeof value.x === 'number' && typeof value.y === 'number'
+  isRecord(value) &&
+  typeof value.x === 'number' &&
+  Number.isFinite(value.x) &&
+  typeof value.y === 'number' &&
+  Number.isFinite(value.y)
+
+const isSegment2LineLike = (
+  value: unknown,
+): value is ProfileLoop['segments'][number] & { kind: 'line2' } =>
+  isRecord(value) && value.kind === 'line2' && isPoint2(value.a) && isPoint2(value.b)
+
+const isSegment2BezierLike = (
+  value: unknown,
+): value is ProfileLoop['segments'][number] & { kind: 'bezier2' } =>
+  isRecord(value) &&
+  value.kind === 'bezier2' &&
+  isPoint2(value.p0) &&
+  isPoint2(value.p1) &&
+  isPoint2(value.p2) &&
+  isPoint2(value.p3)
+
+const isSegment2Arc3ptLike = (
+  value: unknown,
+): value is ProfileLoop['segments'][number] & { kind: 'arc3pt2' } =>
+  isRecord(value) &&
+  value.kind === 'arc3pt2' &&
+  isPoint2(value.start) &&
+  isPoint2(value.mid) &&
+  isPoint2(value.end)
+
+const isProfileLoopSegmentLike = (value: unknown): value is ProfileLoop['segments'][number] =>
+  isSegment2LineLike(value) || isSegment2BezierLike(value) || isSegment2Arc3ptLike(value)
 
 const isSketchPlaneTransformVec3 = (value: unknown): value is SketchPlaneTransform['translation'] =>
   isRecord(value) &&
@@ -75,9 +119,10 @@ const isSketchPlaneTransform = (value: unknown): value is SketchPlaneTransform =
   isSketchPlaneTransformVec3(value.rotationDeg) &&
   typeof value.inPlaneRotationDeg === 'number'
 
-const isProfileLoopLike = (value: unknown): value is ProfileLoop =>
+export const isGeometryRequestProfileLoop = (value: unknown): value is ProfileLoop =>
   isRecord(value) &&
   Array.isArray(value.segments) &&
+  value.segments.every(isProfileLoopSegmentLike) &&
   (value.winding === 'CCW' || value.winding === 'CW')
 
 const isGeometryRequestProfileRef = (value: unknown): value is GeometryRequestProfileRef =>
@@ -86,6 +131,16 @@ const isGeometryRequestProfileRef = (value: unknown): value is GeometryRequestPr
   typeof value.profileId === 'string' &&
   typeof value.profileIndex === 'number'
 
+const isGeometryRequestExtrudeProfileSelection = (
+  value: unknown,
+): value is GeometryRequestExtrudeProfileSelection =>
+  isRecord(value) &&
+  typeof value.sketchFeatureId === 'string' &&
+  ((value.mode === 'single' &&
+    typeof value.profileId === 'string' &&
+    typeof value.profileIndex === 'number') ||
+    value.mode === 'allFromSketch')
+
 const isGeometryRequestSketchProfile = (
   value: unknown,
 ): value is GeometryRequestSketchProfile =>
@@ -93,7 +148,7 @@ const isGeometryRequestSketchProfile = (
   typeof value.profileId === 'string' &&
   typeof value.profileIndex === 'number' &&
   typeof value.area === 'number' &&
-  isProfileLoopLike(value.loop) &&
+  isGeometryRequestProfileLoop(value.loop) &&
   Array.isArray(value.verticesProxy) &&
   value.verticesProxy.every(isPoint2)
 
@@ -110,6 +165,9 @@ const isGeometryRequestExtrudeOp = (value: unknown): value is GeometryRequestExt
   isRecord(value) &&
   value.op === 'extrude' &&
   typeof value.featureId === 'string' &&
+  (value.profileSelection === undefined ||
+    value.profileSelection === null ||
+    isGeometryRequestExtrudeProfileSelection(value.profileSelection)) &&
   (value.profileRef === null || isGeometryRequestProfileRef(value.profileRef)) &&
   (value.extrudeType === 'Body' || value.extrudeType === 'Walls') &&
   (value.extrudeDirection === undefined ||

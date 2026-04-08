@@ -24,6 +24,11 @@ import {
   type AuthoritativeShapeSetResource,
 } from '../authoritativeGeometryStore'
 import { getOc } from '../oc/ocInit'
+import {
+  buildOcSketchProfileFace,
+  type OcInstance,
+  type OcOwnedResource,
+} from './ocSketchWire'
 
 export type AuthoritativeGeometryBuildInput = {
   compiledBuildData: CompiledBuildData
@@ -38,91 +43,43 @@ type OcConstructor = new (...args: unknown[]) => unknown
 
 type OcCallable = (...args: unknown[]) => unknown
 
-type OcInstance = Record<string, unknown>
-
-type OcOwnedResource = {
-  delete?: () => void
-}
-
 type SketchProfileRuntime = {
   plane: GeometryRequestPlane
   planeTransform: GeometryRequestSketchOp['planeTransform']
   profile: GeometryRequestSketchProfile
 }
 
-type BoxExtrusionDefinition = {
+type SketchProfileLookup = {
+  sketches: Map<
+    string,
+    {
+      plane: GeometryRequestPlane
+      planeTransform: GeometryRequestSketchOp['planeTransform']
+      profilesInOrder: SketchProfileRuntime[]
+      profilesById: Map<string, SketchProfileRuntime>
+    }
+  >
+  profilesByKey: Map<string, SketchProfileRuntime>
+}
+
+type SketchExtrusionCandidate = {
   bodyKey: string
-  body: GeometryBody
-  origin: { x: number; y: number; z: number }
-  xAxis: { x: number; y: number; z: number }
-  zAxis: { x: number; y: number; z: number }
-  width: number
-  length: number
+  sketchProfile: SketchProfileRuntime
+  startDepth: number
   depth: number
 }
 
-const COORDINATE_EPSILON = 1e-6
+type PrismExtrusionDefinition = {
+  bodyKey: string
+  face: OcOwnedResource
+  direction: { x: number; y: number; z: number }
+}
 
 const getFeatureStackPayload = (
   compiledBuildData: CompiledBuildData,
 ): FeatureStackIRPayload | null => {
   const candidate = compiledBuildData.resolvedShared?.sp_featureStackIR
   return isFeatureStackIRPayload(candidate) ? candidate : null
-}
-
-const quantizeCoordinate = (value: number): number =>
-  Math.round(value / COORDINATE_EPSILON)
-
-const getUniqueCoordinates = (values: readonly number[]): number[] => {
-  const coordinates = [...values].sort((left, right) => left - right)
-  const unique: number[] = []
-  for (const coordinate of coordinates) {
-    if (
-      unique.length === 0 ||
-      Math.abs(unique[unique.length - 1] - coordinate) > COORDINATE_EPSILON
-    ) {
-      unique.push(coordinate)
-    }
-  }
-  return unique
-}
-
-const getRectangleBounds = (
-  profile: GeometryRequestSketchProfile,
-): { minX: number; maxX: number; minY: number; maxY: number } | null => {
-  const vertices = profile.verticesProxy
-  if (vertices.length !== 4) {
-    return null
-  }
-  if (
-    vertices.some(
-      (vertex) => !Number.isFinite(vertex.x) || !Number.isFinite(vertex.y),
-    )
-  ) {
-    return null
-  }
-  const uniqueX = getUniqueCoordinates(vertices.map((vertex) => vertex.x))
-  const uniqueY = getUniqueCoordinates(vertices.map((vertex) => vertex.y))
-  if (uniqueX.length !== 2 || uniqueY.length !== 2) {
-    return null
-  }
-  const [minX, maxX] = uniqueX
-  const [minY, maxY] = uniqueY
-  if (maxX - minX <= COORDINATE_EPSILON || maxY - minY <= COORDINATE_EPSILON) {
-    return null
-  }
-  const vertexKeys = new Set(
-    vertices.map((vertex) => `${quantizeCoordinate(vertex.x)}:${quantizeCoordinate(vertex.y)}`),
-  )
-  const expectedCorners = [
-    `${quantizeCoordinate(minX)}:${quantizeCoordinate(minY)}`,
-    `${quantizeCoordinate(maxX)}:${quantizeCoordinate(minY)}`,
-    `${quantizeCoordinate(maxX)}:${quantizeCoordinate(maxY)}`,
-    `${quantizeCoordinate(minX)}:${quantizeCoordinate(maxY)}`,
-  ]
-  return expectedCorners.every((cornerKey) => vertexKeys.has(cornerKey))
-    ? { minX, maxX, minY, maxY }
-    : null
 }
 
 const resolveExtrusionDepths = (
@@ -231,39 +188,45 @@ const releaseOcResources = (resources: readonly OcOwnedResource[]): void => {
   }
 }
 
-const buildOcBoxShape = (
+const constructOcValueFromArgVariants = (
   oc: OcInstance,
-  definition: BoxExtrusionDefinition,
+  constructorName: string,
+  argVariants: readonly unknown[][],
+): OcOwnedResource | null => {
+  for (const args of argVariants) {
+    try {
+      const value = constructOcValue(oc, constructorName, args)
+      if (typeof value === 'object' && value !== null) {
+        return value as OcOwnedResource
+      }
+    } catch {
+      // Keep trying supported overloads until one succeeds.
+    }
+  }
+  return null
+}
+
+const buildOcPrismShape = (
+  oc: OcInstance,
+  definition: PrismExtrusionDefinition,
 ): OcOwnedResource => {
   const retainedResources: OcOwnedResource[] = []
   const transientResources: OcOwnedResource[] = []
   try {
-    const origin = constructOcValue(oc, 'gp_Pnt', [
-      definition.origin.x,
-      definition.origin.y,
-      definition.origin.z,
+    const vector = constructOcValue(oc, 'gp_Vec', [
+      definition.direction.x,
+      definition.direction.y,
+      definition.direction.z,
     ]) as OcOwnedResource
-    transientResources.push(origin)
-    const zAxis = constructOcValue(oc, 'gp_Dir', [
-      definition.zAxis.x,
-      definition.zAxis.y,
-      definition.zAxis.z,
-    ]) as OcOwnedResource
-    transientResources.push(zAxis)
-    const xAxis = constructOcValue(oc, 'gp_Dir', [
-      definition.xAxis.x,
-      definition.xAxis.y,
-      definition.xAxis.z,
-    ]) as OcOwnedResource
-    transientResources.push(xAxis)
-    const axis = constructOcValue(oc, 'gp_Ax2', [origin, zAxis, xAxis]) as OcOwnedResource
-    transientResources.push(axis)
-    const builder = constructOcValue(oc, 'BRepPrimAPI_MakeBox', [
-      axis,
-      definition.width,
-      definition.length,
-      definition.depth,
-    ]) as OcOwnedResource
+    transientResources.push(vector)
+    const builder = constructOcValueFromArgVariants(oc, 'BRepPrimAPI_MakePrism', [
+      [definition.face, vector],
+      [definition.face, vector, false],
+      [definition.face, vector, false, true],
+    ])
+    if (builder === null) {
+      throw new Error(`Authoritative body "${definition.bodyKey}" prism builder unavailable.`)
+    }
     transientResources.push(builder)
     const shape = invokeOcMethod(builder as object, ['Shape', '_operator_TopoDS_Shape'], []) as
       | OcOwnedResource
@@ -278,10 +241,17 @@ const buildOcBoxShape = (
   }
 }
 
-const buildSketchProfileIndex = (
-  payload: FeatureStackIRPayload,
-): Map<string, SketchProfileRuntime> => {
-  const index = new Map<string, SketchProfileRuntime>()
+const buildSketchProfileLookup = (payload: FeatureStackIRPayload): SketchProfileLookup => {
+  const sketches = new Map<
+    string,
+    {
+      plane: GeometryRequestPlane
+      planeTransform: GeometryRequestSketchOp['planeTransform']
+      profilesInOrder: SketchProfileRuntime[]
+      profilesById: Map<string, SketchProfileRuntime>
+    }
+  >()
+  const profilesByKey = new Map<string, SketchProfileRuntime>()
   const partKeys = Object.keys(payload.parts).sort(compareSpaghettiSourcePartKeys)
   for (const partKey of partKeys) {
     for (const operation of payload.parts[partKey] ?? []) {
@@ -289,24 +259,66 @@ const buildSketchProfileIndex = (
         continue
       }
       const sketchPlane = operation.plane ?? 'XY'
+      const profilesInOrder: SketchProfileRuntime[] = []
+      const profilesById = new Map<string, SketchProfileRuntime>()
       for (const profile of operation.profilesResolved) {
-        index.set(`${operation.featureId}:${profile.profileId}`, {
+        const runtimeProfile = {
           plane: sketchPlane,
           planeTransform: operation.planeTransform,
           profile,
-        })
+        }
+        profilesInOrder.push(runtimeProfile)
+        profilesById.set(profile.profileId, runtimeProfile)
+        profilesByKey.set(`${operation.featureId}:${profile.profileId}`, runtimeProfile)
       }
+      sketches.set(operation.featureId, {
+        plane: sketchPlane,
+        planeTransform: operation.planeTransform,
+        profilesInOrder,
+        profilesById,
+      })
     }
   }
-  return index
+  return {
+    sketches,
+    profilesByKey,
+  }
 }
 
-const buildSupportedBoxExtrusions = (
+const resolveExtrudeSketchProfiles = (
+  operation: GeometryRequestExtrudeOp,
+  lookup: SketchProfileLookup,
+): SketchProfileRuntime[] | null => {
+  if (operation.profileSelection?.mode === 'allFromSketch') {
+    const sketch = lookup.sketches.get(operation.profileSelection.sketchFeatureId)
+    if (sketch === undefined || sketch.profilesInOrder.length === 0) {
+      return null
+    }
+    return sketch.profilesInOrder
+  }
+
+  if (operation.profileSelection?.mode === 'single') {
+    const sketch = lookup.sketches.get(operation.profileSelection.sketchFeatureId)
+    const profile = sketch?.profilesById.get(operation.profileSelection.profileId)
+    return profile === undefined ? null : [profile]
+  }
+
+  if (operation.profileRef === null) {
+    return null
+  }
+
+  const profile = lookup.profilesByKey.get(
+    `${operation.profileRef.sketchFeatureId}:${operation.profileRef.profileId}`,
+  )
+  return profile === undefined ? null : [profile]
+}
+
+const collectSupportedSketchExtrusionCandidates = (
   payload: FeatureStackIRPayload,
   previewBodies: Record<string, GeometryBody>,
-): BoxExtrusionDefinition[] | null => {
-  const profileIndex = buildSketchProfileIndex(payload)
-  const definitions: BoxExtrusionDefinition[] = []
+): SketchExtrusionCandidate[] | null => {
+  const profileLookup = buildSketchProfileLookup(payload)
+  const candidates: SketchExtrusionCandidate[] = []
   const partKeys = Object.keys(payload.parts).sort(compareSpaghettiSourcePartKeys)
 
   for (const partKey of partKeys) {
@@ -315,7 +327,6 @@ const buildSupportedBoxExtrusions = (
         continue
       }
       if (
-        operation.profileRef === null ||
         operation.extrudeType !== 'Body' ||
         operation.taperResolved !== 0 ||
         operation.offsetResolved !== 0
@@ -328,63 +339,89 @@ const buildSupportedBoxExtrusions = (
       if (previewBody === undefined) {
         return null
       }
-      const sketchProfile = profileIndex.get(
-        `${operation.profileRef.sketchFeatureId}:${operation.profileRef.profileId}`,
-      )
-      if (sketchProfile === undefined) {
+      const sketchProfiles = resolveExtrudeSketchProfiles(operation, profileLookup)
+      if (sketchProfiles === null || sketchProfiles.length === 0) {
         return null
       }
-      const bounds = getRectangleBounds(sketchProfile.profile)
       const depths = resolveExtrusionDepths(operation)
-      if (bounds === null || depths === null) {
+      if (depths === null) {
         return null
       }
-      const frame = resolveSketchPlaneFrame(sketchProfile.plane, sketchProfile.planeTransform)
-      definitions.push({
-        bodyKey,
-        body: previewBody,
-        origin: {
-          x:
-            frame.origin.x +
-            frame.xAxis.x * bounds.minX +
-            frame.yAxis.x * bounds.minY -
-            frame.zAxis.x * depths.startDepth,
-          y:
-            frame.origin.y +
-            frame.xAxis.y * bounds.minX +
-            frame.yAxis.y * bounds.minY -
-            frame.zAxis.y * depths.startDepth,
-          z:
-            frame.origin.z +
-            frame.xAxis.z * bounds.minX +
-            frame.yAxis.z * bounds.minY -
-            frame.zAxis.z * depths.startDepth,
-        },
-        xAxis: frame.xAxis,
-        zAxis: frame.zAxis,
-        width: bounds.maxX - bounds.minX,
-        length: bounds.maxY - bounds.minY,
-        depth: depths.depth,
-      })
+      for (const sketchProfile of sketchProfiles) {
+        candidates.push({
+          bodyKey,
+          sketchProfile,
+          startDepth: depths.startDepth,
+          depth: depths.depth,
+        })
+      }
     }
   }
 
-  return definitions.length > 0 ? definitions : null
+  return candidates.length > 0 ? candidates : null
 }
 
 const buildAuthoritativeShapeSet = async (
   payload: FeatureStackIRPayload,
   previewBodies: Record<string, GeometryBody>,
 ): Promise<AuthoritativeShapeSetResource | null> => {
-  const boxExtrusions = buildSupportedBoxExtrusions(payload, previewBodies)
-  if (boxExtrusions === null) {
+  const sketchExtrusions = collectSupportedSketchExtrusionCandidates(payload, previewBodies)
+  if (sketchExtrusions === null) {
     return null
   }
   const oc = (await getOc()) as OcInstance
   const ownedResources: OcOwnedResource[] = []
   try {
-    for (const definition of boxExtrusions) {
-      ownedResources.push(buildOcBoxShape(oc, definition))
+    for (const candidate of sketchExtrusions) {
+      const frame = resolveSketchPlaneFrame(
+        candidate.sketchProfile.plane,
+        candidate.sketchProfile.planeTransform,
+      )
+      const face = buildOcSketchProfileFace(
+        {
+          oc,
+          constructOcValue,
+          invokeOcMethod,
+          releaseOcResources,
+          projectSketchPoint: (point) => ({
+            x:
+              frame.origin.x +
+              frame.xAxis.x * point.x +
+              frame.yAxis.x * point.y -
+              frame.zAxis.x * candidate.startDepth,
+            y:
+              frame.origin.y +
+              frame.xAxis.y * point.x +
+              frame.yAxis.y * point.y -
+              frame.zAxis.y * candidate.startDepth,
+            z:
+              frame.origin.z +
+              frame.xAxis.z * point.x +
+              frame.yAxis.z * point.y -
+              frame.zAxis.z * candidate.startDepth,
+          }),
+        },
+        candidate.sketchProfile.profile,
+      )
+      if (face === null) {
+        releaseOcResources(ownedResources)
+        return null
+      }
+      try {
+        ownedResources.push(
+          buildOcPrismShape(oc, {
+            bodyKey: candidate.bodyKey,
+            face: face.face,
+            direction: {
+              x: frame.zAxis.x * candidate.depth,
+              y: frame.zAxis.y * candidate.depth,
+              z: frame.zAxis.z * candidate.depth,
+            },
+          }),
+        )
+      } finally {
+        releaseOcResources(face.ownedResources)
+      }
     }
     return {
       ownedResources,

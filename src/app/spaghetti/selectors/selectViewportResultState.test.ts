@@ -365,4 +365,55 @@ describe('selectViewportResultState', () => {
       }),
     ])
   })
+
+  it('keeps final mode explicitly unavailable when authoritative geometry has a handle but no renderable mesh preview', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const authoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-10',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: null,
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-10',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'final',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('final'),
+      acceptedAuthoritativeGeometryResult: authoritativeGeometryResult,
+      acceptedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        requestedMode: 'final',
+        visibleResultClass: null,
+        visibleSourceKind: 'none',
+        geometryResult: null,
+        isPendingFinal: false,
+        isUsingFallback: true,
+        fallbackReason: 'final-unavailable',
+      }),
+    )
+    expect(state.renderVm.viewerParts).toEqual([])
+  })
 })

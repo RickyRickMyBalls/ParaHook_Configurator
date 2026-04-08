@@ -39,7 +39,25 @@ type SketchRuntime = {
   plane: 'XY' | 'XZ' | 'YZ'
   planeTransform?: SketchPlaneTransform
   profiles: Map<string, Wire>
+  hasInvalidProfiles: boolean
 }
+
+type ResolvedExtrudeProfileTarget = {
+  wire: Wire
+  plane?: 'XY' | 'XZ' | 'YZ'
+  planeTransform?: SketchPlaneTransform
+}
+
+type ResolvedExtrudeProfileSelection =
+  | {
+      ok: true
+      targets: ResolvedExtrudeProfileTarget[]
+    }
+  | {
+      ok: false
+      reason: string
+      message: string
+    }
 
 type RuntimeContext = {
   sketches: Map<string, SketchRuntime>
@@ -98,11 +116,13 @@ const runSketch = (
   diagnostics: RuntimeDiagnostic[],
 ): void => {
   const sketchProfiles = new Map<string, Wire>()
+  let hasInvalidProfiles = false
 
   for (const profile of feature.profilesResolved) {
     try {
       const wire = wireFromLoop(profileVerticesFromResolved(profile))
       if (sketchProfiles.has(profile.profileId)) {
+        hasInvalidProfiles = true
         pushDiagnostic(
           diagnostics,
           partKey,
@@ -125,6 +145,7 @@ const runSketch = (
       }
       context.profiles.set(profile.profileId, wire)
     } catch (error: unknown) {
+      hasInvalidProfiles = true
       const message = error instanceof Error ? error.message : 'Failed to build profile wire.'
       pushDiagnostic(
         diagnostics,
@@ -140,7 +161,93 @@ const runSketch = (
     plane: feature.plane ?? 'XY',
     planeTransform: feature.planeTransform,
     profiles: sketchProfiles,
+    hasInvalidProfiles,
   })
+}
+
+const resolveExtrudeProfileSelection = (
+  context: RuntimeContext,
+  feature: IRExtrude,
+): ResolvedExtrudeProfileSelection => {
+  if (feature.profileSelection?.mode === 'allFromSketch') {
+    const sketch = context.sketches.get(feature.profileSelection.sketchFeatureId)
+    if (sketch === undefined || sketch.profiles.size === 0) {
+      return {
+        ok: false,
+        reason: 'missing_profile_selection',
+        message: `Extrude skipped because sketch "${feature.profileSelection.sketchFeatureId}" has no available closed profiles.`,
+      }
+    }
+    if (sketch.hasInvalidProfiles) {
+      return {
+        ok: false,
+        reason: 'missing_profile_selection',
+        message: `Extrude skipped because sketch "${feature.profileSelection.sketchFeatureId}" contains invalid closed profiles.`,
+      }
+    }
+    return {
+      ok: true,
+      targets: [...sketch.profiles.values()].map((wire) => ({
+        wire,
+        plane: sketch.plane,
+        planeTransform: sketch.planeTransform,
+      })),
+    }
+  }
+
+  if (feature.profileSelection?.mode === 'single') {
+    const sketch = context.sketches.get(feature.profileSelection.sketchFeatureId)
+    const wire = sketch?.profiles.get(feature.profileSelection.profileId)
+    if (wire === undefined) {
+      return {
+        ok: false,
+        reason: 'missing_profile_selection',
+        message: `Extrude skipped because profileSelection references unavailable profile "${feature.profileSelection.profileId}".`,
+      }
+    }
+    return {
+      ok: true,
+      targets: [
+        {
+          wire,
+          plane: sketch?.plane,
+          planeTransform: sketch?.planeTransform,
+        },
+      ],
+    }
+  }
+
+  if (feature.profileRef === null) {
+    return {
+      ok: false,
+      reason: 'missing_profile_ref',
+      message: 'Extrude skipped because profileRef is null.',
+    }
+  }
+
+  const profileId = feature.profileRef.profileId
+  const sketchFeatureId = feature.profileRef.sketchFeatureId
+  const sketch = sketchFeatureId === undefined ? undefined : context.sketches.get(sketchFeatureId)
+  const wireFromSketch = sketch?.profiles.get(profileId)
+  const wire = wireFromSketch ?? context.profiles.get(profileId)
+  if (wire === undefined) {
+    return {
+      ok: false,
+      reason: 'missing_profile',
+      message: `Extrude skipped because profileId "${profileId}" is unavailable.`,
+    }
+  }
+
+  return {
+    ok: true,
+    targets: [
+      {
+        wire,
+        plane: sketch?.plane,
+        planeTransform: sketch?.planeTransform,
+      },
+    ],
+  }
 }
 
 const runExtrude = (
@@ -150,38 +257,14 @@ const runExtrude = (
   diagnostics: RuntimeDiagnostic[],
   executionIndex: number,
 ): number => {
-  if (feature.profileRef === null) {
+  const selection = resolveExtrudeProfileSelection(context, feature)
+  if (!selection.ok) {
     pushDiagnostic(
       diagnostics,
       partKey,
       feature.featureId,
-      'missing_profile_ref',
-      'Extrude skipped because profileRef is null.',
-    )
-    return executionIndex
-  }
-
-  const profileId = feature.profileRef.profileId
-  const sketchFeatureId = feature.profileRef.sketchFeatureId
-  const wireFromSketch =
-    sketchFeatureId === undefined
-      ? undefined
-      : context.sketches.get(sketchFeatureId)?.profiles.get(profileId)
-  const planeFromSketch =
-    sketchFeatureId === undefined ? undefined : context.sketches.get(sketchFeatureId)?.plane
-  const planeTransformFromSketch =
-    sketchFeatureId === undefined
-      ? undefined
-      : context.sketches.get(sketchFeatureId)?.planeTransform
-  const wire = wireFromSketch ?? context.profiles.get(profileId)
-
-  if (wire === undefined) {
-    pushDiagnostic(
-      diagnostics,
-      partKey,
-      feature.featureId,
-      'missing_profile',
-      `Extrude skipped because profileId "${profileId}" is unavailable.`,
+      selection.reason,
+      selection.message,
     )
     return executionIndex
   }
@@ -200,9 +283,6 @@ const runExtrude = (
   }
 
   try {
-    const face = faceFromWire(wire)
-    const sketchPlane = feature.plane ?? planeFromSketch ?? 'XY'
-    const basePlaneTransform = feature.planeTransform ?? planeTransformFromSketch
     const extrudeDirection = feature.extrudeDirection ?? 'OneSide'
     const startDepthResolved =
       extrudeDirection === 'TwoSides'
@@ -237,38 +317,66 @@ const runExtrude = (
       )
       return executionIndex
     }
-    const sketchPlaneTransform =
-      startDepthResolved <= 0
-        ? basePlaneTransform
-        : {
-            ...(basePlaneTransform ?? createDefaultSketchPlaneTransform()),
-            translation: {
-              ...(basePlaneTransform?.translation ??
-                createDefaultSketchPlaneTransform().translation),
-            },
-            rotationDeg: {
-              ...(basePlaneTransform?.rotationDeg ??
-                createDefaultSketchPlaneTransform().rotationDeg),
-            },
-            offsetMm:
-              (basePlaneTransform?.offsetMm ??
-                createDefaultSketchPlaneTransform().offsetMm) - startDepthResolved,
-          }
     const capped = feature.extrudeType !== 'Walls'
+    const shapes = selection.targets.map((target) => {
+      const face = faceFromWire(target.wire)
+      const sketchPlane = feature.plane ?? target.plane ?? 'XY'
+      const basePlaneTransform = feature.planeTransform ?? target.planeTransform
+      const sketchPlaneTransform =
+        startDepthResolved <= 0
+          ? basePlaneTransform
+          : {
+              ...(basePlaneTransform ?? createDefaultSketchPlaneTransform()),
+              translation: {
+                ...(basePlaneTransform?.translation ??
+                  createDefaultSketchPlaneTransform().translation),
+              },
+              rotationDeg: {
+                ...(basePlaneTransform?.rotationDeg ??
+                  createDefaultSketchPlaneTransform().rotationDeg),
+              },
+              offsetMm:
+                (basePlaneTransform?.offsetMm ??
+                  createDefaultSketchPlaneTransform().offsetMm) - startDepthResolved,
+            }
+      return sketchPlane === 'XY'
+        ? extrudeFaceAlongZ(
+            face,
+            extrusionDepthResolved,
+            {
+              bodyId,
+              featureId: feature.featureId,
+              op: 'extrude',
+              partKey,
+            },
+            sketchPlaneTransform,
+            { capped },
+          )
+        : extrudeFaceOnPlane(
+            face,
+            sketchPlane,
+            extrusionDepthResolved,
+            {
+              bodyId,
+              featureId: feature.featureId,
+              op: 'extrude',
+              partKey,
+            },
+            sketchPlaneTransform,
+            { capped },
+          )
+    })
     const shape =
-      sketchPlane === 'XY'
-        ? extrudeFaceAlongZ(face, extrusionDepthResolved, {
+      shapes.length === 1
+        ? shapes[0]
+        : {
+            kind: 'aggregate_extrusion' as const,
             bodyId,
             featureId: feature.featureId,
             op: 'extrude',
             partKey,
-          }, sketchPlaneTransform, { capped })
-        : extrudeFaceOnPlane(face, sketchPlane, extrusionDepthResolved, {
-            bodyId,
-            featureId: feature.featureId,
-            op: 'extrude',
-            partKey,
-          }, sketchPlaneTransform, { capped })
+            mesh: mergeMeshPacks(shapes.map((candidate) => candidate.mesh)),
+          }
     context.bodies.set(bodyKey, shape)
     context.bodyTrace.push({
       bodyKey,

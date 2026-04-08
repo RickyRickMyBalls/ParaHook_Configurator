@@ -22,7 +22,7 @@ const numberDegType: PortType = { kind: 'number', unit: 'deg' }
 const vec2MmType: PortType = { kind: 'vec2', unit: 'mm' }
 const booleanType: PortType = { kind: 'boolean' }
 
-const fixtureNodeDefs: Record<string, NodeDefinition> = {
+var fixtureNodeDefs: Record<string, NodeDefinition> = {
   'Test/NumberMmSource': makeFixtureNodeDef({
     label: 'Test Number Source (mm)',
     inputs: [],
@@ -75,7 +75,7 @@ vi.mock('../registry/nodeRegistry', async () => {
   )
   return {
     ...actual,
-    getNodeDef: (type: string) => fixtureNodeDefs[type] ?? actual.getNodeDef(type),
+    getNodeDef: (type: string) => fixtureNodeDefs?.[type] ?? actual.getNodeDef(type),
   }
 })
 
@@ -423,6 +423,34 @@ describe('contract parity (canvas cheap-check vs validator decision)', () => {
       from: { nodeId: 'n-mm-source', portId: 'value' },
       to: { nodeId: 'n-part', portId: 'fs:in:feature-depth-1:extrude:offset' },
     })
+  })
+
+  it('keeps parity for whole-port SketchProfiles aggregate wiring into ExtrusionProfile', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [],
+    }
+
+    const payload: ConnectionPayload = {
+      from: { nodeId: 'n-sketch', portId: 'SketchProfiles' },
+      to: { nodeId: 'n-extrude', portId: 'ExtrusionProfile' },
+    }
+
+    assertProjectedParity(graph, payload)
+    const decision = getProjectedContractDecision(graph, payload)
+    expect(decision.ok).toBe(true)
   })
 
   it('keeps parity for composite leaf-path rules (valid, invalid, non-leaf, duplicate)', () => {

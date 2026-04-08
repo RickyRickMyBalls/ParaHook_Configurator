@@ -12,28 +12,103 @@ vi.mock('../oc/ocInit', () => ({
 
 import { buildAuthoritativeGeometry } from './buildAuthoritativeGeometry'
 
-const emptyProfileLoop = {
-  segments: [],
+const rectangleProfileLoop = {
+  segments: [
+    {
+      kind: 'line2' as const,
+      a: { x: 0, y: 0 },
+      b: { x: 20, y: 0 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 20, y: 0 },
+      b: { x: 20, y: 20 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 20, y: 20 },
+      b: { x: 0, y: 20 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 0, y: 20 },
+      b: { x: 0, y: 0 },
+    },
+  ],
   winding: 'CCW' as const,
 }
 
-const resolvedProfile = (profileId: string) => ({
+const triangleProfileLoop = {
+  segments: [
+    {
+      kind: 'line2' as const,
+      a: { x: 0, y: 0 },
+      b: { x: 20, y: 0 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 20, y: 0 },
+      b: { x: 10, y: 15 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 10, y: 15 },
+      b: { x: 0, y: 0 },
+    },
+  ],
+  winding: 'CCW' as const,
+}
+
+const openProfileLoop = {
+  segments: [
+    {
+      kind: 'line2' as const,
+      a: { x: 0, y: 0 },
+      b: { x: 20, y: 0 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 30, y: 0 },
+      b: { x: 20, y: 20 },
+    },
+    {
+      kind: 'line2' as const,
+      a: { x: 20, y: 20 },
+      b: { x: 0, y: 0 },
+    },
+  ],
+  winding: 'CCW' as const,
+}
+
+const resolvedProfile = (
+  profileId: string,
+  options?: {
+    loop?: typeof rectangleProfileLoop
+    verticesProxy?: Array<{ x: number; y: number }>
+  },
+) => ({
   profileId,
   profileIndex: 0,
   area: 400,
-  loop: emptyProfileLoop,
-  verticesProxy: [
-    { x: 0, y: 0 },
-    { x: 20, y: 0 },
-    { x: 20, y: 20 },
-    { x: 0, y: 20 },
-  ],
+  loop: options?.loop ?? rectangleProfileLoop,
+  verticesProxy:
+    options?.verticesProxy ?? [
+      { x: 0, y: 0 },
+      { x: 20, y: 0 },
+      { x: 20, y: 20 },
+      { x: 0, y: 20 },
+    ],
 })
 
 const resolvedProfileRef = (sketchFeatureId: string, profileId: string) => ({
   sketchFeatureId,
   profileId,
   profileIndex: 0,
+})
+
+const profileSelectionAllFromSketch = (sketchFeatureId: string) => ({
+  mode: 'allFromSketch' as const,
+  sketchFeatureId,
 })
 
 const cubeCompiledBuildData = (): CompiledBuildData => ({
@@ -143,8 +218,266 @@ const multiCubeCompiledBuildData = (): CompiledBuildData => ({
   outputEntries: [],
 })
 
+const triangleCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['triangle'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        triangle: [
+          {
+            op: 'sketch',
+            featureId: 'triangle-sketch-1',
+            profilesResolved: [
+              resolvedProfile('triangle-profile-1', {
+                loop: triangleProfileLoop,
+                verticesProxy: [
+                  { x: 0, y: 0 },
+                  { x: 20, y: 0 },
+                  { x: 10, y: 15 },
+                ],
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'triangle-extrude-1',
+            profileRef: resolvedProfileRef('triangle-sketch-1', 'triangle-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'triangle-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const aggregateCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['aggregate'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        aggregate: [
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-1',
+            profilesResolved: [
+              resolvedProfile('aggregate-profile-1'),
+              resolvedProfile('aggregate-profile-2', {
+                verticesProxy: [
+                  { x: 30, y: 0 },
+                  { x: 40, y: 0 },
+                  { x: 40, y: 10 },
+                  { x: 30, y: 10 },
+                ],
+                loop: {
+                  segments: [
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 0 },
+                      b: { x: 40, y: 0 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 0 },
+                      b: { x: 40, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 10 },
+                      b: { x: 30, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 10 },
+                      b: { x: 30, y: 0 },
+                    },
+                  ],
+                  winding: 'CCW' as const,
+                },
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'aggregate-extrude-1',
+            profileSelection: profileSelectionAllFromSketch('aggregate-sketch-1'),
+            profileRef: null,
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'aggregate-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const staleAggregateCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['aggregate'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        aggregate: [
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-1',
+            profilesResolved: [resolvedProfile('aggregate-profile-1')],
+          },
+          {
+            op: 'extrude',
+            featureId: 'aggregate-extrude-1',
+            profileSelection: profileSelectionAllFromSketch('missing-sketch'),
+            profileRef: resolvedProfileRef('aggregate-sketch-1', 'aggregate-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'aggregate-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const emptyAggregateCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['aggregate'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        aggregate: [
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-1',
+            profilesResolved: [],
+          },
+          {
+            op: 'extrude',
+            featureId: 'aggregate-extrude-1',
+            profileSelection: profileSelectionAllFromSketch('aggregate-sketch-1'),
+            profileRef: null,
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'aggregate-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const malformedAggregateCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['aggregate'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        aggregate: [
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-1',
+            profilesResolved: [
+              resolvedProfile('aggregate-profile-1'),
+              {
+                profileId: 'aggregate-profile-bad',
+                profileIndex: 1,
+                area: 0,
+                loop: {
+                  segments: [],
+                  winding: 'CCW' as const,
+                },
+                verticesProxy: [
+                  { x: 0, y: 0 },
+                  { x: 10, y: 0 },
+                ],
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'aggregate-extrude-1',
+            profileSelection: profileSelectionAllFromSketch('aggregate-sketch-1'),
+            profileRef: null,
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'aggregate-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const malformedProfileCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['broken'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        broken: [
+          {
+            op: 'sketch',
+            featureId: 'broken-sketch-1',
+            profilesResolved: [
+              resolvedProfile('broken-profile-1', {
+                loop: openProfileLoop,
+                verticesProxy: [
+                  { x: 0, y: 0 },
+                  { x: 20, y: 0 },
+                  { x: 20, y: 20 },
+                ],
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'broken-extrude-1',
+            profileRef: resolvedProfileRef('broken-sketch-1', 'broken-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'broken-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
 const createFakeOc = (options: {
   shapeDelete: ReturnType<typeof vi.fn>
+  edgeDelete?: ReturnType<typeof vi.fn>
+  wireDelete?: ReturnType<typeof vi.fn>
+  faceDelete?: ReturnType<typeof vi.fn>
+  recordEdgeKind?: (kind: string) => void
+  recordWireEdgeCount?: (count: number) => void
+  recordPrismVector?: (vector: { x: number; y: number; z: number }) => void
   failOnShapeCall?: number
 }) => {
   let shapeCallCount = 0
@@ -163,7 +496,7 @@ const createFakeOc = (options: {
     public delete(): void {}
   }
 
-  class gp_Dir {
+  class gp_Vec {
     public readonly x: number
     public readonly y: number
     public readonly z: number
@@ -177,31 +510,121 @@ const createFakeOc = (options: {
     public delete(): void {}
   }
 
-  class gp_Ax2 {
-    public readonly origin: gp_Pnt
-    public readonly normal: gp_Dir
-    public readonly xDirection: gp_Dir
+  class TColgp_Array1OfPnt {
+    public readonly values = new Map<number, gp_Pnt>()
+    public readonly lower: number
+    public readonly upper: number
 
-    public constructor(origin: gp_Pnt, normal: gp_Dir, xDirection: gp_Dir) {
-      this.origin = origin
-      this.normal = normal
-      this.xDirection = xDirection
+    public constructor(lower: number, upper: number) {
+      this.lower = lower
+      this.upper = upper
+    }
+
+    public SetValue(index: number, point: gp_Pnt): void {
+      this.values.set(index, point)
     }
 
     public delete(): void {}
   }
 
-  class BRepPrimAPI_MakeBox {
-    public readonly axis: gp_Ax2
-    public readonly width: number
-    public readonly length: number
-    public readonly depth: number
+  class Geom_BezierCurve {
+    public readonly points: TColgp_Array1OfPnt
 
-    public constructor(axis: gp_Ax2, width: number, length: number, depth: number) {
-      this.axis = axis
-      this.width = width
-      this.length = length
-      this.depth = depth
+    public constructor(points: TColgp_Array1OfPnt) {
+      this.points = points
+    }
+
+    public delete(): void {}
+  }
+
+  class FakeArcCurve {
+    public delete(): void {}
+  }
+
+  class GC_MakeArcOfCircle {
+    public readonly start: gp_Pnt
+    public readonly mid: gp_Pnt
+    public readonly end: gp_Pnt
+
+    public constructor(start: gp_Pnt, mid: gp_Pnt, end: gp_Pnt) {
+      this.start = start
+      this.mid = mid
+      this.end = end
+    }
+
+    public Value(): FakeArcCurve {
+      return new FakeArcCurve()
+    }
+
+    public delete(): void {}
+  }
+
+  class BRepBuilderAPI_MakeEdge {
+    public readonly args: unknown[]
+
+    public constructor(...args: unknown[]) {
+      this.args = args
+    }
+
+    public Edge(): { kind: string; delete: ReturnType<typeof vi.fn> } {
+      const [first] = this.args
+      const kind =
+        first instanceof gp_Pnt
+          ? 'line2'
+          : first instanceof Geom_BezierCurve
+            ? 'bezier2'
+            : 'arc3pt2'
+      options.recordEdgeKind?.(kind)
+      return {
+        kind,
+        delete: options.edgeDelete ?? vi.fn(),
+      }
+    }
+
+    public delete(): void {}
+  }
+
+  class BRepBuilderAPI_MakeWire {
+    private readonly edges: unknown[] = []
+
+    public Add(edge: unknown): void {
+      this.edges.push(edge)
+    }
+
+    public Wire(): { delete: ReturnType<typeof vi.fn> } {
+      options.recordWireEdgeCount?.(this.edges.length)
+      return {
+        delete: options.wireDelete ?? vi.fn(),
+      }
+    }
+
+    public delete(): void {}
+  }
+
+  class BRepBuilderAPI_MakeFace {
+    public readonly wire: { delete: ReturnType<typeof vi.fn> }
+
+    public constructor(wire: { delete: ReturnType<typeof vi.fn> }) {
+      this.wire = wire
+    }
+
+    public Face(): { delete: ReturnType<typeof vi.fn> } {
+      return {
+        delete: options.faceDelete ?? vi.fn(),
+      }
+    }
+
+    public delete(): void {}
+  }
+
+  class BRepPrimAPI_MakePrism {
+    public readonly face: { delete: ReturnType<typeof vi.fn> }
+    public readonly vector: gp_Vec
+
+    public constructor(face: { delete: ReturnType<typeof vi.fn> }, vector: gp_Vec) {
+      this.face = face
+      this.vector = vector
+      options.recordPrismVector?.(vector)
     }
 
     public Shape(): { delete: ReturnType<typeof vi.fn> } {
@@ -219,9 +642,14 @@ const createFakeOc = (options: {
 
   return {
     gp_Pnt,
-    gp_Dir,
-    gp_Ax2,
-    BRepPrimAPI_MakeBox,
+    gp_Vec,
+    TColgp_Array1OfPnt,
+    Geom_BezierCurve,
+    GC_MakeArcOfCircle,
+    BRepBuilderAPI_MakeEdge,
+    BRepBuilderAPI_MakeWire,
+    BRepBuilderAPI_MakeFace,
+    BRepPrimAPI_MakePrism,
   }
 }
 
@@ -283,6 +711,186 @@ describe('buildAuthoritativeGeometry', () => {
 
     expect(result.authoritativeGeometryResult).toBeNull()
     expect(getOcMock).not.toHaveBeenCalled()
+  })
+
+  it('mints authoritative geometry for a non-rectangular closed sketch body extrude through the face-driven path', async () => {
+    const edgeDelete = vi.fn()
+    const wireDelete = vi.fn()
+    const faceDelete = vi.fn()
+    const edgeKinds: string[] = []
+    const wireEdgeCounts: number[] = []
+    const prismVectors: Array<{ x: number; y: number; z: number }> = []
+    getOcMock.mockResolvedValue(
+      createFakeOc({
+        shapeDelete: vi.fn(),
+        edgeDelete,
+        wireDelete,
+        faceDelete,
+        recordEdgeKind: (kind) => edgeKinds.push(kind),
+        recordWireEdgeCount: (count) => wireEdgeCounts.push(count),
+        recordPrismVector: (vector) => prismVectors.push(vector),
+      }),
+    )
+
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: triangleCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-triangle',
+        partKeys: ['triangle'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'authoritative',
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    )
+    expect(getOcMock).toHaveBeenCalledTimes(1)
+    expect(edgeKinds).toEqual(['line2', 'line2', 'line2'])
+    expect(wireEdgeCounts).toEqual([3])
+    expect(prismVectors).toEqual([{ x: 0, y: 0, z: 20 }])
+    expect(edgeDelete).toHaveBeenCalledTimes(3)
+    expect(wireDelete).toHaveBeenCalledTimes(1)
+    expect(faceDelete).toHaveBeenCalledTimes(1)
+    const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId
+    expect(handleId).toBe('shape-set-1')
+    expect(releaseAuthoritativeShapeSets(handleId === undefined ? [] : [handleId])).toBe(1)
+  })
+
+  it('mints one authoritative result for aggregate closed-profile selection without collapsing to a single profile', async () => {
+    const shapeDelete = vi.fn()
+    const edgeDelete = vi.fn()
+    const wireDelete = vi.fn()
+    const faceDelete = vi.fn()
+    const wireEdgeCounts: number[] = []
+    const prismVectors: Array<{ x: number; y: number; z: number }> = []
+    getOcMock.mockResolvedValue(
+      createFakeOc({
+        shapeDelete,
+        edgeDelete,
+        wireDelete,
+        faceDelete,
+        recordWireEdgeCount: (count) => wireEdgeCounts.push(count),
+        recordPrismVector: (vector) => prismVectors.push(vector),
+      }),
+    )
+
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: aggregateCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-aggregate',
+        partKeys: ['aggregate'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'authoritative',
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    )
+    expect(Object.keys(result.authoritativeGeometryResult?.bodies ?? {})).toEqual([
+      'aggregate:aggregate-body-1',
+    ])
+    expect(result.authoritativeGeometryResult?.meshPreview).not.toBeNull()
+    expect(getOcMock).toHaveBeenCalledTimes(1)
+    expect(wireEdgeCounts).toEqual([4, 4])
+    expect(prismVectors).toEqual([
+      { x: 0, y: 0, z: 20 },
+      { x: 0, y: 0, z: 20 },
+    ])
+    const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId
+    expect(handleId).toBe('shape-set-1')
+    expect(releaseAuthoritativeShapeSets(handleId === undefined ? [] : [handleId])).toBe(1)
+    expect(shapeDelete).toHaveBeenCalledTimes(2)
+    expect(edgeDelete).toHaveBeenCalledTimes(8)
+    expect(wireDelete).toHaveBeenCalledTimes(2)
+    expect(faceDelete).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns null without minting a shape handle for malformed open sketch loops even when preview geometry exists', async () => {
+    const edgeDelete = vi.fn()
+    const wireDelete = vi.fn()
+    const shapeDelete = vi.fn()
+    getOcMock.mockResolvedValue(
+      createFakeOc({
+        shapeDelete,
+        edgeDelete,
+        wireDelete,
+      }),
+    )
+
+    await expect(
+      buildAuthoritativeGeometry({
+        compiledBuildData: malformedProfileCompiledBuildData(),
+        request: {
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-broken',
+          partKeys: ['broken'],
+        },
+      }),
+    ).resolves.toEqual({
+      authoritativeGeometryResult: null,
+    })
+    expect(getOcMock).toHaveBeenCalledTimes(1)
+    expect(edgeDelete).not.toHaveBeenCalled()
+    expect(wireDelete).not.toHaveBeenCalled()
+    expect(shapeDelete).not.toHaveBeenCalled()
+    expect(releaseAuthoritativeShapeSets(['shape-set-1'])).toBe(0)
+  })
+
+  it('returns null for stale aggregate selection instead of falling back through singular profileRef', async () => {
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: staleAggregateCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-stale-aggregate',
+        partKeys: ['aggregate'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toBeNull()
+    expect(getOcMock).not.toHaveBeenCalled()
+    expect(releaseAuthoritativeShapeSets(['shape-set-1'])).toBe(0)
+  })
+
+  it('returns null for empty aggregate selection without minting any authoritative handle', async () => {
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: emptyAggregateCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-empty-aggregate',
+        partKeys: ['aggregate'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toBeNull()
+    expect(getOcMock).not.toHaveBeenCalled()
+    expect(releaseAuthoritativeShapeSets(['shape-set-1'])).toBe(0)
+  })
+
+  it('returns null for partially invalid aggregate selection so authoritative output stays aligned with draft failure honesty', async () => {
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: malformedAggregateCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-malformed-aggregate',
+        partKeys: ['aggregate'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toBeNull()
+    expect(getOcMock).not.toHaveBeenCalled()
+    expect(releaseAuthoritativeShapeSets(['shape-set-1'])).toBe(0)
   })
 
   it('returns null instead of throwing when the OC boot seam is unavailable', async () => {

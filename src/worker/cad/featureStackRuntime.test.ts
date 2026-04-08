@@ -84,10 +84,26 @@ const resolvedProfile = (
   verticesProxy,
 })
 
+const malformedResolvedProfile = (profileId: string) => ({
+  profileId,
+  profileIndex: 0,
+  area: 0,
+  loop: emptyProfileLoop,
+  verticesProxy: [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 },
+  ],
+})
+
 const profileRef = (sketchFeatureId: string, profileId: string) => ({
   sketchFeatureId,
   profileId,
   profileIndex: 0,
+})
+
+const profileSelectionAllFromSketch = (sketchFeatureId: string) => ({
+  mode: 'allFromSketch' as const,
+  sketchFeatureId,
 })
 
 const defaultExtrudeFields = {
@@ -345,6 +361,52 @@ describe('executeFeatureStack', () => {
     expect(Object.keys(result.bodies)).toEqual(['baseplate:body-a', 'baseplate:body-b'])
   })
 
+  it('executes aggregate sketch-profile selection as one merged body result', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        baseplate: [
+          {
+            op: 'sketch',
+            featureId: 'sketch-1',
+            profilesResolved: [
+              resolvedProfile('prof-a', 50),
+              resolvedProfile('prof-b', 9, [
+                { x: 20, y: 0 },
+                { x: 23, y: 0 },
+                { x: 23, y: 3 },
+                { x: 20, y: 3 },
+              ]),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'extrude-aggregate',
+            profileSelection: profileSelectionAllFromSketch('sketch-1'),
+            profileRef: null,
+            ...defaultExtrudeFields,
+            depthResolved: 2,
+            bodyId: 'body-aggregate',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(Object.keys(result.bodies)).toEqual(['baseplate:body-aggregate'])
+    expect(result.bodies['baseplate:body-aggregate']?.kind).toBe('aggregate_extrusion')
+    expect(result.bodies['baseplate:body-aggregate']?.mesh.vertices.length).toBe(48)
+    expect(result.diagnostics).toEqual([])
+    expect(result.bodyTrace).toEqual([
+      expect.objectContaining({
+        bodyKey: 'baseplate:body-aggregate',
+        featureId: 'extrude-aggregate',
+        executionIndex: 0,
+      }),
+    ])
+  })
+
   it('sorts body output deterministically', () => {
     const payload: FeatureStackIRPayload = {
       schemaVersion: 1,
@@ -448,6 +510,106 @@ describe('executeFeatureStack', () => {
     const result = executeFeatureStack(payload)
     expect(result.bodies).toEqual({})
     expect(result.diagnostics.some((item) => item.reason === 'missing_profile_ref')).toBe(true)
+  })
+
+  it('fails aggregate selection honestly when the referenced sketch is unavailable even if profileRef would succeed', () => {
+    const payload = basePayload()
+    payload.parts.baseplate[1] = {
+      op: 'extrude',
+      featureId: 'extrude-aggregate',
+      profileSelection: profileSelectionAllFromSketch('missing-sketch'),
+      profileRef: profileRef('sketch-1', 'prof-a'),
+      ...defaultExtrudeFields,
+      depthResolved: 3,
+      bodyId: 'body-a',
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(result.bodies).toEqual({})
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        featureId: 'extrude-aggregate',
+        reason: 'missing_profile_selection',
+      }),
+    ])
+  })
+
+  it('fails aggregate selection honestly when the sketch resolves to no available closed profiles', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        baseplate: [
+          {
+            op: 'sketch',
+            featureId: 'empty-sketch',
+            profilesResolved: [],
+          },
+          {
+            op: 'extrude',
+            featureId: 'extrude-aggregate',
+            profileSelection: profileSelectionAllFromSketch('empty-sketch'),
+            profileRef: null,
+            ...defaultExtrudeFields,
+            depthResolved: 3,
+            bodyId: 'body-empty',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(result.bodies).toEqual({})
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        featureId: 'extrude-aggregate',
+        reason: 'missing_profile_selection',
+      }),
+    ])
+  })
+
+  it('fails aggregate selection honestly when the source sketch contains partially invalid closed profiles', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        baseplate: [
+          {
+            op: 'sketch',
+            featureId: 'mixed-sketch',
+            profilesResolved: [
+              resolvedProfile('prof-a', 50),
+              malformedResolvedProfile('prof-b'),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'extrude-aggregate',
+            profileSelection: profileSelectionAllFromSketch('mixed-sketch'),
+            profileRef: null,
+            ...defaultExtrudeFields,
+            depthResolved: 3,
+            bodyId: 'body-mixed',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(result.bodies).toEqual({})
+    expect(result.bodyTrace).toEqual([])
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        featureId: 'mixed-sketch',
+        reason: 'invalid_profile_vertices',
+      }),
+      expect.objectContaining({
+        featureId: 'extrude-aggregate',
+        reason: 'missing_profile_selection',
+        message: 'Extrude skipped because sketch "mixed-sketch" contains invalid closed profiles.',
+      }),
+    ])
   })
 
   it('keeps first body on duplicate bodyId', () => {

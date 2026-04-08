@@ -2618,18 +2618,37 @@ function NodeViewComponent({
     const startDepthVisible = effectiveExtrudeDirection === 'TwoSides'
     const endDepthVisible = effectiveExtrudeDirection === 'TwoSides'
     const taperVisible = effectiveExtrudeType === 'Body' && effectiveExtrudeDirection === 'OneSide'
+    const profileTargetMode = extrudeVm?.profileTargetMode
+    const aggregateProfileCount = extrudeVm?.profileCount ?? 0
+    const aggregateProfileCountLabel = `${aggregateProfileCount} closed profile${
+      aggregateProfileCount === 1 ? '' : 's'
+    }`
+    const profileTargetRowLabel =
+      profileTargetMode === 'allFromSketch' ? 'SketchProfiles' : 'SketchProfile'
     const profileSummary =
-      extrudeVm?.hasProfile === true
-        ? `${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
-            extrudeVm.profileArea ?? 0,
-          )}`
-        : 'Awaiting wire'
+      profileTargetMode === 'allFromSketch'
+        ? extrudeVm?.hasProfile === true
+          ? `All closed profiles | ${aggregateProfileCountLabel}`
+          : 'Awaiting closed profiles from SketchProfiles'
+        : extrudeVm?.hasProfile === true
+          ? `${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
+              extrudeVm.profileArea ?? 0,
+            )}`
+          : profileTargetMode === 'single'
+            ? 'Awaiting one SketchProfile'
+            : 'Awaiting SketchProfile or SketchProfiles target'
     const depthRequirementLabel =
       effectiveExtrudeDirection === 'TwoSides'
         ? 'positive Start Depth and End Depth'
         : effectiveExtrudeDirection === 'Symmetric'
           ? 'positive symmetric Depth'
           : 'positive Depth'
+    const profileRequirementLabel =
+      profileTargetMode === 'allFromSketch'
+        ? 'closed profiles from SketchProfiles'
+        : profileTargetMode === 'single'
+          ? 'one SketchProfile'
+          : 'a SketchProfile or SketchProfiles target'
     const bodySummaryReady =
       effectiveExtrudeType === 'Walls'
         ? `Walls ready: ${extrudeVm?.bodyId ?? ''} (uncapped side walls)`
@@ -2638,12 +2657,12 @@ function NodeViewComponent({
       extrudeVm?.bodyId !== undefined
         ? bodySummaryReady
         : effectiveExtrudeType === 'Walls'
-          ? `Waiting for one profile and ${depthRequirementLabel} to generate uncapped side walls.`
-          : `Waiting for one profile and ${depthRequirementLabel} to generate a capped body.`
+          ? `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} to generate uncapped side walls.`
+          : `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} to generate a capped body.`
     const profileRowController = getManagedStructuredWireRowProps(
       'in',
       'ExtrusionProfile',
-      'SketchProfile',
+      profileTargetRowLabel,
     )
     const renderExtrudeProfileAttachedBody = (mode: 'essentials' | 'expanded') => (
       <div className="SpaghettiSketchSectionBody">
@@ -2651,9 +2670,13 @@ function NodeViewComponent({
           <div className="SpaghettiSketchActionMeta">
             <div className="SpaghettiSketchActionTitle">Profile Target</div>
             <div className="SpaghettiSketchActionHint">
-              {extrudeVm?.hasProfile === true
-                ? 'Consume one upstream SketchProfile from Geometry/Sketch as the start face for this extrude.'
-                : 'Wire one SketchProfile from Geometry/Sketch into this extrude.'}
+              {profileTargetMode === 'allFromSketch'
+                ? extrudeVm?.hasProfile === true
+                  ? 'Consume all closed profiles from the upstream SketchProfiles output from Geometry/Sketch as the start faces for this extrude.'
+                  : 'The parent SketchProfiles output is wired, but the source sketch is not currently resolving any closed profiles for this extrude.'
+                : extrudeVm?.hasProfile === true
+                  ? 'Consume one upstream SketchProfile from Geometry/Sketch as the start face for this extrude.'
+                  : 'Wire one SketchProfile or the parent SketchProfiles output from Geometry/Sketch into this extrude.'}
             </div>
           </div>
         </div>
@@ -2662,16 +2685,26 @@ function NodeViewComponent({
             <div className="SpaghettiSketchEntityList" data-sp-extrude-profile-summary="1">
               <div className="SpaghettiSketchEntityRow" data-sp-extrude-profile-row="summary">
                 <div className="SpaghettiSketchEntityMeta">
-                  <div className="SpaghettiSketchEntityTitle">Resolved SketchProfile</div>
+                  <div className="SpaghettiSketchEntityTitle">
+                    {profileTargetMode === 'allFromSketch'
+                      ? 'Resolved SketchProfiles target'
+                      : 'Resolved SketchProfile'}
+                  </div>
                   <div className="SpaghettiSketchEntitySummary">{profileSummary}</div>
                 </div>
               </div>
             </div>
           ) : (
             <div className="SpaghettiSketchPlaceholder" data-sp-extrude-placeholder="profile">
-              <div className="SpaghettiSketchPlaceholderTitle">No SketchProfile wired yet</div>
+              <div className="SpaghettiSketchPlaceholderTitle">
+                {profileTargetMode === 'allFromSketch'
+                  ? 'No closed profiles resolving yet'
+                  : 'No profile target wired yet'}
+              </div>
               <div className="SpaghettiSketchPlaceholderBody">
-                Connect one `SketchProfile` output from `Geometry/Sketch`.
+                {profileTargetMode === 'allFromSketch'
+                  ? 'The parent `SketchProfiles` output is wired, but the source sketch is not currently publishing any closed profiles for this extrude.'
+                  : 'Connect one `SketchProfile` output or the parent `SketchProfiles` output from `Geometry/Sketch`.'}
               </div>
             </div>
           )
@@ -2818,7 +2851,7 @@ function NodeViewComponent({
                 {renderInputPortByType(profilePort, {
                   portClassName: 'SpaghettiExtrudeProfilePortRow',
                   endpointPortId: profilePort.portId,
-                  labelOverride: 'SketchProfile',
+                  labelOverride: profileTargetRowLabel,
                   resolvedValueLabel: profileSummary,
                   rowChevronState: profileRowController.rowChevronState,
                   onCycleRowChevron: profileRowController.onCycleRowChevron,

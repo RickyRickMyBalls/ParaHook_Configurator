@@ -940,7 +940,7 @@ describe('NodeView part section order', () => {
       },
     )
 
-    expect(html.includes('Disabled · Profile: -, Depth: 10')).toBe(true)
+    expect(html.includes('Profile Target: -, Depth: 10')).toBe(true)
     expect(html.includes('Enable')).toBe(true)
     expect(html.includes('Up')).toBe(true)
     expect(html.includes('Down')).toBe(true)
@@ -1756,12 +1756,96 @@ describe('NodeView part section order', () => {
 
     expect(html.includes('SketchProfile')).toBe(true)
     expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(true)
-    expect(html.includes('Awaiting wire')).toBe(true)
-    expect(html.includes('Wire one SketchProfile from Geometry/Sketch into this extrude.')).toBe(
-      true,
-    )
+    expect(html.includes('Awaiting SketchProfile or SketchProfiles target')).toBe(true)
+    expect(
+      html.includes(
+        'Wire one SketchProfile or the parent SketchProfiles output from Geometry/Sketch into this extrude.',
+      ),
+    ).toBe(true)
     expect(html.includes('Depth Value')).toBe(false)
-    expect(html.includes('No SketchProfile wired yet')).toBe(false)
+    expect(html.includes('No profile target wired yet')).toBe(false)
+  })
+
+  it('renders aggregate SketchProfiles copy honestly in the dedicated extrude template', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: true,
+        profileTargetMode: 'allFromSketch',
+        profileCount: 2,
+        bodyId: 'node-extrude-1:body',
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'ExtrusionProfile',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('SketchProfiles')).toBe(true)
+    expect(html.includes('All closed profiles | 2 closed profiles')).toBe(true)
+    expect(
+      html.includes(
+        'Consume all closed profiles from the upstream SketchProfiles output from Geometry/Sketch as the start faces for this extrude.',
+      ),
+    ).toBe(true)
+    expect(html.includes('Body ready: node-extrude-1:body (capped result)')).toBe(true)
   })
 
   it('renders walls copy as uncapped side-wall output in the dedicated extrude template', () => {

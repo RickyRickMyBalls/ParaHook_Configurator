@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
 import { selectDiagnosticsVm } from './selectDiagnosticsVm'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import type { SketchFeature } from '../features/featureTypes'
 import { selectNodeVm } from './selectNodeVm'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import { registry, type NodeDefinition } from '../registry/nodeRegistry'
@@ -35,6 +36,39 @@ beforeAll(() => {
 
 afterAll(() => {
   delete registryWithTests[testNumberDegSourceType]
+})
+
+const createSketchFeature = (
+  components: SketchFeature['components'] = [],
+  options?: { selectedProfileId?: string },
+): SketchFeature => ({
+  type: 'sketch',
+  featureId: 'sketch-1',
+  plane: 'XY',
+  components,
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+    ...(options?.selectedProfileId === undefined
+      ? {}
+      : { selectedProfileId: options.selectedProfileId }),
+  },
+})
+
+const lineComponent = (
+  rowId: string,
+  componentId: string,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+): SketchFeature['components'][number] => ({
+  rowId,
+  componentId,
+  type: 'line',
+  a: { kind: 'lit', x: start.x, y: start.y },
+  b: { kind: 'lit', x: end.x, y: end.y },
 })
 
 describe('selectNodeVm', () => {
@@ -773,5 +807,54 @@ describe('selectNodeVm', () => {
     expect(extrudeVm?.localEndDepthMm).toBe(7)
     expect(extrudeVm?.effectiveEndDepthMm).toBe(18)
     expect(extrudeVm?.endDepthDriven).toBe(true)
+  })
+
+  it('marks whole-port SketchProfiles aggregate extrude targets explicitly in the selector vm', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 40, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 40, y: 0 }, { x: 40, y: 20 }),
+              lineComponent('row-3', 'e3', { x: 40, y: 20 }, { x: 0, y: 20 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 20 }, { x: 0, y: 0 }),
+              lineComponent('row-5', 'e5', { x: 60, y: 0 }, { x: 90, y: 0 }),
+              lineComponent('row-6', 'e6', { x: 90, y: 0 }, { x: 90, y: 15 }),
+              lineComponent('row-7', 'e7', { x: 90, y: 15 }, { x: 60, y: 15 }),
+              lineComponent('row-8', 'e8', { x: 60, y: 15 }, { x: 60, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-profiles',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.profileTargetMode).toBe('allFromSketch')
+    expect(extrudeVm?.profileCount).toBe(2)
+    expect(extrudeVm?.hasProfile).toBe(true)
+    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body')
   })
 })

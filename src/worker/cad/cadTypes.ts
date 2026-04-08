@@ -23,7 +23,7 @@ export type MeshPack = {
 }
 
 export type Shape3D = {
-  kind: 'extrusion' | 'mesh_pack_merge'
+  kind: 'extrusion' | 'aggregate_extrusion'
   bodyId: string
   featureId: string
   op: string

@@ -3,9 +3,11 @@ import { compileFeatureStack, type FeatureStackIR } from '../features/compileFea
 import { getEffectiveFeatureStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
 import type {
+  GeometryRequestExtrudeProfileSelection,
   GeometryRequestOp,
   GeometryRequestPayload,
 } from '../contracts/geometryRequest'
+import { isGeometryRequestProfileLoop } from '../contracts/geometryRequest'
 import {
   createDefaultSketchPlaneTransform,
   type ProfileLoop,
@@ -150,13 +152,6 @@ const isSketchPlaneTransform = (value: unknown): value is SketchPlaneTransform =
   typeof (value as { inPlaneRotationDeg?: unknown }).inPlaneRotationDeg === 'number' &&
   Number.isFinite((value as { inPlaneRotationDeg: number }).inPlaneRotationDeg)
 
-const isProfileLoopLike = (value: unknown): value is ProfileLoop =>
-  typeof value === 'object' &&
-  value !== null &&
-  Array.isArray((value as { segments?: unknown }).segments) &&
-  (((value as { winding?: unknown }).winding === 'CCW') ||
-    (value as { winding?: unknown }).winding === 'CW')
-
 const isProfileInputLike = (
   value: unknown,
 ): value is {
@@ -173,7 +168,7 @@ const isProfileInputLike = (
     typeof (value as { profileIndex?: unknown }).profileIndex === 'number') &&
   typeof (value as { area?: unknown }).area === 'number' &&
   (((value as { loop?: unknown }).loop === undefined) ||
-    isProfileLoopLike((value as { loop?: unknown }).loop)) &&
+    isGeometryRequestProfileLoop((value as { loop?: unknown }).loop)) &&
   Array.isArray((value as { verticesProxy?: unknown }).verticesProxy)
 
 const readGeometrySketchPlaneFromNode = (
@@ -222,6 +217,7 @@ const buildGeometryExtrudeOps = (
   graph: SpaghettiGraph,
   node: SpaghettiGraph['nodes'][number],
   resolvedInputsByNodeId: Record<string, Record<string, unknown>> | undefined,
+  resolvedOutputsByNodeId: Record<string, Record<string, unknown>> | undefined,
 ): FeatureStackIR => {
   const resolvedInputs = resolvedInputsByNodeId?.[node.nodeId] ?? {}
   const profileInput = resolvedInputs.ExtrusionProfile
@@ -232,6 +228,8 @@ const buildGeometryExtrudeOps = (
     (candidate) =>
       candidate.nodeId === sourceProfileEdge?.from.nodeId && candidate.type === 'Geometry/Sketch',
   )
+  const sourceSketchOutputs =
+    sourceSketchNode === undefined ? undefined : resolvedOutputsByNodeId?.[sourceSketchNode.nodeId]
   const plane = readGeometrySketchPlaneFromNode(sourceSketchNode)
   const planeTransform = readGeometrySketchPlaneTransformFromNode(sourceSketchNode)
   const extrudeDirection =
@@ -267,40 +265,83 @@ const buildGeometryExtrudeOps = (
     typeof taperInput === 'number' && Number.isFinite(taperInput)
       ? taperInput
       : readGeometryExtrudeTaperAngleDegFromParams(node.params)
+  const aggregateSourceProfiles = sourceSketchOutputs?.SketchProfiles
+  const aggregateProfilesResolved =
+    Array.isArray(aggregateSourceProfiles) && aggregateSourceProfiles.every(isProfileInputLike)
+      ? aggregateSourceProfiles.map((profile) => ({
+          profileId: profile.profileId,
+          profileIndex: profile.profileIndex ?? 0,
+          area: profile.area,
+          loop:
+            profile.loop ?? {
+              segments: [],
+              winding: 'CCW',
+            },
+          verticesProxy: profile.verticesProxy,
+        }))
+      : []
+  const isAggregateProfileSelection =
+    sourceProfileEdge?.from.portId === 'SketchProfiles' &&
+    (sourceProfileEdge.from.path === undefined || sourceProfileEdge.from.path.length === 0) &&
+    sourceSketchNode !== undefined
   const profileRef =
-    sourceSketchNode !== undefined && isProfileInputLike(profileInput)
+    !isAggregateProfileSelection &&
+    sourceSketchNode !== undefined &&
+    isProfileInputLike(profileInput)
       ? {
           sketchFeatureId: sourceSketchNode.nodeId,
           profileId: profileInput.profileId,
           profileIndex: profileInput.profileIndex ?? 0,
         }
       : null
+  const profileSelection: GeometryRequestExtrudeProfileSelection | null =
+    isAggregateProfileSelection && sourceSketchNode !== undefined
+      ? {
+          mode: 'allFromSketch',
+          sketchFeatureId: sourceSketchNode.nodeId,
+        }
+      : profileRef === null
+        ? null
+        : {
+            mode: 'single',
+            sketchFeatureId: profileRef.sketchFeatureId,
+            profileId: profileRef.profileId,
+            profileIndex: profileRef.profileIndex,
+          }
+
+  const sketchProfilesResolved =
+    isAggregateProfileSelection
+      ? aggregateProfilesResolved
+      : sourceSketchNode !== undefined && isProfileInputLike(profileInput)
+        ? [
+            {
+              profileId: profileInput.profileId,
+              profileIndex: profileInput.profileIndex ?? 0,
+              area: profileInput.area,
+              loop:
+                profileInput.loop ?? {
+                  segments: [],
+                  winding: 'CCW',
+                },
+              verticesProxy: profileInput.verticesProxy,
+            },
+          ]
+        : []
 
   const ops: FeatureStackIR = []
-  if (sourceSketchNode !== undefined && isProfileInputLike(profileInput)) {
+  if (sourceSketchNode !== undefined && sketchProfilesResolved.length > 0) {
     ops.push({
       op: 'sketch',
       featureId: sourceSketchNode.nodeId,
       plane,
       planeTransform,
-      profilesResolved: [
-        {
-          profileId: profileInput.profileId,
-          profileIndex: profileInput.profileIndex ?? 0,
-          area: profileInput.area,
-          loop:
-            profileInput.loop ?? {
-              segments: [],
-              winding: 'CCW',
-            },
-          verticesProxy: profileInput.verticesProxy,
-        },
-      ],
+      profilesResolved: sketchProfilesResolved,
     })
   }
   ops.push({
     op: 'extrude',
     featureId: node.nodeId,
+    profileSelection,
     profileRef,
     extrudeType: readGeometryExtrudeTypeFromParams(node.params),
     extrudeDirection,
@@ -429,6 +470,7 @@ export const computeFeatureStackIrParts = (
   graph: SpaghettiGraph,
   options?: {
     resolvedInputsByNodeId?: Record<string, Record<string, unknown>>
+    resolvedOutputsByNodeId?: Record<string, Record<string, unknown>>
   },
 ): FeatureStackIrPartsComputation => {
   const sortedNodes = [...graph.nodes].sort(
@@ -468,7 +510,12 @@ export const computeFeatureStackIrParts = (
     orderedPartKeys.push(partKey)
     partNodesByPartKey[partKey] = node
     nodeIdToPartKey[node.nodeId] = partKey
-    parts[partKey] = buildGeometryExtrudeOps(graph, node, options?.resolvedInputsByNodeId)
+    parts[partKey] = buildGeometryExtrudeOps(
+      graph,
+      node,
+      options?.resolvedInputsByNodeId,
+      options?.resolvedOutputsByNodeId,
+    )
     hasNonEmptyFeatureStack = true
   }
 
@@ -503,6 +550,7 @@ export const compileSpaghettiGraph = (
 
   const featureStackComputation = computeFeatureStackIrParts(canonicalGraph, {
     resolvedInputsByNodeId: evaluationResult.inputsByNodeId,
+    resolvedOutputsByNodeId: evaluationResult.outputsByNodeId,
   })
   const resolvedParts: Record<string, Record<string, unknown>> = {}
   for (const partKey of featureStackComputation.orderedPartKeys) {

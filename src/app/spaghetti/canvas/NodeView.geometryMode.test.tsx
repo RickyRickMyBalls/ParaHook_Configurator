@@ -525,7 +525,7 @@ describe('NodeView geometry mode behavior', () => {
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
     expect(inputRow?.classList.contains('SpaghettiExtrudeProfilePortRow')).toBe(true)
     expect(inputRow?.textContent).toContain('SketchProfile')
-    expect(inputRow?.textContent).toContain('Awaiting wire')
+    expect(inputRow?.textContent).toContain('Awaiting SketchProfile or SketchProfiles target')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -534,23 +534,23 @@ describe('NodeView geometry mode behavior', () => {
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
     expect(inputRow?.textContent).toContain('Profile Target')
     expect(inputRow?.textContent).toContain(
-      'Wire one SketchProfile from Geometry/Sketch into this extrude.',
+      'Wire one SketchProfile or the parent SketchProfiles output from Geometry/Sketch into this extrude.',
     )
-    expect(inputRow?.textContent).not.toContain('No SketchProfile wired yet')
+    expect(inputRow?.textContent).not.toContain('No profile target wired yet')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
-    expect(inputRow?.textContent).toContain('No SketchProfile wired yet')
+    expect(inputRow?.textContent).toContain('No profile target wired yet')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
-    expect(inputRow?.textContent).toContain('Awaiting wire')
+    expect(inputRow?.textContent).toContain('Awaiting SketchProfile or SketchProfiles target')
   })
 
   it('keeps the extrude Depth row as a one-line primitive slider across node modes', async () => {

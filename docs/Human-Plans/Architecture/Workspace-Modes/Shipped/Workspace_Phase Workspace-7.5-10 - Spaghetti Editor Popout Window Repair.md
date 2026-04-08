@@ -98,7 +98,7 @@ Deferred follow-on:
 
 ### Active Attempt Tracker
 
-- ongoing live repair attempts for the still-broken popup path should now be logged in [Workspace_Repair Attempts Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md](./docs/Human-Plans/Architecture/Workspace-Modes/Future/Workspace_Repair%20Attempts%20Workspace-7.5-10%20-%20Spaghetti%20Editor%20Popout%20Window%20Repair.md)
+- ongoing live repair attempts for the still-broken popup path should now be logged in [Workspace_Repair Attempts Workspace-7.5-10 - Spaghetti Editor Popout Window Repair.md](./Workspace_Repair%20Attempts%20Workspace-7.5-10%20-%20Spaghetti%20Editor%20Popout%20Window%20Repair.md)
 - the popout path is now working live, so this main phase doc carries the surviving product truth while the companion attempts file remains the detailed debugging history
 
 ### Phase Sections

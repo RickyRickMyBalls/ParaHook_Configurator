@@ -87,6 +87,82 @@ const rectangleStack = (): FeatureStack => [
   },
 ]
 
+const circleStack = (): FeatureStack => [
+  {
+    type: 'sketch',
+    featureId: 'sketch-circle',
+    plane: 'XY',
+    components: [
+      {
+        rowId: 'circle-row-1',
+        componentId: 'circle-1',
+        type: 'circle',
+        center: { kind: 'lit', x: 0, y: 0 },
+        edge: { kind: 'lit', x: 20, y: 0 },
+      },
+    ],
+    outputs: {
+      profiles: [
+        {
+          profileId: 'prof_circle',
+          profileIndex: 0,
+          area: 1,
+          loop: {
+            segments: [],
+            winding: 'CCW',
+          },
+          verticesProxy: [],
+        },
+      ],
+      diagnostics: [],
+    },
+    uiState: {
+      collapsed: false,
+    },
+  },
+]
+
+const rectangleStackViaCloseProfile = (): FeatureStack => [
+  rectangleStack()[0],
+  {
+    type: 'closeProfile',
+    featureId: 'close-1',
+    inputs: {
+      sourceSketchFeatureId: 'sketch-1',
+    },
+    outputs: {
+      profileRef: {
+        sourceFeatureId: 'sketch-1',
+        profileId: 'prof_rect',
+        profileIndex: 0,
+      },
+    },
+    uiState: {
+      collapsed: false,
+    },
+  },
+  {
+    type: 'extrude',
+    featureId: 'extrude-1',
+    inputs: {
+      profileRef: {
+        sourceFeatureId: 'close-1',
+        profileId: 'prof_rect',
+        profileIndex: 0,
+      },
+    },
+    params: {
+      depth: { kind: 'lit', value: 7 },
+    },
+    outputs: {
+      bodyId: 'body-1',
+    },
+    uiState: {
+      collapsed: false,
+    },
+  },
+]
+
 describe('compileFeatureStack', () => {
   it('emits Option-B profilesResolved with deterministic CCW vertices', () => {
     const ir = compileFeatureStack(rectangleStack())
@@ -109,6 +185,12 @@ describe('compileFeatureStack', () => {
       return
     }
 
+    expect(ir[1].profileSelection).toEqual({
+      mode: 'single',
+      sketchFeatureId: 'sketch-1',
+      profileId: 'prof_rect',
+      profileIndex: 0,
+    })
     expect(ir[1].profileRef).toEqual({
       sketchFeatureId: 'sketch-1',
       profileId: 'prof_rect',
@@ -119,6 +201,45 @@ describe('compileFeatureStack', () => {
     expect(ir[1].depthResolved).toBe(7)
     expect(ir[1].taperResolved).toBe(0)
     expect(ir[1].offsetResolved).toBe(0)
+  })
+
+  it('keeps closeProfile-fed extrude payload parity on the resolved sketch-owned single selection', () => {
+    const ir = compileFeatureStack(rectangleStackViaCloseProfile())
+    expect(ir[2].op).toBe('extrude')
+    if (ir[2].op !== 'extrude') {
+      return
+    }
+
+    expect(ir[2].profileSelection).toEqual({
+      mode: 'single',
+      sketchFeatureId: 'sketch-1',
+      profileId: 'prof_rect',
+      profileIndex: 0,
+    })
+    expect(ir[2].profileRef).toEqual({
+      sketchFeatureId: 'sketch-1',
+      profileId: 'prof_rect',
+      profileIndex: 0,
+    })
+  })
+
+  it('drops stale extrude profile refs instead of inventing a single-selection payload', () => {
+    const stack = rectangleStack()
+    const extrude = stack[1] as Extract<FeatureStack[number], { type: 'extrude' }>
+    extrude.inputs.profileRef = {
+      sourceFeatureId: 'missing-sketch',
+      profileId: 'prof_rect',
+      profileIndex: 0,
+    }
+
+    const ir = compileFeatureStack(stack)
+    expect(ir[1].op).toBe('extrude')
+    if (ir[1].op !== 'extrude') {
+      return
+    }
+
+    expect(ir[1].profileSelection).toBeNull()
+    expect(ir[1].profileRef).toBeNull()
   })
 
   it('returns empty profiles when chain is not closed', () => {
@@ -138,6 +259,23 @@ describe('compileFeatureStack', () => {
       return
     }
     expect(ir[0].profilesResolved).toEqual([])
+  })
+
+  it('preserves typed ordered loop segments for non-rectangular sketch profiles', () => {
+    const ir = compileFeatureStack(circleStack())
+    expect(ir[0].op).toBe('sketch')
+    if (ir[0].op !== 'sketch') {
+      return
+    }
+
+    expect(ir[0].profilesResolved).toHaveLength(1)
+    expect(ir[0].profilesResolved[0].profileId).toBe('prof_circle')
+    expect(ir[0].profilesResolved[0].loop.segments).toHaveLength(2)
+    expect(ir[0].profilesResolved[0].loop.segments.map((segment) => segment.kind)).toEqual([
+      'arc3pt2',
+      'arc3pt2',
+    ])
+    expect(ir[0].profilesResolved[0].verticesProxy.length).toBeGreaterThanOrEqual(4)
   })
 
   it('emits resolved taper/offset when provided on extrude params', () => {
@@ -168,6 +306,7 @@ describe('compileFeatureStack', () => {
       {
         op: 'extrude',
         featureId: 'extrude-1',
+        profileSelection: null,
         profileRef: null,
         extrudeType: 'Body',
         depthResolved: 7,

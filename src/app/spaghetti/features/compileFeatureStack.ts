@@ -3,6 +3,7 @@ import { deriveProfilesWithDiagnostics } from './profileDerivation'
 import { getEffectiveFeatureStack } from './featureDependencies'
 import type {
   GeometryRequestExtrudeOp,
+  GeometryRequestExtrudeProfileSelection,
   GeometryRequestProfileRef,
   GeometryRequestSketchOp,
   GeometryRequestSketchProfile,
@@ -10,6 +11,7 @@ import type {
 import type { FeatureStack, ProfileReference } from './featureTypes'
 
 type IRProfileReference = GeometryRequestProfileRef
+type IRProfileSelection = GeometryRequestExtrudeProfileSelection
 
 export type IRSketchProfileResolved = GeometryRequestSketchProfile
 
@@ -34,6 +36,18 @@ const toIRProfileRef = (profileRef: ProfileReference | null): IRProfileReference
     sketchFeatureId: profileRef.sourceFeatureId,
     profileId: profileRef.profileId,
     profileIndex: profileRef.profileIndex ?? 0,
+  }
+}
+
+const toIRProfileSelection = (profileRef: IRProfileReference | null): IRProfileSelection | null => {
+  if (profileRef === null) {
+    return null
+  }
+  return {
+    mode: 'single',
+    sketchFeatureId: profileRef.sketchFeatureId,
+    profileId: profileRef.profileId,
+    profileIndex: profileRef.profileIndex,
   }
 }
 
@@ -127,10 +141,12 @@ export const compileFeatureStack = (stack: FeatureStack): FeatureStackIR => {
               profileId: viaClose.profileRefResolved.profileId,
               profileIndex: 0,
             }
+    const profileSelection = toIRProfileSelection(profileRef)
 
     out.push({
       op: 'extrude',
       featureId: feature.featureId,
+      profileSelection,
       profileRef,
       extrudeType: feature.params.extrudeType ?? 'Body',
       depthResolved: resolveNumberExpression(feature.params.depth),

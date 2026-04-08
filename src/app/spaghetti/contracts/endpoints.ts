@@ -294,6 +294,15 @@ const arePortTypesCompatible = (
   return solidPreviewCompat && fromType.unit === toType.unit
 }
 
+const isWholePortSketchProfilesToExtrusionProfileCompat = (
+  fromResolved: ResolvedEndpoint,
+  toResolved: ResolvedEndpoint,
+): boolean =>
+  fromResolved.path === undefined &&
+  toResolved.path === undefined &&
+  fromResolved.type?.kind === 'sketchProfiles' &&
+  toResolved.type?.kind === 'sketchProfile'
+
 type ValidateConnectionContractOptions = {
   incrementalState?: ConnectionContractIncrementalState
 }
@@ -362,7 +371,8 @@ export const validateConnectionContract = (
     return fail('EDGE_TO_PATH_NOT_LEAF', baseDetails)
   }
   if (
-    !arePortTypesCompatible(fromResolved.type, toResolved.type)
+    !arePortTypesCompatible(fromResolved.type, toResolved.type) &&
+    !isWholePortSketchProfilesToExtrusionProfileCompat(fromResolved, toResolved)
   ) {
     return fail('EDGE_TYPE_MISMATCH', baseDetails)
   }

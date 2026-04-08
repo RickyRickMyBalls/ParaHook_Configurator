@@ -16,7 +16,7 @@ export type GeometryMesh = {
 }
 
 export type GeometryBody = {
-  kind: 'extrusion' | 'mesh_pack_merge'
+  kind: 'extrusion' | 'aggregate_extrusion'
   bodyId: string
   featureId: string
   op: string
@@ -82,7 +82,7 @@ const isGeometryMesh = (value: unknown): value is GeometryMesh =>
 
 const isGeometryBody = (value: unknown): value is GeometryBody =>
   isRecord(value) &&
-  (value.kind === 'extrusion' || value.kind === 'mesh_pack_merge') &&
+  (value.kind === 'extrusion' || value.kind === 'aggregate_extrusion') &&
   typeof value.bodyId === 'string' &&
   typeof value.featureId === 'string' &&
   typeof value.op === 'string' &&

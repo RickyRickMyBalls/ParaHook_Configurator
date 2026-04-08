@@ -302,6 +302,26 @@ export const normalizeGeometryExtrudeType = (value: unknown): GeometryExtrudeTyp
   return value === 'Walls' ? 'Walls' : 'Body'
 }
 
+const isExtrusionProfileInputLike = (value: unknown): boolean => {
+  const isSingleProfile =
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { profileId?: unknown }).profileId === 'string'
+  if (isSingleProfile) {
+    return true
+  }
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every(
+      (entry) =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        typeof (entry as { profileId?: unknown }).profileId === 'string',
+    )
+  )
+}
+
 export const GEOMETRY_EXTRUDE_DIRECTION_OPTIONS = [
   'OneSide',
   'TwoSides',
@@ -594,10 +614,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
           ? inputs.EndDepth
           : readGeometryExtrudeEndDepthMmFromParams(params)
       const profile = inputs.ExtrusionProfile
-      const hasProfile =
-        typeof profile === 'object' &&
-        profile !== null &&
-        typeof (profile as { profileId?: unknown }).profileId === 'string'
+      const hasProfile = isExtrusionProfileInputLike(profile)
       const canPublishBody =
         hasProfile &&
         (extrudeDirection === 'TwoSides'

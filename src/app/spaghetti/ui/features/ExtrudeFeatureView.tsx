@@ -214,7 +214,7 @@ export function ExtrudeFeatureView({
       />
 
       <div className="fsPrev_extrudeSummary">
-        Type: {extrudeType}, Result: {typeSummary}, Profile: {profileSummary}, Depth:{' '}
+        Type: {extrudeType}, Result: {typeSummary}, Profile Target: {profileSummary}, Depth:{' '}
         {formatStableNumber(depthValue)}, Taper: {formatStableNumber(taperValue)}, Offset:{' '}
         {formatStableNumber(offsetValue)}
       </div>

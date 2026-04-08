@@ -65,6 +65,367 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1108 -->
+### [1108] - 2026-04-08 08:18 - `SP - Phase Extrude-4.3C - Focused Verification And Failure Matrix Hardening`
+<!-- ENTRY 1108 -->
+HUMAN SUMMARY: `Closed the remaining aggregate closed-profile extrude hardening gap by proving repeated mixed-count aggregate compile output stays deterministic, tightening feature-stack payload parity tests around honest singular selection lowering, and making draft/runtime aggregate execution fail instead of partially succeeding when the source sketch contains invalid closed profiles so authoritative and draft failure honesty stay aligned.`
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 3C` by limiting implementation to focused regression coverage, one narrow aggregate failure-honesty hardening change, and the required permanent changelog maintenance without reopening visible copy work or widening the shipped aggregate selection contract.
+- Preserved the existing explicit aggregate compile payload, one-result `SolidBody` ownership contract, and authoritative `allFromSketch` support subset from `Phase 2B`, `Phase 2C`, `Phase 3A`, and `Phase 3B`.
+
+#### Summary of Implementation
+- Hardened draft/runtime aggregate selection so `allFromSketch` now fails honestly when the source sketch contains invalid closed profiles instead of quietly extruding only the surviving subset.
+- Added focused draft/runtime and authoritative tests for the partially invalid aggregate case so both seams now prove the same unsupported outcome.
+- Added explicit feature-stack payload parity tests proving close-profile-fed extrudes still lower to one sketch-owned `single` selection and stale feature-stack `profileRef` input does not invent a payload.
+- Added a repeated aggregate compile regression covering mixed sketch profile counts so the explicit `allFromSketch` payload stays deterministic across builds.
+
+#### Files Changed
+- `src/app/spaghetti/features/compileFeatureStack.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Whole-port aggregate `SketchProfiles` extrusion now fails in draft/runtime when the source sketch contains partially invalid closed-profile payloads instead of returning a partial aggregate body with diagnostics.
+- Authoritative builds stay aligned with that unsupported aggregate case by continuing to return `null` without booting OC.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/compiler/compileGraph.test.ts src/app/spaghetti/features/compileFeatureStack.test.ts src/worker/cad/featureStackRuntime.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+
+<!-- ENTRY 1107 -->
+### [1107] - 2026-04-08 08:03 - `SP - Phase Extrude-4.3B - Node Toolbar And Result Copy Honesty`
+<!-- ENTRY 1107 -->
+HUMAN SUMMARY: `Made the visible aggregate closed-profile extrude contract read honestly by teaching the selector-owned extrude VM to expose aggregate target mode plus profile count, updating the \`Geometry/Extrude\` node copy to distinguish singular versus aggregate \`SketchProfiles\` consumption, and tightening the feature-style extrude summaries onto more honest \`Profile Target\` wording while focused selector and node-surface tests prove the new copy path.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 3B` by limiting implementation to surface honesty, selector-owned target-summary state, focused visible-copy verification, and the required tracking-doc maintenance without reopening compile/runtime behavior or the one-result ownership contract from `Phase 3A`.
+- Preserved the shipped aggregate execution semantics from `Phase 2B` and `Phase 2C`, and preserved the one-feature-owned `SolidBody` contract from `Phase 3A`.
+
+#### Summary of Implementation
+- Added aggregate-aware `profileTargetMode` plus `profileCount` state to the selector-owned extrude VM so visible surfaces can distinguish one selected `SketchProfile`, aggregate `SketchProfiles`, and unwired profile-target states without each inferring that contract separately.
+- Updated the `Geometry/Extrude` node copy so waiting, resolved, placeholder, and row-label wording now reads honestly for aggregate `SketchProfiles` consumption instead of claiming that lane is not executable.
+- Updated the feature-style extrude summaries to use `Profile Target` wording rather than narrower singular-only `Profile` copy.
+- Added focused selector and node-surface tests covering aggregate target detection plus the new visible copy.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The `Geometry/Extrude` node no longer tells users that the parent `SketchProfiles` aggregate output is not executable.
+- Aggregate whole-port `SketchProfiles` wiring now reads as an explicit all-closed-profiles target in node waiting and resolved summary copy.
+- Feature-style extrude summaries now use `Profile Target` wording so visible copy stays consistent with the broader extrude target contract.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1106 -->
+### [1106] - 2026-04-08 07:42 - `SP - Phase Extrude-4.3A - SolidBody Result Ownership For Aggregate Consumption`
+<!-- ENTRY 1106 -->
+HUMAN SUMMARY: `Locked aggregate closed-profile result ownership so one \`Geometry/Extrude\` feature still publishes one \`SolidBody\` when driven by whole-port \`SketchProfiles\`, renamed the merged draft-runtime result kind to explicit \`aggregate_extrusion\`, and added focused graph plus retained-result tests that prove aggregate execution stays one feature-owned result instead of turning into multiple graph outputs.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 3A` by limiting implementation to the one-result ownership contract, focused aggregate result verification, and the required tracking-doc maintenance without widening visible copy cleanup into `Phase 3B`.
+- Preserved the already-shipped aggregate execution behavior from `Phase 2C` while making its one-feature-owned result contract explicit in node compute, retained-result typing, and draft packaging.
+
+#### Summary of Implementation
+- Updated the `Geometry/Extrude` node compute contract so whole-port aggregate `SketchProfiles` input now still publishes one `SolidBody` output token when the depth contract is valid.
+- Renamed the draft/runtime merged aggregate result kind from generic `mesh_pack_merge` to explicit `aggregate_extrusion` across worker and retained-result typing so one-feature-owned aggregate ownership reads intentional instead of accidental.
+- Added graph evaluation coverage proving aggregate `SketchProfiles -> ExtrusionProfile` still publishes one `SolidBody` output.
+- Added retained-result coverage proving aggregate draft builds still produce one body entry and one mesh artifact under one feature-owned result.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/worker/cad/cadTypes.ts`
+- `src/shared/geometryResult.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/buildModel.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Whole-port `SketchProfiles` aggregate input now still causes `Geometry/Extrude` to publish one `SolidBody` output token instead of dropping that output just because the input is array-shaped.
+- Draft/runtime and retained geometry now use explicit `aggregate_extrusion` kind naming for merged aggregate extrude results.
+- Aggregate closed-profile consumption remains one feature-owned result across graph evaluation, draft runtime, retained geometry, and authored output identity.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/compiler/evaluateGraph.test.ts src/worker/cad/featureStackRuntime.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/worker/buildModel.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1105 -->
+### [1105] - 2026-04-08 07:22 - `SP - Phase Extrude-4.2C - Worker Selection Resolution And Failure Honesty`
+<!-- ENTRY 1105 -->
+HUMAN SUMMARY: `Made the worker honor explicit aggregate closed-profile selection by resolving \`profileSelection\` ahead of legacy \`profileRef\` in both draft and authoritative paths, merging aggregate draft extrudes into one feature-owned body result, and failing stale or empty aggregate requests honestly instead of collapsing them into accidental single-profile success.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 2C` by limiting implementation to worker-side aggregate selection resolution, focused runtime and authoritative verification, and the required tracking-doc maintenance without widening the supported extrude subset beyond the existing closed-profile `Body` lane.
+- Preserved backward compatibility for older singular requests by keeping the legacy `profileRef` path alive only when explicit `profileSelection` is absent.
+
+#### Summary of Implementation
+- Added worker-side selection resolution in `featureStackRuntime.ts` so explicit `single` and `allFromSketch` requests now drive draft/runtime execution ahead of the legacy singular `profileRef` seam.
+- Updated draft/runtime aggregate extrudes to merge all consumed closed-profile meshes into one feature-owned `SolidBody` result instead of trying to mint multiple graph outputs.
+- Updated `buildAuthoritativeGeometry.ts` so authoritative candidate collection follows the same authored aggregate-versus-single selection rule and can register one shape-set-backed authoritative result for aggregate closed-profile extrudes.
+- Added focused tests proving aggregate draft/runtime success, aggregate authoritative success, and honest failure for stale or empty aggregate selections without hidden singular fallback.
+
+#### Files Changed
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Worker draft/runtime now executes `profileSelection.mode = 'allFromSketch'` as a real aggregate closed-profile extrude instead of treating the request as missing because `profileRef` is null.
+- Aggregate extrudes now produce one merged feature-owned body result in draft/runtime while authoritative builds can register multiple OC prism shapes behind the same feature-owned result.
+- Stale or empty aggregate selections now fail honestly with no accidental body result and no authoritative handle instead of degrading into fake single-profile success through legacy `profileRef`.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/worker/cad/featureStackRuntime.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1104 -->
+### [1104] - 2026-04-08 07:05 - `SP - Phase Extrude-4.2B - Compile Graph And Geometry Request Routing`
+<!-- ENTRY 1104 -->
+HUMAN SUMMARY: `Widened the authored aggregate closed-profile lane so whole-port \`SketchProfiles -> ExtrusionProfile\` wiring now compiles explicitly to \`profileSelection.mode = 'allFromSketch'\`, preserves the sketch-derived profile order, and stays honest by leaving the legacy singular \`profileRef\` empty instead of faking first-profile success.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 2B` by limiting implementation to compile-side aggregate routing, focused validation/parity/compile coverage, and the required tracking-doc maintenance without widening worker execution behavior into `Phase 2C`.
+- Preserved the legacy singular runtime seam by keeping aggregate compile output explicit in `profileSelection` while leaving `profileRef` non-aggregate and honest.
+
+#### Summary of Implementation
+- Widened the endpoint compatibility rules so whole-port `SketchProfiles -> ExtrusionProfile` wiring is accepted only as the explicit aggregate compile lane instead of as a general type-system relaxation.
+- Updated graph-native `Geometry/Extrude` compilation so whole-port parent wiring emits `profileSelection.mode = 'allFromSketch'` with the owning `sketchFeatureId`, while child path wiring keeps the existing explicit `single` branch.
+- Threaded resolved sketch outputs into graph compilation so aggregate extrudes preserve the upstream sketch-derived `profilesResolved` order without introducing compile-side re-sorting or filtering.
+- Added focused validation, parity, and compile regressions proving the aggregate lane is reachable, explicit, and deterministic while `profileRef` remains `null` for aggregate requests.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/endpoints.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/contracts/contractParity.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Whole-port `SketchProfiles -> ExtrusionProfile` wiring now reaches the explicit aggregate compile lane instead of failing validation up front.
+- Graph-native extrude requests can now emit `profileSelection.mode = 'allFromSketch'` with deterministic sketch-owned ordering for all resolved closed profiles from one sketch source.
+- Aggregate compile requests now leave the legacy singular `profileRef` empty instead of silently collapsing authored aggregate intent into fake first-profile runtime success.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/contracts/contractParity.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1103 -->
+### [1103] - 2026-04-08 06:28 - `SP - Phase Extrude-4.2A - Explicit Aggregate Selection Payload Contract`
+<!-- ENTRY 1103 -->
+HUMAN SUMMARY: `Added the explicit `profileSelection` extrude request descriptor at the graph-to-worker contract boundary, taught both current emit paths to populate its singular branch while preserving the legacy `profileRef` runtime seam, and added focused contract coverage so the new payload shape is proven before later compile routing and worker selection widening.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 2A` by limiting implementation to the request contract, the two current emit paths, focused contract tests, and the required tracking-doc maintenance without widening aggregate compile routing or worker execution behavior yet.
+- Preserved the current singular runtime path by keeping `profileRef` intact for downstream code while making the new `profileSelection` payload explicit at the shared request boundary.
+
+#### Summary of Implementation
+- Added the explicit extrude-owned `profileSelection` descriptor to the shared `geometryRequest` contract with `single` and `allFromSketch` modes plus validator coverage.
+- Updated `compileFeatureStack.ts` so feature-stack extrudes now emit the `single` `profileSelection` branch whenever they already resolve one singular profile.
+- Updated `compileGraph.ts` so graph-native `Geometry/Extrude` requests emit the same `single` `profileSelection` branch as the feature-stack path.
+- Added focused tests covering valid and invalid `profileSelection` payloads plus the new emitted request shape from both compile paths.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/geometryRequest.ts`
+- `src/app/spaghetti/contracts/geometryRequest.test.ts`
+- `src/app/spaghetti/features/compileFeatureStack.ts`
+- `src/app/spaghetti/features/compileFeatureStack.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Extrude request payloads can now carry explicit closed-profile selection intent through `profileSelection` instead of relying only on the old singular `profileRef`.
+- Both current compile emit paths now produce a matching explicit `single` selection descriptor for singular-profile extrudes.
+- Runtime behavior is intentionally unchanged in this phase because downstream execution still reads the existing singular `profileRef` path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/contracts/geometryRequest.test.ts src/app/spaghetti/features/compileFeatureStack.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1102 -->
+### [1102] - 2026-04-07 21:43 - `SP - Phase Extrude-4.1 - Closed Profile Reference And Surface Contract`
+<!-- ENTRY 1102 -->
+HUMAN SUMMARY: `Made the first `Geometry/Extrude` closed-profile contract explicit by keeping the live node wording singular around one \`SketchProfile\`, stopping the surface from implying whole-port \`SketchProfiles\` aggregate execution already exists, and adding a focused validation regression that keeps aggregate-to-singular wiring honest until the later compile/runtime widening phase lands.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 4 Phase 1` by limiting implementation to the live singular-profile surface contract plus a focused graph-validation guard, without widening compile/runtime selection behavior into the later all-profiles lane.
+- Preserved the already-shipped narrow authoritative closed-profile `Body` path and left `profileRef` compile/runtime execution singular for the next `Phase 2` handoff.
+
+#### Summary of Implementation
+- Updated the dedicated `Geometry/Extrude` node copy so the visible profile target, waiting state, and placeholder text now all speak in terms of one executable `SketchProfile`.
+- Added explicit future-aware wording that the parent `SketchProfiles` output remains the aggregate closed-profile lane rather than a currently executable single-profile input.
+- Added focused validation coverage proving whole-port `SketchProfiles -> ExtrusionProfile` wiring still fails as a type mismatch instead of silently masquerading as a singular executable contract.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The live `Geometry/Extrude` node now says `Awaiting one SketchProfile` instead of the broader `Awaiting wire`.
+- Expanded profile-target copy now explicitly says the current executable contract is one `SketchProfile`, while the parent `SketchProfiles` output remains a later aggregate lane.
+- Whole-port `SketchProfiles -> ExtrusionProfile` wiring is now covered by a focused regression so that aggregate-to-singular mismatch stays explicit until later implementation widens the contract.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx src/app/spaghetti/compiler/validateGraph.test.ts`
+
+<!-- ENTRY 1101 -->
+### [1101] - 2026-04-07 18:30 - `SP - Phase Sketch-1.4 - Failure Honesty, Resource Cleanup, And Focused Verification`
+<!-- ENTRY 1101 -->
+HUMAN SUMMARY: `Hardened the first face-driven authoritative sketch path so malformed or open sketch loops now fail honestly before OC construction, partial face-build failure releases lowered wire resources, and the shipped final-view regression coverage now keeps non-renderable authoritative results from masquerading as real final geometry.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Sketch - 1 Phase 4` by limiting implementation to worker-side failure honesty, OC cleanup hardening, focused final-view verification, and the required tracking-doc maintenance without widening the supported sketch/extrude feature set.
+- Preserved the existing supported authoritative subset from Phase 3 and kept raw OpenCascade ownership plus cleanup responsibility inside the worker authoritative path.
+- Reused the existing final-view selector/status contract instead of inventing a second UI honesty path for authoritative sketch fallback.
+
+#### Summary of Implementation
+- Hardened [`src/worker/authoritative/ocSketchWire.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\ocSketchWire.ts) so the worker now rejects open or disconnected `ProfileLoop.segments` chains before OC edge/wire construction starts.
+- Expanded [`src/worker/authoritative/ocSketchWire.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\ocSketchWire.test.ts) to prove malformed open chains return `null` without creating OC resources and that face-construction failure releases already-lowered wire resources.
+- Expanded [`src/worker/authoritative/buildAuthoritativeGeometry.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\buildAuthoritativeGeometry.test.ts) to prove malformed supported-subset sketch payloads still return authoritative `null` and never mint `shape_set` handles even when preview geometry exists.
+- Expanded [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\selectors\selectViewportResultState.test.ts) so final mode now has explicit regression coverage for the case where an authoritative result carries a handle but still lacks renderable `meshPreview`.
+
+#### Files Changed
+- `src/worker/authoritative/ocSketchWire.ts`
+- `src/worker/authoritative/ocSketchWire.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Malformed open or disconnected authoritative sketch loop payloads now fail immediately and honestly before the worker starts OC edge/wire construction.
+- Those malformed authoritative cases no longer have any path to mint a `shape_set` handle.
+- Final-mode honesty remains explicit for non-renderable authoritative results: a handle without mesh preview is still not treated as `Final`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/worker/authoritative/ocSketchWire.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1100 -->
+### [1100] - 2026-04-07 18:10 - `SP - Phase Sketch-1.3 - Planar Face Construction And Authoritative Extrude Handoff`
+<!-- ENTRY 1100 -->
+HUMAN SUMMARY: `Replaced the old rectangle-only authoritative sketch body shortcut with the first real sketch-derived face extrusion path, so supported closed-profile \`Sketch -> Extrude(Body)\` graphs now lower through OC wire-to-face plus prism construction and can produce non-null authoritative results in \`Final\`.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Sketch - 1 Phase 3` by limiting implementation to planar face construction, the first authoritative face-driven body handoff, focused worker verification, and the required tracking-doc maintenance without widening into failure-matrix hardening, cleanup expansion, booleans, or richer extrude semantics.
+- Preserved the existing narrow authoritative support set: one closed profile, `extrudeType = Body`, positive depth through the current `OneSide / TwoSides / Symmetric` resolver, `taperResolved = 0`, and `offsetResolved = 0`.
+- Kept raw OpenCascade ownership in the worker authoritative path and reused the existing sketch-plane frame plus resolved-depth semantics instead of moving kernel ownership into graph/editor layers.
+
+#### Summary of Implementation
+- Widened [`src/worker/authoritative/ocSketchWire.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\ocSketchWire.ts) so the worker-local sketch helper can optionally project sketch points into world space and build a planar OC face from the lowered closed wire.
+- Updated [`src/worker/authoritative/buildAuthoritativeGeometry.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\buildAuthoritativeGeometry.ts) to replace the old rectangle-bounds `BRepPrimAPI_MakeBox` path with a face-driven `BRepPrimAPI_MakePrism` extrusion that reuses the existing plane-frame and resolved-depth semantics for supported body extrudes.
+- Expanded [`src/worker/authoritative/ocSketchWire.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\ocSketchWire.test.ts) so the extracted helper now proves it can build a planar face from projected world-space sketch points.
+- Expanded [`src/worker/authoritative/buildAuthoritativeGeometry.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\buildAuthoritativeGeometry.test.ts) so supported non-rectangular closed profiles now prove they mint authoritative geometry while unsupported extrude kinds still fail honestly.
+
+#### Files Changed
+- `src/worker/authoritative/ocSketchWire.ts`
+- `src/worker/authoritative/ocSketchWire.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Supported closed-profile `Sketch -> Extrude(Body)` graphs no longer depend on rectangle recognition as the only authoritative success path.
+- Non-rectangular closed profiles can now produce non-null authoritative geometry in the worker and therefore become eligible for `Final` rendering through the same authoritative shape-set flow used by the existing supported path.
+- Supported rectangular profiles now travel through the same face-driven extrusion path instead of a separate box-construction shortcut.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/worker/authoritative/ocSketchWire.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1099 -->
+### [1099] - 2026-04-07 17:46 - `SP - Phase Sketch-1.2 - Worker-Owned OC Edge And Wire Lowering`
+<!-- ENTRY 1099 -->
+HUMAN SUMMARY: `Added the first worker-local OpenCascade sketch-wire lowering seam so validated sketch loops now lower into OC edges and one closed wire before the old rectangle-only body shortcut runs, while still keeping planar-face and body construction deferred to the next phase.`
+#### Scope / Constraints Honored
+- Kept this pass on `Sketch - 1 Phase 2` by limiting implementation to worker-local sketch-wire lowering, one extracted helper, focused worker verification, and the required tracking-doc maintenance without widening into planar-face construction or authoritative extrude rerouting.
+- Preserved `ProfileLoop.segments` as the authoritative sketch input contract from Phase 1 and kept `verticesProxy` in the helper/legacy rectangle-recognition lane only.
+- Kept non-rectangular authoritative body output honest: closed non-rectangular profiles can now reach OC wire lowering, but they still return `null` until `Phase 3` adds face construction plus extrude handoff.
+
+#### Summary of Implementation
+- Added [`src/worker/authoritative/ocSketchWire.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\ocSketchWire.ts) as the new worker-local helper that lowers validated `GeometryRequestSketchProfile.loop.segments` into OC edges and one closed wire.
+- Updated [`src/worker/authoritative/buildAuthoritativeGeometry.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\buildAuthoritativeGeometry.ts) to collect rectangle-path extrusion candidates without using rectangle bounds as the first sketch gate, invoke the new wire helper before the old rectangle-only body path, and keep face/body work deferred.
+- Expanded [`src/worker/authoritative/buildAuthoritativeGeometry.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\buildAuthoritativeGeometry.test.ts) so the authoritative builder now proves a non-rectangular closed profile lowers into an OC wire before the current rectangle-only body gate returns `null`.
+- Added [`src/worker/authoritative/ocSketchWire.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\worker\authoritative\ocSketchWire.test.ts) to prove typed `line2`, `bezier2`, and `arc3pt2` loop segments can lower into one closed wire through the extracted helper.
+
+#### Files Changed
+- `src/worker/authoritative/ocSketchWire.ts`
+- `src/worker/authoritative/ocSketchWire.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The authoritative worker now lowers validated sketch loops into OC edges and a closed wire before checking whether the current body path can still use the rectangle-only shortcut.
+- Non-rectangular closed profiles still do not render in `Final` yet; they now fail later and more honestly in the authoritative path because wire lowering exists but planar face and body construction do not.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/worker/authoritative/ocSketchWire.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1098 -->
+### [1098] - 2026-04-07 17:36 - `SP - Phase Sketch-1.1 - Sketch Profile Payload Audit And Contract Lock`
+<!-- ENTRY 1098 -->
+HUMAN SUMMARY: `Proved that the existing graph-native sketch loop contract already preserves typed ordered segment truth for authoritative B-rep lowering, then hardened the shared loop validator and compile-side acceptance path so malformed segment payloads can no longer pass as valid sketch loops.`
+#### Scope / Constraints Honored
+- Kept this pass on `Sketch - 1 Phase 1` by auditing and locking the sketch payload contract, strengthening validation, adding focused regression coverage, and updating the required tracking docs without widening into worker OpenCascade wire lowering or face construction.
+- Preserved the existing `GeometryRequestSketchProfile` shape instead of widening schema prematurely, because the live `ProfileLoop.segments` contract already carries the typed ordered segment data later OC phases need.
+- Kept `verticesProxy` in the helper/preview lane and did not promote it into the authoritative sketch-loop contract.
+
+#### Summary of Implementation
+- Hardened [`src/app/spaghetti/contracts/geometryRequest.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\contracts\geometryRequest.ts) so sketch loop validation now enforces real `line2`, `bezier2`, and `arc3pt2` segment shapes instead of only checking that `segments` is an array.
+- Exported the shared loop validator from [`src/app/spaghetti/contracts/geometryRequest.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\contracts\geometryRequest.ts) and aligned [`src/app/spaghetti/compiler/compileGraph.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\compiler\compileGraph.ts) to use that same loop-acceptance rule when reading profile-like sketch outputs.
+- Added focused contract tests in [`src/app/spaghetti/contracts/geometryRequest.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\contracts\geometryRequest.test.ts) proving valid typed loop payloads pass and malformed segment payloads fail.
+- Expanded [`src/app/spaghetti/features/compileFeatureStack.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\features\compileFeatureStack.test.ts) to prove non-rectangular sketch profiles keep typed ordered loop segments through compile.
+- Extended [`src/app/spaghetti/compiler/compileGraph.test.ts`](c:\Users\Rubbe\Desktop\ParaHookConfig\20\parahook\src\app\spaghetti\compiler\compileGraph.test.ts) so compiled graph-native feature-stack IR now proves the emitted sketch payload satisfies the shared geometry-request validator.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/geometryRequest.ts`
+- `src/app/spaghetti/contracts/geometryRequest.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/features/compileFeatureStack.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Shared sketch loop validation is now stricter: malformed segment payloads no longer pass as valid `ProfileLoop` data at the geometry-request boundary or the compile-side profile-input acceptance seam.
+- The live sketch payload contract is now explicitly guarded as `ProfileLoop.segments` first, not `verticesProxy`.
+
+#### Verification Steps
+- Ran `npm.cmd test -- --run src/app/spaghetti/contracts/geometryRequest.test.ts src/app/spaghetti/features/compileFeatureStack.test.ts src/app/spaghetti/compiler/compileGraph.test.ts`
+- Ran `npm.cmd test -- --run src/worker/cad/featureStackRuntime.test.ts`
+- Ran `npm.cmd run build`
+
 <!-- ENTRY 1097 -->
 ### [1097] - 2026-04-07 16:26 - `Model-Viewport 1.3 Phase 9 - Export Gating And On-Demand Authoritative Preparation`
 HUMAN SUMMARY: `Added the first explicit app-side export-preparation decision path so export can reuse accepted authoritative geometry, request one authoritative build when needed, or block honestly when the current graph revision still cannot produce authoritative export truth.`

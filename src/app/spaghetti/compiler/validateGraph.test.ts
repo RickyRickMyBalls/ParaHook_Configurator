@@ -122,6 +122,41 @@ const createProfileLoopGraph = (): SpaghettiGraph => ({
 })
 
 describe('validateGraph endpoint paths', () => {
+  it('accepts whole-port SketchProfiles wiring into ExtrusionProfile as the aggregate compile lane', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: getDefaultNodeParams('Geometry/Extrude'),
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofiles-whole-to-extrude',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
   it('accepts valid leaf path endpoint', () => {
     const graph = createBaseGraph()
     graph.edges.push({

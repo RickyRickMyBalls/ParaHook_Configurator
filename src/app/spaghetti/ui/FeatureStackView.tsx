@@ -113,14 +113,14 @@ const extrudeSummary = (
       : closeProfileResolvedByFeatureId.get(rawProfileRef.sourceFeatureId) ?? rawProfileRef
   const depth = formatStableNumber(feature.params.depth.value)
   if (profileRef === null) {
-    return `Profile: -, Depth: ${depth}`
+    return `Profile Target: -, Depth: ${depth}`
   }
   const sourceProfiles = sketchProfilesByFeatureId.get(profileRef.sourceFeatureId) ?? []
   const selectedProfile = sourceProfiles.find((profile) => profile.profileId === profileRef.profileId)
   if (selectedProfile === undefined) {
-    return `Profile: -, Depth: ${depth}`
+    return `Profile Target: -, Depth: ${depth}`
   }
-  return `Profile: ${shortId(profileRef.sourceFeatureId)}/${selectedProfile.label}, Depth: ${depth}`
+  return `Profile Target: ${shortId(profileRef.sourceFeatureId)}/${selectedProfile.label}, Depth: ${depth}`
 }
 
 export function FeatureStackView({
