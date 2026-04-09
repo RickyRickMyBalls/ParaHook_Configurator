@@ -106,6 +106,24 @@ const profileSelectionAllFromSketch = (sketchFeatureId: string) => ({
   sketchFeatureId,
 })
 
+const profileSelectionContributors = (
+  contributors: Array<
+    | {
+        kind: 'allFromSketch'
+        sketchFeatureId: string
+      }
+    | {
+        kind: 'single'
+        sketchFeatureId: string
+        profileId: string
+        profileIndex: number
+      }
+  >,
+) => ({
+  mode: 'contributors' as const,
+  contributors,
+})
+
 const defaultExtrudeFields = {
   extrudeType: 'Body' as const,
   taperResolved: 0,
@@ -608,6 +626,71 @@ describe('executeFeatureStack', () => {
         featureId: 'extrude-aggregate',
         reason: 'missing_profile_selection',
         message: 'Extrude skipped because sketch "mixed-sketch" contains invalid closed profiles.',
+      }),
+    ])
+  })
+
+  it('executes ordered contributor selections across multiple whole-port SketchProfiles sources', () => {
+    const payload: FeatureStackIRPayload = {
+      schemaVersion: 1,
+      parts: {
+        baseplate: [
+          {
+            op: 'sketch',
+            featureId: 'sketch-1',
+            profilesResolved: [resolvedProfile('prof-a', 50)],
+          },
+          {
+            op: 'sketch',
+            featureId: 'sketch-2',
+            profilesResolved: [
+              resolvedProfile('prof-b', 100, [
+                { x: 30, y: 0 },
+                { x: 40, y: 0 },
+                { x: 40, y: 10 },
+                { x: 30, y: 10 },
+              ]),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'extrude-contributors',
+            profileSelection: profileSelectionContributors([
+              {
+                kind: 'allFromSketch',
+                sketchFeatureId: 'sketch-1',
+              },
+              {
+                kind: 'allFromSketch',
+                sketchFeatureId: 'sketch-2',
+              },
+            ]),
+            profileRef: null,
+            ...defaultExtrudeFields,
+            depthResolved: 3,
+            bodyId: 'body-contributors',
+          },
+        ],
+      },
+    }
+
+    const result = executeFeatureStack(payload)
+
+    expect(Object.keys(result.bodies)).toEqual(['baseplate:body-contributors'])
+    expect(result.bodies['baseplate:body-contributors']).toEqual(
+      expect.objectContaining({
+        kind: 'aggregate_extrusion',
+        bodyId: 'body-contributors',
+        featureId: 'extrude-contributors',
+      }),
+    )
+    expect(result.bodies['baseplate:body-contributors']?.mesh.vertices.length).toBe(48)
+    expect(result.diagnostics).toEqual([])
+    expect(result.bodyTrace).toEqual([
+      expect.objectContaining({
+        bodyKey: 'baseplate:body-contributors',
+        featureId: 'extrude-contributors',
+        executionIndex: 0,
       }),
     ])
   })

@@ -4,6 +4,8 @@ import type { NodeDefinition } from '../registry/nodeRegistry'
 import type { PortSpec, PortType, SpaghettiGraph } from '../schema/spaghettiTypes'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import { profileIdFromSignature } from '../features/profileDerivation'
+import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 
 const makeFixtureNodeDef = (config: {
   label: string
@@ -155,6 +157,257 @@ describe('validateGraph endpoint paths', () => {
     const result = validateGraph(graph)
     expect(result.ok).toBe(true)
     expect(result.errors).toEqual([])
+  })
+
+  it('accepts resolved sketch profile member output ports as distinct singular endpoints', () => {
+    const profileId = profileIdFromSignature('line-1|line-2|line-3|line-4')
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                { rowId: 'row-1', componentId: 'line-1', type: 'line', a: { kind: 'lit', x: 0, y: 0 }, b: { kind: 'lit', x: 40, y: 0 } },
+                { rowId: 'row-2', componentId: 'line-2', type: 'line', a: { kind: 'lit', x: 40, y: 0 }, b: { kind: 'lit', x: 40, y: 20 } },
+                { rowId: 'row-3', componentId: 'line-3', type: 'line', a: { kind: 'lit', x: 40, y: 20 }, b: { kind: 'lit', x: 0, y: 20 } },
+                { rowId: 'row-4', componentId: 'line-4', type: 'line', a: { kind: 'lit', x: 0, y: 20 }, b: { kind: 'lit', x: 0, y: 0 } },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+                selectedProfileId: profileId,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: getDefaultNodeParams('Geometry/Extrude'),
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofile-member-to-extrude',
+          from: {
+            nodeId: 'n-sketch',
+            portId: buildSketchProfileMemberPortId(profileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it('accepts multiple singular SketchProfile contributors from the same sketch into ExtrusionProfile', () => {
+    const firstProfileId = profileIdFromSignature('line-1|line-2|line-3|line-4')
+    const secondProfileId = profileIdFromSignature('line-5|line-6|line-7|line-8')
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                { rowId: 'row-1', componentId: 'line-1', type: 'line', a: { kind: 'lit', x: 0, y: 0 }, b: { kind: 'lit', x: 40, y: 0 } },
+                { rowId: 'row-2', componentId: 'line-2', type: 'line', a: { kind: 'lit', x: 40, y: 0 }, b: { kind: 'lit', x: 40, y: 20 } },
+                { rowId: 'row-3', componentId: 'line-3', type: 'line', a: { kind: 'lit', x: 40, y: 20 }, b: { kind: 'lit', x: 0, y: 20 } },
+                { rowId: 'row-4', componentId: 'line-4', type: 'line', a: { kind: 'lit', x: 0, y: 20 }, b: { kind: 'lit', x: 0, y: 0 } },
+                { rowId: 'row-5', componentId: 'line-5', type: 'line', a: { kind: 'lit', x: 60, y: 0 }, b: { kind: 'lit', x: 100, y: 0 } },
+                { rowId: 'row-6', componentId: 'line-6', type: 'line', a: { kind: 'lit', x: 100, y: 0 }, b: { kind: 'lit', x: 100, y: 20 } },
+                { rowId: 'row-7', componentId: 'line-7', type: 'line', a: { kind: 'lit', x: 100, y: 20 }, b: { kind: 'lit', x: 60, y: 20 } },
+                { rowId: 'row-8', componentId: 'line-8', type: 'line', a: { kind: 'lit', x: 60, y: 20 }, b: { kind: 'lit', x: 60, y: 0 } },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: getDefaultNodeParams('Geometry/Extrude'),
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofile-member-a-to-extrude',
+          from: {
+            nodeId: 'n-sketch',
+            portId: buildSketchProfileMemberPortId(firstProfileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-sketchprofile-member-b-to-extrude',
+          from: {
+            nodeId: 'n-sketch',
+            portId: buildSketchProfileMemberPortId(secondProfileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it('accepts mixed same-sketch and cross-sketch profile contributors into ExtrusionProfile', () => {
+    const firstProfileId = profileIdFromSignature('line-1|line-2|line-3|line-4')
+    const secondProfileId = profileIdFromSignature('line-5|line-6|line-7|line-8')
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                { rowId: 'row-1', componentId: 'line-1', type: 'line', a: { kind: 'lit', x: 0, y: 0 }, b: { kind: 'lit', x: 40, y: 0 } },
+                { rowId: 'row-2', componentId: 'line-2', type: 'line', a: { kind: 'lit', x: 40, y: 0 }, b: { kind: 'lit', x: 40, y: 20 } },
+                { rowId: 'row-3', componentId: 'line-3', type: 'line', a: { kind: 'lit', x: 40, y: 20 }, b: { kind: 'lit', x: 0, y: 20 } },
+                { rowId: 'row-4', componentId: 'line-4', type: 'line', a: { kind: 'lit', x: 0, y: 20 }, b: { kind: 'lit', x: 0, y: 0 } },
+                { rowId: 'row-5', componentId: 'line-5', type: 'line', a: { kind: 'lit', x: 60, y: 0 }, b: { kind: 'lit', x: 100, y: 0 } },
+                { rowId: 'row-6', componentId: 'line-6', type: 'line', a: { kind: 'lit', x: 100, y: 0 }, b: { kind: 'lit', x: 100, y: 20 } },
+                { rowId: 'row-7', componentId: 'line-7', type: 'line', a: { kind: 'lit', x: 100, y: 20 }, b: { kind: 'lit', x: 60, y: 20 } },
+                { rowId: 'row-8', componentId: 'line-8', type: 'line', a: { kind: 'lit', x: 60, y: 20 }, b: { kind: 'lit', x: 60, y: 0 } },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-sketch-2',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: getDefaultNodeParams('Geometry/Extrude'),
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-1-member-a-to-extrude',
+          from: {
+            nodeId: 'n-sketch-1',
+            portId: buildSketchProfileMemberPortId(firstProfileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-sketch-1-member-b-to-extrude',
+          from: {
+            nodeId: 'n-sketch-1',
+            portId: buildSketchProfileMemberPortId(secondProfileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-sketch-2-profiles-to-extrude',
+          from: {
+            nodeId: 'n-sketch-2',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it('rejects non-profile contributors wired into ExtrusionProfile', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-number',
+          type: 'Param/Number',
+          params: {
+            value: 10,
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: getDefaultNodeParams('Geometry/Extrude'),
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-number-to-extrude-profile',
+          from: {
+            nodeId: 'n-number',
+            portId: 'value',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(false)
+    expect(result.errors.some((error) => error.code === 'EDGE_TYPE_MISMATCH')).toBe(true)
   })
 
   it('accepts valid leaf path endpoint', () => {

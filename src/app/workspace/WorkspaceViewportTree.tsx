@@ -216,6 +216,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
           <>
             {isPrimarySlot ? (
               <PrimaryViewportLeftDock
+                viewportId={slot.surfaceInstanceId}
                 leftDockWidth={leftDockWidth}
                 bottomInset={resolvePrimaryLeftDockBottomInset(slot.leafNodeId)}
                 isConstrained={primaryViewportSlotIsConstrained}

@@ -13,6 +13,18 @@ export type GeometryRequestProfileRef = {
   profileIndex: number
 }
 
+export type GeometryRequestExtrudeProfileContributor =
+  | {
+      kind: 'single'
+      sketchFeatureId: string
+      profileId: string
+      profileIndex: number
+    }
+  | {
+      kind: 'allFromSketch'
+      sketchFeatureId: string
+    }
+
 export type GeometryRequestExtrudeProfileSelection =
   | {
       mode: 'single'
@@ -23,6 +35,10 @@ export type GeometryRequestExtrudeProfileSelection =
   | {
       mode: 'allFromSketch'
       sketchFeatureId: string
+    }
+  | {
+      mode: 'contributors'
+      contributors: GeometryRequestExtrudeProfileContributor[]
     }
 
 export type GeometryRequestSketchProfile = {
@@ -131,15 +147,29 @@ const isGeometryRequestProfileRef = (value: unknown): value is GeometryRequestPr
   typeof value.profileId === 'string' &&
   typeof value.profileIndex === 'number'
 
+const isGeometryRequestExtrudeProfileContributor = (
+  value: unknown,
+): value is GeometryRequestExtrudeProfileContributor =>
+  isRecord(value) &&
+  typeof value.sketchFeatureId === 'string' &&
+  ((value.kind === 'single' &&
+    typeof value.profileId === 'string' &&
+    typeof value.profileIndex === 'number') ||
+    value.kind === 'allFromSketch')
+
 const isGeometryRequestExtrudeProfileSelection = (
   value: unknown,
 ): value is GeometryRequestExtrudeProfileSelection =>
   isRecord(value) &&
-  typeof value.sketchFeatureId === 'string' &&
   ((value.mode === 'single' &&
+    typeof value.sketchFeatureId === 'string' &&
     typeof value.profileId === 'string' &&
     typeof value.profileIndex === 'number') ||
-    value.mode === 'allFromSketch')
+    (value.mode === 'allFromSketch' && typeof value.sketchFeatureId === 'string') ||
+    (value.mode === 'contributors' &&
+      Array.isArray(value.contributors) &&
+      value.contributors.length > 0 &&
+      value.contributors.every(isGeometryRequestExtrudeProfileContributor)))
 
 const isGeometryRequestSketchProfile = (
   value: unknown,

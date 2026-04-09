@@ -2,6 +2,9 @@ import type { EvaluationResult } from '../compiler/evaluateGraph'
 import {
   listEffectiveInputPorts,
 } from '../features/effectivePorts'
+import { parseSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
+import { listSketchProfileMemberOutputPorts } from '../features/sketchProfileVirtualPorts'
+import { buildExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
 import { readFeatureStack } from '../features/featureSchema'
 import {
   analyzeFeatureDependencyGraph,
@@ -43,14 +46,14 @@ import {
   type EdgeDiagnosticReason,
 } from './selectDiagnosticsVm'
 
-const compareEdges = (a: SpaghettiGraph['edges'][number], b: SpaghettiGraph['edges'][number]): number =>
-  a.edgeId.localeCompare(b.edgeId)
-
 const describePortType = (type: PortSpec['type']): string =>
   type.unit === undefined ? type.kind : `${type.kind}:${type.unit}`
 
 const formatNumber = (value: number): string =>
   Number.isInteger(value) ? value.toString() : value.toFixed(3)
+
+const formatMaxConnectionsIn = (value: number | undefined): string =>
+  value === Number.MAX_SAFE_INTEGER ? 'unbounded' : (value ?? 1).toString()
 
 const normalizePath = (path: string[] | undefined): string[] | undefined =>
   path === undefined || path.length === 0 ? undefined : path
@@ -144,6 +147,35 @@ const isSketchProfilesLike = (
   area: number
 }> => Array.isArray(value) && value.every((entry) => isProfileOutputLike(entry))
 
+const classifyExtrudeProfileContributor = (
+  edge: SpaghettiGraph['edges'][number],
+): { kind: 'aggregate' | 'single'; label: 'SketchProfiles' | 'SketchProfile'; profileId?: string } | null => {
+  if (edge.from.path !== undefined && edge.from.path.length > 0) {
+    return null
+  }
+  if (edge.from.portId === 'SketchProfiles') {
+    return {
+      kind: 'aggregate',
+      label: 'SketchProfiles',
+    }
+  }
+  if (edge.from.portId === 'SketchProfile') {
+    return {
+      kind: 'single',
+      label: 'SketchProfile',
+    }
+  }
+  const parsedMember = parseSketchProfileMemberPortId(edge.from.portId)
+  if (parsedMember !== null) {
+    return {
+      kind: 'single',
+      label: 'SketchProfile',
+      profileId: parsedMember.profileId,
+    }
+  }
+  return null
+}
+
 const getValueAtPath = (value: unknown, path: string[] | undefined): unknown => {
   if (path === undefined || path.length === 0) {
     return value
@@ -229,6 +261,15 @@ export type SketchNodeVm = {
 }
 
 export type ExtrudeNodeVm = {
+  profileInputEntries?: Array<{
+    entryId: string
+    endpointPortId: string
+    kind: 'aggregate' | 'single'
+    label: 'SketchProfiles' | 'SketchProfile'
+    sourceNodeId: string
+    sourceNodeLabel: string
+    profileId?: string
+  }>
   extrudeType: GeometryExtrudeType
   localExtrudeType?: GeometryExtrudeType
   typeDriven?: boolean
@@ -437,7 +478,6 @@ const buildNodeVm = (
   diagnosticsVm?: DiagnosticsVm,
 ): SelectNodeVmResult => {
   const orderedNodes = graph.nodes
-  const sortedEdges = [...graph.edges].sort(compareEdges)
   const byNodeId = new Map<string, NodeVm>()
   const nodes: NodeVm[] = []
   const nodeById = new Map(orderedNodes.map((node) => [node.nodeId, node]))
@@ -451,10 +491,13 @@ const buildNodeVm = (
   for (const node of orderedNodes) {
     const nodeDef = getNodeDef(node.type)
     const nodeInputs = nodeDef?.inputs ?? []
-    const nodeOutputs = nodeDef?.outputs ?? []
+    const nodeOutputs =
+      node.type === 'Geometry/Sketch'
+        ? [...(nodeDef?.outputs ?? []), ...listSketchProfileMemberOutputPorts(node)]
+        : (nodeDef?.outputs ?? [])
     const effectiveInputPorts = listEffectiveInputPorts(node, nodeDef)
-    const incoming = sortedEdges.filter((edge) => edge.to.nodeId === node.nodeId)
-    const outgoing = sortedEdges.filter((edge) => edge.from.nodeId === node.nodeId)
+    const incoming = graph.edges.filter((edge) => edge.to.nodeId === node.nodeId)
+    const outgoing = graph.edges.filter((edge) => edge.from.nodeId === node.nodeId)
     const inputConnectionCountByPortId = new Map<string, number>()
     for (const edge of incoming) {
       inputConnectionCountByPortId.set(
@@ -516,7 +559,7 @@ const buildNodeVm = (
         const lines: PortDetailLine[] = [
           { text: `type: ${describePortType(port.type)}`, kind: port.type.kind },
           { text: `optional: ${port.optional === true ? 'yes' : 'no'}` },
-          { text: `connections in: ${incomingForPort.length}/${port.maxConnectionsIn ?? 1}` },
+          { text: `connections in: ${incomingForPort.length}/${formatMaxConnectionsIn(port.maxConnectionsIn)}` },
         ]
         for (const edge of incomingForPort) {
           lines.push({
@@ -677,12 +720,16 @@ const buildNodeVm = (
           edge.to.portId === 'ExtrusionProfile' &&
           (edge.to.path === undefined || edge.to.path.length === 0),
       )
+      const validProfileIncoming = wholeIncomingForProfile
+        .map((edge) => {
+          const contributor = classifyExtrudeProfileContributor(edge)
+          return contributor === null ? null : { edge, contributor }
+        })
+        .filter((entry): entry is { edge: SpaghettiGraph['edges'][number]; contributor: NonNullable<ReturnType<typeof classifyExtrudeProfileContributor>> } => entry !== null)
       const resolvedSingleProfile = isProfileOutputLike(profileInput) ? profileInput : null
-      const aggregateProfileSourceNodeId = wholeIncomingForProfile.find(
-        (edge) =>
-          edge.from.portId === 'SketchProfiles' &&
-          (edge.from.path === undefined || edge.from.path.length === 0),
-      )?.from.nodeId
+      const aggregateProfileSourceNodeId = validProfileIncoming.find(
+        (entry) => entry.contributor.kind === 'aggregate',
+      )?.edge.from.nodeId
       const aggregateProfilesFromSource =
         aggregateProfileSourceNodeId === undefined
           ? null
@@ -692,15 +739,11 @@ const buildNodeVm = (
         : isSketchProfilesLike(aggregateProfilesFromSource)
           ? aggregateProfilesFromSource
           : null
-      const aggregateProfileWired = wholeIncomingForProfile.some(
-        (edge) =>
-          edge.from.portId === 'SketchProfiles' &&
-          (edge.from.path === undefined || edge.from.path.length === 0),
+      const aggregateProfileWired = validProfileIncoming.some(
+        (entry) => entry.contributor.kind === 'aggregate',
       )
-      const singleProfileWired = wholeIncomingForProfile.some(
-        (edge) =>
-          edge.from.portId === 'SketchProfile' &&
-          (edge.from.path === undefined || edge.from.path.length === 0),
+      const singleProfileWired = validProfileIncoming.some(
+        (entry) => entry.contributor.kind === 'single',
       )
       const profileTargetMode =
         resolvedAggregateProfiles !== null || aggregateProfileWired
@@ -717,6 +760,20 @@ const buildNodeVm = (
       const hasResolvedProfileTarget =
         resolvedSingleProfile !== null ||
         (resolvedAggregateProfiles !== null && resolvedAggregateProfiles.length > 0)
+      const profileInputEntries = validProfileIncoming
+        .map(({ edge, contributor }) => {
+          const sourceNode = nodeById.get(edge.from.nodeId)
+          return {
+            entryId: edge.edgeId,
+            endpointPortId: buildExtrudeProfileEntryPortId(edge.edgeId),
+            kind: contributor.kind,
+            label: contributor.label,
+            sourceNodeId: edge.from.nodeId,
+            sourceNodeLabel:
+              sourceNode === undefined ? edge.from.nodeId : resolveNodeDisplayLabel(sourceNode),
+            ...(contributor.profileId !== undefined ? { profileId: contributor.profileId } : {}),
+          }
+        })
       const wholeIncomingForDepth = incoming.filter(
         (edge) =>
           edge.to.portId === 'Depth' &&
@@ -761,6 +818,7 @@ const buildNodeVm = (
         taperVisible: effectiveType === 'Body' && effectiveDirection === 'OneSide',
         taperDriven: wholeIncomingForTaperAngle.length > 0,
         hasProfile: hasResolvedProfileTarget,
+        ...(profileInputEntries.length > 0 ? { profileInputEntries } : {}),
         ...(profileTargetMode !== undefined ? { profileTargetMode } : {}),
         ...(profileCount > 0 ? { profileCount } : {}),
         ...(resolvedSingleProfile !== null

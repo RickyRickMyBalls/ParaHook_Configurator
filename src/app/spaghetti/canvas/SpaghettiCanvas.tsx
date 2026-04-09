@@ -95,6 +95,7 @@ import {
   type ConnectionContractResult,
   validateConnectionContract,
 } from '../contracts/endpoints'
+import { parseExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
 
 type EndpointPayload = {
   nodeId: string
@@ -104,6 +105,11 @@ type EndpointPayload = {
 
 type InputTarget = EndpointPayload
 type OutputTarget = EndpointPayload
+
+type ResolvedCanvasInputTarget = {
+  graphEndpoint: EndpointPayload
+  edgeId?: string
+}
 
 type CanvasViewState = {
   panX: number
@@ -911,6 +917,24 @@ export function SpaghettiCanvas({
     }
     return selected.byNodeId
   }, [diagnosticsVm, evaluation, graph])
+  const extrudeProfileEntryByEndpointKey = useMemo(() => {
+    const next = new Map<
+      string,
+      {
+        edgeId: string
+        endpointPortId: string
+      }
+    >()
+    for (const [nodeId, nodeVm] of nodeRenderDataById.entries()) {
+      for (const entry of nodeVm.extrudeVm?.profileInputEntries ?? []) {
+        next.set(`${nodeId}::${entry.endpointPortId}`, {
+          edgeId: entry.entryId,
+          endpointPortId: entry.endpointPortId,
+        })
+      }
+    }
+    return next
+  }, [nodeRenderDataById])
 
   const stageSize = useMemo(() => {
     const t0 = DEV ? performance.now() : 0
@@ -1292,6 +1316,48 @@ export function SpaghettiCanvas({
     endpointPathKey(connectionDrag?.anchorPath),
   ])
 
+  const resolveCanvasInputTarget = useCallback(
+    (payload: EndpointPayload): ResolvedCanvasInputTarget => {
+      const parsedEntryPort = parseExtrudeProfileEntryPortId(payload.portId)
+      if (parsedEntryPort === null) {
+        return {
+          graphEndpoint: payload,
+        }
+      }
+      const entryKey = `${payload.nodeId}::${payload.portId}`
+      const entry = extrudeProfileEntryByEndpointKey.get(entryKey)
+      return {
+        edgeId: entry?.edgeId ?? parsedEntryPort.edgeId,
+        graphEndpoint: {
+          nodeId: payload.nodeId,
+          portId: 'ExtrusionProfile',
+          path: payload.path,
+        },
+      }
+    },
+    [extrudeProfileEntryByEndpointKey],
+  )
+
+  const resolveRenderedInputPortIdForEdge = useCallback(
+    (edge: SpaghettiGraph['edges'][number]): string => {
+      if (edge.to.portId !== 'ExtrusionProfile') {
+        return edge.to.portId
+      }
+      for (const candidate of nodeRenderDataById.get(edge.to.nodeId)?.extrudeVm?.profileInputEntries ?? []) {
+        if (candidate.entryId !== edge.edgeId) {
+          continue
+        }
+        const anchorKey = buildPortAnchorKey(edge.to.nodeId, 'in', candidate.endpointPortId, edge.to.path)
+        if (portAnchors[anchorKey] !== undefined) {
+          return candidate.endpointPortId
+        }
+        break
+      }
+      return edge.to.portId
+    },
+    [nodeRenderDataById, portAnchors],
+  )
+
   const hoverValidation = useMemo(() => {
     if (connectionDragAnchor === null) {
       return null
@@ -1300,13 +1366,14 @@ export function SpaghettiCanvas({
       if (hoverInputTarget === null) {
         return null
       }
+      const resolvedInputTarget = resolveCanvasInputTarget(hoverInputTarget)
       return validateConnectionCheap(graph, {
         from: {
           nodeId: connectionDragAnchor.nodeId,
           portId: connectionDragAnchor.portId,
           path: connectionDragAnchor.path,
         },
-        to: hoverInputTarget,
+        to: resolvedInputTarget.graphEndpoint,
       })
     }
     if (hoverOutputTarget === null) {
@@ -1320,7 +1387,7 @@ export function SpaghettiCanvas({
         path: connectionDragAnchor.path,
       },
     })
-  }, [connectionDragAnchor, graph, hoverInputTarget, hoverOutputTarget])
+  }, [connectionDragAnchor, graph, hoverInputTarget, hoverOutputTarget, resolveCanvasInputTarget])
 
   const edgeColorById = useMemo(() => {
     const next: Record<string, string> = {}
@@ -1330,6 +1397,21 @@ export function SpaghettiCanvas({
     }
     return next
   }, [graph])
+  const renderedEdges = useMemo(
+    () =>
+      graph.edges.map((edge) =>
+        edge.to.portId === 'ExtrusionProfile'
+          ? {
+              ...edge,
+              to: {
+                ...edge.to,
+                portId: resolveRenderedInputPortIdForEdge(edge),
+              },
+            }
+          : edge,
+      ),
+    [graph.edges, resolveRenderedInputPortIdForEdge],
+  )
 
   const previewColor = useMemo(() => {
     if (connectionDragAnchor === null) {
@@ -1494,9 +1576,14 @@ export function SpaghettiCanvas({
             return
           }
 
+          const resolvedTargetEndpoint =
+            activeDrag.anchorDirection === 'out'
+              ? resolveCanvasInputTarget(targetEndpoint).graphEndpoint
+              : targetEndpoint
+
           const cheap = validateConnectionCheap(graphSnapshot, {
             from: sourceEndpoint,
-            to: targetEndpoint,
+            to: resolvedTargetEndpoint,
           })
           if (!cheap.ok) {
             setUiMessage({
@@ -1508,7 +1595,7 @@ export function SpaghettiCanvas({
             const insertPlan = planConnectEdgeWithAutoReplace(graphSnapshot, {
               edgeId,
               from: toEdgeEndpoint(sourceEndpoint),
-              to: toEdgeEndpoint(targetEndpoint),
+              to: toEdgeEndpoint(resolvedTargetEndpoint),
             })
 
             if (insertPlan.kind === 'noop') {
@@ -1544,7 +1631,7 @@ export function SpaghettiCanvas({
                 connectEdgeWithAutoReplace({
                   edgeId,
                   from: toEdgeEndpoint(sourceEndpoint),
-                  to: toEdgeEndpoint(targetEndpoint),
+                  to: toEdgeEndpoint(resolvedTargetEndpoint),
                 }),
               )
               setSelectedEdgeId(insertPlan.insertedEdge.edgeId)
@@ -1580,6 +1667,7 @@ export function SpaghettiCanvas({
       setSelectedNodeId,
       setSelectedWaypoint,
       setUiMessage,
+      resolveCanvasInputTarget,
     ],
   )
 
@@ -1606,16 +1694,18 @@ export function SpaghettiCanvas({
       if (event.button !== 0) {
         return
       }
-      const incoming = [...sortedEdges]
-        .filter(
-          (edge) =>
-            edge.to.nodeId === payload.nodeId &&
-            edge.to.portId === payload.portId &&
-            pathsEqual(edge.to.path, payload.path),
-        )
-      const existing = incoming[0]
+      const resolvedInputTarget = resolveCanvasInputTarget(payload)
+      const existing =
+        resolvedInputTarget.edgeId === undefined
+          ? [...sortedEdges].find(
+              (edge) =>
+                edge.to.nodeId === resolvedInputTarget.graphEndpoint.nodeId &&
+                edge.to.portId === resolvedInputTarget.graphEndpoint.portId &&
+                pathsEqual(edge.to.path, resolvedInputTarget.graphEndpoint.path),
+            )
+          : graph.edges.find((edge) => edge.edgeId === resolvedInputTarget.edgeId)
       if (existing === undefined) {
-        beginConnectionDrag(event.nativeEvent, payload, graph, 'in', {
+        beginConnectionDrag(event.nativeEvent, resolvedInputTarget.graphEndpoint, graph, 'in', {
           startMessage: 'Wire mode: choose an output source.',
         })
         event.stopPropagation()
@@ -1648,7 +1738,15 @@ export function SpaghettiCanvas({
       event.stopPropagation()
       event.preventDefault()
     },
-    [applyGraphCommand, beginConnectionDrag, graph, selectedEdgeId, setSelectedEdgeId, sortedEdges],
+    [
+      applyGraphCommand,
+      beginConnectionDrag,
+      graph,
+      selectedEdgeId,
+      setSelectedEdgeId,
+      sortedEdges,
+      resolveCanvasInputTarget,
+    ],
   )
 
   const handleOutputPointerEnter = useCallback((target: OutputTarget) => {
@@ -1723,7 +1821,7 @@ export function SpaghettiCanvas({
       edgeId: string,
       point: { x: number; y: number },
     ): number => {
-      const edge = graph.edges.find((candidate) => candidate.edgeId === edgeId)
+      const edge = renderedEdges.find((candidate) => candidate.edgeId === edgeId)
       if (edge === undefined) {
         return 0
       }
@@ -1753,7 +1851,7 @@ export function SpaghettiCanvas({
       }
       return bestSegmentIndex
     },
-    [edgeWaypoints, graph.edges, portAnchors],
+    [edgeWaypoints, portAnchors, renderedEdges],
   )
 
   const handleEdgeDoubleClick = useCallback(
@@ -2684,7 +2782,7 @@ export function SpaghettiCanvas({
           })}
 
           <WireLayer
-            edges={graph.edges}
+            edges={renderedEdges}
             edgeWaypoints={edgeWaypoints}
             edgeColorById={edgeColorById}
             edgeStatusById={diagnosticsVm.edgeStatusById}

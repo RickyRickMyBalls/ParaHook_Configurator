@@ -3,6 +3,32 @@
 ## Doc Header
 
 ### Doc History
+90. 2026-04-09 00:31: Marked `Extrude 7 Phase 4 - Hardening And Family Handoff` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after graph-native preview invalidation began clearing stale extrude geometry the moment `Extrude.SketchProfiles` stops publishing a valid body, then closed the family read so `Extrude-7` now stands as the shipped first honest multi-wire extrude input subset
+89. 2026-04-09 00:15: Tightened `Extrude 7 Phase 4 - Hardening And Family Handoff` inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` again after the contributor-runtime fix so the final slice now explicitly owns the remaining draft plus authoritative worker proof for cross-sketch whole-port `SketchProfiles` contributors, along with any last copy drift and the final family closeout wording
+88. 2026-04-09 00:03: Marked `Extrude 7 Phase 3 - Selector And Surface Multi-Wire Parity` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after the live selector, node surface, and canvas seams adopted authored-order child-entry anchoring, then tightened `Phase 4 - Hardening And Family Handoff` into the next implementation-ready final slice around focused verification cleanup and explicit family closeout boundaries
+87. 2026-04-08 23:45: Tightened `Extrude 7 Phase 3 - Selector And Surface Multi-Wire Parity` inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` into an implementation-ready next slice by grounding it in the live selector-owned entry seam, the current `NodeView.tsx` child-row rendering, the still-stale edge-id ordering fallback, and the need for expanded child rows to become real wire-anchor targets instead of metadata-only summaries
+86. 2026-04-08 23:30: Marked `Extrude 7 Phase 2 - Compile And Runtime Collection Meaning` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after the shared geometry-request contract widened to an explicit ordered contributor collection and the live compile/runtime seams stopped treating multi-wire `ExtrusionProfile` as a singular-only path, then refreshed the family handoff so `Phase 3 - Selector And Surface Multi-Wire Parity` is now the next honest follow-on
+85. 2026-04-08 23:21: Tightened `Extrude 7 Phase 2 - Compile And Runtime Collection Meaning` inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` into an implementation-ready next slice by grounding it in the live singular-only `compileGraph` and `geometryRequest` seams, locking the next cut around one explicit ordered contributor contract before any selector or node-surface widening
+84. 2026-04-08 23:21: Marked `Extrude 7 Phase 1 - Input Port Contract Widening` shipped inside `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` after the live `Geometry/Extrude` input widened to an explicit unbounded multi-wire contract and same-sketch plus cross-sketch contributor validation turned real, then refreshed the family handoff so `Phase 2 - Compile And Runtime Collection Meaning` is now the next honest follow-on
+83. 2026-04-08 23:06: Reworked `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` into the same execution-doc shape used by `Extrude-6` by promoting `Phase 2` through `Phase 4` into real `##` sections, so the new family now reads as a true one-phase-at-a-time Codex execution ladder instead of only a summary breakdown
+82. 2026-04-08 22:57: Reworked `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` around the explicit authored vision that extrude `SketchProfiles` should accept unlimited incoming `SketchProfile` and `SketchProfiles` wires from any sketch, then tightened `Extrude 7 Phase 1 - Input Port Contract Widening` into the first implementation-ready slice for widening the real port and validation contract while keeping collapsed-versus-expanded wire anchoring explicit
+81. 2026-04-08 22:49: Added `Extrude-7 - Multi-Wire SketchProfiles Input Enablement` to this family index as the new follow-on lane after the closed `Extrude-6` surface-contract subset, locking that the next honest extrude-owned step is widening the real `ExtrusionProfile` graph contract from single-wire validation to true multi-wire collection input behavior with compile/runtime meaning kept explicit
+80. 2026-04-08 22:41: Marked `Extrude 6 Phase 4 - Surface Hardening And Follow-On Handoff` shipped inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` after the final singular-contributor wording drift on the dedicated extrude surface was tightened and the focused proof matrix gained an explicit singular-only regression beside the already-shipped aggregate, mixed, and invalid-contributor coverage, so `Extrude-6` now closes for the current collection-input surface subset
+79. 2026-04-08 22:38: Tightened `Extrude 6 Phase 4 - Surface Hardening And Follow-On Handoff` inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` into the implementation-ready final slice by grounding it in the already-shipped parent-row, child-entry, and validation seams, locking the remaining work to focused verification plus visible copy drift cleanup, and making the family closeout explicitly hand later runtime-ordering, viewport, and toolbar follow-ons back out of the current `Extrude-6` subset
+78. 2026-04-08 22:29: Marked `Extrude 6 Phase 3 - Collection Entry Identity And Validation Rules` shipped inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` after the live selector-owned extrude entry seam began filtering visible child rows down to valid aggregate-versus-singular profile contributors only, then refreshed the family handoff so `Phase 4 - Surface Hardening And Follow-On Handoff` is now the next honest follow-on
+77. 2026-04-08 22:23: Tightened `Extrude 6 Phase 3 - Collection Entry Identity And Validation Rules` inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` into an implementation-ready next slice by grounding it in the live selector-owned entry seam and visible child-row contract, locking stable per-entry identity plus the first narrow valid profile-contributor matrix, and keeping final ordering plus runtime-flattening policy deferred to later phases
+76. 2026-04-08 22:21: Marked `Extrude 6 Phase 2 - Mixed Aggregate And Singular Entry Display` shipped inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` after the live `SketchProfiles` row began revealing one child row per actual aggregate or singular contributor in essentials and expanded modes, then refreshed the family handoff so `Phase 3 - Collection Entry Identity And Validation Rules` is now the next honest follow-on
+75. 2026-04-08 22:12: Tightened `Extrude 6 Phase 2 - Mixed Aggregate And Singular Entry Display` inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` into an implementation-ready next slice by grounding it in the current extrude parent-row and selector seams, locking one child row per actual incoming connection entry in essentials and expanded modes, and keeping validation plus runtime-ordering policy deferred to later phases
+74. 2026-04-08 22:10: Marked `Extrude 6 Phase 1 - Parent SketchProfiles Row Contract Lock` shipped inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` after the live `Geometry/Extrude` input row adopted the always-parent `SketchProfiles` label and collection-first copy, then refreshed the family handoff so `Phase 2 - Mixed Aggregate And Singular Entry Display` is now the next honest follow-on
+73. 2026-04-08 22:05: Tightened `Extrude 6 Phase 1 - Parent SketchProfiles Row Contract Lock` inside `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` into an implementation-ready next slice by grounding it in the current extrude registry, selector, and node-surface seams, locking the always-parent `SketchProfiles` row name plus first valid contributor matrix, and keeping child-entry rendering plus runtime-ordering policy deferred to later phases
+72. 2026-04-08 22:00: Added the dedicated future doc `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md`, narrowed the inline `Extrude-6` family read so it now points at that standalone planning home, and split the collection-input lane into four Codex-sized phases covering parent-row contract lock, mixed entry display, collection-entry identity and validation, and closeout hardening
+71. 2026-04-08 21:48: Added `Extrude-6 - SketchProfiles Collection Input Contract` to this family index, grounding the next extrude-owned lane in `Nodes-Vision.md` `Idea 1` so `Geometry/Extrude` can later own one real parent `SketchProfiles` collection input with mixed aggregate-versus-singular contributors and honest collapsed-versus-expanded entry display
+70. 2026-04-08 09:18: Marked `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` shipped after the live `SolidBody` attached body adopted a calmer output-specific summary/detail split without changing the shipped row shell or shared managed-output helper boundary, then refreshed the family read so `Extrude-5` now closes as the current `SolidBody` output-row cleanup lane
+69. 2026-04-08 09:09: Tightened `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` inside `Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` into an implementation-ready next slice by grounding it in the live `SolidBody` attached-body copy still duplicating `bodySummary` across essentials and expanded states, the generic `Ready / Waiting` body title, and the recommendation that the final pass should polish attached-body readability without reopening the shipped row shell or helper boundary
+68. 2026-04-08 09:07: Marked `Extrude 5 Phase 2 - Shared Output Row Helper Adoption` shipped after `NodeView.tsx` gained one shared managed geometry output helper for sketch and extrude output rows, removing the extra extrude-local managed-output adoption path while preserving the shipped `SolidBody` row behavior, then refreshed the family handoff so `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` is now the next follow-on
+67. 2026-04-08 09:04: Tightened `Extrude 5 Phase 2 - Shared Output Row Helper Adoption` inside `Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` into an implementation-ready next slice by grounding it in the now-shipped managed `SolidBody` row still wired through extra extrude-local `NodeView.tsx` plumbing, the shared `PortView.tsx` attached-body seam, and the recommendation that the next pass should extract the smallest honest reusable managed-output helper boundary instead of reopening visible row design
+66. 2026-04-08 08:54: Marked `Extrude 5 Phase 1 - Output Row Template Contract Lock` shipped after the live `Geometry/Extrude` `SolidBody` output adopted the managed standardized row shell with a left chevron, left/right anchored header text, right-side output pin, and attached expandable body, then refreshed the family handoff so `Extrude 5 Phase 2 - Shared Output Row Helper Adoption` is now the next follow-on only if deeper shared helper extraction is still needed
+65. 2026-04-08 08:44: Added the dedicated future doc `Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`, narrowed the inline `Extrude-5` family read so it now points at that standalone planning home, and kept the next extrude-owned UI cleanup lane tied explicitly to the `SolidBody` output-row standardization pass
 64. 2026-04-08 08:33: Added `Extrude-5 - Output Row Standardization And UI Cleanup` to this family index as the next dedicated node-surface cleanup lane, locking that the current `SolidBody` output should be rebuilt around the shared standardized output-row template instead of staying a one-off custom block while the broader all-node rollout can follow later
 63. 2026-04-08 08:26: Marked `Extrude 4 Phase 3C - Focused Verification And Failure Matrix Hardening` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`, then cleaned that child doc plus this family index into a closed shipped-lane read so `Extrude-4` no longer points at stale open `3B/3C` handoff text
 62. 2026-04-08 08:06: Tightened `Extrude 4 Phase 3C - Focused Verification And Failure Matrix Hardening` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` into an implementation-ready next slice by grounding it in the current aggregate compile, draft-runtime, and authoritative-runtime tests, and by locking the remaining work to deterministic ordering plus failure-honesty alignment rather than reopening visible copy or execution semantics
@@ -804,80 +830,102 @@ Definition of done:
 - `Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`
   - historical closeout doc for the shipped `Extrude-4` lane
 
-## [ ] Extrude-5 - Output Row Standardization And UI Cleanup
+## [x] Extrude-5 - Output Row Standardization And UI Cleanup
 
 ### Summary
 
-#### Purpose:
-- make the `Geometry/Extrude` `SolidBody` output row look like the shared standardized output-row template instead of a one-off custom block
+This umbrella now has a dedicated future-phase home:
+- `Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
 
-#### Owns:
-- the first dedicated extrude cleanup for the `SolidBody` output-row shell
-- aligning label lane, value/status lane, pin placement, border treatment, and attached helper body with the calmer shared row language already expected across nodes
-- proving the first extrude-side adoption slice for the broader `Nodes-3` output-row standardization direction
-- making the waiting/help copy feel attached to one reusable output row instead of a separate floating card
+That doc now owns the actual `Extrude 5 Phase 1` through `Phase 3` breakdown.
 
-#### Does not own:
-- changing extrude compile/runtime behavior
-- changing result ownership or adding new output kinds
-- reopening `Extrude-4` closed-profile selection semantics
-- broad all-node rollout beyond locking the first extrude proving slice
-
-#### Current strongest read:
-- the input side has moved much closer to the shared row-template language, but the output side still reads like a custom tile plus detached note
-- the current `SolidBody` row should become one calmer standardized output row with an attached body, not a visually separate widget living under `Outputs`
-- `Extrude` is the right first proving slice because it already has one stable visible output and a clear before/after mismatch against the intended shared node language
+Current status:
+- `Extrude 5 Phase 1 - Output Row Template Contract Lock`
+  - shipped
+- `Extrude 5 Phase 2 - Shared Output Row Helper Adoption`
+  - shipped
+- `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup`
+  - shipped
 
 ### Questions
 
-#### [x] Question 1 - Should `Extrude-5` stay a UI cleanup phase instead of widening into result-contract work?
-
-##### Locked answer
-- yes
-
-##### Why
-- the current problem is row-template drift, not missing geometry ownership
-- keeping this lane UI-only prevents output-row polish from reopening already-shipped compile/runtime decisions
-
-#### [x] Question 2 - What should the first cleanup target be?
-
-##### Locked answer
-- the `SolidBody` output row plus its attached waiting/help body
-
-##### Why
-- that is the visible mismatch on the current `Geometry/Extrude` surface
-- fixing one stable output row first is the cleanest way to prove the standardized template before widening to other nodes
-
-#### [x] Question 3 - Should `Extrude-5` be treated as part of the broader shared-node row direction?
-
-##### Locked answer
-- yes
-- `Extrude-5` should act as one family-owned proving slice under the broader `Nodes-3` output-row standardization direction
-
-##### Why
-- this keeps the repo aligned with the shared `Structured Wire Rows` goal instead of inventing another extrude-only output style
-- the extrude family can prove the row cleanup locally without pretending the all-node rollout is already complete
+- Should the `SolidBody` output row adopt the shared template before any broader all-node output cleanup widens?
+- Should the waiting/help copy become an attached output-row body instead of staying visually detached?
 
 ### Spec
 
-Locked first-cut direction:
-- rebuild the current `SolidBody` output area around one standardized output-row template
-- keep one visible `SolidBody` output row first instead of widening into multiple result rows
-- align the output row shell with the calmer shared row treatment already proven on the stronger input rows
-- keep the helper/waiting copy visually attached to that row as its body instead of a detached second block
-- use this phase as the first extrude-owned `Nodes-3` adoption slice, not as a separate custom output-system fork
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Extrude-5` future doc for the actual phase ladder and execution-ready details.
+- Keep `Extrude-5` focused on standardized output-row cleanup for the current `SolidBody` surface without reopening compile/runtime or result-ownership work.
+- `Extrude-5` is now closed for the current `SolidBody` output-row cleanup subset.
 
-Likely implementation seams:
-- `src/app/spaghetti/canvas/NodeView.tsx`
-- `src/app/spaghetti/selectors/selectNodeVm.ts`
-- any shared node-row/output-row helper seams that currently own the standardized row template for other node surfaces
+## [x] Extrude-6 - SketchProfiles Collection Input Contract
 
-Acceptance checks:
-- the `SolidBody` output row reads like the same family as the settled shared row template
-- the output pin placement and row shell no longer feel like a custom tile
-- the attached waiting/help body reads as part of the output row instead of a separate floating panel
-- `Extrude` output semantics stay unchanged while the visible row structure becomes cleaner
+### Summary
 
-Definition of done:
-- `Geometry/Extrude` no longer ships one-off output-row chrome beside otherwise standardized input rows
-- the family now has one explicit planning home for output-row cleanup before that same template language widens across all nodes
+This umbrella now has a dedicated future-phase home:
+- `Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md`
+
+That doc now owns the actual `Extrude 6 Phase 1` through `Phase 4` breakdown.
+
+Current status:
+- `Extrude 6 Phase 1 - Parent SketchProfiles Row Contract Lock`
+  - shipped
+- `Extrude 6 Phase 2 - Mixed Aggregate And Singular Entry Display`
+  - shipped
+- `Extrude 6 Phase 3 - Collection Entry Identity And Validation Rules`
+  - shipped
+- `Extrude 6 Phase 4 - Surface Hardening And Follow-On Handoff`
+  - shipped
+
+- `Extrude-6` is now closed for the current collection-input surface subset.
+
+### Questions
+
+- Should `Geometry/Extrude` own one always-visible parent `SketchProfiles` collection row instead of a singular-looking profile slot?
+- Should essentials and expanded modes show one child row per actual incoming connection entry while collapsed mode stays parent-only?
+- Should aggregate and singular contributors remain visibly distinct instead of being flattened into one fake uniform child list?
+
+### Spec
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Extrude-6` future doc for the actual phase ladder and execution-ready details.
+- Keep `Extrude-6` focused on the `SketchProfiles` parent collection-input surface, mixed contributor display, and first row-level validation rules without reopening shipped `Extrude-4` runtime/result semantics.
+- Treat runtime flattening, final ordering semantics, and viewport-owned follow-ons as later work outside this current `Extrude-6` surface subset.
+
+## [x] Extrude-7 - Multi-Wire SketchProfiles Input Enablement
+
+### Summary
+
+This umbrella now has a dedicated future-phase home:
+- `Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md`
+
+That doc now owns the actual `Extrude 7 Phase 1` through `Phase 4` breakdown.
+
+Current status:
+- `Extrude 7 Phase 1 - Input Port Contract Widening`
+  - shipped
+- `Extrude 7 Phase 2 - Compile And Runtime Collection Meaning`
+  - shipped
+- `Extrude 7 Phase 3 - Selector And Surface Multi-Wire Parity`
+  - shipped
+- `Extrude 7 Phase 4 - Hardening And Family Handoff`
+  - shipped
+
+### Questions
+
+- Should `Geometry/Extrude.ExtrusionProfile` move from the current default single-wire input limit to a real multi-wire collection contract?
+- How should multiple incoming aggregate and singular profile contributors lower through compile/runtime without hiding ordering or duplicate-handling policy?
+- How should the live selector and node surface stay honest once the graph contract truly allows more than one incoming wire?
+
+### Spec
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Extrude-7` future doc for the actual phase ladder and execution-ready details.
+- Keep `Extrude-7` focused on enabling the real multi-wire `SketchProfiles` input contract across registry, validation, compile/runtime, selector, and node-surface behavior.
+- Treat `Phase 1` through `Phase 4` as shipped for the current widened contract subset.
+- Treat `Extrude-7` as closed for the first honest multi-wire extrude input subset:
+  - the graph/runtime/selector/node-surface contract is now live end to end
+  - contributor-mode draft plus authoritative worker execution is now covered for cross-sketch whole-port `SketchProfiles` sources
+  - graph-native preview invalidation now drops stale extrude geometry immediately when the current graph no longer resolves a valid `SolidBody`
+- Keep broader viewport-owned selection flows, toolbar auto-wiring, and sketch-taxonomy widening outside this lane unless the graph contract work directly requires a narrow follow-on.

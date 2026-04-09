@@ -58,7 +58,7 @@ const getFirstParamIssue = (paramsError: unknown): string => {
 }
 
 const collectCycleNodes = (
-  adjacency: Map<string, Set<string>>,
+  adjacency: Map<string, string[]>,
   indegree: Map<string, number>,
 ): string[] => {
   const queue = [...indegree.entries()]
@@ -74,9 +74,7 @@ const collectCycleNodes = (
       break
     }
     processed += 1
-    const neighbors = [...(adjacency.get(nodeId) ?? [])].sort((a, b) =>
-      a.localeCompare(b),
-    )
+    const neighbors = [...(adjacency.get(nodeId) ?? [])].sort((a, b) => a.localeCompare(b))
     for (const neighbor of neighbors) {
       const nextInDegree = (indegree.get(neighbor) ?? 0) - 1
       indegree.set(neighbor, nextInDegree)
@@ -278,7 +276,7 @@ export const validateGraph = (graph: SpaghettiGraph): GraphValidationResult => {
     }
   }
 
-  const adjacency = new Map<string, Set<string>>()
+  const adjacency = new Map<string, string[]>()
   const indegree = new Map<string, number>()
 
   const excludedEdgeIds = new Set<string>()
@@ -317,9 +315,9 @@ export const validateGraph = (graph: SpaghettiGraph): GraphValidationResult => {
     }
 
     if (!adjacency.has(fromNode.nodeId)) {
-      adjacency.set(fromNode.nodeId, new Set())
+      adjacency.set(fromNode.nodeId, [])
     }
-    adjacency.get(fromNode.nodeId)?.add(toNode.nodeId)
+    adjacency.get(fromNode.nodeId)?.push(toNode.nodeId)
     if (!indegree.has(fromNode.nodeId)) {
       indegree.set(fromNode.nodeId, 0)
     }

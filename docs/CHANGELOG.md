@@ -65,6 +65,669 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1131 -->
+### [1131] - 2026-04-09 07:36 - `WK - Phase VRI-1.2 - Viewport Stats Foundation`
+<!-- ENTRY 1131 -->
+HUMAN SUMMARY: `Landed the first honest viewport runtime-stats slice by teaching the viewer to emit a compact triangles/lines/points/FPS snapshot, forwarding that read through \`ViewerHost\` into app state, and rendering the live stats grid inside the shipped runtime-inspector shell.`
+#### Scope / Constraints Honored
+- Kept this slice focused on viewport stats only and did not widen into active-task cards, queue/archive UI, or deeper telemetry such as memory and draw calls.
+- Preserved the existing left-dock status-zone seam so the title shell still behaves as a valid browser/meatball dock target.
+
+#### Summary of Implementation
+- Added `src/app/store/viewportRuntimeStatsStore.ts` as the compact app-facing per-viewport stats read model for the runtime inspector.
+- Widened `src/app/viewerBridge.ts` and `src/viewer/Viewer.ts` so the viewer now owns and emits one explicit runtime-stats snapshot containing triangles, lines, points, and sampled FPS.
+- Updated `src/app/components/ViewerHost.tsx` to subscribe to the viewer-owned stats seam and forward those reads into the new store.
+- Updated `src/app/components/TitleStatusBar.tsx`, `src/app/workspace/PrimaryViewportLeftDock.tsx`, `src/app/workspace/WorkspaceViewportTree.tsx`, and `src/app/theme/foundation/base.css` so the primary left-dock inspector now renders the first compact stats grid with honest unavailable-state copy.
+- Added focused proof in `src/app/components/ViewerHost.test.tsx` and refreshed `src/app/workspace/PrimaryViewportLeftDock.test.tsx` for the new stats shell content.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/store/viewportRuntimeStatsStore.ts`
+- `src/app/theme/foundation/base.css`
+- `src/app/viewerBridge.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/viewer/Viewer.ts`
+
+#### Behavior Changes
+- Expanding the `ParaHook Generator v20` card now shows a live `Viewport Stats` grid instead of shell-only placeholder copy.
+- The runtime inspector reads triangles, lines, points, and FPS through one explicit viewer-to-app contract.
+- Before the viewer reports its first sample, the shell stays honest with `Unavailable` values and waiting-state copy instead of fake zeroes.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd vitest run src/app/components/ViewerHost.test.tsx -t "forwards viewer-owned runtime stats into the app-facing viewport stats store"`
+- `npx.cmd vitest run src/app/hosts/BrowserDockHost.test.tsx -t "treats the left dock status bar as a browser dock target"`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1130 -->
+### [1130] - 2026-04-09 07:25 - `WK - Phase VRI-1.1 - Remove Secondary Inspect Pill`
+<!-- ENTRY 1130 -->
+HUMAN SUMMARY: `Removed the remaining inspect-pill affordance from the `ParaHook Generator v20` card so the whole panel now reads as the only runtime-inspector toggle instead of still looking like it contains a separate button.`
+#### Scope / Constraints Honored
+- Kept this cleanup strictly on the visual interaction cue for the already-shipped `VRI-1.1` shell.
+- Preserved the full-card toggle behavior and did not widen shell content, stats wiring, or worker-task scope.
+
+#### Summary of Implementation
+- Updated `src/app/components/TitleStatusBar.tsx` to remove the trailing `Inspect` / `Hide` chip from the card content while keeping the card itself as the toggle button.
+- Updated `src/app/theme/foundation/base.css` to remove the now-unused pill styling and return the card header to a cleaner two-item layout.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+
+#### Behavior Changes
+- The `ParaHook Generator v20` panel no longer shows a separate inspect-looking pill inside the card.
+- The whole card remains the sole control for opening and closing the runtime-inspector shell.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+<!-- ENTRY 1129 -->
+### [1129] - 2026-04-09 07:23 - `WK - Phase VRI-1.1 - Whole-Card Toggle Interaction`
+<!-- ENTRY 1129 -->
+HUMAN SUMMARY: `Refined the newly landed \`VRI-1.1\` shell interaction so the entire \`ParaHook Generator v20\` status card now acts as the runtime-inspector toggle, keeping the same shell behavior while matching the interaction target to the panel itself instead of relying on a smaller child button.`
+#### Scope / Constraints Honored
+- Kept this follow-up strictly on the `VRI-1.1` interaction model without widening shell copy, stats wiring, worker-task reads, or left-dock preview ownership.
+- Preserved the existing left-dock status-target seam so browser redock behavior still reads the same top-left zone honestly.
+
+#### Summary of Implementation
+- Updated `src/app/components/TitleStatusBar.tsx` so the whole compact title card is now the button that owns `aria-expanded`, expand/collapse behavior, and the runtime-inspector shell handoff.
+- Updated `src/app/theme/foundation/base.css` so the title card now carries the hover/focus treatment for the full-panel interaction while the small trailing label remains a passive visual cue instead of a separate clickable control.
+- Kept `src/app/workspace/PrimaryViewportLeftDock.test.tsx` aligned with the whole-card toggle semantics and re-verified the existing left-dock browser-target regression.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+#### Behavior Changes
+- Clicking anywhere on the compact `ParaHook Generator v20` status card now opens or closes the runtime-inspector shell.
+- The trailing `Inspect` / `Hide` chip is now a visual state cue inside the card rather than a separate button target.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd vitest run src/app/hosts/BrowserDockHost.test.tsx -t "treats the left dock status bar as a browser dock target"`
+
+<!-- ENTRY 1128 -->
+### [1128] - 2026-04-09 07:19 - `WK - Phase VRI-1.1 - Panel Shell And Expand Collapse Contract`
+<!-- ENTRY 1128 -->
+HUMAN SUMMARY: `Shipped the first \`Viewport Runtime Inspector\` foundation slice by turning the left-dock \`ParaHook Generator v20\` status card into an explicit expand/collapse surface with one honest empty inspector shell beneath it, while keeping the existing browser redock status-target seam intact and proving the new panel placement through focused dock tests.`
+#### Scope / Constraints Honored
+- Kept this pass strictly on `VRI-1.1` shell behavior by adding the expand/collapse contract and empty inspector container without widening into viewport stats, worker-task truth, queue/archive UI, or deeper read-model composition.
+- Preserved the existing left-dock preview behavior by leaving the new shell inside the current `.PrimaryViewportLeftDockStatus` seam instead of inventing a second dock-target contract in the same slice.
+
+#### Summary of Implementation
+- Updated `src/app/components/TitleStatusBar.tsx` so the compact `ParaHook Generator v20` card now owns an explicit runtime-inspector toggle, collapsed versus expanded state, and one honest shell-only panel with placeholder-safe copy.
+- Updated `src/app/theme/foundation/base.css` so the title card now styles the new toggle, expanded stack spacing, and first runtime-inspector shell without disturbing the existing top-bar progress presentation.
+- Added `src/app/workspace/PrimaryViewportLeftDock.test.tsx` to prove the shell stays collapsed by default, expands on demand, and remains mounted in the left-dock status zone ahead of the existing `PanelStack`.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+#### Behavior Changes
+- The primary left-dock `ParaHook Generator v20` status card now exposes an `Inspect` toggle that expands one runtime-inspector shell directly beneath the compact title card.
+- The first shell reads honestly as shell-only placeholder content instead of inventing viewport stats or active worker-task truth before those later `VRI-1` slices land.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd vitest run src/app/hosts/BrowserDockHost.test.tsx -t "treats the left dock status bar as a browser dock target"`
+
+<!-- ENTRY 1127 -->
+### [1127] - 2026-04-09 00:31 - `SP - Phase Extrude-7.4 - Preview Invalidation And Family Closeout`
+<!-- ENTRY 1127 -->
+HUMAN SUMMARY: `Closed the first honest multi-wire extrude input subset by making graph-native preview slots invalidate stale extrude geometry as soon as \`Extrude.SketchProfiles\` stops publishing a valid body, then proved that disconnect path through the live viewer/store surface without reopening the earlier contract work.`
+#### Scope / Constraints Honored
+- Kept this pass on the final hardening seam from `Extrude-7 Phase 4` by fixing preview invalidation and adding focused verification instead of widening compile/runtime, selector, or node-surface design again.
+- Scoped the new invalidation rule to graph-native `Geometry/*` preview sources so compile-owned part/output lanes keep their existing behavior.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/previewPreparation.ts` so OutputPreview slot status now turns `unresolved` when a graph-native source node still has a wire but no longer publishes a usable output value, which makes stale retained artifact previews drop out immediately for invalidated extrude bodies.
+- Added a focused regression in `src/app/components/ViewerHost.test.tsx` that keeps an accepted extrude preview artifact visible while the graph is valid, then proves the viewer clears it as soon as the required `SketchProfiles -> ExtrusionProfile` contributor wire is removed.
+
+#### Files Changed
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- Graph-native extrude previews no longer keep showing last-known-good geometry after the current graph loses the required `SketchProfiles` contributor and the `SolidBody` output stops resolving.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/components/ViewerHost.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npx.cmd vitest run src/app/spaghetti/compiler/evaluateGraph.test.ts src/worker/cad/featureStackRuntime.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+
+<!-- ENTRY 1126 -->
+### [1126] - 2026-04-09 00:11 - `SP - Phase Extrude-7.4 - Contributor Runtime Hardening`
+<!-- ENTRY 1126 -->
+HUMAN SUMMARY: `Fixed the worker runtime gap where contributor-mode extrudes still only understood singular or single-sketch aggregate selection, so whole-port \`SketchProfiles\` from multiple sketches now execute cleanly through both draft and authoritative geometry paths instead of failing with a top-bar error.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly on the shipped multi-wire extrude hardening seam by fixing worker-side contributor selection resolution without reopening selector, canvas, or compile contract design.
+- Preserved existing `single` and `allFromSketch` execution behavior while extending the same worker paths to the already-shipped `contributors` request contract.
+
+#### Summary of Implementation
+- Updated `src/worker/cad/featureStackRuntime.ts` so `profileSelection.mode = 'contributors'` now resolves ordered contributor targets across `single` and `allFromSketch` entries instead of falling through to the legacy `profileRef` null error path.
+- Updated `src/worker/authoritative/buildAuthoritativeGeometry.ts` so authoritative shape generation expands contributor-mode extrudes into the same ordered sketch-profile list before building faces and prisms.
+- Added focused worker regression coverage in `src/worker/cad/featureStackRuntime.test.ts` and `src/worker/authoritative/buildAuthoritativeGeometry.test.ts` for two whole-port `SketchProfiles` contributors from different sketches feeding one extrude body.
+
+#### Files Changed
+- `src/worker/cad/featureStackRuntime.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/cad/featureStackRuntime.test.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+
+#### Behavior Changes
+- Extrude operations compiled with `profileSelection.mode = 'contributors'` now execute correctly when multiple contributor entries are whole-port `SketchProfiles` sources from different sketches.
+- Draft preview and authoritative geometry now stay aligned for that multi-sketch aggregate contributor case instead of failing through the legacy missing-`profileRef` path.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/worker/cad/featureStackRuntime.test.ts src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/worker/buildModel.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1125 -->
+### [1125] - 2026-04-09 00:02 - `SP - Phase Extrude-7.3 - Selector And Surface Multi-Wire Parity`
+<!-- ENTRY 1125 -->
+HUMAN SUMMARY: `Made Extrude Phase 3 truthful on the selector and node surface by preserving authored incoming contributor order, giving each expanded SketchProfiles child row its own real anchor port, and routing expanded wires to those matching child rows without changing the underlying compile/runtime contract.`
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 7 Phase 3` by limiting implementation to selector ordering, node-surface child-row rendering, canvas anchor routing, and focused proof coverage without reopening authoring validation semantics or widening into toolbar/viewport feature work.
+- Preserved collapsed-mode behavior so all incoming `ExtrusionProfile` wires still terminate on the one parent `SketchProfiles` pin when the row stays grouped.
+
+#### Summary of Implementation
+- Added a dedicated synthetic extrude child-port id helper in `src/app/spaghetti/features/extrudeProfileEntryPorts.ts` so each real incoming `ExtrusionProfile` edge can be represented by a stable selector/canvas endpoint id in expanded mode.
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` to preserve graph-authored incoming edge order, expose selector-owned `profileInputEntries` with per-entry endpoint ids, and keep aggregate versus singular contributor identity explicit for sketch-profile collections.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/spaghetti/canvas/SpaghettiCanvas.tsx` so expanded extrude child rows register real input anchors, wire validation/rewire logic resolves those child anchors back to the true graph endpoint, and rendered wires retarget to the matching child row only when the expanded anchor exists.
+- Removed stale edge-id ordering fallback in `src/app/spaghetti/compiler/evaluateGraph.ts` and `src/app/spaghetti/compiler/compileGraph.ts` so authored contributor order stays consistent across selector, runtime evaluation, and compile lowering.
+- Refreshed focused selector, node-view, geometry-mode, evaluation, and compile tests to assert graph-order parity plus child-row endpoint identity.
+
+#### Files Changed
+- `src/app/spaghetti/features/extrudeProfileEntryPorts.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+
+#### Behavior Changes
+- Expanded `Geometry/Extrude` `SketchProfiles` rows now show one child row per actual incoming contributor in authored graph order, with aggregate and singular contributors remaining visibly distinct.
+- When the `SketchProfiles` row is expanded, each incoming wire anchors to its matching child row and rewiring from that child row preserves the exact underlying edge identity.
+- Collapsed extrude rows continue to anchor all `ExtrusionProfile` wires on the one parent port.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx src/app/spaghetti/compiler/compileGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- Ran `npm.cmd run build`
+
+<!-- ENTRY 1124 -->
+### [1124] - 2026-04-08 23:30 - `SP - Phase Extrude-7.2 - Compile And Runtime Collection Meaning`
+<!-- ENTRY 1124 -->
+HUMAN SUMMARY: `Widened the shared graph-native extrude request contract to carry an explicit ordered contributor collection, taught evaluation and compile lowering to treat multi-wire \`ExtrusionProfile\` as one honest aggregate-plus-singular contributor input, and proved same-sketch plus cross-sketch contributor sets now execute without inventing one fake owning sketch while selector/node-surface parity remains deferred to \`Extrude 7 Phase 3\`.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 7 Phase 2` by limiting implementation to the shared geometry-request contract, graph-native evaluation/compile lowering, and focused proof coverage without widening into selector/node-surface parity or later hardening work.
+- Preserved the singular-only `profileRef` bridge for compatibility while making the new ordered contributor contract the honest multi-wire source of truth.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/contracts/geometryRequest.ts` with an explicit ordered extrude contributor descriptor so `profileSelection` can now represent mixed singular and aggregate contributors instead of only `single` or `allFromSketch`.
+- Updated `src/app/spaghetti/compiler/evaluateGraph.ts`, `src/app/spaghetti/compiler/compileGraph.ts`, and `src/app/spaghetti/registry/nodeRegistry.ts` so valid multi-wire `ExtrusionProfile` input now evaluates as an ordered contributor collection, still lets `Geometry/Extrude` publish `SolidBody`, and lowers into contributor-aware sketch/extrude IR without collapsing different sketches onto one fake owner.
+- Added focused proof in `src/app/spaghetti/contracts/geometryRequest.test.ts`, `src/app/spaghetti/compiler/evaluateGraph.test.ts`, and `src/app/spaghetti/compiler/compileGraph.test.ts` for ordered mixed contributors, member-output contributors, and explicit multi-wire compile/runtime meaning.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/geometryRequest.ts`
+- `src/app/spaghetti/contracts/geometryRequest.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Multi-wire `Geometry/Extrude.ExtrusionProfile` input now evaluates and compiles as one ordered collection of aggregate and singular contributors instead of failing as a multiple-input error or collapsing back to one chosen edge.
+- Graph-native extrude request payloads can now describe mixed contributor kinds and contributors from more than one sketch in one explicit ordered contract.
+- Singular-only paths still keep the legacy `profileRef` compatibility bridge, while later selector/node-surface parity remains explicitly deferred to `Extrude 7 Phase 3`.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/contracts/geometryRequest.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/compiler/validateGraph.test.ts`
+
+<!-- ENTRY 1123 -->
+### [1123] - 2026-04-08 23:21 - `SP - Phase Extrude-7.1 - Input Port Contract Widening`
+<!-- ENTRY 1123 -->
+HUMAN SUMMARY: `Widened \`Geometry/Extrude.ExtrusionProfile\` into a real unbounded multi-wire input at the registry and validation layer, fixed graph validation so parallel same-source edges no longer trip false cycle errors, and proved same-sketch plus cross-sketch aggregate/singular profile contributors now validate cleanly while runtime lowering remains deferred to \`Extrude 7 Phase 2\`.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 7 Phase 1` by limiting implementation to the live input-port contract, validation behavior, and focused proof coverage without widening into compile/runtime collection lowering or deeper node-surface redesign.
+- Preserved the current aggregate-versus-singular contributor contract and kept invalid non-profile contributors rejected.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/registry/nodeRegistry.ts` so `Geometry/Extrude` now declares `ExtrusionProfile` as an explicit unbounded inbound collection input while keeping the existing parent-row label `SketchProfiles`.
+- Updated `src/app/spaghetti/compiler/validateGraph.ts` so cycle detection counts parallel edges honestly instead of collapsing same-source-to-same-target connections into a false cycle, which is required now that valid multi-wire extrude authoring can reuse the same upstream sketch node more than once.
+- Extended `src/app/spaghetti/compiler/validateGraph.test.ts` and `src/app/spaghetti/registry/nodeRegistry.test.ts` with focused coverage for same-sketch singular multi-wire contributors, mixed same-sketch plus cross-sketch contributor sets, and the widened registry contract.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Geometry/Extrude.ExtrusionProfile` now accepts more than one valid incoming `SketchProfile` or `SketchProfiles` wire.
+- Multiple valid profile contributors from the same sketch node now validate without triggering a false graph-cycle error.
+- Final compile/runtime collection lowering semantics remain explicitly deferred to `Extrude 7 Phase 2`.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts`
+
+<!-- ENTRY 1122 -->
+### [1122] - 2026-04-08 22:41 - `SP - Phase Extrude-6.4 - Surface Hardening And Follow-On Handoff`
+<!-- ENTRY 1122 -->
+HUMAN SUMMARY: `Closed the current \`Extrude-6\` lane by tightening the last singular-contributor wording drift on the dedicated \`SketchProfiles\` surface and extending the focused proof matrix so aggregate, singular, mixed, and invalid-contributor paths now stay aligned under one collection-input contract.` 
+#### Scope / Constraints Honored
+- Kept this final pass on `Extrude-6 Phase 4` by limiting implementation to visible wording hardening on the dedicated extrude surface, one focused single-contributor regression check, and the required closeout docs without reopening earlier row-contract, child-entry, or validation-seam design.
+- Preserved the shipped `Extrude-4` runtime/result behavior and the Phase 1-3 collection-input contract: the parent row remains `SketchProfiles`, essentials/expanded modes still show one child row per accepted incoming entry, and invalid non-profile contributors remain rejected.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` so the singular extrude path now consistently says `one SketchProfile contributor` anywhere the row is describing the accepted single-contributor case, removing the last visible drift back toward the aggregate parent label in single-contributor waiting copy.
+- Extended `src/app/spaghetti/canvas/NodeView.test.tsx` with a dedicated singular-contributor regression so the final verification matrix now explicitly proves aggregate-only, singular-only, mixed, and invalid-contributor behavior across the shipped `SketchProfiles` surface.
+- Closed the planning/docs loop by marking `Extrude 6 Phase 4` shipped and recording that the remaining open questions now belong to later runtime-ordering, viewport-picking, toolbar auto-wiring, and broader sketch-taxonomy follow-ons outside the closed `Extrude-6` subset.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Single-contributor extrude waiting/body wording now consistently refers to `one SketchProfile contributor` instead of drifting back to `SketchProfiles` in that singular path.
+- The focused surface verification matrix now explicitly covers aggregate-only, singular-only, mixed aggregate-plus-singular, and invalid non-profile contributor cases for the current `Extrude-6` contract.
+- `Extrude-6` is now closed for the current collection-input surface subset, while runtime flattening/final ordering and viewport/toolbar follow-ons remain explicitly out of scope.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1121 -->
+### [1121] - 2026-04-08 22:29 - `SP - Phase Extrude-6.3 - Collection Entry Identity And Validation Rules`
+<!-- ENTRY 1121 -->
+HUMAN SUMMARY: `Locked selector-owned identity for visible extrude \`SketchProfiles\` child entries and filtered that list down to real profile contributors only, so invalid non-profile wires no longer surface as fake collection rows while validation coverage explicitly guards the rejection boundary.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude-6 Phase 3` by tightening the live `profileInputEntries` seam and the first visible contributor-acceptance matrix without widening into Phase 4 copy polish, final runtime flattening, or authored ordering semantics.
+- Preserved the shipped Phase 1 and Phase 2 surface contracts: the parent row still stays `SketchProfiles`, collapsed mode still terminates at the parent row, and essentials/expanded modes still reveal one child row per actual accepted incoming profile entry.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/selectors/selectNodeVm.ts` with one narrow extrude contributor classifier so the selector-owned `profileInputEntries` list now assigns stable aggregate-versus-singular identity only to valid `SketchProfiles` and `SketchProfile` contributors, including virtual `SketchProfile:<id>` members.
+- Kept the existing `src/app/spaghetti/canvas/NodeView.tsx` child-row surface anchored to that selector-owned entry list, which means invalid non-profile wires into `ExtrusionProfile` no longer appear as fake visible collection entries during node refresh or expansion changes.
+- Added focused proof in `src/app/spaghetti/selectors/selectNodeVm.test.ts` and `src/app/spaghetti/compiler/validateGraph.test.ts`, while re-running the existing extrude node-surface coverage to prove the narrowed acceptance matrix and stable visible entry behavior together.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The visible extrude `SketchProfiles` child-entry list now ignores invalid non-profile contributors instead of rendering them as fake aggregate or singular profile rows.
+- Valid aggregate `SketchProfiles` sources and valid singular `SketchProfile` sources keep stable selector-owned entry identity across the existing essentials and expanded child-row views.
+- Graph-validation coverage now explicitly guards the non-profile-to-`ExtrusionProfile` mismatch path.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1120 -->
+### [1120] - 2026-04-08 22:21 - `SP - Phase Extrude-6.2 - Mixed Aggregate And Singular Entry Display`
+<!-- ENTRY 1120 -->
+HUMAN SUMMARY: `Taught the parent \`SketchProfiles\` extrude row to reveal one child entry per actual incoming profile connection in essentials and expanded modes, so aggregate and singular contributors now stay visibly distinct without changing the underlying runtime contract.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude-6 Phase 2` by limiting implementation to selector-owned incoming-entry display data plus the dedicated node-surface rendering needed to show one child row per actual connection entry, without widening into Phase 3 validation, final ordering, or runtime flattening policy.
+- Preserved the Phase 1 and shipped `Extrude-4` contracts: collapsed mode still stays parent-only, aggregate sources still remain aggregate in the UI, and the internal `ExtrusionProfile` runtime seam remains unchanged.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/selectors/selectNodeVm.ts` so the extrude selector VM now publishes a minimal ordered `profileInputEntries` list describing each actual incoming aggregate or singular profile contributor.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the parent `SketchProfiles` attached body renders one visible child row per incoming connection entry in essentials and expanded modes, while keeping a separate expanded-only resolved collection summary and preserving the collapsed parent-only row contract.
+- Added focused selector and node-surface proof in `src/app/spaghetti/selectors/selectNodeVm.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` for mixed aggregate-plus-singular contributors and the collapsed-to-essentials-to-expanded interaction path.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Essentials and expanded extrude profile rows now show one child entry per actual incoming profile connection instead of only one generic resolved summary.
+- Aggregate `SketchProfiles` contributors stay visibly aggregate, and singular `SketchProfile` contributors stay visibly singular.
+- Collapsed mode still keeps all incoming wires terminating at the parent `SketchProfiles` row.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1119 -->
+### [1119] - 2026-04-08 22:10 - `SP - Phase Extrude-6.1 - Parent SketchProfiles Row Contract Lock`
+<!-- ENTRY 1119 -->
+HUMAN SUMMARY: `Locked the visible \`Geometry/Extrude\` profile row as an always-parent \`SketchProfiles\` collection input, keeping the internal port id stable while moving the node surface and registry contract off the old singular-slot wording.` 
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude-6 Phase 1` by changing only the visible parent-row contract for the extrude profile input, aligning the dedicated node-surface copy with that collection-first read, and updating focused registry plus node-surface tests without widening into child-entry rendering, runtime ordering, or viewport-owned selection behavior.
+- Preserved the shipped `Extrude-4` aggregate-versus-singular execution contract by leaving the underlying `ExtrusionProfile` port id and compile/runtime behavior untouched.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/registry/nodeRegistry.ts` so the `Geometry/Extrude` input still uses the existing `ExtrusionProfile` port id internally but now exposes the visible parent input label as `SketchProfiles`.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the dedicated extrude profile row always renders as `SketchProfiles`, and rewrote the attached-body summaries, empty-state copy, and contributor hints to describe the row as a collection input instead of a singular `SketchProfile` slot.
+- Refreshed focused registry and node-surface tests so the live contract now proves the collection-first label and wording in collapsed, essentials, and expanded states.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Geometry/Extrude` now presents its profile target row as `SketchProfiles` even when a single singular profile contributor is used.
+- Empty-state and resolved-state copy now describe the extrude profile target as a collection input with contributors instead of a singular-only slot.
+- The internal graph contract remains stable, so aggregate and singular profile execution behavior is unchanged by this surface-only phase.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/registry/extrudeParams.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1118 -->
+### [1118] - 2026-04-08 20:09 - `SP - Phase Sketch-2 3B - Sketch Child Output Duplication Cleanup`
+<!-- ENTRY 1118 -->
+HUMAN SUMMARY: `Fixed the first `3B` regression where the new sketch child-member endpoints were leaking back into the normal top-level sketch output list, so resolved `SketchProfile` members now render only once as parent-owned child outputs instead of appearing again as duplicate sibling rows.`
+#### Scope / Constraints Honored
+- Kept this follow-up narrow by fixing only the sketch output-list filter that was double-rendering the new child-member virtual ports, then adding one focused regression assertion without reopening the endpoint identity work itself.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` so the sketch template now excludes `SketchProfile:<profileId>` child-member ports from `remainingSketchOutputs`, leaving them owned solely by the parent `SketchProfiles` attached body.
+- Extended `src/app/spaghetti/canvas/NodeView.test.tsx` with a count assertion proving the rendered child-member endpoint ids appear exactly once per resolved profile in the expanded sketch surface.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanded sketch outputs no longer show each resolved `SketchProfile` member twice.
+- Child-member endpoints remain real wireable outputs, but they now render only in the parent-owned child list where they belong.
+
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1117 -->
+### [1117] - 2026-04-08 19:48 - `SP - Phase Sketch-2 3B - Child Member Endpoint And Wiring Identity`
+<!-- ENTRY 1117 -->
+HUMAN SUMMARY: `Turned revealed sketch child rows into real graph targets by giving each resolved profile member its own stable output endpoint id, then taught the existing validation, evaluation, compile, selector, and node-surface seams to treat those child rows as distinct singular outputs instead of decorative nested copy.`
+#### Scope / Constraints Honored
+- Kept this pass on `Sketch-2 Phase 3B` by adding only the smallest stable child-target identity seam needed for revealed `SketchProfile` members, then carrying that identity through the existing effective-port, graph-validation, evaluation, compile, selector, and sketch node-surface seams without reopening aggregate-versus-singular runtime meaning or widening into a general endpoint-system redesign.
+- Preserved the locked aggregate contract: whole-port `SketchProfiles` remains the one collection target, while child member targets stay singular and downstream `Geometry/Extrude` still distinguishes `allFromSketch` versus `single`.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/features/sketchProfileVirtualPorts.ts` and adopted it from `effectivePorts.ts` plus `evaluateGraph.ts` so every resolved closed sketch profile now publishes a stable virtual output port id shaped like `SketchProfile:<profileId>` alongside the existing parent collection output.
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/spaghetti/canvas/PortView.tsx` so revealed child rows now render as real output rows with their own endpoint ids and anchors instead of static attached-body divs, while the DOM exposes endpoint identity through stable data attributes for focused proof coverage.
+- Extended `validateGraph`, `evaluateGraph`, `compileGraph`, selector, and sketch node tests so the repo now proves that child-member ports validate, evaluate, compile into singular extrude selection, and surface as distinct output endpoints in both static and interactive sketch-row coverage.
+
+#### Files Changed
+- `src/app/spaghetti/features/sketchProfileVirtualPorts.ts`
+- `src/app/spaghetti/features/effectivePorts.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/compileGraph.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Revealed `Geometry/Sketch` child profile rows now own real output endpoint ids instead of being visual-only children, so wiring can target a specific resolved member without pretending it is the whole selected `SketchProfile` slot.
+- Graph validation, evaluation, and compile now accept and preserve those child-member endpoint ids as singular sketch profile targets.
+- The sketch node surface now exposes stable endpoint identity for child member rows in the DOM, making the structural distinction reviewable and testable instead of implied by copy alone.
+
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/compileGraph.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1116 -->
+### [1116] - 2026-04-08 15:59 - `SP - Phase Sketch-2 3A - Sketch Collection Surface Contract Alignment`
+<!-- ENTRY 1116 -->
+HUMAN SUMMARY: `Tightened the sketch profile surface so the parent \`SketchProfiles\` row now reads consistently as the aggregate closed-profile collection while the revealed child rows read as singular member targets, and added focused selector coverage to keep the downstream one-member contract explicit.`
+#### Scope / Constraints Honored
+- Kept this pass on `Sketch-2 Phase 3A` by limiting implementation to sketch-surface wording and visibility honesty in the shared node canvas seam, one focused selector-vm proof for singular `SketchProfile` consumption, and the required permanent changelog update without widening into child endpoint-path wiring or compile-time graph contract changes reserved for `3B`.
+- Preserved the shipped downstream runtime truth: whole-port `SketchProfiles` still means "consume all closed profiles" and singular `SketchProfile` still means one resolved member target.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` so the managed `SketchProfiles` output row now keeps its aggregate target summary visible in both managed row states, uses more explicit aggregate-versus-member wording, and marks revealed child rows as singular profile-member targets instead of decorative profile echoes.
+- Extended `src/app/spaghetti/canvas/NodeView.test.tsx` so the sketch output surface now proves the parent collection hint, aggregate summary, and singular child-member wording together in one focused render case.
+- Added a focused `src/app/spaghetti/selectors/selectNodeVm.test.ts` assertion proving that wiring `SketchProfile` into extrude still resolves as `profileTargetMode: 'single'` with the selected profile id.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Geometry/Sketch` now presents `SketchProfiles` more honestly as the parent collection row even when the managed output row is only in its lighter attached-body state.
+- Revealed sketch profile children now read explicitly as singular member targets, with selected-member language attached to the resolved child rather than implying another competing top-level output.
+- Selector coverage now explicitly guards the singular extrude-consumption path so future surface cleanup does not accidentally blur `SketchProfile` back into aggregate semantics.
+
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/selectors/selectNodeVm.test.ts`
+
+<!-- ENTRY 1115 -->
+### [1115] - 2026-04-08 12:03 - `SP - Phase Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep`
+<!-- ENTRY 1115 -->
+HUMAN SUMMARY: `Locked the first explicit composite-row ownership contract by teaching the field-tree seam to own ordered \`Vec3\` children alongside \`Vec2\`, then surfacing that contract in live composite parent rows so structured parents now advertise real typed child ownership instead of reading like decorative nesting.`
+#### Scope / Constraints Honored
+- Kept this pass on `Nodes-3.4` by limiting implementation to composite ownership language in the shared node canvas seam, the field-tree ownership source of truth, focused composite row tests, and the required changelog/doc maintenance without widening into collection rewrites, later family adoption, or primitive numeric-row redesign.
+- Preserved the existing whole-port composite input truth: parent wires may still drive the full composite and make child channels read-only without erasing the underlying structured child ownership.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/types/fieldTree.ts` so structured type ownership now explicitly includes ordered `Vec3` children and a reusable immediate-child helper alongside the existing composite leaf-path seam.
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` so composite parent rows now advertise child-count summaries and attached structured-parent ownership copy derived from the field-tree seam instead of leaving composite meaning implied.
+- Extended focused static and interactive `NodeView` coverage plus field-tree tests so the repo now proves that `Vec2` / `Vec3` child rows come from real type-owned structure rather than from decorative row nesting.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/types/fieldTree.ts`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/types/fieldTree.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Composite parent rows now surface explicit child-count ownership summaries for structured types instead of reading like unlabeled expandable wrappers.
+- Expanded composite parents now present structured-parent ownership copy that explains their real typed children, and whole-parent composite drive still reads as a parent-wire-driven state rather than collapsing those children into fake absence.
+- `Vec3` now has an explicit field-tree ownership shape alongside `Vec2`, making later transform-group adoption easier to ground in the same structured-type contract.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/types/fieldTree.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1114 -->
+### [1114] - 2026-04-08 11:43 - `SP - Phase Nodes-3.3 - Collection Parent And Child Row Contract`
+<!-- ENTRY 1114 -->
+HUMAN SUMMARY: `Locked the first shared collection-row contract by making sketch output rows explicitly distinguish the aggregate parent collection from the singular member surface, so \`SketchProfiles\` now reads as the whole ordered collection while \`SketchProfile\` stays the one-member surface that downstream consumers can treat differently.`
+#### Scope / Constraints Honored
+- Kept this pass on `Nodes-3.3` by tightening only the sketch collection row meaning in the shared managed-output shell, focused sketch/extrude node-surface verification, selector aggregate-consumption verification, and the required changelog/doc maintenance without widening into a full child-row tree rollout, composite ownership work, or runtime contract rewrites.
+- Preserved the existing selector/runtime aggregate truth: whole-port `SketchProfiles` still means "consume all closed profiles" while singular `SketchProfile` still means one resolved member surface.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` so sketch outputs no longer render as two flat sibling labels only: `SketchProfiles` now carries explicit parent-collection copy and `SketchProfile` now carries explicit singular-member copy through attached managed-row bodies.
+- Kept the collection meaning inside the shared output-row shell from `Nodes-3.2` rather than inventing a separate collection widget, so the parent-versus-member distinction is now clearer without forking the row system.
+- Extended focused node tests and re-ran selector aggregate-consumption tests so the UI and selector layers keep proving the same collection contract.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Geometry/Sketch` `SketchProfiles` now explicitly reads as the aggregate parent collection row in the node surface.
+- `Geometry/Sketch` `SketchProfile` now explicitly reads as the singular member surface rather than another unlabeled sibling output.
+- The sketch output collection story is now easier to read alongside extrude aggregate consumption because the parent-versus-member distinction is visible in the node UI itself.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx src/app/spaghetti/selectors/selectNodeVm.test.ts`
+
+<!-- ENTRY 1113 -->
+### [1113] - 2026-04-08 11:16 - `SP - Phase Nodes-3.2 - Shared Output Row Shell Contract Lock`
+<!-- ENTRY 1113 -->
+HUMAN SUMMARY: `Locked the shared managed output-row shell more explicitly by tightening \`PortView\` and the managed-output helper in \`NodeView\`, so output rows now expose explicit header-status and attached-body hooks that both sketch and extrude tests prove through the same reusable contract.`
+#### Scope / Constraints Honored
+- Kept this pass on `Nodes-3.2` by tightening only the shared managed output-row shell seam, focused sketch/extrude output-row tests, and the required changelog/doc maintenance without widening into collection semantics, composite rollout, or runtime/result ownership work.
+- Preserved the existing visible output behavior while making the contract easier to reuse: compact output status stays in the row header, waiting/help and richer detail stay in the attached body, and the row-edge output pin remains owned by the shared shell.
+
+#### Summary of Implementation
+- Tightened `src/app/spaghetti/canvas/NodeView.tsx` so the managed geometry output helper now names its reusable header status contract explicitly instead of leaning on a more generic resolved-value label.
+- Tightened `src/app/spaghetti/canvas/PortView.tsx` so shared output rows now expose explicit output-row hooks for the header lane, header status, and attached body across both custom attached content and expanded default details.
+- Extended the focused sketch/extrude suites so both proving families assert the same output-row contract instead of only relying on visual precedent.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Shared managed output rows now expose explicit output-shell hooks that separate the header status lane from the attached body lane.
+- Sketch and extrude output rows now prove the same shell contract in tests, making future output-row adoption less dependent on family-local precedent.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1112 -->
+### [1112] - 2026-04-08 09:58 - `SP - Phase Nodes-3.1 - Extrude Output Row Parity Against Sketch`
+<!-- ENTRY 1112 -->
+HUMAN SUMMARY: `Removed the remaining extrude-only output-card CSS override so the live \`Geometry/Extrude\` \`SolidBody\` row now falls back to the same calmer full-width geometry-stack output shell as the sketch output rows, keeping the existing managed output-row render path, compact header status, right-edge output pin, and attached-body semantics intact.`
+#### Scope / Constraints Honored
+- Kept this pass on `Nodes-3.1` by limiting implementation to the visible output-row parity cleanup in `spaghetti.css`, focused node-surface verification, and the required changelog/doc maintenance without reopening compile/runtime behavior or the earlier `Extrude-5` helper/body work.
+- Preserved the existing `SolidBody` row contract: one managed output row, compact `Ready` / `Waiting` header status, right-side output pin, and the attached output body path already shipped in the earlier extrude cleanup lane.
+
+#### Summary of Implementation
+- Removed the extrude-specific output-section CSS selectors that were still forcing `Geometry/Extrude` outputs onto a half-width inset card treatment.
+- Let `SolidBody` fall back to the shared geometry-stack output-row shell already used by the sketch output rows, so the extrude output now reads as the same row family instead of a separate widget.
+- Re-ran the focused `NodeView` and geometry-mode suites to prove the visible parity cleanup kept the managed output-row path stable.
+
+#### Files Changed
+- `src/app/theme/surfaces/spaghetti.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Geometry/Extrude` `SolidBody` no longer renders through the old inset mini-card output treatment.
+- The extrude output row now reads through the same calmer full-width geometry-stack shell as the sketch output rows while preserving the existing output status text, pin placement contract, and attached-body behavior.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1111 -->
+### [1111] - 2026-04-08 09:18 - `SP - Phase Extrude-5.3 - Attached Waiting Body And Surface Honesty Cleanup`
+<!-- ENTRY 1111 -->
+HUMAN SUMMARY: `Polished the live \`Geometry/Extrude\` \`SolidBody\` attached body so it now reads like an output-specific summary panel instead of a repeated placeholder block, splitting the body into calmer publish/requirement copy while keeping the shipped row shell, compact header status, and shared managed-output helper boundary intact.`
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 5 Phase 3` by limiting implementation to attached-body copy/readability cleanup, focused node-surface verification, and the required changelog/doc maintenance without reopening the shipped row shell or helper-boundary work from `Phase 1` and `Phase 2`.
+- Preserved the visible `SolidBody` row header contract: left label, compact `Ready` / `Waiting` status on the right, right-side output pin, and the existing shared managed geometry output helper.
+
+#### Summary of Implementation
+- Reworked the attached `SolidBody` body copy in `NodeView.tsx` so ready states now read through output-specific titles (`Body Output` / `Wall Output`) while waiting states use a requirements-focused title (`Build requirements`).
+- Replaced the duplicated long summary pattern with a calmer summary/detail split: the visible attached hint now says what the row publishes or what it still needs before it can publish, while expanded details remain free to carry separate result detail later.
+- Updated focused `NodeView` tests to verify the new output-specific body copy and requirements wording for ready and waiting states.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The `SolidBody` attached body now uses calmer output-specific summary wording instead of echoing the same long summary sentence in both visible positions.
+- Waiting states now present a clearer requirements-focused attached body while ready states present a clearer publish/result-focused attached body.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1110 -->
+### [1110] - 2026-04-08 09:07 - `SP - Phase Extrude-5.2 - Shared Output Row Helper Adoption`
+<!-- ENTRY 1110 -->
+HUMAN SUMMARY: `Collapsed the managed sketch and extrude output-row adoption paths behind one shared geometry-output helper in \`NodeView.tsx\`, so the shipped \`SolidBody\` row keeps its Phase 1 behavior while the managed output-row controller hookup, output render call, and attached-body passthrough no longer live as separate family-specific plumbing.`
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 5 Phase 2` by limiting implementation to helper-boundary cleanup inside the node canvas layer, focused node-surface verification, and the required changelog/doc maintenance without reopening the shipped `SolidBody` row design or changing extrude compile/runtime semantics.
+- Preserved the visible `SolidBody` row shell, compact `Ready` / `Waiting` header treatment, right-side output pin, and attached expandable body from `Phase 1`.
+
+#### Summary of Implementation
+- Added one shared managed geometry output helper in `NodeView.tsx` that owns managed output row-controller hookup, the output-row render call, and optional attached-body passthrough.
+- Moved the sketch managed output rows and the extrude `SolidBody` row onto that shared helper so they no longer use separate family-local managed-output adoption paths.
+- Removed the extra extrude-local managed output-row controller plumbing while preserving the attached body content and compact status label behavior already shipped in `Phase 1`.
+- Re-ran focused `NodeView` and geometry-mode tests to prove the helper extraction kept the managed output-row behavior stable.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No intended visible behavior change beyond keeping the shipped Phase 1 `SolidBody` row behavior intact through a cleaner shared helper boundary.
+- Sketch and extrude managed output rows now route through the same managed output adoption helper behind the scenes.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1109 -->
+### [1109] - 2026-04-08 08:54 - `SP - Phase Extrude-5.1 - Output Row Template Contract Lock`
+<!-- ENTRY 1109 -->
+HUMAN SUMMARY: `Rebuilt the live \`Geometry/Extrude\` \`SolidBody\` output from a detached custom summary card into the managed standardized output-row shell, so the row now matches the calmer input-row language with a left chevron, left/right anchored header text, a right-side output pin, and an attached expandable body while keeping extrude result semantics unchanged.`
+#### Scope / Constraints Honored
+- Kept this pass on `Extrude 5 Phase 1` by limiting implementation to visible output-row structure, managed row adoption, focused node-surface verification, and the required changelog/doc maintenance without reopening compile/runtime semantics or result ownership.
+- Preserved the existing `SolidBody` output contract and existing extrude waiting/ready copy semantics while changing only how that information is presented in the node surface.
+
+#### Summary of Implementation
+- Marked the `SolidBody` output as a managed extrude output row so it now uses the shared row controller and leading chevron behavior instead of a custom standalone tile.
+- Extended the shared output-port rendering path to accept attached custom row bodies, allowing the extrude output to reuse the standardized output row shell while still showing extrude-specific helper content.
+- Replaced the detached `SolidBody` summary card with an attached expandable body that keeps the longer waiting/ready explanation under the same output row.
+- Updated focused `NodeView` tests to verify the new output-row shell, right-side output pin, attached body, and compact `Ready` / `Waiting` header status treatment.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The `Geometry/Extrude` `SolidBody` output now renders as a full-width managed output row with a leading chevron and right-side output pin instead of a separate custom summary tile plus detached helper card.
+- The row header now uses compact readiness text (`Ready` / `Waiting`) on the right while the longer explanatory copy lives in the attached expandable body under the same row.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
 <!-- ENTRY 1108 -->
 ### [1108] - 2026-04-08 08:18 - `SP - Phase Extrude-4.3C - Focused Verification And Failure Matrix Hardening`
 <!-- ENTRY 1108 -->

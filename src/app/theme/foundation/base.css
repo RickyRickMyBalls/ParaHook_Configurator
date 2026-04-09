@@ -35,11 +35,13 @@ body {
   --title-status-glow-rest: rgba(108, 124, 168, 0.08);
   --title-status-glow-peak: rgba(132, 152, 214, 0.22);
   position: relative;
+  appearance: none;
   overflow: hidden;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   text-align: left;
+  cursor: pointer;
   background: linear-gradient(
     180deg,
     rgba(18, 20, 25, 0.98) 0%,
@@ -55,6 +57,26 @@ body {
   color: var(--v15-text);
   padding: 10px 12px;
   animation: title-status-border-glow 4.8s ease-in-out infinite;
+}
+
+.TitleStatusBar:hover,
+.TitleStatusBar:focus-visible {
+  border-color: rgba(124, 160, 255, 0.48);
+  box-shadow:
+    var(--v15-panel-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(124, 160, 255, 0.16),
+    0 0 18px rgba(124, 160, 255, 0.12);
+}
+
+.TitleStatusBarStack {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.TitleStatusBarStack.isInspectorExpanded {
+  gap: 10px;
 }
 
 .ViewportTitleStatusBar {
@@ -216,6 +238,90 @@ body {
     rgba(255, 255, 255, 0.2) 100%
   );
   animation: indeterminate-slide 1s linear infinite;
+}
+
+.TitleStatusInspectorShell {
+  border: 1px solid rgba(124, 160, 255, 0.2);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(18, 22, 32, 0.96) 0%, rgba(10, 13, 20, 0.98) 100%);
+  box-shadow:
+    var(--v15-panel-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+}
+
+.TitleStatusInspectorHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.TitleStatusInspectorEyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(214, 224, 246, 0.72);
+}
+
+.TitleStatusInspectorState {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(164, 184, 236, 0.84);
+}
+
+.TitleStatusInspectorCopy,
+.TitleStatusInspectorHint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.TitleStatusInspectorCopy {
+  color: rgba(234, 238, 248, 0.92);
+}
+
+.TitleStatusInspectorHint {
+  color: rgba(189, 198, 221, 0.72);
+}
+
+.TitleStatusInspectorStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.TitleStatusInspectorStatCard {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(124, 160, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.TitleStatusInspectorStatLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(181, 196, 232, 0.72);
+}
+
+.TitleStatusInspectorStatValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(240, 244, 255, 0.96);
 }
 
 .PanelStack {

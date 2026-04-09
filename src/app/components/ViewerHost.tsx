@@ -6,12 +6,14 @@ import {
   setLatestViewerCameraPose,
   setViewer,
   type GeometrySketchOverlayVm,
+  type ViewerRuntimeStats,
   type ViewerTransformHistoryOverlayVm,
   type ViewerTransformTarget,
   type ReferenceTransformHistoryVec3Vm,
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
+import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { Viewer } from '../../viewer/Viewer'
 import {
   buildImportedReferenceRowId,
@@ -857,17 +859,26 @@ export function ViewerHost(props: ViewerHostProps) {
     viewer.setOnCameraPoseChange?.((pose) => {
       setLatestViewerCameraPose(viewportId, pose)
     })
+    viewer.setOnRuntimeStatsChange?.((stats: ViewerRuntimeStats) => {
+      useViewportRuntimeStatsStore.getState().setViewportRuntimeStats(viewportId, stats)
+    })
     const queuedCameraPose = consumeQueuedViewerCameraPose(viewportId) ?? getLatestViewerCameraPose(viewportId)
     if (queuedCameraPose !== null) {
       viewer.applyCameraPose?.(queuedCameraPose)
+    }
+    const initialRuntimeStats = viewer.getRuntimeStats?.() ?? null
+    if (initialRuntimeStats !== null) {
+      useViewportRuntimeStatsStore.getState().setViewportRuntimeStats(viewportId, initialRuntimeStats)
     }
 
     return () => {
       isMountedRef.current = false
       viewer.setOnCameraPoseChange?.(null)
+      viewer.setOnRuntimeStatsChange?.(null)
       viewer.dispose()
       viewerRef.current = null
       setViewer(viewportId, null)
+      useViewportRuntimeStatsStore.getState().clearViewportRuntimeStats(viewportId)
     }
   }, [viewportId])
 

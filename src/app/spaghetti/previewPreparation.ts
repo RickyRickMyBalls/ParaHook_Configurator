@@ -59,6 +59,28 @@ const findMatchingIncomingSlotEdge = (
   )
 }
 
+const isGraphNativePreviewSource = (
+  graph: SpaghettiGraph,
+  nodeId: string,
+): boolean => graph.nodes.some((node) => node.nodeId === nodeId && node.type.startsWith('Geometry/'))
+
+const readSourceOutputValue = (
+  evaluation: ReturnType<typeof evaluateSpaghettiGraph>,
+  edge: SpaghettiGraph['edges'][number],
+): { known: boolean; value: unknown } => {
+  const sourceOutputs = evaluation.outputsByNodeId[edge.from.nodeId]
+  if (sourceOutputs === undefined || !(edge.from.portId in sourceOutputs)) {
+    return {
+      known: false,
+      value: undefined,
+    }
+  }
+  return {
+    known: true,
+    value: sourceOutputs[edge.from.portId],
+  }
+}
+
 export const prepareGraphPreviewPreparation = (
   graph: SpaghettiGraph,
 ): GraphPreviewPreparation => {
@@ -91,11 +113,21 @@ export const prepareGraphPreviewPreparation = (
   const sourcePartKeyBySlotId: Record<string, string> = {}
   const sourcePortIdBySlotId: Record<string, string> = {}
   const sourcePartKeyByNodeId: Record<string, string> = {}
+  const slotStatusBySlotId = { ...diagnosticsVm.slotStatus }
 
   for (const slotId of outputSlotIds) {
     const matchingEdge = findMatchingIncomingSlotEdge(graph, outputPreviewNode.nodeId, slotId)
     if (matchingEdge === undefined) {
       continue
+    }
+
+    const sourceOutput = readSourceOutputValue(evaluation, matchingEdge)
+    if (
+      isGraphNativePreviewSource(graph, matchingEdge.from.nodeId) &&
+      sourceOutput.known &&
+      (sourceOutput.value === null || sourceOutput.value === undefined)
+    ) {
+      slotStatusBySlotId[slotId] = 'unresolved'
     }
 
     const sourceNodeId = matchingEdge.from.nodeId
@@ -125,7 +157,7 @@ export const prepareGraphPreviewPreparation = (
     sourcePartKeyBySlotId,
     sourcePortIdBySlotId,
     sourcePartKeyByNodeId,
-    slotStatusBySlotId: diagnosticsVm.slotStatus,
+    slotStatusBySlotId,
     buildStatsReadyPartKeys: [],
     previewIntent: 'outputPreview',
   }

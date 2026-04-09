@@ -264,6 +264,7 @@ const defaultCubeProofLength = 20
 const defaultCubeProofWidth = 10
 const defaultCubeProofHeight = 12
 const defaultGeometryExtrudeDepthMm = 20
+const unboundedIncomingConnections = Number.MAX_SAFE_INTEGER
 const defaultToeHookWidth = 24
 const defaultToeHookThickness = 4
 const defaultToeHookTrim = 2
@@ -310,16 +311,7 @@ const isExtrusionProfileInputLike = (value: unknown): boolean => {
   if (isSingleProfile) {
     return true
   }
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every(
-      (entry) =>
-        typeof entry === 'object' &&
-        entry !== null &&
-        typeof (entry as { profileId?: unknown }).profileId === 'string',
-    )
-  )
+  return Array.isArray(value) && value.length > 0 && value.some((entry) => isExtrusionProfileInputLike(entry))
 }
 
 export const GEOMETRY_EXTRUDE_DIRECTION_OPTIONS = [
@@ -539,9 +531,10 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     inputs: [
       {
         portId: 'ExtrusionProfile',
-        label: 'ExtrusionProfile',
+        label: 'SketchProfiles',
         type: { kind: 'sketchProfile' },
         optional: true,
+        maxConnectionsIn: unboundedIncomingConnections,
       },
       {
         portId: 'Type',

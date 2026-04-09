@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { getFieldTree, getFieldNodeAtPath, listLeafFieldPaths } from './fieldTree'
+import {
+  getFieldTree,
+  getFieldNodeAtPath,
+  listImmediateFieldChildren,
+  listLeafFieldPaths,
+} from './fieldTree'
 
 describe('fieldTree', () => {
   it('builds vec2:mm tree with number:mm x/y leaves', () => {
@@ -17,6 +22,25 @@ describe('fieldTree', () => {
     expect(yNode?.kind).toBe('leaf')
     expect(xNode?.type).toEqual({ kind: 'number', unit: 'mm' })
     expect(yNode?.type).toEqual({ kind: 'number', unit: 'mm' })
+  })
+
+  it('builds vec3:mm tree with ordered x/y/z children', () => {
+    const tree = getFieldTree({
+      kind: 'vec3',
+      unit: 'mm',
+    })
+
+    expect(tree.kind).toBe('object')
+    expect(listImmediateFieldChildren(tree).map((child) => child.path.join('.'))).toEqual([
+      'x',
+      'y',
+      'z',
+    ])
+    expect(listLeafFieldPaths(tree).map((leaf) => leaf.path.join('.'))).toEqual([
+      'x',
+      'y',
+      'z',
+    ])
   })
 
   it('lists spline2 leaf paths in deterministic order', () => {

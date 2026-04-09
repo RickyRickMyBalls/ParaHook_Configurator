@@ -17,15 +17,49 @@ describe('OutputPreview node registry contract', () => {
     expect(nodeDef?.inputs).toEqual([
       {
         portId: 'ExtrusionProfile',
-        label: 'ExtrusionProfile',
+        label: 'SketchProfiles',
         type: { kind: 'sketchProfile' },
         optional: true,
+        maxConnectionsIn: Number.MAX_SAFE_INTEGER,
+      },
+      {
+        portId: 'Type',
+        label: 'Type',
+        type: { kind: 'number', unit: 'unitless' },
+        optional: true,
+        maxConnectionsIn: 1,
+      },
+      {
+        portId: 'Direction',
+        label: 'Direction',
+        type: { kind: 'number', unit: 'unitless' },
+        optional: true,
+        maxConnectionsIn: 1,
       },
       {
         portId: 'Depth',
         label: 'Depth',
         type: { kind: 'number', unit: 'mm' },
         optional: true,
+      },
+      {
+        portId: 'StartDepth',
+        label: 'Start Depth',
+        type: { kind: 'number', unit: 'mm' },
+        optional: true,
+      },
+      {
+        portId: 'EndDepth',
+        label: 'End Depth',
+        type: { kind: 'number', unit: 'mm' },
+        optional: true,
+      },
+      {
+        portId: 'TaperAngle',
+        label: 'Taper Angle',
+        type: { kind: 'number', unit: 'deg' },
+        optional: true,
+        maxConnectionsIn: 1,
       },
     ])
     expect(nodeDef?.outputs).toEqual([

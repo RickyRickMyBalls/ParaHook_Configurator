@@ -3,6 +3,16 @@
 ## Doc Header
 
 ### Doc History
+46. 2026-04-08 12:03: Marked `Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep` shipped inside the dedicated `Nodes-3` future doc after `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/spaghetti/types/fieldTree.ts` locked explicit structured-parent composite ownership for `Vec2` / `Vec3`, then refreshed this umbrella handoff so the full `Nodes-3` row-family ladder now reads as shipped and points forward to later family adoption under `Nodes-4`
+45. 2026-04-08 11:47: Tightened `Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep` inside the dedicated `Nodes-3` future doc into an implementation-ready pass by grounding it in the live composite-row expansion seams in `src/app/spaghetti/canvas/NodeView.tsx`, the current composite type ownership in `src/app/spaghetti/types/fieldTree.ts`, and the existing expansion-state path in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, then refreshed this umbrella handoff so the next row-family slice is now an explicit composite ownership contract pass instead of only a later family-adoption note
+44. 2026-04-08 11:43: Marked `Nodes-3.3 - Collection Parent And Child Row Contract` shipped after `src/app/spaghetti/canvas/NodeView.tsx` gave `SketchProfiles` and `SketchProfile` explicit aggregate-parent versus singular-member attached-body meaning while focused node tests and selector aggregate-consumption tests stayed green, then advanced this umbrella handoff toward the later `Nodes-3.4` composite-row contract follow-on
+43. 2026-04-08 11:33: Tightened `Nodes-3.3 - Collection Parent And Child Row Contract` inside the dedicated `Nodes-3` future doc into an implementation-ready pass by grounding it in the live `SketchProfiles` aggregate output surface in `src/app/spaghetti/canvas/NodeView.tsx` plus the whole-port aggregate-consumption contract already proven in `src/app/spaghetti/selectors/selectNodeVm.ts`, then refreshed this umbrella handoff so the next row-family slice is now an explicit parent-collection contract pass instead of only a later collection note
+42. 2026-04-08 11:16: Marked `Nodes-3.2 - Shared Output Row Shell Contract Lock` shipped after the shared managed output-row seam was tightened in `src/app/spaghetti/canvas/PortView.tsx` and `src/app/spaghetti/canvas/NodeView.tsx` so output rows now expose explicit header-status and attached-body hooks that both sketch and extrude tests prove, then advanced this umbrella handoff toward the later `Nodes-3.3` collection-row contract follow-on
+41. 2026-04-08 10:05: Tightened `Nodes-3.2 - Shared Output Row Shell Contract Lock` inside the dedicated `Nodes-3` future doc into an implementation-ready pass by grounding it in the live managed output-row seams across `src/app/spaghetti/canvas/NodeView.tsx`, `src/app/spaghetti/canvas/PortView.tsx`, and `src/app/theme/surfaces/spaghetti.css`, then refreshed this umbrella handoff so the next row-family slice is now about locking one explicit shared output-row shell contract instead of another family-local visual tweak
+40. 2026-04-08 09:58: Marked `Nodes-3.1 - Extrude Output Row Parity Against Sketch` shipped after the old extrude-only output-card CSS override was removed so `Geometry/Extrude` `SolidBody` now reads through the same calmer full-width geometry-stack output-row shell as sketch outputs, then refreshed this umbrella handoff so `Nodes-3.2` becomes the next implementation-ready slice
+39. 2026-04-08 09:48: Tightened `Nodes-3.1` inside the dedicated `Nodes-3` future doc into an implementation-ready pass by grounding it in the live `src/app/spaghetti/canvas/NodeView.tsx` managed output-row seam plus focused `NodeView` output-row tests, then refreshed this umbrella read so the next row-family lane now points at a concrete sketch-versus-extrude output parity implementation slice instead of only a visual direction
+38. 2026-04-08 09:43: Tightened the dedicated `Nodes-3` execution read by renaming its subphases to `Nodes-3.1` through `Nodes-3.4`, sharpening `Nodes-3.1` around explicit `Geometry/Extrude` `SolidBody` versus sketch output-row parity, and updating this umbrella summary so the next row-family lane now reads as one cleaner numbered ladder instead of the earlier `A/B/C` split
+37. 2026-04-08 09:38: Added the dedicated future doc `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md`, narrowed the umbrella `Nodes-3` section so it now points at that real execution home, and locked the first implementation-ready `Nodes-3A` slice to managed output-row pin/header parity with the calmer sketch output row using `Geometry/Extrude` `SolidBody` as the proving case
 36. 2026-04-05 09:30: Tightened the umbrella node-family read again by locking that `Geometry/Extrude` should prove a titleless header-launcher pattern for family toolbars first, replacing the visible `Extrude Geometry` title with one toolbar-open button while leaving the matching `Sketch` move as a later follow-on instead of widening the current pass
 35. 2026-04-05 02:25: Closed `Nodes-2.5C` after the live primitive `Depth` row was rebuilt around the locked slider-lane versus value-lane contract, so the umbrella node-template read now treats `Nodes-2.5` as shipped follow-on groundwork before the broader `Nodes-3` row-family lane
 34. 2026-04-05 02:24: Closed `Nodes-2.5B` after the primitive-row lane contract was fully locked for the live `Depth` rebuild, so the umbrella node-template read now treats `Nodes-2.5C` as the next implementation-ready parity pass instead of leaving the primitive scalar-row layout still open-ended
@@ -217,19 +227,23 @@ Use that note when the question is:
 
 That follow-on is now shipped through the corrected live extrude `Depth` row.
 
-## [ ] Nodes-3 - Output, Composite, And Collection Rows
+## [x] Nodes-3 - Output, Composite, And Collection Rows
 
 ### Summary
 
 Standardize the rest of the row families after reference and numeric rows are stable.
 
-This phase covers:
-- `artifact / output row`
-  - examples: `SolidBody`, sketch profile outputs
-- `composite row`
-  - examples: `Vec2`, `Vec3`, transform channels
-- `collection row`
-  - examples: later extrude multi-profile, loft sections, loft rails
+This umbrella now has a dedicated future-phase home:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md`
+
+That doc now owns the actual `Nodes-3.1` through `Nodes-3.4` breakdown.
+
+Current status:
+- `Nodes-3.1` is shipped
+- `Nodes-3.2` is shipped
+- `Nodes-3.3` is shipped
+- `Nodes-3.4` is shipped
+- the next open lane after `Nodes-3` is `Nodes-4`
 
 ### Questions
 
@@ -239,15 +253,40 @@ This phase covers:
 
 ### Spec
 
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Nodes-3` future doc for the actual subphase ladder and execution-ready details.
+- `Nodes-3` should begin with managed output-row parity:
+  - use the calmer sketch output row as the family reference
+  - use `Geometry/Extrude` `SolidBody` as the first proving case
+- `Nodes-3.1` is now shipped through the visible extrude output-row parity cleanup in `src/app/theme/surfaces/spaghetti.css`
+- after that first proving pass, lock the broader shared output-row shell before widening into collection and composite contracts
+- `Nodes-3.2` should now be treated as that explicit shell-lock pass:
+  - ground it in `NodeView.tsx`, `PortView.tsx`, and `spaghetti.css`
+  - lock what belongs in the output-row header versus the attached output body
+  - keep future output rows from drifting back into family-local pin/header spacing or inset-card shells
+- `Nodes-3.2` is now shipped through the shared output-row contract hooks in:
+  - `src/app/spaghetti/canvas/NodeView.tsx`
+  - `src/app/spaghetti/canvas/PortView.tsx`
+  - focused sketch/extrude output-row tests
+- `Nodes-3.3` should now be treated as the first explicit collection-row contract pass:
+  - ground it in the live `SketchProfiles` aggregate parent row in `NodeView.tsx`
+  - keep the selector-owned whole-port aggregate meaning in `selectNodeVm.ts`
+  - lock that the parent collection row means the whole ordered collection while later child rows mean one real member each
+- `Nodes-3.3` is now shipped through:
+  - explicit aggregate-parent versus singular-member sketch output copy in `src/app/spaghetti/canvas/NodeView.tsx`
+  - focused sketch node-surface verification
+  - selector aggregate-consumption verification in `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `Nodes-3.4` is now shipped through:
+  - explicit `Vec3` child ownership and ordered child helpers in `src/app/spaghetti/types/fieldTree.ts`
+  - structured-parent composite child-count and ownership language in `src/app/spaghetti/canvas/NodeView.tsx`
+  - focused composite node-surface and field-tree verification
+- After that, keep `Nodes-3` as the shared home for:
+  - `output row`
+  - `collection row`
+  - `composite row`
 - Output rows must use the same `SWR` language as inputs; they should not remain a lesser parallel system.
 - Composite rows should only expand when the type truly owns child structure.
-- Safe child-row owners include:
-  - `Vec2`
-  - `Vec3`
-  - transform groups
-  - profile collections
-  - later loft rails / sections
-- Avoid fake nesting for simple scalar rows just because a node has too many controls elsewhere.
+- Collection rows should keep one explicit parent-versus-child meaning instead of collapsing into loose flat lists.
 
 ## [ ] Nodes-4 - Family Adoption And Loft Readiness
 

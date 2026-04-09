@@ -289,18 +289,47 @@ const resolveExtrudeSketchProfiles = (
   operation: GeometryRequestExtrudeOp,
   lookup: SketchProfileLookup,
 ): SketchProfileRuntime[] | null => {
-  if (operation.profileSelection?.mode === 'allFromSketch') {
-    const sketch = lookup.sketches.get(operation.profileSelection.sketchFeatureId)
+  const resolveAllFromSketchProfiles = (sketchFeatureId: string): SketchProfileRuntime[] | null => {
+    const sketch = lookup.sketches.get(sketchFeatureId)
     if (sketch === undefined || sketch.profilesInOrder.length === 0) {
       return null
     }
     return sketch.profilesInOrder
   }
 
-  if (operation.profileSelection?.mode === 'single') {
-    const sketch = lookup.sketches.get(operation.profileSelection.sketchFeatureId)
-    const profile = sketch?.profilesById.get(operation.profileSelection.profileId)
+  const resolveSingleProfile = (
+    sketchFeatureId: string,
+    profileId: string,
+  ): SketchProfileRuntime[] | null => {
+    const sketch = lookup.sketches.get(sketchFeatureId)
+    const profile = sketch?.profilesById.get(profileId)
     return profile === undefined ? null : [profile]
+  }
+
+  if (operation.profileSelection?.mode === 'allFromSketch') {
+    return resolveAllFromSketchProfiles(operation.profileSelection.sketchFeatureId)
+  }
+
+  if (operation.profileSelection?.mode === 'single') {
+    return resolveSingleProfile(
+      operation.profileSelection.sketchFeatureId,
+      operation.profileSelection.profileId,
+    )
+  }
+
+  if (operation.profileSelection?.mode === 'contributors') {
+    const profiles: SketchProfileRuntime[] = []
+    for (const contributor of operation.profileSelection.contributors) {
+      const resolved =
+        contributor.kind === 'allFromSketch'
+          ? resolveAllFromSketchProfiles(contributor.sketchFeatureId)
+          : resolveSingleProfile(contributor.sketchFeatureId, contributor.profileId)
+      if (resolved === null || resolved.length === 0) {
+        return null
+      }
+      profiles.push(...resolved)
+    }
+    return profiles.length > 0 ? profiles : null
   }
 
   if (operation.profileRef === null) {

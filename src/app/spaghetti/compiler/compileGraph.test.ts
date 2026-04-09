@@ -4,6 +4,8 @@ import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import type { NodeDefinition } from '../registry/nodeRegistry'
 import type { PortSpec, PortType } from '../schema/spaghettiTypes'
 import { cloneOutputPreviewDefaultParams, OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import { profileIdFromSignature } from '../features/profileDerivation'
+import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 
 const signedAreaOpenLoop = (vertices: Array<{ x: number; y: number }>): number => {
   const open =
@@ -1214,6 +1216,277 @@ describe('compileSpaghettiGraph determinism', () => {
         offsetResolved: 0,
         plane: 'XY',
         planeTransform: defaultPlaneTransform,
+        bodyId: 'n-extrude:body',
+      },
+    ])
+  })
+
+  it('compiles a revealed sketch profile member output as a singular extrude target', () => {
+    const planeTransform = {
+      offsetMm: 12,
+      translation: { x: 1, y: 2, z: 3 },
+      rotationDeg: { x: 0, y: 15, z: 0 },
+      inPlaneRotationDeg: 5,
+    }
+    const profileId = profileIdFromSignature('line-5|line-6|line-7|line-8')
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XZ',
+              planeTransform,
+              components: [
+                { rowId: 'row-1', componentId: 'line-1', type: 'line', a: { kind: 'lit', x: 0, y: 0 }, b: { kind: 'lit', x: 40, y: 0 } },
+                { rowId: 'row-2', componentId: 'line-2', type: 'line', a: { kind: 'lit', x: 40, y: 0 }, b: { kind: 'lit', x: 40, y: 10 } },
+                { rowId: 'row-3', componentId: 'line-3', type: 'line', a: { kind: 'lit', x: 40, y: 10 }, b: { kind: 'lit', x: 0, y: 10 } },
+                { rowId: 'row-4', componentId: 'line-4', type: 'line', a: { kind: 'lit', x: 0, y: 10 }, b: { kind: 'lit', x: 0, y: 0 } },
+                { rowId: 'row-5', componentId: 'line-5', type: 'line', a: { kind: 'lit', x: 60, y: 0 }, b: { kind: 'lit', x: 90, y: 0 } },
+                { rowId: 'row-6', componentId: 'line-6', type: 'line', a: { kind: 'lit', x: 90, y: 0 }, b: { kind: 'lit', x: 90, y: 15 } },
+                { rowId: 'row-7', componentId: 'line-7', type: 'line', a: { kind: 'lit', x: 90, y: 15 }, b: { kind: 'lit', x: 60, y: 15 } },
+                { rowId: 'row-8', componentId: 'line-8', type: 'line', a: { kind: 'lit', x: 60, y: 15 }, b: { kind: 'lit', x: 60, y: 0 } },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+                selectedProfileId: profileId,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            depthMm: 30,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile-member',
+          from: {
+            nodeId: 'n-sketch',
+            portId: buildSketchProfileMemberPortId(profileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = compileSpaghettiGraph(graph)
+    expect(result.ok).toBe(true)
+
+    const featureIr = result.buildInputs?.resolvedShared?.sp_featureStackIR as
+      | {
+          schemaVersion: 1
+          parts?: Record<string, Array<Record<string, unknown>>>
+        }
+      | undefined
+
+    expect(featureIr?.parts?.extrude).toEqual([
+      {
+        op: 'sketch',
+        featureId: 'n-sketch',
+        plane: 'XZ',
+        planeTransform,
+        profilesResolved: [
+          expect.objectContaining({
+            profileId,
+            profileIndex: 1,
+          }),
+        ],
+      },
+      expect.objectContaining({
+        op: 'extrude',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch',
+          profileId,
+          profileIndex: 1,
+        },
+      }),
+    ])
+  })
+
+  it('compiles multiple ordered extrude contributors without inventing one fake source sketch owner', () => {
+    const profileId = profileIdFromSignature('line-5|line-6|line-7|line-8')
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch-a',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-a',
+              plane: 'XZ',
+              components: [
+                { rowId: 'row-1', componentId: 'line-1', type: 'line', a: { kind: 'lit', x: 0, y: 0 }, b: { kind: 'lit', x: 40, y: 0 } },
+                { rowId: 'row-2', componentId: 'line-2', type: 'line', a: { kind: 'lit', x: 40, y: 0 }, b: { kind: 'lit', x: 40, y: 10 } },
+                { rowId: 'row-3', componentId: 'line-3', type: 'line', a: { kind: 'lit', x: 40, y: 10 }, b: { kind: 'lit', x: 0, y: 10 } },
+                { rowId: 'row-4', componentId: 'line-4', type: 'line', a: { kind: 'lit', x: 0, y: 10 }, b: { kind: 'lit', x: 0, y: 0 } },
+                { rowId: 'row-5', componentId: 'line-5', type: 'line', a: { kind: 'lit', x: 60, y: 0 }, b: { kind: 'lit', x: 90, y: 0 } },
+                { rowId: 'row-6', componentId: 'line-6', type: 'line', a: { kind: 'lit', x: 90, y: 0 }, b: { kind: 'lit', x: 90, y: 15 } },
+                { rowId: 'row-7', componentId: 'line-7', type: 'line', a: { kind: 'lit', x: 90, y: 15 }, b: { kind: 'lit', x: 60, y: 15 } },
+                { rowId: 'row-8', componentId: 'line-8', type: 'line', a: { kind: 'lit', x: 60, y: 15 }, b: { kind: 'lit', x: 60, y: 0 } },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+                selectedProfileId: profileId,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-sketch-b',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-b',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-b-1',
+                  componentId: 'rect-b-1',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 10, y: 10 },
+                },
+                {
+                  rowId: 'row-b-2',
+                  componentId: 'rect-b-2',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 20, y: 0 },
+                  b: { kind: 'lit', x: 35, y: 15 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            depthMm: 18,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-profile-member',
+          from: {
+            nodeId: 'n-sketch-a',
+            portId: buildSketchProfileMemberPortId(profileId),
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+        {
+          edgeId: 'e-profile-aggregate',
+          from: {
+            nodeId: 'n-sketch-b',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = compileSpaghettiGraph(graph)
+    expect(result.ok).toBe(true)
+
+    const featureIr = result.buildInputs?.resolvedShared?.sp_featureStackIR as
+      | {
+          schemaVersion: 1
+          parts?: Record<string, Array<Record<string, unknown>>>
+        }
+      | undefined
+
+    expect(featureIr?.parts?.extrude).toEqual([
+      {
+        op: 'sketch',
+        featureId: 'n-sketch-a',
+        plane: 'XZ',
+        planeTransform: defaultPlaneTransform,
+        profilesResolved: [
+          expect.objectContaining({
+            profileId,
+            profileIndex: 1,
+          }),
+        ],
+      },
+      {
+        op: 'sketch',
+        featureId: 'n-sketch-b',
+        plane: 'XY',
+        planeTransform: defaultPlaneTransform,
+        profilesResolved: [
+          expect.objectContaining({
+            profileIndex: 0,
+            area: 100,
+          }),
+          expect.objectContaining({
+            profileIndex: 1,
+            area: 225,
+          }),
+        ],
+      },
+      {
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileSelection: {
+          mode: 'contributors',
+          contributors: [
+            {
+              kind: 'single',
+              sketchFeatureId: 'n-sketch-a',
+              profileId,
+              profileIndex: 1,
+            },
+            {
+              kind: 'allFromSketch',
+              sketchFeatureId: 'n-sketch-b',
+            },
+          ],
+        },
+        profileRef: null,
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        depthResolved: 18,
+        taperResolved: 0,
+        offsetResolved: 0,
         bodyId: 'n-extrude:body',
       },
     ])

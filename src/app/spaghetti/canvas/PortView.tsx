@@ -190,6 +190,8 @@ export function PortView({
 
   const effectiveDropState =
     direction === 'in' && inputWiringDisabled === true ? null : dropState
+  const headerValueLabel = resolvedValueLabel ?? describePortType(port)
+  const isOutputRow = direction === 'out'
   const effectiveRowChevronState =
     rowChevronState ??
     (onToggleRowExpanded !== undefined ? (rowExpanded ? 'essentials' : 'collapsed') : undefined)
@@ -216,6 +218,8 @@ export function PortView({
   }
   const rendersPrimitiveValueRow =
     valueInput?.renderAs === 'paraSlider' && valueInput.primitiveRow === true
+  const showsAttachedBody =
+    !rendersPrimitiveValueRow && !rowCollapsed && attachedBodyContent !== undefined
   const primitiveStep = valueInput?.step ?? 0.1
   const primitivePrecision = useMemo(() => getStepPrecision(primitiveStep), [primitiveStep])
   const [primitiveEditorValue, setPrimitiveEditorValue] = useState('')
@@ -338,6 +342,8 @@ export function PortView({
         drivenMessage !== undefined ? 'SpaghettiPort--driven' : ''
       } ${dropStateClass}${className === undefined || className.length === 0 ? '' : ` ${className}`}`}
       data-sp-port-row-open={rowCollapsed ? '0' : '1'}
+      data-sp-endpoint-port-id={resolvedPortId}
+      data-sp-endpoint-path={endpointPath?.join('.') ?? ''}
       style={portColorStyle}
       onPointerEnter={() => {
         if (direction === 'out' && onOutputPointerEnter !== undefined) {
@@ -544,9 +550,13 @@ export function PortView({
                 className={`SpaghettiPortHeaderRight ${
                   direction === 'out' ? 'SpaghettiPortHeaderRight--out' : ''
                 }`}
+                data-sp-port-header-lane={isOutputRow ? 'status' : 'value'}
               >
-                <span className="SpaghettiPortType">
-                  {resolvedValueLabel ?? describePortType(port)}
+                <span
+                  className={`SpaghettiPortType${isOutputRow ? ' SpaghettiPortHeaderStatus' : ''}`}
+                  {...(isOutputRow ? { 'data-sp-port-header-status': '1' } : {})}
+                >
+                  {headerValueLabel}
                 </span>
                 {!rowCollapsed && onToggleComposite !== undefined ? (
                   <button
@@ -667,12 +677,18 @@ export function PortView({
           <div className="SpaghettiPortDrivenMessage">{drivenMessage}</div>
         ) : null}
       </div>
-      {!rendersPrimitiveValueRow && !rowCollapsed && attachedBodyContent !== undefined ? (
-        <div className="SpaghettiPortDetailsBox SpaghettiPortDetailsBox--custom">
+      {showsAttachedBody ? (
+        <div
+          className="SpaghettiPortDetailsBox SpaghettiPortDetailsBox--custom SpaghettiPortAttachedBody"
+          data-sp-port-attached-body={isOutputRow ? 'output' : 'input'}
+        >
           {attachedBodyContent}
         </div>
       ) : !rendersPrimitiveValueRow && !rowCollapsed && detailsExpanded ? (
-        <div className="SpaghettiPortDetailsBox">
+        <div
+          className="SpaghettiPortDetailsBox SpaghettiPortAttachedBody"
+          data-sp-port-attached-body={isOutputRow ? 'output' : 'input'}
+        >
           <div className="SpaghettiPortDetailsSection">
             {detailsTitle !== undefined ? (
               <div className="SpaghettiPortDetailsTitle">{detailsTitle}</div>

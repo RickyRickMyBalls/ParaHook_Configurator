@@ -16,6 +16,7 @@ import {
   Light,
   Line,
   LineBasicMaterial,
+  LineLoop,
   LineSegments,
   MathUtils,
   Mesh,
@@ -26,6 +27,7 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera,
   PointLight,
+  Points,
   Quaternion,
   Raycaster,
   Scene,
@@ -57,6 +59,7 @@ import type {
   ViewerTransformHistoryOverlayVm,
   GeometrySketchSnapTarget,
   SketchPlanePickOverlayVm,
+  ViewerRuntimeStats,
   ViewerTransformSession,
   ViewerTransformTarget,
   VisibleGeometrySketchOverlayVm,
@@ -350,6 +353,16 @@ export class Viewer {
   private onSketchPlanePickTransformCommit: (() => void) | null = null
   private onCameraPoseChange: ((pose: CameraPose) => void) | null = null
   private lastEmittedCameraPose: CameraPose | null = null
+  private onRuntimeStatsChange: ((stats: ViewerRuntimeStats) => void) | null = null
+  private currentRuntimeStats: ViewerRuntimeStats = {
+    triangles: null,
+    lines: null,
+    points: null,
+    fps: null,
+  }
+  private fpsSampleElapsedSec = 0
+  private fpsSampleFrameCount = 0
+  private statsSampleElapsedSec = 0
   private onGeometrySketchHoverPoint:
     | ((point: { x: number; y: number } | null, snapTarget: GeometrySketchSnapTarget | null) => void)
     | null = null
@@ -1276,6 +1289,17 @@ export class Viewer {
     })
   }
 
+  public getRuntimeStats(): ViewerRuntimeStats {
+    return { ...this.currentRuntimeStats }
+  }
+
+  public setOnRuntimeStatsChange(
+    handler: ((stats: ViewerRuntimeStats) => void) | null,
+  ): void {
+    this.onRuntimeStatsChange = handler
+    handler?.(this.getRuntimeStats())
+  }
+
   public frameSelected(partId: string | null): void {
     if (partId === null) {
       this.frameAll()
@@ -1918,6 +1942,7 @@ export class Viewer {
     this.geometrySketchSelectedProfileMaterial.dispose()
     this.geometrySketchSelectionWindowMaterial.dispose()
     this.geometrySketchSelectionCrossingMaterial.dispose()
+    this.onRuntimeStatsChange = null
 
     this.renderer.dispose()
     this.zoomWindowOverlayRoot.remove()
@@ -4040,7 +4065,126 @@ export class Viewer {
     this.referenceTransformRotateSnapHelper.tick(dt)
     const activeCamera = this.cameraController.getActiveCamera()
     this.renderer.render(this.scene, activeCamera)
+    this.refreshRuntimeStats(dt)
     this.axisGizmo?.renderFromCameraQuaternion(activeCamera.quaternion)
+  }
+
+  private refreshRuntimeStats(dt: number): void {
+    this.fpsSampleElapsedSec += dt
+    this.fpsSampleFrameCount += 1
+    this.statsSampleElapsedSec += dt
+
+    let nextFps = this.currentRuntimeStats.fps
+    if (this.fpsSampleElapsedSec >= 0.5) {
+      nextFps = Math.max(1, Math.round(this.fpsSampleFrameCount / this.fpsSampleElapsedSec))
+      this.fpsSampleElapsedSec = 0
+      this.fpsSampleFrameCount = 0
+    }
+
+    if (this.statsSampleElapsedSec < 0.25 && this.currentRuntimeStats.triangles !== null) {
+      if (nextFps !== this.currentRuntimeStats.fps) {
+        this.emitRuntimeStats({
+          ...this.currentRuntimeStats,
+          fps: nextFps,
+        })
+      }
+      return
+    }
+    this.statsSampleElapsedSec = 0
+
+    const geometryCounts = this.collectRuntimeGeometryCounts()
+    this.emitRuntimeStats({
+      triangles: geometryCounts.triangles,
+      lines: geometryCounts.lines,
+      points: geometryCounts.points,
+      fps: nextFps,
+    })
+  }
+
+  private emitRuntimeStats(nextStats: ViewerRuntimeStats): void {
+    if (
+      this.currentRuntimeStats.triangles === nextStats.triangles &&
+      this.currentRuntimeStats.lines === nextStats.lines &&
+      this.currentRuntimeStats.points === nextStats.points &&
+      this.currentRuntimeStats.fps === nextStats.fps
+    ) {
+      return
+    }
+    this.currentRuntimeStats = nextStats
+    this.onRuntimeStatsChange?.(this.getRuntimeStats())
+  }
+
+  private collectRuntimeGeometryCounts(): { triangles: number; lines: number; points: number } {
+    const totals = {
+      triangles: 0,
+      lines: 0,
+      points: 0,
+    }
+
+    const accumulateObject = (object: Object3D, parentVisible: boolean): void => {
+      const isVisible = parentVisible && object.visible
+      if (!isVisible) {
+        return
+      }
+
+      if (object instanceof Mesh) {
+        totals.triangles += this.resolveTriangleCount(object.geometry)
+      } else if (object instanceof LineSegments) {
+        totals.lines += this.resolveLineSegmentCount(object.geometry)
+      } else if (object instanceof Line) {
+        totals.lines +=
+          object instanceof LineLoop
+            ? this.resolveLineLoopCount(object.geometry)
+            : this.resolveLineStripCount(object.geometry)
+      } else if (object instanceof Points) {
+        totals.points += this.resolvePointCount(object.geometry)
+      }
+
+      for (const child of object.children) {
+        accumulateObject(child, isVisible)
+      }
+    }
+
+    accumulateObject(this.rootGroup, true)
+    accumulateObject(this.referenceGroup, true)
+    accumulateObject(this.geometrySketchOverlayGroup, true)
+    accumulateObject(this.visibleGeometrySketchOverlayGroup, true)
+
+    return totals
+  }
+
+  private resolveTriangleCount(geometry: BufferGeometry): number {
+    if (geometry.index !== null) {
+      return Math.floor(geometry.index.count / 3)
+    }
+    const positions = geometry.getAttribute('position')
+    return positions === undefined ? 0 : Math.floor(positions.count / 3)
+  }
+
+  private resolveLineSegmentCount(geometry: BufferGeometry): number {
+    if (geometry.index !== null) {
+      return Math.floor(geometry.index.count / 2)
+    }
+    const positions = geometry.getAttribute('position')
+    return positions === undefined ? 0 : Math.floor(positions.count / 2)
+  }
+
+  private resolveLineStripCount(geometry: BufferGeometry): number {
+    const pointCount = this.resolvePointCount(geometry)
+    return pointCount > 1 ? pointCount - 1 : 0
+  }
+
+  private resolveLineLoopCount(geometry: BufferGeometry): number {
+    const pointCount = this.resolvePointCount(geometry)
+    return pointCount > 1 ? pointCount : 0
+  }
+
+  private resolvePointCount(geometry: BufferGeometry): number {
+    if (geometry.index !== null) {
+      return geometry.index.count
+    }
+    const positions = geometry.getAttribute('position')
+    return positions === undefined ? 0 : positions.count
   }
 
   private mapSnapDirectionToVector(dir: SnapDirection): Vector3 {

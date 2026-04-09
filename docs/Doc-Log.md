@@ -3,6 +3,55 @@
 ## Doc Header
 
 ### Doc History
+1254. 2026-04-09 07:36: Marked `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md` so `VRI-1.2 - Viewport Stats Foundation` now reads as shipped after the live viewer-owned stats contract landed, then refreshed `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md` so the family handoff now moves forward to `VRI-1.3 - Active Runtime Task Card`
+1253. 2026-04-09 07:27: Tightened `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md` so `VRI-1.2 - Viewport Stats Foundation` is now implementation-ready around the live `Viewer`, `viewerBridge`, `ViewerHost`, and `TitleStatusBar` seams, then refreshed `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md` so the family handoff now points at that explicit viewer-owned stats-contract slice instead of a generic stats follow-on
+1252. 2026-04-09 07:19: Marked `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md` so `VRI-1.1 - Panel Shell And Expand Collapse Contract` now reads as shipped after the runtime-inspector shell landed, then refreshed `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md` so the family handoff now moves forward to `VRI-1.2 - Viewport Stats Foundation`
+1251. 2026-04-09 07:14: Tightened the `Viewport Runtime Inspector` planning handoff by making `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md` implementation-ready around the live `TitleStatusBar`, `PrimaryViewportLeftDock`, and left-dock preview-controller seams, then refreshed `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md` so the family now points clearly at `VRI-1.1` as the first executable slice
+1250. 2026-04-09 07:08: Reworked `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md` into the same execution-doc shape used by the newer extrude child-phase plans, promoting `VRI-1.1` through `VRI-1.4` into real `##` sections with summary, decisions, and implementation-spec blocks so the first runtime-inspector lane now reads as one umbrella phase with explicit Codex-sized subphases instead of a lighter outline
+1249. 2026-04-09 07:05: Turned `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/` into a real mini-family by adding `Viewport-Runtime-Inspector-Index.md`, creating the standalone `Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md` execution doc with small `VRI-1.1` through `VRI-1.4` chunks, and refreshing `Viewport-Runtime-Inspector-Vision.md` so the moved architecture note now points cleanly at the new index-plus-phase structure
+1248. 2026-04-09 00:31: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` so `Extrude 7 Phase 4 - Hardening And Family Handoff` now reads as shipped after the graph-native preview invalidation hardening landed, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now reads as closed for the first honest multi-wire input subset, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1247. 2026-04-09 00:18: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` so `Extrude 7 Phase 4 - Hardening And Family Handoff` now explicitly owns preview invalidation when `Extrude.SketchProfiles` loses a required contributor wire, locking that stale extrude geometry must disappear instead of persisting as cached output
+1246. 2026-04-09 00:15: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` so `Extrude 7 Phase 4 - Hardening And Family Handoff` now explicitly owns the remaining draft plus authoritative worker proof for cross-sketch whole-port `SketchProfiles` contributor execution, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper final hardening handoff
+1245. 2026-04-09 00:03: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` so `Extrude 7 Phase 3 - Selector And Surface Multi-Wire Parity` now reads as shipped and `Phase 4 - Hardening And Family Handoff` now reads as the implementation-ready next slice around focused proof cleanup plus explicit closeout boundaries, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper final handoff
+1244. 2026-04-08 23:45: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` so `Extrude 7 Phase 3 - Selector And Surface Multi-Wire Parity` now reads as the implementation-ready next slice around authored incoming-edge order, real expanded child-row wire anchors, and the live selector plus `NodeView.tsx` seams, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper Phase 3 handoff and no longer leaves the stale `Phase 2` open/read drift behind
+1243. 2026-04-08 23:30: Marked `Extrude 7 Phase 2 - Compile And Runtime Collection Meaning` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now hands forward into `Phase 3 - Selector And Surface Multi-Wire Parity`, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1242. 2026-04-08 23:21: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` so `Extrude 7 Phase 2 - Compile And Runtime Collection Meaning` now reads as the next implementation-ready slice grounded in the live singular-only `compileGraph` and `geometryRequest` seams, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper Phase 2 handoff
+1241. 2026-04-08 23:21: Marked `Extrude 7 Phase 1 - Input Port Contract Widening` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now hands forward into `Phase 2 - Compile And Runtime Collection Meaning`, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1240. 2026-04-08 23:06: Reworked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` into the same execution-doc shape used by `Extrude-6` by promoting `Phase 2` through `Phase 4` into real `##` sections, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now reads as a true one-phase-at-a-time Codex ladder
+1239. 2026-04-08 22:57: Reworked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` around the explicit authored multi-wire vision for extrude `SketchProfiles`, then tightened `Extrude 7 Phase 1 - Input Port Contract Widening` into the implementation-ready first slice and refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper next step
+1238. 2026-04-08 22:49: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-7 - Multi-Wire SketchProfiles Input Enablement.md` as the dedicated child-plan home for the next extrude-owned lane after closed `Extrude-6`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now tracks real multi-wire `ExtrusionProfile` enablement as its own follow-on phase
+1237. 2026-04-08 22:41: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` so `Extrude 6 Phase 4 - Surface Hardening And Follow-On Handoff` now reads as shipped, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so `Extrude-6` now reads as closed for the current collection-input surface subset, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1236. 2026-04-08 22:38: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` so `Extrude 6 Phase 4 - Surface Hardening And Follow-On Handoff` now reads as the implementation-ready final slice around focused verification, visible copy drift cleanup, and explicit closeout boundaries, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper last-step handoff
+1235. 2026-04-08 22:29: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` so `Extrude 6 Phase 3 - Collection Entry Identity And Validation Rules` now reads as shipped, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now hands forward into `Phase 4 - Surface Hardening And Follow-On Handoff`, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1234. 2026-04-08 22:23: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` so `Extrude 6 Phase 3 - Collection Entry Identity And Validation Rules` now reads as implementation-ready around the live selector-owned entry seam and visible extrude child-row contract, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper next slice
+1233. 2026-04-08 22:21: Marked `Extrude 6 Phase 2 - Mixed Aggregate And Singular Entry Display` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now hands forward into `Phase 3 - Collection Entry Identity And Validation Rules`, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1232. 2026-04-08 22:12: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` so `Extrude 6 Phase 2 - Mixed Aggregate And Singular Entry Display` now reads as implementation-ready around the live extrude parent-row surface and selector seams, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper next slice
+1231. 2026-04-08 22:10: Marked `Extrude 6 Phase 1 - Parent SketchProfiles Row Contract Lock` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now hands forward into `Phase 2 - Mixed Aggregate And Singular Entry Display`, and recorded the matching permanent implementation history in `docs/CHANGELOG.md`
+1230. 2026-04-08 22:05: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` so `Extrude 6 Phase 1 - Parent SketchProfiles Row Contract Lock` now reads as implementation-ready around the live extrude registry, selector, and node-surface seams, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family mirrors that sharper next slice
+1229. 2026-04-08 22:00: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-6 - SketchProfiles Collection Input Contract.md` as the dedicated child plan for `Extrude-6`, split that lane into four Codex-sized phases for parent-row contract lock, mixed aggregate-versus-singular entry display, collection-entry identity plus validation, and hardening closeout, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now points at that standalone planning home
+1228. 2026-04-08 21:48: Added `Extrude-6 - SketchProfiles Collection Input Contract` to `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`, grounding that new family lane in `Nodes-Vision.md` `Idea 1` so the extrude roadmap now explicitly tracks the later parent `SketchProfiles` collection-input contract separately from the already-shipped `Extrude-4` closed-profile consumption subset
+1227. 2026-04-08 20:18: Reworked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Vision.md` again so `Idea 1` explicitly returns to `Geometry/Extrude` owning a real `SketchProfiles` collection input, restoring the parent-collection input direction and aligning the suggested phase order back to that stronger sketch-to-extrude collection contract
+1226. 2026-04-08 20:14: Reworked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Vision.md` so `Idea 1` no longer commits `Geometry/Extrude` to a real `SketchProfiles` collection-input UI by default, instead framing the long-range direction around a singular-first extrude profile target with honest aggregate-versus-singular source behavior and aligning the suggested phase order with that narrower contract
+1225. 2026-04-08 16:06: Marked `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md` so `Sketch - 2 Phase 3A - Surface And Selector Aggregate Versus Singular Contract` now reads as shipped after the live `NodeView.tsx` plus focused sketch/selector tests landed, then tightened `Phase 3B - Child Member Endpoint And Wiring Identity` into the next implementation-ready slice around the remaining endpoint and compile identity seams
+1224. 2026-04-08 15:47: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md` so `Sketch - 2 Phase 3A - Surface And Selector Aggregate Versus Singular Contract` is now implementation-ready around the live sketch parent/child wording seams in `src/app/spaghetti/canvas/NodeView.tsx`, the aggregate-aware extrude target seam in `src/app/spaghetti/selectors/selectNodeVm.ts`, and the focused sketch plus extrude node-surface tests, while keeping deeper child-endpoint mechanics deferred to `Phase 3B`
+1223. 2026-04-08 15:29: Split `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md` so the old `Sketch - 2 Phase 3` now reads as `Phase 3A - Surface And Selector Aggregate Versus Singular Contract` plus `Phase 3B - Child Member Endpoint And Wiring Identity`, keeping the next sketch slice Codex-sized by separating visible contract alignment from deeper child-endpoint mechanics
+1222. 2026-04-08 12:03: Marked `Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` after `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/spaghetti/types/fieldTree.ts` locked explicit structured-parent composite ownership for `Vec2` / `Vec3`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now treats the full `Nodes-3` ladder as shipped and hands forward toward later family adoption
+1221. 2026-04-08 11:47: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` so `Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep` is now implementation-ready around the live composite-row seams in `src/app/spaghetti/canvas/NodeView.tsx`, `src/app/spaghetti/types/fieldTree.ts`, and `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now mirrors that explicit composite-ownership handoff
+1220. 2026-04-08 11:43: Marked `Nodes-3.3 - Collection Parent And Child Row Contract` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` after `src/app/spaghetti/canvas/NodeView.tsx` gave `SketchProfiles` and `SketchProfile` explicit aggregate-parent versus singular-member meaning, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now treats `Nodes-3.3` as shipped and hands forward toward `Nodes-3.4`
+1219. 2026-04-08 11:33: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` so `Nodes-3.3 - Collection Parent And Child Row Contract` is now implementation-ready around the live `SketchProfiles` aggregate output surface in `src/app/spaghetti/canvas/NodeView.tsx` plus the whole-port aggregate-consumption contract in `src/app/spaghetti/selectors/selectNodeVm.ts`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now mirrors that explicit collection-parent handoff
+1218. 2026-04-08 11:16: Marked `Nodes-3.2 - Shared Output Row Shell Contract Lock` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` after the shared managed output-row seam was tightened in `src/app/spaghetti/canvas/PortView.tsx` and `src/app/spaghetti/canvas/NodeView.tsx`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now treats `Nodes-3.2` as shipped and hands forward toward `Nodes-3.3`
+1217. 2026-04-08 10:05: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` so `Nodes-3.2 - Shared Output Row Shell Contract Lock` is now implementation-ready around the live managed output-row seams in `src/app/spaghetti/canvas/NodeView.tsx`, `src/app/spaghetti/canvas/PortView.tsx`, and `src/app/theme/surfaces/spaghetti.css`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now mirrors that explicit shared output-row shell handoff
+1216. 2026-04-08 09:58: Marked `Nodes-3.1 - Extrude Output Row Parity Against Sketch` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` after the old extrude-only output-card CSS override was removed from `src/app/theme/surfaces/spaghetti.css`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now treats `Nodes-3.1` as shipped and points forward to `Nodes-3.2`
+1215. 2026-04-08 09:48: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` so `Nodes-3.1 - Extrude Output Row Parity Against Sketch` is now implementation-ready around the live `src/app/spaghetti/canvas/NodeView.tsx` managed output-row seam, the current sketch output-row parity tests in `NodeView.geometryMode.test.tsx`, and the locked `SolidBody` mismatch that still reads as an inset mini-card instead of the calmer sketch output-row shell, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella mirrors that sharper next slice
+1214. 2026-04-08 09:43: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` by renaming the subphases to `Nodes-3.1` through `Nodes-3.4`, sharpening the first slice around explicit `Geometry/Extrude` `SolidBody` versus sketch output-row parity, and refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now mirrors that cleaner numbered ladder
+1213. 2026-04-08 09:38: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-3 - Output, Composite, And Collection Rows.md` as the dedicated child-plan home for `Nodes-3`, then narrowed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md` so the umbrella now points at that standalone phase ladder and locks `Nodes-3A` to managed output-row pin/header parity with the calmer sketch output row using `Geometry/Extrude` `SolidBody` as the proving case
+1212. 2026-04-08 09:18: Marked `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now reads `Extrude-5` as closed for the current `SolidBody` output-row cleanup subset
+1211. 2026-04-08 09:09: Tightened `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` into an implementation-ready next slice by grounding it in the current attached-body copy in `NodeView.tsx`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now points at that narrower attached-body readability cleanup instead of another row-shell or helper-boundary pass
+1210. 2026-04-08 09:07: Marked `Extrude 5 Phase 2 - Shared Output Row Helper Adoption` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now treats the shared managed output helper cleanup as shipped and points forward to `Phase 3 - Attached Waiting Body And Surface Honesty Cleanup`
+1209. 2026-04-08 09:04: Tightened `Extrude 5 Phase 2 - Shared Output Row Helper Adoption` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` into an implementation-ready next slice by grounding it in the current managed `SolidBody` row plumbing across `NodeView.tsx`, `PortView.tsx`, and the structured row-controller seam, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now points at that narrower helper-boundary cleanup instead of another visible redesign
+1208. 2026-04-08 08:54: Marked `Extrude 5 Phase 1 - Output Row Template Contract Lock` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now treats that standardized `SolidBody` row-shell adoption as shipped and points forward to `Phase 2` only as a possible deeper helper-extraction follow-on
+1207. 2026-04-08 08:44: Tightened `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` with the explicit `Phase 1` row-shape decisions that `SolidBody` should match the standardized input-row shell as a full-width type-colored row with a left chevron, left/right anchored text, a right-side output pin, and attached expandable details
+1206. 2026-04-08 08:44: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` as the dedicated child-plan home for `Extrude-5`, then narrowed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family now points at that standalone phase ladder instead of carrying the whole output-row cleanup plan inline
 1205. 2026-04-08 08:33: Added `Extrude-5 - Output Row Standardization And UI Cleanup` to `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`, refreshed the family read so the current `SolidBody` output row is now tracked as a dedicated standardized-row cleanup lane, and corrected stale `Extrude-4` handoff text so the closed-profile lane reads as shipped instead of still pointing at open `Phase 3C`
 1204. 2026-04-08 08:26: Marked `Extrude 4 Phase 3C - Focused Verification And Failure Matrix Hardening` shipped inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md`, then cleaned that child doc plus `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` into a closed shipped-lane read so `Extrude-4` no longer points at stale open `3B/3C` handoff text
 1203. 2026-04-08 08:06: Tightened `Extrude 4 Phase 3C - Focused Verification And Failure Matrix Hardening` inside `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-4 - Closed Profile Selection And Consumption Contract.md` so the next slice is implementation-ready around the remaining aggregate compile/runtime verification matrix, then refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md` so the family handoff now points at that sharpened hardening pass
@@ -980,6 +1029,165 @@
 232. 2026-03-25 03:15: Locked the first three `Browser-5.1` reference-selection decisions across both `docs/Human-Plans/Architecture/Browser/Browser-Index.md` and the standalone `Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection stays lightweight, viewport-picked references should follow into matching Browser rows when the mapping is clear, and empty-space click plus replacement click own normal reference deselect and replacement
 231. 2026-03-25 03:13: Locked `q2` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that viewport-picked references should drive Browser row selection whenever one clear matching reference row exists while still avoiding fake sync for ambiguous cases
 230. 2026-03-25 03:12: Locked `q1` in `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md`, deciding that ordinary reference selection only highlights/selects the reference while stronger transform ownership must remain a separate explicit action instead of starting from normal row or viewport selection
+<!-- ENTRY 438 -->
+### [438] - 2026-04-08 09:18 - `DOC - Close Out Extrude 5 Phase 3 After Attached Body Polish`
+<!-- ENTRY 438 -->
+HUMAN SUMMARY: Marked `Extrude-5 / Phase 3` shipped after the live `SolidBody` attached body adopted a calmer output-specific summary/detail split, then refreshed the extrude family index so `Extrude-5` now reads as closed for the current `SolidBody` output-row cleanup subset.
+
+#### Scope
+- Refined the existing standalone `Extrude-5` future phase doc.
+- Updated the extrude family index summary and family status in `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`.
+- Did not perform additional planning-only design changes beyond reflecting the shipped Phase 3 implementation.
+
+#### Summary
+- Marked `Extrude 5 Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` shipped in the child doc.
+- Added shipped-result wording that matches the calmer output-specific attached-body summary/detail read now live in code.
+- Closed the umbrella `Extrude-5` lane for the current `SolidBody` output-row cleanup subset.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This doc update reflects the now-shipped implementation state; the matching code change is recorded separately in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 437 -->
+### [437] - 2026-04-08 09:09 - `DOC - Prepare Extrude 5 Phase 3 For Implementation`
+<!-- ENTRY 437 -->
+HUMAN SUMMARY: Tightened `Extrude-5 / Phase 3` into an implementation-ready attached-body polish slice by grounding the remaining work in the live `SolidBody` body copy still duplicating the same summary text across essentials and expanded states, then refreshed the family index so the next step reads as output-body readability cleanup rather than another row-shell or helper-boundary change.
+
+#### Scope
+- Refined the existing standalone `Extrude-5` future phase doc.
+- Updated the extrude family index summary in `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Expanded `Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` with a code-backed current read, locked decisions, exact owner seams, and acceptance checks.
+- Clarified that the remaining work after shipped `Phase 2` is attached-body readability and copy duplication drift, not more row-shell or helper extraction work.
+- Locked `Phase 3` to a narrow `NodeView.tsx` plus `NodeView.test.tsx` polish pass.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+
+<!-- ENTRY 436 -->
+### [436] - 2026-04-08 09:07 - `DOC - Close Out Extrude 5 Phase 2 After Shared Helper Adoption`
+<!-- ENTRY 436 -->
+HUMAN SUMMARY: Marked `Extrude-5 / Phase 2` shipped after the managed output-row adoption path was consolidated behind one shared geometry-output helper, then refreshed the extrude family handoff so the output-row lane now points at `Phase 3` as the remaining polish follow-on.
+
+#### Scope
+- Refined the existing standalone `Extrude-5` future phase doc.
+- Updated the extrude family index summary and handoff in `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`.
+- Did not perform additional planning-only design changes beyond reflecting the shipped Phase 2 implementation.
+
+#### Summary
+- Marked `Extrude 5 Phase 2 - Shared Output Row Helper Adoption` shipped in the child doc.
+- Added shipped-result wording that matches the new shared managed geometry output helper boundary in live code.
+- Advanced the family handoff so `Phase 3 - Attached Waiting Body And Surface Honesty Cleanup` now reads as the next implementation-ready follow-on.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This doc update reflects the now-shipped implementation state; the matching code change is recorded separately in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 435 -->
+### [435] - 2026-04-08 09:04 - `DOC - Prepare Extrude 5 Phase 2 For Implementation`
+<!-- ENTRY 435 -->
+HUMAN SUMMARY: Tightened `Extrude-5 / Phase 2` into an implementation-ready helper-adoption slice by grounding the next work in the now-shipped managed `SolidBody` row still living behind extra extrude-local `NodeView.tsx` plumbing, then refreshed the family index so the next step reads as extracting the smallest honest reusable managed-output helper boundary instead of redesigning the row again.
+
+#### Scope
+- Refined the existing standalone `Extrude-5` future phase doc.
+- Updated the extrude family index summary in `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Expanded `Phase 2 - Shared Output Row Helper Adoption` with a code-backed current read, locked decisions, exact owner seams, and acceptance checks.
+- Clarified that the remaining problem after shipped `Phase 1` is helper-boundary drift rather than more row-shape drift.
+- Locked `Phase 2` to the smallest reusable managed-output helper cleanup across `NodeView.tsx`, `PortView.tsx`, and the structured row-controller seam.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+
+<!-- ENTRY 434 -->
+### [434] - 2026-04-08 08:54 - `DOC - Close Out Extrude 5 Phase 1 After Output Row Adoption`
+<!-- ENTRY 434 -->
+HUMAN SUMMARY: Marked `Extrude-5 / Phase 1` shipped after the live `SolidBody` output moved onto the managed standardized row shell, then refreshed the extrude family index so the output-row lane now hands forward to `Phase 2` only if deeper shared-helper extraction is still needed.
+
+#### Scope
+- Refined the existing standalone `Extrude-5` future phase doc.
+- Updated the extrude family index history and current handoff in `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`.
+- Did not perform additional planning-only product changes beyond reflecting the shipped Phase 1 implementation.
+
+#### Summary
+- Marked `Extrude 5 Phase 1 - Output Row Template Contract Lock` shipped in its dedicated child doc.
+- Added shipped-result wording that matches the live managed `SolidBody` output-row adoption.
+- Advanced the family handoff so `Phase 2 - Shared Output Row Helper Adoption` now reads as the next possible follow-on instead of leaving `Phase 1` open.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This doc update reflects the now-shipped implementation state; the matching code change is recorded separately in `docs/CHANGELOG.md`.
+
+<!-- ENTRY 433 -->
+### [433] - 2026-04-08 08:44 - `DOC - Tighten Extrude 5 Phase 1 Row Shape Contract`
+<!-- ENTRY 433 -->
+HUMAN SUMMARY: Tightened `Extrude-5 / Phase 1` so the output-row cleanup now explicitly locks the visible `SolidBody` row to the standardized input-row shell language: full width, left chevron, left/right anchored text, right-side output pin, type-colored row treatment, and expandable attached details instead of a detached card.
+
+#### Scope
+- Refined the existing standalone `Extrude-5` future phase doc.
+- Did not change runtime code, tests, schema, or UI behavior in this doc-only prep pass.
+
+#### Summary
+- Added the explicit row-header anatomy for the standardized `SolidBody` output row.
+- Locked that the row should use one left label plus one right status string instead of repeating type text across the header.
+- Clarified the Phase 1 acceptance checks so implementation can judge parity against the standardized input-row shell more directly.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed in this prep pass.
+
+<!-- ENTRY 432 -->
+### [432] - 2026-04-08 08:44 - `DOC - Add Standalone Extrude 5 Output Row Cleanup Phase Doc`
+<!-- ENTRY 432 -->
+HUMAN SUMMARY: Added the standalone future doc `Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md` so the `SolidBody` output-row cleanup now has its own dedicated execution surface, then narrowed the extrude family index so `Extrude-5` points at that real child plan instead of carrying the full output-row ladder inline.
+
+#### Scope
+- Added one new standalone future extrude phase doc under `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/`.
+- Refined the existing extrude family index in `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`.
+- Did not change runtime code, tests, schema, or UI behavior.
+
+#### Summary
+- Created the dedicated `Extrude-5` future doc with a focused `Phase 1` through `Phase 3` ladder for standardized output-row adoption.
+- Locked `Phase 1 - Output Row Template Contract Lock` as the next implementation-ready slice.
+- Reduced the inline family section back to umbrella status so the detailed planning now lives in the standalone child doc.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/Future/Extrude_Phase Extrude-5 - Output Row Standardization And UI Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Doc-Log.md`
+
+#### Notes
+- This was docs-only planning refinement; no implementation work was performed.
+
 <!-- ENTRY 431 -->
 ### [431] - 2026-04-08 08:33 - `DOC - Add Extrude 5 Output Row Standardization Lane`
 <!-- ENTRY 431 -->

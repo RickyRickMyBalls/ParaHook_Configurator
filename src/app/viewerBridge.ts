@@ -129,10 +129,19 @@ export type ViewerTransformSession = {
   entryOrigin: ReferenceTransformOverride | null
 }
 
+export type ViewerRuntimeStats = {
+  triangles: number | null
+  lines: number | null
+  points: number | null
+  fps: number | null
+}
+
 export interface ViewerApi {
   getCameraPose?: () => CameraPose
   applyCameraPose?: (pose: CameraPose) => void
   setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void
+  getRuntimeStats?: () => ViewerRuntimeStats
+  setOnRuntimeStatsChange?: (handler: ((stats: ViewerRuntimeStats) => void) | null) => void
   setCameraPreset: (preset: CameraPreset) => void
   setProjectionMode: (mode: ProjectionMode) => void
   alignCameraToGeometrySketchPlane: () => void

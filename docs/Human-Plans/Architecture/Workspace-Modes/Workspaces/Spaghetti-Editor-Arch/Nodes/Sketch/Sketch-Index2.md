@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+11. 2026-04-08 15:55: Added the dedicated child planning doc `Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`, split `Sketch - 2` into four implementation-ready subphases for parent contract lock, child-row reveal, aggregate-versus-singular wiring meaning, and final surface verification, and refreshed this sketch-family index so the next output-cleanup lane now has a real execution home instead of only an inline phase summary
 10. 2026-04-07 18:30: Marked `Sketch - 1 Phase 4 - Failure Honesty, Resource Cleanup, And Focused Verification` shipped after the worker hardened the new face-driven authoritative path around open/disconnected loop rejection, cleanup coverage, and final-view honesty, and completed the `Sketch - 1` ladder so the next family handoff is now `Sketch - 2 - Sketch Node Output Cleanup And Profile Array Surface`
 9. 2026-04-07 18:24: Tightened `Sketch - 1 Phase 4 - Failure Honesty, Resource Cleanup, And Focused Verification` inside `Future2/Sketch_Phase Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering.md` into an implementation-ready next slice by grounding it in the shipped face-driven authoritative builder, extracted OC helper cleanup seams, authoritative shape-set registration boundary, and the existing final-view selector path that must stay honest when authoritative sketch lowering still returns `null`
 8. 2026-04-07 18:10: Marked `Sketch - 1 Phase 3 - Planar Face Construction And Authoritative Extrude Handoff` shipped after the authoritative worker switched the first supported `Sketch -> Extrude(Body)` path from the old rectangle-only box shortcut to wire-to-face plus prism-style extrusion, and advanced the family handoff so `Phase 4 - Failure Honesty, Resource Cleanup, And Focused Verification` is now next
@@ -37,6 +38,9 @@ The dedicated child planning doc now lives at:
 
 The next separate node-cleanup lane after that groundwork is:
 - `Sketch - 2 - Sketch Node Output Cleanup And Profile Array Surface`
+
+The dedicated child planning doc now lives at:
+- `Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`
 
 ### Current Code-Backed Read
 
@@ -169,7 +173,18 @@ The recommendation is:
 ### Header
 
 - Status: proposed follow-on phase
-- Goal: clean up the sketch node output surface so `SketchProfiles` behaves as the parent array output for all closed profiles while still allowing one child profile to be wired explicitly
+- Goal: clean up the sketch node output surface so `SketchProfiles` becomes the one honest parent collection output for all resolved closed profiles while expanded child `SketchProfile` rows expose one singular wire target per resolved member
+- Dedicated child doc:
+  - `Future2/Sketch_Phase Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface.md`
+- Current subphase status:
+  - `Phase 1 - Parent SketchProfiles Contract Lock`
+    - proposed
+  - `Phase 2 - Child SketchProfile Row Reveal`
+    - proposed
+  - `Phase 3 - Aggregate Versus Singular Wiring Contract`
+    - proposed
+  - `Phase 4 - Surface Honesty And Focused Verification`
+    - proposed
 
 ### Questions / Decisions
 
@@ -190,7 +205,7 @@ The recommendation is:
 
 ##### Suggestion
 
-- treat `SketchProfiles` as the parent array output for every closed profile resolved from the sketch
+- treat `SketchProfiles` as the one always-visible parent collection output for every resolved closed profile from the sketch
 - wiring that dark-green parent row into `Geometry/Extrude` should mean:
   - consume all closed profiles
 
@@ -204,6 +219,7 @@ The recommendation is:
 ##### Suggestion
 
 - expanding `SketchProfiles` should reveal one child row per resolved sketch profile
+- each child row should be named `SketchProfile`
 - wiring one child row into `Geometry/Extrude` should mean:
   - consume only that selected profile
 
@@ -211,6 +227,20 @@ The recommendation is:
 
 - this gives the user both aggregate and per-profile control without inventing a second hidden profile-selection system
 - it aligns better with the longer-term plural profile direction already noted elsewhere in sketch/extrude planning
+
+#### [x] - `q4` Should this become a separate later sketch phase such as `Sketch - 3`?
+
+##### Suggestion
+
+- no
+- keep this work inside `Sketch - 2`
+- treat later sketch curve and point taxonomy as the future `Sketch - 3` style widening instead
+
+##### Why
+
+- this phase is already the sketch-side parent-collection versus singular-member contract cleanup
+- splitting it again before implementation would only create another phase boundary around the same output problem
+- the broader taxonomy move belongs later, after the profile collection contract is actually stable in live code
 
 ### Implementation Spec
 
@@ -221,17 +251,26 @@ The recommendation is:
 #### Suggested scope
 
 1. Clean up the sketch node output contract.
-   - lock `SketchProfiles` as the parent array output for all closed profiles
-   - stop treating the current singular `SketchProfile` row as the only durable output story
+   - lock `SketchProfiles` as the one parent collection output for all resolved closed profiles
+   - stop treating the current singular `SketchProfile` row as a competing top-level output story
 2. Add expandable child profile rows.
-   - when the user expands `SketchProfiles`, show one row per resolved profile
-   - keep row identity stable enough for wiring and selection
+   - when the user expands `SketchProfiles`, show one child `SketchProfile` row per resolved profile member
+   - keep child row identity stable enough for wiring and later selection follow-ons
 3. Define graph wiring meaning.
    - parent row wired to `Extrude` means all profiles
    - one child row wired to `Extrude` means one specific profile
 4. Clean up visible node wording and output presentation.
-   - make output counts and row labels match the actual resolved profile set
+   - keep `SketchProfiles` visible as the one aggregate row even when only one closed profile exists
+   - make output counts and child-row presence match the actual resolved profile set
    - keep empty-state wording honest when no closed profiles exist
+
+#### Suggested first implementation read
+
+- collapsed mode should show the one parent `SketchProfiles` row
+- essentials and expanded modes should reveal one singular `SketchProfile` child row per resolved closed profile
+- the parent row should remain directly wireable as the aggregate output
+- each child row should remain directly wireable as one singular-member output
+- child rows should remain children of `SketchProfiles`, not become a second unrelated top-level output family
 
 #### Likely files
 
@@ -242,7 +281,8 @@ The recommendation is:
 
 #### Definition of done
 
-- the sketch node has one clean parent `SketchProfiles` output for all closed profiles
-- expanding that row reveals one child row per resolved profile
+- the sketch node has one clean parent `SketchProfiles` output for all resolved closed profiles
+- collapsed mode still reads through that one parent collection row
+- expanding or essentials mode reveals one child `SketchProfile` row per resolved profile member
 - the user can wire either the whole profile array or one specific child profile intentionally
 - this behavior stays clearly separate from the worker-owned B-rep lowering path in `Sketch - 1`

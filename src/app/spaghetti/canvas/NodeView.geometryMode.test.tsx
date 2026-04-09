@@ -3,8 +3,10 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
 import type { ExtrudeNodeVm, SketchNodeVm } from '../selectors'
+import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -136,7 +138,7 @@ const allOutputs: PortSpec[] = [
 const extrudeInputs: PortSpec[] = [
   {
     portId: 'ExtrusionProfile',
-    label: 'ExtrusionProfile',
+    label: 'SketchProfiles',
     type: { kind: 'sketchProfile' },
     optional: true,
     maxConnectionsIn: 1,
@@ -169,6 +171,30 @@ const extrudeOutputs: PortSpec[] = [
     portId: 'SolidBody',
     label: 'SolidBody',
     type: { kind: 'solidBody' },
+  },
+]
+
+const compositeNode: SpaghettiNode = {
+  nodeId: 'node-composite-1',
+  type: 'Part/Baseplate',
+  params: {},
+}
+
+const compositeInputs: PortSpec[] = [
+  {
+    portId: 'Center',
+    label: 'Center',
+    type: { kind: 'vec2', unit: 'mm' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+]
+
+const compositeOutputs: PortSpec[] = [
+  {
+    portId: 'Offset',
+    label: 'Offset',
+    type: { kind: 'vec3', unit: 'mm' },
   },
 ]
 
@@ -372,6 +398,92 @@ function ExtrudeNodeHarness() {
   )
 }
 
+function CompositeNodeHarness(props?: {
+  inputCompositeState?: typeof emptyCompositeState
+}) {
+  const graphNode = useSpaghettiStore((state) => state.graph.nodes[0] ?? null)
+  const nodeMode = useSpaghettiStore((state) =>
+    graphNode === null ? 'expanded' : selectNodeMode(state, graphNode.nodeId),
+  )
+  if (graphNode === null) {
+    return null
+  }
+
+  return (
+    <NodeView
+      node={graphNode}
+      x={0}
+      y={0}
+      title="Composite Demo"
+      nodeMode={nodeMode}
+      allInputs={compositeInputs}
+      allOutputs={compositeOutputs}
+      inputCompositeState={props?.inputCompositeState ?? emptyCompositeState}
+      compositeExpansionRevision={0}
+      getCompositeExpanded={() => false}
+      setCompositeExpanded={() => {
+        // no-op for test
+      }}
+      selected={false}
+      getInputDropState={() => null}
+      getOutputDropState={() => null}
+      onPresetChange={() => {
+        // no-op for test
+      }}
+      onDriverNumberChange={() => {
+        // no-op for test
+      }}
+      onUtilityNumberValueChange={() => {
+        // no-op for test
+      }}
+      onUtilityBooleanValueChange={() => {
+        // no-op for test
+      }}
+      onUtilityVec2AxisChange={() => {
+        // no-op for test
+      }}
+      outputRowMinHeight={40}
+      onOutputRowMinHeightChange={() => {
+        // no-op for test
+      }}
+      pinDotSize={8}
+      onPinDotSizeChange={() => {
+        // no-op for test
+      }}
+      onNodeHeaderPointerDown={() => {
+        // no-op for test
+      }}
+      onNodeBodyPointerDown={() => {
+        // no-op for test
+      }}
+      onNodeTitleClick={() => {
+        // no-op for test
+      }}
+      onRegisterPortElement={() => {
+        // no-op for test
+      }}
+      onOutputPointerDown={() => {
+        // no-op for test
+      }}
+      onOutputPointerEnter={() => {
+        // no-op for test
+      }}
+      onOutputPointerLeave={() => {
+        // no-op for test
+      }}
+      onInputPointerDown={() => {
+        // no-op for test
+      }}
+      onInputPointerEnter={() => {
+        // no-op for test
+      }}
+      onInputPointerLeave={() => {
+        // no-op for test
+      }}
+    />
+  )
+}
+
 const findSketchOutputRow = (root: HTMLElement | null | undefined, label: string): HTMLElement | null => {
   const rows = Array.from(root?.querySelectorAll('.SpaghettiPort--out') ?? [])
   const match = rows.find(
@@ -402,6 +514,35 @@ const findExtrudeInputRow = (
   label: string,
 ): HTMLElement | null => {
   const rows = Array.from(root?.querySelectorAll('.SpaghettiPort--in') ?? [])
+  const match = rows.find(
+    (row) =>
+      row
+        .querySelector('.SpaghettiPortName, .SpaghettiPortPrimitiveLabel')
+        ?.textContent?.trim() === label,
+  )
+  return match instanceof HTMLElement ? match : null
+}
+
+const findExtrudeOutputRow = (
+  root: HTMLElement | null | undefined,
+  label: string,
+): HTMLElement | null => {
+  const rows = Array.from(root?.querySelectorAll('.SpaghettiPort--out') ?? [])
+  const match = rows.find(
+    (row) =>
+      row
+        .querySelector('.SpaghettiPortName, .SpaghettiPortPrimitiveLabel')
+        ?.textContent?.trim() === label,
+  )
+  return match instanceof HTMLElement ? match : null
+}
+
+const findPortRow = (
+  root: HTMLElement | null | undefined,
+  direction: 'in' | 'out',
+  label: string,
+): HTMLElement | null => {
+  const rows = Array.from(root?.querySelectorAll(`.SpaghettiPort--${direction}`) ?? [])
   const match = rows.find(
     (row) =>
       row
@@ -497,7 +638,7 @@ describe('NodeView geometry mode behavior', () => {
     expect(container?.textContent).toContain('Origin Plane')
   })
 
-  it('cycles the extrude SketchProfile row through collapsed, essentials, and expanded without widening into toolbar work', async () => {
+  it('cycles the extrude SketchProfiles row through collapsed, essentials, and expanded without widening into toolbar work', async () => {
     await act(async () => {
       useSpaghettiStore.getState().setGraph({
         schemaVersion: 1,
@@ -524,8 +665,8 @@ describe('NodeView geometry mode behavior', () => {
     expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
     expect(inputRow?.classList.contains('SpaghettiExtrudeProfilePortRow')).toBe(true)
-    expect(inputRow?.textContent).toContain('SketchProfile')
-    expect(inputRow?.textContent).toContain('Awaiting SketchProfile or SketchProfiles target')
+    expect(inputRow?.textContent).toContain('SketchProfiles')
+    expect(inputRow?.textContent).toContain('Awaiting SketchProfiles contributors')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -534,23 +675,159 @@ describe('NodeView geometry mode behavior', () => {
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
     expect(inputRow?.textContent).toContain('Profile Target')
     expect(inputRow?.textContent).toContain(
-      'Wire one SketchProfile or the parent SketchProfiles output from Geometry/Sketch into this extrude.',
+      'Wire one SketchProfile output or the parent SketchProfiles output from Geometry/Sketch into this SketchProfiles collection input.',
     )
-    expect(inputRow?.textContent).not.toContain('No profile target wired yet')
+    expect(inputRow?.textContent).not.toContain('No SketchProfiles contributors yet')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
-    expect(inputRow?.textContent).toContain('No profile target wired yet')
+    expect(inputRow?.textContent).toContain('No SketchProfiles contributors yet')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
-    expect(inputRow?.textContent).toContain('Awaiting SketchProfile or SketchProfiles target')
+    expect(inputRow?.textContent).toContain('Awaiting SketchProfiles contributors')
+  })
+
+  it('reveals one child row per actual extrude profile connection entry in essentials and expanded modes', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(
+        <NodeView
+          node={extrudeNode}
+          x={0}
+          y={0}
+          title="Extrude"
+          nodeMode="collapsed"
+          template="extrude"
+          extrudeVm={{
+            ...extrudeVm,
+            hasProfile: true,
+            profileTargetMode: 'allFromSketch',
+            profileCount: 2,
+            profileInputEntries: [
+              {
+                endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profile-member'),
+                entryId: 'edge-sketch-profile-member',
+                kind: 'single',
+                label: 'SketchProfile',
+                sourceNodeId: 'node-sketch-1',
+                sourceNodeLabel: 'Sketch',
+                profileId: 'profile-1',
+              },
+              {
+                endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profiles'),
+                entryId: 'edge-sketch-profiles',
+                kind: 'aggregate',
+                label: 'SketchProfiles',
+                sourceNodeId: 'node-sketch-1',
+                sourceNodeLabel: 'Sketch',
+              },
+            ],
+          }}
+          allInputs={extrudeInputs}
+          allOutputs={extrudeOutputs}
+          inputCompositeState={emptyCompositeState}
+          compositeExpansionRevision={0}
+          getCompositeExpanded={() => false}
+          setCompositeExpanded={() => {
+            // no-op for test
+          }}
+          selected={false}
+          getInputDropState={() => null}
+          getOutputDropState={() => null}
+          onPresetChange={() => {
+            // no-op for test
+          }}
+          onDriverNumberChange={() => {
+            // no-op for test
+          }}
+          onUtilityNumberValueChange={() => {
+            // no-op for test
+          }}
+          onUtilityBooleanValueChange={() => {
+            // no-op for test
+          }}
+          onUtilityVec2AxisChange={() => {
+            // no-op for test
+          }}
+          outputRowMinHeight={40}
+          onOutputRowMinHeightChange={() => {
+            // no-op for test
+          }}
+          pinDotSize={8}
+          onPinDotSizeChange={() => {
+            // no-op for test
+          }}
+          onNodeHeaderPointerDown={() => {
+            // no-op for test
+          }}
+          onNodeBodyPointerDown={() => {
+            // no-op for test
+          }}
+          onNodeTitleClick={() => {
+            // no-op for test
+          }}
+          onRegisterPortElement={() => {
+            // no-op for test
+          }}
+          onOutputPointerDown={() => {
+            // no-op for test
+          }}
+          onOutputPointerEnter={() => {
+            // no-op for test
+          }}
+          onOutputPointerLeave={() => {
+            // no-op for test
+          }}
+          onInputPointerDown={() => {
+            // no-op for test
+          }}
+          onInputPointerEnter={() => {
+            // no-op for test
+          }}
+          onInputPointerLeave={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    const inputRow = container?.querySelector('.SpaghettiPort--in')
+    const inputLabel = inputRow?.querySelector('.SpaghettiPortName')
+
+    expect(container?.querySelectorAll('[data-sp-extrude-profile-entry-row]').length).toBe(0)
+
+    await act(async () => {
+      inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
+    expect(container?.querySelectorAll('[data-sp-extrude-profile-entry-row]').length).toBe(2)
+    expect(container?.textContent).toContain('aggregate SketchProfiles contributor')
+    expect(container?.textContent).toContain('singular SketchProfile contributor')
+
+    await act(async () => {
+      inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
+    expect(container?.querySelectorAll('[data-sp-extrude-profile-entry-row]').length).toBe(2)
+    expect(container?.textContent).toContain('Resolved collection state')
   })
 
   it('keeps the extrude Depth row as a one-line primitive slider across node modes', async () => {
@@ -977,10 +1254,9 @@ describe('NodeView geometry mode behavior', () => {
     })
 
     const outputProfilesRow = findSketchOutputRow(container, 'SketchProfiles')
-    const outputProfileRow = findSketchOutputRow(container, 'SketchProfile')
 
     expect(outputProfilesRow?.getAttribute('data-sp-port-row-open')).toBe('0')
-    expect(outputProfileRow?.getAttribute('data-sp-port-row-open')).toBe('0')
+    expect(findSketchOutputRow(container, 'SketchProfile')).toBeNull()
 
     const outputProfilesChevron = outputProfilesRow?.querySelector('.SpaghettiPortChevron--leading')
     expect(outputProfilesChevron).not.toBeNull()
@@ -993,7 +1269,7 @@ describe('NodeView geometry mode behavior', () => {
 
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('collapsed')
     expect(outputProfilesRow?.getAttribute('data-sp-port-row-open')).toBe('1')
-    expect(outputProfileRow?.getAttribute('data-sp-port-row-open')).toBe('0')
+    expect(findSketchOutputRow(container, 'SketchProfile')).toBeNull()
   })
 
   it('uses essentials defaults for sketch port rows', async () => {
@@ -1030,9 +1306,7 @@ describe('NodeView geometry mode behavior', () => {
     expect(findSketchOutputRow(container, 'SketchProfiles')?.getAttribute('data-sp-port-row-open')).toBe(
       '0',
     )
-    expect(findSketchOutputRow(container, 'SketchProfile')?.getAttribute('data-sp-port-row-open')).toBe(
-      '0',
-    )
+    expect(findSketchOutputRow(container, 'SketchProfile')).toBeNull()
   })
 
   it('cycles the sketch input row through collapsed, essentials, and expanded without changing node mode', async () => {
@@ -1110,6 +1384,81 @@ describe('NodeView geometry mode behavior', () => {
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
   })
 
+  it('uses the same shared output-row header and attached-body contract for sketch and extrude', async () => {
+    await act(async () => {
+      root?.render(<SketchNodeHarness />)
+    })
+
+    const sketchOutputRow = findSketchOutputRow(container, 'SketchProfiles')
+    const sketchChevron = sketchOutputRow?.querySelector('.SpaghettiPortChevron--leading')
+
+    await act(async () => {
+      sketchChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      sketchChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(sketchOutputRow?.querySelector('[data-sp-port-header-lane="status"]')).not.toBeNull()
+    expect(sketchOutputRow?.querySelector('[data-sp-port-header-status="1"]')).not.toBeNull()
+    expect(sketchOutputRow?.querySelector('[data-sp-port-attached-body="output"]')).not.toBeNull()
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            [extrudeNode.nodeId]: 'expanded',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const extrudeOutputRow = findExtrudeOutputRow(container, 'SolidBody')
+    expect(extrudeOutputRow).not.toBeNull()
+    expect(extrudeOutputRow?.querySelector('[data-sp-port-header-lane="status"]')).not.toBeNull()
+    expect(extrudeOutputRow?.querySelector('[data-sp-port-header-status="1"]')).not.toBeNull()
+    expect(extrudeOutputRow?.querySelector('[data-sp-port-attached-body="output"]')).not.toBeNull()
+  })
+
+  it('keeps composite parent rows tied to real typed ownership and whole-wire drive state', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [compositeNode],
+        edges: [],
+        ui: {},
+      })
+      root?.render(<CompositeNodeHarness />)
+    })
+
+    const centerRow = findPortRow(container, 'in', 'Center')
+    const offsetRow = findPortRow(container, 'out', 'Offset')
+    expect(centerRow).not.toBeNull()
+    expect(centerRow?.textContent).toContain('2 children')
+    expect(offsetRow).not.toBeNull()
+    expect(offsetRow?.textContent).toContain('3 children')
+
+    await act(async () => {
+      root?.render(
+        <CompositeNodeHarness
+          inputCompositeState={{
+            ...emptyCompositeState,
+            wholeDrivenByPortId: new Set<string>(['Center']),
+          }}
+        />,
+      )
+    })
+
+    const drivenCenterRow = findPortRow(container, 'in', 'Center')
+    expect(drivenCenterRow).not.toBeNull()
+    expect(drivenCenterRow?.textContent).toContain('Driven by parent wire')
+  })
+
   it('preserves a manual output-row close from expanded when switching to essentials', async () => {
     await act(async () => {
       useSpaghettiStore.getState().setNodeMode('node-sketch-1', 'expanded')
@@ -1169,7 +1518,7 @@ describe('NodeView geometry mode behavior', () => {
 
     expect(selectNodeMode(useSpaghettiStore.getState(), 'node-sketch-1')).toBe('collapsed')
     expect(outputProfilesRow?.getAttribute('data-sp-port-row-open')).toBe('1')
-    expect(outputProfilesRow?.querySelector('.SpaghettiPortDetailsBox')).toBeNull()
+    expect(outputProfilesRow?.querySelector('.SpaghettiPortDetailsBox')).not.toBeNull()
 
     await act(async () => {
       outputProfilesChevron?.dispatchEvent(
@@ -1206,7 +1555,7 @@ describe('NodeView geometry mode behavior', () => {
     })
 
     expect(outputProfilesRow?.getAttribute('data-sp-port-row-open')).toBe('1')
-    expect(outputProfilesRow?.querySelector('.SpaghettiPortDetailsBox')).toBeNull()
+    expect(outputProfilesRow?.querySelector('.SpaghettiPortDetailsBox')).not.toBeNull()
 
     await act(async () => {
       outputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -1219,6 +1568,179 @@ describe('NodeView geometry mode behavior', () => {
     })
 
     expect(outputProfilesRow?.getAttribute('data-sp-port-row-open')).toBe('0')
+  })
+
+  it('keeps sketch profile members owned by the parent collection row when outputs expand', async () => {
+    await act(async () => {
+      root?.render(<SketchNodeHarness />)
+    })
+
+    const outputProfilesRow = findSketchOutputRow(container, 'SketchProfiles')
+    const outputProfilesChevron = outputProfilesRow?.querySelector('.SpaghettiPortChevron--leading')
+
+    await act(async () => {
+      outputProfilesChevron?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    await act(async () => {
+      outputProfilesChevron?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(outputProfilesRow?.textContent).toContain('Parent collection')
+    expect(outputProfilesRow?.textContent).toContain(
+      'Closed profiles publish here as one ordered parent collection once the sketch resolves closed loops.',
+    )
+    expect(outputProfilesRow?.textContent).toContain('No closed profiles yet')
+    expect(findSketchOutputRow(container, 'SketchProfile')).toBeNull()
+    expect(
+      container?.querySelectorAll('[data-sp-sketch-profile-child-row]').length,
+    ).toBe(0)
+  })
+
+  it('gives revealed sketch profile children distinct output endpoint ids when profiles exist', async () => {
+    const prof1 = buildSketchProfileMemberPortId('profile-1')
+    const prof2 = buildSketchProfileMemberPortId('profile-2')
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            ...sketchNode,
+            params: {
+              sketch: {
+                ...((sketchNode.params as { sketch: Record<string, unknown> }).sketch),
+                outputs: {
+                  profiles: [
+                    { profileId: 'profile-1', profileIndex: 0, area: 10, loop: { segments: [], winding: 'CCW' }, verticesProxy: [] },
+                    { profileId: 'profile-2', profileIndex: 1, area: 15, loop: { segments: [], winding: 'CCW' }, verticesProxy: [] },
+                  ],
+                  diagnostics: [],
+                },
+                uiState: {
+                  collapsed: false,
+                  selectedProfileId: 'profile-2',
+                },
+              },
+            },
+          },
+        ],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-sketch-1': 'expanded',
+          },
+        },
+      })
+      root?.render(
+        <NodeView
+          node={{
+            ...sketchNode,
+            params: {
+              sketch: {
+                ...((sketchNode.params as { sketch: Record<string, unknown> }).sketch),
+                outputs: {
+                  profiles: [
+                    { profileId: 'profile-1', profileIndex: 0, area: 10, loop: { segments: [], winding: 'CCW' }, verticesProxy: [] },
+                    { profileId: 'profile-2', profileIndex: 1, area: 15, loop: { segments: [], winding: 'CCW' }, verticesProxy: [] },
+                  ],
+                  diagnostics: [],
+                },
+                uiState: {
+                  collapsed: false,
+                  selectedProfileId: 'profile-2',
+                },
+              },
+            },
+          }}
+          x={0}
+          y={0}
+          title="Sketch"
+          nodeMode="expanded"
+          template="sketch"
+          sketchVm={{
+            ...sketchVm,
+            profileCount: 2,
+            hasSelectedProfile: true,
+          }}
+          inputPortDetails={sketchInputPortDetails}
+          allInputs={allInputs}
+          allOutputs={allOutputs}
+          inputCompositeState={emptyCompositeState}
+          compositeExpansionRevision={0}
+          getCompositeExpanded={() => false}
+          setCompositeExpanded={() => {
+            // no-op for test
+          }}
+          selected={false}
+          getInputDropState={() => null}
+          getOutputDropState={() => null}
+          onPresetChange={() => {
+            // no-op for test
+          }}
+          onDriverNumberChange={() => {
+            // no-op for test
+          }}
+          onUtilityNumberValueChange={() => {
+            // no-op for test
+          }}
+          onUtilityBooleanValueChange={() => {
+            // no-op for test
+          }}
+          onUtilityVec2AxisChange={() => {
+            // no-op for test
+          }}
+          outputRowMinHeight={40}
+          onOutputRowMinHeightChange={() => {
+            // no-op for test
+          }}
+          pinDotSize={8}
+          onPinDotSizeChange={() => {
+            // no-op for test
+          }}
+          onNodeHeaderPointerDown={() => {
+            // no-op for test
+          }}
+          onNodeBodyPointerDown={() => {
+            // no-op for test
+          }}
+          onNodeTitleClick={() => {
+            // no-op for test
+          }}
+          onRegisterPortElement={() => {
+            // no-op for test
+          }}
+          onOutputPointerDown={() => {
+            // no-op for test
+          }}
+          onOutputPointerEnter={() => {
+            // no-op for test
+          }}
+          onOutputPointerLeave={() => {
+            // no-op for test
+          }}
+          onInputPointerDown={() => {
+            // no-op for test
+          }}
+          onInputPointerEnter={() => {
+            // no-op for test
+          }}
+          onInputPointerLeave={() => {
+            // no-op for test
+          }}
+        />,
+      )
+    })
+
+    expect(
+      container?.querySelector(`[data-sp-sketch-profile-child-port-id="${prof1}"]`),
+    ).not.toBeNull()
+    expect(container?.querySelector(`[data-sp-endpoint-port-id="${prof1}"]`)).not.toBeNull()
+    expect(container?.querySelector(`[data-sp-endpoint-port-id="${prof2}"]`)).not.toBeNull()
   })
 
   it('updates the local sketch plane from the Source ParaSelect and writes transform slider values into the sketch params', async () => {

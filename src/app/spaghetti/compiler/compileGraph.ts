@@ -3,6 +3,7 @@ import { compileFeatureStack, type FeatureStackIR } from '../features/compileFea
 import { getEffectiveFeatureStack } from '../features/featureDependencies'
 import { readFeatureStack } from '../features/featureSchema'
 import type {
+  GeometryRequestExtrudeProfileContributor,
   GeometryRequestExtrudeProfileSelection,
   GeometryRequestOp,
   GeometryRequestPayload,
@@ -199,19 +200,133 @@ const readGeometrySketchPlaneTransformFromNode = (
     : createDefaultSketchPlaneTransform()
 }
 
-const findWholeIncomingEdge = (
+const listWholeIncomingEdges = (
   graph: SpaghettiGraph,
   nodeId: string,
   portId: string,
-): SpaghettiGraph['edges'][number] | undefined =>
-  [...graph.edges]
-    .sort((a, b) => a.edgeId.localeCompare(b.edgeId))
-    .find(
-      (edge) =>
-        edge.to.nodeId === nodeId &&
-        edge.to.portId === portId &&
-        (edge.to.path === undefined || edge.to.path.length === 0),
+): SpaghettiGraph['edges'][number][] =>
+  graph.edges.filter(
+    (edge) =>
+      edge.to.nodeId === nodeId &&
+      edge.to.portId === portId &&
+      (edge.to.path === undefined || edge.to.path.length === 0),
+  )
+
+const getValueAtPath = (value: unknown, path: string[] | undefined): unknown => {
+  if (path === undefined || path.length === 0) {
+    return value
+  }
+  let current: unknown = value
+  for (const segment of path) {
+    if (segment === '*') {
+      if (!Array.isArray(current) || current.length === 0) {
+        return undefined
+      }
+      current = current[0]
+      continue
+    }
+    if (typeof current !== 'object' || current === null || Array.isArray(current)) {
+      return undefined
+    }
+    current = (current as Record<string, unknown>)[segment]
+  }
+  return current
+}
+
+type GeometryExtrudeContributorResolution = {
+  edgeId: string
+  sketchNode: SpaghettiGraph['nodes'][number]
+  plane: 'XY' | 'XZ' | 'YZ'
+  planeTransform: SketchPlaneTransform
+  contributor: GeometryRequestExtrudeProfileContributor
+  profilesResolved: Array<{
+    profileId: string
+    profileIndex: number
+    area: number
+    loop: ProfileLoop
+    verticesProxy: Array<{ x: number; y: number }>
+  }>
+}
+
+const toGeometryRequestSketchProfile = (
+  profile: {
+    profileId: string
+    profileIndex?: number
+    area: number
+    loop?: ProfileLoop
+    verticesProxy: Array<{ x: number; y: number }>
+  },
+) => ({
+  profileId: profile.profileId,
+  profileIndex: profile.profileIndex ?? 0,
+  area: profile.area,
+  loop:
+    profile.loop ?? {
+      segments: [],
+      winding: 'CCW' as const,
+    },
+  verticesProxy: profile.verticesProxy,
+})
+
+const resolveGeometryExtrudeContributors = (
+  graph: SpaghettiGraph,
+  node: SpaghettiGraph['nodes'][number],
+  resolvedProfileInput: unknown,
+  resolvedOutputsByNodeId: Record<string, Record<string, unknown>> | undefined,
+): GeometryExtrudeContributorResolution[] => {
+  const incomingEdges = listWholeIncomingEdges(graph, node.nodeId, 'ExtrusionProfile')
+  const resolvedInputEntries =
+    incomingEdges.length > 1 && Array.isArray(resolvedProfileInput) ? resolvedProfileInput : null
+  const resolutions: GeometryExtrudeContributorResolution[] = []
+
+  for (const [index, edge] of incomingEdges.entries()) {
+    const sketchNode = graph.nodes.find(
+      (candidate) => candidate.nodeId === edge.from.nodeId && candidate.type === 'Geometry/Sketch',
     )
+    if (sketchNode === undefined) {
+      continue
+    }
+
+    const sourceValue =
+      getValueAtPath(resolvedOutputsByNodeId?.[edge.from.nodeId]?.[edge.from.portId], edge.from.path) ??
+      (incomingEdges.length === 1 ? resolvedProfileInput : resolvedInputEntries?.[index])
+    const plane = readGeometrySketchPlaneFromNode(sketchNode)
+    const planeTransform = readGeometrySketchPlaneTransformFromNode(sketchNode)
+
+    if (edge.from.portId === 'SketchProfiles' && Array.isArray(sourceValue) && sourceValue.every(isProfileInputLike)) {
+      resolutions.push({
+        edgeId: edge.edgeId,
+        sketchNode,
+        plane,
+        planeTransform,
+        contributor: {
+          kind: 'allFromSketch',
+          sketchFeatureId: sketchNode.nodeId,
+        },
+        profilesResolved: sourceValue.map((profile) => toGeometryRequestSketchProfile(profile)),
+      })
+      continue
+    }
+
+    if (isProfileInputLike(sourceValue)) {
+      resolutions.push({
+        edgeId: edge.edgeId,
+        sketchNode,
+        plane,
+        planeTransform,
+        contributor: {
+          kind: 'single',
+          sketchFeatureId: sketchNode.nodeId,
+          profileId: sourceValue.profileId,
+          profileIndex: sourceValue.profileIndex ?? 0,
+        },
+        profilesResolved: [toGeometryRequestSketchProfile(sourceValue)],
+      })
+    }
+  }
+
+  return resolutions
+}
 
 const buildGeometryExtrudeOps = (
   graph: SpaghettiGraph,
@@ -223,15 +338,19 @@ const buildGeometryExtrudeOps = (
   const profileInput = resolvedInputs.ExtrusionProfile
   const depthInput = resolvedInputs.Depth
   const directionInput = resolvedInputs.Direction
-  const sourceProfileEdge = findWholeIncomingEdge(graph, node.nodeId, 'ExtrusionProfile')
-  const sourceSketchNode = graph.nodes.find(
-    (candidate) =>
-      candidate.nodeId === sourceProfileEdge?.from.nodeId && candidate.type === 'Geometry/Sketch',
+  const contributorResolutions = resolveGeometryExtrudeContributors(
+    graph,
+    node,
+    profileInput,
+    resolvedOutputsByNodeId,
   )
-  const sourceSketchOutputs =
-    sourceSketchNode === undefined ? undefined : resolvedOutputsByNodeId?.[sourceSketchNode.nodeId]
-  const plane = readGeometrySketchPlaneFromNode(sourceSketchNode)
-  const planeTransform = readGeometrySketchPlaneTransformFromNode(sourceSketchNode)
+  const firstSketchResolution = contributorResolutions[0]
+  const uniqueSketchIds = new Set(
+    contributorResolutions.map((resolution) => resolution.sketchNode.nodeId),
+  )
+  const plane = uniqueSketchIds.size === 1 ? firstSketchResolution?.plane : undefined
+  const planeTransform =
+    uniqueSketchIds.size === 1 ? firstSketchResolution?.planeTransform : undefined
   const extrudeDirection =
     typeof directionInput === 'number' && Number.isFinite(directionInput)
       ? mapWholeNumberToGeometryExtrudeDirection(directionInput)
@@ -265,77 +384,84 @@ const buildGeometryExtrudeOps = (
     typeof taperInput === 'number' && Number.isFinite(taperInput)
       ? taperInput
       : readGeometryExtrudeTaperAngleDegFromParams(node.params)
-  const aggregateSourceProfiles = sourceSketchOutputs?.SketchProfiles
-  const aggregateProfilesResolved =
-    Array.isArray(aggregateSourceProfiles) && aggregateSourceProfiles.every(isProfileInputLike)
-      ? aggregateSourceProfiles.map((profile) => ({
-          profileId: profile.profileId,
-          profileIndex: profile.profileIndex ?? 0,
-          area: profile.area,
-          loop:
-            profile.loop ?? {
-              segments: [],
-              winding: 'CCW',
-            },
-          verticesProxy: profile.verticesProxy,
-        }))
-      : []
-  const isAggregateProfileSelection =
-    sourceProfileEdge?.from.portId === 'SketchProfiles' &&
-    (sourceProfileEdge.from.path === undefined || sourceProfileEdge.from.path.length === 0) &&
-    sourceSketchNode !== undefined
   const profileRef =
-    !isAggregateProfileSelection &&
-    sourceSketchNode !== undefined &&
-    isProfileInputLike(profileInput)
+    contributorResolutions.length === 1 && contributorResolutions[0]?.contributor.kind === 'single'
       ? {
-          sketchFeatureId: sourceSketchNode.nodeId,
-          profileId: profileInput.profileId,
-          profileIndex: profileInput.profileIndex ?? 0,
+          sketchFeatureId: contributorResolutions[0].contributor.sketchFeatureId,
+          profileId: contributorResolutions[0].contributor.profileId,
+          profileIndex: contributorResolutions[0].contributor.profileIndex,
         }
       : null
   const profileSelection: GeometryRequestExtrudeProfileSelection | null =
-    isAggregateProfileSelection && sourceSketchNode !== undefined
+    contributorResolutions.length > 1
       ? {
-          mode: 'allFromSketch',
-          sketchFeatureId: sourceSketchNode.nodeId,
+          mode: 'contributors',
+          contributors: contributorResolutions.map((resolution) => resolution.contributor),
         }
-      : profileRef === null
-        ? null
-        : {
-            mode: 'single',
-            sketchFeatureId: profileRef.sketchFeatureId,
-            profileId: profileRef.profileId,
-            profileIndex: profileRef.profileIndex,
+      : contributorResolutions.length === 1 &&
+          contributorResolutions[0]?.contributor.kind === 'allFromSketch'
+        ? {
+            mode: 'allFromSketch',
+            sketchFeatureId: contributorResolutions[0].contributor.sketchFeatureId,
           }
+        : profileRef === null
+          ? null
+          : {
+              mode: 'single',
+              sketchFeatureId: profileRef.sketchFeatureId,
+              profileId: profileRef.profileId,
+              profileIndex: profileRef.profileIndex,
+            }
 
-  const sketchProfilesResolved =
-    isAggregateProfileSelection
-      ? aggregateProfilesResolved
-      : sourceSketchNode !== undefined && isProfileInputLike(profileInput)
-        ? [
-            {
-              profileId: profileInput.profileId,
-              profileIndex: profileInput.profileIndex ?? 0,
-              area: profileInput.area,
-              loop:
-                profileInput.loop ?? {
-                  segments: [],
-                  winding: 'CCW',
-                },
-              verticesProxy: profileInput.verticesProxy,
-            },
-          ]
-        : []
+  const sketchProfilesBySketch = new Map<
+    string,
+    {
+      sketchNode: SpaghettiGraph['nodes'][number]
+      plane: 'XY' | 'XZ' | 'YZ'
+      planeTransform: SketchPlaneTransform
+      profilesResolved: Array<{
+        profileId: string
+        profileIndex: number
+        area: number
+        loop: ProfileLoop
+        verticesProxy: Array<{ x: number; y: number }>
+      }>
+      seenProfileKeys: Set<string>
+    }
+  >()
+
+  for (const resolution of contributorResolutions) {
+    const existing =
+      sketchProfilesBySketch.get(resolution.sketchNode.nodeId) ??
+      {
+        sketchNode: resolution.sketchNode,
+        plane: resolution.plane,
+        planeTransform: resolution.planeTransform,
+        profilesResolved: [],
+        seenProfileKeys: new Set<string>(),
+      }
+    for (const profile of resolution.profilesResolved) {
+      const profileKey = `${profile.profileId}::${profile.profileIndex}`
+      if (existing.seenProfileKeys.has(profileKey)) {
+        continue
+      }
+      existing.seenProfileKeys.add(profileKey)
+      existing.profilesResolved.push(profile)
+    }
+    sketchProfilesBySketch.set(resolution.sketchNode.nodeId, existing)
+  }
 
   const ops: FeatureStackIR = []
-  if (sourceSketchNode !== undefined && sketchProfilesResolved.length > 0) {
+  for (const sketchEntry of sketchProfilesBySketch.values()) {
+    if (sketchEntry.profilesResolved.length === 0) {
+      continue
+    }
     ops.push({
       op: 'sketch',
-      featureId: sourceSketchNode.nodeId,
-      plane,
-      planeTransform,
-      profilesResolved: sketchProfilesResolved,
+      featureId: sketchEntry.sketchNode.nodeId,
+      plane: sketchEntry.plane,
+      planeTransform: sketchEntry.planeTransform,
+      profilesResolved: sketchEntry.profilesResolved,
     })
   }
   ops.push({
@@ -357,8 +483,8 @@ const buildGeometryExtrudeOps = (
       : {}),
     taperResolved,
     offsetResolved: 0,
-    plane,
-    planeTransform,
+    ...(plane === undefined ? {} : { plane }),
+    ...(planeTransform === undefined ? {} : { planeTransform }),
     bodyId: `${node.nodeId}:body`,
   })
   return ops

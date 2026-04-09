@@ -10,6 +10,7 @@ import {
   listDriverVirtualOutputPorts,
 } from './driverVirtualPorts'
 import { listFeatureVirtualInputPorts } from './featureVirtualPorts'
+import { listSketchProfileMemberOutputPorts } from './sketchProfileVirtualPorts'
 
 const findPortById = (ports: readonly PortSpec[], portId: string): PortSpec | undefined =>
   ports.find((port) => port.portId === portId)
@@ -59,7 +60,8 @@ export const listEffectiveOutputPorts = (
   const resolvedNodeDef = nodeDef ?? getNodeDef(node.type)
   const declaredOutputs = resolvedNodeDef?.outputs ?? []
   const virtualDriverOutputs = listDriverVirtualOutputPorts(node, resolvedNodeDef)
-  return [...declaredOutputs, ...virtualDriverOutputs]
+  const sketchProfileMemberOutputs = listSketchProfileMemberOutputPorts(node)
+  return [...declaredOutputs, ...virtualDriverOutputs, ...sketchProfileMemberOutputs]
 }
 
 export const resolveEffectiveInputPort = (
@@ -91,5 +93,9 @@ export const resolveEffectiveOutputPort = (
   if (declared !== undefined) {
     return declared
   }
-  return findPortById(listDriverVirtualOutputPorts(node, nodeDef), portId)
+  const driverVirtual = findPortById(listDriverVirtualOutputPorts(node, nodeDef), portId)
+  if (driverVirtual !== undefined) {
+    return driverVirtual
+  }
+  return findPortById(listSketchProfileMemberOutputPorts(node), portId)
 }

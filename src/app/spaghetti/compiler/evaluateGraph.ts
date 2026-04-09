@@ -14,6 +14,7 @@ import {
   parseDriverVirtualInputPortId,
   listDriverVirtualOutputPorts,
 } from '../features/driverVirtualPorts'
+import { getSketchProfileMemberOutputValue, listSketchProfileMemberOutputPorts } from '../features/sketchProfileVirtualPorts'
 import {
   getFieldTree,
   isCompositeFieldNode,
@@ -103,6 +104,9 @@ const isSketchProfiles = (value: unknown): value is Array<{
   profileIndex: number
   area: number
 }> => Array.isArray(value) && value.every((entry) => isProfileOutputLike(entry))
+
+const isExtrusionProfileContributorValue = (value: unknown): boolean =>
+  isProfileOutputLike(value) || isSketchProfiles(value)
 
 const isSolidBody = (value: unknown): value is { bodyId: string } =>
   isRecord(value) && typeof value.bodyId === 'string' && value.bodyId.length > 0
@@ -318,14 +322,30 @@ const buildIncomingEdgesMap = (graph: SpaghettiGraph): Map<string, SpaghettiEdge
     incomingEdgesByNodeId.set(node.nodeId, [])
   }
 
-  const sortedEdges = [...graph.edges].sort((a, b) => a.edgeId.localeCompare(b.edgeId))
-  for (const edge of sortedEdges) {
+  for (const edge of graph.edges) {
     if (!incomingEdgesByNodeId.has(edge.to.nodeId)) {
       continue
     }
     incomingEdgesByNodeId.get(edge.to.nodeId)?.push(edge)
   }
   return incomingEdgesByNodeId
+}
+
+const supportsMultiInputCollection = (node: SpaghettiNode, portId: string): boolean => {
+  const nodeDef = getNodeDef(node.type)
+  const port = nodeDef?.inputs.find((candidate) => candidate.portId === portId)
+  return typeof port?.maxConnectionsIn === 'number' && port.maxConnectionsIn > 1
+}
+
+const isValidMultiInputCollection = (
+  node: SpaghettiNode,
+  portId: string,
+  values: readonly unknown[],
+): boolean => {
+  if (node.type === 'Geometry/Extrude' && portId === 'ExtrusionProfile') {
+    return values.length > 0 && values.every((value) => isExtrusionProfileContributorValue(value))
+  }
+  return false
 }
 
 export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult => {
@@ -507,13 +527,32 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
       }
 
       if (wholeEdges.length > 1) {
-        hasNodeError = true
-        errors.push({
-          level: 'error',
-          code: 'MULTIPLE_INPUTS',
-          message: `Input "${inputPort.portId}" on node "${nodeId}" has multiple incoming edges.`,
-          nodeId,
-        })
+        if (!supportsMultiInputCollection(node, inputPort.portId)) {
+          hasNodeError = true
+          errors.push({
+            level: 'error',
+            code: 'MULTIPLE_INPUTS',
+            message: `Input "${inputPort.portId}" on node "${nodeId}" has multiple incoming edges.`,
+            nodeId,
+          })
+          continue
+        }
+
+        const sourceValues = wholeEdges.map((edge) => resolveSourceValueFromEdge(edge))
+        if (sourceValues.some((value) => value === undefined)) {
+          continue
+        }
+        if (!isValidMultiInputCollection(node, inputPort.portId, sourceValues)) {
+          hasNodeError = true
+          errors.push({
+            level: 'error',
+            code: 'INPUT_SOURCE_VALUE_MISSING',
+            message: `Invalid multi-input collection shape for "${nodeId}.${inputPort.portId}".`,
+            nodeId,
+          })
+          continue
+        }
+        inputs[inputPort.portId] = sourceValues
         continue
       }
 
@@ -639,6 +678,23 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
         nodeDef,
         virtualOutput.portId,
       )
+      if (virtualValue === undefined) {
+        continue
+      }
+      if (!isValidForPortType(virtualValue, virtualOutput.type)) {
+        errors.push({
+          level: 'error',
+          code: 'OUTPUT_INVALID_SHAPE',
+          message: `Invalid output shape for "${nodeId}.${virtualOutput.portId}" (${virtualOutput.type.kind}).`,
+          nodeId,
+        })
+        continue
+      }
+      nodeOutputs[virtualOutput.portId] = virtualValue
+    }
+
+    for (const virtualOutput of listSketchProfileMemberOutputPorts(node)) {
+      const virtualValue = getSketchProfileMemberOutputValue(node, virtualOutput.portId)
       if (virtualValue === undefined) {
         continue
       }

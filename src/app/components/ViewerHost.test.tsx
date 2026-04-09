@@ -67,6 +67,8 @@ let viewerSetOnGeometrySketchCancelDraft: ReturnType<typeof vi.fn>
 let viewerSetOnWorkspaceSelectionPick: ReturnType<typeof vi.fn>
 let viewerApplyCameraPose: ReturnType<typeof vi.fn>
 let viewerSetOnCameraPoseChange: ReturnType<typeof vi.fn>
+let viewerSetOnRuntimeStatsChange: ReturnType<typeof vi.fn>
+let viewerGetRuntimeStats: ReturnType<typeof vi.fn>
 
 vi.mock('../viewerBridge', () => {
   const queuedCameraPoseByViewportId = new Map<string, unknown>()
@@ -103,6 +105,8 @@ vi.mock('../../viewer/Viewer', () => ({
     public applyViewSettings(): void {}
     public applyCameraPose = (...args: unknown[]) => viewerApplyCameraPose(...args)
     public setOnCameraPoseChange = (...args: unknown[]) => viewerSetOnCameraPoseChange(...args)
+    public getRuntimeStats = (...args: unknown[]) => viewerGetRuntimeStats(...args)
+    public setOnRuntimeStatsChange = (...args: unknown[]) => viewerSetOnRuntimeStatsChange(...args)
     public ensureReferenceLoaded = (...args: unknown[]) => viewerEnsureReferenceLoaded(...args)
     public setReferenceVisible = (...args: unknown[]) => viewerSetReferenceVisible(...args)
     public removeReference = (...args: unknown[]) => viewerRemoveReference(...args)
@@ -489,6 +493,13 @@ describe('ViewerHost reference loading', () => {
     viewerSetOnWorkspaceSelectionPick = vi.fn()
     viewerApplyCameraPose = vi.fn()
     viewerSetOnCameraPoseChange = vi.fn()
+    viewerSetOnRuntimeStatsChange = vi.fn()
+    viewerGetRuntimeStats = vi.fn(() => ({
+      triangles: null,
+      lines: null,
+      points: null,
+      fps: null,
+    }))
     globalThis.Worker = MockWorker as unknown as typeof Worker
     const { useAppStore } = await import('../store/useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
@@ -579,6 +590,46 @@ describe('ViewerHost reference loading', () => {
       projectionMode: 'orthographic',
       perspectiveFovDeg: 42,
       orthoViewHeight: 18,
+    })
+  })
+
+  it('forwards viewer-owned runtime stats into the app-facing viewport stats store', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const {
+      useViewportRuntimeStatsStore,
+      selectViewportRuntimeStats,
+    } = await import('../store/viewportRuntimeStatsStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerSetOnRuntimeStatsChange).toHaveBeenCalledWith(expect.any(Function))
+
+    const runtimeStatsHandler = viewerSetOnRuntimeStatsChange.mock.calls.at(-1)?.[0] as
+      | ((stats: { triangles: number | null; lines: number | null; points: number | null; fps: number | null }) => void)
+      | null
+
+    act(() => {
+      runtimeStatsHandler?.({
+        triangles: 2048,
+        lines: 96,
+        points: 0,
+        fps: 60,
+      })
+    })
+
+    expect(
+      selectViewportRuntimeStats(useViewportRuntimeStatsStore.getState(), 'model-viewer-primary'),
+    ).toEqual({
+      triangles: 2048,
+      lines: 96,
+      points: 0,
+      fps: 60,
     })
   })
 
@@ -3035,6 +3086,196 @@ describe('ViewerHost reference loading', () => {
       | Array<{ viewerKey: string; artifact: typeof acceptedArtifact }>
       | undefined
     expect(revertedPartCall?.[0]?.artifact).toBe(acceptedArtifact)
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container?.remove()
+  })
+
+  it('clears a stale extrude preview immediately when the required SketchProfiles contributor no longer resolves a valid body', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-body',
+      },
+    ])
+    const acceptedArtifact = {
+      id: 'artifact-extrude-stale-1',
+      label: 'Extrude 1',
+      kind: 'mesh' as const,
+      mesh: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      partKeyStr: 'extrude-body',
+      partKey: {
+        id: 'extrude-body',
+        instance: null,
+      },
+    }
+
+    let container: HTMLDivElement | null = null
+    let root: Root | null = null
+
+    const connectedGraph = {
+      schemaVersion: 1 as const,
+      nodes: [
+        {
+          nodeId: 'node-output-preview-1',
+          type: 'System/OutputPreview',
+          params: {
+            slots: [{ slotId: 'slot-extrude' }],
+            objects: [
+              {
+                objectId: 'output-object:slot-extrude',
+                label: 'Object 1',
+                slotId: 'slot-extrude',
+              },
+            ],
+          },
+        },
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'edge-1',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 12, y: 8 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 20,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-extrude-1',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-extrude-output-1',
+          from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude' },
+        },
+      ],
+    }
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph(connectedGraph)
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            previewPreparation,
+            acceptedPreviewBuildOutputs: [acceptedArtifact],
+            acceptedBuildOutputs: [acceptedArtifact],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [
+            {
+              graphDocumentId: 'graph-document-1',
+              label: 'Graph 1',
+              sourceFilePath: null,
+              orderIndex: 0,
+            },
+          ],
+          rootAssemblyId: 'assembly-root:project-file-1',
+        },
+        projectContent: {
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['project-object:project-file-1:graph-document-1:output-object'],
+            },
+          },
+          componentsById: {},
+          objectsById: {
+            'project-object:project-file-1:graph-document-1:output-object': {
+              objectId: 'project-object:project-file-1:graph-document-1:output-object',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: null,
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry:slot-extrude:node-extrude-1',
+              sourceNodeId: 'node-extrude-1',
+              slotId: 'slot-extrude',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+      }))
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const initialPartCall = viewerSetParts.mock.calls.at(-1)?.[0] as
+      | Array<{ viewerKey: string; artifact: typeof acceptedArtifact }>
+      | undefined
+    expect(initialPartCall?.[0]?.viewerKey).toBe('graph-document-1:slot-extrude')
+    expect(initialPartCall?.[0]?.artifact).toBe(acceptedArtifact)
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        ...connectedGraph,
+        edges: connectedGraph.edges.filter((edge) => edge.edgeId !== 'edge-sketch-extrude-1'),
+      })
+    })
+
+    const clearedPartCall = viewerSetParts.mock.calls.at(-1)?.[0] as
+      | Array<{ viewerKey: string; artifact: typeof acceptedArtifact }>
+      | undefined
+    expect(clearedPartCall).toEqual([])
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.acceptedPreviewBuildOutputs,
+    ).toEqual([acceptedArtifact])
 
     await act(async () => {
       root?.unmount()

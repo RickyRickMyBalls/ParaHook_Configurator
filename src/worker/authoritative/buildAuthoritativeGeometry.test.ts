@@ -111,6 +111,24 @@ const profileSelectionAllFromSketch = (sketchFeatureId: string) => ({
   sketchFeatureId,
 })
 
+const profileSelectionContributors = (
+  contributors: Array<
+    | {
+        kind: 'allFromSketch'
+        sketchFeatureId: string
+      }
+    | {
+        kind: 'single'
+        sketchFeatureId: string
+        profileId: string
+        profileIndex: number
+      }
+  >,
+) => ({
+  mode: 'contributors' as const,
+  contributors,
+})
+
 const cubeCompiledBuildData = (): CompiledBuildData => ({
   orderedPartKeys: ['cube'],
   resolvedParts: {},
@@ -315,6 +333,85 @@ const aggregateCompiledBuildData = (): CompiledBuildData => ({
             taperResolved: 0,
             offsetResolved: 0,
             bodyId: 'aggregate-body-1',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
+const multiSketchContributorCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['aggregate'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        aggregate: [
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-1',
+            profilesResolved: [resolvedProfile('aggregate-profile-1')],
+          },
+          {
+            op: 'sketch',
+            featureId: 'aggregate-sketch-2',
+            profilesResolved: [
+              resolvedProfile('aggregate-profile-2', {
+                verticesProxy: [
+                  { x: 30, y: 0 },
+                  { x: 40, y: 0 },
+                  { x: 40, y: 10 },
+                  { x: 30, y: 10 },
+                ],
+                loop: {
+                  segments: [
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 0 },
+                      b: { x: 40, y: 0 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 0 },
+                      b: { x: 40, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 10 },
+                      b: { x: 30, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 10 },
+                      b: { x: 30, y: 0 },
+                    },
+                  ],
+                  winding: 'CCW' as const,
+                },
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'aggregate-extrude-contributors',
+            profileSelection: profileSelectionContributors([
+              {
+                kind: 'allFromSketch',
+                sketchFeatureId: 'aggregate-sketch-1',
+              },
+              {
+                kind: 'allFromSketch',
+                sketchFeatureId: 'aggregate-sketch-2',
+              },
+            ]),
+            profileRef: null,
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'aggregate-body-contributors',
           },
         ],
       },
@@ -800,6 +897,61 @@ describe('buildAuthoritativeGeometry', () => {
     )
     expect(Object.keys(result.authoritativeGeometryResult?.bodies ?? {})).toEqual([
       'aggregate:aggregate-body-1',
+    ])
+    expect(result.authoritativeGeometryResult?.meshPreview).not.toBeNull()
+    expect(getOcMock).toHaveBeenCalledTimes(1)
+    expect(wireEdgeCounts).toEqual([4, 4])
+    expect(prismVectors).toEqual([
+      { x: 0, y: 0, z: 20 },
+      { x: 0, y: 0, z: 20 },
+    ])
+    const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId
+    expect(handleId).toBe('shape-set-1')
+    expect(releaseAuthoritativeShapeSets(handleId === undefined ? [] : [handleId])).toBe(1)
+    expect(shapeDelete).toHaveBeenCalledTimes(2)
+    expect(edgeDelete).toHaveBeenCalledTimes(8)
+    expect(wireDelete).toHaveBeenCalledTimes(2)
+    expect(faceDelete).toHaveBeenCalledTimes(2)
+  })
+
+  it('mints one authoritative result for ordered contributor selections across multiple SketchProfiles sources', async () => {
+    const shapeDelete = vi.fn()
+    const edgeDelete = vi.fn()
+    const wireDelete = vi.fn()
+    const faceDelete = vi.fn()
+    const wireEdgeCounts: number[] = []
+    const prismVectors: Array<{ x: number; y: number; z: number }> = []
+    getOcMock.mockResolvedValue(
+      createFakeOc({
+        shapeDelete,
+        edgeDelete,
+        wireDelete,
+        faceDelete,
+        recordWireEdgeCount: (count) => wireEdgeCounts.push(count),
+        recordPrismVector: (vector) => prismVectors.push(vector),
+      }),
+    )
+
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: multiSketchContributorCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-contributors',
+        partKeys: ['aggregate'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'authoritative',
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    )
+    expect(Object.keys(result.authoritativeGeometryResult?.bodies ?? {})).toEqual([
+      'aggregate:aggregate-body-contributors',
     ])
     expect(result.authoritativeGeometryResult?.meshPreview).not.toBeNull()
     expect(getOcMock).toHaveBeenCalledTimes(1)

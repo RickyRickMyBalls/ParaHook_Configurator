@@ -110,7 +110,7 @@ describe('geometryRequest payload contract', () => {
     ).toBe(false)
   })
 
-  it('accepts extrude payloads with explicit single and aggregate profileSelection descriptors', () => {
+  it('accepts extrude payloads with explicit single, aggregate, and ordered contributor profileSelection descriptors', () => {
     expect(
       isGeometryRequestPayload({
         schemaVersion: 1,
@@ -148,6 +148,30 @@ describe('geometryRequest payload contract', () => {
               taperResolved: 0,
               offsetResolved: 0,
             },
+            {
+              op: 'extrude',
+              featureId: 'extrude-contributors',
+              profileSelection: {
+                mode: 'contributors',
+                contributors: [
+                  {
+                    kind: 'single',
+                    sketchFeatureId: 'sketch-1',
+                    profileId: 'profile-1',
+                    profileIndex: 0,
+                  },
+                  {
+                    kind: 'allFromSketch',
+                    sketchFeatureId: 'sketch-2',
+                  },
+                ],
+              },
+              profileRef: null,
+              extrudeType: 'Body',
+              depthResolved: 18,
+              taperResolved: 0,
+              offsetResolved: 0,
+            },
           ],
         },
       }),
@@ -164,9 +188,14 @@ describe('geometryRequest payload contract', () => {
               op: 'extrude',
               featureId: 'extrude-bad-selection',
               profileSelection: {
-                mode: 'single',
-                sketchFeatureId: 'sketch-1',
-                profileId: 'profile-1',
+                mode: 'contributors',
+                contributors: [
+                  {
+                    kind: 'single',
+                    sketchFeatureId: 'sketch-1',
+                    profileId: 'profile-1',
+                  },
+                ],
               },
               profileRef: null,
               extrudeType: 'Body',

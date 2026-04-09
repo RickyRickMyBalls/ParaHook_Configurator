@@ -3899,15 +3899,13 @@
   order: 3;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiNodePortColumn--out,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiNodePortColumn--out {
+.SpaghettiTemplateSection--outputs .SpaghettiNodePortColumn--out {
   width: calc(50% - 2px);
   max-width: calc(50% - 2px);
   margin-left: auto;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out {
   width: 100%;
   margin-left: auto;
   margin-right: 0;
@@ -3920,13 +3918,11 @@
   border-color: color-mix(in srgb, var(--sp-port-color) 42%, rgba(96, 122, 172, 0.34));
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPortAnchor--out,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPortAnchor--out {
+.SpaghettiTemplateSection--outputs .SpaghettiPortAnchor--out {
   right: -8px;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeader,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortHeader {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeader {
   position: relative;
   min-height: 16px;
   width: 100%;
@@ -3937,9 +3933,7 @@
 }
 
 .SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName,
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortName,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortType {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType {
   display: inline-flex;
   align-items: center;
   font-size: 8px;
@@ -3953,8 +3947,7 @@
   opacity: 0.96;
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortName {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortName {
   position: static;
   grid-row: 1;
   margin: 0;
@@ -3964,8 +3957,7 @@
   color: rgba(226, 234, 248, 0.95);
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortType {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortType {
   position: static;
   grid-row: 3;
   align-self: end;
@@ -3975,8 +3967,7 @@
   color: var(--sp-port-color);
 }
 
-.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeaderRight,
-.SpaghettiExtrudeNodeTemplate [data-sp-geometry-block="outputs"] .SpaghettiPort--out .SpaghettiPortHeaderRight {
+.SpaghettiTemplateSection--outputs .SpaghettiPort--out .SpaghettiPortHeaderRight {
   position: static;
   grid-row: 3;
   align-self: end;

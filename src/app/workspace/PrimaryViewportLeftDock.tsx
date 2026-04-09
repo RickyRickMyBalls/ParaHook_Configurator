@@ -6,6 +6,7 @@ import type {
 import { TitleStatusBar } from '../components/TitleStatusBar'
 
 type PrimaryViewportLeftDockProps = {
+  viewportId: string
   leftDockWidth: number
   bottomInset: string
   isConstrained: boolean
@@ -23,6 +24,7 @@ type PrimaryViewportLeftDockProps = {
 
 export function PrimaryViewportLeftDock(props: PrimaryViewportLeftDockProps) {
   const {
+    viewportId,
     leftDockWidth,
     bottomInset,
     isConstrained,
@@ -50,7 +52,7 @@ export function PrimaryViewportLeftDock(props: PrimaryViewportLeftDockProps) {
     >
       <div className="PrimaryViewportLeftDockContent">
         <div className="PrimaryViewportLeftDockStatus">
-          <TitleStatusBar />
+          <TitleStatusBar viewportId={viewportId} />
         </div>
         <div
           className={`PrimaryViewportLeftDockPanelStackShell ${isConstrained ? 'isConstrained' : ''}`}

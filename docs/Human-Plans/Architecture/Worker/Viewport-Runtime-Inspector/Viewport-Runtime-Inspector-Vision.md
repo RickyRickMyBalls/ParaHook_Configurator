@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-09 07:05: Reframed this moved architecture vision note as the long-form direction doc for a real `Viewport Runtime Inspector` mini-family, adding pointers to the new family index plus standalone `VRI-1` future phase so the vision stays product-facing while implementation-ready chunking lives in dedicated phase docs
 1. 2026-04-03 17:45: Created this wish-feature planning doc to define a viewport-local runtime inspector for `ParaHook Generator v20`, covering viewport stats, worker activity cards, rebuild ordering, and change-impact visualization for procedural model updates
 
 ### Purpose
@@ -35,6 +36,10 @@ The goal is to:
 - identify the most valuable information layers
 - separate immediate UI wins from deeper execution-graph features
 - prepare the feature to split into later architecture work if it proves important
+
+The standalone family planning surfaces now live at:
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-1 - Foundation Runtime Surface.md`
 
 ### Scope
 

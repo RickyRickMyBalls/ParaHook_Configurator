@@ -35,9 +35,36 @@ const makeVec2Node = (unit: PortType['unit'], label: string): FieldNode => ({
   },
 })
 
+const makeVec3Node = (unit: PortType['unit'], label: string): FieldNode => ({
+  kind: 'object',
+  label,
+  type: {
+    kind: 'vec3',
+    ...(unit === undefined ? {} : { unit }),
+  },
+  children: {
+    x: {
+      ...makeNumberLeaf(unit),
+      label: 'X',
+    },
+    y: {
+      ...makeNumberLeaf(unit),
+      label: 'Y',
+    },
+    z: {
+      ...makeNumberLeaf(unit),
+      label: 'Z',
+    },
+  },
+})
+
 export const getFieldTree = (portType: PortType): FieldNode => {
   if (portType.kind === 'vec2') {
     return makeVec2Node(portType.unit, 'Vec2')
+  }
+
+  if (portType.kind === 'vec3') {
+    return makeVec3Node(portType.unit, 'Vec3')
   }
 
   if (portType.kind === 'spline2') {
@@ -108,6 +135,38 @@ export const getFieldNodeAtPath = (
 type LeafPathRecord = {
   path: string[]
   node: FieldNode
+}
+
+export type FieldChildRecord = {
+  key: string
+  path: string[]
+  node: FieldNode
+}
+
+export const listImmediateFieldChildren = (root: FieldNode): FieldChildRecord[] => {
+  if (root.kind === 'array') {
+    return root.item !== undefined
+      ? [
+          {
+            key: '*',
+            path: ['*'],
+            node: root.item,
+          },
+        ]
+      : []
+  }
+
+  if (root.kind !== 'object') {
+    return []
+  }
+
+  return Object.entries(root.children ?? {})
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, child]) => ({
+      key,
+      path: [key],
+      node: child,
+    }))
 }
 
 export const listLeafFieldPaths = (root: FieldNode): LeafPathRecord[] => {

@@ -169,20 +169,23 @@ const resolveExtrudeProfileSelection = (
   context: RuntimeContext,
   feature: IRExtrude,
 ): ResolvedExtrudeProfileSelection => {
-  if (feature.profileSelection?.mode === 'allFromSketch') {
-    const sketch = context.sketches.get(feature.profileSelection.sketchFeatureId)
+  const resolveAllFromSketchTargets = (
+    sketchFeatureId: string,
+    messagePrefix: string,
+  ): ResolvedExtrudeProfileSelection => {
+    const sketch = context.sketches.get(sketchFeatureId)
     if (sketch === undefined || sketch.profiles.size === 0) {
       return {
         ok: false,
         reason: 'missing_profile_selection',
-        message: `Extrude skipped because sketch "${feature.profileSelection.sketchFeatureId}" has no available closed profiles.`,
+        message: `${messagePrefix} sketch "${sketchFeatureId}" has no available closed profiles.`,
       }
     }
     if (sketch.hasInvalidProfiles) {
       return {
         ok: false,
         reason: 'missing_profile_selection',
-        message: `Extrude skipped because sketch "${feature.profileSelection.sketchFeatureId}" contains invalid closed profiles.`,
+        message: `${messagePrefix} sketch "${sketchFeatureId}" contains invalid closed profiles.`,
       }
     }
     return {
@@ -195,14 +198,18 @@ const resolveExtrudeProfileSelection = (
     }
   }
 
-  if (feature.profileSelection?.mode === 'single') {
-    const sketch = context.sketches.get(feature.profileSelection.sketchFeatureId)
-    const wire = sketch?.profiles.get(feature.profileSelection.profileId)
+  const resolveSingleTarget = (
+    sketchFeatureId: string,
+    profileId: string,
+    messagePrefix: string,
+  ): ResolvedExtrudeProfileSelection => {
+    const sketch = context.sketches.get(sketchFeatureId)
+    const wire = sketch?.profiles.get(profileId)
     if (wire === undefined) {
       return {
         ok: false,
         reason: 'missing_profile_selection',
-        message: `Extrude skipped because profileSelection references unavailable profile "${feature.profileSelection.profileId}".`,
+        message: `${messagePrefix} profile "${profileId}" is unavailable.`,
       }
     }
     return {
@@ -214,6 +221,51 @@ const resolveExtrudeProfileSelection = (
           planeTransform: sketch?.planeTransform,
         },
       ],
+    }
+  }
+
+  if (feature.profileSelection?.mode === 'allFromSketch') {
+    return resolveAllFromSketchTargets(
+      feature.profileSelection.sketchFeatureId,
+      'Extrude skipped because',
+    )
+  }
+
+  if (feature.profileSelection?.mode === 'single') {
+    return resolveSingleTarget(
+      feature.profileSelection.sketchFeatureId,
+      feature.profileSelection.profileId,
+      'Extrude skipped because profileSelection references',
+    )
+  }
+
+  if (feature.profileSelection?.mode === 'contributors') {
+    const targets: ResolvedExtrudeProfileTarget[] = []
+    for (const [index, contributor] of feature.profileSelection.contributors.entries()) {
+      const messagePrefix = `Extrude skipped because contributor ${index + 1} references`
+      const resolved =
+        contributor.kind === 'allFromSketch'
+          ? resolveAllFromSketchTargets(contributor.sketchFeatureId, messagePrefix)
+          : resolveSingleTarget(
+              contributor.sketchFeatureId,
+              contributor.profileId,
+              messagePrefix,
+            )
+      if (!resolved.ok) {
+        return resolved
+      }
+      targets.push(...resolved.targets)
+    }
+    if (targets.length === 0) {
+      return {
+        ok: false,
+        reason: 'missing_profile_selection',
+        message: 'Extrude skipped because contributors resolved no available closed profiles.',
+      }
+    }
+    return {
+      ok: true,
+      targets,
     }
   }
 

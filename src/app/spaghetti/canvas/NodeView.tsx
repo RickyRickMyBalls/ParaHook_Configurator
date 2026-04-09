@@ -13,6 +13,7 @@ import type { PartRowOrderSection } from '../parts/partRowOrder'
 import {
   getFieldTree,
   isCompositeFieldNode,
+  listImmediateFieldChildren,
   listLeafFieldPaths,
 } from '../types/fieldTree'
 import { SpaghettiContextMenu } from '../ui/SpaghettiContextMenu'
@@ -72,6 +73,10 @@ import type {
 } from '../selectors'
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { setNodeParams as setNodeParamsCommand } from '../graphCommands/setNodeParams'
+import {
+  buildSketchProfileMemberPortId,
+  parseSketchProfileMemberPortId,
+} from '../features/sketchProfileVirtualPorts'
 import {
   readGeometryExtrudeDirectionFromParams,
   readGeometryExtrudeTaperAngleDegFromParams,
@@ -255,6 +260,28 @@ const leafLabel = (path: string[], fallback?: string): string => {
   return 'Value'
 }
 
+const formatCompositeContractLabel = (label: string): string =>
+  label.length > 0 ? label : 'Composite'
+
+const describeCompositeChildOwnership = (
+  portLabel: string,
+  childCount: number,
+  wholeDriven: boolean,
+): string => {
+  const ownerLabel = formatCompositeContractLabel(portLabel)
+  const childLabel = childCount === 1 ? 'child row' : 'child rows'
+  if (wholeDriven) {
+    return `Parent wiring owns the full ${ownerLabel} value. The ${childLabel} stay visible as read-only typed channels.`
+  }
+  return `This ${ownerLabel} row owns ${summarizeCompositeChildCount(childCount).toLowerCase()} as typed channels. Expand one child row at a time instead of using decorative nesting.`
+}
+
+const describeCompositeOutputOwnership = (portLabel: string, childCount: number): string => {
+  const ownerLabel = formatCompositeContractLabel(portLabel)
+  const childLabel = childCount === 1 ? 'child row' : 'child rows'
+  return `This ${ownerLabel} output publishes one structured value. The ${childLabel} expose real typed channels from the same parent value.`
+}
+
 const pathKey = (path: string[] | undefined): string =>
   path === undefined || path.length === 0 ? '' : path.join('.')
 
@@ -308,16 +335,22 @@ const sketchProfileSummaryLabel = (
   selectedProfile: { profileId: string; area: number } | null,
 ): string => {
   if (profileCount === 0) {
-    return 'no profiles'
+    return 'no closed profiles'
   }
   if (hasSelectedProfile) {
     if (selectedProfile === null) {
-      return '1 ready'
+      return '1 selected profile'
     }
-    return `selected ${selectedProfile.profileId.slice(0, 8)}`
+    return `selected profile ${selectedProfile.profileId.slice(0, 8)}`
   }
-  return `${profileCount} profiles`
+  return `all ${profileCount} profiles`
 }
+
+const summarizeProfileCount = (profileCount: number): string =>
+  profileCount === 1 ? '1 profile' : `${profileCount} profiles`
+
+const summarizeCompositeChildCount = (childCount: number): string =>
+  childCount === 1 ? '1 child' : `${childCount} children`
 
 const buildDependencyPath = (
   fromX: number,
@@ -558,6 +591,11 @@ function NodeViewComponent({
     if (isExtrudeTemplate && direction === 'in') {
       if (portId === 'ExtrusionProfile') {
         return { opensInEssentials: true }
+      }
+    }
+    if (isExtrudeTemplate && direction === 'out') {
+      if (portId === 'SolidBody') {
+        return { opensInEssentials: false }
       }
     }
     return null
@@ -1072,12 +1110,42 @@ function NodeViewComponent({
       rowFlags.renderLeafRows &&
       (rowFlags.forceLeafRows || expandedByState)
     const leaves = listLeafFieldPaths(tree)
+    const directChildren = listImmediateFieldChildren(tree)
 
     const wholeDriven = inputCompositeState.wholeDrivenByPortId.has(endpointPortId)
     const hasLegacyLeafOverride =
       inputCompositeState.legacyLeafOverrideOnWhole.has(endpointPortId)
     const displayVec =
       inputCompositeState.vec2DisplayByPortId.get(endpointPortId) ?? { x: 0, y: 0 }
+    const compositeSummaryLabel = summarizeCompositeChildCount(leaves.length)
+    const compositeOwnershipHint = describeCompositeChildOwnership(
+      options?.labelOverride ?? port.label,
+      leaves.length,
+      wholeDriven,
+    )
+    const compositeChildLabels = directChildren.map((child) =>
+      leafLabel(child.path, child.node.label),
+    )
+    const compositeAttachedBody = expanded ? (
+      <div className="SpaghettiSketchSectionBody" data-sp-composite-parent-summary="input">
+        <div className="SpaghettiSketchActionRow">
+          <div className="SpaghettiSketchActionMeta">
+            <div className="SpaghettiSketchActionTitle">Structured parent</div>
+            <div className="SpaghettiSketchActionHint">{compositeOwnershipHint}</div>
+          </div>
+        </div>
+        <div className="SpaghettiSketchEntityList" data-sp-composite-child-contract="1">
+          <div className="SpaghettiSketchEntityRow" data-sp-composite-child-row="summary">
+            <div className="SpaghettiSketchEntityMeta">
+              <div className="SpaghettiSketchEntityTitle">Typed children</div>
+              <div className="SpaghettiSketchEntitySummary">
+                {compositeChildLabels.join(' | ')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : undefined
 
     return (
       <div
@@ -1101,6 +1169,8 @@ function NodeViewComponent({
           onContextMenu: (event) => openCompositeContextMenu(event, endpointPortId),
           drivenMessage: wholeDriven ? 'Driven by parent wire' : undefined,
           suppressEditors: !showEditors,
+          resolvedValueLabel: compositeSummaryLabel,
+          attachedBodyContent: compositeAttachedBody,
         })}
         {wholeDriven && hasLegacyLeafOverride ? (
           <div className="SpaghettiCompositeWarningBadge spComp_warning">Leaf override exists</div>
@@ -1234,6 +1304,8 @@ function NodeViewComponent({
       hideDetailsToggle?: boolean
       resolvedValueLabel?: string
       detailsTitle?: string
+      attachedBodyContent?: ReactNode
+      childTone?: boolean
     },
   ) => {
     const endpointPortId = options?.endpointPortId ?? port.portId
@@ -1264,6 +1336,7 @@ function NodeViewComponent({
           (isRootPort ? outputPortDetails?.[endpointPortId] : undefined)
         }
         detailsTitle={options?.detailsTitle}
+        attachedBodyContent={options?.attachedBodyContent}
         detailsExpanded={
           options?.rowChevronState === 'expanded' ||
           (showDebugInfo && expandedDetails[detailsKey] === true)
@@ -1285,7 +1358,7 @@ function NodeViewComponent({
         onToggleRowExpanded={options?.onToggleRowExpanded}
         rowToggleAriaLabel={options?.rowToggleAriaLabel}
         hideDetailsToggle={options?.hideDetailsToggle}
-        childTone={path !== undefined}
+        childTone={options?.childTone === true || path !== undefined}
         resolvedValueLabel={options?.resolvedValueLabel}
         scrubSpeed={scrubSensitivity}
         onOutputPointerDown={onOutputPointerDown}
@@ -1319,6 +1392,32 @@ function NodeViewComponent({
       (rowFlags.forceLeafRows || expandedByState) &&
       !isCompositeCollapsed(sectionId, endpointPortId)
     const leaves = listLeafFieldPaths(tree)
+    const directChildren = listImmediateFieldChildren(tree)
+    const compositeSummaryLabel = summarizeCompositeChildCount(leaves.length)
+    const compositeAttachedBody = expanded ? (
+      <div className="SpaghettiSketchSectionBody" data-sp-composite-parent-summary="output">
+        <div className="SpaghettiSketchActionRow">
+          <div className="SpaghettiSketchActionMeta">
+            <div className="SpaghettiSketchActionTitle">Structured parent</div>
+            <div className="SpaghettiSketchActionHint">
+              {describeCompositeOutputOwnership(options?.labelOverride ?? port.label, leaves.length)}
+            </div>
+          </div>
+        </div>
+        <div className="SpaghettiSketchEntityList" data-sp-composite-child-contract="1">
+          <div className="SpaghettiSketchEntityRow" data-sp-composite-child-row="summary">
+            <div className="SpaghettiSketchEntityMeta">
+              <div className="SpaghettiSketchEntityTitle">Typed children</div>
+              <div className="SpaghettiSketchEntitySummary">
+                {directChildren
+                  .map((child) => leafLabel(child.path, child.node.label))
+                  .join(' | ')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : undefined
 
     return (
       <div
@@ -1331,6 +1430,8 @@ function NodeViewComponent({
           compositeExpanded: expanded,
           onToggleComposite: undefined,
           showDetailsToggle: showDebugInfo,
+          resolvedValueLabel: compositeSummaryLabel,
+          attachedBodyContent: compositeAttachedBody,
         })}
         {expanded ? (
           <div className="SpaghettiCompositeChildren spComp_children">
@@ -1367,6 +1468,8 @@ function NodeViewComponent({
       rowToggleAriaLabel?: string
       hideDetailsToggle?: boolean
       resolvedValueLabel?: string
+      attachedBodyContent?: ReactNode
+      childTone?: boolean
     },
   ) => {
     if (options?.path !== undefined && options.path.length > 0) {
@@ -1381,6 +1484,8 @@ function NodeViewComponent({
         rowToggleAriaLabel: options.rowToggleAriaLabel,
         hideDetailsToggle: options.hideDetailsToggle,
         resolvedValueLabel: options.resolvedValueLabel,
+        attachedBodyContent: options.attachedBodyContent,
+        childTone: options.childTone,
       })
     }
     const tree = getFieldTree(port.type)
@@ -1400,6 +1505,44 @@ function NodeViewComponent({
       rowToggleAriaLabel: options?.rowToggleAriaLabel,
       hideDetailsToggle: options?.hideDetailsToggle,
       resolvedValueLabel: options?.resolvedValueLabel,
+      attachedBodyContent: options?.attachedBodyContent,
+      childTone: options?.childTone,
+    })
+  }
+
+  const renderManagedGeometryOutputPort = (
+    port: PortSpec,
+    options?: {
+      rowLabel?: string
+      headerStatusLabel?: string
+      hideDetailsToggle?: boolean
+      attachedBodyContent?: (mode: StructuredWireRowMode) => ReactNode
+    },
+  ) => {
+    if (!isGeometryPortRowManaged('out', port.portId)) {
+      return renderOutputPortByType(port, {
+        resolvedValueLabel: options?.headerStatusLabel,
+      })
+    }
+    if (!isGeometryPortRowVisibleForMode('out', port.portId)) {
+      return null
+    }
+    const rowController = getManagedStructuredWireRowProps(
+      'out',
+      port.portId,
+      options?.rowLabel ?? port.label,
+    )
+
+    return renderOutputPortByType(port, {
+      rowChevronState: rowController.rowChevronState,
+      onCycleRowChevron: rowController.onCycleRowChevron,
+      rowToggleAriaLabel: rowController.rowToggleAriaLabel,
+      hideDetailsToggle: options?.hideDetailsToggle ?? true,
+      resolvedValueLabel: options?.headerStatusLabel,
+      attachedBodyContent:
+        rowController.rowChevronState === 'collapsed'
+          ? undefined
+          : options?.attachedBodyContent?.(rowController.rowChevronState),
     })
   }
 
@@ -2166,6 +2309,8 @@ function NodeViewComponent({
         (profile) => profile.profileId === managedSketch?.uiState.selectedProfileId,
       ) ??
       (sketchProfiles.length === 1 ? sketchProfiles[0] : null)
+    const resolvedProfileCount = sketchVm?.profileCount ?? sketchProfiles.length
+    const collectionSummaryLabel = summarizeProfileCount(resolvedProfileCount)
     const effectivePlaneLabel = sketchVm?.planeDriven === true
       ? `${sketchVm.effectivePlane} (wired)`
       : sketchVm?.effectivePlane ?? 'Unassigned'
@@ -2241,7 +2386,7 @@ function NodeViewComponent({
         ) : null}
       </div>
     )
-    const renderSketchPlaneAttachedBody = (mode: 'essentials' | 'expanded') => (
+    const renderSketchPlaneAttachedBody = (mode: StructuredWireRowMode) => (
       <div className="SpaghettiSketchPlaneControlStack">
         <div className="SpaghettiSketchPlaneControlSection">
           {renderSketchPlaneSectionTitle(
@@ -2420,7 +2565,7 @@ function NodeViewComponent({
         </div>
       </div>
     )
-    const renderSketchEntitiesAttachedBody = (mode: 'essentials' | 'expanded') => (
+    const renderSketchEntitiesAttachedBody = (mode: StructuredWireRowMode) => (
       <div className="SpaghettiSketchSectionBody">
         <div className="SpaghettiSketchActionRow">
           <div className="SpaghettiSketchActionMeta">
@@ -2509,23 +2654,94 @@ function NodeViewComponent({
         ) : null}
       </div>
     )
-    const renderManagedSketchOutputPort = (port: PortSpec) => {
-      if (!isGeometryPortRowManaged('out', port.portId)) {
-        return renderOutputPortByType(port)
-      }
-      if (!isGeometryPortRowVisibleForMode('out', port.portId)) {
-        return null
-      }
-      const rowController = getManagedStructuredWireRowProps('out', port.portId, port.label)
+    const renderSketchProfileChildRows = (mode: StructuredWireRowMode) =>
+      sketchProfiles.length > 0 ? (
+        <div
+          className="SpaghettiSketchEntityList"
+          data-sp-sketch-profile-children={mode}
+        >
+          {sketchProfiles.map((profile, index) => {
+            const childEndpointPortId = buildSketchProfileMemberPortId(profile.profileId)
+            const childSummary =
+              mode === 'expanded'
+                ? `${profile.profileId} | one resolved profile member target | member ${
+                    index + 1
+                  } of ${sketchProfiles.length}${
+                    selectedProfile?.profileId === profile.profileId ? ' | selected member' : ''
+                  }`
+                : `${profile.profileId} | one resolved profile member target${
+                    selectedProfile?.profileId === profile.profileId ? ' | selected member' : ''
+                  }`
+            return (
+            <div
+              key={profile.profileId}
+              data-sp-sketch-profile-child-row={profile.profileId}
+              data-sp-sketch-profile-child-port-id={childEndpointPortId}
+            >
+              {renderOutputPortByType(
+                {
+                  portId: 'SketchProfile',
+                  label: 'SketchProfile',
+                  type: { kind: 'sketchProfile' },
+                },
+                {
+                  endpointPortId: childEndpointPortId,
+                  labelOverride: 'SketchProfile',
+                  resolvedValueLabel: childSummary,
+                  hideDetailsToggle: true,
+                  childTone: true,
+                },
+              )}
+            </div>
+            )
+          })}
+        </div>
+      ) : null
 
-      return renderOutputPortByType(port, {
-        rowChevronState: rowController.rowChevronState,
-        onCycleRowChevron: rowController.onCycleRowChevron,
-        rowToggleAriaLabel: rowController.rowToggleAriaLabel,
-        hideDetailsToggle: true,
-      })
-    }
-
+    const renderSketchProfilesAttachedBody = (mode: StructuredWireRowMode) => (
+      <div className="SpaghettiSketchSectionBody" data-sp-sketch-profiles-summary="1">
+        <div className="SpaghettiSketchActionRow">
+            <div className="SpaghettiSketchActionMeta">
+              <div className="SpaghettiSketchActionTitle">Parent collection</div>
+              <div className="SpaghettiSketchActionHint">
+              {resolvedProfileCount > 0
+                ? 'Wire this parent row to consume all closed profiles from this sketch in source order.'
+                : 'Closed profiles publish here as one ordered parent collection once the sketch resolves closed loops.'}
+              </div>
+            </div>
+        </div>
+        {resolvedProfileCount > 0 ? (
+          <>
+            <div className="SpaghettiSketchEntityList" data-sp-sketch-profiles-details="1">
+              <div className="SpaghettiSketchEntityRow" data-sp-sketch-profiles-row="aggregate">
+                <div className="SpaghettiSketchEntityMeta">
+                  <div className="SpaghettiSketchEntityTitle">Aggregate target</div>
+                  <div className="SpaghettiSketchEntitySummary">
+                    {`${collectionSummaryLabel} | all resolved closed profiles in source order`}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {renderSketchProfileChildRows(mode)}
+          </>
+        ) : (
+          <div className="SpaghettiSketchPlaceholder" data-sp-sketch-placeholder="profiles">
+            <div className="SpaghettiSketchPlaceholderTitle">No closed profiles yet</div>
+            <div className="SpaghettiSketchPlaceholderBody">
+              Finish at least one closed loop to publish the parent collection row for downstream
+              nodes.
+            </div>
+          </div>
+        )}
+      </div>
+    )
+    const sketchProfilesPort = allOutputs.find((port) => port.portId === 'SketchProfiles')
+    const remainingSketchOutputs = allOutputs.filter(
+      (port) =>
+        port.portId !== 'SketchProfiles' &&
+        port.portId !== 'SketchProfile' &&
+        parseSketchProfileMemberPortId(port.portId) === null,
+    )
     return (
       <GeometryNodeShell
         className="SpaghettiSketchNodeTemplate"
@@ -2574,7 +2790,14 @@ function NodeViewComponent({
         }
         outputRail={
           <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
-            {allOutputs.map((port) => renderManagedSketchOutputPort(port))}
+            {sketchProfilesPort !== undefined
+              ? renderManagedGeometryOutputPort(sketchProfilesPort, {
+                  headerStatusLabel: collectionSummaryLabel,
+                  hideDetailsToggle: true,
+                  attachedBodyContent: (mode) => renderSketchProfilesAttachedBody(mode),
+                })
+              : null}
+            {remainingSketchOutputs.map((port) => renderManagedGeometryOutputPort(port))}
           </div>
         }
         diagnostics={diagnosticsContent}
@@ -2623,20 +2846,20 @@ function NodeViewComponent({
     const aggregateProfileCountLabel = `${aggregateProfileCount} closed profile${
       aggregateProfileCount === 1 ? '' : 's'
     }`
-    const profileTargetRowLabel =
-      profileTargetMode === 'allFromSketch' ? 'SketchProfiles' : 'SketchProfile'
+    const profileInputEntries = extrudeVm?.profileInputEntries ?? []
+    const profileTargetRowLabel = 'SketchProfiles'
     const profileSummary =
       profileTargetMode === 'allFromSketch'
         ? extrudeVm?.hasProfile === true
           ? `All closed profiles | ${aggregateProfileCountLabel}`
           : 'Awaiting closed profiles from SketchProfiles'
         : extrudeVm?.hasProfile === true
-          ? `${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
+          ? `1 contributor | ${extrudeVm.profileId?.slice(0, 8) ?? 'profile'} | area ${formatPinValue(
               extrudeVm.profileArea ?? 0,
             )}`
           : profileTargetMode === 'single'
-            ? 'Awaiting one SketchProfile'
-            : 'Awaiting SketchProfile or SketchProfiles target'
+            ? 'Awaiting one SketchProfile contributor'
+            : 'Awaiting SketchProfiles contributors'
     const depthRequirementLabel =
       effectiveExtrudeDirection === 'TwoSides'
         ? 'positive Start Depth and End Depth'
@@ -2647,24 +2870,84 @@ function NodeViewComponent({
       profileTargetMode === 'allFromSketch'
         ? 'closed profiles from SketchProfiles'
         : profileTargetMode === 'single'
-          ? 'one SketchProfile'
-          : 'a SketchProfile or SketchProfiles target'
-    const bodySummaryReady =
-      effectiveExtrudeType === 'Walls'
-        ? `Walls ready: ${extrudeVm?.bodyId ?? ''} (uncapped side walls)`
-        : `Body ready: ${extrudeVm?.bodyId ?? ''} (capped result)`
-    const bodySummary =
+          ? 'one SketchProfile contributor'
+          : 'SketchProfiles contributors'
+    const bodyStatusLabel = extrudeVm?.bodyId !== undefined ? 'Ready' : 'Waiting'
+    const bodyActionTitle =
       extrudeVm?.bodyId !== undefined
-        ? bodySummaryReady
+        ? effectiveExtrudeType === 'Walls'
+          ? 'Wall Output'
+          : 'Body Output'
+        : 'Build requirements'
+    const bodyActionHint =
+      extrudeVm?.bodyId !== undefined
+        ? effectiveExtrudeType === 'Walls'
+          ? `Publishes uncapped side walls as ${extrudeVm.bodyId}.`
+          : `Publishes a capped body as ${extrudeVm.bodyId}.`
         : effectiveExtrudeType === 'Walls'
-          ? `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} to generate uncapped side walls.`
-          : `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} to generate a capped body.`
+          ? `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} before this row can publish uncapped side walls.`
+          : `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} before this row can publish a capped body.`
+    const bodyDetailTitle =
+      extrudeVm?.bodyId !== undefined
+        ? effectiveExtrudeType === 'Walls'
+          ? 'Resolved wall result'
+          : 'Resolved body result'
+        : 'Build requirements'
+    const bodyDetailSummary =
+      extrudeVm?.bodyId !== undefined
+        ? effectiveExtrudeType === 'Walls'
+          ? `${extrudeVm.bodyId} | uncapped side walls`
+          : `${extrudeVm.bodyId} | capped body`
+        : `${profileRequirementLabel} | ${depthRequirementLabel}`
     const profileRowController = getManagedStructuredWireRowProps(
       'in',
       'ExtrusionProfile',
       profileTargetRowLabel,
     )
-    const renderExtrudeProfileAttachedBody = (mode: 'essentials' | 'expanded') => (
+    const renderExtrudeProfileEntryRows = (mode: StructuredWireRowMode) =>
+      profileInputEntries.length > 0 && profilePort !== undefined ? (
+        <div
+          className="SpaghettiSketchEntityList"
+          data-sp-extrude-profile-entries={mode}
+        >
+          {profileInputEntries.map((entry, index) => {
+            const entrySummary =
+              entry.kind === 'aggregate'
+                ? mode === 'expanded'
+                  ? `${entry.sourceNodeLabel} | aggregate SketchProfiles contributor | entry ${
+                      index + 1
+                    } of ${profileInputEntries.length}`
+                  : `${entry.sourceNodeLabel} | aggregate SketchProfiles contributor`
+                : mode === 'expanded'
+                  ? `${entry.sourceNodeLabel}${
+                      entry.profileId !== undefined ? ` | ${entry.profileId.slice(0, 8)}` : ''
+                    } | singular SketchProfile contributor | entry ${index + 1} of ${
+                      profileInputEntries.length
+                    }`
+                  : `${entry.sourceNodeLabel}${
+                      entry.profileId !== undefined ? ` | ${entry.profileId.slice(0, 8)}` : ''
+                    } | singular SketchProfile contributor`
+            return (
+              <div
+                key={entry.entryId}
+                className="SpaghettiSketchEntityRow SpaghettiExtrudeProfileEntryShell"
+                data-sp-extrude-profile-entry-row={entry.entryId}
+                data-sp-extrude-profile-entry-kind={entry.kind}
+                data-sp-extrude-profile-entry-port-id={entry.endpointPortId}
+              >
+                {renderInputPortByType(profilePort, {
+                  endpointPortId: entry.endpointPortId,
+                  labelOverride: entry.label,
+                  resolvedValueLabel: entrySummary,
+                  hideDetailsToggle: true,
+                  portClassName: 'SpaghettiExtrudeProfileEntryPortRow',
+                })}
+              </div>
+            )
+          })}
+        </div>
+      ) : null
+    const renderExtrudeProfileAttachedBody = (mode: StructuredWireRowMode) => (
       <div className="SpaghettiSketchSectionBody">
         <div className="SpaghettiSketchActionRow">
           <div className="SpaghettiSketchActionMeta">
@@ -2675,39 +2958,58 @@ function NodeViewComponent({
                   ? 'Consume all closed profiles from the upstream SketchProfiles output from Geometry/Sketch as the start faces for this extrude.'
                   : 'The parent SketchProfiles output is wired, but the source sketch is not currently resolving any closed profiles for this extrude.'
                 : extrudeVm?.hasProfile === true
-                  ? 'Consume one upstream SketchProfile from Geometry/Sketch as the start face for this extrude.'
-                  : 'Wire one SketchProfile or the parent SketchProfiles output from Geometry/Sketch into this extrude.'}
+                  ? 'Consume one upstream SketchProfile from Geometry/Sketch as one contributor in this SketchProfiles collection input.'
+                  : 'Wire one SketchProfile output or the parent SketchProfiles output from Geometry/Sketch into this SketchProfiles collection input.'}
             </div>
           </div>
         </div>
-        {mode === 'expanded' ? (
-          extrudeVm?.hasProfile === true ? (
-            <div className="SpaghettiSketchEntityList" data-sp-extrude-profile-summary="1">
-              <div className="SpaghettiSketchEntityRow" data-sp-extrude-profile-row="summary">
-                <div className="SpaghettiSketchEntityMeta">
-                  <div className="SpaghettiSketchEntityTitle">
-                    {profileTargetMode === 'allFromSketch'
-                      ? 'Resolved SketchProfiles target'
-                      : 'Resolved SketchProfile'}
+        {profileInputEntries.length > 0 ? (
+          <>
+            {renderExtrudeProfileEntryRows(mode)}
+            {mode === 'expanded' && extrudeVm?.hasProfile === true ? (
+              <div className="SpaghettiSketchEntityList" data-sp-extrude-profile-summary="1">
+                <div className="SpaghettiSketchEntityRow" data-sp-extrude-profile-row="summary">
+                  <div className="SpaghettiSketchEntityMeta">
+                    <div className="SpaghettiSketchEntityTitle">Resolved collection state</div>
+                    <div className="SpaghettiSketchEntitySummary">{profileSummary}</div>
                   </div>
-                  <div className="SpaghettiSketchEntitySummary">{profileSummary}</div>
                 </div>
               </div>
-            </div>
-          ) : (
+            ) : null}
+          </>
+        ) : mode === 'expanded' ? (
             <div className="SpaghettiSketchPlaceholder" data-sp-extrude-placeholder="profile">
               <div className="SpaghettiSketchPlaceholderTitle">
                 {profileTargetMode === 'allFromSketch'
                   ? 'No closed profiles resolving yet'
-                  : 'No profile target wired yet'}
+                  : 'No SketchProfiles contributors yet'}
               </div>
               <div className="SpaghettiSketchPlaceholderBody">
                 {profileTargetMode === 'allFromSketch'
                   ? 'The parent `SketchProfiles` output is wired, but the source sketch is not currently publishing any closed profiles for this extrude.'
-                  : 'Connect one `SketchProfile` output or the parent `SketchProfiles` output from `Geometry/Sketch`.'}
+                  : 'Connect one `SketchProfile` output or the parent `SketchProfiles` output from `Geometry/Sketch` into this `SketchProfiles` collection input.'}
               </div>
             </div>
-          )
+          ) : null}
+      </div>
+    )
+    const renderExtrudeBodyAttachedBody = (mode: StructuredWireRowMode) => (
+      <div className="SpaghettiSketchSectionBody" data-sp-extrude-body-summary="1">
+        <div className="SpaghettiSketchActionRow">
+          <div className="SpaghettiSketchActionMeta">
+            <div className="SpaghettiSketchActionTitle">{bodyActionTitle}</div>
+            <div className="SpaghettiSketchActionHint">{bodyActionHint}</div>
+          </div>
+        </div>
+        {mode === 'expanded' ? (
+          <div className="SpaghettiSketchEntityList" data-sp-extrude-body-details="1">
+            <div className="SpaghettiSketchEntityRow" data-sp-extrude-body-row="summary">
+              <div className="SpaghettiSketchEntityMeta">
+                <div className="SpaghettiSketchEntityTitle">{bodyDetailTitle}</div>
+                <div className="SpaghettiSketchEntitySummary">{bodyDetailSummary}</div>
+              </div>
+            </div>
+          </div>
         ) : null}
       </div>
     )
@@ -2978,11 +3280,14 @@ function NodeViewComponent({
         }
         outputRail={
           <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
-            {solidBodyPort !== undefined ? renderOutputPortByType(solidBodyPort) : null}
-            <div className="SpaghettiSketchPlaceholder" data-sp-extrude-body-summary="1">
-              <div className="SpaghettiSketchPlaceholderTitle">SolidBody</div>
-              <div className="SpaghettiSketchPlaceholderBody">{bodySummary}</div>
-            </div>
+            {solidBodyPort !== undefined
+              ? renderManagedGeometryOutputPort(solidBodyPort, {
+                  rowLabel: 'SolidBody',
+                  headerStatusLabel: bodyStatusLabel,
+                  hideDetailsToggle: true,
+                  attachedBodyContent: renderExtrudeBodyAttachedBody,
+                })
+              : null}
           </div>
         }
       />
