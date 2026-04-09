@@ -65,6 +65,204 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1137 -->
+### [1137] - 2026-04-09 09:05 - `WK - Phase VRI-2.4 - Queue Lifecycle Hardening And Handoff`
+<!-- ENTRY 1137 -->
+HUMAN SUMMARY: `Closed the first runtime-inspector queue/archive lane by proving that a newly accepted build replaces prior inspector history through the existing lifecycle bridge, stale same-routing worker traffic stays filtered by the dispatcher, and recent archive history remains bounded without the visible inspector drifting into mixed-build residue.`
+#### Scope / Constraints Honored
+- Kept stale-build acceptance owned by `src/app/buildDispatcher.ts` instead of adding a second inspector-side stale gate.
+- Kept this slice on queue/archive lifecycle hardening and proof, without widening into dependency-impact explanation.
+- Left the visible queue/archive presentation intact except for the focused regression needed to prove replacement-build honesty.
+
+#### Summary of Implementation
+- Updated `src/app/store/runtimeInspectorTaskStore.ts` to export the shipped archive-retention constant so lifecycle proof stays locked to the real bounded recent-history cap.
+- Expanded `src/app/bootstrapBuildWiring.test.ts` with a replacement-build regression that proves `beginBuild(...)` clears prior queue/archive truth for a newer accepted build while stale same-routing progress, result, and worker-error traffic remains ignored by the dispatcher-owned acceptance seam.
+- Expanded `src/app/bootstrapBuildWiring.test.ts` again with a bounded-retention regression that proves the archive keeps only the most recent resolved rows once more than the calm first-pass cap resolves.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` with a visible-proof regression that confirms the rendered inspector shows only replacement-build truth after superseded queue/archive state is replaced.
+
+#### Files Changed
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-2 - Queue Visibility And Archive Truth.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- A newly accepted build start now has explicit regression coverage proving it replaces prior runtime-inspector queue/archive truth instead of leaving mixed-build residue visible.
+- Superseded same-routing progress, result, and worker-error traffic now has explicit regression coverage proving it cannot re-enter the runtime inspector through a second app-owned path.
+- The recent archive cap now has explicit regression coverage proving only the most recent bounded window remains visible after many resolved rows accumulate.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/bootstrapBuildWiring.test.ts src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1136 -->
+### [1136] - 2026-04-09 08:55 - `WK - Phase VRI-2.3 - Archive Truth Surface`
+<!-- ENTRY 1136 -->
+HUMAN SUMMARY: `Added a quieter archive beneath the visible active queue so completed, reused, and failed runtime tasks no longer disappear from the inspector as soon as they leave the queue, while keeping the viewport surface compact and avoiding duplicate error rows when the current-task fallback is in use.`
+#### Scope / Constraints Honored
+- Kept this slice on visible archive truth only and did not widen stale-build replacement or bounded-retention ownership beyond the already shipped store seam.
+- Preserved the active queue as the primary focus by making archive rows visually quieter than both the top current task and queued work.
+- Kept archive shaping in the combined VM so `TitleStatusBar.tsx` remained presentation-led.
+
+#### Summary of Implementation
+- Updated `src/app/store/runtimeInspectorVm.ts` so the runtime inspector now exposes a visible archive card list from the shipped bounded `archive` store seam and filters out the latest archived error when that same row is already occupying the current-task fallback slot.
+- Updated `src/app/components/TitleStatusBar.tsx` so the expanded inspector now renders an `Archive` section beneath the active queue with a quieter recent-history list.
+- Updated `src/app/theme/foundation/base.css` so archive cards render calmer completed, reused, and error tones without competing visually with the active queue.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` with focused coverage for visible archive rows and the no-duplicate error fallback behavior.
+
+#### Files Changed
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-2 - Queue Visibility And Archive Truth.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The expanded runtime inspector now keeps recent resolved runtime tasks visible in a quieter archive section beneath the active queue.
+- Archive rows distinguish completed, reused, and error outcomes through both visible status text and calmer outcome-specific tones.
+- When the inspector is using the latest archived error as the current-task fallback, that same error row is no longer duplicated in the archive section.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1135 -->
+### [1135] - 2026-04-09 08:49 - `WK - Phase VRI-2.2 - Active Queue Surface`
+<!-- ENTRY 1135 -->
+HUMAN SUMMARY: `Made the runtime inspector show the ordered active queue beneath the current runtime-task area, so the top card still explains what is running now while queued work finally stays visible in honest top-to-bottom execution order without widening into archive UI yet.`
+#### Scope / Constraints Honored
+- Kept this slice on active queue visibility only and did not expose the archive region yet.
+- Preserved the existing current-task story by treating the top queue item as the main visible task card instead of inventing a second competing concept.
+- Kept queue shaping in the combined VM so `TitleStatusBar.tsx` stayed presentation-led.
+
+#### Summary of Implementation
+- Updated `src/app/store/runtimeInspectorVm.ts` so the runtime inspector now derives a presentation-ready active-queue card list from the shipped `activeQueue` store seam while keeping the top current-task card anchored in the first queue item.
+- Updated `src/app/components/TitleStatusBar.tsx` so the expanded inspector now renders an `Active Queue` section beneath `Current Runtime Task` whenever additional queued items exist, reusing the shared card presentation while keeping the top card visually primary.
+- Updated `src/app/theme/foundation/base.css` so queued cards read quieter than the top active card through softer borders, calmer fills, and dedicated queue-list spacing.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` with a focused regression that proves the inspector renders multiple active queue cards in accepted order with the top task ahead of the queued rows.
+
+#### Files Changed
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-2 - Queue Visibility And Archive Truth.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanding the runtime inspector can now show more than one active queue card when honest runtime truth exists.
+- The top card remains the strongest current-task read, while queued tasks appear directly beneath it in accepted order with quieter pending styling.
+- Archive outcomes remain hidden from the visible inspector for now, leaving that surface for `VRI-2.3`.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1134 -->
+### [1134] - 2026-04-09 08:36 - `WK - Phase VRI-2.1 - Queue Read Contract And Store Widening`
+<!-- ENTRY 1134 -->
+HUMAN SUMMARY: `Widened the runtime inspector from one current-task slot into an explicit active-queue plus recent-archive state seam fed by accepted build lifecycle hooks, so queued, active, reused, done, and error task truth now exists in app state before the visible queue/archive UI widens in later `VRI-2` slices.`
+#### Scope / Constraints Honored
+- Kept this slice on queue/archive read-model widening only and did not render the visible active queue or archive sections yet.
+- Preserved `buildDispatcher` as the stale-build acceptance owner instead of recreating a second stale-event gate in the inspector store.
+- Kept the current runtime-inspector surface stable by continuing to show one task card while the new queue/archive truth stays app-owned behind it.
+
+#### Summary of Implementation
+- Rebuilt `src/app/store/runtimeInspectorTaskStore.ts` from a single `currentTask` slot into explicit `activeQueue` plus bounded `archive` state, with helper actions for build start, active upsert, task resolution, build failure, and placeholder settle cleanup.
+- Updated `src/app/bootstrapBuildWiring.ts` so accepted dispatcher lifecycle hooks now map `queued` and `building` into the active queue, move `cache_hit`, `done`, and `error` into archive truth, and preserve accepted build identity through `seq`, `graphDocumentId`, `buildRequestId`, and `partKey`.
+- Updated `src/app/store/runtimeInspectorVm.ts` so the existing single-card inspector keeps reading from the widened store, including falling back to the latest archived error when the overall build state is failed.
+- Expanded `src/app/bootstrapBuildWiring.test.ts` to prove queued, active, reused, done, result-settle, and worker-error transitions through the widened queue/archive contract, and refreshed `src/app/workspace/PrimaryViewportLeftDock.test.tsx` to use the new store shape without widening the visible shell yet.
+
+#### Files Changed
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-2 - Queue Visibility And Archive Truth.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The app now retains ordered runtime-inspector queue truth and a bounded recent archive instead of collapsing accepted build lifecycle into a single mutable task slot.
+- `cache_hit` work now lands as explicit archived `reused` truth instead of reading like another in-flight active card.
+- Successful builds no longer erase all inspector task truth immediately at result settle time; recent resolved entries remain available for later `VRI-2` surfaces even though the current UI still shows only one task card.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/bootstrapBuildWiring.test.ts`
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1133 -->
+### [1133] - 2026-04-09 08:13 - `WK - Phase VRI-1.4 - Combined Inspector Read Model And Hardening`
+<!-- ENTRY 1133 -->
+HUMAN SUMMARY: `Consolidated the shipped runtime-inspector shell, viewport stats, and current-task reads behind one compact app-side inspector model, then hardened the primary left-dock proof so the first `VRI-1` foundation surface now reads cleanly across unavailable, active, and error states.`
+#### Scope / Constraints Honored
+- Kept this slice on combined read-model composition and visible-state hardening only and did not widen into queue/archive, dependency-impact, or new worker-owned truth surfaces.
+- Preserved the existing left-dock status-zone seam so the runtime inspector still behaves as a valid browser/meatball dock target.
+
+#### Summary of Implementation
+- Added `src/app/store/runtimeInspectorVm.ts` as the compact inspector-facing view-model seam that combines build shell state, viewport stats, current-task truth, and visible fallback copy decisions.
+- Updated `src/app/components/TitleStatusBar.tsx` so the inspector now renders from that single combined model instead of stitching together multiple direct store subscriptions and local formatting branches inline.
+- Refreshed `src/app/workspace/PrimaryViewportLeftDock.test.tsx` into a clearer combined-state proof matrix covering stats-available, waiting, and error-task inspector reads without regressing the visible left-dock shell behavior.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+#### Behavior Changes
+- The expanded `ParaHook Generator v20` inspector now reads from one compact combined model instead of ad hoc panel-local branching.
+- Runtime-inspector fallback copy stays more consistent across idle, stats-unavailable, active, and error-task states.
+- The `VRI-1` foundation surface is now shaped so later `VRI-2` queue/archive work can extend one explicit inspector seam.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd vitest run src/app/hosts/BrowserDockHost.test.tsx -t "treats the left dock status bar as a browser dock target"`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1132 -->
+### [1132] - 2026-04-09 08:05 - `WK - Phase VRI-1.3 - Active Runtime Task Card`
+<!-- ENTRY 1132 -->
+HUMAN SUMMARY: `Landed the first honest runtime task card by deriving one app-facing current-task read from accepted build lifecycle hooks, then rendering that active-versus-idle build card beneath the shipped viewport stats block in the runtime inspector.`
+#### Scope / Constraints Honored
+- Kept this slice focused on one current runtime task only and did not widen into queue ordering, archive history, or dependency-impact grouping.
+- Preserved the existing left-dock status-zone seam so the runtime inspector still behaves as a valid browser/meatball dock target.
+
+#### Summary of Implementation
+- Added `src/app/store/runtimeInspectorTaskStore.ts` as the compact app-facing current-task read model for the runtime inspector.
+- Updated `src/app/bootstrapBuildWiring.ts` so accepted dispatcher lifecycle hooks now feed one honest current-task card model alongside the existing build stats and console transcript wiring.
+- Updated `src/app/components/TitleStatusBar.tsx` and `src/app/theme/foundation/base.css` so the inspector now renders a dedicated `Current Runtime Task` section with active, idle, and error presentation states beneath the viewport stats grid.
+- Added focused proof in `src/app/bootstrapBuildWiring.test.ts` for task-card lifecycle bridging and refreshed `src/app/workspace/PrimaryViewportLeftDock.test.tsx` for the visible active-task card state.
+
+#### Files Changed
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+#### Behavior Changes
+- Expanding the `ParaHook Generator v20` card now shows one live `Current Runtime Task` card beneath the viewport stats block.
+- The task card is driven by accepted build lifecycle truth from `BuildDispatcher` runtime hooks instead of console-copy reconstruction.
+- Idle, active, and error build states now read distinctly in the runtime inspector without implying hidden queue history.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/bootstrapBuildWiring.test.ts`
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd vitest run src/app/hosts/BrowserDockHost.test.tsx -t "treats the left dock status bar as a browser dock target"`
+- `npx.cmd tsc --noEmit`
+
 <!-- ENTRY 1131 -->
 ### [1131] - 2026-04-09 07:36 - `WK - Phase VRI-1.2 - Viewport Stats Foundation`
 <!-- ENTRY 1131 -->

@@ -1,62 +1,75 @@
 import { useId, useState } from 'react'
 import {
-  selectHasDeterminateProgress,
-  selectOverallProgress01,
-  useBuildStatsStore,
-} from '../store/buildStatsStore'
-import {
-  selectViewportRuntimeStats,
-  useViewportRuntimeStatsStore,
-} from '../store/viewportRuntimeStatsStore'
+  type RuntimeInspectorQueueCardVm,
+  useRuntimeInspectorVm,
+} from '../store/runtimeInspectorVm'
 
 type TitleStatusBarProps = {
   viewportId: string
 }
 
-const formatRuntimeStatValue = (value: number | null): string =>
-  value === null ? 'Unavailable' : value.toLocaleString()
-
 export function TitleStatusBar(props: TitleStatusBarProps) {
   const { viewportId } = props
   const [isInspectorExpanded, setIsInspectorExpanded] = useState(false)
   const inspectorRegionId = useId()
-  const overallState = useBuildStatsStore((state) => state.overallState)
-  const pulseNonce = useBuildStatsStore((state) => state.pulseNonce)
-  const pulseKind = useBuildStatsStore((state) => state.pulseKind)
-  const overallProgress01 = useBuildStatsStore(selectOverallProgress01)
-  const hasDeterminateProgress = useBuildStatsStore(selectHasDeterminateProgress)
-  const runtimeStats = useViewportRuntimeStatsStore((state) =>
-    selectViewportRuntimeStats(state, viewportId),
-  )
+  const inspectorVm = useRuntimeInspectorVm(viewportId)
 
-  const shouldShowProgress = overallState === 'building' || overallState === 'assembling'
-  const isIndeterminate = shouldShowProgress && !hasDeterminateProgress
-  const progressWidth = shouldShowProgress ? `${Math.round(overallProgress01 * 100)}%` : '0%'
-  const hasAnyRuntimeStats = Object.values(runtimeStats).some((value) => value !== null)
+  const renderQueueCard = (
+    task: RuntimeInspectorQueueCardVm,
+    options?: {
+      ariaLabel?: string
+      extraClassName?: string
+    },
+  ) => (
+    <div
+      className={`TitleStatusInspectorTaskCard state-${task.tone}${options?.extraClassName ? ` ${options.extraClassName}` : ''}`}
+      aria-label={options?.ariaLabel}
+    >
+      <div className="TitleStatusInspectorTaskHeader">
+        <span className="TitleStatusInspectorTaskLabel">{task.title}</span>
+        <span className="TitleStatusInspectorTaskState">{task.statusLabel}</span>
+      </div>
+      <div className="TitleStatusInspectorTaskMeta">
+        <span>{task.progressLabel}</span>
+        {task.graphDocumentId !== null ? <span>{task.graphDocumentId}</span> : null}
+      </div>
+      {task.progressPercent !== null ? (
+        <div className="TitleStatusInspectorTaskProgressTrack">
+          <span
+            className="TitleStatusInspectorTaskProgressFill"
+            style={{ width: `${task.progressPercent}%` }}
+          />
+        </div>
+      ) : null}
+      {task.detail !== null ? (
+        <span className="TitleStatusInspectorTaskDetail">{task.detail}</span>
+      ) : null}
+    </div>
+  )
 
   return (
     <div className={`TitleStatusBarStack ${isInspectorExpanded ? 'isInspectorExpanded' : ''}`}>
       <button
         type="button"
-        className={`TitleStatusBar state-${overallState}`}
+        className={`TitleStatusBar state-${inspectorVm.overallState}`}
         aria-expanded={isInspectorExpanded}
         aria-controls={inspectorRegionId}
         aria-label={isInspectorExpanded ? 'Collapse runtime inspector' : 'Expand runtime inspector'}
         onClick={() => setIsInspectorExpanded((current) => !current)}
       >
-        {pulseKind === 'cache_hit' && pulseNonce > 0 ? (
-          <span key={pulseNonce} className="TitleStatusPulseFlash" />
+        {inspectorVm.pulseKind === 'cache_hit' && inspectorVm.pulseNonce > 0 ? (
+          <span key={inspectorVm.pulseNonce} className="TitleStatusPulseFlash" />
         ) : null}
         <div className="TitleStatusRow">
           <span className="TitleStatusName">ParaHook Generator v20</span>
           <span className="TitleStatusMeta">
-            {overallState === 'idle' ? 'Idle' : overallState}
+            {inspectorVm.overallState === 'idle' ? 'Idle' : inspectorVm.overallState}
           </span>
         </div>
         <div className="TitleStatusProgressTrack">
           <span
-            className={`TitleStatusProgressFill ${isIndeterminate ? 'isIndeterminate' : ''}`}
-            style={{ width: isIndeterminate ? '100%' : progressWidth }}
+            className={`TitleStatusProgressFill ${inspectorVm.isIndeterminate ? 'isIndeterminate' : ''}`}
+            style={{ width: inspectorVm.isIndeterminate ? '100%' : inspectorVm.progressWidth }}
           />
         </div>
       </button>
@@ -68,39 +81,81 @@ export function TitleStatusBar(props: TitleStatusBarProps) {
         >
           <div className="TitleStatusInspectorHeader">
             <span className="TitleStatusInspectorEyebrow">Runtime Inspector</span>
-            <span className="TitleStatusInspectorState">Viewport Stats</span>
+            <span className="TitleStatusInspectorState">{inspectorVm.shellStateLabel}</span>
           </div>
           <div className="TitleStatusInspectorStatsGrid" role="list" aria-label="Viewport runtime stats">
-            <div className="TitleStatusInspectorStatCard" role="listitem">
-              <span className="TitleStatusInspectorStatLabel">Triangles</span>
-              <span className="TitleStatusInspectorStatValue">
-                {formatRuntimeStatValue(runtimeStats.triangles)}
-              </span>
-            </div>
-            <div className="TitleStatusInspectorStatCard" role="listitem">
-              <span className="TitleStatusInspectorStatLabel">Lines</span>
-              <span className="TitleStatusInspectorStatValue">
-                {formatRuntimeStatValue(runtimeStats.lines)}
-              </span>
-            </div>
-            <div className="TitleStatusInspectorStatCard" role="listitem">
-              <span className="TitleStatusInspectorStatLabel">Points</span>
-              <span className="TitleStatusInspectorStatValue">
-                {formatRuntimeStatValue(runtimeStats.points)}
-              </span>
-            </div>
-            <div className="TitleStatusInspectorStatCard" role="listitem">
-              <span className="TitleStatusInspectorStatLabel">FPS</span>
-              <span className="TitleStatusInspectorStatValue">
-                {formatRuntimeStatValue(runtimeStats.fps)}
-              </span>
-            </div>
+            {inspectorVm.statCards.map((statCard) => (
+              <div key={statCard.label} className="TitleStatusInspectorStatCard" role="listitem">
+                <span className="TitleStatusInspectorStatLabel">{statCard.label}</span>
+                <span className="TitleStatusInspectorStatValue">{statCard.value}</span>
+              </div>
+            ))}
           </div>
-          <p className="TitleStatusInspectorHint">
-            {hasAnyRuntimeStats
-              ? 'Active runtime task cards stay deferred until VRI-1.3.'
-              : 'Waiting for the first viewer runtime sample. Active runtime task cards stay deferred until VRI-1.3.'}
-          </p>
+          <div className="TitleStatusInspectorTaskSection">
+            <div className="TitleStatusInspectorSubheader">
+              <span className="TitleStatusInspectorSubheaderLabel">Current Runtime Task</span>
+              <span className="TitleStatusInspectorSubheaderValue">{inspectorVm.task.statusLabel}</span>
+            </div>
+            {inspectorVm.task.kind === 'idle' ? (
+              <div className="TitleStatusInspectorTaskCard isIdle">
+                <span className="TitleStatusInspectorTaskLabel">{inspectorVm.task.title}</span>
+                <span className="TitleStatusInspectorTaskDetail">{inspectorVm.task.detail}</span>
+              </div>
+            ) : (
+              renderQueueCard(
+                {
+                  title: inspectorVm.task.title,
+                  statusLabel: inspectorVm.task.statusLabel,
+                  progressLabel: inspectorVm.task.progressLabel,
+                  graphDocumentId: inspectorVm.task.graphDocumentId,
+                  detail: inspectorVm.task.detail,
+                  progressPercent: inspectorVm.task.progressPercent,
+                  tone: inspectorVm.task.tone,
+                },
+                {
+                  ariaLabel: 'Current runtime task',
+                },
+              )
+            )}
+          </div>
+          {inspectorVm.activeQueueCards.length > 0 ? (
+            <div className="TitleStatusInspectorTaskSection">
+              <div className="TitleStatusInspectorSubheader">
+                <span className="TitleStatusInspectorSubheaderLabel">Active Queue</span>
+                <span className="TitleStatusInspectorSubheaderValue">
+                  {`${inspectorVm.activeQueueCards.length} queued`}
+                </span>
+              </div>
+              <div className="TitleStatusInspectorQueueList" role="list" aria-label="Active queue">
+                {inspectorVm.activeQueueCards.map((task, index) => (
+                  <div key={`${index}:${task.title}:${task.graphDocumentId ?? 'unknown'}`} role="listitem">
+                    {renderQueueCard(task, { extraClassName: 'isQueuedCard' })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {inspectorVm.archiveCards.length > 0 ? (
+            <div className="TitleStatusInspectorTaskSection">
+              <div className="TitleStatusInspectorSubheader">
+                <span className="TitleStatusInspectorSubheaderLabel">Archive</span>
+                <span className="TitleStatusInspectorSubheaderValue">
+                  {`${inspectorVm.archiveCards.length} recent`}
+                </span>
+              </div>
+              <div className="TitleStatusInspectorArchiveList" role="list" aria-label="Recent archive">
+                {inspectorVm.archiveCards.map((task, index) => (
+                  <div
+                    key={`${index}:${task.title}:${task.graphDocumentId ?? 'unknown'}`}
+                    role="listitem"
+                  >
+                    {renderQueueCard(task, { extraClassName: 'isArchiveCard' })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <p className="TitleStatusInspectorHint">{inspectorVm.hint}</p>
         </section>
       ) : null}
     </div>

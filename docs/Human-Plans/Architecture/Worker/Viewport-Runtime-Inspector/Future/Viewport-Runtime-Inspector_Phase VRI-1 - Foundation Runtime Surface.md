@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-04-09 08:13: Marked `VRI-1.4 - Combined Inspector Read Model And Hardening` shipped after the live runtime inspector moved behind one compact app-side combined model in `runtimeInspectorVm`, `TitleStatusBar` shed most of its panel-local composition branches, and focused left-dock proof hardened the visible unavailable-versus-active-versus-error matrix so `VRI-1` now closes as the first honest runtime-inspector foundation subset
+9. 2026-04-09 08:08: Tightened `VRI-1.4 - Combined Inspector Read Model And Hardening` into an implementation-ready final `VRI-1` slice by grounding it in the live `TitleStatusBar`, `viewportRuntimeStatsStore`, `runtimeInspectorTaskStore`, and existing left-dock proof seams, locking that the goal is to consolidate the now-shipped shell, stats, and task reads behind one compact inspector model instead of leaving the panel assembled from multiple direct store subscriptions plus local ad hoc fallback logic
+8. 2026-04-09 08:05: Marked `VRI-1.3 - Active Runtime Task Card` shipped after accepted `BuildDispatcher` lifecycle hooks began feeding one compact app-facing current-task read through `bootstrapBuildWiring`, the primary `TitleStatusBar` shell began rendering that active-versus-idle task card beneath the viewport stats block, and focused lifecycle plus left-dock proof verified the current-task seam without regressing the title-area dock target
+7. 2026-04-09 08:01: Tightened `VRI-1.3 - Active Runtime Task Card` into an implementation-ready next slice by grounding it in the live `BuildDispatcher` runtime hooks, `bootstrapBuildWiring`, `buildStatsStore`, and `TitleStatusBar` seams, locking that the first current-task card should come from explicit dispatcher/build lifecycle truth instead of inventing task names from per-part stats or console transcript lines
 6. 2026-04-09 07:36: Marked `VRI-1.2 - Viewport Stats Foundation` shipped after the live viewer began emitting one explicit triangles/lines/points/FPS snapshot through `Viewer`, `viewerBridge`, and `ViewerHost`, the primary `TitleStatusBar` shell began rendering that compact stats grid with honest unavailable-state copy, and focused left-dock plus `ViewerHost` proof verified the new stats seam without regressing the left-dock preview target
 5. 2026-04-09 07:27: Tightened `VRI-1.2 - Viewport Stats Foundation` into an implementation-ready next slice by grounding it in the live `Viewer`, `viewerBridge`, `ViewerHost`, and `TitleStatusBar` seams, locking the need for one explicit viewer-to-app stats contract instead of generic future telemetry wording, and clarifying that the existing `ViewportOverlay` geometry HUD is only a nearby caution seam rather than the runtime-inspector owner
 4. 2026-04-09 07:19: Marked `VRI-1.1 - Panel Shell And Expand Collapse Contract` shipped after the live `TitleStatusBar` gained an explicit runtime-inspector toggle plus empty shell, the shell landed beneath the compact title card inside the primary left-dock status zone, and focused dock tests verified the expanded panel placement without regressing the existing left-dock status-target seam
@@ -108,7 +112,7 @@ Current status:
 Reason:
 - after the shell and stats are real, the next missing truth is one honest build/runtime card that names what the worker is doing now without widening into full queue history
 Current status:
-- planned
+- shipped
 - current handoff:
   - `VRI-1.4 - Combined Inspector Read Model And Hardening`
 
@@ -116,7 +120,7 @@ Current status:
 Reason:
 - once the first visible surface is in place, the remaining work is combining the reads cleanly, tightening copy and fallback states, and leaving the foundation ready for `VRI-2`
 Current status:
-- planned
+- shipped
 - this closes `VRI-1` as the first honest runtime-inspector foundation subset
 
 ## [x] VRI-1.1 - Panel Shell And Expand Collapse Contract
@@ -414,7 +418,7 @@ Closeout notes:
 - this slice intentionally stops at viewport stats and does not widen into active-task naming or queue visibility
 - `VRI-1.3` remains the next honest step for adding one real current runtime-task card
 
-## [ ] VRI-1.3 - Active Runtime Task Card
+## [x] VRI-1.3 - Active Runtime Task Card
 
 ### Summary
 
@@ -424,29 +428,59 @@ Closeout notes:
 - keep this slice on one current task instead of widening into full queue history
 
 #### Current strongest read:
-- this slice is still planned
+- this slice is now shipped
 - the runtime inspector becomes meaningfully explanatory only once it can answer:
   - what is the worker doing right now
 - the first honest answer does not need full queue/archive truth yet
 - one active-task card is enough if it is backed by real runtime/build data
+- the strongest current code-backed read is:
+  - `src/app/buildDispatcher.ts` already emits explicit build lifecycle moments through:
+    - `onBuildRequestStarted`
+    - `onBuildProgress`
+    - `onBuildResultSettled`
+    - `onWorkerError`
+  - `src/app/bootstrapBuildWiring.ts` is already the app-owned bridge that turns those runtime hooks into build stats and console entries
+  - `src/app/store/buildStatsStore.ts` currently owns overall build state plus per-part progress, but it does not yet expose one explicit inspector-friendly "current task" read model
+- that means `VRI-1.3` should not invent task naming by scraping console transcript lines or loosely guessing from `partStatsByKey`
+- instead it should add one narrow current-task adapter/store seam near the existing build wiring and let the inspector card render that read honestly
 
 #### Locked direction:
 - show only the current active task in this slice
 - the task name, status, and progress should come from real runtime/build truth
 - idle state should read cleanly when nothing is building
+- prefer one compact app-facing current-task read model over having `TitleStatusBar.tsx` inspect build-dispatch internals directly
+- keep the first card naming honest:
+  - graph/build request start can name the current graph/runtime lane
+  - active part progress can refine the card while work is actually building
+  - idle and error states should stay explicit instead of implying hidden queue state
 
 #### Implementation-ready seam read:
-- worker/build orchestration seams under the app runtime path
-  - are the likely owner for exposing one current task read
-- the runtime-inspector panel UI
-  - is the likely owner for rendering the active card state
-- focused runtime/UI tests
-  - are the smallest honest proof surface for active-versus-idle card behavior
+- `src/app/buildDispatcher.ts`
+  - is the strongest runtime owner seam because it already receives the accepted worker lifecycle events that define when a build starts, progresses, settles, or errors
+- `src/app/bootstrapBuildWiring.ts`
+  - is the strongest app-bridge seam because it already translates dispatcher lifecycle hooks into app-owned stores and console surfaces
+- `src/app/store/buildStatsStore.ts`
+  - is the strongest adjacent state seam because it already tracks:
+    - overall build state
+    - active seq
+    - part order
+    - per-part progress
+  - but it should either be widened carefully or paired with one dedicated current-task store/selector rather than being treated as if it already contains a real named task card model
+- `src/app/components/TitleStatusBar.tsx`
+  - is the strongest presentation seam for rendering the first active runtime-task card beneath the shipped viewport stats grid
+- `src/app/bootstrapBuildWiring.test.ts`
+  - is the strongest lifecycle-proof seam because it already verifies build start, progress, and result bridging into app state
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+  - is the strongest UI proof seam that the inspector shell can render active-versus-idle task card states without losing the current stats block
+- `src/app/components/ViewerHost.test.tsx`
+  - is no longer the primary proof seam for this slice because the current-task card is build/runtime-owned rather than viewer-owned
 
 #### Non-goals for this slice:
 - do not add queued or completed lists yet
 - do not add archive groups yet
 - do not widen into parameter-impact grouping yet
+- do not invent task labels by scraping console transcript text
+- do not widen into queue ordering or archive truth that belongs to `VRI-2`
 
 ### Questions / Decisions
 
@@ -469,18 +503,37 @@ Closeout notes:
 - queue and archive truth belong to `VRI-2`
 - forcing them into `VRI-1.3` would make the first foundation slice too large
 
+#### [x] Question 3 - Where should the first honest current-task read come from?
+
+##### Current answer
+- from the existing `BuildDispatcher` lifecycle hooks bridged through app-owned wiring, not from console transcript copy and not from guessing purely off the current per-part stats map
+
+##### Why
+- dispatcher hooks already carry the real accepted build lifecycle boundaries
+- `bootstrapBuildWiring.ts` is the narrowest place to derive one app-facing inspector task read
+- that keeps the task card grounded in actual runtime truth instead of a UI-only reconstruction
+
 ### Implementation Spec
 
 Likely files:
-- worker/build orchestration selectors or adapters under `src/app/`
-- runtime-inspector panel UI files
-- focused tests for active-task rendering
+- `src/app/buildDispatcher.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/buildStatsStore.ts`
+- one compact current-task adapter/store or selector seam under `src/app/store/`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
 
 Locked first-cut direction:
-1. expose one honest active-task read from runtime/build orchestration
-2. render one current task card with name, state, and progress when available
-3. render a clean idle/no-task state when nothing is building
-4. keep queue/archive scope deferred to `VRI-2`
+1. derive one explicit app-facing current-task read from accepted dispatcher lifecycle truth at the build-wiring seam
+2. keep that read narrow:
+   - task label
+   - task state
+   - progress when available
+   - optional graph/build source identity only if it already exists cleanly
+3. render one current task card beneath the shipped viewport stats block in `TitleStatusBar.tsx`
+4. render a clean idle/no-task state when nothing is building and an honest error state when the current build fails
+5. keep queue/archive scope deferred to `VRI-2`
 
 Scope honored:
 - keep this slice on one current task only
@@ -490,8 +543,28 @@ Acceptance checks:
 - long-running work can render one active-task card
 - the card meaningfully names the work unit
 - idle state does not imply hidden queued work
+- the card is fed by explicit dispatcher/build lifecycle truth rather than console copy reconstruction
 
-## [ ] VRI-1.4 - Combined Inspector Read Model And Hardening
+Implementation status:
+- shipped
+
+Shipped read:
+- `src/app/bootstrapBuildWiring.ts`
+  - now derives one compact app-facing current-task read directly from accepted dispatcher lifecycle hooks at build start, progress, settle, and error boundaries
+- `src/app/store/runtimeInspectorTaskStore.ts`
+  - now acts as the dedicated current-task read model for the runtime inspector
+- `src/app/components/TitleStatusBar.tsx`
+  - now renders the first `Current Runtime Task` card beneath the shipped viewport stats grid with active, idle, and error presentation states
+- `src/app/bootstrapBuildWiring.test.ts`
+  - now proves the current-task card seam follows accepted lifecycle truth through start, progress, result, and worker-error transitions
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+  - now proves the left-dock inspector shell can render the active runtime task card alongside the stats block
+
+Closeout notes:
+- this slice intentionally stops at one current task and does not widen into queue/archive history
+- `VRI-1.4` remains the final `VRI-1` pass for combining the now-shipped shell, stats, and current-task reads into one cleaner inspector model
+
+## [x] VRI-1.4 - Combined Inspector Read Model And Hardening
 
 ### Summary
 
@@ -501,31 +574,60 @@ Acceptance checks:
 - leave the family ready for later queue and impact work without major reshaping
 
 #### Current strongest read:
-- this slice is still planned
-- by the time it begins, the visible panel should already exist with:
+- this slice is now shipped
+- the visible panel now composes:
   - shell behavior
-  - stats
+  - viewport stats
   - one active task card
-- the remaining work is making those reads compose cleanly and predictably rather than scattering panel truth across many local ad hoc reads
+  - user-facing fallback and hint copy
+  through one compact inspector-facing model
+- the strongest shipped code-backed read is:
+  - `src/app/store/runtimeInspectorVm.ts`
+    - now combines:
+      - `useBuildStatsStore`
+      - `useViewportRuntimeStatsStore`
+      - `useRuntimeInspectorTaskStore`
+    - and emits one compact runtime-inspector VM for presentation
+  - `src/app/components/TitleStatusBar.tsx`
+    - now reads that combined model for the visible inspector rendering while keeping expand/collapse local to the title-card seam
+  - `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+    - now proves the combined inspector surface across waiting, stats-available, and error-task states
+- `VRI-1` now closes with one cleaner inspector-owned read seam before later queue work widens the surface again
 
 #### Locked direction:
 - give the panel one compact combined selector/read-model seam
 - make idle, unavailable, and active states read clearly
 - use this slice to close `VRI-1` without hiding later queue work inside it
+- prefer moving formatting/fallback decisions out of `TitleStatusBar.tsx` and into one inspector-specific selector/model seam so future `VRI-2` queue work can extend one stable read instead of one heavily inlined component
+- keep expand/collapse behavior local if that remains the lowest-risk choice, unless combining it into the inspector model is clearly cleaner without inventing new global ownership
 
 #### Implementation-ready seam read:
-- one compact panel selector/read-model seam under `src/app/`
-  - is the likely owner for combining:
-    - expansion state
-    - stats
-    - active task truth
-- focused panel/runtime tests
-  - are the smallest honest proof surface for stable combined rendering and fallback cases
+- `src/app/components/TitleStatusBar.tsx`
+  - is the strongest current integration seam because it still owns all visible runtime-inspector composition and therefore makes the existing read scattering obvious
+- `src/app/store/viewportRuntimeStatsStore.ts`
+  - is the current stats owner seam that the combined model should consume rather than bypass
+- `src/app/store/runtimeInspectorTaskStore.ts`
+  - is the current current-task owner seam that the combined model should consume rather than bypass
+- `src/app/store/buildStatsStore.ts`
+  - remains an adjacent shell-state seam because the compact title card still derives overall state and progress from it
+- one compact inspector selector/read-model seam under `src/app/store/`
+  - is the strongest final owner for combining:
+    - compact shell status
+    - viewport stats
+    - current task truth
+    - fallback copy decisions
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+  - is the strongest visible proof seam because it already verifies the left-dock shell content and can be widened into a cleaner matrix for idle, unavailable, active, and error reads
+- `src/app/bootstrapBuildWiring.test.ts`
+  - remains the strongest lifecycle-proof seam for current-task truth, but `VRI-1.4` should avoid re-proving runtime ownership there beyond what the selector/model needs
+- `src/app/components/ViewerHost.test.tsx`
+  - remains the strongest stats-proof seam for the viewer-owned stats contract, but the final `VRI-1` slice should focus more on combined inspector rendering than on re-testing the already-shipped lower-level bridge
 
 #### Non-goals for this slice:
 - do not widen into queue/archive work
 - do not widen into dependency impact mapping
 - do not widen into graph-region highlighting
+- do not re-open the already-shipped ownership decisions for the stats contract or current-task contract unless a small selector seam genuinely requires a minimal change
 
 ### Questions / Decisions
 
@@ -545,19 +647,40 @@ Acceptance checks:
 ##### Why
 - that is the actual proof that the foundation is ready for later queue expansion
 
+#### [x] Question 3 - What should stop living inline inside `TitleStatusBar.tsx` after this slice?
+
+##### Current answer
+- the combined inspector fallback/read logic that currently stitches together:
+  - viewport stats
+  - current task truth
+  - user-facing hint/copy decisions
+
+##### Why
+- `TitleStatusBar.tsx` should remain the presentation seam
+- later `VRI-2` expansion will be safer if the inspector already reads from one explicit model instead of accumulating more panel-local condition trees
+
 ### Implementation Spec
 
 Likely files:
-- combined inspector selector/read-model files under `src/app/`
-- runtime-inspector panel UI files
-- focused verification tests for combined panel behavior
-- this doc and the family index if the handoff wording needs closeout refresh
+- one compact inspector selector/read-model seam under `src/app/store/`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/store/viewportRuntimeStatsStore.ts`
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/store/buildStatsStore.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- focused lower-level proof only if the combined selector/model requires it
+- this doc and the family index for final `VRI-1` closeout wording
 
 Locked first-cut direction:
-1. add one compact combined read-model seam for the full `VRI-1` panel
-2. compose shell state, stats, and active-task truth through that seam
-3. clean any visible copy drift or fallback-state confusion exposed by the integration pass
-4. close `VRI-1` with a clean handoff to `VRI-2`
+1. add one compact combined read-model seam for the full `VRI-1` inspector panel
+2. compose the now-shipped shell status, viewport stats, and current-task truth through that seam
+3. move visible fallback/copy decisions into that seam where they are currently scattered through `TitleStatusBar.tsx`
+4. widen the left-dock inspector proof into a cleaner combined-state matrix:
+   - idle + stats unavailable
+   - idle + stats available
+   - active task
+   - error task
+5. close `VRI-1` with a clean handoff to `VRI-2`
 
 Scope honored:
 - keep this slice on read-model composition and hardening only
@@ -566,4 +689,20 @@ Scope honored:
 Acceptance checks:
 - the panel renders from one stable combined model
 - idle, unavailable, and active states stay readable
+- `TitleStatusBar.tsx` no longer carries most of the inspector-specific read stitching inline
 - the foundation is ready for later `VRI-2` queue work without major reshaping
+
+Implementation status:
+- shipped
+
+Shipped read:
+- `src/app/store/runtimeInspectorVm.ts`
+  - now owns the compact combined runtime-inspector VM for shell state, viewport stats, current-task truth, and visible hint/fallback decisions
+- `src/app/components/TitleStatusBar.tsx`
+  - now acts primarily as the presentation seam plus local expand/collapse owner instead of assembling the inspector from multiple unrelated subscriptions
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+  - now hardens the combined inspector matrix across unavailable, stats-available, and error-task states
+
+Closeout notes:
+- `VRI-1` is now closed as the first honest viewport runtime-inspector foundation subset
+- the next family handoff is `VRI-2 - Queue Visibility And Archive Truth`

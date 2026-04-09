@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BUILD_EXECUTION_INTENT } from '../shared/buildTypes'
 import { emitArtifacts } from '../worker/pipeline/artifactEmitter'
+import { RUNTIME_INSPECTOR_ARCHIVE_LIMIT } from './store/runtimeInspectorTaskStore'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
 
@@ -76,6 +77,7 @@ const compiledBuildData = {
 
 type BuildStatsStore = typeof import('./store/buildStatsStore').useBuildStatsStore
 type ConsoleStore = typeof import('./console/useConsoleStore').useConsoleStore
+type RuntimeInspectorTaskStore = typeof import('./store/runtimeInspectorTaskStore').useRuntimeInspectorTaskStore
 
 const resetBuildStatsStore = (useBuildStatsStore: BuildStatsStore): void => {
   useBuildStatsStore.setState({
@@ -91,9 +93,14 @@ const resetBuildStatsStore = (useBuildStatsStore: BuildStatsStore): void => {
 const resetStores = (
   useBuildStatsStore: BuildStatsStore,
   useConsoleStore: ConsoleStore,
+  useRuntimeInspectorTaskStore: RuntimeInspectorTaskStore,
 ): void => {
   resetBuildStatsStore(useBuildStatsStore)
   useConsoleStore.setState(useConsoleStore.getInitialState(), true)
+  useRuntimeInspectorTaskStore.setState({
+    activeQueue: [],
+    archive: [],
+  })
 }
 
 describe('bootstrapBuildWiring runtime hooks', () => {
@@ -119,9 +126,10 @@ describe('bootstrapBuildWiring runtime hooks', () => {
     const { buildDispatcher } = await import('./buildDispatcher')
     const { useBuildStatsStore } = await import('./store/buildStatsStore')
     const { useConsoleStore } = await import('./console/useConsoleStore')
+    const { useRuntimeInspectorTaskStore } = await import('./store/runtimeInspectorTaskStore')
 
     bootstrapBuildWiring()
-    resetStores(useBuildStatsStore, useConsoleStore)
+    resetStores(useBuildStatsStore, useConsoleStore, useRuntimeInspectorTaskStore)
 
     const seq = buildDispatcher.requestGraphBuild({
       routingIdentity: {
@@ -145,11 +153,44 @@ describe('bootstrapBuildWiring runtime hooks', () => {
     expect(useBuildStatsStore.getState().activeSeq).toBe(seq)
     expect(useBuildStatsStore.getState().overallState).toBe('building')
     expect(useBuildStatsStore.getState().partOrder).toEqual(['cube'])
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([
+      expect.objectContaining({
+        seq,
+        graphDocumentId: 'graph-a',
+        partKey: null,
+        label: 'Build graph-a',
+        status: 'Starting',
+        state: 'queued',
+      }),
+    ])
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Build started (graph-a)'),
     ).toBe(true)
 
     const worker = (buildDispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_progress',
+      seq,
+      lane: 'build',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      phase: 'parts',
+      partKey: 'cube',
+      state: 'queued',
+    })
+
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([
+      expect.objectContaining({
+        seq,
+        graphDocumentId: 'graph-a',
+        partKey: 'cube',
+        label: 'Building cube',
+        status: 'Queued',
+        state: 'queued',
+      }),
+    ])
+
     worker.dispatchMessage({
       type: 'build_progress',
       seq,
@@ -169,9 +210,43 @@ describe('bootstrapBuildWiring runtime hooks', () => {
         progress01: 0.5,
       }),
     )
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([
+      expect.objectContaining({
+        partKey: 'cube',
+        label: 'Building cube',
+        status: 'In Progress',
+        progress01: 0.5,
+        state: 'active',
+      }),
+    ])
     expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'cube: building')).toBe(
       true,
     )
+
+    worker.dispatchMessage({
+      type: 'build_progress',
+      seq,
+      lane: 'build',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      phase: 'parts',
+      partKey: 'cube',
+      state: 'done',
+      progress01: 1,
+      ms: 5,
+    })
+
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([])
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([
+      expect.objectContaining({
+        partKey: 'cube',
+        label: 'Building cube',
+        status: 'Done',
+        progress01: 1,
+        state: 'done',
+      }),
+    ])
 
     worker.dispatchMessage(
       buildResult({
@@ -183,6 +258,13 @@ describe('bootstrapBuildWiring runtime hooks', () => {
     )
 
     expect(useBuildStatsStore.getState().overallState).toBe('idle')
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([])
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([
+      expect.objectContaining({
+        partKey: 'cube',
+        state: 'done',
+      }),
+    ])
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Build complete (graph-a)'),
     ).toBe(true)
@@ -193,14 +275,80 @@ describe('bootstrapBuildWiring runtime hooks', () => {
     ).toBe(true)
   })
 
-  it('bridges accepted worker errors into error state and diagnostics transcript entries', async () => {
+  it('archives cache hits as reused work instead of leaving them in the active queue', async () => {
     const { bootstrapBuildWiring } = await import('./bootstrapBuildWiring')
     const { buildDispatcher } = await import('./buildDispatcher')
     const { useBuildStatsStore } = await import('./store/buildStatsStore')
     const { useConsoleStore } = await import('./console/useConsoleStore')
+    const { useRuntimeInspectorTaskStore } = await import('./store/runtimeInspectorTaskStore')
 
     bootstrapBuildWiring()
-    resetStores(useBuildStatsStore, useConsoleStore)
+    resetStores(useBuildStatsStore, useConsoleStore, useRuntimeInspectorTaskStore)
+
+    const seq = buildDispatcher.requestGraphBuild({
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      },
+      compiledBuildData,
+      buildIdentity: {
+        graphRevision: 1,
+        targetBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      invalidation: {
+        affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      changedParamIds: ['sp_full'],
+      buildStatsPartKeys: ['cube'],
+    })
+
+    const worker = (buildDispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_progress',
+      seq,
+      lane: 'build',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      phase: 'parts',
+      partKey: 'cube',
+      state: 'queued',
+    })
+    worker.dispatchMessage({
+      type: 'build_progress',
+      seq,
+      lane: 'build',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      phase: 'parts',
+      partKey: 'cube',
+      state: 'cache_hit',
+      progress01: 1,
+      ms: 0,
+    })
+
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([])
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([
+      expect.objectContaining({
+        partKey: 'cube',
+        status: 'Cache Hit',
+        progress01: 1,
+        state: 'reused',
+      }),
+    ])
+  })
+
+  it('bridges accepted worker errors into error archive state and diagnostics transcript entries', async () => {
+    const { bootstrapBuildWiring } = await import('./bootstrapBuildWiring')
+    const { buildDispatcher } = await import('./buildDispatcher')
+    const { useBuildStatsStore } = await import('./store/buildStatsStore')
+    const { useConsoleStore } = await import('./console/useConsoleStore')
+    const { useRuntimeInspectorTaskStore } = await import('./store/runtimeInspectorTaskStore')
+
+    bootstrapBuildWiring()
+    resetStores(useBuildStatsStore, useConsoleStore, useRuntimeInspectorTaskStore)
 
     const seq = buildDispatcher.requestGraphBuild({
       routingIdentity: {
@@ -233,10 +381,214 @@ describe('bootstrapBuildWiring runtime hooks', () => {
     })
 
     expect(useBuildStatsStore.getState().overallState).toBe('error')
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([])
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([
+      expect.objectContaining({
+        graphDocumentId: 'graph-a',
+        partKey: null,
+        label: 'Build graph-a',
+        status: 'Failed',
+        detail: 'Build failed',
+        state: 'error',
+      }),
+    ])
     expect(
       useConsoleStore.getState().entries.some(
         (entry) => entry.layer === 'Diagnostics' && entry.text === 'Build failed',
       ),
     ).toBe(true)
+  })
+
+  it('replaces prior queue and archive truth when a newer accepted build starts and ignores stale lifecycle traffic', async () => {
+    const { bootstrapBuildWiring } = await import('./bootstrapBuildWiring')
+    const { buildDispatcher } = await import('./buildDispatcher')
+    const { useBuildStatsStore } = await import('./store/buildStatsStore')
+    const { useConsoleStore } = await import('./console/useConsoleStore')
+    const { useRuntimeInspectorTaskStore } = await import('./store/runtimeInspectorTaskStore')
+
+    bootstrapBuildWiring()
+    resetStores(useBuildStatsStore, useConsoleStore, useRuntimeInspectorTaskStore)
+
+    const firstSeq = buildDispatcher.requestGraphBuild({
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      },
+      compiledBuildData,
+      buildIdentity: {
+        graphRevision: 1,
+        targetBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      invalidation: {
+        affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      changedParamIds: ['sp_full'],
+      buildStatsPartKeys: ['cube'],
+    })
+
+    const worker = (buildDispatcher as unknown as { worker: MockWorker }).worker
+    worker.dispatchMessage({
+      type: 'build_progress',
+      seq: firstSeq,
+      lane: 'build',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      phase: 'parts',
+      partKey: 'cube',
+      state: 'done',
+      progress01: 1,
+      ms: 5,
+    })
+
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([
+      expect.objectContaining({
+        seq: firstSeq,
+        buildRequestId: 'request-a-1',
+        partKey: 'cube',
+        state: 'done',
+      }),
+    ])
+
+    const secondSeq = buildDispatcher.requestGraphBuild({
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-2',
+      },
+      compiledBuildData,
+      buildIdentity: {
+        graphRevision: 2,
+        targetBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      invalidation: {
+        affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      changedParamIds: ['sp_full'],
+      buildStatsPartKeys: ['cube'],
+    })
+
+    expect(secondSeq).toBeGreaterThan(firstSeq)
+    expect(useBuildStatsStore.getState().activeSeq).toBe(secondSeq)
+    expect(useBuildStatsStore.getState().overallState).toBe('building')
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([
+      expect.objectContaining({
+        seq: secondSeq,
+        buildRequestId: 'request-a-2',
+        partKey: null,
+        label: 'Build graph-a',
+        status: 'Starting',
+        state: 'queued',
+      }),
+    ])
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([])
+
+    worker.dispatchMessage({
+      type: 'build_progress',
+      seq: firstSeq,
+      lane: 'build',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+      phase: 'parts',
+      partKey: 'stale-cube',
+      state: 'error',
+      message: 'Old build failed',
+    })
+    worker.dispatchMessage({
+      type: 'worker_error',
+      seq: firstSeq,
+      op: 'build',
+      lane: 'build',
+      message: 'Old build crashed',
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+    })
+    worker.dispatchMessage(
+      buildResult({
+        seq: firstSeq,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      }),
+    )
+
+    expect(useBuildStatsStore.getState().activeSeq).toBe(secondSeq)
+    expect(useBuildStatsStore.getState().overallState).toBe('building')
+    expect(useRuntimeInspectorTaskStore.getState().activeQueue).toEqual([
+      expect.objectContaining({
+        seq: secondSeq,
+        buildRequestId: 'request-a-2',
+        partKey: null,
+        state: 'queued',
+      }),
+    ])
+    expect(useRuntimeInspectorTaskStore.getState().archive).toEqual([])
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Build complete (graph-a)'),
+    ).toBe(false)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Old build crashed'),
+    ).toBe(false)
+  })
+
+  it('keeps only the most recent bounded archive window when many tasks resolve', async () => {
+    const { bootstrapBuildWiring } = await import('./bootstrapBuildWiring')
+    const { buildDispatcher } = await import('./buildDispatcher')
+    const { useBuildStatsStore } = await import('./store/buildStatsStore')
+    const { useConsoleStore } = await import('./console/useConsoleStore')
+    const { useRuntimeInspectorTaskStore } = await import('./store/runtimeInspectorTaskStore')
+
+    bootstrapBuildWiring()
+    resetStores(useBuildStatsStore, useConsoleStore, useRuntimeInspectorTaskStore)
+
+    const resolvedPartKeys = Array.from(
+      { length: RUNTIME_INSPECTOR_ARCHIVE_LIMIT + 1 },
+      (_, index) => `part-${index + 1}`,
+    )
+
+    const seq = buildDispatcher.requestGraphBuild({
+      routingIdentity: {
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      },
+      compiledBuildData,
+      buildIdentity: {
+        graphRevision: 1,
+        targetBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      invalidation: {
+        affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+      },
+      changedParamIds: ['sp_full'],
+      buildStatsPartKeys: resolvedPartKeys,
+    })
+
+    const worker = (buildDispatcher as unknown as { worker: MockWorker }).worker
+    for (const partKey of resolvedPartKeys) {
+      worker.dispatchMessage({
+        type: 'build_progress',
+        seq,
+        lane: 'build',
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+        phase: 'parts',
+        partKey,
+        state: 'done',
+        progress01: 1,
+        ms: 1,
+      })
+    }
+
+    const archive = useRuntimeInspectorTaskStore.getState().archive
+    expect(archive).toHaveLength(RUNTIME_INSPECTOR_ARCHIVE_LIMIT)
+    expect(archive.map((entry) => entry.partKey)).toEqual(
+      resolvedPartKeys.slice(1).reverse(),
+    )
+    expect(archive.some((entry) => entry.partKey === resolvedPartKeys[0])).toBe(false)
   })
 })

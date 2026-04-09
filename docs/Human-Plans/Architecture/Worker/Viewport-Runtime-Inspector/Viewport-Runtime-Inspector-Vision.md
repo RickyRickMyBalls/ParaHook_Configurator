@@ -557,3 +557,55 @@ Likely feature groups to evaluate later as separate sub-phases:
 - multi-viewport runtime-inspector ownership rules
 
 These buckets should help determine what belongs in the first UI-focused cut versus later worker and dependency architecture work.
+
+
+# Viewport Runtime Inspector 2
+
+The longer-range professional-CAD direction should not treat the runtime inspector like a generic system monitor.
+
+The more valuable goal is explaining execution truth clearly:
+- what is active now
+- what is queued next
+- what reused prior results
+- what failed
+- which execution backend is doing the work
+
+A strong long-range shape is:
+- one explicit scheduler or build planner
+  - owns queue order, cancellation, invalidation, and safe parallel execution boundaries
+- one or more execution workers
+  - own the actual compute work
+- one explicit execution backend
+  - such as JS today, WASM later, or a later kernel-facing runtime
+- one runtime inspector surface
+  - renders that truth without inventing fake task order, fake reuse states, or fake CPU detail
+
+This means the inspector should grow toward showing:
+- active task count
+- queued task count
+- reused or skipped task count
+- superseded or canceled task count when that truth exists
+- worker pool occupancy later, such as `1/4 workers busy`
+- execution backend identity later, such as `JS` or `WASM`
+
+It should not rush into pretending it is a full profiler.
+
+Early honest signals are more valuable than decorative low-level telemetry:
+- queue order
+- task state
+- task-local progress
+- archive outcome
+- accepted backend identity
+
+Later system-level details can become useful only when the runtime truly exposes them:
+- worker pool width
+- backend kind
+- multi-threaded execution state
+- memory or deeper performance counters
+
+The important product rule is:
+- prefer scheduler truth over CPU trivia
+- prefer execution ownership over decorative load bars
+- prefer explicit backend identity over vague `fast` or `optimized` language
+
+That direction should keep `Viewport Runtime Inspector` feeling like a professional CAD execution surface instead of a generic developer dashboard.

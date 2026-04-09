@@ -324,6 +324,168 @@ body {
   color: rgba(240, 244, 255, 0.96);
 }
 
+.TitleStatusInspectorTaskSection {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.TitleStatusInspectorSubheader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.TitleStatusInspectorSubheaderLabel,
+.TitleStatusInspectorSubheaderValue {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.TitleStatusInspectorSubheaderLabel {
+  color: rgba(181, 196, 232, 0.72);
+}
+
+.TitleStatusInspectorSubheaderValue {
+  color: rgba(214, 224, 246, 0.84);
+}
+
+.TitleStatusInspectorTaskCard {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(124, 160, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.TitleStatusInspectorTaskCard.state-active {
+  border-color: rgba(82, 142, 255, 0.24);
+  background: rgba(82, 142, 255, 0.05);
+}
+
+.TitleStatusInspectorTaskCard.state-queued {
+  border-color: rgba(124, 160, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.TitleStatusInspectorTaskCard.state-done {
+  border-color: rgba(124, 160, 255, 0.1);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.TitleStatusInspectorTaskCard.state-reused {
+  border-color: rgba(127, 224, 169, 0.18);
+  background: rgba(127, 224, 169, 0.05);
+}
+
+.TitleStatusInspectorTaskCard.state-error {
+  border-color: rgba(255, 114, 114, 0.3);
+  background: rgba(255, 114, 114, 0.06);
+}
+
+.TitleStatusInspectorTaskCard.isIdle {
+  border-style: dashed;
+}
+
+.TitleStatusInspectorTaskCard.isQueuedCard {
+  padding: 8px 10px;
+  opacity: 0.92;
+}
+
+.TitleStatusInspectorTaskCard.isArchiveCard {
+  padding: 8px 10px;
+  opacity: 0.82;
+}
+
+.TitleStatusInspectorTaskHeader,
+.TitleStatusInspectorTaskMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.TitleStatusInspectorTaskLabel,
+.TitleStatusInspectorTaskDetail {
+  min-width: 0;
+}
+
+.TitleStatusInspectorTaskLabel {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(240, 244, 255, 0.96);
+}
+
+.TitleStatusInspectorTaskState,
+.TitleStatusInspectorTaskMeta {
+  font-size: 11px;
+  color: rgba(189, 198, 221, 0.78);
+}
+
+.TitleStatusInspectorTaskMeta {
+  text-transform: none;
+}
+
+.TitleStatusInspectorTaskProgressTrack {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.TitleStatusInspectorTaskProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(82, 142, 255, 0.92) 0%, rgba(124, 160, 255, 0.72) 100%);
+}
+
+.TitleStatusInspectorTaskCard.state-error .TitleStatusInspectorTaskProgressFill {
+  background: linear-gradient(90deg, rgba(255, 114, 114, 0.92) 0%, rgba(255, 164, 164, 0.72) 100%);
+}
+
+.TitleStatusInspectorTaskCard.state-queued .TitleStatusInspectorTaskProgressTrack {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.TitleStatusInspectorTaskCard.state-queued .TitleStatusInspectorTaskProgressFill {
+  background: linear-gradient(90deg, rgba(157, 177, 226, 0.5) 0%, rgba(157, 177, 226, 0.24) 100%);
+}
+
+.TitleStatusInspectorTaskCard.isArchiveCard .TitleStatusInspectorTaskProgressTrack {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.TitleStatusInspectorTaskCard.state-done .TitleStatusInspectorTaskProgressFill {
+  background: linear-gradient(90deg, rgba(164, 184, 236, 0.56) 0%, rgba(164, 184, 236, 0.22) 100%);
+}
+
+.TitleStatusInspectorTaskCard.state-reused .TitleStatusInspectorTaskProgressFill {
+  background: linear-gradient(90deg, rgba(127, 224, 169, 0.68) 0%, rgba(127, 224, 169, 0.26) 100%);
+}
+
+.TitleStatusInspectorTaskDetail {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(210, 218, 239, 0.76);
+}
+
+.TitleStatusInspectorQueueList {
+  display: grid;
+  gap: 8px;
+}
+
+.TitleStatusInspectorArchiveList {
+  display: grid;
+  gap: 8px;
+}
+
 .PanelStack {
   display: flex;
   flex-direction: column;

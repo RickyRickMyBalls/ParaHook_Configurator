@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { PrimaryViewportLeftDock } from './PrimaryViewportLeftDock'
 import { useBuildStatsStore } from '../store/buildStatsStore'
+import { useRuntimeInspectorTaskStore } from '../store/runtimeInspectorTaskStore'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -27,6 +28,13 @@ const resetViewportRuntimeStatsStore = () => {
   })
 }
 
+const resetRuntimeInspectorTaskStore = () => {
+  useRuntimeInspectorTaskStore.setState({
+    activeQueue: [],
+    archive: [],
+  })
+}
+
 describe('PrimaryViewportLeftDock', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -34,6 +42,7 @@ describe('PrimaryViewportLeftDock', () => {
   beforeEach(() => {
     resetBuildStatsStore()
     resetViewportRuntimeStatsStore()
+    resetRuntimeInspectorTaskStore()
   })
 
   afterEach(async () => {
@@ -47,6 +56,7 @@ describe('PrimaryViewportLeftDock', () => {
     root = null
     resetBuildStatsStore()
     resetViewportRuntimeStatsStore()
+    resetRuntimeInspectorTaskStore()
   })
 
   const renderDock = async () => {
@@ -121,6 +131,8 @@ describe('PrimaryViewportLeftDock', () => {
     expect(inspectorShell?.textContent).toContain('Lines')
     expect(inspectorShell?.textContent).toContain('Points')
     expect(inspectorShell?.textContent).toContain('FPS')
+    expect(inspectorShell?.textContent).toContain('Current Runtime Task')
+    expect(inspectorShell?.textContent).toContain('No active runtime task')
     expect(inspectorShell?.textContent).toContain('Waiting for the first viewer runtime sample')
     expect(collapsedToggle?.getAttribute('aria-expanded')).toBe('true')
     expect(statusZone?.contains(inspectorShell)).toBe(true)
@@ -128,5 +140,336 @@ describe('PrimaryViewportLeftDock', () => {
     const statusPosition = Array.from(statusZone?.parentElement?.children ?? []).indexOf(statusZone!)
     const panelStackPosition = Array.from(statusZone?.parentElement?.children ?? []).indexOf(panelStackShell!)
     expect(statusPosition).toBeLessThan(panelStackPosition)
+  })
+
+  it('renders the current runtime task card when accepted build work is active', async () => {
+    useRuntimeInspectorTaskStore.setState({
+      activeQueue: [
+        {
+          seq: 41,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-1',
+          partKey: 'cube',
+          label: 'Building cube',
+          status: 'In Progress',
+          progress01: 0.5,
+          detail: null,
+          state: 'active',
+        },
+      ],
+      archive: [],
+    })
+
+    await renderDock()
+
+    const toggleButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const inspectorShell = container?.querySelector('.TitleStatusInspectorShell') as HTMLElement | null
+
+    expect(inspectorShell?.textContent).toContain('Building cube')
+    expect(inspectorShell?.textContent).toContain('In Progress')
+    expect(inspectorShell?.textContent).toContain('50%')
+    expect(inspectorShell?.textContent).toContain('graph-a')
+  })
+
+  it('renders the active queue beneath the current runtime task in accepted order', async () => {
+    useRuntimeInspectorTaskStore.setState({
+      activeQueue: [
+        {
+          seq: 52,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-2',
+          partKey: 'cube',
+          label: 'Building cube',
+          status: 'In Progress',
+          progress01: 0.5,
+          detail: null,
+          state: 'active',
+        },
+        {
+          seq: 52,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-2',
+          partKey: 'hook',
+          label: 'Building hook',
+          status: 'Queued',
+          progress01: null,
+          detail: 'Waiting for cube',
+          state: 'queued',
+        },
+        {
+          seq: 52,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-2',
+          partKey: 'strap',
+          label: 'Building strap',
+          status: 'Queued',
+          progress01: null,
+          detail: 'Waiting for hook',
+          state: 'queued',
+        },
+      ],
+      archive: [],
+    })
+
+    await renderDock()
+
+    const toggleButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const inspectorShell = container?.querySelector('.TitleStatusInspectorShell') as HTMLElement | null
+    const queueList = container?.querySelector('.TitleStatusInspectorQueueList') as HTMLElement | null
+    const queuedCards = Array.from(
+      container?.querySelectorAll('.TitleStatusInspectorTaskCard.state-queued') ?? [],
+    ) as HTMLElement[]
+
+    expect(inspectorShell?.textContent).toContain('Current Runtime Task')
+    expect(inspectorShell?.textContent).toContain('Active Queue')
+    expect(inspectorShell?.textContent).toContain('2 queued')
+    expect(inspectorShell?.textContent).toContain('Building cube')
+    expect(inspectorShell?.textContent).toContain('Building hook')
+    expect(inspectorShell?.textContent).toContain('Building strap')
+    expect(queueList).not.toBeNull()
+    expect(queuedCards).toHaveLength(2)
+    expect(queuedCards[0]?.textContent).toContain('Building hook')
+    expect(queuedCards[1]?.textContent).toContain('Building strap')
+    expect(inspectorShell!.textContent!.indexOf('Building cube')).toBeLessThan(
+      inspectorShell!.textContent!.indexOf('Building hook'),
+    )
+    expect(inspectorShell!.textContent!.indexOf('Building hook')).toBeLessThan(
+      inspectorShell!.textContent!.indexOf('Building strap'),
+    )
+  })
+
+  it('renders a quieter archive beneath the active queue with distinct resolved states', async () => {
+    useRuntimeInspectorTaskStore.setState({
+      activeQueue: [
+        {
+          seq: 61,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-3',
+          partKey: 'cube',
+          label: 'Building cube',
+          status: 'In Progress',
+          progress01: 0.5,
+          detail: null,
+          state: 'active',
+        },
+      ],
+      archive: [
+        {
+          seq: 61,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-3',
+          partKey: 'hook',
+          label: 'Building hook',
+          status: 'Done',
+          progress01: 1,
+          detail: 'Built successfully',
+          state: 'done',
+        },
+        {
+          seq: 61,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-3',
+          partKey: 'strap',
+          label: 'Building strap',
+          status: 'Cache Hit',
+          progress01: 1,
+          detail: 'Reused accepted output',
+          state: 'reused',
+        },
+        {
+          seq: 61,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-3',
+          partKey: 'toe',
+          label: 'Building toe',
+          status: 'Failed',
+          progress01: null,
+          detail: 'Build failed',
+          state: 'error',
+        },
+      ],
+    })
+
+    await renderDock()
+
+    const toggleButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const inspectorShell = container?.querySelector('.TitleStatusInspectorShell') as HTMLElement | null
+    const archiveList = container?.querySelector('.TitleStatusInspectorArchiveList') as HTMLElement | null
+    const archiveCards = Array.from(
+      container?.querySelectorAll('.TitleStatusInspectorTaskCard.isArchiveCard') ?? [],
+    ) as HTMLElement[]
+
+    expect(inspectorShell?.textContent).toContain('Archive')
+    expect(inspectorShell?.textContent).toContain('3 recent')
+    expect(inspectorShell?.textContent).toContain('Building hook')
+    expect(inspectorShell?.textContent).toContain('Done')
+    expect(inspectorShell?.textContent).toContain('Building strap')
+    expect(inspectorShell?.textContent).toContain('Cache Hit')
+    expect(inspectorShell?.textContent).toContain('Building toe')
+    expect(inspectorShell?.textContent).toContain('Failed')
+    expect(archiveList).not.toBeNull()
+    expect(archiveCards).toHaveLength(3)
+    expect(archiveCards[0]?.className).toContain('state-done')
+    expect(archiveCards[1]?.className).toContain('state-reused')
+    expect(archiveCards[2]?.className).toContain('state-error')
+  })
+
+  it('renders available stats without the unavailable hint once the viewer has reported a sample', async () => {
+    useViewportRuntimeStatsStore.setState({
+      statsByViewportId: {
+        'model-viewer-primary': {
+          triangles: 2048,
+          lines: 96,
+          points: 12,
+          fps: 60,
+        },
+      },
+    })
+
+    await renderDock()
+
+    const toggleButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const inspectorShell = container?.querySelector('.TitleStatusInspectorShell') as HTMLElement | null
+
+    expect(inspectorShell?.textContent).toContain('2,048')
+    expect(inspectorShell?.textContent).toContain('96')
+    expect(inspectorShell?.textContent).toContain('12')
+    expect(inspectorShell?.textContent).toContain('60')
+    expect(inspectorShell?.textContent).not.toContain('Waiting for the first viewer runtime sample')
+    expect(inspectorShell?.textContent).toContain(
+      'The first runtime task card now reflects the current accepted build lifecycle only.',
+    )
+  })
+
+  it('renders the error task card state alongside the combined inspector shell reads', async () => {
+    useBuildStatsStore.setState({
+      activeSeq: 42,
+      overallState: 'error',
+      partOrder: [],
+      partStatsByKey: {},
+      pulseNonce: 0,
+      pulseKind: null,
+    })
+    useRuntimeInspectorTaskStore.setState({
+      activeQueue: [],
+      archive: [
+        {
+          seq: 42,
+          graphDocumentId: 'graph-b',
+          buildRequestId: 'request-b-1',
+          partKey: null,
+          label: 'Build graph-b',
+          status: 'Failed',
+          progress01: null,
+          detail: 'Build failed',
+          state: 'error',
+        },
+      ],
+    })
+
+    await renderDock()
+
+    const toggleButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const inspectorShell = container?.querySelector('.TitleStatusInspectorShell') as HTMLElement | null
+    const taskCard = container?.querySelector('.TitleStatusInspectorTaskCard.state-error') as HTMLElement | null
+    const archiveCards = Array.from(
+      container?.querySelectorAll('.TitleStatusInspectorTaskCard.isArchiveCard') ?? [],
+    ) as HTMLElement[]
+
+    expect(taskCard).not.toBeNull()
+    expect(inspectorShell?.textContent).toContain('Build graph-b')
+    expect(inspectorShell?.textContent).toContain('Failed')
+    expect(inspectorShell?.textContent).toContain('Build failed')
+    expect(inspectorShell?.textContent).toContain('Progress unavailable')
+    expect(inspectorShell?.textContent).not.toContain('Archive')
+    expect(archiveCards).toHaveLength(0)
+  })
+
+  it('renders only the replacement build truth after prior queue and archive state is superseded', async () => {
+    useBuildStatsStore.setState({
+      activeSeq: 72,
+      overallState: 'building',
+      partOrder: ['new-cube'],
+      partStatsByKey: {
+        'new-cube': {
+          state: 'building',
+          progress01: 0.25,
+          message: 'Rebuilding after edit',
+          ms: null,
+          cached: false,
+        },
+      },
+      pulseNonce: 0,
+      pulseKind: null,
+    })
+    useRuntimeInspectorTaskStore.setState({
+      activeQueue: [
+        {
+          seq: 72,
+          graphDocumentId: 'graph-a',
+          buildRequestId: 'request-a-2',
+          partKey: 'new-cube',
+          label: 'Building new-cube',
+          status: 'In Progress',
+          progress01: 0.25,
+          detail: 'Rebuilding after edit',
+          state: 'active',
+        },
+      ],
+      archive: [],
+    })
+
+    await renderDock()
+
+    const toggleButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const inspectorShell = container?.querySelector('.TitleStatusInspectorShell') as HTMLElement | null
+
+    expect(inspectorShell?.textContent).toContain('Building new-cube')
+    expect(inspectorShell?.textContent).toContain('Rebuilding after edit')
+    expect(inspectorShell?.textContent).not.toContain('Building old-cube')
+    expect(inspectorShell?.textContent).not.toContain('Old build failed')
+    expect(inspectorShell?.textContent).not.toContain('Archive')
   })
 })
