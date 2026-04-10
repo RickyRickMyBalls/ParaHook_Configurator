@@ -30,6 +30,7 @@ import {
   type WorkspaceSelectedTarget,
   useAppStore,
 } from '../store/useAppStore'
+import type { BrowserBuildPolicy } from '../store/useAppStore'
 import {
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
@@ -69,6 +70,8 @@ type BrowserPanelControllerOutput = {
   canOpenNewEditor: boolean
   rowHandlers: BrowserTreeRowHandlers
   sectionHandlers: {
+    contentBuildPolicy: BrowserBuildPolicy
+    onCycleContentBuildPolicy: () => void
     onOpenContentImportMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void
     registerContentRowElement: (rowId: string) => (element: HTMLDivElement | null) => void
     onCreateGraph: () => void
@@ -239,6 +242,14 @@ export function useBrowserPanelController(
       sketchVisibilityByRowId,
     ],
   )
+
+  const contentRootBuildPolicy = useMemo<BrowserBuildPolicy>(() => {
+    const rootAssemblyId = currentProject?.rootAssemblyId ?? null
+    if (rootAssemblyId === null) {
+      return 'live'
+    }
+    return browserContentBuildPolicyByRowId[rootAssemblyId] ?? 'live'
+  }, [browserContentBuildPolicyByRowId, currentProject])
 
   const referenceWorkspaceTree = useMemo(
     () => selectReferenceWorkspaceBrowserTree({ referenceWorkspace }),
@@ -671,6 +682,17 @@ export function useBrowserPanelController(
         : null,
     )
   }, [])
+
+  const handleCycleContentBuildPolicy = useCallback(() => {
+    const rootAssemblyId = currentProject?.rootAssemblyId ?? null
+    if (rootAssemblyId === null) {
+      return
+    }
+    cycleBrowserContentBuildPolicy(
+      rootAssemblyId,
+      browserContentBuildPolicyByRowId[rootAssemblyId] ?? 'live',
+    )
+  }, [browserContentBuildPolicyByRowId, currentProject, cycleBrowserContentBuildPolicy])
 
   const handleImportReferenceFile = useCallback(
     (fileType: ReferenceFileType) => {
@@ -1590,6 +1612,8 @@ export function useBrowserPanelController(
       activeGraphDocumentId.length > 0 && graphDocumentsById[activeGraphDocumentId] !== undefined,
     rowHandlers,
     sectionHandlers: {
+      contentBuildPolicy: contentRootBuildPolicy,
+      onCycleContentBuildPolicy: handleCycleContentBuildPolicy,
       onOpenContentImportMenu: handleOpenContentImportMenu,
       registerContentRowElement,
       onCreateGraph: handleCreateGraph,

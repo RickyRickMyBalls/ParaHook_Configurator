@@ -120,6 +120,15 @@ export type DraftSchedulingRuntimeEvent = {
   graphDocumentId: string
   draftPolicy: BuildExecutionIntent['draftPolicy']
 }
+export type ViewportPresentationStateId = 'lastLoaded' | 'previewMesh' | 'previewBrep'
+export type ViewportPresentationStyleSettings = {
+  opacity: number
+  color: string
+}
+export type ViewportPresentationSettings = Record<
+  ViewportPresentationStateId,
+  ViewportPresentationStyleSettings
+>
 type ProjectFileVersion = 1
 export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
 export type ReferenceItemLoadState = 'unloaded' | 'loading' | 'loaded' | 'error'
@@ -823,6 +832,49 @@ export type ReferenceTransformShellExitRequest = {
 const draftSchedulingRuntimeListeners = new Set<(event: DraftSchedulingRuntimeEvent) => void>()
 let nextDraftSchedulingRuntimeEventSeq = 1
 
+const DEFAULT_VIEWPORT_PRESENTATION_SETTINGS = {
+  lastLoaded: {
+    opacity: 1,
+    color: '#5f83d6',
+  },
+  previewMesh: {
+    opacity: 0.5,
+    color: '#5f83d6',
+  },
+  previewBrep: {
+    opacity: 0.75,
+    color: '#5f83d6',
+  },
+} satisfies ViewportPresentationSettings
+
+const clampViewportPresentationOpacity = (
+  value: number,
+  fallback: number,
+): number => Math.min(1, Math.max(0, Number.isFinite(value) ? value : fallback))
+
+const normalizeViewportPresentationColor = (value: string, fallback: string): string => {
+  const trimmed = value.trim()
+  const shortHexMatch = /^#([\da-fA-F]{3})$/.exec(trimmed)
+  if (shortHexMatch !== null) {
+    return `#${shortHexMatch[1]
+      .split('')
+      .map((char) => `${char}${char}`)
+      .join('')
+      .toLowerCase()}`
+  }
+  const longHexMatch = /^#([\da-fA-F]{6})$/.exec(trimmed)
+  if (longHexMatch !== null) {
+    return `#${longHexMatch[1].toLowerCase()}`
+  }
+  return fallback
+}
+
+const createInitialViewportPresentationSettings = (): ViewportPresentationSettings => ({
+  lastLoaded: { ...DEFAULT_VIEWPORT_PRESENTATION_SETTINGS.lastLoaded },
+  previewMesh: { ...DEFAULT_VIEWPORT_PRESENTATION_SETTINGS.previewMesh },
+  previewBrep: { ...DEFAULT_VIEWPORT_PRESENTATION_SETTINGS.previewBrep },
+})
+
 const publishDraftSchedulingRuntimeEvent = (
   event: Omit<DraftSchedulingRuntimeEvent, 'eventSeq'>,
 ): void => {
@@ -860,6 +912,7 @@ export type AppState = {
   currentProject: ProjectFile
   projectContent: ProjectContentState
   runtimeContentPlacementByRowId: Record<string, RuntimeContentPlacementRecord>
+  viewportPresentationSettings: ViewportPresentationSettings
   referenceWorkspace: ReferenceWorkspaceState
   sketchVisibilityByRowId: Record<string, boolean>
   workspaceSelection: WorkspaceSelectionState
@@ -890,6 +943,8 @@ export type AppState = {
   setBrowserContentBuildPolicy: (rowId: string, policy: BrowserBuildPolicy) => void
   clearBrowserContentBuildPolicy: (rowId: string) => void
   cycleBrowserContentBuildPolicy: (rowId: string, basePolicy?: BrowserBuildPolicy) => void
+  setViewportPresentationOpacity: (stateId: ViewportPresentationStateId, opacity: number) => void
+  setViewportPresentationColor: (stateId: ViewportPresentationStateId, color: string) => void
   beginBrowserBuildInteraction: (graphDocumentId: string) => void
   endBrowserBuildInteraction: (graphDocumentId: string) => void
   requestBrowserGraphDocumentBuild: (
@@ -4225,6 +4280,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentProject: createInitialProjectFile(),
   projectContent: createInitialProjectContentState(),
   runtimeContentPlacementByRowId: {},
+  viewportPresentationSettings: createInitialViewportPresentationSettings(),
   referenceWorkspace: createInitialReferenceWorkspaceState(),
   sketchVisibilityByRowId: {},
   workspaceSelection: {
@@ -4670,6 +4726,42 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
     syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
   },
+  setViewportPresentationOpacity: (stateId, opacity) => {
+    set((state) => {
+      const currentSettings = state.viewportPresentationSettings[stateId]
+      const nextOpacity = clampViewportPresentationOpacity(opacity, currentSettings.opacity)
+      if (currentSettings.opacity === nextOpacity) {
+        return state
+      }
+      return {
+        viewportPresentationSettings: {
+          ...state.viewportPresentationSettings,
+          [stateId]: {
+            ...currentSettings,
+            opacity: nextOpacity,
+          },
+        },
+      }
+    })
+  },
+  setViewportPresentationColor: (stateId, color) => {
+    set((state) => {
+      const currentSettings = state.viewportPresentationSettings[stateId]
+      const nextColor = normalizeViewportPresentationColor(color, currentSettings.color)
+      if (currentSettings.color === nextColor) {
+        return state
+      }
+      return {
+        viewportPresentationSettings: {
+          ...state.viewportPresentationSettings,
+          [stateId]: {
+            ...currentSettings,
+            color: nextColor,
+          },
+        },
+      }
+    })
+  },
   beginBrowserBuildInteraction: (graphDocumentId) => {
     if (graphDocumentId.length === 0) {
       return
@@ -4704,6 +4796,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         graphDocumentId,
       ),
     }))
+    useSpaghettiStore.getState().promoteStagedAuthoritativePreviewResult(graphDocumentId)
     if (shouldDispatchQueuedBuild) {
       if (delayedDraftPlaceholder !== null) {
         publishDraftSchedulingRuntimeEvent({
@@ -4848,15 +4941,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (result.projectFileId !== currentProjectId) {
       return
     }
-    const acceptedSpaghettiResult = useSpaghettiStore.getState().acceptGraphBuildResult({
-      projectFileId: result.projectFileId,
-      graphDocumentId: result.graphDocumentId,
-      buildRequestId: result.buildRequestId,
-      buildSeq: result.seq,
-      bundle: result.bundle,
-      draftGeometryResult: result.draftGeometryResult,
-      authoritativeGeometryResult: result.authoritativeGeometryResult,
-    })
+    const shouldStageAuthoritativePreview =
+      result.authoritativeGeometryResult !== undefined &&
+      get().browserInteractionGraphDocumentIds[result.graphDocumentId] === true &&
+      selectEffectiveBrowserExecutionPolicy(get(), {
+        kind: 'graph-document',
+        graphDocumentId: result.graphDocumentId,
+      }) === 'live'
+    const acceptedSpaghettiResult = shouldStageAuthoritativePreview
+      ? useSpaghettiStore.getState().stageAuthoritativePreviewGraphBuildResult({
+          projectFileId: result.projectFileId,
+          graphDocumentId: result.graphDocumentId,
+          buildRequestId: result.buildRequestId,
+          buildSeq: result.seq,
+          bundle: result.bundle,
+          authoritativeGeometryResult: result.authoritativeGeometryResult,
+        })
+      : useSpaghettiStore.getState().acceptGraphBuildResult({
+          projectFileId: result.projectFileId,
+          graphDocumentId: result.graphDocumentId,
+          buildRequestId: result.buildRequestId,
+          buildSeq: result.seq,
+          bundle: result.bundle,
+          draftGeometryResult: result.draftGeometryResult,
+          authoritativeGeometryResult: result.authoritativeGeometryResult,
+        })
     if (!acceptedSpaghettiResult) {
       return
     }
@@ -7886,6 +7995,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
 export const selectCurrentProject = (state: Pick<AppState, 'currentProject'>): ProjectFile =>
   state.currentProject
+
+export const selectViewportPresentationSettings = (
+  state: Pick<AppState, 'viewportPresentationSettings'>,
+): ViewportPresentationSettings => state.viewportPresentationSettings
+
+export const selectViewportPresentationStyleSettings = (
+  state: Pick<AppState, 'viewportPresentationSettings'>,
+  stateId: ViewportPresentationStateId,
+): ViewportPresentationStyleSettings => state.viewportPresentationSettings[stateId]
 
 export const selectWorkspaceSelection = (
   state: Pick<AppState, 'workspaceSelection'>,

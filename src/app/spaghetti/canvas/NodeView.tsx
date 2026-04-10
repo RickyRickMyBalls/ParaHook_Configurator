@@ -3027,6 +3027,8 @@ function NodeViewComponent({
       unitLabel: 'mm',
       driven: extrudeVm?.depthDriven === true,
       editorEnabled: showEditors,
+      onInteractionStart: beginGraphParameterInteraction,
+      onInteractionEnd: endGraphParameterInteraction,
       inputRange: {
         min: 0.1,
         max: 100,
@@ -3046,6 +3048,8 @@ function NodeViewComponent({
       unitLabel: 'mm',
       driven: extrudeVm?.startDepthDriven === true,
       editorEnabled: showEditors,
+      onInteractionStart: beginGraphParameterInteraction,
+      onInteractionEnd: endGraphParameterInteraction,
       inputRange: {
         min: 0.1,
         max: 100,
@@ -3065,6 +3069,8 @@ function NodeViewComponent({
       unitLabel: 'mm',
       driven: extrudeVm?.endDepthDriven === true,
       editorEnabled: showEditors,
+      onInteractionStart: beginGraphParameterInteraction,
+      onInteractionEnd: endGraphParameterInteraction,
       inputRange: {
         min: 0.1,
         max: 100,
@@ -3084,6 +3090,8 @@ function NodeViewComponent({
       unitLabel: 'deg',
       driven: extrudeVm?.taperDriven === true,
       editorEnabled: showEditors,
+      onInteractionStart: beginGraphParameterInteraction,
+      onInteractionEnd: endGraphParameterInteraction,
       inputRange: {
         min: -45,
         max: 45,

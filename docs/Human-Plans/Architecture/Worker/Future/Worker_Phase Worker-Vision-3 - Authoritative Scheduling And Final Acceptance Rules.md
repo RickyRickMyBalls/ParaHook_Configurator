@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+22. 2026-04-10 11:44: Added `Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation` as the next standalone follow-on after the shipped Phase 8 ladder so the Worker family now explicitly records the planned `50% -> 75% -> 100%` presentation refinement for authoritative-ready-held preview without widening Browser build policy into separate mesh-versus-final controls
 21. 2026-04-10 09:34: Reworked the standalone `Worker-Vision-3 Phase 8` follow-on so the split ladder now starts with `Phase 8.1 - Draft Worker Versus Authoritative Worker Split`, then continues through `8.2` selector/store relevance gating, `8.3` layered `Auto` presentation, and `8.4` strict `Draft` plus `Final` hardening after code review confirmed the live repo still uses one shared worker that serializes draft and authoritative follow-through inside the same execution seam
 20. 2026-04-10 09:26: Added the standalone follow-on `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation.md` so `Worker-Vision-3 Phase 8` can now execute as explicit `8.1`, `8.2`, and `8.3` slices for selector/store relevance gating, layered `Auto` presentation, and strict `Draft` plus `Final` hardening instead of remaining one larger mixed implementation pass
 19. 2026-04-10 09:21: Reworked `Worker-Vision-3 Phase 8` into an implementation-ready shared viewport-result presentation slice after review of the post-Phase-7 behavior clarified the next needed honesty rule is not `Auto`-only ghosting: `Auto / Draft / Final` now need explicit display contracts around solid retained authoritative truth, translucent live draft overlay, strict current-revision relevance checks before any final swap, and the rule that only `Auto` mixes lanes while `Draft` stays pure and `Final` stays strict
@@ -1736,3 +1737,44 @@ Recommended implementation-grade scenarios:
 - `Final mode clears or withholds stale final instead of showing translucent draft fallback`
 - `Browser Manual plus Auto may still show retained older final plus draft overlay as presentation, but does not imply automatic final catch-up`
 - `Browser Off plus Auto may still retain previously accepted final as presentation, but does not wake worker processing for suppressed targets`
+
+## [ ] Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation
+
+Detailed execution now lives in:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation.md`
+
+Use that standalone Phase 9 doc for:
+- `Worker-Vision-3 Phase 9.1 - Presentation Settings Schema And Ownership`
+- `Worker-Vision-3 Phase 9.2 - Presentation Controls UI Surface`
+- `Worker-Vision-3 Phase 9.3 - Viewport Presentation State Contract`
+- `Worker-Vision-3 Phase 9.4 - Viewer Application Of Presentation Controls`
+- `Worker-Vision-3 Phase 9.5 - Held Authoritative 75 Percent Promotion`
+- `Worker-Vision-3 Phase 9.6 - Runtime Narration And Hardening Proof`
+
+This umbrella section remains the high-level Phase 9 direction.
+
+### Purpose
+
+Refine the Phase 8 viewport presentation ladder so authoritative geometry that becomes ready during an active interaction can be shown as clearly more real than draft mesh, but still clearly less than released accepted truth.
+
+### Owns
+
+- the high-level product direction for the held-authoritative preview state
+- the rule that `75%` means authoritative-ready-held rather than accepted
+- preserving one Browser build policy while widening only presentation/read truth
+- the honest distinction between ready authoritative preview and committed accepted result
+
+### Does Not Own
+
+- Browser policy redesign
+- worker-lane redesign
+- accepted-result ownership
+- export behavior
+
+### Implementation Target
+
+After this slice:
+- active draft-only interaction still reads as `50%`
+- active interaction with ready authoritative geometry may upgrade to `75%`
+- released accepted authoritative presentation remains the only `100%` state
+- the Browser still exposes one user-facing execution-policy system rather than separate mesh and final controls

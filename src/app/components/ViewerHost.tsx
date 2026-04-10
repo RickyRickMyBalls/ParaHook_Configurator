@@ -26,10 +26,12 @@ import {
   selectActiveViewerTransformSession,
   selectActiveViewerTransformTarget,
   selectCurrentProjectContentBrowserRows,
+  selectEffectiveBrowserExecutionPolicy,
   type ReferenceTransformHistoryEntry,
   selectShouldSuppressBrowserGraphRuntimeOutput,
   selectReferenceWorkspaceItems,
   useAppStore,
+  type ViewportPresentationStateId,
 } from '../store/useAppStore'
 import type { WorkspaceSelectedTarget } from '../store/useAppStore'
 import {
@@ -52,6 +54,7 @@ import {
   selectViewerTargetGraphAcceptedPreviewGeometryResult,
   selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   selectViewerTargetGraphCommittedDraftGeometryResult,
+  selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult,
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
@@ -166,6 +169,15 @@ const buildViewerTransformHistoryOverlayVm = (
   }
 }
 
+const resolveViewportLayerStyle = (
+  viewportPresentationSettings: Record<
+    ViewportPresentationStateId,
+    { opacity: number; color: string }
+  >,
+  stateId: ViewportPresentationStateId | null,
+): { opacity: number; color: string } | undefined =>
+  stateId === null ? undefined : viewportPresentationSettings[stateId]
+
 type ViewerHostProps = {
   viewportId: WorkspaceViewportId
 }
@@ -187,12 +199,24 @@ export function ViewerHost(props: ViewerHostProps) {
   const currentProject = useAppStore((state) => state.currentProject)
   const projectContent = useAppStore((state) => state.projectContent)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
+  const viewportPresentationSettings = useAppStore(
+    (state) => state.viewportPresentationSettings,
+  )
   const sketchVisibilityByRowId = useAppStore((state) => state.sketchVisibilityByRowId)
   const browserGraphBuildPolicyByGraphDocumentId = useAppStore(
     (state) => state.browserGraphBuildPolicyByGraphDocumentId,
   )
   const browserContentBuildPolicyByRowId = useAppStore(
     (state) => state.browserContentBuildPolicyByRowId,
+  )
+  const browserInteractionGraphDocumentIds = useAppStore(
+    (state) => state.browserInteractionGraphDocumentIds,
+  )
+  const delayedDraftBuildByGraphDocumentId = useAppStore(
+    (state) => state.delayedDraftBuildByGraphDocumentId,
+  )
+  const delayedAuthoritativeBuildByGraphDocumentId = useAppStore(
+    (state) => state.delayedAuthoritativeBuildByGraphDocumentId,
   )
   const markReferenceBatchItemStarted = useAppStore((state) => state.markReferenceBatchItemStarted)
   const markReferenceBatchItemCompleted = useAppStore((state) => state.markReferenceBatchItemCompleted)
@@ -206,6 +230,9 @@ export function ViewerHost(props: ViewerHostProps) {
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
+  const viewerTargetPreviewReadyAuthoritativeGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult,
+  )
   const viewerTargetCommittedGeometryResult = useSpaghettiStore(
     selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   )
@@ -344,6 +371,8 @@ export function ViewerHost(props: ViewerHostProps) {
         requestedMode: viewportResultMode,
         modeBehavior: viewportResultModeBehavior,
         acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
+        previewReadyAuthoritativeGeometryResult:
+          viewerTargetPreviewReadyAuthoritativeGeometryResult,
         acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
         committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
         committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
@@ -364,13 +393,40 @@ export function ViewerHost(props: ViewerHostProps) {
         useProjectDraftPreview:
           sharedViewerComposition !== null || currentProjectGraphDocumentIds.length > 0,
         activeDraftProjectViewerParts,
+        browserExecutionPolicy:
+          viewerTargetGraphDocumentId !== null
+            ? selectEffectiveBrowserExecutionPolicy(
+                {
+                  currentProject,
+                  projectContent,
+                  browserGraphBuildPolicyByGraphDocumentId,
+                  browserContentBuildPolicyByRowId,
+                },
+                {
+                  kind: 'graph-document',
+                  graphDocumentId: viewerTargetGraphDocumentId,
+                },
+              )
+            : 'live',
+        isInteractionActive:
+          viewerTargetGraphDocumentId !== null &&
+          browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true,
+        hasDelayedDraftPlaceholder:
+          viewerTargetGraphDocumentId !== null &&
+          delayedDraftBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
+        hasDelayedAuthoritativePlaceholder:
+          viewerTargetGraphDocumentId !== null &&
+          delayedAuthoritativeBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
       }),
     [
       activeDraftProjectViewerParts,
+      browserInteractionGraphDocumentIds,
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
       currentProjectGraphDocumentIds.length,
+      delayedAuthoritativeBuildByGraphDocumentId,
+      delayedDraftBuildByGraphDocumentId,
       projectContent,
       sharedViewerComposition,
       viewerTargetBuildOutputs,
@@ -378,6 +434,7 @@ export function ViewerHost(props: ViewerHostProps) {
       viewerTargetCommittedPreviewGeometryResult,
       viewerTargetGeometryResult,
       viewerTargetGraphDocumentId,
+      viewerTargetPreviewReadyAuthoritativeGeometryResult,
       viewerTargetPreviewGeometryResult,
       viewerTargetPreviewPreparation,
       viewportResultMode,
@@ -391,22 +448,42 @@ export function ViewerHost(props: ViewerHostProps) {
       if (
         viewportResultMode === 'auto' &&
         viewportResultState.retainedBaseResultClass === 'final' &&
-        viewportResultState.overlayResultClass === 'draft'
+        (viewportResultState.overlayResultClass === 'draft' ||
+          viewportResultState.overlayResultClass === 'final')
       ) {
         return {
           baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          baseStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.retainedBasePresentationStateId,
+          ),
           overlayParts: viewportResultState.overlayRenderVm.viewerParts,
-          overlayOpacity: 0.5,
+          overlayStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.overlayPresentationStateId,
+          ),
+          overlayOpacity:
+            viewportResultState.overlayResultClass === 'final' ? 0.75 : 0.5,
         }
       }
 
       if (viewportResultMode === 'draft' && viewportResultState.retainedBaseResultClass === 'draft') {
         return {
           baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          baseStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.retainedBasePresentationStateId,
+          ),
           overlayParts:
             viewportResultState.overlayResultClass === 'draft'
               ? viewportResultState.overlayRenderVm.viewerParts
               : [],
+          overlayStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.overlayResultClass === 'draft'
+              ? viewportResultState.overlayPresentationStateId
+              : null,
+          ),
           overlayOpacity: 0.5,
         }
       }
@@ -414,10 +491,20 @@ export function ViewerHost(props: ViewerHostProps) {
       if (viewportResultMode === 'final' && viewportResultState.retainedBaseResultClass === 'final') {
         return {
           baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          baseStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.retainedBasePresentationStateId,
+          ),
           overlayParts:
             viewportResultState.overlayResultClass === 'final'
               ? viewportResultState.overlayRenderVm.viewerParts
               : [],
+          overlayStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.overlayResultClass === 'final'
+              ? viewportResultState.overlayPresentationStateId
+              : null,
+          ),
           overlayOpacity: 0.5,
         }
       }
@@ -425,10 +512,15 @@ export function ViewerHost(props: ViewerHostProps) {
 
     return {
       baseParts: renderList.viewerParts,
+      baseStyle: resolveViewportLayerStyle(
+        viewportPresentationSettings,
+        viewportResultState.visiblePresentationStateId,
+      ),
       overlayParts: [],
+      overlayStyle: resolveViewportLayerStyle(viewportPresentationSettings, null),
       overlayOpacity: 0.5,
     }
-  }, [renderList.viewerParts, viewportResultMode, viewportResultState])
+  }, [renderList.viewerParts, viewportPresentationSettings, viewportResultMode, viewportResultState])
 
   const projectContentRows = useMemo(
     () =>

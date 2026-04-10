@@ -3,6 +3,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import type { BrowserBuildPolicy } from '../store/useAppStore'
 import type {
   BrowserGraphTreeRowVm,
   BrowserTreeRowsVm,
@@ -170,8 +171,23 @@ function BrowserSectionActionButton(props: BrowserSectionActionButtonProps) {
   )
 }
 
+const browserBuildPolicyLabel = (policy: BrowserBuildPolicy): string => {
+  switch (policy) {
+    case 'off':
+      return 'Off'
+    case 'release':
+      return 'Release'
+    case 'manual':
+      return 'Manual'
+    default:
+      return 'Live'
+  }
+}
+
 type BrowserContentSectionProps = {
+  contentBuildPolicy: BrowserBuildPolicy
   contentRows: BrowserTreeRowsVm['contentRows']
+  onCycleContentBuildPolicy: () => void
   rowHandlers: BrowserTreeRowHandlers
   registerContentRowElement?: ((rowId: string) => (element: HTMLDivElement | null) => void) | undefined
   onOpenContentImportMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void
@@ -179,17 +195,26 @@ type BrowserContentSectionProps = {
 
 export function BrowserContentSection(props: BrowserContentSectionProps) {
   const {
+    contentBuildPolicy,
     contentRows,
+    onCycleContentBuildPolicy,
     onOpenContentImportMenu,
     registerContentRowElement,
     rowHandlers,
   } = props
+  const contentPolicyLabel = browserBuildPolicyLabel(contentBuildPolicy)
 
   return (
     <details open className="BrowserTreeSection BrowserTreeSection--content">
       <summary className="BrowserTreeSummary BrowserTreeSummary--withActions">
         <span className="BrowserTreeSummaryLabel">Content</span>
         <span className="BrowserTreeSummaryActions">
+          <BrowserSectionActionButton
+            ariaLabel={`Cycle build policy for Content. Current policy ${contentPolicyLabel}`}
+            label="C"
+            onClick={onCycleContentBuildPolicy}
+            title={`Build policy: ${contentPolicyLabel}`}
+          />
           <button
             type="button"
             className="BrowserTreeSummaryAction"

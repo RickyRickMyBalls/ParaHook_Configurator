@@ -9,6 +9,7 @@ import {
 import { routeKeyboardInput } from '../inputRouting'
 import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
 import {
+  selectEffectiveBrowserExecutionPolicy,
   selectRenderedProjectPartSet,
   selectShouldSuppressBrowserGraphRuntimeOutput,
   useAppStore,
@@ -36,6 +37,7 @@ import {
   selectViewerTargetGraphAcceptedPreviewGeometryResult,
   selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   selectViewerTargetGraphCommittedDraftGeometryResult,
+  selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult,
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
@@ -463,6 +465,15 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const browserContentBuildPolicyByRowId = useAppStore(
     (state) => state.browserContentBuildPolicyByRowId,
   )
+  const browserInteractionGraphDocumentIds = useAppStore(
+    (state) => state.browserInteractionGraphDocumentIds,
+  )
+  const delayedDraftBuildByGraphDocumentId = useAppStore(
+    (state) => state.delayedDraftBuildByGraphDocumentId,
+  )
+  const delayedAuthoritativeBuildByGraphDocumentId = useAppStore(
+    (state) => state.delayedAuthoritativeBuildByGraphDocumentId,
+  )
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
@@ -473,6 +484,9 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
+  const viewerTargetPreviewReadyAuthoritativeGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult,
+  )
   const viewerTargetCommittedGeometryResult = useSpaghettiStore(
     selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   )
@@ -792,6 +806,8 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         requestedMode: viewportResultMode,
         modeBehavior: viewportResultModeBehavior,
         acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
+        previewReadyAuthoritativeGeometryResult:
+          viewerTargetPreviewReadyAuthoritativeGeometryResult,
         acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
         committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
         committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
@@ -812,13 +828,40 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         useProjectDraftPreview:
           sharedViewerComposition !== null || currentProjectGraphDocumentIds.length > 0,
         activeDraftProjectViewerParts,
+        browserExecutionPolicy:
+          viewerTargetGraphDocumentId !== null
+            ? selectEffectiveBrowserExecutionPolicy(
+                {
+                  currentProject,
+                  projectContent,
+                  browserGraphBuildPolicyByGraphDocumentId,
+                  browserContentBuildPolicyByRowId,
+                },
+                {
+                  kind: 'graph-document',
+                  graphDocumentId: viewerTargetGraphDocumentId,
+                },
+              )
+            : 'live',
+        isInteractionActive:
+          viewerTargetGraphDocumentId !== null &&
+          browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true,
+        hasDelayedDraftPlaceholder:
+          viewerTargetGraphDocumentId !== null &&
+          delayedDraftBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
+        hasDelayedAuthoritativePlaceholder:
+          viewerTargetGraphDocumentId !== null &&
+          delayedAuthoritativeBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
       }),
     [
       activeDraftProjectViewerParts,
+      browserInteractionGraphDocumentIds,
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
       currentProjectGraphDocumentIds.length,
+      delayedAuthoritativeBuildByGraphDocumentId,
+      delayedDraftBuildByGraphDocumentId,
       projectContent,
       sharedViewerComposition,
       viewerTargetBuildOutputs,
@@ -826,6 +869,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       viewerTargetCommittedPreviewGeometryResult,
       viewerTargetGeometryResult,
       viewerTargetGraphDocumentId,
+      viewerTargetPreviewReadyAuthoritativeGeometryResult,
       viewerTargetPreviewGeometryResult,
       viewerTargetPreviewPreparation,
       viewportResultMode,

@@ -46,6 +46,8 @@ type ValueInputConfig = {
   className?: string
   hideSliderCaps?: boolean
   unitLabel?: string
+  onInteractionStart?: () => void
+  onInteractionEnd?: () => void
   onChange: (value: number) => void
 }
 
@@ -225,6 +227,20 @@ export function PortView({
   const [primitiveEditorValue, setPrimitiveEditorValue] = useState('')
   const primitiveLaneRef = useRef<HTMLDivElement | null>(null)
 
+  const beginPrimitiveInteraction = () => {
+    if (!rendersPrimitiveValueRow || valueInput === undefined || valueInput.disabled === true) {
+      return
+    }
+    valueInput.onInteractionStart?.()
+  }
+
+  const endPrimitiveInteraction = () => {
+    if (!rendersPrimitiveValueRow || valueInput === undefined || valueInput.disabled === true) {
+      return
+    }
+    valueInput.onInteractionEnd?.()
+  }
+
   useEffect(() => {
     if (!rendersPrimitiveValueRow || valueInput === undefined) {
       return
@@ -309,6 +325,7 @@ export function PortView({
     if (event.button !== 0) {
       return
     }
+    beginPrimitiveInteraction()
     const applyClientX = (clientX: number) => {
       const nextValue = resolvePrimitiveValueFromClientX(clientX)
       if (nextValue === null) {
@@ -321,6 +338,7 @@ export function PortView({
       applyClientX(moveEvent.clientX)
     }
     const handlePointerUp = () => {
+      endPrimitiveInteraction()
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
       window.removeEventListener('pointercancel', handlePointerUp)
@@ -416,7 +434,9 @@ export function PortView({
               }}
               onClick={(event) => {
                 event.stopPropagation()
+                beginPrimitiveInteraction()
                 stepPrimitiveValue(-1)
+                endPrimitiveInteraction()
               }}
             >
               <svg
@@ -461,20 +481,24 @@ export function PortView({
                     aria-label={`Edit ${labelOverride ?? port.label} value`}
                     onClick={(event) => event.stopPropagation()}
                     onPointerDown={(event) => event.stopPropagation()}
+                    onFocus={() => beginPrimitiveInteraction()}
                     onChange={(event) => {
                       setPrimitiveEditorValue(event.target.value)
                     }}
                     onBlur={() => {
                       commitPrimitiveEditorValue()
+                      endPrimitiveInteraction()
                     }}
                     onKeyDown={(event: ReactKeyboardEvent<HTMLInputElement>) => {
                       event.stopPropagation()
                       if (event.key === 'Enter') {
                         commitPrimitiveEditorValue()
+                        event.currentTarget.blur()
                         return
                       }
                       if (event.key === 'Escape' && valueInput !== undefined) {
                         setPrimitiveEditorValue(valueInput.value.toFixed(primitivePrecision))
+                        event.currentTarget.blur()
                       }
                     }}
                   />
@@ -497,7 +521,9 @@ export function PortView({
               }}
               onClick={(event) => {
                 event.stopPropagation()
+                beginPrimitiveInteraction()
                 stepPrimitiveValue(1)
+                endPrimitiveInteraction()
               }}
             >
               <svg

@@ -177,6 +177,19 @@ export type AcceptedBuildImpactSnapshot = {
   entries: AcceptedBuildImpactEntry[]
 }
 
+export type StagedAuthoritativePreviewResult = {
+  buildSeq: number
+  buildRequestId: string
+  graphRevision: number
+  targetBuildUnitIds: BuildUnitId[]
+  acceptedBuildImpact: AcceptedBuildImpactSnapshot
+  acceptedBuildBundle: BuildResultBundle
+  acceptedPreviewBuildBundle: BuildResultBundle
+  acceptedBuildOutputs: PartArtifact[]
+  acceptedPreviewBuildOutputs: PartArtifact[]
+  authoritativeGeometryResult: GeometryResultBundle | null
+}
+
 export type GraphRuntimeState = {
   compileBuild: GraphCompileBuildState
   previewPreparation: GraphPreviewPreparation
@@ -187,6 +200,7 @@ export type GraphRuntimeState = {
   acceptedDraftGraphRevision: number | null
   acceptedAuthoritativeGeometryResult: GeometryResultBundle | null
   acceptedDraftGeometryResult: GeometryResultBundle | null
+  stagedAuthoritativePreviewResult: StagedAuthoritativePreviewResult | null
   acceptedBuildOutputs: PartArtifact[]
   acceptedPreviewBuildOutputs: PartArtifact[]
   outputSurface: GraphOutputSurface
@@ -339,12 +353,118 @@ const buildAcceptedBuildImpactSnapshot = (options: {
   })),
 })
 
+const buildFinalizedAcceptedResultArtifacts = (options: {
+  runtime: GraphRuntimeState
+  routingIdentity: BuildRoutingIdentity & {
+    buildSeq: number
+    bundle?: BuildResultBundle
+  }
+}): {
+  acceptedBuildBundle: BuildResultBundle
+  acceptedPreviewBuildBundle: BuildResultBundle
+  acceptedBuildOutputs: PartArtifact[]
+  acceptedPreviewBuildOutputs: PartArtifact[]
+  acceptedBuildImpact: AcceptedBuildImpactSnapshot
+  targetBuildUnitIds: BuildUnitId[]
+} => {
+  const compileBuild = options.runtime.compileBuild
+  const nextBundle =
+    options.routingIdentity.bundle ??
+    ({
+      buildRequestId: options.routingIdentity.buildRequestId,
+      graphDocumentId: options.routingIdentity.graphDocumentId,
+      seq: options.routingIdentity.buildSeq,
+      resultClass: 'final',
+      executionIntent: { ...DEFAULT_BUILD_EXECUTION_INTENT },
+      summary: {
+        rebuiltCount: 0,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [],
+    } satisfies BuildResultBundle)
+  const targetBuildUnitIds = [...compileBuild.pendingTargetBuildUnitIds]
+  const acceptedBuildBundle = finalizeAcceptedBuildBundle({
+    previousBundle: options.runtime.acceptedBuildBundle,
+    nextBundle,
+    targetBuildUnitIds,
+  })
+  const acceptedPreviewBuildBundle = acceptedBuildBundle
+  const acceptedBuildOutputs = bundleToAcceptedBuildOutputs(acceptedBuildBundle)
+  const acceptedPreviewBuildOutputs = bundleToAcceptedBuildOutputs(acceptedPreviewBuildBundle)
+  const acceptedBuildImpact = buildAcceptedBuildImpactSnapshot({
+    acceptedBuildBundle,
+    changedParamIds: compileBuild.pendingChangedParamIds,
+    affectedBuildUnitIds: compileBuild.pendingAffectedBuildUnitIds,
+    targetBuildUnitIds,
+  })
+  return {
+    acceptedBuildBundle,
+    acceptedPreviewBuildBundle,
+    acceptedBuildOutputs,
+    acceptedPreviewBuildOutputs,
+    acceptedBuildImpact,
+    targetBuildUnitIds,
+  }
+}
+
 const cloneAcceptedGeometryLane = (
   geometryResult: GeometryResultBundle | null | undefined,
 ): GeometryResultBundle | null =>
   geometryResult === undefined || geometryResult === null
     ? null
     : cloneGeometryResultBundle(geometryResult)
+
+const cloneAcceptedBuildImpactSnapshot = (
+  snapshot: AcceptedBuildImpactSnapshot | null,
+): AcceptedBuildImpactSnapshot | null =>
+  snapshot === null
+    ? null
+    : {
+        seq: snapshot.seq,
+        graphDocumentId: snapshot.graphDocumentId,
+        buildRequestId: snapshot.buildRequestId,
+        changedParamIds: [...snapshot.changedParamIds],
+        affectedBuildUnitIds: [...snapshot.affectedBuildUnitIds],
+        targetBuildUnitIds: [...snapshot.targetBuildUnitIds],
+        summary: { ...snapshot.summary },
+        entries: snapshot.entries.map((entry) => ({ ...entry })),
+      }
+
+const cloneBuildResultBundle = (
+  bundle: BuildResultBundle | null,
+): BuildResultBundle | null =>
+  bundle === null
+    ? null
+    : {
+        buildRequestId: bundle.buildRequestId,
+        graphDocumentId: bundle.graphDocumentId,
+        seq: bundle.seq,
+        resultClass: bundle.resultClass,
+        executionIntent: { ...bundle.executionIntent },
+        summary: { ...bundle.summary },
+        entries: bundle.entries.map((entry) => cloneBuildResultEntry(entry)),
+      }
+
+const cloneStagedAuthoritativePreviewResult = (
+  stagedResult: StagedAuthoritativePreviewResult | null | undefined,
+): StagedAuthoritativePreviewResult | null =>
+  stagedResult === undefined || stagedResult === null
+    ? null
+    : {
+        buildSeq: stagedResult.buildSeq,
+        buildRequestId: stagedResult.buildRequestId,
+        graphRevision: stagedResult.graphRevision,
+        targetBuildUnitIds: [...stagedResult.targetBuildUnitIds],
+        acceptedBuildImpact: cloneAcceptedBuildImpactSnapshot(stagedResult.acceptedBuildImpact)!,
+        acceptedBuildBundle: cloneBuildResultBundle(stagedResult.acceptedBuildBundle)!,
+        acceptedPreviewBuildBundle: cloneBuildResultBundle(stagedResult.acceptedPreviewBuildBundle)!,
+        acceptedBuildOutputs: [...stagedResult.acceptedBuildOutputs],
+        acceptedPreviewBuildOutputs: [...stagedResult.acceptedPreviewBuildOutputs],
+        authoritativeGeometryResult: cloneAcceptedGeometryLane(
+          stagedResult.authoritativeGeometryResult,
+        ),
+      }
 
 const resolveAcceptedGeometryPromotion = (options: {
   previousAcceptedDraftGeometryResult: GeometryResultBundle | null
@@ -692,6 +812,14 @@ export type SpaghettiStoreState = {
       authoritativeGeometryResult?: GeometryResultBundle
     },
   ) => boolean
+  stageAuthoritativePreviewGraphBuildResult: (
+    routingIdentity: BuildRoutingIdentity & {
+      buildSeq: number
+      bundle?: BuildResultBundle
+      authoritativeGeometryResult?: GeometryResultBundle
+    },
+  ) => boolean
+  promoteStagedAuthoritativePreviewResult: (graphDocumentId: string) => boolean
   clearGraphBuildRequest: (
     routingIdentity: BuildRoutingIdentity & { buildSeq: number },
   ) => boolean
@@ -2528,6 +2656,7 @@ const createGraphRuntimeState = (
   const acceptedDraftGraphRevision = null
   const acceptedAuthoritativeGeometryResult = null
   const acceptedDraftGeometryResult = null
+  const stagedAuthoritativePreviewResult = null
   const acceptedBuildOutputs: PartArtifact[] = []
   const acceptedPreviewBuildOutputs: PartArtifact[] = []
   return {
@@ -2540,6 +2669,7 @@ const createGraphRuntimeState = (
     acceptedDraftGraphRevision,
     acceptedAuthoritativeGeometryResult,
     acceptedDraftGeometryResult,
+    stagedAuthoritativePreviewResult,
     acceptedBuildOutputs,
     acceptedPreviewBuildOutputs,
     outputSurface: buildGraphOutputSurface({
@@ -2601,6 +2731,8 @@ const withUpdatedGraphRuntimeGraph = (
   const acceptedAuthoritativeGeometryResult =
     runtime?.acceptedAuthoritativeGeometryResult ?? null
   const acceptedDraftGeometryResult = runtime?.acceptedDraftGeometryResult ?? null
+  const stagedAuthoritativePreviewResult =
+    cloneStagedAuthoritativePreviewResult(runtime?.stagedAuthoritativePreviewResult)
   const acceptedBuildOutputs = runtime?.acceptedBuildOutputs ?? []
   const acceptedPreviewBuildOutputs = runtime?.acceptedPreviewBuildOutputs ?? []
   return {
@@ -2613,6 +2745,7 @@ const withUpdatedGraphRuntimeGraph = (
     acceptedDraftGraphRevision,
     acceptedAuthoritativeGeometryResult,
     acceptedDraftGeometryResult,
+    stagedAuthoritativePreviewResult,
     acceptedBuildOutputs,
     acceptedPreviewBuildOutputs,
     outputSurface: buildGraphOutputSurface({
@@ -3287,6 +3420,21 @@ export const selectViewerTargetGraphCommittedAuthoritativeGeometryResult = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
 ): GeometryResultBundle | null =>
   selectViewerTargetGraphRuntime(state)?.acceptedAuthoritativeGeometryResult ?? null
+
+export const selectViewerTargetGraphPreviewReadyAuthoritativeGeometryResult = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): GeometryResultBundle | null => {
+  const runtime = selectViewerTargetGraphRuntime(state)
+  if (
+    runtime?.stagedAuthoritativePreviewResult === null ||
+    runtime?.stagedAuthoritativePreviewResult === undefined
+  ) {
+    return null
+  }
+  return runtime.stagedAuthoritativePreviewResult.graphRevision === runtime.compileBuild.currentGraphRevision
+    ? runtime.stagedAuthoritativePreviewResult.authoritativeGeometryResult
+    : null
+}
 
 export const selectViewerTargetGraphCommittedDraftGeometryResult = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
@@ -6015,27 +6163,10 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
       delete nextGraphDocumentIdByBuildSeq[routingIdentity.buildSeq]
       accepted = true
-      const nextBundle =
-        routingIdentity.bundle ??
-        ({
-          buildRequestId: routingIdentity.buildRequestId,
-          graphDocumentId: routingIdentity.graphDocumentId,
-          seq: routingIdentity.buildSeq,
-          resultClass: 'final',
-          executionIntent: { ...DEFAULT_BUILD_EXECUTION_INTENT },
-          summary: {
-            rebuiltCount: 0,
-            retainedCount: 0,
-            evictedCount: 0,
-          },
-          entries: [],
-        } satisfies BuildResultBundle)
-      const acceptedBuildBundle = finalizeAcceptedBuildBundle({
-        previousBundle: runtime.acceptedBuildBundle,
-        nextBundle,
-        targetBuildUnitIds: compileBuild.pendingTargetBuildUnitIds,
+      const finalizedAcceptedResult = buildFinalizedAcceptedResultArtifacts({
+        runtime,
+        routingIdentity,
       })
-      const acceptedPreviewBuildBundle = acceptedBuildBundle
       const previousAcceptedAuthoritativeGeometryResult =
         runtime.acceptedAuthoritativeGeometryResult
       const previousAcceptedDraftGeometryResult = runtime.acceptedDraftGeometryResult
@@ -6048,14 +6179,19 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       authoritativeHandleIdsToRelease.push(
         ...acceptedGeometryPromotion.authoritativeHandleIdsToRelease,
       )
-      const acceptedBuildOutputs = bundleToAcceptedBuildOutputs(acceptedBuildBundle)
-      const acceptedPreviewBuildOutputs = bundleToAcceptedBuildOutputs(acceptedPreviewBuildBundle)
-      const acceptedBuildImpact = buildAcceptedBuildImpactSnapshot({
-        acceptedBuildBundle,
-        changedParamIds: compileBuild.pendingChangedParamIds,
-        affectedBuildUnitIds: compileBuild.pendingAffectedBuildUnitIds,
-        targetBuildUnitIds: compileBuild.pendingTargetBuildUnitIds,
-      })
+      const previousStagedAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+        runtime.stagedAuthoritativePreviewResult?.authoritativeGeometryResult ?? null,
+      )
+      if (
+        previousStagedAuthoritativeHandleId !== null &&
+        previousStagedAuthoritativeHandleId !== incomingAuthoritativeHandleId &&
+        previousStagedAuthoritativeHandleId !==
+          getGeometryResultAuthoritativeHandleId(
+            acceptedGeometryPromotion.acceptedAuthoritativeGeometryResult,
+          )
+      ) {
+        authoritativeHandleIdsToRelease.push(previousStagedAuthoritativeHandleId)
+      }
 
       return {
         graphRuntimeByDocumentId: {
@@ -6067,7 +6203,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               lastBuildSeq: routingIdentity.buildSeq,
               latestAcceptedGraphRevision: compileBuild.inFlightGraphRevision,
               latestAcceptedBuildSeq: routingIdentity.buildSeq,
-              latestAcceptedBuildUnitIds: [...compileBuild.pendingTargetBuildUnitIds],
+              latestAcceptedBuildUnitIds: [...finalizedAcceptedResult.targetBuildUnitIds],
               pendingTargetBuildUnitIds: [],
               pendingAffectedBuildUnitIds: [],
               inFlightGraphRevision: null,
@@ -6075,8 +6211,8 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               inFlightBuildSeq: null,
               inFlightExecutionIntent: null,
             },
-            acceptedBuildBundle,
-            acceptedPreviewBuildBundle,
+            acceptedBuildBundle: finalizedAcceptedResult.acceptedBuildBundle,
+            acceptedPreviewBuildBundle: finalizedAcceptedResult.acceptedPreviewBuildBundle,
             acceptedAuthoritativeGraphRevision:
               routingIdentity.authoritativeGeometryResult === undefined
                 ? runtime.acceptedAuthoritativeGraphRevision
@@ -6088,13 +6224,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             acceptedAuthoritativeGeometryResult:
               acceptedGeometryPromotion.acceptedAuthoritativeGeometryResult,
             acceptedDraftGeometryResult: acceptedGeometryPromotion.acceptedDraftGeometryResult,
-            acceptedBuildOutputs,
-            acceptedPreviewBuildOutputs,
-            acceptedBuildImpact,
+            stagedAuthoritativePreviewResult: null,
+            acceptedBuildOutputs: finalizedAcceptedResult.acceptedBuildOutputs,
+            acceptedPreviewBuildOutputs: finalizedAcceptedResult.acceptedPreviewBuildOutputs,
+            acceptedBuildImpact: finalizedAcceptedResult.acceptedBuildImpact,
             outputSurface: buildGraphOutputSurface({
               graphDocumentId: routingIdentity.graphDocumentId,
               previewPreparation: runtime.previewPreparation,
-              acceptedBundle: acceptedBuildBundle,
+              acceptedBundle: finalizedAcceptedResult.acceptedBuildBundle,
               publishedAtBuildSeq: routingIdentity.buildSeq,
             }),
           },
@@ -6104,6 +6241,179 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     })
     releaseAuthoritativeHandleIds(authoritativeHandleIdsToRelease)
     return accepted
+  },
+  stageAuthoritativePreviewGraphBuildResult: (routingIdentity) => {
+    let staged = false
+    const authoritativeHandleIdsToRelease: string[] = []
+    const incomingAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+      routingIdentity.authoritativeGeometryResult,
+    )
+    set((state) => {
+      const trackedGraphDocumentId = state.graphDocumentIdByBuildSeq[routingIdentity.buildSeq]
+      if (trackedGraphDocumentId !== routingIdentity.graphDocumentId) {
+        if (incomingAuthoritativeHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(incomingAuthoritativeHandleId)
+        }
+        return state
+      }
+      const runtime = state.graphRuntimeByDocumentId[routingIdentity.graphDocumentId]
+      if (runtime === undefined) {
+        if (incomingAuthoritativeHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(incomingAuthoritativeHandleId)
+        }
+        return state
+      }
+      const compileBuild = runtime.compileBuild
+      if (
+        compileBuild.inFlightBuildSeq !== routingIdentity.buildSeq ||
+        compileBuild.inFlightBuildRequestId !== routingIdentity.buildRequestId ||
+        compileBuild.inFlightGraphRevision === null ||
+        routingIdentity.buildSeq < compileBuild.latestIssuedBuildSeq ||
+        (compileBuild.latestAcceptedBuildSeq !== null &&
+          routingIdentity.buildSeq <= compileBuild.latestAcceptedBuildSeq)
+      ) {
+        if (incomingAuthoritativeHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(incomingAuthoritativeHandleId)
+        }
+        return state
+      }
+
+      const finalizedAcceptedResult = buildFinalizedAcceptedResultArtifacts({
+        runtime,
+        routingIdentity,
+      })
+      const previousStagedAuthoritativeHandleId = getGeometryResultAuthoritativeHandleId(
+        runtime.stagedAuthoritativePreviewResult?.authoritativeGeometryResult ?? null,
+      )
+      if (
+        previousStagedAuthoritativeHandleId !== null &&
+        previousStagedAuthoritativeHandleId !== incomingAuthoritativeHandleId
+      ) {
+        authoritativeHandleIdsToRelease.push(previousStagedAuthoritativeHandleId)
+      }
+
+      const nextGraphDocumentIdByBuildSeq = { ...state.graphDocumentIdByBuildSeq }
+      delete nextGraphDocumentIdByBuildSeq[routingIdentity.buildSeq]
+      staged = true
+
+      return {
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          [routingIdentity.graphDocumentId]: {
+            ...runtime,
+            compileBuild: {
+              ...compileBuild,
+              lastBuildSeq: routingIdentity.buildSeq,
+              pendingTargetBuildUnitIds: [],
+              pendingAffectedBuildUnitIds: [],
+              inFlightGraphRevision: null,
+              inFlightBuildRequestId: null,
+              inFlightBuildSeq: null,
+              inFlightExecutionIntent: null,
+            },
+            stagedAuthoritativePreviewResult: {
+              buildSeq: routingIdentity.buildSeq,
+              buildRequestId: routingIdentity.buildRequestId,
+              graphRevision: compileBuild.inFlightGraphRevision,
+              targetBuildUnitIds: [...finalizedAcceptedResult.targetBuildUnitIds],
+              acceptedBuildImpact: finalizedAcceptedResult.acceptedBuildImpact,
+              acceptedBuildBundle: finalizedAcceptedResult.acceptedBuildBundle,
+              acceptedPreviewBuildBundle: finalizedAcceptedResult.acceptedPreviewBuildBundle,
+              acceptedBuildOutputs: [...finalizedAcceptedResult.acceptedBuildOutputs],
+              acceptedPreviewBuildOutputs: [
+                ...finalizedAcceptedResult.acceptedPreviewBuildOutputs,
+              ],
+              authoritativeGeometryResult: cloneAcceptedGeometryLane(
+                routingIdentity.authoritativeGeometryResult,
+              ),
+            },
+          },
+        },
+        graphDocumentIdByBuildSeq: nextGraphDocumentIdByBuildSeq,
+      }
+    })
+    releaseAuthoritativeHandleIds(authoritativeHandleIdsToRelease)
+    return staged
+  },
+  promoteStagedAuthoritativePreviewResult: (graphDocumentId) => {
+    let promoted = false
+    const authoritativeHandleIdsToRelease: string[] = []
+    set((state) => {
+      const runtime = state.graphRuntimeByDocumentId[graphDocumentId]
+      if (runtime === undefined) {
+        return state
+      }
+      const stagedPreviewResult = runtime.stagedAuthoritativePreviewResult
+      if (stagedPreviewResult === null) {
+        return state
+      }
+
+      if (stagedPreviewResult.graphRevision !== runtime.compileBuild.currentGraphRevision) {
+        const staleStagedHandleId = getGeometryResultAuthoritativeHandleId(
+          stagedPreviewResult.authoritativeGeometryResult,
+        )
+        if (staleStagedHandleId !== null) {
+          authoritativeHandleIdsToRelease.push(staleStagedHandleId)
+        }
+        return {
+          graphRuntimeByDocumentId: {
+            ...state.graphRuntimeByDocumentId,
+            [graphDocumentId]: {
+              ...runtime,
+              stagedAuthoritativePreviewResult: null,
+            },
+          },
+        }
+      }
+
+      promoted = true
+      const acceptedGeometryPromotion = resolveAcceptedGeometryPromotion({
+        previousAcceptedDraftGeometryResult: runtime.acceptedDraftGeometryResult,
+        previousAcceptedAuthoritativeGeometryResult: runtime.acceptedAuthoritativeGeometryResult,
+        incomingAuthoritativeGeometryResult:
+          stagedPreviewResult.authoritativeGeometryResult ?? undefined,
+      })
+      authoritativeHandleIdsToRelease.push(
+        ...acceptedGeometryPromotion.authoritativeHandleIdsToRelease,
+      )
+
+      return {
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          [graphDocumentId]: {
+            ...runtime,
+            compileBuild: {
+              ...runtime.compileBuild,
+              lastBuildSeq: stagedPreviewResult.buildSeq,
+              latestAcceptedGraphRevision: stagedPreviewResult.graphRevision,
+              latestAcceptedBuildSeq: stagedPreviewResult.buildSeq,
+              latestAcceptedBuildUnitIds: [...stagedPreviewResult.targetBuildUnitIds],
+            },
+            acceptedBuildBundle: cloneBuildResultBundle(stagedPreviewResult.acceptedBuildBundle),
+            acceptedPreviewBuildBundle: cloneBuildResultBundle(
+              stagedPreviewResult.acceptedPreviewBuildBundle,
+            ),
+            acceptedAuthoritativeGraphRevision: stagedPreviewResult.graphRevision,
+            acceptedAuthoritativeGeometryResult:
+              acceptedGeometryPromotion.acceptedAuthoritativeGeometryResult,
+            stagedAuthoritativePreviewResult: null,
+            acceptedBuildOutputs: [...stagedPreviewResult.acceptedBuildOutputs],
+            acceptedPreviewBuildOutputs: [...stagedPreviewResult.acceptedPreviewBuildOutputs],
+            acceptedBuildImpact: cloneAcceptedBuildImpactSnapshot(
+              stagedPreviewResult.acceptedBuildImpact,
+            ),
+            outputSurface: buildGraphOutputSurface({
+              graphDocumentId,
+              previewPreparation: runtime.previewPreparation,
+              acceptedBundle: stagedPreviewResult.acceptedBuildBundle,
+              publishedAtBuildSeq: stagedPreviewResult.buildSeq,
+            }),
+          },
+        },
+      }
+    })
+    releaseAuthoritativeHandleIds(authoritativeHandleIdsToRelease)
+    return promoted
   },
   clearGraphBuildRequest: (routingIdentity) => {
     let cleared = false

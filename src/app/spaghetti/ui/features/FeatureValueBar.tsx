@@ -2,6 +2,8 @@ type FeatureValueBarProps = {
   label: string
   value: number
   onChange: (value: number) => void
+  onInteractionStart?: () => void
+  onInteractionEnd?: () => void
   min?: number
   max?: number
   step?: number
@@ -43,6 +45,8 @@ export function FeatureValueBar({
   label,
   value,
   onChange,
+  onInteractionStart,
+  onInteractionEnd,
   min,
   max,
   step = 0.1,
@@ -54,6 +58,20 @@ export function FeatureValueBar({
   const fillPercent = getFillPercent(value, min, max)
   const fillColor =
     tone === 'white' ? 'rgba(233, 239, 252, 0.95)' : 'rgba(74, 124, 212, 0.95)'
+
+  const beginInteraction = () => {
+    if (disabled) {
+      return
+    }
+    onInteractionStart?.()
+  }
+
+  const endInteraction = () => {
+    if (disabled) {
+      return
+    }
+    onInteractionEnd?.()
+  }
 
   const changeBy = (deltaSteps: number) => {
     if (disabled) {
@@ -76,7 +94,9 @@ export function FeatureValueBar({
         disabled={disabled}
         onClick={(event) => {
           event.stopPropagation()
+          beginInteraction()
           changeBy(-1)
+          endInteraction()
         }}
         onPointerDown={(event) => event.stopPropagation()}
         aria-label={`Decrease ${label}`}
@@ -101,6 +121,7 @@ export function FeatureValueBar({
             disabled={disabled}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
+            onFocus={() => beginInteraction()}
             onChange={(event) => {
               if (disabled) {
                 return
@@ -111,6 +132,13 @@ export function FeatureValueBar({
               }
               onChange(clampNumber(Number(nextValue.toFixed(precision)), min, max))
             }}
+            onBlur={() => endInteraction()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === 'Escape') {
+                event.stopPropagation()
+                event.currentTarget.blur()
+              }
+            }}
           />
         </div>
       </div>
@@ -120,7 +148,9 @@ export function FeatureValueBar({
         disabled={disabled}
         onClick={(event) => {
           event.stopPropagation()
+          beginInteraction()
           changeBy(1)
+          endInteraction()
         }}
         onPointerDown={(event) => event.stopPropagation()}
         aria-label={`Increase ${label}`}

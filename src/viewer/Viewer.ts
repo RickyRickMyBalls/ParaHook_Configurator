@@ -216,7 +216,15 @@ const fallbackPreset = (): MaterialPreset => ({
 
 export type ViewerViewportRenderLayers = {
   baseParts: ViewerRenderablePart[]
+  baseStyle?: {
+    opacity: number
+    color: string
+  }
   overlayParts: ViewerRenderablePart[]
+  overlayStyle?: {
+    opacity: number
+    color: string
+  }
   overlayOpacity: number
 }
 
@@ -671,7 +679,15 @@ export class Viewer {
     this.setViewportRenderLayers(
       {
         baseParts: parts,
+        baseStyle: {
+          opacity: 1,
+          color: '#5f83d6',
+        },
         overlayParts: [],
+        overlayStyle: {
+          opacity: 0.5,
+          color: '#5f83d6',
+        },
         overlayOpacity: 0.5,
       },
       visibility,
@@ -692,7 +708,8 @@ export class Viewer {
     for (const part of layers.baseParts) {
       const partKeyStr = part.viewerKey
       const artifact = part.artifact
-      const material = this.resolveMaterialForPart(partKeyStr)
+      const baseMaterial = this.resolveMaterialForPart(partKeyStr)
+      const material = this.createLayerMaterial(baseMaterial, layers.baseStyle)
       const geometry =
         artifact.kind === 'box'
           ? new BoxGeometry(
@@ -712,6 +729,7 @@ export class Viewer {
       mesh.castShadow = this.currentViewSettings.shadowsEnabled
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
       mesh.userData.partKey = partKeyStr
+      mesh.userData.disposeMaterial = material !== baseMaterial
       const selectionOutline = new LineSegments(
         new EdgesGeometry(geometry),
         new LineBasicMaterial({
@@ -758,12 +776,12 @@ export class Viewer {
     for (const part of layers.overlayParts) {
       const partKeyStr = part.viewerKey
       const artifact = part.artifact
-      const baseMaterial = this.resolveMaterialForPart(partKeyStr)
-      const material = baseMaterial.clone()
-      material.opacity = clamp(baseMaterial.opacity * layers.overlayOpacity, 0, 1)
-      material.transparent = true
-      material.depthWrite = false
-      material.needsUpdate = true
+      const material = this.createLayerMaterial(
+        this.resolveMaterialForPart(partKeyStr),
+        layers.overlayStyle,
+        layers.overlayOpacity,
+        true,
+      )
       const geometry =
         artifact.kind === 'box'
           ? new BoxGeometry(
@@ -2207,6 +2225,38 @@ export class Viewer {
     material.side = DoubleSide
     material.wireframe = this.currentViewSettings.wireframe
     material.needsUpdate = true
+  }
+
+  private createLayerMaterial(
+    baseMaterial: MeshStandardMaterial,
+    style:
+      | {
+          opacity: number
+          color: string
+        }
+      | undefined,
+    fallbackOpacity = 1,
+    overlay = false,
+  ): MeshStandardMaterial {
+    if (style === undefined) {
+      if (!overlay && fallbackOpacity === 1) {
+        return baseMaterial
+      }
+      const fallbackMaterial = baseMaterial.clone()
+      fallbackMaterial.opacity = clamp(baseMaterial.opacity * fallbackOpacity, 0, 1)
+      fallbackMaterial.transparent = fallbackMaterial.opacity < 1 || overlay
+      fallbackMaterial.depthWrite = !overlay && fallbackMaterial.opacity >= 1
+      fallbackMaterial.needsUpdate = true
+      return fallbackMaterial
+    }
+
+    const material = baseMaterial.clone()
+    material.color.set(style.color)
+    material.opacity = clamp(style.opacity, 0, 1)
+    material.transparent = material.opacity < 1 || overlay
+    material.depthWrite = !overlay && material.opacity >= 1
+    material.needsUpdate = true
+    return material
   }
 
   private applyMaterialAssignmentsToScene(): void {

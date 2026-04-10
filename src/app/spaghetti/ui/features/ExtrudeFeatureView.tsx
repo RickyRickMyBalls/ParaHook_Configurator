@@ -14,6 +14,8 @@ type ExtrudeFeatureViewProps = {
   feature: ExtrudeFeature
   stack: FeatureStack
   featureIndex: number
+  onBeginInteraction?: () => void
+  onEndInteraction?: () => void
   previewProfilesBySketchId: ReadonlyMap<string, PreviewProfileWithLabel[]>
   closeProfileResolvedByFeatureId: ReadonlyMap<
     string,
@@ -46,6 +48,8 @@ export function ExtrudeFeatureView({
   feature,
   stack,
   featureIndex,
+  onBeginInteraction,
+  onEndInteraction,
   previewProfilesBySketchId,
   closeProfileResolvedByFeatureId,
   depthVirtualInputState,
@@ -167,6 +171,8 @@ export function ExtrudeFeatureView({
         max={500}
         step={0.1}
         disabled={depthDriven}
+        onInteractionStart={onBeginInteraction}
+        onInteractionEnd={onEndInteraction}
         onChange={(value) =>
           setExtrudeDepth(nodeId, feature.featureId, {
             kind: 'lit',
@@ -186,6 +192,8 @@ export function ExtrudeFeatureView({
         max={45}
         step={0.1}
         disabled={taperDriven}
+        onInteractionStart={onBeginInteraction}
+        onInteractionEnd={onEndInteraction}
         onChange={(value) =>
           setExtrudeTaper(nodeId, feature.featureId, {
             kind: 'lit',
@@ -205,6 +213,8 @@ export function ExtrudeFeatureView({
         max={500}
         step={0.1}
         disabled={offsetDriven}
+        onInteractionStart={onBeginInteraction}
+        onInteractionEnd={onEndInteraction}
         onChange={(value) =>
           setExtrudeOffset(nodeId, feature.featureId, {
             kind: 'lit',

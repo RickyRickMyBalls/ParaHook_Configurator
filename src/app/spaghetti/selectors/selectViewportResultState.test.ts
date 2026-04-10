@@ -153,7 +153,11 @@ describe('selectViewportResultState', () => {
       }),
     )
     expect(state.renderVm.viewerParts).toEqual([])
-    expect(state.previewRenderVm.viewerParts).toEqual([])
+    expect(state.previewRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:slot-baseplate',
+      }),
+    ])
   })
 
   it('lets project-composition draft parts stay visible in draft mode', () => {
@@ -716,5 +720,347 @@ describe('selectViewportResultState', () => {
         viewerKey: 'graph-document-1:slot-baseplate',
       }),
     ])
+  })
+
+  it('exposes previewMesh as the live preview state in auto live interaction when only draft preview exists', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+        request: {
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-old-final',
+          partKeys: ['baseplate'],
+        },
+        bodies: {},
+        meshPreview: {
+          vertices: [
+            0, 0, 0,
+            2, 0, 0,
+            0, 1, 0,
+          ],
+          indices: [0, 1, 2],
+        },
+        diagnostics: [],
+        trace: [],
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-old-final',
+        },
+      }),
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+    })
+
+    expect(state.previewState).toEqual(
+      expect.objectContaining({
+        kind: 'live-preview',
+        presentationStateId: 'previewMesh',
+        resultClass: 'draft',
+        sourceKind: 'artifact-preview',
+      }),
+    )
+    expect(state.hasLivePreview).toBe(true)
+    expect(state.hasPreviewReadyResult).toBe(false)
+    expect(state.visiblePresentationStateId).toBe('previewMesh')
+    expect(state.retainedBasePresentationStateId).toBe('lastLoaded')
+  })
+
+  it('maps auto live authoritative readiness to previewBrep instead of accepted presentation during interaction', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-old-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-old-final',
+      },
+    })
+    const currentAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-new-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          3, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-new-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      previewReadyAuthoritativeGeometryResult: currentAuthoritativeGeometryResult,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+    })
+
+    expect(state.previewState).toEqual(
+      expect.objectContaining({
+        kind: 'preview-ready',
+        presentationStateId: 'previewBrep',
+        resultClass: 'final',
+        sourceKind: 'authoritative-preview',
+        geometryResult: currentAuthoritativeGeometryResult,
+      }),
+    )
+    expect(state.hasLivePreview).toBe(false)
+    expect(state.hasPreviewReadyResult).toBe(true)
+    expect(state.visiblePresentationStateId).toBe('previewBrep')
+    expect(state.retainedBasePresentationStateId).toBe('lastLoaded')
+    expect(state.overlayResultClass).toBe('final')
+    expect(state.acceptedState.kind).toBe('none')
+    expect(state.acceptedState.isVisible).toBe(false)
+  })
+
+  it('does not synthesize previewBrep from the already-committed authoritative result during live interaction', () => {
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          3, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-current-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: committedAuthoritativeGeometryResult,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation: null,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+    })
+
+    expect(state.previewState.kind).toBe('none')
+    expect(state.hasLivePreview).toBe(false)
+    expect(state.hasPreviewReadyResult).toBe(false)
+    expect(state.visiblePresentationStateId).toBe(null)
+    expect(state.acceptedState.isVisible).toBe(true)
+  })
+
+  it('suppresses live preview state during active interaction when browser policy is release', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+        request: {
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-old-final',
+          partKeys: ['baseplate'],
+        },
+        bodies: {},
+        meshPreview: {
+          vertices: [
+            0, 0, 0,
+            2, 0, 0,
+            0, 1, 0,
+          ],
+          indices: [0, 1, 2],
+        },
+        diagnostics: [],
+        trace: [],
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-old-final',
+        },
+      }),
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'release',
+      isInteractionActive: true,
+      hasDelayedDraftPlaceholder: true,
+    })
+
+    expect(state.previewState.kind).toBe('none')
+    expect(state.hasLivePreview).toBe(false)
+    expect(state.hasPreviewReadyResult).toBe(false)
+    expect(state.visiblePresentationStateId).toBe('lastLoaded')
+    expect(state.visibleResultClass).toBe('final')
+    expect(state.visibleSourceKind).toBe('retained-final')
+    expect(state.overlayResultClass).toBe(null)
+    expect(state.overlayRenderVm.viewerParts).toEqual([])
+    expect(state.acceptedState.isVisible).toBe(false)
+  })
+
+  it('exposes preview-ready state after release when release policy has a newer authoritative result than the retained base', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-old-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-old-final',
+      },
+    })
+    const currentAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-new-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          3, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-new-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      previewReadyAuthoritativeGeometryResult: currentAuthoritativeGeometryResult,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'release',
+      isInteractionActive: false,
+    })
+
+    expect(state.previewState).toEqual(
+      expect.objectContaining({
+        kind: 'preview-ready',
+        presentationStateId: 'previewBrep',
+        geometryResult: currentAuthoritativeGeometryResult,
+      }),
+    )
+    expect(state.hasPreviewReadyResult).toBe(true)
+    expect(state.visiblePresentationStateId).toBe('previewBrep')
+    expect(state.retainedBasePresentationStateId).toBe('lastLoaded')
+    expect(state.overlayResultClass).toBe('final')
+    expect(state.acceptedState.isVisible).toBe(false)
   })
 })

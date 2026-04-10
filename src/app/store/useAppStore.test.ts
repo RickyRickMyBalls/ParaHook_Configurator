@@ -2401,6 +2401,70 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('owns one app-level viewport presentation settings contract with normalized defaults', async () => {
+    const {
+      selectViewportPresentationSettings,
+      selectViewportPresentationStyleSettings,
+      useAppStore,
+    } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(selectViewportPresentationSettings(useAppStore.getState())).toEqual({
+      lastLoaded: {
+        opacity: 1,
+        color: '#5f83d6',
+      },
+      previewMesh: {
+        opacity: 0.5,
+        color: '#5f83d6',
+      },
+      previewBrep: {
+        opacity: 0.75,
+        color: '#5f83d6',
+      },
+    })
+    expect(selectViewportPresentationStyleSettings(useAppStore.getState(), 'previewBrep')).toEqual({
+      opacity: 0.75,
+      color: '#5f83d6',
+    })
+  })
+
+  it('updates viewport presentation settings without touching browser policy or graph runtime truth', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+
+    const previousGraphRuntimeByDocumentId = useSpaghettiStore.getState().graphRuntimeByDocumentId
+
+    useAppStore.getState().setViewportPresentationOpacity('previewMesh', 2)
+    useAppStore.getState().setViewportPresentationColor('previewBrep', ' #ABC ')
+    useAppStore.getState().setViewportPresentationColor('lastLoaded', 'not-a-color')
+
+    expect(useAppStore.getState().viewportPresentationSettings).toEqual({
+      lastLoaded: {
+        opacity: 1,
+        color: '#5f83d6',
+      },
+      previewMesh: {
+        opacity: 1,
+        color: '#5f83d6',
+      },
+      previewBrep: {
+        opacity: 0.75,
+        color: '#aabbcc',
+      },
+    })
+    expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
+      'release',
+    )
+    expect(useSpaghettiStore.getState().graphRuntimeByDocumentId).toBe(previousGraphRuntimeByDocumentId)
+  })
+
   it('dispatches authoritative live work immediately for live graph revisions in the browser runtime policy path', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
@@ -3827,6 +3891,237 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       undefined,
     )
     expect(runtimeAfter?.compileBuild.inFlightBuildSeq).toBeNull()
+  })
+
+  it('stages live authoritative results as preview-ready during active browser interaction without advancing accepted final truth', async () => {
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = 'graph-document-1'
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId,
+        buildRequestId: 'accepted-authoritative-1',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-accepted-authoritative-1',
+      },
+    })
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          acceptedAuthoritativeGraphRevision: 1,
+          acceptedAuthoritativeGeometryResult: committedAuthoritativeGeometryResult,
+        },
+      },
+    }))
+    useAppStore.getState().setBrowserGraphBuildPolicy(graphDocumentId, 'live')
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_depth'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'live-authoritative-build-1',
+      buildSeq: 301,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'live',
+      },
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 301,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId,
+        buildRequestId: 'live-authoritative-build-1',
+        artifacts: [baseplateArtifact],
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        },
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'live-authoritative-build-1',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: {
+            vertices: [0, 0, 0, 2, 0, 0, 0, 1, 0],
+            indices: [0, 1, 2],
+          },
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-live-authoritative-build-1',
+          },
+        }),
+      }),
+    )
+
+    const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(runtime?.acceptedAuthoritativeGraphRevision).toBe(1)
+    expect(runtime?.acceptedAuthoritativeGeometryResult).toEqual(committedAuthoritativeGeometryResult)
+    expect(runtime?.stagedAuthoritativePreviewResult).toEqual(
+      expect.objectContaining({
+        buildSeq: 301,
+        buildRequestId: 'live-authoritative-build-1',
+        graphRevision: 2,
+      }),
+    )
+    expect(runtime?.compileBuild.inFlightBuildSeq).toBeNull()
+  })
+
+  it('promotes staged live authoritative preview-ready results when the browser interaction releases', async () => {
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = 'graph-document-1'
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          acceptedAuthoritativeGraphRevision: 1,
+          acceptedAuthoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+            request: {
+              graphDocumentId,
+              buildRequestId: 'accepted-authoritative-1',
+              partKeys: ['baseplate'],
+            },
+            bodies: {},
+            meshPreview: {
+              vertices: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+              indices: [0, 1, 2],
+            },
+            diagnostics: [],
+            trace: [],
+            authoritativeHandle: {
+              resourceType: 'shape_set',
+              handleId: 'shape-set-accepted-authoritative-1',
+            },
+          }),
+        },
+      },
+    }))
+    useAppStore.getState().setBrowserGraphBuildPolicy(graphDocumentId, 'live')
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_depth'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'live-authoritative-build-2',
+      buildSeq: 302,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'live',
+      },
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 302,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId,
+        buildRequestId: 'live-authoritative-build-2',
+        artifacts: [baseplateArtifact],
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        },
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'live-authoritative-build-2',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: {
+            vertices: [0, 0, 0, 2, 0, 0, 0, 1, 0],
+            indices: [0, 1, 2],
+          },
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-live-authoritative-build-2',
+          },
+        }),
+      }),
+    )
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentId)
+
+    const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(runtime?.stagedAuthoritativePreviewResult).toBeNull()
+    expect(runtime?.acceptedAuthoritativeGraphRevision).toBe(2)
+    expect(runtime?.acceptedAuthoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          buildRequestId: 'live-authoritative-build-2',
+        }),
+      }),
+    )
+    expect(runtime?.compileBuild.latestAcceptedGraphRevision).toBe(2)
+    expect(runtime?.compileBuild.latestAcceptedBuildSeq).toBe(302)
   })
 
   it('lets an independent child outrun parent off in the browser execution-policy selector', async () => {

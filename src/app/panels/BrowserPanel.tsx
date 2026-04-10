@@ -179,7 +179,9 @@ export function BrowserPanel({
             <details open className="BrowserTreeSection BrowserTreeSection--root">
               <summary className="BrowserTreeSummary">Project Browser</summary>
               <BrowserContentSection
+                contentBuildPolicy={sectionHandlers.contentBuildPolicy}
                 contentRows={browserTreeRows.contentRows}
+                onCycleContentBuildPolicy={sectionHandlers.onCycleContentBuildPolicy}
                 rowHandlers={rowHandlers}
                 registerContentRowElement={sectionHandlers.registerContentRowElement}
                 onOpenContentImportMenu={sectionHandlers.onOpenContentImportMenu}

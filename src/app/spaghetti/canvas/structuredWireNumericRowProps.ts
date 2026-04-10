@@ -16,6 +16,8 @@ type StructuredWireNumericRowValueInput = {
   formatValue?: (value: number) => string
   displayedTrackValue?: number
   unitLabel?: string
+  onInteractionStart?: () => void
+  onInteractionEnd?: () => void
   onChange: (value: number) => void
 }
 
@@ -36,6 +38,8 @@ type StructuredWireNumericRowPropsOptions = {
     step?: number
     showSlider?: boolean
   }
+  onInteractionStart?: () => void
+  onInteractionEnd?: () => void
   onChange: (value: number) => void
   formatValueLabel: (value: number) => string
 }
@@ -47,6 +51,8 @@ export const createStructuredWireNumericRowProps = ({
   driven,
   editorEnabled,
   inputRange,
+  onInteractionStart,
+  onInteractionEnd,
   onChange,
   formatValueLabel,
 }: StructuredWireNumericRowPropsOptions): StructuredWireNumericRowProps => ({
@@ -67,6 +73,8 @@ export const createStructuredWireNumericRowProps = ({
     formatValue: (value) => buildUnitAwareNumericRowLabel(formatValueLabel(value), unitLabel),
     displayedTrackValue: driven ? effectiveValue : localFallbackValue,
     unitLabel,
+    onInteractionStart,
+    onInteractionEnd,
     onChange,
   },
 })

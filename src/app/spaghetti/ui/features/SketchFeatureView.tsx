@@ -14,6 +14,8 @@ type SketchFeatureViewProps = {
   previewProfiles: PreviewProfileWithLabel[]
   highlightedProfileIds: ReadonlySet<string>
   irAvailable: boolean
+  onBeginInteraction?: () => void
+  onEndInteraction?: () => void
   widthVirtualInputState?: {
     driven: boolean
     connectionCount: number
@@ -66,6 +68,8 @@ export function SketchFeatureView({
   previewProfiles,
   highlightedProfileIds,
   irAvailable,
+  onBeginInteraction,
+  onEndInteraction,
   widthVirtualInputState,
   lengthVirtualInputState,
 }: SketchFeatureViewProps) {
@@ -122,6 +126,8 @@ const renderPointEditor = (
               max={2000}
               step={0.1}
               compact
+              onInteractionStart={onBeginInteraction}
+              onInteractionEnd={onEndInteraction}
               onChange={(nextX) =>
                 updateSketchComponentPoint(nodeId, feature.featureId, component.rowId, pointKey, {
                   kind: 'lit',
@@ -139,6 +145,8 @@ const renderPointEditor = (
               max={2000}
               step={0.1}
               compact
+              onInteractionStart={onBeginInteraction}
+              onInteractionEnd={onEndInteraction}
               onChange={(nextY) =>
                 updateSketchComponentPoint(nodeId, feature.featureId, component.rowId, pointKey, {
                   kind: 'lit',
@@ -191,6 +199,8 @@ const renderPointEditor = (
             max={500}
             step={0.1}
             disabled={widthDriven}
+            onInteractionStart={onBeginInteraction}
+            onInteractionEnd={onEndInteraction}
             onChange={(nextWidth) =>
               setSketchRectangleDimensions(nodeId, feature.featureId, {
                 width: nextWidth,
@@ -208,6 +218,8 @@ const renderPointEditor = (
             max={500}
             step={0.1}
             disabled={lengthDriven}
+            onInteractionStart={onBeginInteraction}
+            onInteractionEnd={onEndInteraction}
             onChange={(nextLength) =>
               setSketchRectangleDimensions(nodeId, feature.featureId, {
                 length: nextLength,

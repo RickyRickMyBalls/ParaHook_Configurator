@@ -65,6 +65,235 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1172 -->
+### [1172] - 2026-04-10 14:39 - `WK - Phase Worker-Vision-3 Phase 9.5b - Distinct Authoritative Preview Lane And Auto Layered Promotion`
+<!-- ENTRY 1172 -->
+HUMAN SUMMARY: `Added a real staged authoritative preview-ready lane so live held interactions can keep accepted \`lastLoaded\` truth at 100 percent while a newer authoritative \`previewBrep\` rides above it at 75 percent until release-plus-acceptance promotes that result for real.`
+#### Scope / Constraints Honored
+- Kept this pass narrow to the remaining `9.5b` gap by adding one explicit non-accepted authoritative preview-ready read instead of widening accepted ownership or Browser policy.
+- Preserved selector ownership of timing truth and kept `ViewerHost.tsx` as a consumer that only maps retained base plus overlay layers once the selector proves them.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Added staged authoritative preview-ready runtime state in `src/app/spaghetti/store/useSpaghettiStore.ts`, plus explicit stage/promote flows and a viewer-target selector so the app can distinguish accepted final truth from a newer current-revision authoritative result that is ready but not yet accepted.
+- Updated `src/app/store/useAppStore.ts` so live authoritative build results are staged during active Browser interaction and only promote into the accepted authoritative lane when `endBrowserBuildInteraction(...)` runs.
+- Tightened `src/app/spaghetti/selectors/selectViewportResultState.ts` so authoritative preview-ready comparisons use the new staged lane, `Auto` can surface `previewBrep` honestly during held interaction, and overlay ownership aligns with the real ready-result class instead of falling back to draft overlay semantics.
+- Updated `src/app/components/ViewerHost.tsx` and `src/app/components/ViewportOverlay.tsx` to consume the new preview-ready authoritative selector, and extended the `Auto` layered render handoff so retained final base plus final overlay now maps to `lastLoaded` base style and `previewBrep` overlay style.
+- Added focused store, selector, and host tests for staged-authoritative preview readiness, release-time promotion, and the exact retained `lastLoaded` plus `previewBrep` layering case.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+
+#### Behavior Changes
+- `Auto + live + held interaction` can now keep retained accepted `lastLoaded` geometry visible while a distinct newer authoritative preview-ready result renders as `previewBrep` on the overlay lane.
+- Live authoritative results no longer have to advance accepted final truth immediately during an active Browser interaction; they can remain staged until release promotes them.
+- The selector now treats preview-ready authoritative difference against the committed accepted lane, preventing draft overlay semantics from leaking into the held-authoritative `previewBrep` path.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\spaghetti\selectors\selectViewportResultState.test.ts`
+- `node .\node_modules\vitest\vitest.mjs run src\app\store\useAppStore.test.ts`
+- `node .\node_modules\vitest\vitest.mjs run src\app\components\ViewerHost.test.tsx`
+- `node .\node_modules\vitest\vitest.mjs run src\app\spaghetti\selectors\selectViewportResultStatus.test.ts`
+
+<!-- ENTRY 1171 -->
+### [1171] - 2026-04-10 14:12 - `WK - Phase Worker-Vision-3 Phase 9.5 - Preview Timing And 75 Percent Promotion`
+<!-- ENTRY 1171 -->
+HUMAN SUMMARY: `Tightened the viewport result selector so Browser \`release\` no longer shows drag preview, stale committed authoritative geometry no longer masquerades as \`previewBrep\`, and preview-owned layers now stay visually non-accepted until the selector explicitly clears that presentation state.`
+#### Scope / Constraints Honored
+- Kept this slice centered on selector timing and promotion rules in `selectViewportResultState.ts` instead of reopening viewer styling ownership or widening the control surface.
+- Preserved the Browser policy split as one system by changing only when preview states surface, not how scheduling controls are exposed.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectViewportResultState.ts` so authoritative preview-ready state now requires a distinct newer authoritative result instead of reusing the already-committed final mesh.
+- Added active-`release` suppression that keeps retained last-loaded geometry visible when available and clears preview overlay ownership while interaction is still in progress.
+- Tightened visible presentation-state resolution so retained last-loaded geometry can own the visible layer explicitly, keeping `acceptedState.isVisible` false whenever a preview-owned or retained-preview presentation state is still active.
+- Adjusted overlay reporting so host/viewer consumers only receive overlay geometry when the selector has actually surfaced a preview presentation state.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser `live` no longer upgrades to `previewBrep` from an unchanged committed authoritative result during interaction.
+- Browser `release` now suppresses visible drag preview and keeps retained `lastLoaded` geometry as the visible presentation when a retained base exists.
+- Overlay lanes now clear when preview timing says no preview state should be visible, preventing stale draft overlay rendering under release-timing interaction.
+
+#### Verification Steps
+- Ran `node .\\node_modules\\vitest\\vitest.mjs run src\\app\\spaghetti\\selectors\\selectViewportResultState.test.ts`
+- Ran `node .\\node_modules\\vitest\\vitest.mjs run src\\app\\spaghetti\\selectors\\selectViewportResultStatus.test.ts`
+- Ran `node .\\node_modules\\vitest\\vitest.mjs run src\\app\\components\\ViewerHost.test.tsx`
+
+<!-- ENTRY 1170 -->
+### [1170] - 2026-04-10 13:56 - `WK - Phase Worker-Vision-3 Phase 9.4 - Viewer Application Of Presentation Controls`
+<!-- ENTRY 1170 -->
+HUMAN SUMMARY: `Applied the app-owned \`lastLoaded\`, \`previewMesh\`, and \`previewBrep\` presentation settings in the host/viewer seam by making the viewer render-layer contract style-aware, so base and overlay layers can now receive distinct color and opacity without changing preview timing or accepted-truth ownership.`
+#### Scope / Constraints Honored
+- Kept this slice rendering-only by consuming the `9.3` presentation-state ids from `ViewerHost.tsx` without changing selector timing rules, preview-ready promotion, or accepted-result ownership.
+- Added one narrow viewer-layer style extension for base-versus-overlay color and opacity instead of widening into theme tokens, extra lanes, or execution-policy behavior.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/components/ViewerHost.tsx` to read `viewportPresentationSettings` and map `retainedBasePresentationStateId`, `overlayPresentationStateId`, and `visiblePresentationStateId` onto explicit `baseStyle` and `overlayStyle` values in the viewer-layer handoff.
+- Extended `src/viewer/Viewer.ts` so `ViewerViewportRenderLayers` now accepts per-layer style inputs while keeping the legacy `overlayOpacity` fallback for compatibility.
+- Added viewer-side material application that clones and styles layer materials with the requested color and opacity, while leaving ordinary accepted geometry on the normal material path when no presentation-state id is active.
+- Expanded `src/app/components/ViewerHost.test.tsx` with focused proof that retained `lastLoaded` plus `previewMesh` layering uses the correct distinct styles and that a sole visible `previewBrep` state applies its style to the base render layer.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/viewer/Viewer.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The viewer render-layer contract can now carry independent base-layer and overlay-layer color plus opacity.
+- Retained `lastLoaded` geometry can render with its own style while `previewMesh` or `previewBrep` overlays render with their own separate style.
+- Single-layer `previewMesh` or `previewBrep` presentations now apply their state-owned style to the visible base layer.
+- Ordinary accepted geometry without a presentation-state id keeps the normal viewer material behavior instead of being tinted by a synthetic fallback state.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/components/ViewerHost.test.tsx src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 1169 -->
+### [1169] - 2026-04-10 13:37 - `WK - Phase Worker-Vision-3 Phase 9.3 - Viewport Presentation State Contract`
+<!-- ENTRY 1169 -->
+HUMAN SUMMARY: `Widened the viewport result selector contract so it now reads Browser timing facts explicitly, exposes first-class \`lastLoaded\` / \`previewMesh\` / \`previewBrep\` presentation-state meaning, and keeps the existing retained-base plus overlay render fields alive for the transition.`
+#### Scope / Constraints Honored
+- Kept `selectViewportResultState(...)` pure by passing Browser policy, interaction state, and delayed-preview facts into the selector instead of teaching it to reach into `useAppStore` directly.
+- Preserved the existing render-oriented fields and ViewerHost layering behavior so this slice widens the contract first without prematurely landing the later 9.4 / 9.5 viewer-style and promotion behavior.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Added explicit viewport presentation-state types and reads in `src/app/spaghetti/selectors/selectViewportResultState.ts`, including `lastLoadedState`, `previewState`, `acceptedState`, layer-to-state ids, and Browser timing facts such as `browserExecutionPolicy` and `isInteractionActive`.
+- Added preview-state resolution rules that distinguish live preview versus preview-ready state across `live`, `release`, `manual`, and `off`, while keeping accepted ownership separate from retained-base and preview-state reads.
+- Updated `src/app/components/ViewerHost.tsx` and `src/app/components/ViewportOverlay.tsx` to pass the narrow Browser timing inputs and delayed-placeholder facts into the selector without widening the selector's ownership.
+- Expanded selector tests with focused proof for `Auto + live` draft preview, authoritative preview-ready mapping, `release` interaction suppression, and post-release preview-ready reads.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The viewport result contract now exposes explicit presentation-state ids and timing-aware preview-state meaning alongside the legacy visible/base/overlay fields.
+- Browser `live` can now report `previewMesh` as live preview or `previewBrep` as preview-ready during interaction at the selector-contract level.
+- Browser `release` now reports no live preview during active interaction and can expose preview-ready state after release when a newer preview result exists.
+- Final-unavailable reads now keep the underlying preview render VM available for the widened presentation-state contract instead of discarding that preview context entirely.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- `npx.cmd tsc -p tsconfig.json --noEmit`
+
+<!-- ENTRY 1168 -->
+### [1168] - 2026-04-10 12:01 - `WK - Phase Worker-Vision-3 Phase 9.1 - Presentation Settings Schema And Ownership`
+<!-- ENTRY 1168 -->
+HUMAN SUMMARY: `Added one app-owned \`viewportPresentationSettings\` contract in \`src/app/store/useAppStore.ts\` for \`lastLoaded\`, \`previewMesh\`, and \`previewBrep\`, with normalized opacity-plus-color defaults and focused proof that these settings stay presentation-only.`
+#### Scope / Constraints Honored
+- Kept this slice limited to app-store schema ownership, defaults, normalization, and tests without adding controls UI, selector truth changes, or viewer application behavior.
+- Stored the new settings in app-owned presentation state instead of viewer-local or worker/build seams, preserving the repo vision that view controls stay separate from execution truth.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Added explicit `ViewportPresentationStateId`, `ViewportPresentationStyleSettings`, and `ViewportPresentationSettings` types in `src/app/store/useAppStore.ts`.
+- Added one `viewportPresentationSettings` owner with `lastLoaded`, `previewMesh`, and `previewBrep` defaults plus narrow normalization helpers for clamped `[0, 1]` opacity and canonical hex color strings.
+- Added `setViewportPresentationOpacity(...)`, `setViewportPresentationColor(...)`, and selectors for the new settings seam so later phases can consume one stable app-owned contract.
+- Expanded `src/app/store/useAppStore.test.ts` with focused proof for default initialization, selector reads, normalization behavior, and non-interference with Browser policy or graph runtime truth.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The app store now initializes one explicit `viewportPresentationSettings` object for `lastLoaded`, `previewMesh`, and `previewBrep`.
+- Presentation opacity writes clamp to the normalized `[0, 1]` range.
+- Presentation color writes normalize valid hex values and ignore invalid colors by preserving the existing value.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts --testNamePattern "viewport presentation settings"`
+
+<!-- ENTRY 1167 -->
+### [1167] - 2026-04-10 11:22 - `WK - Phase Worker Release Interaction Fix For Feature Stack Editors`
+<!-- ENTRY 1167 -->
+HUMAN SUMMARY: `This fixed feature-stack numeric editors so \`release\` policy interactions now properly begin and end around sketch and extrude parameter edits, allowing queued worker builds to dispatch after the user releases the control.`
+#### Scope / Constraints Honored
+- Kept the fix at the UI interaction seam instead of changing worker scheduling rules or the release-policy contract.
+- Reused the existing browser build interaction actions that the viewport and node-template editors already use.
+- Added a focused regression test for the shared feature-stack value bar lifecycle.
+
+#### Summary of Implementation
+- Added optional interaction lifecycle callbacks to `src/app/spaghetti/ui/features/FeatureValueBar.tsx` and fired them around arrow-button edits plus typed input focus/blur completion.
+- Updated `src/app/spaghetti/ui/FeatureStackView.tsx` to bridge feature-stack edits into `beginBrowserBuildInteraction(...)` and `endBrowserBuildInteraction(...)` using the active graph document id.
+- Passed those callbacks through `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx` and `src/app/spaghetti/ui/features/SketchFeatureView.tsx` so all shared feature-stack numeric editors participate in the release handshake.
+- Extended the same interaction lifecycle into `src/app/spaghetti/canvas/PortView.tsx` and `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts` so the structured primitive `Depth` / `Taper` port rows used by the dedicated extrude node template also release queued draft builds correctly.
+- Added `src/app/spaghetti/ui/features/FeatureValueBar.test.tsx` and `src/app/spaghetti/canvas/PortView.test.tsx` to verify the shared feature-stack bar and primitive port row both wrap edits in the expected interaction lifecycle.
+
+#### Files Changed
+- `src/app/spaghetti/ui/features/FeatureValueBar.tsx`
+- `src/app/spaghetti/ui/features/FeatureValueBar.test.tsx`
+- `src/app/spaghetti/canvas/PortView.tsx`
+- `src/app/spaghetti/canvas/PortView.test.tsx`
+- `src/app/spaghetti/canvas/structuredWireNumericRowProps.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`
+- `src/app/spaghetti/ui/features/SketchFeatureView.tsx`
+- `src/app/spaghetti/ui/FeatureStackView.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- In `release` mode, changing sketch or extrude numeric params from the feature stack now exits the waiting state once the user completes the interaction.
+- In `release` mode, changing structured extrude primitive rows such as `Depth` and `Taper Angle` now also exits the waiting state once the control interaction completes.
+- Arrow-button edits release immediately after the increment or decrement applies.
+- Typed edits release on input completion via blur or Enter/Escape-triggered blur.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/ui/features/FeatureValueBar.test.tsx`
+- `npx.cmd vitest run src/app/spaghetti/canvas/PortView.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1166 -->
+### [1166] - 2026-04-10 11:14 - `BR - Phase Root Content Build Policy Header Control`
+<!-- ENTRY 1166 -->
+HUMAN SUMMARY: `Added a Browser header control that exposes the hidden root Content build policy inline beside \`Content\`, so users can now cycle the real root \`live / release / manual / off\` policy without needing a dedicated root row in the tree.`
+#### Scope / Constraints Honored
+- Kept this as a narrow Browser control pass by reusing the existing content-policy cycle path and row-policy vocabulary instead of inventing a second root-only policy system.
+- Scoped the new affordance to the hidden root Content policy only, leaving authored child assembly ownership and row-level independence behavior unchanged.
+- Completed the required project tracking update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/panels/useBrowserPanelController.ts` to derive the root Content build policy from `currentProject.rootAssemblyId` and expose one section-level cycle handler that reuses the existing `cycleBrowserContentBuildPolicy(...)` path.
+- Updated `src/app/panels/browserTreeSections.tsx` and `src/app/panels/BrowserPanel.tsx` so the `Content` section header now renders an inline `C` build-policy button beside the existing import button, with the same `Live / Release / Manual / Off` wording used elsewhere in the Browser.
+- Expanded `src/app/panels/BrowserPanel.test.tsx` to prove the new header control cycles the hidden root assembly policy while preserving the existing row-level graph and content policy buttons.
+
+#### Files Changed
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The Browser `Content` header now exposes the real root content build policy inline.
+- Users can cycle the root content policy through `live`, `release`, `manual`, and `off` without selecting or revealing a separate root row.
+- Existing row-level build-policy behavior for graphs, components, objects, and inherited policies remains unchanged.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `npx.cmd tsc --noEmit`
+
 <!-- ENTRY 1165 -->
 ### [1165] - 2026-04-10 10:47 - `OO - Phase Build - Production Build Pass Cleanup`
 <!-- ENTRY 1165 -->

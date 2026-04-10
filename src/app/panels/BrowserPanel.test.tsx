@@ -917,7 +917,10 @@ describe('BrowserPanel', () => {
     }
 
     currentAppState = {
-      currentProject: null,
+      currentProject: {
+        projectFileId: 'project-file-1',
+        rootAssemblyId: 'assembly-root:project-file-1',
+      },
       projectContent: null,
       projectContentRows: [],
       browserGraphBuildPolicyByGraphDocumentId: {},
@@ -1409,6 +1412,9 @@ describe('BrowserPanel', () => {
 
     ;({ container, root } = await renderBrowserPanel())
 
+    const contentPolicyButton = findButtonByLabel('Cycle build policy for Content. Current policy Live')
+    expect(contentPolicyButton).not.toBeNull()
+
     const graphPolicyButton = findButtonByLabel('Cycle build policy for Graph 1. Current policy Live')
     expect(graphPolicyButton).not.toBeNull()
 
@@ -1433,6 +1439,7 @@ describe('BrowserPanel', () => {
     )
     expect(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Release')).not.toBeNull()
     expect(findButtonByLabel('Cycle build policy for Graph 1. Current policy Live')).not.toBeNull()
+    expect(findButtonByLabel('Cycle build policy for Content. Current policy Live')).not.toBeNull()
 
     await click(findButtonByLabel('Cycle build policy for Pedal Component. Current policy Release')!)
     await act(async () => {
@@ -1448,6 +1455,32 @@ describe('BrowserPanel', () => {
 
     const componentRow = findRowMainByLabel('Pedal Component')
     expect(componentRow?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('cycles the hidden root content policy from the inline Content header button', async () => {
+    ;({ root } = await renderBrowserPanel())
+
+    const contentPolicyButton = findButtonByLabel('Cycle build policy for Content. Current policy Live')
+    expect(contentPolicyButton).not.toBeNull()
+    expect(contentPolicyButton?.textContent).toBe('C')
+
+    await click(contentPolicyButton!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.cycleBrowserContentBuildPolicy).toHaveBeenCalledWith(
+      'assembly-root:project-file-1',
+      'live',
+    )
+    expect(findButtonByLabel('Cycle build policy for Content. Current policy Release')).not.toBeNull()
+
+    await click(findButtonByLabel('Cycle build policy for Content. Current policy Release')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(findButtonByLabel('Cycle build policy for Content. Current policy Manual')).not.toBeNull()
   })
 
   it('shows effective inherited policy and only creates a self override through the row menu', async () => {

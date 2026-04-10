@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useAppStore } from '../../store/useAppStore'
 import { getFeatureDiagnostics, type FeatureDiagnostic } from '../features/diagnostics'
 import type { FeatureDependencyRow } from '../features/featureDependencies'
 import { canMoveFeatureInStack } from '../features/featureDependencies'
@@ -139,7 +140,24 @@ export function FeatureStackView({
   const moveFeatureUp = useSpaghettiStore((state) => state.moveFeatureUp)
   const moveFeatureDown = useSpaghettiStore((state) => state.moveFeatureDown)
   const setFeatureEnabled = useSpaghettiStore((state) => state.setFeatureEnabled)
+  const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const featureStackIr = useSpaghettiStore((state) => state.getPartFeatureStackIrForNode(node.nodeId))
+  const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
+  const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
+
+  const beginGraphParameterInteraction = () => {
+    if (activeGraphDocumentId === null) {
+      return
+    }
+    beginBrowserBuildInteraction(activeGraphDocumentId)
+  }
+
+  const endGraphParameterInteraction = () => {
+    if (activeGraphDocumentId === null) {
+      return
+    }
+    endBrowserBuildInteraction(activeGraphDocumentId)
+  }
 
   const stack = useMemo(() => readFeatureStack(node.params.featureStack), [node.params.featureStack])
   const sketchProfilesByFeatureId = useMemo(() => {
@@ -342,6 +360,8 @@ export function FeatureStackView({
                     previewProfiles={sketchProfilesByFeatureId.get(feature.featureId) ?? []}
                     highlightedProfileIds={highlightedProfilesBySketchFeatureId.get(feature.featureId) ?? emptyProfileSet}
                     irAvailable={featureStackIr !== null}
+                    onBeginInteraction={beginGraphParameterInteraction}
+                    onEndInteraction={endGraphParameterInteraction}
                     widthVirtualInputState={
                       featureVirtualInputStateByPortId?.[buildSketchRectWidthVirtualInputPortId(feature.featureId)]
                     }
@@ -357,6 +377,8 @@ export function FeatureStackView({
                     feature={feature}
                     stack={stack}
                     featureIndex={index}
+                    onBeginInteraction={beginGraphParameterInteraction}
+                    onEndInteraction={endGraphParameterInteraction}
                     previewProfilesBySketchId={sketchProfilesByFeatureId}
                     closeProfileResolvedByFeatureId={closeProfileResolvedByFeatureId}
                     depthVirtualInputState={
