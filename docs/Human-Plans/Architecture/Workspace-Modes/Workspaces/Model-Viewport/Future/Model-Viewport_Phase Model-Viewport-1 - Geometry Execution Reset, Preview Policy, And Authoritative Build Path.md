@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-04-10 06:46: Refined this umbrella viewport roadmap after review clarified that Browser `live / release / off` policy should belong only to the draft-preview lane, ordinary viewport-facing authoritative/final work should default to `release`, and `explicit` should stay the manual/export exception instead of becoming the normal viewport path
 29. 2026-04-07 08:30: Marked `Model-Viewport 1.3 Phase 6C - Backend Failure Honesty And Focused Verification` shipped inside the dedicated `1.3` child doc after the authoritative worker seam adopted honest `null` fallback handling for OC boot/build failures, released minted `shape_set` handles on rejected bundle assembly, and refreshed this umbrella roadmap so the next honest handoff now points at `Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
 28. 2026-04-07 08:00: Marked `Model-Viewport 1.3 Phase 6B - First Authoritative Retained Result And Shape-Set Registration` shipped inside the dedicated `1.3` child doc after the repo bound the authoritative worker seam to the real OC boot helper, resolved worker-side `shape_set` registration around retained backend resources, and refreshed this umbrella roadmap so the next honest handoff now points at `Phase 6C - Backend Failure Honesty And Focused Verification`
 27. 2026-04-07 07:33: Marked `Model-Viewport 1.3 Phase 6A - Worker-Side OpenCascade Boot And Dependency Binding` shipped inside the dedicated `1.3` child doc after the repo added the real stable `opencascade.js` worker dependency, replaced the placeholder `ocInit.ts` seam with a typed memoized worker-local OC boot helper, and refreshed this umbrella roadmap so the next honest handoff now points at `Phase 6B - First Authoritative Retained Result And Shape-Set Registration`
@@ -226,14 +227,18 @@ Definition of done:
   - `Final`
 - use the current dead top-left three-state viewport control as the first home for that mode family
 - `Auto` means:
-  - show draft preview immediately when available
-  - swap to authoritative geometry when it becomes ready
+  - draft preview follows Browser `live / release / off` policy
+  - authoritative/final work still targets release by default for normal viewport-facing execution
+  - show draft preview immediately when available and swap to authoritative geometry when it becomes ready
 - `Draft` means:
+  - target draft-preview execution only
+  - Browser `live / release / off` policy applies here
   - show only preview geometry
   - do not replace the viewport with authoritative geometry while this mode stays active
 - `Final` means:
   - show only authoritative geometry
   - skip draft execution work instead of merely hiding draft visuals
+  - still use release as the normal final-execution trigger instead of running authoritative work live on every intermediate edit
 - the viewport should show:
   - draft when available and allowed
   - stale/loading states honestly while authoritative geometry is pending
@@ -251,10 +256,10 @@ Definition of done:
 #### [ ] Question 2 - What exactly should `Auto / Draft / Final` mean at display time and execution time?
 
 ##### Must lock
-- whether `Auto` follows interaction type
-- whether `Auto` can disable draft when the draft path becomes more expensive than helpful
+- that Browser `live / release / off` policy belongs only to draft preview execution
+- that `Auto` may show draft first while ordinary authoritative/final work still defaults to release
 - whether `Draft` also suppresses final replacement while active
-- whether `Final` skips draft generation entirely
+- whether `Final` skips draft generation entirely while still keeping release as the normal authoritative trigger
 - whether this mode is viewport-local, workspace-local, or later project-local policy
 
 ### Implementation Spec
@@ -290,6 +295,7 @@ Definition of done:
 - keep that path B-rep-capable in the long-range direction
 - make authoritative geometry the source of later clean `.step` export
 - make authoritative geometry always win when it arrives
+- keep ordinary viewport-facing authoritative/final execution on release by default rather than treating manual/explicit dispatch as the normal viewport path
 
 ### Questions / Decisions
 

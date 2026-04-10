@@ -55,7 +55,7 @@ import {
 } from './workspaceSplitTypes'
 import { resolveWorkspaceViewportResultModeBehavior } from './workspaceViewportResultMode'
 
-type WorkspaceStoreState = {
+export type WorkspaceStoreState = {
   leftDockWidth: number
   isLeftDockViewportSplit: boolean
   activeLeftDockPreviewPanelId: LeftDockPanelId | null

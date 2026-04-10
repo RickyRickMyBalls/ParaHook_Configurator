@@ -25,6 +25,14 @@ export type ViewportVisibleSourceKind =
   | 'artifact-preview'
   | 'none'
 
+export type ViewportLayerSourceKind = ViewportVisibleSourceKind | 'authoritative-preview'
+
+export type ViewportRetainedBaseState =
+  | 'none'
+  | 'current'
+  | 'retained'
+  | 'cleared-by-dependency-break'
+
 export type ViewportFallbackReason =
   | 'artifact-preview-bridge'
   | 'final-unavailable'
@@ -40,6 +48,15 @@ export type ViewportResultState = {
   previewPreparation: GraphPreviewPreparation | null
   renderVm: PreviewRenderVm
   previewRenderVm: PreviewRenderVm
+  retainedBaseState: ViewportRetainedBaseState
+  retainedBaseResultClass: ViewportVisibleResultClass
+  retainedBaseSourceKind: ViewportLayerSourceKind
+  retainedBaseGeometryResult: GeometryResultBundle | null
+  retainedBaseRenderVm: PreviewRenderVm
+  overlayResultClass: ViewportVisibleResultClass
+  overlaySourceKind: ViewportLayerSourceKind
+  overlayGeometryResult: GeometryResultBundle | null
+  overlayRenderVm: PreviewRenderVm
   isPendingFinal: boolean
   isUsingFallback: boolean
   fallbackReason: ViewportFallbackReason | null
@@ -50,6 +67,8 @@ type SelectViewportResultStateOptions = {
   modeBehavior: WorkspaceViewportResultModeBehavior
   acceptedAuthoritativeGeometryResult: GeometryResultBundle | null
   acceptedDraftGeometryResult: GeometryResultBundle | null
+  committedAuthoritativeGeometryResult: GeometryResultBundle | null
+  committedDraftGeometryResult: GeometryResultBundle | null
   acceptedPreviewBuildOutputs: readonly PartArtifact[]
   previewPreparation: GraphPreviewPreparation | null
   viewerTargetGraphDocumentId: string | null
@@ -118,9 +137,11 @@ const cloneGeometryMesh = (mesh: GeometryMesh): GeometryMesh => ({
   indices: [...mesh.indices],
 })
 
-const buildAuthoritativeRenderVm = (options: {
+const buildGeometryPreviewRenderVm = (options: {
   geometryResult: GeometryResultBundle | null
   viewerTargetGraphDocumentId: string | null
+  label: string
+  viewerKeySuffix: string
 }): PreviewRenderVm => {
   const geometryResult = options.geometryResult
   const meshPreview = geometryResult?.meshPreview
@@ -130,11 +151,11 @@ const buildAuthoritativeRenderVm = (options: {
 
   const graphDocumentId =
     options.viewerTargetGraphDocumentId ?? geometryResult.request.graphDocumentId
-  const viewerKey = `${graphDocumentId}:authoritative-preview`
+  const viewerKey = `${graphDocumentId}:${options.viewerKeySuffix}`
   const artifact: PartArtifact = {
     id: viewerKey,
     kind: 'mesh',
-    label: 'Authoritative Preview',
+    label: options.label,
     mesh: cloneGeometryMesh(meshPreview),
     partKeyStr: viewerKey,
     partKey: {
@@ -149,10 +170,39 @@ const buildAuthoritativeRenderVm = (options: {
   }
 }
 
+const buildAuthoritativeRenderVm = (options: {
+  geometryResult: GeometryResultBundle | null
+  viewerTargetGraphDocumentId: string | null
+}): PreviewRenderVm =>
+  buildGeometryPreviewRenderVm({
+    ...options,
+    label: 'Authoritative Preview',
+    viewerKeySuffix: 'authoritative-preview',
+  })
+
+const buildDraftGeometryRenderVm = (options: {
+  geometryResult: GeometryResultBundle | null
+  viewerTargetGraphDocumentId: string | null
+}): PreviewRenderVm =>
+  buildGeometryPreviewRenderVm({
+    ...options,
+    label: 'Draft Preview',
+    viewerKeySuffix: 'draft-preview',
+  })
+
 const buildEmptyResultState = (
   options: SelectViewportResultStateOptions,
   artifactBuildOutputs: readonly PartArtifact[],
   overrides: {
+    retainedBaseState?: ViewportRetainedBaseState
+    retainedBaseResultClass?: ViewportVisibleResultClass
+    retainedBaseSourceKind?: ViewportLayerSourceKind
+    retainedBaseGeometryResult?: GeometryResultBundle | null
+    retainedBaseRenderVm?: PreviewRenderVm
+    overlayResultClass?: ViewportVisibleResultClass
+    overlaySourceKind?: ViewportLayerSourceKind
+    overlayGeometryResult?: GeometryResultBundle | null
+    overlayRenderVm?: PreviewRenderVm
     isPendingFinal: boolean
     isUsingFallback: boolean
     fallbackReason: ViewportFallbackReason
@@ -166,10 +216,161 @@ const buildEmptyResultState = (
   previewPreparation: options.previewPreparation,
   renderVm: EMPTY_PREVIEW_RENDER_VM,
   previewRenderVm: EMPTY_PREVIEW_RENDER_VM,
+  retainedBaseState: overrides.retainedBaseState ?? 'none',
+  retainedBaseResultClass: overrides.retainedBaseResultClass ?? null,
+  retainedBaseSourceKind: overrides.retainedBaseSourceKind ?? 'none',
+  retainedBaseGeometryResult: overrides.retainedBaseGeometryResult ?? null,
+  retainedBaseRenderVm: overrides.retainedBaseRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
+  overlayResultClass: overrides.overlayResultClass ?? null,
+  overlaySourceKind: overrides.overlaySourceKind ?? 'none',
+  overlayGeometryResult: overrides.overlayGeometryResult ?? null,
+  overlayRenderVm: overrides.overlayRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
   isPendingFinal: overrides.isPendingFinal,
   isUsingFallback: overrides.isUsingFallback,
   fallbackReason: overrides.fallbackReason,
 })
+
+const hasCurrentOutputContinuation = (
+  previewPreparation: GraphPreviewPreparation | null,
+): boolean => {
+  if (previewPreparation === null) {
+    return false
+  }
+  return previewPreparation.previewCandidateSlotIds.some((slotId) => {
+    const slotStatus = previewPreparation.slotStatusBySlotId[slotId]
+    const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
+    const sourcePartKey = previewPreparation.sourcePartKeyBySlotId[slotId]
+    return (
+      slotStatus === 'ok' &&
+      typeof sourceNodeId === 'string' &&
+      sourceNodeId.length > 0 &&
+      typeof sourcePartKey === 'string' &&
+      sourcePartKey.length > 0
+    )
+  })
+}
+
+type ViewportLayerCandidate = {
+  resultClass: ViewportVisibleResultClass
+  sourceKind: ViewportLayerSourceKind
+  geometryResult: GeometryResultBundle | null
+  renderVm: PreviewRenderVm
+}
+
+const EMPTY_LAYER_CANDIDATE: ViewportLayerCandidate = {
+  resultClass: null,
+  sourceKind: 'none',
+  geometryResult: null,
+  renderVm: EMPTY_PREVIEW_RENDER_VM,
+}
+
+const resolveRetainedBaseCandidate = (options: {
+  requestedMode: WorkspaceViewportResultMode
+  currentAuthoritativeGeometryResult: GeometryResultBundle | null
+  committedAuthoritativeGeometryResult: GeometryResultBundle | null
+  currentAuthoritativeRenderVm: PreviewRenderVm
+  committedAuthoritativeRenderVm: PreviewRenderVm
+  currentDraftGeometryResult: GeometryResultBundle | null
+  committedDraftGeometryResult: GeometryResultBundle | null
+  currentDraftRenderVm: PreviewRenderVm
+  committedDraftRenderVm: PreviewRenderVm
+  hasCurrentOutputContinuation: boolean
+}): {
+  retainedBaseState: ViewportRetainedBaseState
+  baseCandidate: ViewportLayerCandidate
+} => {
+  if (options.requestedMode === 'draft') {
+    const hasRenderableCurrentDraft = options.currentDraftRenderVm.viewerParts.length > 0
+    if (options.currentDraftGeometryResult !== null && hasRenderableCurrentDraft) {
+      return {
+        retainedBaseState: 'current',
+        baseCandidate: {
+          resultClass: 'draft',
+          sourceKind: 'retained-draft',
+          geometryResult: options.currentDraftGeometryResult,
+          renderVm: options.currentDraftRenderVm,
+        },
+      }
+    }
+    if (options.committedDraftGeometryResult === null) {
+      return { retainedBaseState: 'none', baseCandidate: EMPTY_LAYER_CANDIDATE }
+    }
+    if (
+      !options.hasCurrentOutputContinuation ||
+      options.committedDraftRenderVm.viewerParts.length === 0
+    ) {
+      return { retainedBaseState: 'cleared-by-dependency-break', baseCandidate: EMPTY_LAYER_CANDIDATE }
+    }
+    return {
+      retainedBaseState: 'retained',
+      baseCandidate: {
+        resultClass: 'draft',
+        sourceKind: 'retained-draft',
+        geometryResult: options.committedDraftGeometryResult,
+        renderVm: options.committedDraftRenderVm,
+      },
+    }
+  }
+
+  const hasRenderableAuthoritative = options.committedAuthoritativeRenderVm.viewerParts.length > 0
+  if (
+    options.currentAuthoritativeGeometryResult !== null &&
+    options.currentAuthoritativeRenderVm.viewerParts.length > 0
+  ) {
+    return {
+      retainedBaseState: 'current',
+      baseCandidate: {
+        resultClass: 'final',
+        sourceKind: 'retained-final',
+        geometryResult: options.currentAuthoritativeGeometryResult,
+        renderVm: options.currentAuthoritativeRenderVm,
+      },
+    }
+  }
+  if (options.committedAuthoritativeGeometryResult === null) {
+    return { retainedBaseState: 'none', baseCandidate: EMPTY_LAYER_CANDIDATE }
+  }
+  if (!options.hasCurrentOutputContinuation || !hasRenderableAuthoritative) {
+    return { retainedBaseState: 'cleared-by-dependency-break', baseCandidate: EMPTY_LAYER_CANDIDATE }
+  }
+  return {
+    retainedBaseState: 'retained',
+    baseCandidate: {
+      resultClass: 'final',
+      sourceKind: 'retained-final',
+      geometryResult: options.committedAuthoritativeGeometryResult,
+      renderVm: options.committedAuthoritativeRenderVm,
+    },
+  }
+}
+
+const resolveOverlayCandidate = (options: {
+  requestedMode: WorkspaceViewportResultMode
+  currentAuthoritativeGeometryResult: GeometryResultBundle | null
+  currentAuthoritativeRenderVm: PreviewRenderVm
+  currentDraftGeometryResult: GeometryResultBundle | null
+  previewRenderVm: PreviewRenderVm
+}): ViewportLayerCandidate => {
+  if (options.requestedMode === 'final') {
+    return options.currentAuthoritativeGeometryResult !== null &&
+      options.currentAuthoritativeRenderVm.viewerParts.length > 0
+      ? {
+          resultClass: 'final',
+          sourceKind: 'authoritative-preview',
+          geometryResult: options.currentAuthoritativeGeometryResult,
+          renderVm: options.currentAuthoritativeRenderVm,
+        }
+      : EMPTY_LAYER_CANDIDATE
+  }
+  return options.previewRenderVm.viewerParts.length > 0
+    ? {
+        resultClass: 'draft',
+        sourceKind: 'artifact-preview',
+        geometryResult: options.currentDraftGeometryResult,
+        renderVm: options.previewRenderVm,
+      }
+    : EMPTY_LAYER_CANDIDATE
+}
 
 export const selectViewportResultState = (
   options: SelectViewportResultStateOptions,
@@ -190,6 +391,38 @@ export const selectViewportResultState = (
     geometryResult: finalGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
+  const committedAuthoritativeRenderVm = buildAuthoritativeRenderVm({
+    geometryResult: options.committedAuthoritativeGeometryResult,
+    viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
+  })
+  const currentDraftGeometryRenderVm = buildDraftGeometryRenderVm({
+    geometryResult: draftGeometryResult,
+    viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
+  })
+  const committedDraftRenderVm = buildDraftGeometryRenderVm({
+    geometryResult: options.committedDraftGeometryResult,
+    viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
+  })
+  const hasOutputContinuation = hasCurrentOutputContinuation(options.previewPreparation)
+  const { retainedBaseState, baseCandidate } = resolveRetainedBaseCandidate({
+    requestedMode: options.requestedMode,
+    currentAuthoritativeGeometryResult: finalGeometryResult,
+    committedAuthoritativeGeometryResult: options.committedAuthoritativeGeometryResult,
+    currentAuthoritativeRenderVm: authoritativeRenderVm,
+    committedAuthoritativeRenderVm,
+    currentDraftGeometryResult: draftGeometryResult,
+    committedDraftGeometryResult: options.committedDraftGeometryResult,
+    currentDraftRenderVm: currentDraftGeometryRenderVm,
+    committedDraftRenderVm,
+    hasCurrentOutputContinuation: hasOutputContinuation,
+  })
+  const overlayCandidate = resolveOverlayCandidate({
+    requestedMode: options.requestedMode,
+    currentAuthoritativeGeometryResult: finalGeometryResult,
+    currentAuthoritativeRenderVm: authoritativeRenderVm,
+    currentDraftGeometryResult: draftGeometryResult,
+    previewRenderVm,
+  })
   const hasUsableDraftPreview = previewRenderVm.viewerParts.length > 0
   const hasRenderableFinal = authoritativeRenderVm.viewerParts.length > 0
   const hasUsableGeometry = hasUsableDraftPreview || hasRenderableFinal
@@ -204,6 +437,15 @@ export const selectViewportResultState = (
       previewPreparation: options.previewPreparation,
       renderVm: authoritativeRenderVm,
       previewRenderVm,
+      retainedBaseState,
+      retainedBaseResultClass: baseCandidate.resultClass,
+      retainedBaseSourceKind: baseCandidate.sourceKind,
+      retainedBaseGeometryResult: baseCandidate.geometryResult,
+      retainedBaseRenderVm: baseCandidate.renderVm,
+      overlayResultClass: overlayCandidate.resultClass,
+      overlaySourceKind: overlayCandidate.sourceKind,
+      overlayGeometryResult: overlayCandidate.geometryResult,
+      overlayRenderVm: overlayCandidate.renderVm,
       isPendingFinal: false,
       isUsingFallback: false,
       fallbackReason: null,
@@ -220,6 +462,15 @@ export const selectViewportResultState = (
       previewPreparation: options.previewPreparation,
       renderVm: previewRenderVm,
       previewRenderVm,
+      retainedBaseState,
+      retainedBaseResultClass: baseCandidate.resultClass,
+      retainedBaseSourceKind: baseCandidate.sourceKind,
+      retainedBaseGeometryResult: baseCandidate.geometryResult,
+      retainedBaseRenderVm: baseCandidate.renderVm,
+      overlayResultClass: overlayCandidate.resultClass,
+      overlaySourceKind: overlayCandidate.sourceKind,
+      overlayGeometryResult: overlayCandidate.geometryResult,
+      overlayRenderVm: overlayCandidate.renderVm,
       isPendingFinal: options.modeBehavior.allowsFinalReplacement && !hasRenderableFinal,
       isUsingFallback: true,
       fallbackReason: 'artifact-preview-bridge',
@@ -228,6 +479,15 @@ export const selectViewportResultState = (
 
   if (options.requestedMode === 'final') {
     return buildEmptyResultState(options, artifactBuildOutputs, {
+      retainedBaseState,
+      retainedBaseResultClass: baseCandidate.resultClass,
+      retainedBaseSourceKind: baseCandidate.sourceKind,
+      retainedBaseGeometryResult: baseCandidate.geometryResult,
+      retainedBaseRenderVm: baseCandidate.renderVm,
+      overlayResultClass: overlayCandidate.resultClass,
+      overlaySourceKind: overlayCandidate.sourceKind,
+      overlayGeometryResult: overlayCandidate.geometryResult,
+      overlayRenderVm: overlayCandidate.renderVm,
       isPendingFinal: false,
       isUsingFallback: true,
       fallbackReason: 'final-unavailable',
@@ -236,6 +496,15 @@ export const selectViewportResultState = (
 
   if (!hasUsableGeometry) {
     return buildEmptyResultState(options, artifactBuildOutputs, {
+      retainedBaseState,
+      retainedBaseResultClass: baseCandidate.resultClass,
+      retainedBaseSourceKind: baseCandidate.sourceKind,
+      retainedBaseGeometryResult: baseCandidate.geometryResult,
+      retainedBaseRenderVm: baseCandidate.renderVm,
+      overlayResultClass: overlayCandidate.resultClass,
+      overlaySourceKind: overlayCandidate.sourceKind,
+      overlayGeometryResult: overlayCandidate.geometryResult,
+      overlayRenderVm: overlayCandidate.renderVm,
       isPendingFinal: false,
       isUsingFallback: true,
       fallbackReason: 'no-accepted-geometry',
@@ -243,6 +512,15 @@ export const selectViewportResultState = (
   }
 
   return buildEmptyResultState(options, artifactBuildOutputs, {
+    retainedBaseState,
+    retainedBaseResultClass: baseCandidate.resultClass,
+    retainedBaseSourceKind: baseCandidate.sourceKind,
+    retainedBaseGeometryResult: baseCandidate.geometryResult,
+    retainedBaseRenderVm: baseCandidate.renderVm,
+    overlayResultClass: overlayCandidate.resultClass,
+    overlaySourceKind: overlayCandidate.sourceKind,
+    overlayGeometryResult: overlayCandidate.geometryResult,
+    overlayRenderVm: overlayCandidate.renderVm,
     isPendingFinal: false,
     isUsingFallback: true,
     fallbackReason: 'mode-disallows-available-result',

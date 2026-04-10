@@ -214,6 +214,12 @@ const fallbackPreset = (): MaterialPreset => ({
   transparent: false,
 })
 
+export type ViewerViewportRenderLayers = {
+  baseParts: ViewerRenderablePart[]
+  overlayParts: ViewerRenderablePart[]
+  overlayOpacity: number
+}
+
 const supportsPosition = (type: LightType): boolean =>
   type === 'directional' || type === 'point' || type === 'spot'
 
@@ -282,6 +288,7 @@ export class Viewer {
   private readonly pointer = new Vector2()
   private frameId: number | null = null
   private readonly partMeshes = new Map<string, Mesh>()
+  private readonly overlayPartMeshes = new Map<string, Mesh>()
   private readonly partSelectionOutlines = new Map<string, LineSegments>()
   private readonly contentObjectPivots = new Map<string, Group>()
   private readonly partKeyToContentObjectId = new Map<string, string>()
@@ -661,12 +668,28 @@ export class Viewer {
     visibility: Record<string, boolean>,
     selectedPartKey: string | null = this.selectedPartKey,
   ): void {
+    this.setViewportRenderLayers(
+      {
+        baseParts: parts,
+        overlayParts: [],
+        overlayOpacity: 0.5,
+      },
+      visibility,
+      selectedPartKey,
+    )
+  }
+
+  public setViewportRenderLayers(
+    layers: ViewerViewportRenderLayers,
+    visibility: Record<string, boolean>,
+    selectedPartKey: string | null = this.selectedPartKey,
+  ): void {
     this.selectedPartKey = selectedPartKey
     this.clearPartMeshes()
     this.contentObjectPivots.clear()
 
     let xCursor = -2
-    for (const part of parts) {
+    for (const part of layers.baseParts) {
       const partKeyStr = part.viewerKey
       const artifact = part.artifact
       const material = this.resolveMaterialForPart(partKeyStr)
@@ -730,6 +753,58 @@ export class Viewer {
       if (placement.lengthForCursor > 0) {
         xCursor += placement.lengthForCursor + 0.2
       }
+    }
+
+    for (const part of layers.overlayParts) {
+      const partKeyStr = part.viewerKey
+      const artifact = part.artifact
+      const baseMaterial = this.resolveMaterialForPart(partKeyStr)
+      const material = baseMaterial.clone()
+      material.opacity = clamp(baseMaterial.opacity * layers.overlayOpacity, 0, 1)
+      material.transparent = true
+      material.depthWrite = false
+      material.needsUpdate = true
+      const geometry =
+        artifact.kind === 'box'
+          ? new BoxGeometry(
+              artifact.params.length,
+              artifact.params.height,
+              artifact.params.width,
+            )
+          : createViewerGeometryFromArtifactMesh(artifact.mesh)
+      if (geometry === null) {
+        material.dispose()
+        continue
+      }
+      const mesh = new Mesh(geometry, material)
+      mesh.name = `${partKeyStr}:overlay`
+      const placement = resolveViewerPartPlacement(artifact, geometry, xCursor)
+      mesh.position.set(placement.position.x, placement.position.y, placement.position.z)
+      mesh.visible = visibility[partKeyStr] ?? true
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+      mesh.renderOrder = 40
+      mesh.userData.partKey = partKeyStr
+      mesh.userData.disposeMaterial = true
+      const contentObjectId = this.partKeyToContentObjectId.get(partKeyStr) ?? null
+      if (contentObjectId !== null) {
+        let pivot = this.contentObjectPivots.get(contentObjectId)
+        if (pivot === undefined) {
+          pivot = new Group()
+          pivot.name = `${contentObjectId}:pivot`
+          pivot.userData.referenceTransformBase = {
+            position: { x: 0, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          } satisfies ReferenceTransformBase
+          this.contentObjectPivots.set(contentObjectId, pivot)
+          this.rootGroup.add(pivot)
+        }
+        pivot.add(mesh)
+      } else {
+        this.rootGroup.add(mesh)
+      }
+      this.overlayPartMeshes.set(partKeyStr, mesh)
     }
 
     for (const [objectId, pivot] of this.contentObjectPivots.entries()) {
@@ -2177,6 +2252,11 @@ export class Viewer {
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
     }
 
+    for (const mesh of this.overlayPartMeshes.values()) {
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+    }
+
     for (const referenceObject of this.referenceObjects.values()) {
       referenceObject.traverse((child) => {
         if (!(child instanceof Mesh)) {
@@ -2213,7 +2293,7 @@ export class Viewer {
   }
 
   private clearPartMeshes(): void {
-    for (const mesh of this.partMeshes.values()) {
+    for (const mesh of [...this.partMeshes.values(), ...this.overlayPartMeshes.values()]) {
       if (mesh.parent !== null) {
         mesh.parent.remove(mesh)
       }
@@ -2227,9 +2307,17 @@ export class Viewer {
           child.material.dispose()
         }
       })
+      if (mesh.userData.disposeMaterial === true) {
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((material) => material.dispose())
+        } else {
+          mesh.material.dispose()
+        }
+      }
       mesh.geometry.dispose()
     }
     this.partMeshes.clear()
+    this.overlayPartMeshes.clear()
     this.partSelectionOutlines.clear()
     for (const pivot of this.contentObjectPivots.values()) {
       if (pivot.parent === this.rootGroup) {
@@ -2532,7 +2620,8 @@ export class Viewer {
       return
     }
 
-    const selected = this.partMeshes.get(this.selectedPartKey)
+    const selected =
+      this.partMeshes.get(this.selectedPartKey) ?? this.overlayPartMeshes.get(this.selectedPartKey)
     if (selected === undefined || !selected.visible) {
       this.transformGizmo.detach()
       return
@@ -3325,7 +3414,10 @@ export class Viewer {
         object,
       })
     }
-    for (const [partKey, mesh] of this.partMeshes.entries()) {
+    for (const [partKey, mesh] of [
+      ...this.partMeshes.entries(),
+      ...this.overlayPartMeshes.entries(),
+    ]) {
       if (!isObjectWorldVisible(mesh)) {
         continue
       }

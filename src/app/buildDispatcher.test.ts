@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_BUILD_EXECUTION_INTENT } from '../shared/buildTypes'
+import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildExecutionIntent,
+} from '../shared/buildTypes'
 import type { GeometryResultBundle } from '../shared/geometryResult'
 import { emitArtifacts } from '../worker/pipeline/artifactEmitter'
 
@@ -36,6 +39,16 @@ class MockWorker {
   public terminate(): void {}
 }
 
+const getDraftWorker = (
+  dispatcher: InstanceType<(typeof import('./buildDispatcher'))['BuildDispatcher']>,
+): MockWorker =>
+  (dispatcher as unknown as { draftWorker: MockWorker }).draftWorker
+
+const getAuthoritativeWorker = (
+  dispatcher: InstanceType<(typeof import('./buildDispatcher'))['BuildDispatcher']>,
+): MockWorker =>
+  (dispatcher as unknown as { authoritativeWorker: MockWorker }).authoritativeWorker
+
 const buildResult = (options: {
   buildRequestId: string
   graphDocumentId: string
@@ -43,6 +56,7 @@ const buildResult = (options: {
   seq: number
   draftGeometryResult?: GeometryResultBundle
   authoritativeGeometryResult?: GeometryResultBundle
+  executionIntent?: BuildExecutionIntent
 }) =>
   emitArtifacts(
     {
@@ -50,7 +64,7 @@ const buildResult = (options: {
       projectFileId: options.projectFileId,
       graphDocumentId: options.graphDocumentId,
       buildRequestId: options.buildRequestId,
-      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      executionIntent: options.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT,
       draftGeometryResult: options.draftGeometryResult,
       authoritativeGeometryResult: options.authoritativeGeometryResult,
     },
@@ -104,6 +118,7 @@ const requestGraphBuild = (
     graphDocumentId?: string
     buildRequestId?: string
     buildStatsPartKeys?: string[]
+    executionIntent?: BuildExecutionIntent
   },
 ): number =>
   dispatcher.requestGraphBuild({
@@ -122,6 +137,7 @@ const requestGraphBuild = (
     },
     changedParamIds: ['sp_full'],
     buildStatsPartKeys: options?.buildStatsPartKeys ?? ['cube'],
+    executionIntent: options?.executionIntent,
   })
 
 describe('BuildDispatcher runtime hooks and routing', () => {
@@ -192,8 +208,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       buildStatsPartKeys: ['cube'],
     })
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    expect(worker.postedMessages[0]).toEqual(
+    expect(getAuthoritativeWorker(dispatcher).postedMessages[0]).toEqual(
       expect.objectContaining({
         type: 'build',
         lane: 'build',
@@ -216,6 +231,78 @@ describe('BuildDispatcher runtime hooks and routing', () => {
     dispatcher.dispose()
   })
 
+  it('exposes explicit latest-request snapshots per graph target without changing execution behavior', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+
+    expect(
+      dispatcher.getLatestBuildRequestSnapshot({
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+      }),
+    ).toBeNull()
+
+    requestGraphBuild(dispatcher)
+
+    expect(
+      dispatcher.getLatestBuildRequestSnapshot({
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+      }),
+    ).toEqual({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      latestRequestedSeq: 1,
+      latestRequestedBuildRequestId: 'request-a-1',
+      latestResolvedSeq: 0,
+    })
+
+    dispatcher.dispose()
+  })
+
+  it('keeps latest-request snapshots isolated per routing target', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+
+    requestGraphBuild(dispatcher)
+    requestGraphBuild(dispatcher, {
+      graphDocumentId: 'graph-b',
+      buildRequestId: 'request-b-1',
+    })
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-a-2',
+    })
+
+    expect(
+      dispatcher.getLatestBuildRequestSnapshot({
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+      }),
+    ).toEqual({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      latestRequestedSeq: 3,
+      latestRequestedBuildRequestId: 'request-a-2',
+      latestResolvedSeq: 0,
+    })
+    expect(
+      dispatcher.getLatestBuildRequestSnapshot({
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-b',
+      }),
+    ).toEqual({
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-b',
+      latestRequestedSeq: 2,
+      latestRequestedBuildRequestId: 'request-b-1',
+      latestResolvedSeq: 0,
+    })
+
+    dispatcher.dispose()
+  })
+
   it('rejects wrong-graph results and keeps result hooks quiet', async () => {
     const module = await import('./buildDispatcher')
     module.buildDispatcher.dispose()
@@ -230,8 +317,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
 
     requestGraphBuild(dispatcher)
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 1,
         projectFileId: 'project-1',
@@ -262,8 +348,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       buildRequestId: 'request-a-2',
     })
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 2,
         projectFileId: 'project-1',
@@ -271,7 +356,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
         buildRequestId: 'request-a-2',
       }),
     )
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 1,
         projectFileId: 'project-1',
@@ -281,6 +366,60 @@ describe('BuildDispatcher runtime hooks and routing', () => {
     )
 
     expect(onBuildResult).toHaveBeenCalledTimes(1)
+    expect(onBuildResultSettled).toHaveBeenCalledTimes(1)
+    expect(onBuildResultSettled).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seq: 2,
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-2',
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('forwards explicit superseded runtime events for obsolete same-graph requests', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onBuildSuperseded = vi.fn()
+    const onBuildResultSettled = vi.fn()
+
+    dispatcher.setRuntimeHooks({
+      onBuildSuperseded,
+      onBuildResultSettled,
+    })
+
+    requestGraphBuild(dispatcher)
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-a-2',
+    })
+
+    getAuthoritativeWorker(dispatcher).dispatchMessage({
+      type: 'build_superseded',
+      lane: 'build',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+    })
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
+      buildResult({
+        seq: 2,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-2',
+      }),
+    )
+
+    expect(onBuildSuperseded).toHaveBeenCalledTimes(1)
+    expect(onBuildSuperseded).toHaveBeenCalledWith({
+      type: 'build_superseded',
+      lane: 'build',
+      seq: 1,
+      projectFileId: 'project-1',
+      graphDocumentId: 'graph-a',
+      buildRequestId: 'request-a-1',
+    })
     expect(onBuildResultSettled).toHaveBeenCalledTimes(1)
     expect(onBuildResultSettled).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -310,8 +449,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       buildRequestId: 'request-b-1',
     })
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 2,
         projectFileId: 'project-1',
@@ -319,7 +457,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
         buildRequestId: 'request-b-1',
       }),
     )
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 1,
         projectFileId: 'project-1',
@@ -356,8 +494,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
     dispatcher.setBuildResultHandler(onBuildResult)
     requestGraphBuild(dispatcher)
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 1,
         projectFileId: 'project-1',
@@ -399,8 +536,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       buildRequestId: 'request-a-2',
     })
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage(
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
       buildResult({
         seq: 1,
         projectFileId: 'project-1',
@@ -420,13 +556,113 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       }),
     )
 
-    expect(worker.postedMessages).toEqual(
+    expect(getAuthoritativeWorker(dispatcher).postedMessages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'release_authoritative_handles',
           handleIds: ['shape-set-stale-1'],
         }),
       ]),
+    )
+    expect(getDraftWorker(dispatcher).postedMessages).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'release_authoritative_handles',
+        }),
+      ]),
+    )
+    dispatcher.dispose()
+  })
+
+  it('keeps draft and authoritative supersession isolated per graph target', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+    const onBuildResult = vi.fn()
+
+    dispatcher.setBuildResultHandler(onBuildResult)
+
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-draft-1',
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'draft_preview',
+        quality: 'draft',
+        outputIntent: 'transient_preview',
+      },
+    })
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-auth-1',
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+      },
+    })
+    requestGraphBuild(dispatcher, {
+      buildRequestId: 'request-draft-2',
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'draft_preview',
+        quality: 'draft',
+        outputIntent: 'transient_preview',
+      },
+    })
+
+    getAuthoritativeWorker(dispatcher).dispatchMessage(
+      buildResult({
+        seq: 2,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-auth-1',
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'authoritative',
+        },
+      }),
+    )
+    getDraftWorker(dispatcher).dispatchMessage(
+      buildResult({
+        seq: 1,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-draft-1',
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'draft_preview',
+          quality: 'draft',
+          outputIntent: 'transient_preview',
+        },
+      }),
+    )
+    getDraftWorker(dispatcher).dispatchMessage(
+      buildResult({
+        seq: 3,
+        projectFileId: 'project-1',
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-draft-2',
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'draft_preview',
+          quality: 'draft',
+          outputIntent: 'transient_preview',
+        },
+      }),
+    )
+
+    expect(onBuildResult).toHaveBeenCalledTimes(2)
+    expect(onBuildResult).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        seq: 2,
+        buildRequestId: 'request-auth-1',
+      }),
+    )
+    expect(onBuildResult).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        seq: 3,
+        buildRequestId: 'request-draft-2',
+      }),
     )
     dispatcher.dispose()
   })
@@ -448,8 +684,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       buildRequestId: 'request-a-2',
     })
 
-    const worker = (dispatcher as unknown as { worker: MockWorker }).worker
-    worker.dispatchMessage({
+    getAuthoritativeWorker(dispatcher).dispatchMessage({
       type: 'worker_error',
       seq: 1,
       op: 'build',
@@ -459,7 +694,7 @@ describe('BuildDispatcher runtime hooks and routing', () => {
       graphDocumentId: 'graph-a',
       buildRequestId: 'request-a-1',
     })
-    worker.dispatchMessage({
+    getAuthoritativeWorker(dispatcher).dispatchMessage({
       type: 'worker_error',
       seq: 2,
       op: 'build',

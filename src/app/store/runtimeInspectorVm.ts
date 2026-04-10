@@ -14,6 +14,14 @@ import {
   type RuntimeInspectorTask,
   useRuntimeInspectorTaskStore,
 } from './runtimeInspectorTaskStore'
+import {
+  type GraphRuntimeState,
+  selectViewerTargetGraphDocument,
+  selectViewerTargetGraphRuntime,
+  useSpaghettiStore,
+} from '../spaghetti/store/useSpaghettiStore'
+import type { SpaghettiGraph, SpaghettiNode } from '../spaghetti/schema/spaghettiTypes'
+import { getNodeDef } from '../spaghetti/registry/nodeRegistry'
 
 type RuntimeInspectorStatCardVm = {
   label: 'Triangles' | 'Lines' | 'Points' | 'FPS'
@@ -45,7 +53,47 @@ export type RuntimeInspectorQueueCardVm = {
   graphDocumentId: string | null
   detail: string | null
   progressPercent: number | null
-  tone: 'active' | 'queued' | 'done' | 'reused' | 'error'
+  tone:
+    | 'active'
+    | 'queued'
+    | 'delayed'
+    | 'done'
+    | 'reused'
+    | 'replaced'
+    | 'suppressed'
+    | 'superseded'
+    | 'error'
+}
+
+export type RuntimeInspectorChangeImpactMetricVm = {
+  label: 'Affected Units' | 'Rebuilt' | 'Reused' | 'Evicted' | 'Untouched'
+  value: string
+}
+
+export type RuntimeInspectorChangeImpactSummaryVm = {
+  sectionLabel: 'Change Impact'
+  summaryLabel: 'Latest Accepted Edit'
+  changedParamsText: string
+  metrics: RuntimeInspectorChangeImpactMetricVm[]
+}
+
+export type RuntimeInspectorChangeImpactGroupKey = 'rebuilt' | 'reused' | 'evicted'
+
+export type RuntimeInspectorChangeImpactRowVm = {
+  key: string
+  buildUnitId: string
+  outputEntryId: string
+  sourceNodeId: string | null
+  label: string
+  detail: string | null
+  tone: RuntimeInspectorChangeImpactGroupKey
+}
+
+export type RuntimeInspectorChangeImpactGroupVm = {
+  key: RuntimeInspectorChangeImpactGroupKey
+  label: 'Rebuilt' | 'Reused' | 'Evicted'
+  tone: RuntimeInspectorChangeImpactGroupKey
+  rows: RuntimeInspectorChangeImpactRowVm[]
 }
 
 export type RuntimeInspectorVm = {
@@ -59,6 +107,8 @@ export type RuntimeInspectorVm = {
   task: RuntimeInspectorTaskVm
   activeQueueCards: RuntimeInspectorQueueCardVm[]
   archiveCards: RuntimeInspectorQueueCardVm[]
+  changeImpactSummary: RuntimeInspectorChangeImpactSummaryVm | null
+  changeImpactGroups: RuntimeInspectorChangeImpactGroupVm[] | null
   hint: string
 }
 
@@ -118,18 +168,39 @@ const buildTaskVm = (
 
 const toQueueCardTone = (
   state: RuntimeInspectorTask['state'],
-): 'active' | 'queued' | 'done' | 'reused' | 'error' => {
+):
+  | 'active'
+  | 'queued'
+  | 'delayed'
+  | 'done'
+  | 'reused'
+  | 'replaced'
+  | 'suppressed'
+  | 'superseded'
+  | 'error' => {
   if (state === 'error') {
     return 'error'
   }
   if (state === 'queued') {
     return 'queued'
   }
+  if (state === 'delayed') {
+    return 'delayed'
+  }
   if (state === 'done') {
     return 'done'
   }
   if (state === 'reused') {
     return 'reused'
+  }
+  if (state === 'replaced') {
+    return 'replaced'
+  }
+  if (state === 'suppressed') {
+    return 'suppressed'
+  }
+  if (state === 'superseded') {
+    return 'superseded'
   }
   return 'active'
 }
@@ -151,6 +222,172 @@ const sameTaskIdentity = (left: RuntimeInspectorTask, right: RuntimeInspectorTas
   left.buildRequestId === right.buildRequestId &&
   left.partKey === right.partKey
 
+const resolveNodeDisplayLabel = (node: SpaghettiNode | undefined): string | null => {
+  if (node === undefined) {
+    return null
+  }
+  const maybeLabel = (node as SpaghettiNode & { label?: unknown }).label
+  if (typeof maybeLabel === 'string' && maybeLabel.trim().length > 0) {
+    return maybeLabel.trim()
+  }
+  return getNodeDef(node.type)?.label ?? node.type
+}
+
+const buildImpactNodeById = (graph: SpaghettiGraph | null): Map<string, SpaghettiNode> =>
+  new Map((graph?.nodes ?? []).map((node) => [node.nodeId, node] as const))
+
+const formatChangedParamsText = (changedParamIds: readonly string[]): string => {
+  if (changedParamIds.length === 0) {
+    return 'Changed params: none recorded'
+  }
+  if (changedParamIds.length <= 2) {
+    return `Changed params: ${changedParamIds.join(', ')}`
+  }
+  return `${changedParamIds.length} params changed`
+}
+
+type AcceptedBuildImpactSnapshot = GraphRuntimeState['acceptedBuildImpact']
+type AcceptedBuildImpactEntry = NonNullable<AcceptedBuildImpactSnapshot>['entries'][number]
+
+const buildChangeImpactSummaryVm = (
+  acceptedBuildImpact: AcceptedBuildImpactSnapshot,
+): RuntimeInspectorChangeImpactSummaryVm | null => {
+  if (acceptedBuildImpact === null) {
+    return null
+  }
+
+  const targetBuildUnitIds = [...new Set(acceptedBuildImpact.targetBuildUnitIds)]
+  const affectedBuildUnitIdSet = new Set(acceptedBuildImpact.affectedBuildUnitIds)
+  const untouchedCount =
+    targetBuildUnitIds.length > 0
+      ? targetBuildUnitIds.filter((buildUnitId) => !affectedBuildUnitIdSet.has(buildUnitId)).length
+      : null
+
+  const metrics: RuntimeInspectorChangeImpactMetricVm[] = [
+    {
+      label: 'Affected Units',
+      value: acceptedBuildImpact.affectedBuildUnitIds.length.toLocaleString(),
+    },
+    {
+      label: 'Rebuilt',
+      value: acceptedBuildImpact.summary.rebuiltCount.toLocaleString(),
+    },
+    {
+      label: 'Reused',
+      value: acceptedBuildImpact.summary.retainedCount.toLocaleString(),
+    },
+    {
+      label: 'Evicted',
+      value: acceptedBuildImpact.summary.evictedCount.toLocaleString(),
+    },
+  ]
+
+  if (untouchedCount !== null) {
+    metrics.push({
+      label: 'Untouched',
+      value: untouchedCount.toLocaleString(),
+    })
+  }
+
+  return {
+    sectionLabel: 'Change Impact',
+    summaryLabel: 'Latest Accepted Edit',
+    changedParamsText: formatChangedParamsText(acceptedBuildImpact.changedParamIds),
+    metrics,
+  }
+}
+
+const buildChangeImpactRowVm = (options: {
+  entry: AcceptedBuildImpactEntry
+  nodeById: Map<string, SpaghettiNode>
+  partKeyByNodeId: Record<string, string>
+  tone: RuntimeInspectorChangeImpactGroupKey
+}): RuntimeInspectorChangeImpactRowVm => {
+  const sourceNodeId = options.entry.sourceNodeId
+  const node = sourceNodeId === null ? undefined : options.nodeById.get(sourceNodeId)
+  const nodeLabel = resolveNodeDisplayLabel(node)
+  const partKey = sourceNodeId === null ? null : options.partKeyByNodeId[sourceNodeId] ?? null
+  const label = nodeLabel ?? partKey ?? options.entry.outputEntryId
+  const detail =
+    partKey !== null && partKey !== label
+      ? partKey
+      : nodeLabel === null && options.entry.outputEntryId !== label
+        ? options.entry.outputEntryId
+        : null
+
+  return {
+    key: `${options.tone}:${options.entry.buildUnitId}:${options.entry.outputEntryId}`,
+    buildUnitId: options.entry.buildUnitId,
+    outputEntryId: options.entry.outputEntryId,
+    sourceNodeId,
+    label,
+    detail,
+    tone: options.tone,
+  }
+}
+
+const buildChangeImpactGroupsVm = (options: {
+  acceptedBuildImpact: AcceptedBuildImpactSnapshot
+  viewerTargetGraph: SpaghettiGraph | null
+  partKeyByNodeId: Record<string, string>
+}): RuntimeInspectorChangeImpactGroupVm[] | null => {
+  if (options.acceptedBuildImpact === null) {
+    return null
+  }
+
+  const nodeById = buildImpactNodeById(options.viewerTargetGraph)
+  const rowsByGroup: Record<RuntimeInspectorChangeImpactGroupKey, RuntimeInspectorChangeImpactRowVm[]> = {
+    rebuilt: [],
+    reused: [],
+    evicted: [],
+  }
+
+  for (const entry of options.acceptedBuildImpact.entries) {
+    const tone =
+      entry.status === 'rebuilt'
+        ? 'rebuilt'
+        : entry.status === 'retained'
+          ? 'reused'
+          : entry.status === 'evicted'
+            ? 'evicted'
+            : null
+    if (tone === null) {
+      continue
+    }
+    rowsByGroup[tone].push(
+      buildChangeImpactRowVm({
+        entry,
+        nodeById,
+        partKeyByNodeId: options.partKeyByNodeId,
+        tone,
+      }),
+    )
+  }
+
+  const groups: RuntimeInspectorChangeImpactGroupVm[] = [
+    {
+      key: 'rebuilt' as const,
+      label: 'Rebuilt' as const,
+      tone: 'rebuilt' as const,
+      rows: rowsByGroup.rebuilt,
+    },
+    {
+      key: 'reused' as const,
+      label: 'Reused' as const,
+      tone: 'reused' as const,
+      rows: rowsByGroup.reused,
+    },
+    {
+      key: 'evicted' as const,
+      label: 'Evicted' as const,
+      tone: 'evicted' as const,
+      rows: rowsByGroup.evicted,
+    },
+  ].filter((group) => group.rows.length > 0)
+
+  return groups
+}
+
 const buildHint = (runtimeStats: ViewportRuntimeStats): string => {
   const hasAnyRuntimeStats = Object.values(runtimeStats).some((value) => value !== null)
   return hasAnyRuntimeStats
@@ -171,6 +408,13 @@ export const useRuntimeInspectorVm = (viewportId: string): RuntimeInspectorVm =>
   const activeQueue = useRuntimeInspectorTaskStore((state) => state.activeQueue)
   const archive = useRuntimeInspectorTaskStore((state) => state.archive)
   const latestArchivedTask = useRuntimeInspectorTaskStore(selectLatestArchivedRuntimeInspectorTask)
+  const acceptedBuildImpact = useSpaghettiStore((state) =>
+    selectViewerTargetGraphRuntime(state)?.acceptedBuildImpact ?? null,
+  )
+  const viewerTargetGraph = useSpaghettiStore((state) =>
+    selectViewerTargetGraphDocument(state)?.graph ?? null,
+  )
+  const partKeyByNodeId = useSpaghettiStore((state) => state.partKeyByNodeId)
 
   const shouldShowProgress = overallState === 'building' || overallState === 'assembling'
   const fallbackArchivedTask = overallState === 'error' ? latestArchivedTask : null
@@ -189,6 +433,12 @@ export const useRuntimeInspectorVm = (viewportId: string): RuntimeInspectorVm =>
     task: buildTaskVm(currentTask, fallbackArchivedTask),
     activeQueueCards: activeQueue.slice(1).map(buildQueueCardVm),
     archiveCards: visibleArchive.map(buildQueueCardVm),
+    changeImpactSummary: buildChangeImpactSummaryVm(acceptedBuildImpact),
+    changeImpactGroups: buildChangeImpactGroupsVm({
+      acceptedBuildImpact,
+      viewerTargetGraph,
+      partKeyByNodeId,
+    }),
     hint: buildHint(runtimeStats),
   }
 }

@@ -34,6 +34,8 @@ import {
   selectViewerTargetGraphAcceptedGeometryResult,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
   selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
+  selectViewerTargetGraphCommittedDraftGeometryResult,
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
@@ -471,10 +473,16 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
+  const viewerTargetCommittedGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
+  )
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const viewerTargetPreviewGeometryResult = useSpaghettiStore(
     selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  )
+  const viewerTargetCommittedPreviewGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphCommittedDraftGeometryResult,
   )
   const activePlanePickNode = useSpaghettiStore((state) => {
     const nodeId = state.sketchPlanePickSession?.nodeId
@@ -785,6 +793,8 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         modeBehavior: viewportResultModeBehavior,
         acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
         acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
+        committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
+        committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
         acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
         previewPreparation: viewerTargetPreviewPreparation,
         viewerTargetGraphDocumentId,
@@ -812,6 +822,8 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       projectContent,
       sharedViewerComposition,
       viewerTargetBuildOutputs,
+      viewerTargetCommittedGeometryResult,
+      viewerTargetCommittedPreviewGeometryResult,
       viewerTargetGeometryResult,
       viewerTargetGraphDocumentId,
       viewerTargetPreviewGeometryResult,

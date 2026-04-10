@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-04-09 12:10: Refreshed the Worker family after shipping the full `Worker-Vision-1` ladder, pointing the vision family at the new shipped `Worker-Vision-1` record under `Shipped/` and the new future `Worker-Vision-2` draft-policy doc under `Future/` so the family handoff now matches the real next worker-execution lane
+20. 2026-04-09 11:10: Added the new dedicated `Worker-Vision.md` companion doc to this Worker family so the shipped `5.3A` umbrella can stay focused on the current worker seam while longer-range runtime scheduling, draft-versus-authoritative execution, and supersession direction now live in a separate forward-looking vision surface
 19. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` complete after shipping the final graph-native worker boundary cut, moved its standalone phase record into `Worker/Shipped/`, and refreshed the umbrella Worker read so the full `[5.3A]` mini-family now treats the shared worker contract, dispatcher boundary, result semantics, Browser truth, and Console truth as landed history instead of an open compatibility-cleanup ladder
 18. 2026-03-25 20:37: Locked `q1` through `q5` under `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion`, added the standalone future phase link for that final worker cutover, and turned the section into an implementation-ready handoff around outer-edge translation ownership, bundle-first consumer cutover, `assemble` deletion, product-neutral core boundaries, and the deletion-grade verification bar
 17. 2026-03-25 20:22: Expanded `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` with a first `Questions / Decisions` block, adding focused open questions plus suggestions around final translation ownership, bundle-versus-flat-selector cutover, the fate of `assemble`, where any surviving product adapters should live after deletion, and what verification bar proves the legacy worker path is truly gone
@@ -52,6 +54,10 @@ Use this folder like this:
   - umbrella architecture direction
   - live seam read
   - roadmap-family summary
+- `Worker-Vision.md`
+  - forward-looking worker runtime direction
+  - draft-versus-authoritative scheduling north star
+  - supersession and runtime-read guardrails
 - `Future/`
   - standalone implementation-ready `Worker` phase docs
 - `Shipped/`
@@ -99,6 +105,9 @@ That cutover is now shipped.
 The shared worker boundary is graph-native only, the bundle-based result path is the canonical runtime truth, the dispatcher stays thin, assembled-only compatibility paths are deleted, and the remaining product-specific behavior is isolated outside the permanent shared contract.
 
 This doc remains the umbrella record for the shipped worker boundary and the architecture rules that future worker/export work should preserve.
+
+For the forward-looking worker scheduling and runtime-result direction beyond the shipped `5.3A` cleanup ladder, use:
+- `docs/Human-Plans/Architecture/Worker/Worker-Vision.md`
 
 ### Scope
 
@@ -961,3 +970,6 @@ Decision:
   - Browser and Console reading one shared graph-native truth path
   - stale-drop, caching, progress, and worker-error routing still verified after the removal
   - a code-searchable absence of the legacy request/protocol shapes this phase claims to delete
+
+
+## [ ] Worker 8 - Worker-Vision1.md

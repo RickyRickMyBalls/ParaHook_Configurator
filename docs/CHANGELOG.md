@@ -65,6 +65,848 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1165 -->
+### [1165] - 2026-04-10 10:47 - `OO - Phase Build - Production Build Pass Cleanup`
+<!-- ENTRY 1165 -->
+HUMAN SUMMARY: `Cleaned up the remaining strict-TypeScript and test-fixture mismatches that were blocking the real production build, so \`npm run build\` now completes successfully through both \`tsc -b\` and Vite.`
+#### Scope / Constraints Honored
+- Kept this pass focused on build-blocking compile issues and stale test/type surfaces instead of widening into new runtime behavior or feature work.
+- Preserved the shipped viewport and worker behavior while tightening only the typing seams that the full production build path enforces.
+- Limited repo maintenance for this pass to the required permanent changelog update.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts`, `src/app/store/runtimeInspectorVm.ts`, and `src/app/store/useAppStore.ts` so graph runtime snapshots, runtime-inspector accepted-impact reads, and browser-build request options all match the current typed store contract under full-project compilation.
+- Cleaned up strict compile issues in `src/worker/worker.ts`, `src/worker/worker.test.ts`, `src/app/store/useAppStore.test.ts`, and `src/app/components/ViewerHost.test.tsx` by removing unused imports, narrowing nullable request reads explicitly, and replacing stale `preview` result-class literals with the current `draft` vocabulary in `src/app/workspace/PrimaryViewportLeftDock.test.tsx`.
+- Left the shipped feature behavior intact while making the repo pass the real build entrypoint instead of only focused test commands.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `src/worker/worker.ts`
+- `src/worker/worker.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `npm run build` now succeeds end-to-end.
+- No intended runtime behavior changes beyond aligning stale type/test surfaces with the current shipped contracts.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+<!-- ENTRY 1164 -->
+### [1164] - 2026-04-10 10:40 - `WK - Phase Worker-Vision-3 Phase 8.4 - Strict Draft Final Hardening And Viewer Proof`
+<!-- ENTRY 1164 -->
+HUMAN SUMMARY: `Closed Phase 8 by extending the layered viewport render handoff into strict \`Draft\` and \`Final\` behavior, giving draft mode a real retained draft mesh base, keeping final mode authoritative-only, and proving that Browser \`manual\` / \`off\` honesty still holds at the viewer boundary.`
+#### Scope / Constraints Honored
+- Kept selector/store truth ownership in `src/app/spaghetti/selectors/selectViewportResultState.ts` and widened only the host/viewer presentation handoff needed to honor that contract for strict `Draft` and `Final`.
+- Preserved `Final` as authoritative-only by refusing to borrow ordinary draft overlay whenever final truth is unavailable or still waiting.
+- Treated Browser `manual` and `off` as existing scheduling truth to verify against, not as behavior to redesign in this slice.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectViewportResultState.ts` to derive a dedicated draft mesh-preview render VM from draft geometry results, so strict draft mode can render a retained committed draft mesh base instead of reusing the live artifact overlay as fake committed truth.
+- Updated `src/app/components/ViewerHost.tsx` so layered viewport rendering now also applies in strict `Draft` and strict `Final`, with draft using retained draft base plus draft overlay and final using retained authoritative base plus authoritative-only overlay when present.
+- Expanded `src/app/spaghetti/selectors/selectViewportResultState.test.ts` and `src/app/components/ViewerHost.test.tsx` to prove retained draft base selection, draft layered rendering, and final authoritative-only rendering without draft overlay fallback, while rerunning focused Browser `manual` and `off` policy tests in `src/app/store/useAppStore.test.ts`.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Draft` mode can now render a retained committed draft mesh as the solid base while showing the current draft preview overlay at `0.5` opacity.
+- `Final` mode can now keep rendering retained authoritative geometry as the solid base during churn without falling back to ordinary draft overlay when final catch-up is unavailable.
+- The viewport layered render handoff now supports all three result modes while preserving Browser scheduling honesty outside the viewer.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/components/ViewerHost.test.tsx`
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts --testNamePattern "keeps browser off as worker suppression even when the active viewer switches to final|keeps manual graphs dirty until an explicit browser build is requested"`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1163 -->
+### [1163] - 2026-04-10 10:29 - `WK - Phase Worker-Vision-3 Phase 8.3 - Auto Layered Presentation`
+<!-- ENTRY 1163 -->
+HUMAN SUMMARY: `Taught the viewport viewer path to render retained final geometry as the solid base plus a live draft overlay at 50 percent opacity in \`Auto\` mode, while leaving selector truth ownership in the shipped Phase 8.2 contract and keeping shared-viewer/browser composition behavior intact.`
+#### Scope / Constraints Honored
+- Kept this slice presentation-only by consuming the retained-base and overlay facts already exposed by `src/app/spaghetti/selectors/selectViewportResultState.ts` instead of reopening freshness or dependency-break truth in the viewer.
+- Limited mixed-layer rendering to `Auto` mode so `Draft` and `Final` behavior remain owned by the later `8.4` hardening pass.
+- Preserved the existing viewer selection/highlight path and shared project/browser rendering composition while adding one narrow layered render handoff.
+
+#### Summary of Implementation
+- Updated `src/viewer/Viewer.ts` to accept explicit viewport render layers, render overlay parts as translucent non-shadow-casting meshes, clear and dispose layered meshes safely, and keep workspace picking plus gizmo attachment working across both base and overlay geometry.
+- Updated `src/app/components/ViewerHost.tsx` so `Auto` mode now sends retained committed final geometry as the solid base and current draft preview geometry as the overlay when the `8.2` selector facts report a retained final plus draft overlay case, otherwise falling back to the existing single-layer render path.
+- Expanded `src/app/components/ViewerHost.test.tsx` with focused proof that `Auto` mode now renders the retained final plus live draft pair through the layered viewer API and that Browser-enabled multi-graph rendering still behaves correctly after the host handoff changed.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- In `Auto` mode, retained authoritative geometry can now remain visible as the solid base while current draft preview geometry renders above it at `0.5` opacity.
+- The layered presentation path now routes through one explicit `setViewportRenderLayers(...)` viewer seam instead of flattening every viewport state into one part list before render.
+- Shared-viewer and Browser-driven project output composition continue to render through the same host surface after the layered handoff.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/components/ViewerHost.test.tsx`
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1162 -->
+### [1162] - 2026-04-10 10:12 - `WK - Phase Worker-Vision-3 Phase 8.2 - Viewport Result Contract And Relevance Gating`
+<!-- ENTRY 1162 -->
+HUMAN SUMMARY: `Widened the viewport result contract so selector/store truth now distinguishes current lane output from last committed retained base, and clears retained geometry immediately when the current output dependency graph no longer resolves.` 
+#### Scope / Constraints Honored
+- Kept retained-versus-current relevance ownership in the store and selector layer instead of moving that judgment into `ViewerHost` or the viewer runtime.
+- Stopped short of layered viewer rendering so `8.3` still owns the actual retained-base-plus-overlay presentation work.
+- Preserved the existing current-revision acceptance gate so stale authoritative completions still cannot silently promote visible final truth.
+
+#### Summary of Implementation
+- Added committed authoritative and committed draft geometry selectors in `src/app/spaghetti/store/useSpaghettiStore.ts` so viewport reads can see both current-revision accepted lane output and the last committed lane result without pretending they are the same fact.
+- Widened `src/app/spaghetti/selectors/selectViewportResultState.ts` with explicit retained-base and overlay fields, mode-specific base ownership for `Auto`, `Draft`, and `Final`, and a current-output-continuation check that drops retained context when preview preparation shows the output dependency has become unresolved.
+- Updated `src/app/components/ViewerHost.tsx` and `src/app/components/ViewportOverlay.tsx` to pass the new committed-versus-current lane facts into the selector contract without changing the later viewer-layering ownership.
+- Expanded the focused selector and store tests so parameter churn now proves retained committed context remains eligible while disconnected or unresolved outputs immediately clear that retained geometry surface.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultStatus.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+
+#### Behavior Changes
+- The viewport result selector now publishes explicit retained-base and overlay eligibility facts per mode, rather than only one winning visible result.
+- Retained committed geometry is now blocked when the current output preparation no longer has a valid resolved continuation, which covers the disconnected-wire style invalidation called out in Phase `8.2`.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectViewportResultStatus.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1161 -->
+### [1161] - 2026-04-10 09:53 - `WK - Phase Worker-Vision-3 Phase 8.1 - Draft Worker Versus Authoritative Worker Split`
+<!-- ENTRY 1161 -->
+HUMAN SUMMARY: `Split the live build dispatcher into separate draft-preview and authoritative worker instances, so draft and final follow-through no longer share one supersession ledger or one worker message stream, while authoritative handle release stays authoritative-lane-only.` 
+#### Scope / Constraints Honored
+- Kept the first split narrow by reusing the existing worker entry script and build contract instead of widening immediately into a generic worker pool or scheduler redesign.
+- Preserved graph-local latest-intent safety while making it lane-specific for `draft_preview` versus `authoritative`.
+- Left app-store request APIs intact so the dispatcher remains the owner of the new worker split.
+
+#### Summary of Implementation
+- Updated `src/app/buildDispatcher.ts` so it now owns one draft worker and one authoritative worker, routes build requests by `executionIntent.geometryTarget`, tracks lane-specific routing ledgers per graph target, and keeps authoritative handle release on the authoritative worker only.
+- Preserved the shared runtime hooks and result/error acceptance flow while teaching the dispatcher to map each in-flight request sequence back to its execution target so progress, supersession, and error handling stay lane-correct.
+- Expanded `src/app/buildDispatcher.test.ts` to prove authoritative-handle release stays off the draft lane and that newer draft requests no longer stale out an in-flight authoritative result for the same graph target.
+
+#### Files Changed
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Draft-preview and authoritative build requests now run through separate worker instances instead of one shared worker instance.
+- Same-graph supersession is now lane-specific at the dispatcher boundary, so draft churn no longer automatically invalidates an otherwise-current authoritative request.
+- Authoritative handle release messages are now sent only to the authoritative worker lane.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/buildDispatcher.test.ts`
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1160 -->
+### [1160] - 2026-04-10 09:08 - `WK - Phase Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup`
+<!-- ENTRY 1160 -->
+HUMAN SUMMARY: `Closed the remaining Phase 7 stale-final gap by teaching the runtime to track draft-lane and authoritative-lane accepted revisions separately, so preserved older B-rep truth no longer masquerades as current final in \`Auto\` or block the newer authoritative follow-through after a draft-only accept.` 
+#### Scope / Constraints Honored
+- Kept accepted draft and accepted authoritative geometry as separate retained lanes instead of collapsing them into one shared slot just to fix the regression.
+- Limited the change to lane-freshness truth, selector gating, and `Auto` companion-follow-through behavior without redefining Browser timing ownership or widening `Final` mode semantics.
+- Preserved the existing accepted-geometry retention model so later stale-final presentation work can still build on explicit retained-but-stale authoritative truth.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so each graph runtime now records `acceptedDraftGraphRevision` and `acceptedAuthoritativeGraphRevision`, advances those lane revisions only when that lane actually accepts new geometry, and uses those lane-specific freshness checks in the graph and viewer authoritative/draft geometry selectors.
+- Updated `src/app/store/useAppStore.ts` so `Auto` authoritative follow-through now checks whether accepted authoritative truth is current for the active graph revision instead of skipping whenever any retained authoritative result still exists.
+- Added focused regressions in `src/app/spaghetti/store/useSpaghettiStore.test.ts` and `src/app/store/useAppStore.test.ts` to prove preserved older authoritative geometry becomes stale instead of current after a newer draft-only accept, while `Auto` still stages the replacement authoritative request for that newer revision.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Preserved authoritative geometry no longer counts as current final truth unless its own accepted authoritative revision matches the current graph revision.
+- `Auto` no longer lets an older retained B-rep result suppress the replacement authoritative follow-through after a newer draft-only acceptance.
+- Draft-lane current truth can stay visible and current while an older authoritative lane remains retained but stale in runtime state.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/store/useAppStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1159 -->
+### [1159] - 2026-04-10 08:56 - `WK - Phase Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup`
+<!-- ENTRY 1159 -->
+HUMAN SUMMARY: `Reworked active visible \`Auto\` graphs so they now favor draft-visible request targeting during edit churn, then request authoritative follow-through once current draft truth is accepted, while keeping Browser timing in charge of whether that final path runs live, waits for release, or stays blocked.` 
+#### Scope / Constraints Honored
+- Kept the change app-owned inside the existing request, subscription, and viewport-result seams instead of inventing a second worker queue or widening Browser policy ownership again.
+- Preserved strict `Final` behavior, background-graph authoritative fallback behavior, and Browser `manual` / `off` suppression rules while changing only active visible `Auto` handling.
+- Kept the visible final swap honest by proving it through the existing viewport result selector rather than introducing a hidden viewer-only geometry owner.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so active visible `Auto` viewports now resolve ordinary graph builds toward `draft_preview`, request draft work during churn when policy allows it, and trigger authoritative follow-through only after current draft truth is accepted and final is still missing.
+- Forwarded explicit geometry-target overrides through `requestBrowserGraphDocumentBuild(...)` so the new `Auto` follow-through path can request authoritative work through the shared Browser seam without redefining policy.
+- Added focused store proofs in `src/app/store/useAppStore.test.ts` for live `Auto` draft-first behavior plus authoritative follow-through, and added a selector proof in `src/app/spaghetti/selectors/selectViewportResultState.test.ts` for the visible swap from draft to retained final once renderable authoritative geometry exists.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Active visible `Auto` graphs no longer default to a final-biased request target during ordinary churn; they now keep draft-visible updates alive first.
+- Once current draft truth is accepted in `Auto`, the app now requests authoritative follow-through through the Browser seam so newer final geometry can replace draft when it lands.
+- `Auto` keeps respecting Browser timing and suppression rules instead of implying that final work always runs immediately.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1158 -->
+### [1158] - 2026-04-10 08:32 - `WK - Phase Worker-Vision-3 Phase 6 - Stale Final Geometry Disconnect Fix`
+<!-- ENTRY 1158 -->
+HUMAN SUMMARY: `Stopped stale final extrude geometry from surviving after the current graph revision disconnects the required upstream wire by making viewer-facing accepted geometry selectors reject out-of-date accepted revisions, then pinned that behavior with a final-mode ViewerHost regression test.`
+#### Scope / Constraints Honored
+- Kept the fix narrowly focused on stale accepted-geometry reads after graph revision changes instead of widening into worker scheduling, kernel behavior, or Browser policy ownership again.
+- Preserved the Phase 6 timing cleanup and the existing accepted-state storage model, changing only the read boundary that decides whether previously accepted geometry is still valid for the current graph revision.
+- Kept the fix honest for final-mode rendering without redefining draft preview fallback behavior or accepted-result persistence internals.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` so viewer-facing and graph-facing accepted geometry selectors now return `null` whenever the stored accepted revision no longer matches the current graph revision.
+- Updated `src/app/components/ViewerHost.test.tsx` to prove final-mode extrude geometry clears immediately after disconnecting the required `SketchProfiles` wire, and refreshed the existing authoritative-preview fixture so it explicitly marks its accepted revision as current.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Final-mode viewer rendering no longer keeps showing stale accepted authoritative geometry after the graph revision changes and the prior accepted result is no longer current.
+- Disconnecting the upstream extrude profile wire now clears the final mesh preview immediately instead of leaving the old B-rep-derived mesh on screen.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewerHost.test.tsx src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1157 -->
+### [1157] - 2026-04-10 08:26 - `WK - Phase Worker-Vision-3 Phase 6 - Display Preference Versus Build Policy Cleanup`
+<!-- ENTRY 1157 -->
+HUMAN SUMMARY: `Separated Browser timing from viewport display preference by teaching authoritative work about a real \`live\` timing lane, making active viewport switches into \`Final\` or \`Auto\` request needed authoritative work through the app-owned Browser seam, and preserving Browser \`off\` as true worker suppression instead of a fake visibility toggle.`
+#### Scope / Constraints Honored
+- Kept Browser policy as the timing owner and viewport mode as the display-preference owner instead of turning workspace-local state into a second scheduler.
+- Preserved the explicit manual-build escape hatch and Browser `off` suppression semantics while tightening ordinary automatic final convergence.
+- Kept the implementation focused on the app-owned request seam, shared build-intent contract, and focused proof surfaces without widening into kernel feature work or a broader UI redesign.
+
+#### Summary of Implementation
+- Updated `src/shared/buildTypes.ts` and `src/worker/worker.ts` so authoritative execution intent now accepts an explicit `live` timing lane in addition to the existing `release`, `settle`, and `explicit` values.
+- Updated `src/app/store/useAppStore.ts` so Browser `live` now dispatches authoritative work immediately, Browser `release` dispatches immediately once no interaction is still holding the release edge, and active-viewer switches into `Final` or `Auto` request needed authoritative work through the shared Browser build seam instead of only changing display state.
+- Expanded `src/app/store/useAppStore.test.ts` to prove live authoritative browser dispatch, release-after-edge dispatch, active viewport mode switch follow-through, and Browser `off` worker suppression, while keeping the existing authoritative waiting and stale-drop coverage intact.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/worker/worker.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Browser `live / release / manual / off` now behaves as the authoritative auto-build timing owner instead of leaving final convergence stuck behind display-only mode changes.
+- Switching the active viewer from `Draft` into `Final` or `Auto` now requests authoritative work when newer final truth is needed and Browser timing permits it.
+- Browser `off` continues to suppress new worker processing for the scoped target even when the viewport prefers final-only display.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/worker/worker.test.ts src/shared/buildTypes.test.ts src/app/workspace/useWorkspaceStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1156 -->
+### [1156] - 2026-04-10 07:07 - `WK - Phase Worker-Vision-3 Phase 5 - Hardening And Family Handoff`
+<!-- ENTRY 1156 -->
+HUMAN SUMMARY: `Corrected the authoritative scheduling lane to be release-first for ordinary viewport-facing final work, then hardened the repeated-churn path so Browser release interactions converge on the latest surviving authoritative graph revision instead of implying a queue of intermediate final builds.`
+#### Scope / Constraints Honored
+- Kept this slice on authoritative scheduling hardening and did not widen into export reuse, runtime-inspector redesign, or accepted-state ownership changes.
+- Preserved `useSpaghettiStore.ts` as the owner of accepted draft versus authoritative truth, limiting this pass to app-owned request-time policy and repeated release-edge behavior.
+- Kept manual/export authoritative work on the existing explicit path while correcting normal viewport-facing final work to the release-first lane described in the Worker and viewport docs.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so request-time authoritative policy now defaults to `release` for ordinary authoritative viewport work instead of falling back to `settle`, while still preserving explicit/manual authoritative requests and override paths.
+- Expanded `src/app/store/useAppStore.test.ts` so the focused proof now covers release-first authoritative defaults across active-viewer, background-graph, and browser-runtime request paths, and proves repeated churn during one Browser release interaction dispatches only the latest authoritative graph revision.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Normal viewport-facing authoritative/final builds now default to `release` instead of `settle`.
+- Browser release interactions now converge on the latest surviving authoritative graph revision after repeated churn rather than implying that intermediate final values should each run.
+- Explicit/manual authoritative requests remain on the explicit trigger lane, and settle remains available only as an override instead of the default final path.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1155 -->
+### [1155] - 2026-04-09 23:33 - `WK - Phase Worker-Vision-3 Phase 4 - Accepted Draft Versus Authoritative Promotion Rules`
+<!-- ENTRY 1155 -->
+HUMAN SUMMARY: `Made accepted draft-versus-authoritative promotion explicit inside the graph-runtime acceptance boundary, so authoritative-only acceptance now promotes only the authoritative lane, draft-only acceptance preserves prior accepted authoritative truth, and stale authoritative arrivals cannot roll accepted state backward.`
+#### Scope / Constraints Honored
+- Kept this slice inside `useSpaghettiStore.ts` as the accepted-state owner and did not move promotion behavior into app-store scheduling, export, or runtime-inspector surfaces.
+- Preserved separate accepted draft and accepted authoritative geometry lanes instead of collapsing them into one shared slot.
+- Kept stale authoritative cleanup on the existing acceptance-boundary path so replaced or rejected handles still release without mutating newer accepted truth.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` to add one explicit accepted-geometry promotion helper that preserves each lane independently when the incoming accepted build omits that payload and only releases the previously accepted authoritative handle when a newer authoritative result truly replaces it.
+- Expanded `src/app/spaghetti/store/useSpaghettiStore.test.ts` with focused proof that authoritative-only acceptance promotes the authoritative lane without clearing accepted draft truth, draft-only acceptance preserves previously accepted authoritative truth, and stale authoritative arrivals are rejected without rolling either accepted lane backward.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Accepted draft geometry now stays intact when a newer accepted build only carries authoritative geometry.
+- Accepted authoritative geometry now stays intact when a newer accepted build only carries draft geometry.
+- Rejected stale authoritative arrivals still release their incoming authoritative handles and no longer have any path to overwrite newer accepted draft or authoritative truth.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1154 -->
+### [1154] - 2026-04-09 23:26 - `WK - Phase Worker-Vision-3 Phase 3 - Release, Settle, And Explicit Authoritative Trigger Flow`
+<!-- ENTRY 1154 -->
+HUMAN SUMMARY: `Added the first honest trigger flow for authoritative waiting work so explicit/manual final requests now cross into real worker dispatch through one shared app-owned seam, release-triggered authoritative waiting work dispatches once at interaction end, and waiting state clears before real in-flight execution begins.`
+#### Scope / Constraints Honored
+- Kept this slice on trigger flow only and did not widen into accepted authoritative promotion rules, export reuse, or broader runtime-publication redesign.
+- Preserved `useSpaghettiStore.ts` as the only owner of real in-flight worker truth by routing all released or explicit authoritative dispatch through the existing `stageGraphBuildRequest(...)` boundary.
+- Kept `settle` honest by leaving it staged as waiting state rather than inventing a fake trigger owner in this slice.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` to add one shared delayed-placeholder dispatch helper, wire explicit authoritative callers through that real-dispatch seam, and let authoritative waiting bypass staging only when a matching `delayedAuthoritativeDispatchTrigger` is intentionally provided.
+- Updated `endBrowserBuildInteraction(...)` in `src/app/store/useAppStore.ts` so release-authoritative waiting work now dispatches once through the normal worker path, clears its waiting placeholder first, and stays graph-local without flushing other graphs' waiting authoritative intent.
+- Expanded `src/app/store/useAppStore.test.ts` so the focused proof now covers export-triggered explicit authoritative dispatch, browser-manual explicit final dispatch, release-triggered authoritative dispatch on interaction end, graph-local isolation, and the continued accepted-state stability while `settle` authoritative work remains waiting.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Explicit/manual authoritative requests now enter real worker dispatch instead of staying indefinitely in pre-dispatch waiting state.
+- Release-authoritative waiting work now dispatches once when its release trigger fires, and the corresponding waiting placeholder is cleared before real in-flight state begins.
+- `settle` authoritative requests remain staged as waiting latest intent until a later slice provides a concrete settle owner.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1153 -->
+### [1153] - 2026-04-09 23:18 - `WK - Phase Worker-Vision-3 Phase 2 - Authoritative Waiting State And Latest-Intent Replacement`
+<!-- ENTRY 1153 -->
+HUMAN SUMMARY: `Added the first app-owned authoritative waiting lane so non-live final work now stages one graph-local latest-intent placeholder instead of pretending it already entered worker execution, while accepted draft and authoritative truth stays untouched until a later trigger phase actually dispatches that work.`
+#### Scope / Constraints Honored
+- Kept this slice on authoritative waiting state and same-graph latest-intent replacement only, without adding release/settle/manual trigger flow, acceptance-promotion redesign, or fake worker lifecycle.
+- Preserved `useSpaghettiStore.ts` as the real in-flight and accepted-result owner by keeping waiting authoritative work entirely in app-owned scheduling state.
+- Kept export preparation honest by allowing it to report pending authoritative waiting without inventing worker request ids or build seq values before dispatch exists.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` to add one `delayedAuthoritativeBuildByGraphDocumentId` latest-intent map and route authoritative requests with non-live policy into that graph-local waiting placeholder instead of dispatching worker work immediately.
+- Kept authoritative waiting replacement single-slot and graph-local by storing compiled request payload, build identity, invalidation inputs, and execution intent for the latest same-graph authoritative request while leaving compile-build in-flight state untouched.
+- Updated `prepareGraphDocumentExport(...)` and `src/shared/exportTypes.ts` so export preparation can report honest pending authoritative waiting without fake build ids, and expanded `src/app/store/useAppStore.test.ts` to prove waiting, replacement, browser/runtime staging, and accepted-state stability for authoritative work.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/shared/exportTypes.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Authoritative requests resolved to `release`, `settle`, or `explicit` now stage one app-owned waiting placeholder per graph instead of dispatching worker work immediately.
+- Newer same-graph authoritative requests replace older waiting authoritative intent instead of forming a queue, while real in-flight worker state remains null until a later trigger-flow phase exists.
+- Export preparation can now surface pending authoritative waiting honestly even before any real worker request id or build seq exists.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1152 -->
+### [1152] - 2026-04-09 22:45 - `WK - Phase Worker-Vision-3 Phase 1 - Authoritative Policy Contract And Request-Time Ownership`
+<!-- ENTRY 1152 -->
+HUMAN SUMMARY: `Added the first explicit authoritative scheduling contract by giving shared build intent an \`authoritativePolicy\` field and teaching request-time intent resolution to select it separately from draft policy, so final-targeted requests like export preparation no longer inherit authoritative timing implicitly from local call paths.`
+#### Scope / Constraints Honored
+- Kept this slice on request-time authoritative policy contract only and did not widen into delayed authoritative waiting mechanics, acceptance promotion rules, or runtime-publication redesign.
+- Preserved the existing accepted-state boundary in `useSpaghettiStore.ts`, keeping this implementation limited to shared intent typing and app-owned request-time selection.
+- Kept viewport `Final` and export preparation as inputs to authoritative policy selection rather than letting either surface become the hidden owner of authoritative timing semantics.
+
+#### Summary of Implementation
+- Updated `src/shared/buildTypes.ts` to add explicit `authoritativePolicy` timing vocabulary to `BuildExecutionIntent`, set the neutral default, and widen shared bundle validation around the new contract field.
+- Updated `src/app/store/useAppStore.ts` to add `resolveGraphBuildAuthoritativePolicy(...)`, wire that result into `resolveGraphBuildExecutionIntent(...)`, and route authoritative-targeted requests through a dedicated request-time policy seam separate from shipped draft policy.
+- Updated `src/worker/worker.ts` so worker-side build-request validation accepts the widened intent contract, and expanded focused tests in `src/shared/buildTypes.test.ts`, `src/app/store/useAppStore.test.ts`, and `src/worker/worker.test.ts` to prove authoritative policy selection for viewport-final, background authoritative, and export-triggered authoritative requests.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/store/useAppStore.ts`
+- `src/worker/worker.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/worker/worker.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 - Authoritative Scheduling And Final Acceptance Rules.md`
+
+#### Behavior Changes
+- Build execution intent now carries one explicit `authoritativePolicy` field with `release`, `settle`, and `explicit` vocabulary.
+- Request-time authoritative scheduling is now resolved separately from draft scheduling, so authoritative-targeted requests no longer imply timing only through `geometryTarget`, `updatePolicy`, or local call-site behavior.
+- Export-triggered authoritative requests now read as explicit/manual authoritative policy, while non-explicit authoritative requests read as conservative `settle` or `release` policy depending on context.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/shared/buildTypes.test.ts`
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/worker/worker.test.ts`
+
+<!-- ENTRY 1151 -->
+### [1151] - 2026-04-09 21:06 - `WK - Phase Worker-Vision-2 Phase 5 - Draft Scheduling Hardening And Family Handoff`
+<!-- ENTRY 1151 -->
+HUMAN SUMMARY: `Closed the first draft-scheduling lane by making delayed release handoff one-shot and non-contradictory, clearing stale per-graph scheduling truth during repeated churn, and proving accepted draft plus authoritative state stay stable while delayed preview is replaced, released, or suppressed.`
+#### Scope / Constraints Honored
+- Kept this slice on hardening the shipped `live / release / settle / suppressed` draft-policy lane instead of widening into authoritative scheduling or a new queue architecture.
+- Preserved existing accepted-result ownership in the dispatcher and `useSpaghettiStore` boundary, keeping scheduling cleanup additive to accepted runtime truth instead of redefining it.
+- Kept the `settle` lane honest by hardening around repeated churn and handoff behavior without claiming a real settle owner now exists.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so release-triggered delayed placeholder dispatch no longer publishes a contradictory `draft_replaced` event after the same placeholder has already been released, making repeated release edges safe one-shot no-ops.
+- Updated `src/app/store/runtimeInspectorTaskStore.ts` so per-graph scheduling archive cleanup now converges on one current scheduling truth by clearing stale `replaced` or `suppressed` entries when a newer delayed, released, or suppressed outcome takes over.
+- Added focused hardening proof in `src/app/store/useAppStore.test.ts` and `src/app/bootstrapBuildWiring.test.ts` for repeated release edges, suppressed-after-delayed cleanup, and accepted draft plus authoritative geometry preservation through scheduling-only churn.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-2 - Draft Preview Scheduling And Settle Rules.md`
+
+#### Behavior Changes
+- Release-triggered delayed preview handoff now reports one honest transition instead of surfacing both `released` and `replaced` for the same placeholder.
+- Repeated delayed-preview churn now leaves only one active waiting card or one current terminal scheduling outcome per graph in the runtime-inspector scheduling lane.
+- Scheduling-only churn no longer risks clearing accepted draft or authoritative geometry state while delayed preview is suppressed or replaced before execution.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/useAppStore.test.ts`
+- `npm.cmd test -- --run src/app/bootstrapBuildWiring.test.ts`
+
+<!-- ENTRY 1150 -->
+### [1150] - 2026-04-09 17:58 - `WK - Phase Worker-Vision-2 Phase 4 - Draft Delay And Suppression Runtime Truth`
+<!-- ENTRY 1150 -->
+HUMAN SUMMARY: `Made delayed and suppressed draft scheduling explicit shared runtime truth by publishing app-owned draft scheduling events into the existing bootstrap/runtime-inspector bridge, so delayed, replaced, released, and suppressed preview outcomes now show up honestly without faking worker lifecycle.`
+#### Scope / Constraints Honored
+- Kept this slice on runtime truth for delayed/replaced/released/suppressed draft and did not widen into settle scheduling ownership or broader Browser UX redesign.
+- Preserved worker-owned lifecycle boundaries by publishing these events from the app/runtime side instead of synthesizing fake worker progress or result messages.
+- Kept real build start/progress/result behavior on the existing dispatcher and worker path, using the new scheduling truth only to narrate pre-dispatch and non-worker outcomes honestly.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` to publish typed draft scheduling runtime events whenever draft is delayed, replaced before run, released to real execution, or suppressed by policy.
+- Updated `src/app/bootstrapBuildWiring.ts` to subscribe to those app-owned scheduling events and bridge them into `runtimeInspectorTaskStore` with explicit delayed/replaced/suppressed handling plus delayed-queue cleanup on release handoff.
+- Updated `src/app/store/runtimeInspectorTaskStore.ts` and `src/app/store/runtimeInspectorVm.ts` so the runtime-inspector queue/archive model and card tones can represent `delayed`, `replaced`, and `suppressed` scheduling truth explicitly.
+- Added focused proof in `src/app/bootstrapBuildWiring.test.ts` that delayed scheduling truth appears without fake worker lifecycle, suppressed draft archives as non-error truth, and release handoff clears stale delayed queue state when real worker execution begins.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Delayed draft preview now appears as explicit waiting runtime truth instead of silent absence.
+- Replaced-before-run and suppressed draft outcomes now archive as their own runtime states instead of being inferred from missing worker activity.
+- Releasing delayed draft now clears delayed queue truth before the normal worker-backed build lifecycle becomes active.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/bootstrapBuildWiring.test.ts src/app/store/useAppStore.test.ts src/shared/buildTypes.test.ts src/worker/worker.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1149 -->
+### [1149] - 2026-04-09 17:46 - `WK - Phase Worker-Vision-2 Phase 3 - Release And Settle Trigger Flow`
+<!-- ENTRY 1149 -->
+HUMAN SUMMARY: `Released delayed draft placeholders back into the normal build path at interaction end, so delayed \`release\` draft work now mints a real request only when released, stages real compile-build in-flight state through the existing store seam, and still preserves per-graph latest-intent isolation.`
+#### Scope / Constraints Honored
+- Kept this slice on release-triggered delayed draft dispatch and did not widen into runtime-inspector narration or broad settle scheduling ownership.
+- Preserved the existing dispatcher and `stageGraphBuildRequest(...)` seams as the only owners of real in-flight work, so delayed placeholders still remain pre-dispatch truth until release.
+- Kept settle support honest and narrow by leaving `settle` placeholders staged unless a real trigger is provided later.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so delayed draft placeholders now retain the compile/build payload needed for later real dispatch and so `endBrowserBuildInteraction(...)` can release the current graph’s delayed `release` placeholder into the normal dispatcher path.
+- Added one release-trigger bypass for queued release-end builds so the interaction-release seam can dispatch the newest graph state instead of re-staging another delayed placeholder, while still clearing only the targeted graph’s placeholder.
+- Expanded `src/app/store/useAppStore.test.ts` with focused proof that delayed release placeholders dispatch exactly once on interaction end, do not flush other graphs’ placeholders, and yield real in-flight compile-build state only after release.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Delayed `release` draft placeholders now dispatch once from `endBrowserBuildInteraction(...)` instead of waiting indefinitely.
+- Released delayed draft work now mints a normal build request id and build seq, then enters the same dispatcher and spaghetti-store in-flight path as immediate requests.
+- Other graphs’ delayed placeholders remain untouched when one graph releases, and `settle` placeholders remain staged until a later slice adds a concrete trigger owner.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts src/shared/buildTypes.test.ts src/worker/worker.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1148 -->
+### [1148] - 2026-04-09 17:38 - `WK - Phase Worker-Vision-2 Phase 2 - Delayed Latest-Intent Placeholder State`
+<!-- ENTRY 1148 -->
+HUMAN SUMMARY: `Added the first app-owned delayed draft placeholder seam so \`release\` and \`settle\` draft requests now stage one latest-intent-only pre-dispatch holder per graph target instead of immediately issuing worker work, while accepted and in-flight compile-build truth stays reserved for real dispatched requests.`
+#### Scope / Constraints Honored
+- Kept this slice on delayed placeholder state only and did not widen into release-or-settle dispatch triggers, runtime-inspector narration, or authoritative scheduling policy.
+- Preserved `useSpaghettiStore.ts -> stageGraphBuildRequest(...)` as the meaningfully in-flight worker seam by keeping delayed placeholders outside compile-build in-flight state.
+- Avoided minting worker build ids or build sequences for delayed placeholder entries so pre-dispatch truth does not masquerade as real worker lifecycle.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` to add one `delayedDraftBuildByGraphDocumentId` latest-intent map and to stage `draft_preview` requests with `draftPolicy = release | settle` there instead of calling `buildDispatcher.requestGraphBuild(...)`.
+- Kept delayed placeholder payloads graph-target-local and replacement-safe by storing the compiled request data, build identity inputs, invalidation inputs, and execution intent needed for later release without touching accepted runtime state.
+- Expanded `src/app/store/useAppStore.test.ts` to prove delayed release draft staging does not dispatch worker work, same-graph delayed requests replace older placeholders without forming a queue, and accepted build state remains intact while delayed placeholders wait.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Draft requests resolved to `release` or `settle` no longer dispatch immediately when they target `draft_preview`; they stage one delayed latest-intent placeholder per graph instead.
+- Newer delayed draft requests replace older delayed placeholders for the same graph target instead of stacking.
+- Accepted build bundles and real compile-build in-flight state remain unchanged while a delayed placeholder is waiting.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts src/shared/buildTypes.test.ts src/worker/worker.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1147 -->
+### [1147] - 2026-04-09 12:23 - `WK - Phase Worker-Vision-2 Phase 1 - Draft Policy Contract And Request-Time Ownership`
+<!-- ENTRY 1147 -->
+HUMAN SUMMARY: `Added the first explicit \`draftPolicy\` execution-intent field and request-time resolver seam so draft preview requests can now carry honest \`live / release / settle / suppressed\` policy without collapsing that meaning into geometry target or the older build-trigger timing words.`
+#### Scope / Constraints Honored
+- Kept this slice on the request-time contract and ownership seam only, without introducing delayed placeholder tracking, release/settle dispatch behavior, or runtime-inspector narration changes.
+- Preserved current dispatch behavior by leaving existing immediate request flows intact and using the new policy field as contract truth only in this phase.
+- Kept `geometryTarget`, `updatePolicy`, and draft scheduling reason as separate fields so later phases can widen scheduling without overloading old timing semantics.
+
+#### Summary of Implementation
+- Updated `src/shared/buildTypes.ts` to add the shared `draftPolicy` execution-intent field, set its default to `live`, and harden shared bundle validation around the new explicit policy vocabulary.
+- Updated `src/app/store/useAppStore.ts` so request-time execution-intent resolution now computes draft policy alongside geometry target and broad update timing, with one narrow override seam to let later phases adopt `settle` or `suppressed` intentionally without redesigning the contract again.
+- Updated `src/worker/worker.ts` so worker-side request validation accepts the widened execution-intent shape, and expanded focused tests in `src/app/store/useAppStore.test.ts`, `src/shared/buildTypes.test.ts`, and `src/worker/worker.test.ts` to prove the new contract while keeping current dispatch behavior unchanged.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/worker/worker.ts`
+- `src/worker/worker.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Build execution intent now carries one explicit `draftPolicy` field with `live`, `release`, `settle`, and `suppressed` vocabulary.
+- Request-time intent resolution can now represent draft scheduling reason separately from viewport-driven geometry target and Browser/build-path update timing.
+- Existing request dispatch behavior remains unchanged in this phase; the new field is contract truth for later delayed-scheduling slices.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts src/shared/buildTypes.test.ts src/worker/worker.test.ts`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1146 -->
+### [1146] - 2026-04-09 12:05 - `WK - Phase Worker-Vision-1 Phase 3 - Superseded Runtime Truth And Hardening`
+<!-- ENTRY 1146 -->
+HUMAN SUMMARY: `Made superseded worker exits explicit runtime truth by publishing a dedicated \`build_superseded\` event, archiving that state distinctly in the runtime inspector, and keeping accepted build ownership stable so obsolete same-graph work is now narrated honestly without weakening stale-drop or accepted-result protections.`
+#### Scope / Constraints Honored
+- Kept this slice on superseded runtime truth and cleanup hardening instead of redesigning worker checkpoint placement, draft-versus-authoritative scheduling policy, or Browser content behavior.
+- Preserved accepted result ownership in `src/app/spaghetti/store/useSpaghettiStore.ts` by treating superseded exit as runtime narration only, not as a new accepted result path.
+- Kept superseded reporting distinct from normal success and normal error, using one narrow worker-to-dispatcher message plus existing runtime-inspector queue/archive seams.
+
+#### Summary of Implementation
+- Updated `src/shared/buildTypes.ts`, `src/worker/worker.ts`, and `src/app/buildDispatcher.ts` so superseded builds now publish and validate a dedicated `build_superseded` runtime event, and the dispatcher forwards that event through a new runtime hook without weakening stale same-graph result rejection.
+- Updated `src/app/bootstrapBuildWiring.ts` and `src/app/store/runtimeInspectorTaskStore.ts` so superseded builds clear only their own runtime queue state and archive one distinct `superseded` row instead of disappearing quietly or surfacing as `error`.
+- Updated `src/app/store/runtimeInspectorVm.ts` and `src/app/workspace/PrimaryViewportLeftDock.test.tsx` so the runtime inspector can carry the new archive tone alongside existing `done`, `reused`, and `error` archive states.
+- Expanded `src/worker/worker.test.ts`, `src/app/buildDispatcher.test.ts`, and `src/app/bootstrapBuildWiring.test.ts` with focused proof that same-graph superseded requests now emit explicit runtime truth, deduplicate repeated cleanup, and keep the newer accepted build lifecycle as the active winner.
+
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/worker/worker.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/bootstrapBuildWiring.ts`
+- `src/app/store/runtimeInspectorTaskStore.ts`
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/worker/worker.test.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/bootstrapBuildWiring.test.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Superseded same-graph worker requests now publish one explicit `build_superseded` runtime event instead of disappearing silently after cooperative abort.
+- The runtime inspector archive can now distinguish `superseded` work from `done`, `reused`, and `error` outcomes.
+- Explicit superseded narration does not replace accepted build truth; the newest accepted request still owns accepted runtime state and stale-result protection remains intact.
+
+#### Verification Steps
+- `npx.cmd vitest run src/worker/worker.test.ts src/app/buildDispatcher.test.ts src/app/bootstrapBuildWiring.test.ts src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1145 -->
+### [1145] - 2026-04-09 11:41 - `WK - Phase Worker-Vision-1 Phase 2 - Worker Cooperative Abort Checkpoints`
+<!-- ENTRY 1145 -->
+HUMAN SUMMARY: `Added the first real cooperative supersession path inside the worker by giving each graph target one worker-local latest-request ledger plus checkpointed abort checks in \`buildPipeline(...)\`, so obsolete same-graph requests now stop quietly before normal result publication while the existing dispatcher stale-drop boundary remains the correctness backstop.`
+#### Scope / Constraints Honored
+- Kept this slice on worker-local cooperative supersession only and did not widen into Browser, runtime-inspector, or broader draft-versus-authoritative scheduling policy.
+- Preserved the existing dispatcher stale-drop and app-side accepted-result identity checks as the correctness safety net instead of replacing them with worker-side cancellation claims.
+- Kept superseded exit intentionally quiet by avoiding new shared runtime narration in this phase; obsolete requests stop without publishing normal success or normal failure.
+
+#### Summary of Implementation
+- Updated `src/worker/worker.ts` to maintain one worker-local latest-request ledger per `projectFileId + graphDocumentId`, passing a narrow `isSuperseded(...)` read into the build pipeline for each active request.
+- Updated `src/worker/pipeline/buildPipeline.ts` to add explicit cooperative checkpoints before expensive execution, after `buildModelResult(...)`, at part-loop boundaries, and before final artifact publication, using a dedicated `BuildSupersededError` control-flow path to stop obsolete work cleanly.
+- Expanded `src/worker/pipeline/buildPipeline.test.ts` with focused proof that already-superseded requests stop before entering `buildModelResult(...)` and that mid-loop supersession halts the pipeline before the next part begins.
+- Added `src/worker/worker.test.ts` to prove same-graph newer requests suppress obsolete older results while concurrent builds for different graphs remain isolated.
+
+#### Files Changed
+- `src/worker/worker.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/worker/worker.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Same-graph requests can now supersede older in-flight worker builds before those older requests publish a normal `build_result`.
+- Superseded worker builds now exit through a dedicated quiet path instead of surfacing as normal success or `worker_error`.
+- Cross-graph worker builds remain isolated, so a newer request for one graph target does not cancel work for another graph target.
+
+#### Verification Steps
+- `npx.cmd vitest run src/worker/pipeline/buildPipeline.test.ts src/worker/worker.test.ts`
+- `npx.cmd vitest run src/app/buildDispatcher.test.ts src/app/bootstrapBuildWiring.test.ts`
+
+<!-- ENTRY 1144 -->
+### [1144] - 2026-04-09 11:32 - `WK - Phase Worker-Vision-1 Phase 1 - Supersession Identity And Dispatcher Contract`
+<!-- ENTRY 1144 -->
+HUMAN SUMMARY: `Made request supersession identity explicit in \`BuildDispatcher\` by adding a readable latest-request snapshot contract per graph target, so the worker lane now has a stable first latest-intent seam to build later cooperative-abort work on without changing current execution behavior yet.`
+#### Scope / Constraints Honored
+- Kept this slice on dispatcher-side supersession identity only and did not change worker execution, stale-drop behavior, or accepted-result semantics.
+- Limited the implementation surface to `src/app/buildDispatcher.ts` plus focused dispatcher tests.
+- Left later worker checkpoint adoption and superseded-runtime narration for the next internal phases of `Worker-Vision-1`.
+
+#### Summary of Implementation
+- Updated `src/app/buildDispatcher.ts` so routing ledgers now retain the latest requested build-request id alongside the latest requested and resolved sequence for each graph routing target.
+- Added the explicit public read `getLatestBuildRequestSnapshot(...)` in `src/app/buildDispatcher.ts`, returning a stable per-target snapshot for `projectFileId + graphDocumentId` without altering current dispatch behavior.
+- Expanded `src/app/buildDispatcher.test.ts` with focused proof that the new latest-request snapshot is null before first request, records the newest request for one graph target, and stays isolated across concurrent graph targets.
+
+#### Files Changed
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `BuildDispatcher` now exposes one explicit latest-request snapshot per graph routing target, including the latest requested seq, latest requested build-request id, and latest resolved seq.
+- Existing build dispatch, stale-drop, result acceptance, and worker execution behavior remain unchanged in this phase.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/buildDispatcher.test.ts`
+
+<!-- ENTRY 1143 -->
+### [1143] - 2026-04-09 10:21 - `SP - Phase Extrude Node Depth Clamp For Testing`
+<!-- ENTRY 1143 -->
+HUMAN SUMMARY: `Lowered the graph-native `Geometry/Extrude` node-side depth clamp from 2000 mm to 100 mm for testing, so the node’s one-side and two-side depth editors now stay inside a much smaller authored range without touching the older feature-stack extrude surface.`
+#### Scope / Constraints Honored
+- Kept this as a node-side-only test cleanup and did not touch the older feature-stack extrude editor or add new runtime validation rules.
+- Changed only the graph-native `Geometry/Extrude` authored depth editors in `src/app/spaghetti/canvas/NodeView.tsx`, including `Depth`, `Start Depth`, and `End Depth`.
+- Limited proof updates to the focused geometry-mode test that encoded the old `2000` slider math.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the graph-native extrude depth input range now caps at `100` for one-side, start-depth, and end-depth editing.
+- Updated `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` so the primitive extrude depth row expectations match the smaller authored range and clamped drag result.
+
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The graph-native `Geometry/Extrude` node now limits local authored depth editing to `100 mm` instead of `2000 mm`.
+- Two-sided extrude authoring now applies that same `100 mm` cap to both `Start Depth` and `End Depth`.
+- Existing runtime behavior outside the node-side authored clamp remains unchanged in this test cleanup.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1142 -->
+### [1142] - 2026-04-09 10:14 - `WK - Phase VRI-3.5 - Untouched Truth Hardening And Family Handoff`
+<!-- ENTRY 1142 -->
+HUMAN SUMMARY: `Closed the first `Change Impact` lane by deriving compact untouched meaning from the accepted target-versus-affected runtime snapshot, so the runtime inspector now stays honest about targeted-but-unaffected units and later accepted edits replace that untouched summary truth cleanly without widening into dependency-browser UI.`
+#### Scope / Constraints Honored
+- Kept accepted impact storage unchanged in `src/app/spaghetti/store/useSpaghettiStore.ts` and derived untouched meaning only from the shipped accepted snapshot in `src/app/store/runtimeInspectorVm.ts`.
+- Kept the untouched surface compact and summary-local instead of adding a new untouched row group, dependency-jump affordance, or graph-traversal story.
+- Kept repeated-accept stability proof focused in the existing left-dock regression seam so stale untouched summary copy cannot linger after a newer accepted edit lands.
+
+#### Summary of Implementation
+- Updated `src/app/store/runtimeInspectorVm.ts` to append one compact `Untouched` metric when the accepted impact snapshot has an honest target-versus-affected comparison, including zero-aware behavior when every targeted unit was affected.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` with VM and visible-surface proof covering untouched-count derivation plus replacement behavior across later accepted edits.
+- Marked `VRI-3.5` shipped in the runtime-inspector phase doc and refreshed the family index so `VRI-3` now reads as closed for the first honest accepted-impact subset.
+
+#### Files Changed
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-3 - Change Impact And Dependency Visibility.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanding the runtime inspector can now show an `Untouched` change-impact metric whenever the accepted snapshot explicitly preserves targeted versus affected build-unit truth.
+- The untouched summary remains tied to the latest accepted edit only, so it reports targeted-but-unaffected units rather than inventing a project-wide untouched story.
+- Later accepted edits now have focused regression coverage proving they replace earlier untouched summary truth cleanly, including the zero-untouched case.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+<!-- ENTRY 1141 -->
+### [1141] - 2026-04-09 10:05 - `WK - Phase VRI-3.4 - Impact Row Surface`
+<!-- ENTRY 1141 -->
+HUMAN SUMMARY: `Rendered the first visible grouped Change Impact rows in the runtime inspector so the viewer-target graph now shows rebuilt, reused, and evicted entries directly beneath the compact accepted-edit summary, while keeping grouping ownership in the shipped VM seam and leaving untouched-truth hardening for the next slice.`
+#### Scope / Constraints Honored
+- Kept this slice on visible grouped impact-row rendering only and did not widen accepted impact storage, dependency-jump UI, or untouched derivation.
+- Kept grouped ordering, labels, and row-tone ownership in `src/app/store/runtimeInspectorVm.ts` by reading the shipped `changeImpactGroups` contract directly from presentation.
+- Kept the first visible row surface calmer than the current-task and queue cards through focused styling instead of turning the change-impact section into another active-task list.
+
+#### Summary of Implementation
+- Updated `src/app/components/TitleStatusBar.tsx` so the `Change Impact` section now renders rebuilt, reused, and evicted row groups beneath the existing compact summary card, including shipped primary labels plus optional secondary detail when present.
+- Updated `src/app/theme/foundation/base.css` to add compact grouped impact shells and quieter row styling for rebuilt, reused, and evicted outcomes without overpowering the rest of the runtime inspector.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` with visible-surface proof covering grouped row presence, stable rebuilt-to-reused-to-evicted ordering, summary-first section order, row label/detail copy, and the hidden-before-first-accept fallback.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-3 - Change Impact And Dependency Visibility.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanding the runtime inspector can now show grouped rebuilt, reused, and evicted impact rows beneath the compact `Change Impact` summary whenever the viewer-target graph has accepted impact truth.
+- The visible impact-row surface now follows the shipped grouped VM ordering and labels instead of reconstructing row meaning inside `TitleStatusBar.tsx`.
+- No grouped impact rows appear before the first accepted impact snapshot exists, preserving the same hidden-before-first-accept behavior as the earlier summary-only surface.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1140 -->
+### [1140] - 2026-04-09 09:56 - `WK - Phase VRI-3.3 - Impact Entry VM And Grouping Contract`
+<!-- ENTRY 1140 -->
+HUMAN SUMMARY: `Added the grouped accepted-impact VM contract behind the runtime inspector so the viewer-target graph now has stable rebuilt, reused, and evicted entry groups with authored node labels preferred before compact build-identity fallback, while visible grouped row rendering remains deferred to the next slice.`
+#### Scope / Constraints Honored
+- Kept this slice on grouped impact-entry shaping only and did not render visible grouped rows yet.
+- Read accepted impact truth from the existing viewer-target graph runtime and did not widen `src/app/spaghetti/store/useSpaghettiStore.ts` into a second label or grouping ledger.
+- Kept grouped ordering and label fallback decisions in `src/app/store/runtimeInspectorVm.ts` so presentation work can stay deferred to `VRI-3.4`.
+
+#### Summary of Implementation
+- Updated `src/app/store/runtimeInspectorVm.ts` to expose an optional `changeImpactGroups` block derived only from the viewer-target graph's accepted impact entries, with stable rebuilt, reused, and evicted group ordering.
+- Added compact row-label shaping in `src/app/store/runtimeInspectorVm.ts` that prefers authored viewer-target node labels, then node-def labels, then part-key or output-entry fallback while still preserving accepted build identity on each row.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` with a focused VM probe that proves grouped-contract presence, stable order, authored-label-first fallback behavior, and hidden-before-first-accept behavior without widening the visible inspector surface yet.
+
+#### Files Changed
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-3 - Change Impact And Dependency Visibility.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The runtime inspector VM now exposes grouped accepted-impact entry data for rebuilt, reused, and evicted outcomes in stable order.
+- Grouped impact rows now prefer honest viewer-target node naming before falling back to compact build identity when authored labels are unavailable.
+- Visible runtime-inspector UI remains unchanged in this slice; the grouped contract is now ready for `VRI-3.4` row rendering work.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1139 -->
+### [1139] - 2026-04-09 10:03 - `WK - Phase VRI-3.2 - Compact Change Impact Summary Surface`
+<!-- ENTRY 1139 -->
+HUMAN SUMMARY: `Added the first compact runtime-inspector Change Impact surface so the viewer-target graph can now show one calm accepted-edit summary with changed-param wording plus affected, rebuilt, reused, and evicted counts, while staying grounded only in the shipped accepted impact snapshot and remaining hidden before first accepted truth exists.`
+#### Scope / Constraints Honored
+- Kept accepted impact truth owned by `src/app/spaghetti/store/useSpaghettiStore.ts` and only read it from the viewer-target graph runtime.
+- Kept summary copy and formatting decisions in `src/app/store/runtimeInspectorVm.ts` so `src/app/components/TitleStatusBar.tsx` stayed presentation-led.
+- Kept this slice summary-only and did not widen into grouped impact rows, untouched claims, or dependency-jump UI.
+
+#### Summary of Implementation
+- Updated `src/app/store/runtimeInspectorVm.ts` to derive an optional `changeImpactSummary` block from the viewer-target `acceptedBuildImpact`, including bounded changed-param copy and presentation-ready affected, rebuilt, reused, and evicted metrics.
+- Updated `src/app/components/TitleStatusBar.tsx` to render a quieter `Change Impact` section beneath the shipped archive region whenever accepted impact truth exists.
+- Updated `src/app/theme/foundation/base.css` to add a compact summary card and calm metric tiles that read as context instead of another active-task surface.
+- Expanded `src/app/workspace/PrimaryViewportLeftDock.test.tsx` to prove the section stays hidden before first accepted impact truth and appears with accepted summary counts once the viewer-target runtime owns a snapshot.
+
+#### Files Changed
+- `src/app/store/runtimeInspectorVm.ts`
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Expanding the runtime inspector can now show a compact `Change Impact` summary for the viewer-target graph after an accepted build lands.
+- The summary now distinguishes affected build units, rebuilt results, reused results, and evicted results using the accepted impact snapshot only.
+- No `Change Impact` section appears before the viewer-target graph has accepted impact truth, avoiding a fake zero-filled impact story.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `npx.cmd tsc --noEmit`
+
+<!-- ENTRY 1138 -->
+### [1138] - 2026-04-09 09:26 - `WK - Phase VRI-3.1 - Accepted Impact Read Contract And Store Widening`
+<!-- ENTRY 1138 -->
+HUMAN SUMMARY: `Widened graph runtime state with one durable accepted impact snapshot so the latest accepted edit now preserves changed params, affected and target build units, and finalized rebuilt-versus-retained-versus-evicted outcome truth after settle instead of losing that meaning when pending request state clears.`
+#### Scope / Constraints Honored
+- Kept accepted impact ownership in `src/app/spaghetti/store/useSpaghettiStore.ts` instead of inventing a second inspector-side ledger.
+- Preserved `src/app/buildDispatcher.ts` as the stale-filtering owner and did not add another stale-result gate in runtime-inspector code.
+- Kept this slice on accepted impact truth widening only and did not render visible `Change Impact` UI yet.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/store/useSpaghettiStore.ts` to add one graph-runtime `acceptedBuildImpact` snapshot that stays `null` before first acceptance, then captures accepted build identity, request-time changed/affected/target ids, accepted summary counts, and accepted per-entry outcome rows when `acceptGraphBuildResult(...)` finalizes a build.
+- Kept graph-runtime carry-forward behavior honest by preserving that accepted impact snapshot across graph-structure updates in the existing runtime-state reconstruction helpers instead of recomputing impact truth from later UI state.
+- Expanded `src/app/spaghetti/store/useSpaghettiStore.test.ts` with focused proof covering null-before-first-accept behavior, accepted snapshot persistence after settle, replacement by a later accepted build, and stale-result rejection that leaves the latest accepted impact snapshot untouched.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-3 - Change Impact And Dependency Visibility.md`
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The graph runtime now retains one explicit accepted impact snapshot after an accepted build settles instead of dropping request-time impact truth during pending-state cleanup.
+- Later accepted builds replace the prior accepted impact snapshot for the same graph runtime slot, while stale rejected results leave the latest accepted snapshot unchanged.
+- The accepted impact snapshot is now available for the upcoming compact `Change Impact` summary surface without reconstructing impact meaning from console text or UI guesses.
+
+#### Verification Steps
+- `npx.cmd vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `npx.cmd tsc --noEmit`
+
 <!-- ENTRY 1137 -->
 ### [1137] - 2026-04-09 09:05 - `WK - Phase VRI-2.4 - Queue Lifecycle Hardening And Handoff`
 <!-- ENTRY 1137 -->
@@ -23915,6 +24757,7 @@ HUMAN SUMMARY: `Implemented \`5.0B\` by removing the old \`Parts List\` and \`Bo
   - `31` tests passed
 
 <!-- ENTRY 305 -->
+
 ### [305] - 2026-03-17 15:05 - `VR / SP - Phase 5.1B - Split Pane Authoring And Divider Controls`
 <!-- ENTRY 305 -->
 HUMAN SUMMARY: `Implemented \`5.1B\` on top of the current AppShell/Spaghetti split proof by adding stored split direction and split priority state, floating-titlebar split entry, divider context-menu actions, and horizontal/vertical divider resizing while keeping the larger shared workspace tree for later phases.`

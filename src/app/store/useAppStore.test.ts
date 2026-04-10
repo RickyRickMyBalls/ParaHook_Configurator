@@ -5,7 +5,10 @@ import {
   type BuildResult,
   type PartArtifact,
 } from '../../shared/buildTypes'
-import { createAuthoritativeGeometryResultBundle } from '../../shared/geometryResult'
+import {
+  createAuthoritativeGeometryResultBundle,
+  createDraftGeometryResultBundle,
+} from '../../shared/geometryResult'
 import { buildGraphOutputSurface } from '../spaghetti/outputSurface'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 
@@ -1957,37 +1960,40 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
-  it('requestSpaghettiBuild forwards explicit graph routing identity into the canonical build path', async () => {
+  it('requestSpaghettiBuild stages authoritative waiting state for final-target active graphs', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
     const secondGraphId = useSpaghettiStore
       .getState()
       .createGraphDocument(createPublishedCubeGraph(), 'Graph 2')
     useSpaghettiStore.getState().openGraphDocumentInViewport(secondGraphId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(41)
 
     const compileResult = useAppStore.getState().requestSpaghettiBuild()
 
     expect(compileResult.ok).toBe(true)
-    expect(requestBuildSpy).toHaveBeenCalledWith(
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[secondGraphId]).toEqual(
       expect.objectContaining({
-        routingIdentity: expect.objectContaining({
-          projectFileId: selectCurrentProjectId(useAppStore.getState()),
-          graphDocumentId: secondGraphId,
-          buildRequestId: expect.any(String),
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: secondGraphId,
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+          updatePolicy: 'auto',
         }),
       }),
     )
-    expect(
-      useSpaghettiStore.getState().graphRuntimeByDocumentId[secondGraphId]?.compileBuild.inFlightBuildSeq,
-    ).toBe(41)
   })
 
   it('requestSpaghettiBuild routes the active viewer Draft mode to draft_preview geometry work', async () => {
@@ -2015,6 +2021,8 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(requestBuildSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         executionIntent: expect.objectContaining({
+          draftPolicy: 'live',
+          authoritativePolicy: 'explicit',
           geometryTarget: 'draft_preview',
           updatePolicy: 'auto',
         }),
@@ -2053,9 +2061,13 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const compileResult = useAppStore.getState().requestSpaghettiBuild()
 
     expect(compileResult.ok).toBe(true)
-    expect(requestBuildSpy).toHaveBeenCalledWith(
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[secondGraphId]).toEqual(
       expect.objectContaining({
+        graphDocumentId: secondGraphId,
         executionIntent: expect.objectContaining({
+          draftPolicy: 'live',
+          authoritativePolicy: 'release',
           geometryTarget: 'authoritative',
           updatePolicy: 'auto',
         }),
@@ -2063,7 +2075,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
-  it('keeps background graph builds on the auto authoritative fallback when they are not visible in the active viewer', async () => {
+  it('keeps background graph builds on the auto authoritative waiting fallback when they are not visible in the active viewer', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
@@ -2088,12 +2100,15 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const compileResult = useAppStore.getState().requestGraphDocumentBuild(backgroundGraphId)
 
     expect(compileResult.ok).toBe(true)
-    expect(requestBuildSpy).toHaveBeenCalledWith(
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(
+      useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[backgroundGraphId],
+    ).toEqual(
       expect.objectContaining({
-        routingIdentity: expect.objectContaining({
-          graphDocumentId: backgroundGraphId,
-        }),
+        graphDocumentId: backgroundGraphId,
         executionIntent: expect.objectContaining({
+          draftPolicy: 'live',
+          authoritativePolicy: 'release',
           geometryTarget: 'authoritative',
           updatePolicy: 'auto',
         }),
@@ -2203,10 +2218,15 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           graphDocumentId,
         }),
         executionIntent: expect.objectContaining({
+          draftPolicy: 'live',
+          authoritativePolicy: 'explicit',
           geometryTarget: 'authoritative',
           updatePolicy: 'manual',
         }),
       }),
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
     )
 
     expect(useAppStore.getState().prepareGraphDocumentExport(graphDocumentId)).toEqual({
@@ -2223,9 +2243,12 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
 
     const graphDocumentId = 'graph-document-1'
     const compileResult = useAppStore.getState().compileGraphDocument(graphDocumentId)
@@ -2378,40 +2401,50 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
-  it('auto-builds live graph revisions immediately through the browser runtime policy path', async () => {
+  it('dispatches authoritative live work immediately for live graph revisions in the browser runtime policy path', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(91)
 
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
     useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
 
     expect(requestBuildSpy).toHaveBeenCalledTimes(1)
     expect(requestBuildSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        routingIdentity: expect.objectContaining({
-          graphDocumentId: 'graph-document-1',
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
         }),
       }),
     )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId['graph-document-1']).toBe(
+      undefined,
+    )
   })
 
-  it('queues release graph revisions until the interaction ends', async () => {
+  it('queues release graph revisions until the interaction ends and then dispatches authoritative work once', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(92)
 
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
     useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
     useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
     useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
@@ -2424,8 +2457,320 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     useAppStore.getState().endBrowserBuildInteraction('graph-document-1')
 
     expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: expect.any(String),
+        }),
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+      }),
+    )
     expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds['graph-document-1']).toBe(
       undefined,
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId['graph-document-1']).toBe(
+      undefined,
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .inFlightBuildSeq,
+    ).toBe(92)
+  })
+
+  it('dispatches draft-visible auto work first and then follows with authoritative live work once current draft truth is accepted', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const requestBuildSpy = vi
+      .spyOn(buildDispatcher, 'requestGraphBuild')
+      .mockReturnValueOnce(191)
+      .mockReturnValueOnce(192)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'draft_preview',
+          draftPolicy: 'live',
+        }),
+      }),
+    )
+
+    const firstRequest = requestBuildSpy.mock.calls[0]?.[0]
+    expect(firstRequest?.routingIdentity).toBeDefined()
+    expect(firstRequest?.executionIntent).toBeDefined()
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 191,
+        projectFileId: useAppStore.getState().currentProject.projectFileId,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: firstRequest!.routingIdentity!.buildRequestId,
+        artifacts: [baseplateArtifact],
+        executionIntent: firstRequest!.executionIntent,
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: firstRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(2)
+    expect(requestBuildSpy.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        }),
+      }),
+    )
+  })
+
+  it('stages release-authoritative follow-through after an auto draft build accepts current truth', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+    useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+    const compileResult = useAppStore.getState().compileGraphDocument('graph-document-1')
+
+    expect(compileResult?.ok).toBe(true)
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult,
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: compileResult.buildInputs?.orderedPartKeys ?? [],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'draft-build-request-auto-release',
+      buildSeq: 193,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'draft_preview',
+        draftPolicy: 'release',
+      },
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 193,
+        projectFileId: useAppStore.getState().currentProject.projectFileId,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'draft-build-request-auto-release',
+        artifacts: [baseplateArtifact],
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'draft_preview',
+          draftPolicy: 'release',
+        },
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: 'draft-build-request-auto-release',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+      }),
+    )
+
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId['graph-document-1']).toEqual(
+      expect.objectContaining({
+        graphDocumentId: 'graph-document-1',
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+      }),
+    )
+  })
+
+  it('keeps auto authoritative follow-through alive when preserved final truth is stale against the current revision', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+    useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_seed'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'build-request-auto-authoritative-201',
+      buildSeq: 201,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'release',
+      },
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 201,
+        projectFileId: useAppStore.getState().currentProject.projectFileId,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-auto-authoritative-201',
+        artifacts: [baseplateArtifact],
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        },
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: 'build-request-auto-authoritative-201',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: 'build-request-auto-authoritative-201',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: {
+            vertices: [0, 0, 0, 1, 0, 0, 0, 1, 0],
+            indices: [0, 1, 2],
+          },
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-auto-authoritative-201',
+          },
+        }),
+      }),
+    )
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1']!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+            currentGraphRevision: 2,
+          },
+        },
+      },
+    }))
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_preview'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'draft-build-request-auto-release-202',
+      buildSeq: 202,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'draft_preview',
+        draftPolicy: 'release',
+      },
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 202,
+        projectFileId: useAppStore.getState().currentProject.projectFileId,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'draft-build-request-auto-release-202',
+        artifacts: [baseplateArtifact],
+        executionIntent: {
+          ...DEFAULT_BUILD_EXECUTION_INTENT,
+          geometryTarget: 'draft_preview',
+          draftPolicy: 'release',
+        },
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: 'draft-build-request-auto-release-202',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+      }),
+    )
+
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId['graph-document-1']).toEqual(
+      expect.objectContaining({
+        graphDocumentId: 'graph-document-1',
+        graphRevision: 2,
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+      }),
     )
   })
 
@@ -2463,11 +2808,1025 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(requestBuildSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         executionIntent: expect.objectContaining({
+          draftPolicy: 'live',
           geometryTarget: 'draft_preview',
           updatePolicy: 'manual',
         }),
       }),
     )
+  })
+
+  it('dispatches explicit authoritative requests through the shared trigger seam instead of leaving them waiting', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Explicit Authoritative Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(104)
+
+    const compileResult = useAppStore.getState().requestBrowserGraphDocumentBuild(graphDocumentId, {
+      explicit: true,
+    })
+
+    expect(compileResult?.ok).toBe(true)
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId,
+          buildRequestId: expect.any(String),
+        }),
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'explicit',
+          updatePolicy: 'manual',
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]?.compileBuild
+        .inFlightBuildSeq,
+    ).toBe(104)
+  })
+
+  it('resolves release draft policy separately from geometry target and update timing', async () => {
+    const { resolveGraphBuildExecutionIntent, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Release Draft Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    expect(
+      resolveGraphBuildExecutionIntent(graphDocumentId, {
+        browserExecutionPolicy: 'release',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        geometryTarget: 'draft_preview',
+        updatePolicy: 'defer_until_release',
+        draftPolicy: 'release',
+        authoritativePolicy: 'explicit',
+      }),
+    )
+  })
+
+  it('keeps live and release as explicit authoritative timing lanes while still allowing settle and suppressed draft overrides', async () => {
+    const {
+      resolveGraphBuildExecutionIntent,
+      resolveGraphBuildDraftPolicy,
+      resolveGraphBuildAuthoritativePolicy,
+      useAppStore,
+    } =
+      await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    expect(
+      resolveGraphBuildExecutionIntent('graph-document-1', {
+        geometryTargetOverride: 'draft_preview',
+        draftPolicyOverride: 'settle',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        geometryTarget: 'draft_preview',
+        updatePolicy: 'auto',
+        draftPolicy: 'settle',
+        authoritativePolicy: 'explicit',
+      }),
+    )
+
+    expect(
+      resolveGraphBuildDraftPolicy('graph-document-1', {
+        geometryTargetOverride: 'draft_preview',
+        browserExecutionPolicy: 'off',
+      }),
+    ).toBe('suppressed')
+    expect(
+      resolveGraphBuildAuthoritativePolicy('graph-document-1', {
+        geometryTargetOverride: 'authoritative',
+        browserExecutionPolicy: 'live',
+      }),
+    ).toBe('live')
+    expect(
+      resolveGraphBuildAuthoritativePolicy('graph-document-1', {
+        geometryTargetOverride: 'authoritative',
+      }),
+    ).toBe('release')
+    expect(
+      resolveGraphBuildExecutionIntent('graph-document-1', {
+        geometryTargetOverride: 'authoritative',
+        browserExecutionPolicy: 'release',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        geometryTarget: 'authoritative',
+        updatePolicy: 'defer_until_release',
+        draftPolicy: 'live',
+        authoritativePolicy: 'release',
+      }),
+    )
+    expect(
+      resolveGraphBuildExecutionIntent('graph-document-1', {
+        geometryTargetOverride: 'authoritative',
+        browserExecutionPolicy: 'live',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        geometryTarget: 'authoritative',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'live',
+      }),
+    )
+    expect(
+      resolveGraphBuildExecutionIntent('graph-document-1', {
+        geometryTargetOverride: 'authoritative',
+        explicit: true,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        geometryTarget: 'authoritative',
+        updatePolicy: 'manual',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+      }),
+    )
+  })
+
+  it('dispatches release draft requests immediately once the release edge has already been reached', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Release Draft Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(94)
+    const stageGraphBuildRequestSpy = vi.spyOn(
+      useSpaghettiStore.getState(),
+      'stageGraphBuildRequest',
+    )
+
+    useAppStore.getState().setBrowserGraphBuildPolicy(graphDocumentId, 'release')
+
+    const compileResult = useAppStore.getState().requestBrowserGraphDocumentBuild(graphDocumentId)
+
+    expect(compileResult?.ok).toBe(true)
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(stageGraphBuildRequestSpy).toHaveBeenCalledWith(
+      graphDocumentId,
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          draftPolicy: 'release',
+          geometryTarget: 'draft_preview',
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBeUndefined()
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]?.compileBuild.inFlightBuildSeq,
+    ).toBe(94)
+  })
+
+  it('requests authoritative work when the active viewer switches from draft to final under live timing', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Viewport Final Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(105)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId,
+          buildRequestId: expect.any(String),
+        }),
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+          updatePolicy: 'auto',
+        }),
+      }),
+    )
+  })
+
+  it('keeps browser off as worker suppression even when the active viewer switches to final', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Viewport Off Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+    useAppStore.getState().setBrowserGraphBuildPolicy(graphDocumentId, 'off')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(106)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds[graphDocumentId]).toBe(
+      undefined,
+    )
+  })
+
+  it('replaces delayed placeholders per graph target without stacking a queue', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentIdA = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Graph 1')
+    const graphDocumentIdB = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Graph 2')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentIdA)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(95)
+
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      browserExecutionPolicy: 'release',
+    })
+    const firstPlaceholder = useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentIdA]
+
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      draftPolicyOverride: 'settle',
+      geometryTargetOverride: 'draft_preview',
+    })
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdB, {
+      draftPolicyOverride: 'settle',
+      geometryTargetOverride: 'draft_preview',
+    })
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId).toEqual(
+      expect.objectContaining({
+        [graphDocumentIdA]: expect.objectContaining({
+          executionIntent: expect.objectContaining({
+            draftPolicy: 'settle',
+          }),
+        }),
+        [graphDocumentIdB]: expect.objectContaining({
+          executionIntent: expect.objectContaining({
+            draftPolicy: 'settle',
+          }),
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentIdA]).not.toBe(
+      firstPlaceholder,
+    )
+    expect(Object.keys(useAppStore.getState().delayedDraftBuildByGraphDocumentId)).toHaveLength(2)
+  })
+
+  it('keeps accepted build state intact while delayed draft placeholders wait', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+    const compileResult = useAppStore.getState().compileGraphDocument('graph-document-1')
+    expect(compileResult.ok).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult,
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: compileResult.buildInputs?.orderedPartKeys ?? [],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'accepted-build-1',
+      buildSeq: 7,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 7,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'accepted-build-1',
+        artifacts: [baseplateArtifact],
+      }),
+    )
+
+    const acceptedBundleBefore =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.acceptedBuildBundle
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(96)
+
+    useAppStore.getState().requestGraphDocumentBuild('graph-document-1', {
+      draftPolicyOverride: 'settle',
+      geometryTargetOverride: 'draft_preview',
+    })
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.acceptedBuildBundle,
+    ).toBe(acceptedBundleBefore)
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .inFlightBuildSeq,
+    ).toBeNull()
+  })
+
+  it('stages non-live authoritative requests as waiting placeholders without dispatching worker work', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Authoritative Waiting Graph')
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(101)
+    const stageGraphBuildRequestSpy = vi.spyOn(
+      useSpaghettiStore.getState(),
+      'stageGraphBuildRequest',
+    )
+
+    const compileResult = useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      geometryTargetOverride: 'authoritative',
+      authoritativePolicyOverride: 'release',
+    })
+
+    expect(compileResult.ok).toBe(true)
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(stageGraphBuildRequestSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toEqual(
+      expect.objectContaining({
+        graphDocumentId,
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+      }),
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]?.compileBuild
+        .inFlightBuildSeq,
+    ).toBeNull()
+  })
+
+  it('replaces waiting authoritative placeholders per graph without stacking a queue', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const graphDocumentIdA = useSpaghettiStore.getState().createGraphDocument(
+      createPublishedCubeGraph(),
+      'Authoritative Graph A',
+    )
+    const graphDocumentIdB = useSpaghettiStore.getState().createGraphDocument(
+      createPublishedCubeGraph(),
+      'Authoritative Graph B',
+    )
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(102)
+
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      geometryTargetOverride: 'authoritative',
+      authoritativePolicyOverride: 'release',
+    })
+    const firstPlaceholder =
+      useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentIdA]
+
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      geometryTargetOverride: 'authoritative',
+      authoritativePolicyOverride: 'settle',
+    })
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdB, {
+      geometryTargetOverride: 'authoritative',
+      authoritativePolicyOverride: 'explicit',
+    })
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId).toEqual(
+      expect.objectContaining({
+        [graphDocumentIdA]: expect.objectContaining({
+          executionIntent: expect.objectContaining({
+            authoritativePolicy: 'settle',
+          }),
+        }),
+        [graphDocumentIdB]: expect.objectContaining({
+          executionIntent: expect.objectContaining({
+            authoritativePolicy: 'explicit',
+          }),
+        }),
+      }),
+    )
+    expect(
+      useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentIdA],
+    ).not.toBe(firstPlaceholder)
+    expect(Object.keys(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId)).toHaveLength(
+      2,
+    )
+  })
+
+  it('keeps accepted draft and authoritative geometry intact while authoritative placeholders wait', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Accepted Authoritative Waiting Graph')
+    const compileResult = useAppStore.getState().compileGraphDocument(graphDocumentId)
+    expect(compileResult.ok).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult,
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: compileResult.buildInputs?.orderedPartKeys ?? [],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'accepted-build-authoritative-waiting-1',
+      buildSeq: 9,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 9,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId,
+        buildRequestId: 'accepted-build-authoritative-waiting-1',
+        artifacts: [baseplateArtifact],
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'accepted-build-authoritative-waiting-1',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'accepted-build-authoritative-waiting-1',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-authoritative-waiting-1',
+          },
+        }),
+      }),
+    )
+
+    const runtimeBefore = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    const acceptedDraftGeometryBefore = runtimeBefore?.acceptedDraftGeometryResult ?? null
+    const acceptedAuthoritativeGeometryBefore =
+      runtimeBefore?.acceptedAuthoritativeGeometryResult ?? null
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(103)
+
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      geometryTargetOverride: 'authoritative',
+      authoritativePolicyOverride: 'settle',
+    })
+
+    const runtimeAfter = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(runtimeAfter?.acceptedDraftGeometryResult).toBe(acceptedDraftGeometryBefore)
+    expect(runtimeAfter?.acceptedAuthoritativeGeometryResult).toBe(
+      acceptedAuthoritativeGeometryBefore,
+    )
+    expect(runtimeAfter?.compileBuild.inFlightBuildSeq).toBeNull()
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toEqual(
+      expect.objectContaining({
+        graphDocumentId,
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'settle',
+        }),
+      }),
+    )
+  })
+
+  it('dispatches only the latest release-first authoritative graph revision after repeated churn in one interaction', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(107)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+    useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+    const firstGraphRevision =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .currentGraphRevision ?? null
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+    const secondGraphRevision =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .currentGraphRevision ?? null
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+    const thirdGraphRevision =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .currentGraphRevision ?? null
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(firstGraphRevision).toBe(1)
+    expect(secondGraphRevision).toBe(2)
+    expect(thirdGraphRevision).toBe(3)
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds).toMatchObject({
+      'graph-document-1': true,
+    })
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId['graph-document-1']).toBe(
+      undefined,
+    )
+
+    useAppStore.getState().endBrowserBuildInteraction('graph-document-1')
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: expect.any(String),
+        }),
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+        buildIdentity: expect.objectContaining({
+          graphRevision: 3,
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId['graph-document-1']).toBe(
+      undefined,
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+        .inFlightGraphRevision,
+    ).toBe(3)
+  })
+
+  it('releases waiting authoritative placeholders once when browser interaction ends', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Release Authoritative Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(105)
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      browserExecutionPolicy: 'release',
+    })
+
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toBeTruthy()
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentId)
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId,
+          buildRequestId: expect.any(String),
+        }),
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]?.compileBuild
+        .inFlightBuildSeq,
+    ).toBe(105)
+  })
+
+  it('releasing one graph does not dispatch another graph waiting authoritative placeholder', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentIdA = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Authoritative Graph A')
+    const graphDocumentIdB = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Authoritative Graph B')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentIdA)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(106)
+
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentIdA)
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      browserExecutionPolicy: 'release',
+    })
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdB, {
+      geometryTargetOverride: 'authoritative',
+      authoritativePolicyOverride: 'release',
+    })
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentIdA)
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId: graphDocumentIdA,
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentIdA]).toBe(
+      undefined,
+    )
+    expect(useAppStore.getState().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentIdB]).toEqual(
+      expect.objectContaining({
+        graphDocumentId: graphDocumentIdB,
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'release',
+        }),
+      }),
+    )
+  })
+
+  it('releases a delayed release placeholder once when browser interaction ends', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Release Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(97)
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      browserExecutionPolicy: 'release',
+    })
+
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBeTruthy()
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentId)
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId,
+          buildRequestId: expect.any(String),
+        }),
+        executionIntent: expect.objectContaining({
+          draftPolicy: 'release',
+          geometryTarget: 'draft_preview',
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]?.compileBuild
+        .inFlightBuildSeq,
+    ).toBe(97)
+  })
+
+  it('treats repeated release-end edges as safe no-ops after the delayed placeholder has already dispatched', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Repeated Release Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(100)
+
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      browserExecutionPolicy: 'release',
+    })
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentId)
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentId)
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+  })
+
+  it('releasing one graph does not dispatch other graphs delayed placeholders', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentIdA = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Graph A')
+    const graphDocumentIdB = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Graph B')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentIdA)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(98)
+
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentIdA)
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      browserExecutionPolicy: 'release',
+    })
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdB, {
+      draftPolicyOverride: 'release',
+      geometryTargetOverride: 'draft_preview',
+    })
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentIdA)
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingIdentity: expect.objectContaining({
+          graphDocumentId: graphDocumentIdA,
+        }),
+      }),
+    )
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentIdA]).toBe(
+      undefined,
+    )
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentIdB]).toEqual(
+      expect.objectContaining({
+        graphDocumentId: graphDocumentIdB,
+      }),
+    )
+  })
+
+  it('prefers the queued release-end build over an older delayed placeholder when interaction ends', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Queued Release Graph')
+    useSpaghettiStore.getState().openGraphDocumentInViewport(graphDocumentId)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+    useAppStore.getState().setBrowserGraphBuildPolicy(graphDocumentId, 'release')
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(99)
+
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      browserExecutionPolicy: 'release',
+    })
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBeTruthy()
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds[graphDocumentId]).toBe(true)
+
+    useAppStore.getState().endBrowserBuildInteraction(graphDocumentId)
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]?.compileBuild
+        .inFlightBuildSeq,
+    ).toBe(99)
+  })
+
+  it('preserves accepted draft and authoritative geometry while delayed draft is suppressed after waiting', async () => {
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = 'graph-document-1'
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'draft')
+    const compileResult = useAppStore.getState().compileGraphDocument(graphDocumentId)
+    expect(compileResult.ok).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult,
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: compileResult.buildInputs?.orderedPartKeys ?? [],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'accepted-build-geometry-1',
+      buildSeq: 8,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+    })
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 8,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId,
+        buildRequestId: 'accepted-build-geometry-1',
+        artifacts: [baseplateArtifact],
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'accepted-build-geometry-1',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'accepted-build-geometry-1',
+            partKeys: ['baseplate'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-phase-5',
+          },
+        }),
+      }),
+    )
+
+    const runtimeBefore = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    const acceptedBuildBundleBefore = runtimeBefore?.acceptedBuildBundle ?? null
+    const acceptedDraftGeometryBefore = runtimeBefore?.acceptedDraftGeometryResult ?? null
+    const acceptedAuthoritativeGeometryBefore =
+      runtimeBefore?.acceptedAuthoritativeGeometryResult ?? null
+
+    useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      draftPolicyOverride: 'settle',
+      geometryTargetOverride: 'draft_preview',
+    })
+    useAppStore.getState().setBrowserGraphBuildPolicy(graphDocumentId, 'off')
+    useAppStore.getState().requestBrowserGraphDocumentBuild(graphDocumentId)
+
+    const runtimeAfter = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(runtimeAfter?.acceptedBuildBundle).toBe(acceptedBuildBundleBefore)
+    expect(runtimeAfter?.acceptedDraftGeometryResult).toBe(acceptedDraftGeometryBefore)
+    expect(runtimeAfter?.acceptedAuthoritativeGeometryResult).toBe(
+      acceptedAuthoritativeGeometryBefore,
+    )
+    expect(useAppStore.getState().delayedDraftBuildByGraphDocumentId[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(runtimeAfter?.compileBuild.inFlightBuildSeq).toBeNull()
   })
 
   it('lets an independent child outrun parent off in the browser execution-policy selector', async () => {

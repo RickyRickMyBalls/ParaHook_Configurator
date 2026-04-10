@@ -14,7 +14,7 @@ import {
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
-import { Viewer } from '../../viewer/Viewer'
+import { Viewer, type ViewerViewportRenderLayers } from '../../viewer/Viewer'
 import {
   buildImportedReferenceRowId,
   DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
@@ -50,6 +50,8 @@ import {
   selectViewerTargetGraphAcceptedGeometryResult,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
   selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
+  selectViewerTargetGraphCommittedDraftGeometryResult,
   selectViewerTargetGraphPreviewPreparation,
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
@@ -204,10 +206,16 @@ export function ViewerHost(props: ViewerHostProps) {
   const sharedViewerComposition = useSpaghettiStore(selectSharedViewerComposition)
   const viewerTargetGraphDocumentId = useSpaghettiStore((state) => state.viewerTargetGraphDocumentId)
   const viewerTargetGeometryResult = useSpaghettiStore(selectViewerTargetGraphAcceptedGeometryResult)
+  const viewerTargetCommittedGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
+  )
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const viewerTargetPreviewGeometryResult = useSpaghettiStore(
     selectViewerTargetGraphAcceptedPreviewGeometryResult,
+  )
+  const viewerTargetCommittedPreviewGeometryResult = useSpaghettiStore(
+    selectViewerTargetGraphCommittedDraftGeometryResult,
   )
   const globalView = useUiPrefsStore((state) => state.view)
   const viewportLocalViewState = useWorkspaceStore(
@@ -337,6 +345,8 @@ export function ViewerHost(props: ViewerHostProps) {
         modeBehavior: viewportResultModeBehavior,
         acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
         acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
+        committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
+        committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
         acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
         previewPreparation: viewerTargetPreviewPreparation,
         viewerTargetGraphDocumentId,
@@ -364,6 +374,8 @@ export function ViewerHost(props: ViewerHostProps) {
       projectContent,
       sharedViewerComposition,
       viewerTargetBuildOutputs,
+      viewerTargetCommittedGeometryResult,
+      viewerTargetCommittedPreviewGeometryResult,
       viewerTargetGeometryResult,
       viewerTargetGraphDocumentId,
       viewerTargetPreviewGeometryResult,
@@ -374,6 +386,49 @@ export function ViewerHost(props: ViewerHostProps) {
   )
 
   const renderList: PreviewRenderVm = viewportResultState.renderVm
+  const viewportRenderLayers = useMemo<ViewerViewportRenderLayers>(() => {
+    if (viewportResultState.retainedBaseState === 'retained') {
+      if (
+        viewportResultMode === 'auto' &&
+        viewportResultState.retainedBaseResultClass === 'final' &&
+        viewportResultState.overlayResultClass === 'draft'
+      ) {
+        return {
+          baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          overlayParts: viewportResultState.overlayRenderVm.viewerParts,
+          overlayOpacity: 0.5,
+        }
+      }
+
+      if (viewportResultMode === 'draft' && viewportResultState.retainedBaseResultClass === 'draft') {
+        return {
+          baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          overlayParts:
+            viewportResultState.overlayResultClass === 'draft'
+              ? viewportResultState.overlayRenderVm.viewerParts
+              : [],
+          overlayOpacity: 0.5,
+        }
+      }
+
+      if (viewportResultMode === 'final' && viewportResultState.retainedBaseResultClass === 'final') {
+        return {
+          baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          overlayParts:
+            viewportResultState.overlayResultClass === 'final'
+              ? viewportResultState.overlayRenderVm.viewerParts
+              : [],
+          overlayOpacity: 0.5,
+        }
+      }
+    }
+
+    return {
+      baseParts: renderList.viewerParts,
+      overlayParts: [],
+      overlayOpacity: 0.5,
+    }
+  }, [renderList.viewerParts, viewportResultMode, viewportResultState])
 
   const projectContentRows = useMemo(
     () =>
@@ -897,10 +952,10 @@ export function ViewerHost(props: ViewerHostProps) {
       return
     }
 
-    viewer.setParts(renderList.viewerParts, partsVisibility, selectedPartKey)
+    viewer.setViewportRenderLayers(viewportRenderLayers, partsVisibility, selectedPartKey)
   }, [
     partsVisibility,
-    renderList,
+    viewportRenderLayers,
     selectedPartKey,
   ])
 

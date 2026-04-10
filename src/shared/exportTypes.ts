@@ -37,8 +37,8 @@ export type ExportPreparationResult =
       status: 'pending'
       graphDocumentId: string
       pendingReason: ExportPreparationPendingReason
-      buildRequestId: string
-      buildSeq: number
+      buildRequestId?: string
+      buildSeq?: number
     }
   | {
       status: 'blocked'

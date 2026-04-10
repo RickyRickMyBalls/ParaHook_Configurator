@@ -4,6 +4,9 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+234. 2026-04-09 12:10: Moved `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md` into `Shipped/` after the full ladder landed, added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-2 - Draft Preview Scheduling And Settle Rules.md` as the next dedicated future execution surface under `Worker-Vision.md`, and refreshed the Worker subtree listing so the family docs map now matches the shipped `Vision-1` plus future `Vision-2` handoff
+233. 2026-04-09 11:25: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md` to the docs map as the first dedicated future execution surface under `Worker-Vision.md`, then refreshed the Worker subtree listing so the new runtime-supersession lane is discoverable beside the Worker family umbrella docs
+232. 2026-04-09 11:10: Added `docs/Human-Plans/Architecture/Worker/Worker-Vision.md` to the docs map as the new forward-looking worker runtime-direction companion beside `Worker.md`, then refreshed the Worker subtree listing so the family now exposes both the shipped worker umbrella seam and the newer scheduling-plus-runtime vision surface
 231. 2026-04-07 05:02: Refreshed `docs/Doc-Index.md` after the workspace-family doc move into `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/`, repointing the main architecture inventory plus the `Workspace-Modes`, `Dashboard`, `Browser`, `Console`, `Export`, `Layers`, `Build-Path`, and `Spaghetti-Editor-Arch` subtree listings at their new canonical workspace-family homes
 230. 2026-04-07 04:34: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff.md` as the dedicated child-doc home for the next authoritative-geometry follow-on after `Model-Viewport-1.2`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` plus `.../Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md` so the family and umbrella phase now point at that new `1.3` doc explicitly, and kept the published docs map aligned with the now-complete `1.1 / 1.2 / 1.3` child-doc set
 229. 2026-04-06 16:41: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-1.2 - Draft Preview Execution And Viewport Swap Rules.md` as the dedicated child-doc home for the viewport-behavior follow-on after `Model-Viewport-1.1`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` plus `.../Future/Model-Viewport_Phase Model-Viewport-1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path.md` so the family and umbrella phase now point at that new `1.2` doc explicitly, and recorded the matching docs maintenance in `docs/Doc-Log.md`
@@ -776,6 +779,9 @@ Rule notes:
             - `Shipped/Transform_Phase Transform-15.3 - Generated Object Viewer Transform History, Render Lines, And Snap Parity.md`
 #### -------Worker
             - `Worker.md`
+            - `Worker-Vision.md`
+        ##### ------------Future
+            - `Future/Worker_Phase Worker-Vision-2 - Draft Preview Scheduling And Settle Rules.md`
         ##### ------------Shipped
             - `Shipped/Worker_Phase 5.3A-1 - Worker Audit And Legacy Startup Inventory.md`
             - `Shipped/Worker_Phase 5.3A-2 - Graph-Native Worker Contract And Separate-Build Identity.md`
@@ -784,6 +790,7 @@ Rule notes:
             - `Shipped/Worker_Phase 5.3A-5 - Legacy Runtime And Startup Fallback Removal.md`
             - `Shipped/Worker_Phase 5.3A-6 - Result Semantics, Browser Truth, And Console Truth.md`
             - `Shipped/Worker_Phase 5.3A-7 - Graph-Native Worker Cutover And Legacy Contract Deletion.md`
+            - `Shipped/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md`
 ### ----Bugs
         - `0_Bug_Report.md`
         - `1_BrowserPanel-Startup-Crash.md`

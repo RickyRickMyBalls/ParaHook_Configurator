@@ -3,7 +3,11 @@ import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { appendConsoleEntry } from './console/useConsoleStore'
 import { useBuildStatsStore } from './store/buildStatsStore'
 import { useRuntimeInspectorTaskStore } from './store/runtimeInspectorTaskStore'
-import { useAppStore } from './store/useAppStore'
+import {
+  subscribeDraftSchedulingRuntimeEvents,
+  useAppStore,
+  type DraftSchedulingRuntimeEvent,
+} from './store/useAppStore'
 import type { BuildProgressState } from '../shared/buildTypes'
 
 let wired = false
@@ -40,6 +44,66 @@ const toInspectorTaskState = (
       return 'reused'
     case 'error':
       return 'error'
+  }
+}
+
+const toDraftSchedulingLabel = (graphDocumentId: string): string => `Draft ${graphDocumentId}`
+
+const toDraftSchedulingTask = (
+  event: DraftSchedulingRuntimeEvent,
+): {
+  seq: number
+  graphDocumentId: string
+  buildRequestId: null
+  partKey: null
+  label: string
+  status: string
+  progress01: null
+  detail: string | null
+  state: 'delayed' | 'replaced' | 'suppressed'
+} | null => {
+  switch (event.type) {
+    case 'draft_delayed':
+      return {
+        seq: event.eventSeq,
+        graphDocumentId: event.graphDocumentId,
+        buildRequestId: null,
+        partKey: null,
+        label: toDraftSchedulingLabel(event.graphDocumentId),
+        status: event.draftPolicy === 'settle' ? 'Waiting to settle' : 'Waiting for release',
+        progress01: null,
+        detail:
+          event.draftPolicy === 'settle'
+            ? 'Draft preview is delayed until a settle trigger exists.'
+            : 'Draft preview is delayed until interaction release.',
+        state: 'delayed',
+      }
+    case 'draft_replaced':
+      return {
+        seq: event.eventSeq,
+        graphDocumentId: event.graphDocumentId,
+        buildRequestId: null,
+        partKey: null,
+        label: toDraftSchedulingLabel(event.graphDocumentId),
+        status: 'Replaced',
+        progress01: null,
+        detail: 'A newer draft intent replaced this delayed request before it ran.',
+        state: 'replaced',
+      }
+    case 'draft_suppressed':
+      return {
+        seq: event.eventSeq,
+        graphDocumentId: event.graphDocumentId,
+        buildRequestId: null,
+        partKey: null,
+        label: toDraftSchedulingLabel(event.graphDocumentId),
+        status: 'Suppressed',
+        progress01: null,
+        detail: 'Draft preview was intentionally suppressed by policy.',
+        state: 'suppressed',
+      }
+    case 'draft_released':
+      return null
   }
 }
 
@@ -114,6 +178,25 @@ export const bootstrapBuildWiring = (): void => {
         severity: progress.state === 'error' ? 'error' : 'info',
       })
     },
+    onBuildSuperseded: (superseded) => {
+      useSpaghettiStore.getState().clearGraphBuildRequest({
+        projectFileId: superseded.projectFileId,
+        graphDocumentId: superseded.graphDocumentId,
+        buildRequestId: superseded.buildRequestId,
+        buildSeq: superseded.seq,
+      })
+      useRuntimeInspectorTaskStore.getState().supersedeBuild({
+        seq: superseded.seq,
+        graphDocumentId: superseded.graphDocumentId,
+        buildRequestId: superseded.buildRequestId,
+        partKey: null,
+        label: toTaskLabel(superseded.graphDocumentId, null),
+        status: 'Superseded',
+        progress01: null,
+        detail: null,
+        state: 'superseded',
+      })
+    },
     onBuildResultSettled: (result) => {
       useBuildStatsStore.getState().setOverallState('idle')
       useRuntimeInspectorTaskStore.getState().settleBuild({
@@ -158,6 +241,30 @@ export const bootstrapBuildWiring = (): void => {
         severity: 'error',
       })
     },
+  })
+
+  subscribeDraftSchedulingRuntimeEvents((event) => {
+    if (event.type === 'draft_released') {
+      useRuntimeInspectorTaskStore.getState().releaseDelayedDraft({
+        graphDocumentId: event.graphDocumentId,
+      })
+      return
+    }
+
+    const task = toDraftSchedulingTask(event)
+    if (task === null) {
+      return
+    }
+
+    if (event.type === 'draft_delayed') {
+      useRuntimeInspectorTaskStore.getState().delayDraft(task)
+      return
+    }
+    if (event.type === 'draft_replaced') {
+      useRuntimeInspectorTaskStore.getState().replaceDelayedDraft(task)
+      return
+    }
+    useRuntimeInspectorTaskStore.getState().suppressDraft(task)
   })
 
   useAppStore.getState().requestSpaghettiBuild()

@@ -3029,7 +3029,7 @@ function NodeViewComponent({
       editorEnabled: showEditors,
       inputRange: {
         min: 0.1,
-        max: 2000,
+        max: 100,
         step: 0.1,
       },
       onChange: (value) => {
@@ -3048,7 +3048,7 @@ function NodeViewComponent({
       editorEnabled: showEditors,
       inputRange: {
         min: 0.1,
-        max: 2000,
+        max: 100,
         step: 0.1,
       },
       onChange: (value) => {
@@ -3067,7 +3067,7 @@ function NodeViewComponent({
       editorEnabled: showEditors,
       inputRange: {
         min: 0.1,
-        max: 2000,
+        max: 100,
         step: 0.1,
       },
       onChange: (value) => {

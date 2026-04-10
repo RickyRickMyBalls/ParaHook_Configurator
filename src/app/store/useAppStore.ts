@@ -22,8 +22,11 @@ import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
 import {
   DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildIdentity,
+  type BuildInvalidation,
   type BuildExecutionIntent,
   type BuildResult,
+  type CompiledBuildData,
   type GeometryExecutionTarget,
   type ViewerRenderablePart,
 } from '../../shared/buildTypes'
@@ -57,9 +60,12 @@ import {
 } from '../references/referenceTimeline'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
+  selectViewportResultModeById,
   selectViewportResultModeBehaviorById,
   useWorkspaceStore,
+  type WorkspaceStoreState,
 } from '../workspace/useWorkspaceStore'
+import type { WorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
 
 type PartsVisibility = Record<string, boolean>
 type BuildPolicy = 'live' | 'release' | 'manual'
@@ -68,10 +74,51 @@ export type BrowserBuildExecutionTarget = {
   kind: 'graph-document'
   graphDocumentId: string
 }
-type GraphDocumentBuildRequestOptions = {
+export type GraphDocumentBuildRequestOptions = {
   browserExecutionPolicy?: BrowserBuildPolicy
   explicit?: boolean
+  delayedDraftDispatchTrigger?: BuildExecutionIntent['draftPolicy']
+  delayedAuthoritativeDispatchTrigger?: BuildExecutionIntent['authoritativePolicy']
+  draftPolicyOverride?: BuildExecutionIntent['draftPolicy']
+  authoritativePolicyOverride?: BuildExecutionIntent['authoritativePolicy']
   geometryTargetOverride?: GeometryExecutionTarget
+}
+export type DelayedDraftBuildPlaceholder = {
+  projectFileId: string
+  graphDocumentId: string
+  graphRevision: number
+  compileResult: CompileSpaghettiGraphResult
+  previousBuildInputs: CompileSpaghettiGraphResult['buildInputs'] | null
+  executionIntent: BuildExecutionIntent
+  compiledBuildData: CompiledBuildData
+  buildIdentity: BuildIdentity
+  invalidation: BuildInvalidation
+  changedParamIds: string[]
+  buildStatsPartKeys: string[]
+}
+export type DelayedAuthoritativeBuildPlaceholder = {
+  projectFileId: string
+  graphDocumentId: string
+  graphRevision: number
+  compileResult: CompileSpaghettiGraphResult
+  previousBuildInputs: CompileSpaghettiGraphResult['buildInputs'] | null
+  executionIntent: BuildExecutionIntent
+  compiledBuildData: CompiledBuildData
+  buildIdentity: BuildIdentity
+  invalidation: BuildInvalidation
+  changedParamIds: string[]
+  buildStatsPartKeys: string[]
+}
+export type DraftSchedulingRuntimeEventType =
+  | 'draft_delayed'
+  | 'draft_released'
+  | 'draft_replaced'
+  | 'draft_suppressed'
+export type DraftSchedulingRuntimeEvent = {
+  eventSeq: number
+  type: DraftSchedulingRuntimeEventType
+  graphDocumentId: string
+  draftPolicy: BuildExecutionIntent['draftPolicy']
 }
 type ProjectFileVersion = 1
 export type ProjectContentBuildState = 'rebuild' | 'building' | 'done'
@@ -773,6 +820,28 @@ export type ReferenceTransformShellExitRequest = {
   seq: number
 }
 
+const draftSchedulingRuntimeListeners = new Set<(event: DraftSchedulingRuntimeEvent) => void>()
+let nextDraftSchedulingRuntimeEventSeq = 1
+
+const publishDraftSchedulingRuntimeEvent = (
+  event: Omit<DraftSchedulingRuntimeEvent, 'eventSeq'>,
+): void => {
+  const nextEvent = {
+    ...event,
+    eventSeq: nextDraftSchedulingRuntimeEventSeq++,
+  } satisfies DraftSchedulingRuntimeEvent
+  draftSchedulingRuntimeListeners.forEach((listener) => listener(nextEvent))
+}
+
+export const subscribeDraftSchedulingRuntimeEvents = (
+  listener: (event: DraftSchedulingRuntimeEvent) => void,
+): (() => void) => {
+  draftSchedulingRuntimeListeners.add(listener)
+  return () => {
+    draftSchedulingRuntimeListeners.delete(listener)
+  }
+}
+
 export type AppState = {
   lastBuildSeq: number
   geomDirty: Record<string, number>
@@ -784,6 +853,8 @@ export type AppState = {
   browserContentBuildPolicyByRowId: Record<string, BrowserBuildPolicy>
   browserInteractionGraphDocumentIds: Record<string, true>
   pendingBrowserBuildGraphDocumentIds: Record<string, true>
+  delayedDraftBuildByGraphDocumentId: Record<string, DelayedDraftBuildPlaceholder>
+  delayedAuthoritativeBuildByGraphDocumentId: Record<string, DelayedAuthoritativeBuildPlaceholder>
   isInteracting: boolean
   pendingBuildAfterRelease: boolean
   currentProject: ProjectFile
@@ -823,9 +894,7 @@ export type AppState = {
   endBrowserBuildInteraction: (graphDocumentId: string) => void
   requestBrowserGraphDocumentBuild: (
     graphDocumentId: string,
-    options?: {
-      explicit?: boolean
-    },
+    options?: GraphDocumentBuildRequestOptions,
   ) => CompileSpaghettiGraphResult | null
   beginInteraction: () => void
   endInteraction: () => void
@@ -3901,6 +3970,114 @@ const isGraphVisibleInActiveViewer = (
   state.viewerTargetGraphDocumentId === graphDocumentId ||
   state.sharedViewerComposition?.graphDocumentIds.includes(graphDocumentId) === true
 
+const selectActiveViewerModeBehavior = (): WorkspaceViewportResultModeBehavior => {
+  const workspaceState = useWorkspaceStore.getState()
+  return selectViewportResultModeBehaviorById(
+    workspaceState,
+    workspaceState.activeViewerViewportId,
+  )
+}
+
+const isGraphVisibleInActiveAutoViewer = (graphDocumentId: string): boolean =>
+  isGraphVisibleInActiveViewer(useSpaghettiStore.getState(), graphDocumentId) &&
+  selectActiveViewerModeBehavior().mode === 'auto'
+
+const doesRuntimeHaveCurrentAcceptedResult = (
+  runtime: GraphRuntimeState | null | undefined,
+): boolean => {
+  if (runtime === undefined || runtime === null) {
+    return false
+  }
+
+  const currentGraphRevision = runtime.compileBuild.currentGraphRevision
+  const latestAcceptedGraphRevision = runtime.compileBuild.latestAcceptedGraphRevision
+  if (
+    currentGraphRevision === null ||
+    latestAcceptedGraphRevision === null ||
+    latestAcceptedGraphRevision !== currentGraphRevision
+  ) {
+    return false
+  }
+
+  return (
+    runtime.acceptedAuthoritativeGeometryResult !== null ||
+    runtime.acceptedDraftGeometryResult !== null ||
+    runtime.acceptedPreviewBuildOutputs.length > 0
+  )
+}
+
+const requestAutoViewportDraftBuildIfAllowed = (graphDocumentId: string): void => {
+  const appState = useAppStore.getState()
+  const policy = selectEffectiveBrowserExecutionPolicy(appState, {
+    kind: 'graph-document',
+    graphDocumentId,
+  })
+  if (policy === 'manual' || policy === 'off') {
+    return
+  }
+
+  appState.requestGraphDocumentBuild(graphDocumentId, {
+    browserExecutionPolicy: policy,
+    geometryTargetOverride: 'draft_preview',
+  })
+}
+
+const maybeRequestAutoViewportAuthoritativeFollowThrough = (graphDocumentId: string): void => {
+  if (!isGraphVisibleInActiveAutoViewer(graphDocumentId)) {
+    return
+  }
+
+  const appState = useAppStore.getState()
+  const policy = selectEffectiveBrowserExecutionPolicy(appState, {
+    kind: 'graph-document',
+    graphDocumentId,
+  })
+  if (policy === 'manual' || policy === 'off') {
+    return
+  }
+
+  if (appState.delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId] !== undefined) {
+    return
+  }
+
+  const runtime = selectGraphRuntimeByDocumentId(useSpaghettiStore.getState(), graphDocumentId)
+  if (runtime === null) {
+    return
+  }
+
+  const currentGraphRevision = runtime.compileBuild.currentGraphRevision
+  const latestAcceptedGraphRevision = runtime.compileBuild.latestAcceptedGraphRevision
+  if (
+    currentGraphRevision === null ||
+    latestAcceptedGraphRevision === null ||
+    latestAcceptedGraphRevision !== currentGraphRevision
+  ) {
+    return
+  }
+
+  if (runtime.compileBuild.inFlightBuildRequestId !== null) {
+    return
+  }
+
+  if (
+    runtime.acceptedDraftGeometryResult === null &&
+    runtime.acceptedPreviewBuildOutputs.length === 0
+  ) {
+    return
+  }
+
+  if (
+    runtime.acceptedAuthoritativeGeometryResult !== null &&
+    runtime.acceptedAuthoritativeGraphRevision === currentGraphRevision
+  ) {
+    return
+  }
+
+  appState.requestBrowserGraphDocumentBuild(graphDocumentId, {
+    geometryTargetOverride: 'authoritative',
+  })
+}
+
 const resolveGraphBuildGeometryTarget = (graphDocumentId: string): GeometryExecutionTarget => {
   const spaghettiState = useSpaghettiStore.getState()
   if (!isGraphVisibleInActiveViewer(spaghettiState, graphDocumentId)) {
@@ -3912,7 +4089,7 @@ const resolveGraphBuildGeometryTarget = (graphDocumentId: string): GeometryExecu
     workspaceState,
     workspaceState.activeViewerViewportId,
   )
-  return modeBehavior.mode === 'draft' ? 'draft_preview' : 'authoritative'
+  return modeBehavior.mode === 'final' ? 'authoritative' : 'draft_preview'
 }
 
 const resolveGraphBuildUpdatePolicy = (
@@ -3927,17 +4104,97 @@ const resolveGraphBuildUpdatePolicy = (
   return DEFAULT_BUILD_EXECUTION_INTENT.updatePolicy
 }
 
+export const resolveGraphBuildDraftPolicy = (
+  graphDocumentId: string,
+  options?: GraphDocumentBuildRequestOptions,
+): BuildExecutionIntent['draftPolicy'] => {
+  if (options?.draftPolicyOverride !== undefined) {
+    return options.draftPolicyOverride
+  }
+
+  const geometryTarget =
+    options?.geometryTargetOverride ?? resolveGraphBuildGeometryTarget(graphDocumentId)
+  if (geometryTarget !== 'draft_preview') {
+    return DEFAULT_BUILD_EXECUTION_INTENT.draftPolicy
+  }
+
+  if (options?.browserExecutionPolicy === 'off') {
+    return 'suppressed'
+  }
+  if (options?.browserExecutionPolicy === 'release') {
+    return 'release'
+  }
+
+  return DEFAULT_BUILD_EXECUTION_INTENT.draftPolicy
+}
+
+export const resolveGraphBuildAuthoritativePolicy = (
+  graphDocumentId: string,
+  options?: GraphDocumentBuildRequestOptions,
+): BuildExecutionIntent['authoritativePolicy'] => {
+  if (options?.authoritativePolicyOverride !== undefined) {
+    return options.authoritativePolicyOverride
+  }
+
+  const geometryTarget =
+    options?.geometryTargetOverride ?? resolveGraphBuildGeometryTarget(graphDocumentId)
+  if (geometryTarget !== 'authoritative') {
+    return DEFAULT_BUILD_EXECUTION_INTENT.authoritativePolicy
+  }
+
+  if (options?.explicit === true || options?.browserExecutionPolicy === 'manual') {
+    return 'explicit'
+  }
+  if (options?.browserExecutionPolicy === 'live') {
+    return 'live'
+  }
+  return 'release'
+}
+
 export const resolveGraphBuildExecutionIntent = (
   graphDocumentId: string,
   options?: GraphDocumentBuildRequestOptions,
 ): BuildExecutionIntent => ({
   ...DEFAULT_BUILD_EXECUTION_INTENT,
   updatePolicy: resolveGraphBuildUpdatePolicy(options),
+  draftPolicy: resolveGraphBuildDraftPolicy(graphDocumentId, options),
+  authoritativePolicy: resolveGraphBuildAuthoritativePolicy(graphDocumentId, options),
   geometryTarget: options?.geometryTargetOverride ?? resolveGraphBuildGeometryTarget(graphDocumentId),
 })
 
 const getCompileErrorMessage = (compileResult: CompileSpaghettiGraphResult): string =>
   compileResult.diagnostics.errors[0]?.message ?? 'The graph does not currently compile.'
+
+const dispatchDelayedGraphBuildPlaceholder = (
+  graphDocumentId: string,
+  placeholder: DelayedDraftBuildPlaceholder | DelayedAuthoritativeBuildPlaceholder,
+): void => {
+  const buildRequestId = newId('build-request')
+  const buildSeq = buildDispatcher.requestGraphBuild({
+    routingIdentity: {
+      projectFileId: placeholder.projectFileId,
+      graphDocumentId,
+      buildRequestId,
+    },
+    executionIntent: placeholder.executionIntent,
+    compiledBuildData: placeholder.compiledBuildData,
+    buildIdentity: placeholder.buildIdentity,
+    invalidation: placeholder.invalidation,
+    changedParamIds: placeholder.changedParamIds,
+    buildStatsPartKeys: placeholder.buildStatsPartKeys,
+  })
+  useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+    compileResult: placeholder.compileResult,
+    previousBuildInputs: placeholder.previousBuildInputs,
+    pendingChangedParamIds: placeholder.changedParamIds,
+    pendingStatsPartKeys: placeholder.buildStatsPartKeys,
+    pendingTargetBuildUnitIds: placeholder.buildIdentity.targetBuildUnitIds,
+    pendingAffectedBuildUnitIds: placeholder.invalidation.affectedBuildUnitIds,
+    buildRequestId,
+    buildSeq,
+    executionIntent: placeholder.executionIntent,
+  })
+}
 
 const isCurrentRevisionAuthoritativeUnavailable = (
   runtime: GraphRuntimeState | null | undefined,
@@ -3961,6 +4218,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   browserContentBuildPolicyByRowId: {},
   browserInteractionGraphDocumentIds: {},
   pendingBrowserBuildGraphDocumentIds: {},
+  delayedDraftBuildByGraphDocumentId: {},
+  delayedAuthoritativeBuildByGraphDocumentId: {},
   isInteracting: false,
   pendingBuildAfterRelease: false,
   currentProject: createInitialProjectFile(),
@@ -3996,6 +4255,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   requestGraphDocumentBuild: (graphDocumentId, options) => {
     const state = get()
     const spaghettiState = useSpaghettiStore.getState()
+    const existingDelayedPlaceholder =
+      state.delayedDraftBuildByGraphDocumentId[graphDocumentId] ?? null
     const compileResult = get().compileGraphDocument(graphDocumentId)
     if (!compileResult.ok || compileResult.buildInputs === undefined) {
       return compileResult
@@ -4016,8 +4277,114 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (requestBuild.targetBuildUnitIds.length === 0) {
       return compileResult
     }
-    const buildRequestId = newId('build-request')
     const executionIntent = resolveGraphBuildExecutionIntent(graphDocumentId, options)
+    if (
+      executionIntent.geometryTarget === 'authoritative' &&
+      executionIntent.authoritativePolicy !== 'live' &&
+      options?.delayedAuthoritativeDispatchTrigger !== executionIntent.authoritativePolicy
+    ) {
+      set((current) => ({
+        delayedAuthoritativeBuildByGraphDocumentId: {
+          ...current.delayedAuthoritativeBuildByGraphDocumentId,
+          [graphDocumentId]: {
+            projectFileId: state.currentProject.projectFileId,
+            graphDocumentId,
+            graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
+            compileResult,
+            previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
+            executionIntent: { ...executionIntent },
+            compiledBuildData: requestBuild.compiledBuildData,
+            buildIdentity: {
+              graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
+              targetBuildUnitIds: [...requestBuild.targetBuildUnitIds],
+            },
+            invalidation: {
+              affectedBuildUnitIds: [...requestBuild.affectedBuildUnitIds],
+            },
+            changedParamIds: [...requestBuild.changedParamIds],
+            buildStatsPartKeys: [...requestBuild.buildStatsPartKeys],
+          },
+        },
+      }))
+      appendConsoleEntry({
+        layer: 'App',
+        text: `Delayed authoritative build staged for ${graphDocumentId}`,
+        source: graphDocumentId,
+        severity: 'info',
+      })
+      return compileResult
+    }
+    if (
+      executionIntent.geometryTarget === 'draft_preview' &&
+      (executionIntent.draftPolicy === 'release' || executionIntent.draftPolicy === 'settle') &&
+      options?.delayedDraftDispatchTrigger !== executionIntent.draftPolicy
+    ) {
+      if (existingDelayedPlaceholder !== null) {
+        publishDraftSchedulingRuntimeEvent({
+          type: 'draft_replaced',
+          graphDocumentId,
+          draftPolicy: existingDelayedPlaceholder.executionIntent.draftPolicy,
+        })
+      }
+      set((current) => ({
+        delayedDraftBuildByGraphDocumentId: {
+          ...current.delayedDraftBuildByGraphDocumentId,
+          [graphDocumentId]: {
+            projectFileId: state.currentProject.projectFileId,
+            graphDocumentId,
+            graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
+            compileResult,
+            previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
+            executionIntent: { ...executionIntent },
+            compiledBuildData: requestBuild.compiledBuildData,
+            buildIdentity: {
+              graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
+              targetBuildUnitIds: [...requestBuild.targetBuildUnitIds],
+            },
+            invalidation: {
+              affectedBuildUnitIds: [...requestBuild.affectedBuildUnitIds],
+            },
+            changedParamIds: [...requestBuild.changedParamIds],
+            buildStatsPartKeys: [...requestBuild.buildStatsPartKeys],
+          },
+        },
+      }))
+      appendConsoleEntry({
+        layer: 'App',
+        text: `Delayed draft build staged for ${graphDocumentId}`,
+        source: graphDocumentId,
+        severity: 'info',
+      })
+      publishDraftSchedulingRuntimeEvent({
+        type: 'draft_delayed',
+        graphDocumentId,
+        draftPolicy: executionIntent.draftPolicy,
+      })
+      return compileResult
+    }
+
+    set((current) => ({
+      delayedDraftBuildByGraphDocumentId: deleteRecordKey(
+        current.delayedDraftBuildByGraphDocumentId,
+        graphDocumentId,
+      ),
+      delayedAuthoritativeBuildByGraphDocumentId:
+        executionIntent.geometryTarget === 'authoritative'
+          ? deleteRecordKey(current.delayedAuthoritativeBuildByGraphDocumentId, graphDocumentId)
+          : current.delayedAuthoritativeBuildByGraphDocumentId,
+    }))
+    const releaseTriggeredPlaceholderDispatch =
+      existingDelayedPlaceholder !== null &&
+      options?.delayedDraftDispatchTrigger === existingDelayedPlaceholder.executionIntent.draftPolicy &&
+      executionIntent.draftPolicy === existingDelayedPlaceholder.executionIntent.draftPolicy
+    if (existingDelayedPlaceholder !== null && !releaseTriggeredPlaceholderDispatch) {
+      publishDraftSchedulingRuntimeEvent({
+        type: 'draft_replaced',
+        graphDocumentId,
+        draftPolicy: existingDelayedPlaceholder.executionIntent.draftPolicy,
+      })
+    }
+    const buildRequestId = newId('build-request')
     const buildSeq = buildDispatcher.requestGraphBuild({
       routingIdentity: {
         projectFileId: state.currentProject.projectFileId,
@@ -4113,6 +4480,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
+    const delayedAuthoritativePlaceholder =
+      get().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId] ?? null
+    if (delayedAuthoritativePlaceholder !== null) {
+      return {
+        status: 'pending',
+        graphDocumentId,
+        pendingReason: 'awaiting-authoritative-build',
+      }
+    }
+
     if (
       runtimeAfterCompile.compileBuild.inFlightBuildRequestId !== null &&
       runtimeAfterCompile.compileBuild.inFlightBuildSeq !== null &&
@@ -4139,6 +4516,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const requestResult = get().requestGraphDocumentBuild(graphDocumentId, {
       explicit: true,
+      delayedAuthoritativeDispatchTrigger: 'explicit',
       geometryTargetOverride: 'authoritative',
     })
     if (!requestResult.ok) {
@@ -4154,6 +4532,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       useSpaghettiStore.getState(),
       graphDocumentId,
     )
+    const delayedAuthoritativePlaceholderAfterRequest =
+      get().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId] ?? null
     const pendingBuildRequestId = runtimeAfterRequest?.compileBuild.inFlightBuildRequestId ?? null
     const pendingBuildSeq = runtimeAfterRequest?.compileBuild.inFlightBuildSeq ?? null
     if (
@@ -4167,6 +4547,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         pendingReason: 'requested-authoritative-build',
         buildRequestId: pendingBuildRequestId,
         buildSeq: pendingBuildSeq,
+      }
+    }
+    if (delayedAuthoritativePlaceholderAfterRequest !== null) {
+      return {
+        status: 'pending',
+        graphDocumentId,
+        pendingReason: 'requested-authoritative-build',
       }
     }
 
@@ -4304,6 +4691,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     const shouldDispatchQueuedBuild =
       get().pendingBrowserBuildGraphDocumentIds[graphDocumentId] === true
+    const delayedDraftPlaceholder = get().delayedDraftBuildByGraphDocumentId[graphDocumentId] ?? null
+    const delayedAuthoritativePlaceholder =
+      get().delayedAuthoritativeBuildByGraphDocumentId[graphDocumentId] ?? null
     set((state) => ({
       browserInteractionGraphDocumentIds: deleteRecordKey(
         state.browserInteractionGraphDocumentIds,
@@ -4315,7 +4705,53 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }))
     if (shouldDispatchQueuedBuild) {
-      get().requestBrowserGraphDocumentBuild(graphDocumentId)
+      if (delayedDraftPlaceholder !== null) {
+        publishDraftSchedulingRuntimeEvent({
+          type: 'draft_released',
+          graphDocumentId,
+          draftPolicy: delayedDraftPlaceholder.executionIntent.draftPolicy,
+        })
+      }
+      get().requestBrowserGraphDocumentBuild(graphDocumentId, {
+        delayedDraftDispatchTrigger: 'release',
+        delayedAuthoritativeDispatchTrigger: 'release',
+      })
+      return
+    }
+    if (delayedDraftPlaceholder?.executionIntent.draftPolicy === 'release') {
+      publishDraftSchedulingRuntimeEvent({
+        type: 'draft_released',
+        graphDocumentId,
+        draftPolicy: delayedDraftPlaceholder.executionIntent.draftPolicy,
+      })
+      set((state) => ({
+        delayedDraftBuildByGraphDocumentId: deleteRecordKey(
+          state.delayedDraftBuildByGraphDocumentId,
+          graphDocumentId,
+        ),
+      }))
+      dispatchDelayedGraphBuildPlaceholder(graphDocumentId, delayedDraftPlaceholder)
+      appendConsoleEntry({
+        layer: 'App',
+        text: `Released delayed draft build for ${graphDocumentId}`,
+        source: graphDocumentId,
+        severity: 'info',
+      })
+    }
+    if (delayedAuthoritativePlaceholder?.executionIntent.authoritativePolicy === 'release') {
+      set((state) => ({
+        delayedAuthoritativeBuildByGraphDocumentId: deleteRecordKey(
+          state.delayedAuthoritativeBuildByGraphDocumentId,
+          graphDocumentId,
+        ),
+      }))
+      dispatchDelayedGraphBuildPlaceholder(graphDocumentId, delayedAuthoritativePlaceholder)
+      appendConsoleEntry({
+        layer: 'App',
+        text: `Released delayed authoritative build for ${graphDocumentId}`,
+        source: graphDocumentId,
+        severity: 'info',
+      })
     }
   },
   requestBrowserGraphDocumentBuild: (graphDocumentId, options) => {
@@ -4324,9 +4760,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       graphDocumentId,
     })
     const isExplicit = options?.explicit === true
+    const releaseAlreadyReached =
+      policy === 'release' && get().browserInteractionGraphDocumentIds[graphDocumentId] !== true
 
     if (policy === 'off') {
       set((state) => ({
+        delayedDraftBuildByGraphDocumentId: deleteRecordKey(
+          state.delayedDraftBuildByGraphDocumentId,
+          graphDocumentId,
+        ),
+        delayedAuthoritativeBuildByGraphDocumentId: deleteRecordKey(
+          state.delayedAuthoritativeBuildByGraphDocumentId,
+          graphDocumentId,
+        ),
         pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
           state.pendingBrowserBuildGraphDocumentIds,
           graphDocumentId,
@@ -4337,6 +4783,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         text: `Build suppressed for ${graphDocumentId} because policy is Off`,
         source: graphDocumentId,
         severity: 'info',
+      })
+      publishDraftSchedulingRuntimeEvent({
+        type: 'draft_suppressed',
+        graphDocumentId,
+        draftPolicy: 'suppressed',
       })
       syncCurrentProjectFromSpaghetti(useSpaghettiStore.getState())
       return null
@@ -4355,6 +4806,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     return get().requestGraphDocumentBuild(graphDocumentId, {
       browserExecutionPolicy: policy,
       explicit: isExplicit,
+      delayedDraftDispatchTrigger:
+        options?.delayedDraftDispatchTrigger ?? (releaseAlreadyReached ? 'release' : undefined),
+      delayedAuthoritativeDispatchTrigger:
+        options?.delayedAuthoritativeDispatchTrigger ??
+        (isExplicit ? 'explicit' : releaseAlreadyReached ? 'release' : undefined),
+      draftPolicyOverride: options?.draftPolicyOverride,
+      authoritativePolicyOverride: options?.authoritativePolicyOverride,
+      geometryTargetOverride: options?.geometryTargetOverride,
     })
   },
   beginInteraction: () => {
@@ -8769,6 +9228,21 @@ const handleBrowserGraphRuntimeRevisionChange = (graphDocumentId: string): void 
     graphDocumentId,
   })
 
+  if (isGraphVisibleInActiveAutoViewer(graphDocumentId)) {
+    if (policy === 'live' || policy === 'release') {
+      requestAutoViewportDraftBuildIfAllowed(graphDocumentId)
+      return
+    }
+
+    useAppStore.setState((current) => ({
+      pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
+        current.pendingBrowserBuildGraphDocumentIds,
+        graphDocumentId,
+      ),
+    }))
+    return
+  }
+
   if (policy === 'live') {
     state.requestBrowserGraphDocumentBuild(graphDocumentId)
     return
@@ -8794,6 +9268,55 @@ const handleBrowserGraphRuntimeRevisionChange = (graphDocumentId: string): void 
       graphDocumentId,
     ),
   }))
+}
+
+const shouldTriggerViewerModeBuildRequest = (
+  previousState: Pick<WorkspaceStoreState, 'activeViewerViewportId' | 'viewportChromeById'>,
+  nextState: Pick<WorkspaceStoreState, 'activeViewerViewportId' | 'viewportChromeById'>,
+): boolean => {
+  const previousActiveViewportId = previousState.activeViewerViewportId
+  const nextActiveViewportId = nextState.activeViewerViewportId
+  const previousMode = selectViewportResultModeById(previousState, previousActiveViewportId)
+  const nextMode = selectViewportResultModeById(nextState, nextActiveViewportId)
+
+  if (
+    previousActiveViewportId === nextActiveViewportId &&
+    previousMode === nextMode
+  ) {
+    return false
+  }
+
+  return nextMode === 'auto' || nextMode === 'final'
+}
+
+const requestViewerTargetBuildForViewportPreference = (): void => {
+  const viewerTargetGraphDocumentId = useSpaghettiStore.getState().viewerTargetGraphDocumentId
+  if (viewerTargetGraphDocumentId === null) {
+    return
+  }
+  const modeBehavior = selectActiveViewerModeBehavior()
+  const graphRuntime = selectGraphRuntimeByDocumentId(
+    useSpaghettiStore.getState(),
+    viewerTargetGraphDocumentId,
+  )
+  const currentGraphRevision = graphRuntime?.compileBuild.currentGraphRevision ?? null
+  const latestAcceptedGraphRevision = graphRuntime?.compileBuild.latestAcceptedGraphRevision ?? null
+  if (modeBehavior.mode === 'auto') {
+    if (!doesRuntimeHaveCurrentAcceptedResult(graphRuntime)) {
+      requestAutoViewportDraftBuildIfAllowed(viewerTargetGraphDocumentId)
+    }
+    maybeRequestAutoViewportAuthoritativeFollowThrough(viewerTargetGraphDocumentId)
+    return
+  }
+  if (
+    graphRuntime?.acceptedAuthoritativeGeometryResult !== null &&
+    currentGraphRevision !== null &&
+    latestAcceptedGraphRevision !== null &&
+    currentGraphRevision <= latestAcceptedGraphRevision
+  ) {
+    return
+  }
+  useAppStore.getState().requestBrowserGraphDocumentBuild(viewerTargetGraphDocumentId)
 }
 
 useSpaghettiStore.subscribe((state, previousState) => {
@@ -8826,4 +9349,27 @@ useSpaghettiStore.subscribe((state, previousState) => {
     }
     handleBrowserGraphRuntimeRevisionChange(graphDocumentId)
   }
+
+  for (const graphDocumentId of changedGraphDocumentIds) {
+    const nextCompileBuild = state.graphRuntimeByDocumentId[graphDocumentId]?.compileBuild ?? null
+    const previousCompileBuild =
+      previousState.graphRuntimeByDocumentId[graphDocumentId]?.compileBuild ?? null
+    const acceptedRevisionChanged =
+      nextCompileBuild?.latestAcceptedGraphRevision !== previousCompileBuild?.latestAcceptedGraphRevision
+    const inFlightRequestChanged =
+      nextCompileBuild?.inFlightBuildRequestId !== previousCompileBuild?.inFlightBuildRequestId
+    if (!acceptedRevisionChanged && !inFlightRequestChanged) {
+      continue
+    }
+    maybeRequestAutoViewportAuthoritativeFollowThrough(graphDocumentId)
+  }
+})
+
+useWorkspaceStore.subscribe((state, previousState) => {
+  if (
+    !shouldTriggerViewerModeBuildRequest(previousState, state)
+  ) {
+    return
+  }
+  requestViewerTargetBuildForViewportPreference()
 })

@@ -3,6 +3,17 @@
 ## Doc Header
 
 ### Doc History
+26. 2026-04-09 10:14: Marked `VRI-3.5 - Untouched Truth Hardening And Family Handoff` shipped by refreshing this family index so the runtime inspector now derives compact untouched meaning from accepted target-versus-affected ids with repeated-accept summary stability, and `VRI-3` now reads as closed for the first honest change-impact subset before later dependency-linked widening
+25. 2026-04-09 10:08: Tightened this family index so the immediate handoff to `VRI-3.5 - Untouched Truth Hardening And Family Handoff` now explicitly says the final `VRI-3` slice should derive untouched meaning only from the shipped accepted target-versus-affected ids through the current `runtimeInspectorVm`, store-proof, and left-dock proof seams before the family closes
+24. 2026-04-09 10:05: Marked `VRI-3.4 - Impact Row Surface` shipped by refreshing this family index so the runtime inspector now reads as rendering grouped rebuilt, reused, and evicted impact rows beneath the compact accepted-impact summary, and the immediate handoff now moves forward to `VRI-3.5 - Untouched Truth Hardening And Family Handoff`
+23. 2026-04-09 10:00: Tightened this family index so the immediate handoff to `VRI-3.4 - Impact Row Surface` now explicitly says the next slice should render the already-shipped grouped accepted-impact VM beneath the compact summary through the current `TitleStatusBar`, `base.css`, and left-dock proof seams without moving grouping logic back into presentation
+22. 2026-04-09 09:56: Marked `VRI-3.3 - Impact Entry VM And Grouping Contract` shipped by refreshing this family index so the runtime inspector now reads as owning one grouped accepted-impact VM with stable rebuilt, reused, and evicted ordering plus honest viewer-target row labels, and the immediate handoff now moves forward to `VRI-3.4 - Impact Row Surface`
+21. 2026-04-09 09:48: Marked `VRI-3.2 - Compact Change Impact Summary Surface` shipped by refreshing this family index so the runtime inspector now reads as rendering one compact accepted-impact summary beneath archive truth, and the immediate handoff now moves forward to `VRI-3.3 - Impact Entry VM And Grouping Contract` with explicit emphasis on grouped entry shaping and honest viewer-target row labels before visible row rendering lands
+20. 2026-04-09 09:31: Tightened this family index so the immediate handoff to `VRI-3.2 - Compact Change Impact Summary Surface` now explicitly says the next slice should derive one compact summary from the shipped `acceptedBuildImpact` snapshot through the existing `runtimeInspectorVm` and `TitleStatusBar` seams, keeping the first visible impact surface summary-first before grouped-row VM work begins
+19. 2026-04-09 09:26: Marked `VRI-3.1 - Accepted Impact Read Contract And Store Widening` shipped by refreshing this family index so the change-impact lane now reads as owning one durable accepted graph-runtime impact snapshot grounded in accepted build identity plus finalized bundle outcomes, and the immediate handoff now moves forward to `VRI-3.2 - Compact Change Impact Summary Surface`
+18. 2026-04-09 09:18: Tightened this family index so the immediate handoff to `VRI-3.1 - Accepted Impact Read Contract And Store Widening` now explicitly says the first `VRI-3` slice should preserve request-time changed-param and affected-build-unit truth into one accepted graph-runtime snapshot through the existing `useAppStore` and `useSpaghettiStore` acceptance seams instead of leaving that handoff phrased only as generic impact-state widening
+17. 2026-04-09 09:17: Tightened the standalone `VRI-3` planning lane again by splitting the broader impact-row middle work into separate VM/grouping and visible row-surface slices, so the family now reads as a five-step `VRI-3.1` through `VRI-3.5` ladder that is safer to implement one Codex-sized chunk at a time
+16. 2026-04-09 09:10: Added the standalone `VRI-3 - Change Impact And Dependency Visibility` future phase doc and refreshed this family index so the next runtime-inspector lane now points at an explicit four-step execution ladder for accepted impact state widening, compact summary rendering, grouped impact rows, and untouched/dependency handoff instead of leaving `VRI-3` as only a one-line umbrella placeholder
 15. 2026-04-09 09:05: Marked `VRI-2.4 - Queue Lifecycle Hardening And Handoff` shipped by refreshing this family index so the queue/archive lane now reads as closed after accepted-build replacement, dispatcher-owned stale-drop insulation, and bounded archive rollover were proven through the existing lifecycle seams, and the immediate family handoff now moves forward to `VRI-3 - Change Impact And Dependency Visibility`
 14. 2026-04-09 09:01: Tightened this family index so the immediate handoff to `VRI-2.4 - Queue Lifecycle Hardening And Handoff` now explicitly says the final `VRI-2` slice should prove accepted-build replacement, dispatcher-owned stale-drop insulation, and bounded archive rollover through the existing queue/archive store and lifecycle-test seams instead of leaving that handoff phrased only as generic hardening
 13. 2026-04-09 08:55: Marked `VRI-2.3 - Archive Truth Surface` shipped by refreshing this family index so the runtime inspector now reads as rendering a quieter recent archive beneath the visible active queue while keeping lifecycle hardening deferred, and the immediate handoff now moves forward to `VRI-2.4 - Queue Lifecycle Hardening And Handoff`
@@ -132,8 +143,8 @@ Current shipped final step:
   - the inspector now reads through one compact app-side combined model so the shell, viewport stats, current-task card, and fallback copy no longer depend on panel-local ad hoc composition in `TitleStatusBar.tsx`
 
 Current next step:
-- `VRI-3 - Change Impact And Dependency Visibility`
-  - build on the now-stable queue/archive runtime history to explain what rebuilt, what reused, and what stayed untouched without inventing fake dependency stories
+- `VRI-3.2 - Compact Change Impact Summary Surface`
+  - render the first compact `Change Impact` summary from the now-shipped accepted graph-runtime impact snapshot through the existing combined inspector VM and left-dock section stack so the inspector can explain changed, rebuilt, reused, and evicted meaning before grouped impact rows land
 
 Current shipped third step:
 - `VRI-1.3 - Active Runtime Task Card`
@@ -161,8 +172,8 @@ Recommended first proof:
 - retain a small quieter archive for completed, reused, and error rows
 
 Current next step:
-- `VRI-3 - Change Impact And Dependency Visibility`
-  - extend the now-closed queue/archive foundation into real rebuilt-versus-reused-versus-untouched explanation without reopening runtime history ownership
+- `VRI-3.2 - Compact Change Impact Summary Surface`
+  - extend the now-closed queue/archive plus accepted-impact foundation by rendering one compact summary before grouped-row UI lands
 
 Current shipped third step:
 - `VRI-2.3 - Archive Truth Surface`
@@ -184,8 +195,41 @@ Current shipped first step:
   - shipped
   - the inspector now owns one explicit active-queue plus recent-archive state seam fed by accepted build lifecycle hooks, with queued, active, reused, done, and error entries kept distinct before visible queue/archive rendering widens
 
-### [ ] `VRI-3` - Change Impact And Dependency Visibility
+### [x] `VRI-3` - Change Impact And Dependency Visibility
 
 - explain what rebuilt, what reused, and what remained untouched after edits
 - relate runtime cards back to graph/build ownership where that truth exists
 - keep dependency visibility grounded in real invalidation and planning data
+
+Standalone future phase doc:
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-3 - Change Impact And Dependency Visibility.md`
+
+Recommended first proof:
+- persist one accepted impact snapshot after build settle
+- preserve changed params, affected build units, and accepted outcome summary
+- keep stale-result filtering owned by the existing dispatcher and graph-runtime acceptance seams
+
+Current shipped first step:
+- `VRI-3.1 - Accepted Impact Read Contract And Store Widening`
+  - shipped
+  - the graph runtime now keeps one durable accepted impact snapshot after accepted settle, preserving accepted build identity, changed params, affected units, target units, and finalized bundle outcomes instead of losing that truth when pending request state clears
+
+Current shipped second step:
+- `VRI-3.2 - Compact Change Impact Summary Surface`
+  - shipped
+  - the runtime inspector now renders one compact `Change Impact` summary beneath archive truth, grounding changed-param wording plus affected, rebuilt, reused, and evicted counts in the viewer-target accepted impact snapshot before grouped rows widen later
+
+Current shipped third step:
+- `VRI-3.3 - Impact Entry VM And Grouping Contract`
+  - shipped
+  - the runtime inspector VM now exposes grouped accepted-impact entries in stable rebuilt, reused, and evicted order, with viewer-target authored node labels preferred before compact build-identity fallback ahead of visible row rendering
+
+Current shipped fourth step:
+- `VRI-3.4 - Impact Row Surface`
+  - shipped
+  - the runtime inspector now renders grouped rebuilt, reused, and evicted impact rows beneath the compact accepted-impact summary, keeping the first visible row surface calm and presentation-led while reading the already-shipped grouped VM directly
+
+Current shipped final step:
+- `VRI-3.5 - Untouched Truth Hardening And Family Handoff`
+  - shipped
+  - the runtime inspector now derives one compact untouched metric from accepted target-versus-affected ids and proves repeated accepted edits replace prior untouched summary truth cleanly without widening into dependency-jump UI

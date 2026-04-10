@@ -21,10 +21,14 @@ export type BuildPhase = 'parts' | 'export'
 export type WorkerLane = 'build' | 'export'
 export type BuildProgressState = 'queued' | 'cache_hit' | 'building' | 'done' | 'error'
 export type GeometryExecutionTarget = 'draft_preview' | 'authoritative'
+export type DraftSchedulingPolicy = 'live' | 'release' | 'settle' | 'suppressed'
+export type AuthoritativeSchedulingPolicy = 'live' | 'release' | 'settle' | 'explicit'
 export type BuildExecutionIntent = {
   buildMode: 'preview' | 'final'
   quality: 'draft' | 'full'
   updatePolicy: 'auto' | 'defer_until_release' | 'manual'
+  draftPolicy: DraftSchedulingPolicy
+  authoritativePolicy: AuthoritativeSchedulingPolicy
   outputIntent: 'transient_preview' | 'accepted_final'
   geometryTarget: GeometryExecutionTarget
 }
@@ -33,6 +37,8 @@ export const DEFAULT_BUILD_EXECUTION_INTENT = {
   buildMode: 'final',
   quality: 'full',
   updatePolicy: 'auto',
+  draftPolicy: 'live',
+  authoritativePolicy: 'explicit',
   outputIntent: 'accepted_final',
   geometryTarget: 'authoritative',
 } as const satisfies BuildExecutionIntent
@@ -316,6 +322,14 @@ export const isBuildResultBundle = (value: unknown): value is BuildResultBundle 
   (value.executionIntent.updatePolicy === 'auto' ||
     value.executionIntent.updatePolicy === 'defer_until_release' ||
     value.executionIntent.updatePolicy === 'manual') &&
+  (value.executionIntent.draftPolicy === 'live' ||
+    value.executionIntent.draftPolicy === 'release' ||
+    value.executionIntent.draftPolicy === 'settle' ||
+    value.executionIntent.draftPolicy === 'suppressed') &&
+  (value.executionIntent.authoritativePolicy === 'live' ||
+    value.executionIntent.authoritativePolicy === 'release' ||
+    value.executionIntent.authoritativePolicy === 'settle' ||
+    value.executionIntent.authoritativePolicy === 'explicit') &&
   (value.executionIntent.outputIntent === 'transient_preview' ||
     value.executionIntent.outputIntent === 'accepted_final') &&
   (value.executionIntent.geometryTarget === 'draft_preview' ||
@@ -368,6 +382,15 @@ export type WorkerError = {
   buildRequestId?: string
 }
 
+export type BuildSuperseded = {
+  type: 'build_superseded'
+  seq: number
+  lane: 'build'
+  projectFileId: string
+  graphDocumentId: string
+  buildRequestId: string
+}
+
 export type BuildProgress = {
   type: 'build_progress'
   seq: number
@@ -385,5 +408,6 @@ export type BuildProgress = {
 
 export type WorkerOutboundMessage =
   | BuildResult
+  | BuildSuperseded
   | WorkerError
   | BuildProgress

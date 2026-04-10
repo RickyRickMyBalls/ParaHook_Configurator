@@ -103,6 +103,8 @@ describe('buildTypes PartArtifact contract', () => {
       buildMode: 'final',
       quality: 'full',
       updatePolicy: 'auto',
+      draftPolicy: 'live',
+      authoritativePolicy: 'explicit',
       outputIntent: 'accepted_final',
       geometryTarget: 'authoritative',
     })

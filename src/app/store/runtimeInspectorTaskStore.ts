@@ -2,7 +2,16 @@ import { create } from 'zustand'
 
 export const RUNTIME_INSPECTOR_ARCHIVE_LIMIT = 6
 
-export type RuntimeInspectorTaskState = 'queued' | 'active' | 'done' | 'reused' | 'error'
+export type RuntimeInspectorTaskState =
+  | 'queued'
+  | 'active'
+  | 'delayed'
+  | 'done'
+  | 'reused'
+  | 'replaced'
+  | 'suppressed'
+  | 'superseded'
+  | 'error'
 
 export type RuntimeInspectorTaskIdentity = {
   seq: number
@@ -24,7 +33,12 @@ type RuntimeInspectorTaskStoreState = {
   archive: RuntimeInspectorTask[]
   beginBuild: (task: RuntimeInspectorTask) => void
   upsertActiveEntry: (task: RuntimeInspectorTask) => void
+  delayDraft: (task: RuntimeInspectorTask) => void
+  releaseDelayedDraft: (identity: Pick<RuntimeInspectorTaskIdentity, 'graphDocumentId'>) => void
+  replaceDelayedDraft: (task: RuntimeInspectorTask) => void
+  suppressDraft: (task: RuntimeInspectorTask) => void
   resolveEntry: (task: RuntimeInspectorTask) => void
+  supersedeBuild: (task: RuntimeInspectorTask) => void
   failBuild: (task: RuntimeInspectorTask) => void
   settleBuild: (identity: Omit<RuntimeInspectorTaskIdentity, 'partKey'>) => void
 }
@@ -104,6 +118,26 @@ const removeActiveQueueEntry = (
 ): RuntimeInspectorTask[] =>
   stripBuildPlaceholder(activeQueue, task).filter((entry) => !sameTaskIdentity(entry, task))
 
+const stripDraftSchedulingEntriesForGraph = (
+  activeQueue: RuntimeInspectorTask[],
+  graphDocumentId: string | null,
+): RuntimeInspectorTask[] =>
+  activeQueue.filter(
+    (entry) => !(entry.graphDocumentId === graphDocumentId && entry.state === 'delayed'),
+  )
+
+const isDraftSchedulingArchiveState = (state: RuntimeInspectorTaskState): boolean =>
+  state === 'replaced' || state === 'suppressed'
+
+const stripDraftSchedulingArchiveEntriesForGraph = (
+  archive: RuntimeInspectorTask[],
+  graphDocumentId: string | null,
+): RuntimeInspectorTask[] =>
+  archive.filter(
+    (entry) =>
+      !(entry.graphDocumentId === graphDocumentId && isDraftSchedulingArchiveState(entry.state)),
+  )
+
 export const selectCurrentRuntimeInspectorTask = (
   state: Pick<RuntimeInspectorTaskStoreState, 'activeQueue'>,
 ): RuntimeInspectorTask | null => state.activeQueue[0] ?? null
@@ -126,10 +160,50 @@ export const useRuntimeInspectorTaskStore = create<RuntimeInspectorTaskStoreStat
       activeQueue: upsertActiveQueueEntry(state.activeQueue, task),
     }))
   },
+  delayDraft: (task) => {
+    const normalized = normalizeTask(task)
+    set((state) => ({
+      archive: stripDraftSchedulingArchiveEntriesForGraph(state.archive, normalized.graphDocumentId),
+      activeQueue: [...stripDraftSchedulingEntriesForGraph(state.activeQueue, normalized.graphDocumentId), normalized],
+    }))
+  },
+  releaseDelayedDraft: (identity) => {
+    set((state) => ({
+      archive: stripDraftSchedulingArchiveEntriesForGraph(state.archive, identity.graphDocumentId ?? null),
+      activeQueue: stripDraftSchedulingEntriesForGraph(state.activeQueue, identity.graphDocumentId ?? null),
+    }))
+  },
+  replaceDelayedDraft: (task) => {
+    const normalized = normalizeTask(task)
+    set((state) => ({
+      activeQueue: stripDraftSchedulingEntriesForGraph(state.activeQueue, normalized.graphDocumentId),
+      archive: pushArchiveEntry(
+        stripDraftSchedulingArchiveEntriesForGraph(state.archive, normalized.graphDocumentId),
+        normalized,
+      ),
+    }))
+  },
+  suppressDraft: (task) => {
+    const normalized = normalizeTask(task)
+    set((state) => ({
+      activeQueue: stripDraftSchedulingEntriesForGraph(state.activeQueue, normalized.graphDocumentId),
+      archive: pushArchiveEntry(
+        stripDraftSchedulingArchiveEntriesForGraph(state.archive, normalized.graphDocumentId),
+        normalized,
+      ),
+    }))
+  },
   resolveEntry: (task) => {
     const normalized = normalizeTask(task)
     set((state) => ({
       activeQueue: removeActiveQueueEntry(state.activeQueue, normalized),
+      archive: pushArchiveEntry(state.archive, normalized),
+    }))
+  },
+  supersedeBuild: (task) => {
+    const normalized = normalizeTask(task)
+    set((state) => ({
+      activeQueue: state.activeQueue.filter((entry) => !sameBuildIdentity(entry, normalized)),
       archive: pushArchiveEntry(state.archive, normalized),
     }))
   },

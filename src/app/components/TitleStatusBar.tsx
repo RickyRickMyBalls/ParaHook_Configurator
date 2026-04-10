@@ -1,5 +1,7 @@
 import { useId, useState } from 'react'
 import {
+  type RuntimeInspectorChangeImpactGroupVm,
+  type RuntimeInspectorChangeImpactSummaryVm,
   type RuntimeInspectorQueueCardVm,
   useRuntimeInspectorVm,
 } from '../store/runtimeInspectorVm'
@@ -44,6 +46,68 @@ export function TitleStatusBar(props: TitleStatusBarProps) {
       {task.detail !== null ? (
         <span className="TitleStatusInspectorTaskDetail">{task.detail}</span>
       ) : null}
+    </div>
+  )
+
+  const renderChangeImpactSection = (
+    summary: RuntimeInspectorChangeImpactSummaryVm,
+    groups: RuntimeInspectorChangeImpactGroupVm[] | null,
+  ) => (
+    <div className="TitleStatusInspectorTaskSection">
+      <div className="TitleStatusInspectorSubheader">
+        <span className="TitleStatusInspectorSubheaderLabel">{summary.sectionLabel}</span>
+        <span className="TitleStatusInspectorSubheaderValue">{summary.summaryLabel}</span>
+      </div>
+      <div className="TitleStatusInspectorImpactCard">
+        <p className="TitleStatusInspectorImpactCopy">{summary.changedParamsText}</p>
+        <div
+          className="TitleStatusInspectorImpactMetrics"
+          role="list"
+          aria-label="Change impact summary"
+        >
+          {summary.metrics.map((metric) => (
+            <div key={metric.label} className="TitleStatusInspectorImpactMetric" role="listitem">
+              <span className="TitleStatusInspectorImpactMetricValue">{metric.value}</span>
+              <span className="TitleStatusInspectorImpactMetricLabel">{metric.label}</span>
+            </div>
+          ))}
+        </div>
+        {groups !== null && groups.length > 0 ? (
+          <div className="TitleStatusInspectorImpactGroups">
+            {groups.map((group) => (
+              <div
+                key={group.key}
+                className={`TitleStatusInspectorImpactGroup state-${group.tone}`}
+              >
+                <div className="TitleStatusInspectorImpactGroupHeader">
+                  <span className="TitleStatusInspectorImpactGroupLabel">{group.label}</span>
+                  <span className="TitleStatusInspectorImpactGroupValue">
+                    {`${group.rows.length} ${group.rows.length === 1 ? 'row' : 'rows'}`}
+                  </span>
+                </div>
+                <div
+                  className="TitleStatusInspectorImpactRowList"
+                  role="list"
+                  aria-label={`${group.label} impact rows`}
+                >
+                  {group.rows.map((row) => (
+                    <div
+                      key={row.key}
+                      className={`TitleStatusInspectorImpactRow state-${row.tone}`}
+                      role="listitem"
+                    >
+                      <span className="TitleStatusInspectorImpactRowLabel">{row.label}</span>
+                      {row.detail !== null ? (
+                        <span className="TitleStatusInspectorImpactRowDetail">{row.detail}</span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 
@@ -155,6 +219,12 @@ export function TitleStatusBar(props: TitleStatusBarProps) {
               </div>
             </div>
           ) : null}
+          {inspectorVm.changeImpactSummary !== null
+            ? renderChangeImpactSection(
+                inspectorVm.changeImpactSummary,
+                inspectorVm.changeImpactGroups,
+              )
+            : null}
           <p className="TitleStatusInspectorHint">{inspectorVm.hint}</p>
         </section>
       ) : null}

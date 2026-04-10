@@ -33,7 +33,10 @@ import {
   selectResolvedGraphReceiveReferencesByDocumentId,
   selectSharedViewerComposition,
   selectSharedViewerCompositionGraphDocumentIds,
+  selectViewerTargetGraphAcceptedAuthoritativeGeometryResult,
   selectViewerTargetGraphAcceptedBuildOutputs,
+  selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
+  selectViewerTargetGraphCommittedDraftGeometryResult,
   selectViewerTargetGraphDocumentId,
   selectViewerTargetGraphOutputSurface,
   useSpaghettiStore,
@@ -835,6 +838,182 @@ describe('useSpaghettiStore graph normalization', () => {
     ])
   })
 
+  it('keeps accepted build impact null before the first accepted build lands', () => {
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      buildRequestId: 'build-request-impact-pending',
+      buildSeq: 21,
+    })
+
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.acceptedBuildImpact,
+    ).toBeNull()
+  })
+
+  it('acceptGraphBuildResult persists accepted build impact from pending request inputs and finalized bundle truth', () => {
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_width', 'sp_featureStackIR'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      buildRequestId: 'build-request-impact-accepted',
+      buildSeq: 22,
+    })
+
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-impact-accepted',
+      buildSeq: 22,
+      bundle: createAcceptedBundle({
+        seq: 22,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-impact-accepted',
+        entries: [
+          {
+            artifact: baseplateArtifact,
+            outputEntryId: 'output-entry:s001:node-baseplate-1',
+            sourceNodeId: 'node-baseplate-1',
+          },
+        ],
+      }),
+    })
+
+    const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']
+    expect(runtime?.acceptedBuildImpact).toEqual({
+      seq: 22,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-impact-accepted',
+      changedParamIds: ['sp_width', 'sp_featureStackIR'],
+      affectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      targetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      summary: runtime?.acceptedBuildBundle?.summary,
+      entries: runtime?.acceptedBuildBundle?.entries.map((entry) => ({
+        buildUnitId: entry.buildUnitId,
+        outputEntryId: entry.outputEntryId,
+        sourceNodeId: entry.sourceNodeId,
+        status: entry.status,
+        resultClass: entry.resultClass,
+      })),
+    })
+    expect(runtime?.compileBuild.pendingAffectedBuildUnitIds).toEqual([])
+    expect(runtime?.compileBuild.pendingTargetBuildUnitIds).toEqual([])
+  })
+
+  it('later accepted builds replace the prior accepted build impact snapshot', () => {
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      buildRequestId: 'build-request-impact-first',
+      buildSeq: 23,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-impact-first',
+      buildSeq: 23,
+      bundle: createAcceptedBundle({
+        seq: 23,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-impact-first',
+        entries: [
+          {
+            artifact: baseplateArtifact,
+            outputEntryId: 'output-entry:s001:node-baseplate-1',
+            sourceNodeId: 'node-baseplate-1',
+          },
+        ],
+      }),
+    })
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_height'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      buildRequestId: 'build-request-impact-second',
+      buildSeq: 24,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-impact-second',
+      buildSeq: 24,
+      bundle: createAcceptedBundle({
+        seq: 24,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-impact-second',
+        entries: [],
+      }),
+    })
+
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.acceptedBuildImpact,
+    ).toEqual({
+      seq: 24,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-impact-second',
+      changedParamIds: ['sp_height'],
+      affectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      targetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      summary: {
+        rebuiltCount: 0,
+        retainedCount: 0,
+        evictedCount: 1,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:s001:node-baseplate-1',
+          outputEntryId: 'output-entry:s001:node-baseplate-1',
+          sourceNodeId: 'node-baseplate-1',
+          status: 'evicted',
+          resultClass: 'final',
+        },
+      ],
+    })
+  })
+
   it('saving to disk clears save state without changing accepted build freshness', async () => {
     useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
       compileResult: {
@@ -1440,6 +1619,320 @@ describe('useSpaghettiStore graph normalization', () => {
     )
   })
 
+  it('authoritative-only acceptance promotes the authoritative lane without clearing accepted draft truth', () => {
+    const graphDocumentId = 'graph-document-1'
+    const releaseSpy = vi
+      .spyOn(buildDispatcher, 'releaseAuthoritativeHandles')
+      .mockImplementation(() => {})
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_seed'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-51',
+      buildSeq: 51,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-51',
+        buildSeq: 51,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-51',
+          partKeys: ['baseplate'],
+        }),
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-51',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-authoritative-51',
+        }),
+      }),
+    ).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_final'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-52',
+      buildSeq: 52,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-52',
+        buildSeq: 52,
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-52',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-authoritative-52',
+        }),
+      }),
+    ).toBe(true)
+
+    const state = useSpaghettiStore.getState()
+    expect(state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedDraftGeometryResult).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-51',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(
+      state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedAuthoritativeGeometryResult,
+    ).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-52',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(releaseSpy).toHaveBeenCalledWith(['shape-set-authoritative-51'])
+  })
+
+  it('draft-only acceptance preserves previously accepted authoritative truth', () => {
+    const graphDocumentId = 'graph-document-1'
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_seed'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-61',
+      buildSeq: 61,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-61',
+        buildSeq: 61,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-61',
+          partKeys: ['baseplate'],
+        }),
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-61',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-authoritative-61',
+        }),
+      }),
+    ).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_preview'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-62',
+      buildSeq: 62,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-62',
+        buildSeq: 62,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-62',
+          partKeys: ['baseplate'],
+        }),
+      }),
+    ).toBe(true)
+
+    const state = useSpaghettiStore.getState()
+    expect(state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedDraftGeometryResult).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-62',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(
+      state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedAuthoritativeGeometryResult,
+    ).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-61',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+  })
+
+  it('treats preserved authoritative truth as stale after a newer draft-only acceptance advances the current revision', () => {
+    const graphDocumentId = 'graph-document-1'
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_seed'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-71',
+      buildSeq: 71,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-71',
+        buildSeq: 71,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-71',
+          partKeys: ['baseplate'],
+        }),
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-71',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-authoritative-71',
+        }),
+      }),
+    ).toBe(true)
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+        },
+      },
+    }))
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_preview'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-72',
+      buildSeq: 72,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-72',
+        buildSeq: 72,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+        }),
+      }),
+    ).toBe(true)
+
+    const state = useSpaghettiStore.getState()
+    expect(state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedAuthoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-71',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedAuthoritativeGraphRevision).toBe(0)
+    expect(state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedDraftGraphRevision).toBe(2)
+    expect(selectGraphAcceptedGeometryResultByDocumentId(state, graphDocumentId)).toBeNull()
+    expect(selectGraphAcceptedDraftGeometryResultByDocumentId(state, graphDocumentId)).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(selectViewerTargetGraphAcceptedAuthoritativeGeometryResult(state)).toBeNull()
+    expect(selectViewerTargetGraphCommittedAuthoritativeGeometryResult(state)).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-71',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(selectViewerTargetGraphCommittedDraftGeometryResult(state)).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+  })
+
   it('derives graph-owned output surfaces per graph and keeps them independent of viewer target changes', () => {
     const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
       graphWithPublishedPart('node-cube-1', 'Part/Cube'),
@@ -1807,6 +2300,20 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(accepted).toBe(false)
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.latestAcceptedBuildSeq).toBe(1)
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.inFlightBuildSeq).toBe(2)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.acceptedBuildImpact).toEqual({
+      seq: 1,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-1',
+      changedParamIds: ['sp_full'],
+      affectedBuildUnitIds: [],
+      targetBuildUnitIds: [],
+      summary: {
+        rebuiltCount: 0,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [],
+    })
   })
 
   it('acceptGraphBuildResult releases stale authoritative handles even when the result is rejected', () => {
@@ -1867,6 +2374,126 @@ describe('useSpaghettiStore graph normalization', () => {
 
     expect(accepted).toBe(false)
     expect(releaseSpy).toHaveBeenCalledWith(['shape-set-stale-11'])
+  })
+
+  it('stale authoritative arrivals do not roll accepted draft or authoritative truth backward', () => {
+    const graphDocumentId = 'graph-document-1'
+    const releaseSpy = vi
+      .spyOn(buildDispatcher, 'releaseAuthoritativeHandles')
+      .mockImplementation(() => {})
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_seed'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-71',
+      buildSeq: 71,
+    })
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-71',
+        buildSeq: 71,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-71',
+          partKeys: ['baseplate'],
+        }),
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-71',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-authoritative-71',
+        }),
+      }),
+    ).toBe(true)
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_newer'],
+      pendingStatsPartKeys: ['baseplate'],
+      buildRequestId: 'build-request-72',
+      buildSeq: 72,
+    })
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-72',
+        buildSeq: 72,
+        draftGeometryResult: createAcceptedGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+        }),
+        authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+          handleId: 'shape-set-authoritative-72',
+        }),
+      }),
+    ).toBe(true)
+
+    const accepted = useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId,
+      buildRequestId: 'build-request-71',
+      buildSeq: 71,
+      draftGeometryResult: createAcceptedGeometryResult({
+        graphDocumentId,
+        buildRequestId: 'build-request-71',
+        partKeys: ['baseplate'],
+      }),
+      authoritativeGeometryResult: createAcceptedAuthoritativeGeometryResult({
+        graphDocumentId,
+        buildRequestId: 'build-request-71',
+        partKeys: ['baseplate'],
+        handleId: 'shape-set-stale-71',
+      }),
+    })
+
+    const state = useSpaghettiStore.getState()
+    expect(accepted).toBe(false)
+    expect(state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedDraftGeometryResult).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(
+      state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedAuthoritativeGeometryResult,
+    ).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId,
+          buildRequestId: 'build-request-72',
+          partKeys: ['baseplate'],
+        },
+      }),
+    )
+    expect(releaseSpy).toHaveBeenCalledWith(['shape-set-authoritative-71'])
+    expect(releaseSpy).toHaveBeenCalledWith(['shape-set-stale-71'])
   })
 
   it('focus changes do not rebind an in-flight graph build result', () => {

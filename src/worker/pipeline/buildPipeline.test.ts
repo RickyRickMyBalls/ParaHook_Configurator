@@ -375,4 +375,110 @@ describe('buildPipeline spaghetti stats integration', () => {
       },
     })
   })
+
+  it('exits before buildModelResult when the request is already superseded at the first checkpoint', async () => {
+    vi.resetModules()
+    const buildModelResult = vi.fn(async () => ({
+      parts: [],
+      draftGeometryResult: undefined,
+      authoritativeGeometryResult: undefined,
+    }))
+    vi.doMock('../buildModel', () => ({
+      buildModelResult,
+    }))
+    const {
+      buildPipeline,
+      BuildSupersededError,
+    } = await import('./buildPipeline')
+
+    await expect(
+      buildPipeline(
+        buildRequest({
+          seq: 20,
+          buildRequestId: 'build-request-20',
+          compiledBuildData: cubeCompiledBuildData(),
+          changedParamIds: ['sp_full'],
+        }),
+        () => {},
+        {
+          isSuperseded: () => true,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BuildSupersededError)
+    expect(buildModelResult).not.toHaveBeenCalled()
+  })
+
+  it('stops at the next part checkpoint when a request becomes superseded mid-loop', async () => {
+    vi.resetModules()
+    vi.doMock('../buildModel', () => ({
+      buildModelResult: vi.fn(async () => ({
+        parts: [
+          {
+            id: 'cube-1',
+            label: 'Cube 1',
+            kind: 'mesh' as const,
+            mesh: {
+              vertices: [],
+              indices: [],
+            },
+            partKeyStr: 'cube#1',
+            partKey: {
+              id: 'cube',
+              instance: 1,
+            },
+          },
+          {
+            id: 'cube-2',
+            label: 'Cube 2',
+            kind: 'mesh' as const,
+            mesh: {
+              vertices: [],
+              indices: [],
+            },
+            partKeyStr: 'cube#2',
+            partKey: {
+              id: 'cube',
+              instance: 2,
+            },
+          },
+        ],
+        draftGeometryResult: undefined,
+        authoritativeGeometryResult: undefined,
+      })),
+    }))
+    const {
+      buildPipeline,
+      BuildSupersededError,
+    } = await import('./buildPipeline')
+    const progress: Array<{ partKey: string; state: string }> = []
+    let superseded = false
+
+    await expect(
+      buildPipeline(
+        buildRequest({
+          seq: 21,
+          buildRequestId: 'build-request-21',
+          compiledBuildData: multiCubeCompiledBuildData(),
+          changedParamIds: ['sp_full'],
+        }),
+        (message) => {
+          progress.push({ partKey: message.partKey, state: message.state })
+          if (message.partKey === 'cube#1' && message.state === 'done') {
+            superseded = true
+          }
+        },
+        {
+          isSuperseded: () => superseded,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BuildSupersededError)
+
+    expect(progress).toEqual(
+      expect.arrayContaining([
+        { partKey: 'cube#1', state: 'queued' },
+        { partKey: 'cube#1', state: 'done' },
+      ]),
+    )
+    expect(progress.some((entry) => entry.partKey === 'cube#2')).toBe(false)
+  })
 })

@@ -16,6 +16,7 @@ import type {
   BuildResult,
   BuildRoutingIdentity,
   BuildExecutionIntent,
+  BuildSuperseded,
   CompiledBuildData,
   WorkerError,
 } from '../shared/buildTypes'
@@ -37,11 +38,25 @@ type GraphBuildRequestOptions = {
   invalidation: BuildInvalidation
 }
 
+type GeometryExecutionTarget = BuildExecutionIntent['geometryTarget']
+
 type RoutingLedger = {
   latestRequestedSeq: number
+  latestRequestedBuildRequestId: string | null
   latestResolvedSeq: number
   pendingChangedParamIdsBySeq: Map<number, string[]>
   pendingBuildRequestIdBySeq: Map<number, string>
+}
+
+export type BuildSupersessionTarget = Pick<
+  BuildRoutingIdentity,
+  'projectFileId' | 'graphDocumentId'
+>
+
+export type LatestBuildRequestSnapshot = BuildSupersessionTarget & {
+  latestRequestedSeq: number
+  latestRequestedBuildRequestId: string | null
+  latestResolvedSeq: number
 }
 
 export type BuildRequestStartedContext = {
@@ -54,6 +69,7 @@ export type BuildRequestStartedContext = {
 export type BuildDispatcherRuntimeHooks = {
   onBuildRequestStarted?: (context: BuildRequestStartedContext) => void
   onBuildProgress?: (progress: BuildProgress) => void
+  onBuildSuperseded?: (superseded: BuildSuperseded) => void
   onBuildResultSettled?: (result: BuildResult) => void
   onWorkerError?: (error: WorkerError) => void
 }
@@ -192,19 +208,37 @@ const isBuildProgress = (value: unknown): value is BuildProgress => {
   return true
 }
 
+const isBuildSuperseded = (value: unknown): value is BuildSuperseded => {
+  if (!isRecord(value)) {
+    return false
+  }
+  return (
+    value.type === 'build_superseded' &&
+    value.lane === 'build' &&
+    typeof value.seq === 'number' &&
+    typeof value.projectFileId === 'string' &&
+    typeof value.graphDocumentId === 'string' &&
+    typeof value.buildRequestId === 'string'
+  )
+}
+
 export class BuildDispatcher {
-  private readonly worker: BuildDispatcherWorker
+  private readonly draftWorker: BuildDispatcherWorker
+  private readonly authoritativeWorker: BuildDispatcherWorker
   private seqCounter = 0
   private latestRequestedSeq = 0
   private latestResolvedSeq = 0
   private readonly routingLedgerByKey = new Map<string, RoutingLedger>()
+  private readonly executionTargetBySeq = new Map<number, GeometryExecutionTarget>()
   private onBuildResult: BuildResultHandler = () => {}
   private onWorkerError: WorkerErrorHandler = () => {}
   private runtimeHooks: BuildDispatcherRuntimeHooks = {}
 
   public constructor() {
-    this.worker = this.createWorker()
-    this.worker.addEventListener('message', this.handleMessage)
+    this.draftWorker = this.createWorker()
+    this.authoritativeWorker = this.createWorker()
+    this.draftWorker.addEventListener('message', this.handleMessage)
+    this.authoritativeWorker.addEventListener('message', this.handleMessage)
   }
 
   public setBuildResultHandler(handler: BuildResultHandler): void {
@@ -219,6 +253,31 @@ export class BuildDispatcher {
     this.runtimeHooks = hooks
   }
 
+  public getLatestBuildRequestSnapshot(
+    identity: BuildSupersessionTarget,
+  ): LatestBuildRequestSnapshot | null {
+    const ledgers = [
+      this.routingLedgerByKey.get(this.buildRoutingKey(identity, 'draft_preview')),
+      this.routingLedgerByKey.get(this.buildRoutingKey(identity, 'authoritative')),
+    ].filter((ledger): ledger is RoutingLedger => ledger !== undefined)
+    if (ledgers.length === 0) {
+      return null
+    }
+    const existing = ledgers.reduce((latest, candidate) =>
+      candidate.latestRequestedSeq > latest.latestRequestedSeq ? candidate : latest,
+    )
+    if (existing.latestRequestedSeq === 0) {
+      return null
+    }
+    return {
+      projectFileId: identity.projectFileId,
+      graphDocumentId: identity.graphDocumentId,
+      latestRequestedSeq: existing.latestRequestedSeq,
+      latestRequestedBuildRequestId: existing.latestRequestedBuildRequestId,
+      latestResolvedSeq: existing.latestResolvedSeq,
+    }
+  }
+
   public requestGraphBuild(options: GraphBuildRequestOptions): number {
     const seq = ++this.seqCounter
     this.latestRequestedSeq = seq
@@ -226,8 +285,9 @@ export class BuildDispatcher {
     const executionIntent = {
       ...(options.executionIntent ?? DEFAULT_BUILD_EXECUTION_INTENT),
     } satisfies BuildExecutionIntent
-    const ledger = this.getOrCreateRoutingLedger(routingIdentity)
+    const ledger = this.getOrCreateRoutingLedger(routingIdentity, executionIntent.geometryTarget)
     ledger.latestRequestedSeq = seq
+    ledger.latestRequestedBuildRequestId = routingIdentity.buildRequestId
 
     const changedParamIds = this.normalizeChangedParamIds(options.changedParamIds ?? [])
     const buildStatsPartKeys = this.normalizeBuildStatsPartKeys(
@@ -235,6 +295,7 @@ export class BuildDispatcher {
     )
     ledger.pendingChangedParamIdsBySeq.set(seq, changedParamIds)
     ledger.pendingBuildRequestIdBySeq.set(seq, routingIdentity.buildRequestId)
+    this.executionTargetBySeq.set(seq, executionIntent.geometryTarget)
     this.prunePendingRoutingState(ledger)
 
     const message: BuildRequest = {
@@ -256,13 +317,15 @@ export class BuildDispatcher {
       executionIntent,
       buildStatsPartKeys,
     })
-    this.worker.postMessage(message)
+    this.workerForExecutionTarget(executionIntent.geometryTarget).postMessage(message)
     return seq
   }
 
   public dispose(): void {
-    this.worker.removeEventListener('message', this.handleMessage)
-    this.worker.terminate()
+    this.draftWorker.removeEventListener('message', this.handleMessage)
+    this.authoritativeWorker.removeEventListener('message', this.handleMessage)
+    this.draftWorker.terminate()
+    this.authoritativeWorker.terminate()
   }
 
   public releaseAuthoritativeHandles(handleIds: readonly string[]): void {
@@ -276,7 +339,7 @@ export class BuildDispatcher {
     if (normalizedHandleIds.length === 0) {
       return
     }
-    this.worker.postMessage({
+    this.authoritativeWorker.postMessage({
       type: 'release_authoritative_handles',
       handleIds: normalizedHandleIds,
     })
@@ -284,7 +347,11 @@ export class BuildDispatcher {
 
   private readonly handleMessage = (event: MessageEvent<unknown>): void => {
     if (isBuildProgress(event.data)) {
-      const ledger = this.getOrCreateRoutingLedger(event.data)
+      const executionTarget = this.executionTargetBySeq.get(event.data.seq)
+      if (executionTarget === undefined) {
+        return
+      }
+      const ledger = this.getOrCreateRoutingLedger(event.data, executionTarget)
       this.prunePendingRoutingState(ledger)
       if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
         return
@@ -294,11 +361,13 @@ export class BuildDispatcher {
     }
 
     if (isBuildResult(event.data)) {
-      const ledger = this.getOrCreateRoutingLedger(event.data)
+      const executionTarget = event.data.bundle.executionIntent.geometryTarget
+      const ledger = this.getOrCreateRoutingLedger(event.data, executionTarget)
       this.prunePendingRoutingState(ledger)
       if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
         ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
         ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+        this.executionTargetBySeq.delete(event.data.seq)
         this.releaseAuthoritativeHandlesFromResult(event.data)
         return
       }
@@ -310,6 +379,7 @@ export class BuildDispatcher {
       )
       ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
       ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+      this.executionTargetBySeq.delete(event.data.seq)
       ledger.latestResolvedSeq = event.data.seq
       const acceptedResult = {
         ...event.data,
@@ -320,17 +390,44 @@ export class BuildDispatcher {
       return
     }
 
+    if (isBuildSuperseded(event.data)) {
+      const executionTarget = this.executionTargetBySeq.get(event.data.seq)
+      if (executionTarget === undefined) {
+        return
+      }
+      const ledger = this.getOrCreateRoutingLedger(event.data, executionTarget)
+      this.prunePendingRoutingState(ledger)
+      if (
+        event.data.seq <= ledger.latestResolvedSeq ||
+        ledger.pendingBuildRequestIdBySeq.get(event.data.seq) !== event.data.buildRequestId
+      ) {
+        return
+      }
+      ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
+      ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+      this.executionTargetBySeq.delete(event.data.seq)
+      ledger.latestResolvedSeq = event.data.seq
+      this.runtimeHooks.onBuildSuperseded?.(event.data)
+      return
+    }
+
     if (isWorkerError(event.data)) {
       if (event.data.op === 'build' && this.hasRoutingIdentity(event.data)) {
-        const ledger = this.getOrCreateRoutingLedger(event.data)
+        const executionTarget = this.executionTargetBySeq.get(event.data.seq)
+        if (executionTarget === undefined) {
+          return
+        }
+        const ledger = this.getOrCreateRoutingLedger(event.data, executionTarget)
         this.prunePendingRoutingState(ledger)
         if (this.isBuildStale(event.data.seq, event.data.buildRequestId, ledger)) {
           ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
           ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+          this.executionTargetBySeq.delete(event.data.seq)
           return
         }
         ledger.pendingChangedParamIdsBySeq.delete(event.data.seq)
         ledger.pendingBuildRequestIdBySeq.delete(event.data.seq)
+        this.executionTargetBySeq.delete(event.data.seq)
         ledger.latestResolvedSeq = event.data.seq
       } else if (this.isGlobalStale(event.data.seq)) {
         return
@@ -419,12 +516,12 @@ export class BuildDispatcher {
 
   private prunePendingRoutingState(ledger: RoutingLedger): void {
     for (const seq of ledger.pendingChangedParamIdsBySeq.keys()) {
-      if (seq < ledger.latestRequestedSeq) {
+      if (seq <= ledger.latestResolvedSeq) {
         ledger.pendingChangedParamIdsBySeq.delete(seq)
       }
     }
     for (const seq of ledger.pendingBuildRequestIdBySeq.keys()) {
-      if (seq < ledger.latestRequestedSeq) {
+      if (seq <= ledger.latestResolvedSeq) {
         ledger.pendingBuildRequestIdBySeq.delete(seq)
       }
     }
@@ -432,14 +529,16 @@ export class BuildDispatcher {
 
   private getOrCreateRoutingLedger(
     identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
+    executionTarget: GeometryExecutionTarget,
   ): RoutingLedger {
-    const key = this.buildRoutingKey(identity)
+    const key = this.buildRoutingKey(identity, executionTarget)
     const existing = this.routingLedgerByKey.get(key)
     if (existing !== undefined) {
       return existing
     }
     const created: RoutingLedger = {
       latestRequestedSeq: 0,
+      latestRequestedBuildRequestId: null,
       latestResolvedSeq: 0,
       pendingChangedParamIdsBySeq: new Map<number, string[]>(),
       pendingBuildRequestIdBySeq: new Map<number, string>(),
@@ -450,8 +549,15 @@ export class BuildDispatcher {
 
   private buildRoutingKey(
     identity: Pick<BuildRoutingIdentity, 'projectFileId' | 'graphDocumentId'>,
+    executionTarget: GeometryExecutionTarget,
   ): string {
-    return `${identity.projectFileId}::${identity.graphDocumentId}`
+    return `${identity.projectFileId}::${identity.graphDocumentId}::${executionTarget}`
+  }
+
+  private workerForExecutionTarget(
+    executionTarget: GeometryExecutionTarget,
+  ): BuildDispatcherWorker {
+    return executionTarget === 'authoritative' ? this.authoritativeWorker : this.draftWorker
   }
 
   private createLegacyRoutingIdentity(seq: number): BuildRoutingIdentity {

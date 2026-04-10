@@ -896,8 +896,8 @@ describe('NodeView geometry mode behavior', () => {
       '.SpaghettiPortPrimitiveValueMarker',
     ) as HTMLDivElement | null
     expect(dragLane).not.toBeNull()
-    expect(initialFill?.style.width).toBe('1.495%')
-    expect(initialMarker?.style.left).toBe('1.495%')
+    expect(initialFill?.style.width).toBe('29.93%')
+    expect(initialMarker?.style.left).toBe('29.93%')
 
     if (dragLane !== null) {
       dragLane.getBoundingClientRect = () =>
@@ -949,9 +949,9 @@ describe('NodeView geometry mode behavior', () => {
     const updatedDepthInput = updatedDepthRow?.querySelector(
       '.SpaghettiPortPrimitiveValueInput',
     ) as HTMLInputElement | null
-    expect(updatedDepthInput?.value).toBe('1500.0')
-    expect(updatedFill?.style.width).toBe('74.999%')
-    expect(updatedMarker?.style.left).toBe('74.999%')
+    expect(updatedDepthInput?.value).toBe('75.0')
+    expect(updatedFill?.style.width).toBe('74.975%')
+    expect(updatedMarker?.style.left).toBe('74.975%')
   })
 
   it('updates the shared extrude Type enum row from the visible ParaSelect controls', async () => {

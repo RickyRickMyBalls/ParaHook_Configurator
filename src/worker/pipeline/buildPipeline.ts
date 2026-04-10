@@ -16,6 +16,34 @@ import {
 } from './signatures'
 
 export type ProgressEmitter = (message: BuildProgress) => void
+export type BuildSupersessionCheck = () => boolean
+export type BuildPipelineOptions = {
+  isSuperseded?: BuildSupersessionCheck
+}
+
+export class BuildSupersededError extends Error {
+  public readonly seq: number
+  public readonly projectFileId: string
+  public readonly graphDocumentId: string
+  public readonly buildRequestId: string
+
+  public constructor(request: Pick<
+    BuildRequest,
+    'seq' | 'projectFileId' | 'graphDocumentId' | 'buildRequestId'
+  >) {
+    super(
+      `Superseded build request: ${request.graphDocumentId} (${request.buildRequestId})`,
+    )
+    this.name = 'BuildSupersededError'
+    this.seq = request.seq
+    this.projectFileId = request.projectFileId
+    this.graphDocumentId = request.graphDocumentId
+    this.buildRequestId = request.buildRequestId
+  }
+}
+
+export const isBuildSupersededError = (error: unknown): error is BuildSupersededError =>
+  error instanceof BuildSupersededError
 
 const buildCache = new Set<string>()
 const partCache = new Set<string>()
@@ -49,13 +77,25 @@ const findPart = (parts: PartArtifact[], partKey: string): PartArtifact => {
   return part
 }
 
+const throwIfSuperseded = (
+  request: Pick<BuildRequest, 'seq' | 'projectFileId' | 'graphDocumentId' | 'buildRequestId'>,
+  isSuperseded: BuildSupersessionCheck | undefined,
+): void => {
+  if (isSuperseded?.() !== true) {
+    return
+  }
+  throw new BuildSupersededError(request)
+}
+
 export const buildPipeline = async (
   request: BuildRequest,
   emitProgress: ProgressEmitter,
+  options: BuildPipelineOptions = {},
 ): Promise<BuildResult> => {
   const { seq, projectFileId, graphDocumentId, buildRequestId, compiledBuildData } = request
   const signatureInput = toBuildSignatureInput(request)
   const buildSignature = makeBuildSignature(signatureInput, ENGINE_MODE, CONTROL_MODE)
+  throwIfSuperseded(request, options.isSuperseded)
   const { parts, draftGeometryResult, authoritativeGeometryResult } = await buildModelResult({
     compiledBuildData,
     executionIntent: request.executionIntent,
@@ -64,10 +104,12 @@ export const buildPipeline = async (
       buildRequestId,
     },
   })
+  throwIfSuperseded(request, options.isSuperseded)
   const orderedPartKeys = [...compiledBuildData.orderedPartKeys]
   const affectedSet = new Set(computeAffectedPartKeys(request.changedParamIds, orderedPartKeys))
 
   for (const partKey of orderedPartKeys) {
+    throwIfSuperseded(request, options.isSuperseded)
     emit(emitProgress, {
       seq,
       projectFileId,
@@ -154,6 +196,7 @@ export const buildPipeline = async (
       })
 
       await Promise.resolve()
+      throwIfSuperseded(request, options.isSuperseded)
 
       emit(emitProgress, {
         seq,
@@ -168,6 +211,7 @@ export const buildPipeline = async (
       })
 
       void findPart(parts, partKey)
+      throwIfSuperseded(request, options.isSuperseded)
 
       const elapsed = now() - start
       partCache.add(partSignature)
@@ -202,6 +246,7 @@ export const buildPipeline = async (
   }
 
   buildCache.add(buildSignature)
+  throwIfSuperseded(request, options.isSuperseded)
   return emitArtifacts(
     {
       seq,

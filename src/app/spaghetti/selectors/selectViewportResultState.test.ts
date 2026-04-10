@@ -71,6 +71,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
       acceptedAuthoritativeGeometryResult: null,
       acceptedDraftGeometryResult: geometryResult,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: geometryResult,
       acceptedPreviewBuildOutputs: [artifact],
       previewPreparation,
       viewerTargetGraphDocumentId: 'graph-document-1',
@@ -129,6 +131,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('final'),
       acceptedAuthoritativeGeometryResult: null,
       acceptedDraftGeometryResult: geometryResult,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: geometryResult,
       acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
       previewPreparation,
       viewerTargetGraphDocumentId: 'graph-document-1',
@@ -160,6 +164,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('draft'),
       acceptedAuthoritativeGeometryResult: null,
       acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: null,
       acceptedPreviewBuildOutputs: [],
       previewPreparation: null,
       viewerTargetGraphDocumentId: 'graph-document-1',
@@ -200,6 +206,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
       acceptedAuthoritativeGeometryResult: null,
       acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: null,
       acceptedPreviewBuildOutputs: [],
       previewPreparation: null,
       viewerTargetGraphDocumentId: null,
@@ -251,6 +259,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
       acceptedAuthoritativeGeometryResult: authoritativeGeometryResult,
       acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: authoritativeGeometryResult,
+      committedDraftGeometryResult: null,
       acceptedPreviewBuildOutputs: [artifact],
       previewPreparation,
       viewerTargetGraphDocumentId: 'graph-document-1',
@@ -321,6 +331,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('final'),
       acceptedAuthoritativeGeometryResult: authoritativeGeometryResult,
       acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: authoritativeGeometryResult,
+      committedDraftGeometryResult: null,
       acceptedPreviewBuildOutputs: [artifact],
       previewPreparation,
       viewerTargetGraphDocumentId: 'graph-document-1',
@@ -395,6 +407,8 @@ describe('selectViewportResultState', () => {
       modeBehavior: resolveWorkspaceViewportResultModeBehavior('final'),
       acceptedAuthoritativeGeometryResult: authoritativeGeometryResult,
       acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: authoritativeGeometryResult,
+      committedDraftGeometryResult: null,
       acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
       previewPreparation,
       viewerTargetGraphDocumentId: 'graph-document-1',
@@ -415,5 +429,292 @@ describe('selectViewportResultState', () => {
       }),
     )
     expect(state.renderVm.viewerParts).toEqual([])
+  })
+
+  it('swaps auto mode from draft preview to retained final once renderable authoritative geometry is available', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const draftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-draft',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: null,
+      diagnostics: [],
+      trace: [],
+    })
+    const authoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: authoritativeGeometryResult,
+      acceptedDraftGeometryResult: draftGeometryResult,
+      committedAuthoritativeGeometryResult: authoritativeGeometryResult,
+      committedDraftGeometryResult: draftGeometryResult,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        requestedMode: 'auto',
+        visibleResultClass: 'final',
+        visibleSourceKind: 'retained-final',
+        geometryResult: authoritativeGeometryResult,
+        isPendingFinal: false,
+        isUsingFallback: false,
+        fallbackReason: null,
+      }),
+    )
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:authoritative-preview',
+        artifact: expect.objectContaining({
+          kind: 'mesh',
+          label: 'Authoritative Preview',
+        }),
+      }),
+    ])
+  })
+
+  it('exposes retained final base eligibility in auto mode during parameter churn without promoting it as current final', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-retained-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-retained-final',
+      },
+    })
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: null,
+      diagnostics: [],
+      trace: [],
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: currentDraftGeometryResult,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'artifact-preview',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'final',
+        retainedBaseSourceKind: 'retained-final',
+        retainedBaseGeometryResult: committedAuthoritativeGeometryResult,
+        overlayResultClass: 'draft',
+        overlaySourceKind: 'artifact-preview',
+        overlayGeometryResult: currentDraftGeometryResult,
+      }),
+    )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:authoritative-preview',
+      }),
+    ])
+  })
+
+  it('clears retained committed geometry when the current dependency graph no longer resolves the output', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+        status: 'unresolved',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-old-final',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-old-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: null,
+        retainedBaseState: 'cleared-by-dependency-break',
+        retainedBaseResultClass: null,
+        retainedBaseSourceKind: 'none',
+        retainedBaseGeometryResult: null,
+        fallbackReason: 'no-accepted-geometry',
+      }),
+    )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([])
+    expect(state.previewRenderVm.viewerParts).toEqual([])
+  })
+
+  it('uses retained draft mesh preview as the strict draft base during parameter churn', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const committedDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-retained-draft',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'draft',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('draft'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult,
+      acceptedPreviewBuildOutputs: [createArtifact('baseplate')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'artifact-preview',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'draft',
+        retainedBaseSourceKind: 'retained-draft',
+        retainedBaseGeometryResult: committedDraftGeometryResult,
+        overlayResultClass: 'draft',
+        overlaySourceKind: 'artifact-preview',
+      }),
+    )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:draft-preview',
+        artifact: expect.objectContaining({
+          kind: 'mesh',
+          label: 'Draft Preview',
+        }),
+      }),
+    ])
+    expect(state.overlayRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:slot-baseplate',
+      }),
+    ])
   })
 })

@@ -1,4 +1,5 @@
 import type {
+  BuildSuperseded,
   BuildExecutionIntent,
   BuildRequest,
   BuildProgress,
@@ -12,12 +13,13 @@ import {
 } from '../shared/buildTypes'
 import {
   buildPipeline,
+  isBuildSupersededError,
   type ProgressEmitter,
 } from './pipeline/buildPipeline'
 import { releaseAuthoritativeShapeSets } from './authoritativeGeometryStore'
 
 interface WorkerScope {
-  postMessage: (message: BuildResult | WorkerError | BuildProgress) => void
+  postMessage: (message: BuildResult | WorkerError | BuildProgress | BuildSuperseded) => void
   addEventListener: (
     type: 'message',
     listener: (event: MessageEvent<unknown>) => void,
@@ -26,6 +28,7 @@ interface WorkerScope {
 
 const workerScope = self as unknown as WorkerScope
 let isWarm = false
+const latestBuildRequestIdByRoutingKey = new Map<string, string>()
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -43,12 +46,30 @@ const isBuildExecutionIntent = (value: unknown): value is BuildExecutionIntent =
     value.updatePolicy === 'auto' ||
     value.updatePolicy === 'defer_until_release' ||
     value.updatePolicy === 'manual'
+  const draftPolicyValid =
+    value.draftPolicy === 'live' ||
+    value.draftPolicy === 'release' ||
+    value.draftPolicy === 'settle' ||
+    value.draftPolicy === 'suppressed'
+  const authoritativePolicyValid =
+    value.authoritativePolicy === 'live' ||
+    value.authoritativePolicy === 'release' ||
+    value.authoritativePolicy === 'settle' ||
+    value.authoritativePolicy === 'explicit'
   const outputIntentValid =
     value.outputIntent === 'transient_preview' ||
     value.outputIntent === 'accepted_final'
   const geometryTargetValid =
     value.geometryTarget === 'draft_preview' || value.geometryTarget === 'authoritative'
-  return buildModeValid && qualityValid && updatePolicyValid && outputIntentValid && geometryTargetValid
+  return (
+    buildModeValid &&
+    qualityValid &&
+    updatePolicyValid &&
+    draftPolicyValid &&
+    authoritativePolicyValid &&
+    outputIntentValid &&
+    geometryTargetValid
+  )
 }
 
 const isReleaseAuthoritativeHandlesRequest = (
@@ -94,6 +115,9 @@ const warmWorker = (): void => {
   }
 }
 
+const toBuildRoutingKey = (request: Pick<BuildRequest, 'projectFileId' | 'graphDocumentId'>): string =>
+  `${request.projectFileId}::${request.graphDocumentId}`
+
 warmWorker()
 
 workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => {
@@ -104,27 +128,45 @@ workerScope.addEventListener('message', async (event: MessageEvent<unknown>) => 
     return
   }
 
-  if (!isBuildRequest(event.data)) {
+  const message = event.data
+  if (!isBuildRequest(message)) {
     return
   }
 
+  const request = message
+  const routingKey = toBuildRoutingKey(request)
+  latestBuildRequestIdByRoutingKey.set(routingKey, request.buildRequestId)
   const emitProgress: ProgressEmitter = (message) => {
     workerScope.postMessage(message)
   }
   try {
-    const result = await buildPipeline(event.data, emitProgress)
+    const result = await buildPipeline(request, emitProgress, {
+      isSuperseded: () =>
+        latestBuildRequestIdByRoutingKey.get(routingKey) !== request.buildRequestId,
+    })
     workerScope.postMessage(result)
   } catch (error: unknown) {
+    if (isBuildSupersededError(error)) {
+      workerScope.postMessage({
+        type: 'build_superseded',
+        lane: 'build',
+        seq: request.seq,
+        projectFileId: request.projectFileId,
+        graphDocumentId: request.graphDocumentId,
+        buildRequestId: request.buildRequestId,
+      })
+      return
+    }
     const message = error instanceof Error ? error.message : 'Build failed.'
     const workerError: WorkerError = {
       type: 'worker_error',
-      seq: event.data.seq,
+      seq: request.seq,
       op: 'build',
       lane: 'build',
       message,
-      projectFileId: event.data.projectFileId,
-      graphDocumentId: event.data.graphDocumentId,
-      buildRequestId: event.data.buildRequestId,
+      projectFileId: request.projectFileId,
+      graphDocumentId: request.graphDocumentId,
+      buildRequestId: request.buildRequestId,
     }
     workerScope.postMessage(workerError)
   }

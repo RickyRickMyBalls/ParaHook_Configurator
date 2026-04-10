@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-04-10 09:25: Refreshed this roadmap against the live changelog plus the current Browser, Workspace, Worker, Model-Viewport, Sketch, and Extrude family docs, marking the newly shipped `Browser-12`, `Sketch-1`, `Extrude-4` through `Extrude-7`, `Worker Vision Phase 1` and `Phase 2`, and the latest `Worker-Vision-3` internal phases while replacing the stale `Workspace 7.5-7` through `7.5-11` ladder with the real open `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, and `Workspace 7.5-17` follow-ons
 26. 2026-04-01 18:03: Promoted `Build Path` out of the catch-all open-family list into the main `### Suggested Working Order`, placing it after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork while also tightening the family read so it now describes a scrub-friendly derived CAD-command diff surface rather than a second undo/history system
 25. 2026-04-01 17:59: Reordered the roadmap `### Suggested Working Order` so the live `Workspace 7.5-7` through `Workspace 7.5-11` cleanup ladder now sits explicitly ahead of `Workspace 5.3`, removed the already-shipped `App Shell` ladder from the active queue, and added one deferred later `AppShell` cleanup follow-on after the current workspace cleanup stack instead of leaving that future pass implicit
 24. 2026-04-01 13:36: Added the shipped `App Shell` ladder into the `### Suggested Working Order` section after that checklist was reformatted into numbered `####` family blocks, keeping the earlier shell groundwork visible in-sequence instead of only down in shipped reference
@@ -54,9 +55,11 @@ This file covers:
 - `Camera Controls`
 - `View Toolbar`
 - `Workspace Modes`
+- `Model Viewport`
 - `Spaghetti Editor`
 - `Nodes`
 - `Worker`
+- `Worker Vision`
 - `AppShell`
 
 This file does not replace:
@@ -84,7 +87,7 @@ The `Workspace Modes` family now belongs in that tracker too because it has a re
 ### Source Docs
 
 - `Browser`
-  - `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
 - `Console`
   - `docs/Human-Plans/Architecture/Console/Console.md`
 - `Edit History`
@@ -103,14 +106,19 @@ The `Workspace Modes` family now belongs in that tracker too because it has a re
   - `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`
 - `Workspace Modes`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
+- `Model Viewport`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
 - `Spaghetti Editor`
-  - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
 - `Nodes`
-  - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
-  - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
-  - `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
 - `Worker`
   - `docs/Human-Plans/Architecture/Worker/Worker.md`
+- `Worker Vision`
+  - `docs/Human-Plans/Architecture/Worker/Worker-Vision.md`
 - `AppShell`
   - `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md`
 
@@ -126,14 +134,20 @@ The `Workspace Modes` family now belongs in that tracker too because it has a re
 ## [~] Browser
 ### Info
 Source doc:
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
 
 Current read:
-- `Browser` is one of the cleanest newer architecture families right now
-- it already has a compact ladder with eleven shipped cuts plus one named open follow-on
-- the next open work is now:
+- `Browser` is much larger than the older `1` through `7` read this roadmap was still carrying
+- the family now has shipped work through:
+  - `Browser-12`
+- the remaining open Browser work is no longer just one cleanup bucket:
   - `Browser-7`
-- `Browser-7` is the accumulating cleanup bucket after the shipped Browser-6 structural split, and its first narrow shipped follow-on has already landed under the local `Browser-7.x` tracking
+  - `Browser-8`
+  - `Browser-9`
+  - `Browser-10`
+  - `Browser-11`
+  - `Browser-12.1`
+- several of those umbrellas already contain shipped subphases, so the roadmap should keep both the umbrella phase and the landed child cuts visible
 
 ### [x] Browser-1 - Build Policy Icon Surface
 ### [x] Browser-2 - Cascade And Effective Policy Truth
@@ -147,6 +161,42 @@ Current read:
 ### [x] Browser-5.5 - Reference Batch Load Queue And Aggregate Progress
 ### [x] Browser-6 - BrowserPanel Structure And Row-Family Cleanup
 ### [ ] Browser-7 - Browser Cleanup Follow-Ons
+### [x] Browser-7.1 - Viewport Explicit Multi-Select Sync
+### [ ] Browser-8 - Container Versus Leaf Browser Model
+### [x] Browser-8.1 - Container And Leaf Target Semantics
+### [x] Browser-8.2 - Folder CRUD In Browser UI And Console
+### [x] Browser-8.3 - Shared Leaf Target Entry For Viewer Transform And Multi-Select Prep
+### [x] Browser-8.4 - Reparenting And Drop Rules
+### [x] Browser-8.5 - Drag Session Architecture Cleanup
+### [ ] Browser-8.6 - Depth-Lane Drag Interaction
+### [x] Browser-8.7 - Pointer-Driven Drag Engine Rebuild
+### [ ] Browser-8.8 - Reliable Drag Interaction Rebuild
+### [x] Browser-8.8.1 - Simple Reliable Rearrange Baseline
+### [x] Browser-8.8.2 - Target Clarity And Trust Tuning
+### [x] Browser-8.8.3 - Motion And Rearrange Polish
+### [ ] Browser-8.8.4 - Reintroduce Richer Hierarchy Guidance Carefully
+### [ ] Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy
+### [x] Browser-9.1 - Reference Tree Convergence Baseline
+### [x] Browser-9.2 - Import Landing And Hierarchy Mapping
+### [x] Browser-9.3 - Part Row Exposure For Imported Objects
+### [x] Browser-9.4 - Imported Object Promotion To True Content Owners
+### [x] Browser-9.5 - Library Object Rows And Direct Placement Drag
+### [x] Browser-9.6 - Placement Shelf Removal And Single Object Identity
+### [x] Browser-9.7 - Normal Assembly Component Rows For Reference Hierarchy
+### [ ] Browser-10 - Unified Project Object Tree Source Of Truth
+### [x] Browser-10.1 - Unified Reference-Backed Project Owner Records
+### [x] Browser-10.2 - Single Browser Tree Derivation
+### [x] Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer
+### [x] Browser-10.4 - Load And Runtime Traits On Normal Nodes
+### [x] Browser-10.5 - Compatibility Seam Retirement
+### [ ] Browser-11 - Real Project-Owned Reference Containers And Full Container Parity
+### [x] Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records
+### [x] Browser-11.2 - Container Drag And Reparent Parity
+### [x] Browser-11.3 - Grouping Label Survival And Tree Simplification
+### [x] Browser-11.4 - Adapted Container Seam Retirement
+### [x] Browser-11.5 - Cross-Parent First-Drop Ordering Parity
+### [x] Browser-12 - Part Row Surface Cleanup And Usability Polish
+### [ ] Browser-12.1 - Real STEP Import Row Progress
 
 ## [~] Console
 ### Info
@@ -366,26 +416,27 @@ Source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
 
 Current read:
-- the `Workspace Modes` family now has a real shipped ladder plus explicit future follow-ons instead of only the older `05.1*` task-doc carry-forward
-- the shipped workspace groundwork now includes:
-  - `Workspace 0.1` through `Workspace 5.2`
-  - `Workspace 6`
-  - the shipped `Workspace 7.1` through `Workspace 7.5-6` slot, host-contract, multi-editor, replacement, and first split-plus-console groundwork recorded in the family index
-- the main remaining open follow-ons are now:
-  - `Workspace 7.5-7`
-  - `Workspace 7.5-8`
-  - `Workspace 7.5-9`
-  - `Workspace 7.5-10`
-  - `Workspace 7.5-11`
+- the `Workspace Modes` family kept moving after this roadmap stopped updating
+- the shipped groundwork now includes:
+  - `Workspace 0.1` through `Workspace 6`
+  - `Workspace 7.1`
+  - `Workspace 7.2`
+  - `Workspace 7.2c`
+  - `Workspace 7.2d`
+  - `Workspace 7.2e`
+  - `Workspace 7.2f`
+  - `Workspace 7.3`
+  - `Workspace 7.5-1`
+  - `Workspace 7.5-2`
+  - `Workspace 7.5-3`
+- the active open follow-ons are now the real native workspace docs:
   - `Workspace 5.3`
-- the family no longer reads like early extraction work is still pending:
-  - `Workspace 1`
-  - `Workspace 2`
-  - `Workspace 3`
-  - `Workspace 4`
-  - `Workspace 5`
-  - `Workspace 6`
-  all count as shipped groundwork in the current source doc
+  - `Workspace 7`
+  - `Workspace 7.2b`
+  - `Workspace 7.5`
+  - `Workspace 7.5-4`
+  - `Workspace 7.5-5`
+  - `Workspace 7.5-17`
 
 ### [x] Workspace 0.1 - Codebase Research And Implementation Audit
 ### [x] Workspace 1 - Shared Workspace Owner And State Extraction
@@ -398,13 +449,55 @@ Current read:
 ### [ ] Workspace 5.3 - Open Editors Multi-Graph Workspace UX And Session Truth
 ### [x] Workspace 6 - Workspace Selection, Surface Activation, And Canonical Intents
 ### [ ] Workspace 7 - Viewport Slot Architecture And Surface Swapping
+### [x] Workspace 7.1 - Viewport Slot Foundations, Header Shell, And First Split Loop
+### [x] Workspace 7.2 - Duplicated Surface Instances, Restore Rules, And Host-Mode Parity
+### [ ] Workspace 7.2b - Host-Mode Parity And Split-Host Retirement
+### [x] Workspace 7.2c - Primary Viewport Left Dock Unification
+### [x] Workspace 7.2c-1 - Primary Viewport Left Dock Host Extraction
+### [x] Workspace 7.2c-2 - Left Dock Ref Repoint And Behavior Parity
+### [x] Workspace 7.2c-3 - Old Left Dock Shell Retirement And Cleanup
+### [x] Workspace 7.2d - Explicit Browser Toolbar Ownership And Left-Dock Rehoming
+### [x] Workspace 7.2d-1 - Browser Toolbar Owner State And AppShell Repoint
+### [x] Workspace 7.2d-2 - Browser Toolbar Claim And Rehoming Parity
+### [x] Workspace 7.2e - Adaptive Split Preview Ghosts And Pane-Aware Nested Docking
+### [x] Workspace 7.2e-1 - Cursor-Driven Pane Split Preview Precision
+### [x] Workspace 7.2e-2 - Adaptive Dual Ghost Nested Split Suggestions
+### [x] Workspace 7.2f - Dual-Band Edge Intent And Whole-Browser Split Signaling
+### [x] Workspace 7.2f-1 - Dual-Band Edge Intent State And Right-Side Proof
+### [x] Workspace 7.2f-2 - Four-Side Expansion And Whole-Browser Ghost Layering
+### [x] Workspace 7.3 - Multiple Model Viewports And Per-Viewport Runtime Parity
+### [x] Workspace 7.3-1 - Second Model Viewport Runtime And Slot Truth
+### [x] Workspace 7.3-2 - Per-Viewport Host Targeting And Viewer Rehome Parity
+### [ ] Workspace 7.5 - Surface Host Standardization And Reusable Window Contract
+### [x] Workspace 7.5-1 - Shared Surface Placement Contract And Host Route Ownership
+### [x] Workspace 7.5-2 - Spaghetti Edge-Dock Split Truth And Workspace-Owned Resize
+### [x] Workspace 7.5-3 - Host Adapter Retirement And Future Surface Onboarding
+### [~] Workspace 7.5-4 - Browser And Spaghetti Shell Parity Cleanup
+### [~] Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity
+### [~] Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding
+
+## [~] Model Viewport
+### Info
+
+Source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
+
+Current read:
+- `Model Viewport` now has its own real family home instead of living only as workspace spillover
+- the umbrella `Model-Viewport 1` phase is still open, but its first child ladder already moved:
+  - `Model-Viewport 1.1`
+    - shipped
+- the next open work remains inside the `Model-Viewport 1` umbrella after the shared geometry request/result groundwork
+
+### [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
+### [x] Model-Viewport 1.1 - Shared Geometry IR And Result Contract
 
 ## [~] Spaghetti Editor
 ### Info
 
 Source docs:
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
 
 Current read:
 - the `Spaghetti Editor` umbrella doc is still more of a current architecture map than a true family phase index
@@ -423,9 +516,10 @@ Current read:
 ### Info
 
 Source docs:
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch.md`
-- `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Nodes-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Sketch/Sketch-Index2.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
 
 Current read:
 - the node family now has the deepest architecture-side phase tree
@@ -435,10 +529,28 @@ Current read:
   - extrude follow-on family
 
 Important note:
-- `Extrude` now has its own family index, but it is still at the very first open phase:
-  - `Extrude-1`
+- `Extrude` is no longer stuck at the first open phase
+- the live family index now shows:
+  - `Extrude-1A`
+    - shipped
+  - `Extrude-4`
+    - shipped
+  - `Extrude-5`
+    - shipped
+  - `Extrude-6`
+    - shipped
+  - `Extrude-7`
+    - shipped
+- `Sketch` also now has a newer child ladder beyond the older `3.2A` and `3.2B` tracks:
+  - `Sketch-1`
+    - shipped
+  - `Sketch-2`
+    - in progress through the changelog even though the family index still reads it as a follow-on
 
 ### [~] Sketch
+
+#### [x] Sketch-1 - Graph-Native Sketch B-Rep Loop Lowering
+#### [~] Sketch-2 - Sketch Node Output Cleanup And Profile Array Surface
 
 #### [x] [3.2A-0.1] Sketch To Extrude To Preview Contract Repair
 #### [ ] [3.2A-1] EWR Foundation And Shared Row Contract
@@ -478,9 +590,22 @@ Important note:
 #### [ ] [3.2B-5] Sketch Browser Depth And Authored Content Surfaces
 #### [~] [3.2B-6] Sketch Content Ownership And Later Export
 
-### [ ] Extrude
+### [~] Extrude
 
-#### [ ] Extrude-1 - Transform-Aware Preview And Runtime Alignment
+#### [~] Extrude-1 - Transform-Aware Preview And Runtime Alignment Family
+#### [x] Extrude-1A - Sketch Plane Transform Through Graph-Native Extrude
+#### [ ] Extrude-1B - Graph-Node And Feature-Stack Extrude Contract Convergence
+#### [~] Extrude-2 - Node Enrichment And Toolbar Polish
+#### [x] Extrude-2.1 - Extrude Input Pin Template Parity
+#### [~] Extrude-3 - Type Modes And Functional Completion
+#### [x] Extrude-3.1 - Enum Input Row And Type Selector
+#### [x] Extrude-3.2 - Real Type Modes Contract
+#### [x] Extrude-3.3 - Direction Modes And Depth Row Contract
+#### [~] Extrude-3.4 - Taper Angle And Type-Aware Surface Honesty
+#### [x] Extrude-4 - Closed Profile Selection And Consumption Contract
+#### [x] Extrude-5 - Output Row Standardization And UI Cleanup
+#### [x] Extrude-6 - SketchProfiles Collection Input Contract
+#### [x] Extrude-7 - Multi-Wire SketchProfiles Input Enablement
 
 ## [x] Worker
 ### Info
@@ -501,6 +626,38 @@ Current read:
 ### [x] [5.3A-6] Result Semantics, Browser Truth, And Console Truth
 ### [x] [5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion
 
+## [~] Worker Vision
+### Info
+
+Source doc:
+- `docs/Human-Plans/Architecture/Worker/Worker-Vision.md`
+
+Current read:
+- the original `Worker` ladder is still fully shipped, but the live worker planning surface now continues through the newer `Worker Vision` family
+- the current worker-vision state is:
+  - `Worker Vision Phase 1`
+    - shipped
+  - `Worker Vision Phase 2`
+    - shipped
+  - `Worker Vision Phase 3`
+    - open umbrella with `Worker-Vision-3 Phase 1` through `Phase 5` shipped and `Phase 6` still open
+  - `Worker Vision Phase 4`
+    - open
+  - `Worker Vision Phase 5`
+    - open
+
+### [x] Worker Vision Phase 1 - Request Supersession And Cooperative Early Abort
+### [x] Worker Vision Phase 2 - Draft Preview Scheduling And Settle Rules
+### [ ] Worker Vision Phase 3 - Authoritative Scheduling And Final Acceptance Rules
+### [x] Worker-Vision-3 Phase 1 - Authoritative Policy Contract And Request-Time Ownership
+### [x] Worker-Vision-3 Phase 2 - Authoritative Waiting State And Latest-Intent Replacement
+### [x] Worker-Vision-3 Phase 3 - Release, Settle, And Explicit Authoritative Trigger Flow
+### [x] Worker-Vision-3 Phase 4 - Accepted Draft Versus Authoritative Promotion Rules
+### [x] Worker-Vision-3 Phase 5 - Hardening And Family Handoff
+### [ ] Worker-Vision-3 Phase 6 - Display Preference Versus Build Policy Cleanup
+### [ ] Worker Vision Phase 4 - Shared Runtime Publication For Browser, Console, And Viewport Runtime Inspector
+### [ ] Worker Vision Phase 5 - Export And Long-Lived Runtime Reuse Over Accepted Authoritative Truth
+
 ## [x] AppShell
 ### Info
 
@@ -510,7 +667,7 @@ Source doc:
 Current read:
 - the current dedicated `AppShell` family is fully shipped for its local `[5.0F]` cleanup ladder
 - there is no open `5.0F` follow-on left inside the current AppShell family doc
-- if a later `AppShell` cleanup returns, it should be treated as a new workspace-driven follow-on after the current `Workspace 7.5-7` through `Workspace 7.5-11` ladder and `Workspace 5.3`, not as a reopening of the shipped `[5.0F]` family
+- if a later `AppShell` cleanup returns, it should be treated as a new workspace-driven follow-on after the current open workspace lane such as `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, `Workspace 7.5-17`, and `Workspace 5.3`, not as a reopening of the shipped `[5.0F]` family
 
 ### [x] [5.0F] AppShell Cleanup And Host Seam Extraction
 ### [x] [5.0F-1] AppShell Runtime Host Extraction
@@ -534,23 +691,36 @@ Keep shipped items visible when they are part of a family that was previously st
 - [x] `Workspace 5.1`
 - [x] `Workspace 5.2`
 - [x] `Workspace 6`
-- [ ] `Workspace 7.5-7`
-- [ ] `Workspace 7.5-8`
-- [ ] `Workspace 7.5-9`
-- [ ] `Workspace 7.5-10`
-- [ ] `Workspace 7.5-11`
+- [x] `Workspace 7.1`
+- [x] `Workspace 7.2`
+- [ ] `Workspace 7.2b`
+- [x] `Workspace 7.2c`
+- [x] `Workspace 7.2d`
+- [x] `Workspace 7.2e`
+- [x] `Workspace 7.2f`
+- [x] `Workspace 7.3`
+- [ ] `Workspace 7.5`
+- [~] `Workspace 7.5-4`
+- [~] `Workspace 7.5-5`
+- [~] `Workspace 7.5-17`
 - [ ] `Workspace 5.3`
 
 #### [ ] - 2 - Later AppShell Cleanup
 - [ ] `AppShell - Later Workspace Cleanup Follow-On`
 
-#### [ ] - 3 - View Toolbar
+#### [ ] - 3 - Model Viewport
+- [ ] `Model-Viewport 1`
+- [x] `Model-Viewport 1.1`
+
+#### [ ] - 4 - View Toolbar
 - [ ] `View Toolbar 1` (`[5.0I-1]`)
 - [ ] `View Toolbar 2` (`[5.0I-2]`)
 - [ ] `View Toolbar 3` (`[5.0I-3]`)
 - [ ] `View Toolbar 4` (`[5.0I-4]`)
 
-#### [ ] - 4 - Sketch
+#### [ ] - 5 - Sketch
+- [x] `Sketch-1`
+- [~] `Sketch-2`
 - [ ] `Sketch 1` (`[3.2A-1]`)
 - [ ] `Sketch 2` (`[3.2A-2]`)
 - [ ] `Sketch 3` (`[3.2A-3]`)
@@ -567,26 +737,52 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Sketch 5` (`[3.2B-5]`)
 - [~] `Sketch 6` (`[3.2B-6]`)
 
-#### [ ] - 5 - Extrude
-- [ ] `Extrude 1`
+#### [~] - 6 - Extrude
+- [~] `Extrude 1`
+- [x] `Extrude 1A`
+- [ ] `Extrude 1B`
+- [~] `Extrude 2`
+- [x] `Extrude 2.1`
+- [~] `Extrude 3`
+- [x] `Extrude 3.1`
+- [x] `Extrude 3.2`
+- [x] `Extrude 3.3`
+- [~] `Extrude 3.4`
+- [x] `Extrude 4`
+- [x] `Extrude 5`
+- [x] `Extrude 6`
+- [x] `Extrude 7`
 
-#### [ ] - 6 - Layers
+#### [ ] - 7 - Layers
 - [ ] `Layers 1`
 - [ ] `Layers 2`
 - [ ] `Layers 3`
 - [ ] `Layers 4`
 
-#### [ ] - 7 - Edit History
+#### [ ] - 8 - Edit History
 - [ ] `Edit History 1`
 - [ ] `Edit History 2`
 - [ ] `Edit History 3`
 - [ ] `Edit History 4`
 - [ ] `Edit History 5`
 
-#### [~] - 8 - Build Path
+#### [~] - 9 - Build Path
 - [~] `Build Path - Umbrella Concept And First Questions`
 
-#### [ ] - 9 - Export
+#### [ ] - 10 - Worker Vision
+- [x] `Worker Vision 1`
+- [x] `Worker Vision 2`
+- [ ] `Worker Vision 3`
+- [x] `Worker-Vision-3 Phase 1`
+- [x] `Worker-Vision-3 Phase 2`
+- [x] `Worker-Vision-3 Phase 3`
+- [x] `Worker-Vision-3 Phase 4`
+- [x] `Worker-Vision-3 Phase 5`
+- [ ] `Worker-Vision-3 Phase 6`
+- [ ] `Worker Vision 4`
+- [ ] `Worker Vision 5`
+
+#### [ ] - 11 - Export
 - [ ] `Export 1`
 - [ ] `Export 2`
 - [ ] `Export 3`
@@ -596,6 +792,11 @@ Keep shipped items visible when they are part of a family that was previously st
 ### Other Open Families
 
 - [ ] `Browser 7`
+- [ ] `Browser 8`
+- [ ] `Browser 9`
+- [ ] `Browser 10`
+- [ ] `Browser 11`
+- [ ] `Browser 12.1`
 - [~] `Console 4.1I`
 - [ ] `Camera Controls 5` (`[5.0H-5]`)
 - [ ] `Radio 8`
@@ -624,12 +825,69 @@ Keep shipped items visible when they are part of a family that was previously st
 - [x] `Worker 5` (`[5.3A-5]`)
 - [x] `Worker 6` (`[5.3A-6]`)
 - [x] `Worker 7` (`[5.3A-7]`)
+- [x] `Browser 7.1`
+- [x] `Browser 8.1`
+- [x] `Browser 8.2`
+- [x] `Browser 8.3`
+- [x] `Browser 8.4`
+- [x] `Browser 8.5`
+- [x] `Browser 8.7`
+- [x] `Browser 8.8.1`
+- [x] `Browser 8.8.2`
+- [x] `Browser 8.8.3`
+- [x] `Browser 9.1`
+- [x] `Browser 9.2`
+- [x] `Browser 9.3`
+- [x] `Browser 9.4`
+- [x] `Browser 9.5`
+- [x] `Browser 9.6`
+- [x] `Browser 9.7`
+- [x] `Browser 10.1`
+- [x] `Browser 10.2`
+- [x] `Browser 10.3`
+- [x] `Browser 10.4`
+- [x] `Browser 10.5`
+- [x] `Browser 11.1`
+- [x] `Browser 11.2`
+- [x] `Browser 11.3`
+- [x] `Browser 11.4`
+- [x] `Browser 11.5`
+- [x] `Browser 12`
+- [x] `Workspace 7.1`
+- [x] `Workspace 7.2`
+- [x] `Workspace 7.2c`
+- [x] `Workspace 7.2d`
+- [x] `Workspace 7.2e`
+- [x] `Workspace 7.2f`
+- [x] `Workspace 7.3`
+- [x] `Workspace 7.5-1`
+- [x] `Workspace 7.5-2`
+- [x] `Workspace 7.5-3`
+- [x] `Model-Viewport 1.1`
+- [x] `Extrude 1A`
+- [x] `Extrude 2.1`
+- [x] `Extrude 3.1`
+- [x] `Extrude 3.2`
+- [x] `Extrude 3.3`
+- [x] `Sketch-1`
+- [x] `Extrude 4`
+- [x] `Extrude 5`
+- [x] `Extrude 6`
+- [x] `Extrude 7`
+- [x] `Worker Vision 1`
+- [x] `Worker Vision 2`
+- [x] `Worker-Vision-3 Phase 1`
+- [x] `Worker-Vision-3 Phase 2`
+- [x] `Worker-Vision-3 Phase 3`
+- [x] `Worker-Vision-3 Phase 4`
+- [x] `Worker-Vision-3 Phase 5`
 
 ## Next Cleanup
 
 The likely next maintenance pass for this file is:
 - add more family notes only when a source architecture doc gains a real new phase
 - avoid inventing roadmap-only phase ids that do not exist in the family source docs
+- keep the newer `Worker Vision`, `Model Viewport`, `Sketch-1/2`, and `Extrude-6/7` ladders synced from their native family docs instead of leaving them changelog-only
 - keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own
 - let `Build Path` stay marked as an umbrella concept family until its first standalone execution phase exists
-- keep the workspace checklist synced to the native `Workspace-Modes` family docs instead of reviving the older `Workspace-1/2/3` shorthand again
+- keep the workspace checklist synced to the native `Workspace-Modes` family docs instead of reviving the older `Workspace 7.5-7` through `7.5-11` shorthand after the live family has moved on

@@ -486,6 +486,155 @@ body {
   gap: 8px;
 }
 
+.TitleStatusInspectorImpactCard {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(124, 160, 255, 0.1);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026) 0%, rgba(255, 255, 255, 0.018) 100%);
+}
+
+.TitleStatusInspectorImpactCopy {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(220, 228, 245, 0.84);
+}
+
+.TitleStatusInspectorImpactMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.TitleStatusInspectorImpactMetric {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(124, 160, 255, 0.08);
+}
+
+.TitleStatusInspectorImpactMetricValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(240, 244, 255, 0.94);
+}
+
+.TitleStatusInspectorImpactMetricLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(181, 196, 232, 0.68);
+}
+
+.TitleStatusInspectorImpactGroups {
+  display: grid;
+  gap: 8px;
+}
+
+.TitleStatusInspectorImpactGroup {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(124, 160, 255, 0.08);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.TitleStatusInspectorImpactGroup.state-rebuilt {
+  border-color: rgba(82, 142, 255, 0.16);
+  background: rgba(82, 142, 255, 0.04);
+}
+
+.TitleStatusInspectorImpactGroup.state-reused {
+  border-color: rgba(127, 224, 169, 0.14);
+  background: rgba(127, 224, 169, 0.035);
+}
+
+.TitleStatusInspectorImpactGroup.state-evicted {
+  border-color: rgba(255, 188, 96, 0.16);
+  background: rgba(255, 188, 96, 0.04);
+}
+
+.TitleStatusInspectorImpactGroupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.TitleStatusInspectorImpactGroupLabel,
+.TitleStatusInspectorImpactGroupValue {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.TitleStatusInspectorImpactGroupLabel {
+  color: rgba(216, 226, 246, 0.84);
+}
+
+.TitleStatusInspectorImpactGroupValue {
+  color: rgba(181, 196, 232, 0.66);
+}
+
+.TitleStatusInspectorImpactRowList {
+  display: grid;
+  gap: 6px;
+}
+
+.TitleStatusInspectorImpactRow {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(124, 160, 255, 0.08);
+  background: rgba(255, 255, 255, 0.024);
+}
+
+.TitleStatusInspectorImpactRow.state-rebuilt {
+  border-color: rgba(82, 142, 255, 0.12);
+}
+
+.TitleStatusInspectorImpactRow.state-reused {
+  border-color: rgba(127, 224, 169, 0.12);
+}
+
+.TitleStatusInspectorImpactRow.state-evicted {
+  border-color: rgba(255, 188, 96, 0.12);
+}
+
+.TitleStatusInspectorImpactRowLabel,
+.TitleStatusInspectorImpactRowDetail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.TitleStatusInspectorImpactRowLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(240, 244, 255, 0.94);
+}
+
+.TitleStatusInspectorImpactRowDetail {
+  font-size: 11px;
+  color: rgba(189, 198, 221, 0.74);
+}
+
 .PanelStack {
   display: flex;
   flex-direction: column;
