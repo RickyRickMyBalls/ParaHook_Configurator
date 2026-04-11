@@ -9,6 +9,7 @@ import { useRuntimeInspectorTaskStore } from '../store/runtimeInspectorTaskStore
 import { type RuntimeInspectorVm, useRuntimeInspectorVm } from '../store/runtimeInspectorVm'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
+import { useAppStore } from '../store/useAppStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -41,6 +42,10 @@ const resetSpaghettiStore = () => {
   useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 }
 
+const resetAppStore = () => {
+  useAppStore.setState(useAppStore.getInitialState(), true)
+}
+
 describe('PrimaryViewportLeftDock', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -51,6 +56,7 @@ describe('PrimaryViewportLeftDock', () => {
     resetViewportRuntimeStatsStore()
     resetRuntimeInspectorTaskStore()
     resetSpaghettiStore()
+    resetAppStore()
     latestVm = null
   })
 
@@ -67,6 +73,7 @@ describe('PrimaryViewportLeftDock', () => {
     resetViewportRuntimeStatsStore()
     resetRuntimeInspectorTaskStore()
     resetSpaghettiStore()
+    resetAppStore()
     latestVm = null
   })
 
@@ -189,6 +196,68 @@ describe('PrimaryViewportLeftDock', () => {
     const statusPosition = Array.from(statusZone?.parentElement?.children ?? []).indexOf(statusZone!)
     const panelStackPosition = Array.from(statusZone?.parentElement?.children ?? []).indexOf(panelStackShell!)
     expect(statusPosition).toBeLessThan(panelStackPosition)
+  })
+
+  it('keeps viewport presentation controls hidden behind the runtime inspector info menu and writes changes into app state', async () => {
+    await renderDock()
+
+    const expandButton = container?.querySelector(
+      'button[aria-label="Expand runtime inspector"]',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      expandButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelector('[aria-label="Viewport presentation settings"]')).toBeNull()
+
+    const infoButton = container?.querySelector(
+      'button[aria-label="Show viewport presentation settings"]',
+    ) as HTMLButtonElement | null
+
+    expect(infoButton).not.toBeNull()
+
+    await act(async () => {
+      infoButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const presentationMenu = container?.querySelector(
+      '[aria-label="Viewport presentation settings"]',
+    ) as HTMLElement | null
+    const lastLoadedOpacity = container?.querySelector(
+      'input[aria-label="Last loaded geometry opacity"]',
+    ) as HTMLInputElement | null
+    const previewBrepColor = container?.querySelector(
+      'input[aria-label="Preview B-rep while changing param color"]',
+    ) as HTMLInputElement | null
+
+    expect(presentationMenu).not.toBeNull()
+    expect(presentationMenu?.textContent).toContain('Viewport Presentation')
+    expect(presentationMenu?.textContent).toContain('Visual only')
+    expect(lastLoadedOpacity?.value).toBe('50')
+    expect(previewBrepColor?.value).toBe('#00ff00')
+
+    await act(async () => {
+      if (lastLoadedOpacity !== null) {
+        const rangeValueSetter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set
+        rangeValueSetter?.call(lastLoadedOpacity, '62')
+        lastLoadedOpacity.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (previewBrepColor !== null) {
+        const colorValueSetter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set
+        colorValueSetter?.call(previewBrepColor, '#336699')
+        previewBrepColor.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useAppStore.getState().viewportPresentationSettings.lastLoaded.opacity).toBe(0.62)
+    expect(useAppStore.getState().viewportPresentationSettings.previewBrep.color).toBe('#336699')
   })
 
   it('renders the current runtime task card when accepted build work is active', async () => {

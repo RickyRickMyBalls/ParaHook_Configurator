@@ -1965,6 +1965,114 @@ describe('SpaghettiWindowHost', () => {
     )
   })
 
+  it('resizes the floating spaghetti window from the west edge by changing width and x position together', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const westHandle = container?.querySelector(
+      '[data-spaghetti-floating-resize-handle="w"]',
+    ) as HTMLDivElement | null
+
+    expect(westHandle).not.toBeNull()
+
+    await act(async () => {
+      westHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 24,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 4,
+          clientY: 300,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 4,
+          clientY: 300,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSize).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      expect.objectContaining({
+        width: 820,
+        height: 600,
+      }),
+    )
+    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      expect.objectContaining({
+        x: 4,
+        y: 28,
+      }),
+    )
+  })
+
+  it('resizes the floating spaghetti window from the north-west corner by changing height width x and y together', async () => {
+    await renderHarness()
+    mockGeometry()
+
+    const northWestHandle = container?.querySelector(
+      '[data-spaghetti-floating-resize-handle="nw"]',
+    ) as HTMLDivElement | null
+
+    expect(northWestHandle).not.toBeNull()
+
+    await act(async () => {
+      northWestHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 24,
+          clientY: 28,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 10,
+          clientY: 10,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 10,
+          clientY: 10,
+        }),
+      )
+    })
+
+    expect(currentSpaghettiState.setEditorViewportSize).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      expect.objectContaining({
+        width: 814,
+        height: 618,
+      }),
+    )
+    expect(currentSpaghettiState.setEditorViewportPosition).toHaveBeenCalledWith(
+      'editor-viewport-1',
+      expect.objectContaining({
+        x: 10,
+        y: 10,
+      }),
+    )
+  })
+
   it('persists titlebar window settings, tray, header, and canvas state for the active viewport', async () => {
     await renderHarness()
 

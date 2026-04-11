@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-04-10 15:10: Tightened `Worker-Vision-3 Phase 9.6 - Runtime Narration And Hardening Proof` into an implementation-ready closeout slice by grounding it in the live `TitleStatusBar.tsx` presentation labels, the current `selectViewportResultStatus.ts` coarse `Draft / Final / Building Final` HUD wording, and the existing `selectViewportResultState.ts` preview-kind plus accepted-state contract that the final narration pass should now consume without reopening render timing or Browser policy
+12. 2026-04-10 14:52: Marked `Worker-Vision-3 Phase 9.2 - Presentation Controls UI Surface` complete in this planning surface after the three presentation controls landed behind a compact hidden `i` menu inside the runtime inspector header, so the live Phase 9 follow-on now narrows down to the final `9.6` wording and proof closeout only
 11. 2026-04-10 14:39: Marked `Worker-Vision-3 Phase 9.5 - Preview Timing And 75 Percent Promotion` and `Worker-Vision-3 Phase 9.5b - Distinct Authoritative Preview Lane And Auto Layered Promotion` complete in this planning surface after the selector timing pass and the staged authoritative preview-ready plus `Auto` retained-base layering follow-through both landed in code, so the held-authoritative behavior is now recorded as shipped before the later `9.2` controls UI and `9.6` wording closeout
 10. 2026-04-10 14:23: Tightened `Worker-Vision-3 Phase 9.5b - Distinct Authoritative Preview Lane And Auto Layered Promotion` into an implementation-ready bridge slice by grounding it in the live `useSpaghettiStore.ts` viewer-target accepted-versus-committed authoritative selectors, the current `selectViewportResultState.ts` non-synthesized `previewBrep` rule, and the missing `ViewerHost.tsx` `Auto` retained-final-plus-final-overlay branch needed for held `lastLoaded 100% + previewBrep 75%` layering
 9. 2026-04-10 14:17: Added `Worker-Vision-3 Phase 9.5b - Distinct Authoritative Preview Lane And Auto Layered Promotion` after code review of the shipped `9.5` selector timing pass showed two remaining seams still block the full held-authoritative behavior: the live store does not yet expose a truly newer non-accepted authoritative preview result distinct from the committed lane, and `ViewerHost.tsx` does not yet render `Auto` as retained `lastLoaded` base plus `previewBrep` overlay when that newer authoritative preview becomes ready during the same held interaction
@@ -450,7 +452,7 @@ Recommended implementation-grade scenarios:
 - `updating previewMesh opacity changes only presentation settings and does not touch Browser build policy`
 - `updating previewBrep color changes only presentation settings and does not touch accepted or in-flight graph runtime truth`
 
-## [ ] Worker-Vision-3 Phase 9.2 - Presentation Controls UI Surface
+## [x] Worker-Vision-3 Phase 9.2 - Presentation Controls UI Surface
 
 ### Purpose
 
@@ -1138,20 +1140,133 @@ After this slice:
 - proof exists that control settings do not alter build policy
 - the Phase 9 family can close on one honest controllable presentation ladder
 
+### Current Strongest Read
+
+The live code now provides these strongest seams:
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+  - already exposes the key truth `9.6` should narrate rather than reinvent:
+    - `previewState.kind` with explicit `live-preview` versus `preview-ready`
+    - `acceptedState` with explicit accepted ownership
+    - visible, retained-base, and overlay presentation-state ids
+  - is therefore the strongest current owner for narration inputs, not for new wording output
+- `src/app/components/TitleStatusBar.tsx`
+  - already contains the user-facing labels and descriptions for:
+    - `Last loaded geometry`
+    - `Preview mesh while changing param`
+    - `Preview B-rep while changing param`
+  - already tells users the settings are `Visual only`
+  - is the strongest current surface for runtime-inspector wording hardening
+- `src/app/components/ViewportOverlay.tsx`
+  - already renders the compact `Geometry: ...` HUD line
+  - currently depends on `selectViewportResultStatus.ts` for short status wording
+  - is therefore the strongest current compact-status surface for the `ready` versus `accepted` distinction
+- `src/app/spaghetti/selectors/selectViewportResultStatus.ts`
+  - currently still collapses status down to coarse labels such as:
+    - `Draft`
+    - `Final`
+    - `Building Final...`
+    - `Final Unavailable`
+  - does not yet expose the Phase 9 distinction between live preview, preview ready, and accepted
+- `src/app/store/runtimeInspectorVm.ts`
+  - already owns the runtime-inspector shell labels and bottom hint text
+  - currently keeps the hint focused on accepted build lifecycle and viewer samples, not Phase 9 preview-state narration
+  - is the strongest current owner for any compact explanatory hint that should stay aligned with the selector truth
+
+Important current limitation:
+- the shipped presentation behavior is now more honest than the shortest user-facing wording
+- the runtime inspector labels are close, but the compact HUD status still risks conflating `preview-ready authoritative` with ordinary `Final`
+- the final closeout still needs explicit proof that tuning `lastLoaded / previewMesh / previewBrep` presentation never changes Browser build timing or accepted-truth ownership
+
+### Locked Direction
+
+#### 1. `9.6` should consume existing selector truth, not invent a second narration model
+
+Recommended first rule:
+- derive wording from the already-shipped `selectViewportResultState.ts` facts for:
+  - `live-preview`
+  - `preview-ready`
+  - `accepted`
+
+Important rule:
+- do not add a second hidden state machine in UI code just to choose labels
+- keep selector/store ownership of timing truth where it already lives
+
+#### 2. Runtime-inspector wording should name readiness versus acceptance directly
+
+Recommended first rule:
+- strengthen the inspector copy so the three controllable presentation rows and any nearby helper text use the same plain language:
+  - `Last loaded`
+  - `Preview mesh`
+  - `Authoritative preview ready`
+  - `Accepted`
+
+Important rule:
+- do not keep any inspector wording that implies the held authoritative preview is already accepted
+- do not let `preview B-rep` read like a generic synonym for final committed truth
+
+#### 3. The compact `Geometry:` HUD should stop collapsing preview-ready authoritative state into plain `Final`
+
+Recommended first rule:
+- update the short status path so the HUD can distinguish at least:
+  - live draft preview
+  - preview-ready authoritative result
+  - accepted result
+  - unavailable / waiting states
+
+Important rule:
+- the compact status can stay short, but it must remain honest
+- do not reuse `Final` for a non-accepted preview-ready authoritative state
+
+#### 4. Keep the proof centered on presentation-only ownership
+
+Recommended first rule:
+- add focused proof that changing presentation controls:
+  - updates only `viewportPresentationSettings`
+  - does not mutate Browser build policy
+  - does not mutate accepted runtime/result ownership
+
+Important rule:
+- do not widen this into a new behavior pass
+- if implementation reveals a behavior mismatch, record it separately rather than silently folding it into `9.6`
+
+#### 5. Prefer one small wording pass across the real active surfaces
+
+Recommended first rule:
+- focus this slice on:
+  - `TitleStatusBar.tsx`
+  - `ViewportOverlay.tsx`
+  - `selectViewportResultStatus.ts`
+  - `runtimeInspectorVm.ts`
+
+Important rule:
+- do not reopen `ViewerHost.tsx`, `Viewer.ts`, or Browser scheduling unless the wording pass proves they are still exposing stale semantics directly
+
+### First Proof
+
+- the runtime inspector and compact HUD both distinguish `preview ready` from `accepted`
+- `Final` wording appears only when the visible state is actually accepted-visible truth
+- changing `lastLoaded`, `previewMesh`, or `previewBrep` presentation settings leaves Browser policy and accepted runtime truth unchanged
+- `Auto live` held-authoritative behavior still narrates retained accepted base plus non-accepted authoritative preview honestly after the wording pass
+
 ### Expected File Targets
 
 Primary implementation files:
+- `src/app/components/TitleStatusBar.tsx`
 - `src/app/components/ViewportOverlay.tsx`
-- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/selectors/selectViewportResultStatus.ts`
+- `src/app/store/runtimeInspectorVm.ts`
 
 Likely supporting files:
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
 - `src/app/components/ViewportOverlay.test.tsx`
 - `src/app/store/useAppStore.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
 - `src/app/components/ViewerHost.test.tsx`
 
 ### Verification Bar
 
 - runtime wording distinguishes `last loaded`, `preview mesh`, `authoritative preview ready`, and `accepted`
+- the compact `Geometry:` HUD no longer labels preview-ready authoritative state as plain `Final`
 - user controls are proven presentation-only
 - no wording path calls held-authoritative-ready geometry `accepted`
 
@@ -1159,27 +1274,28 @@ Likely supporting files:
 
 Recommended reading order:
 1. `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation.md`
-2. `src/app/store/useAppStore.ts`
-3. `src/app/components/ViewportOverlay.tsx`
-4. `src/app/spaghetti/selectors/selectViewportResultState.ts`
-5. `src/app/spaghetti/store/useSpaghettiStore.ts`
-6. `src/app/components/ViewerHost.tsx`
-7. `src/viewer/Viewer.ts`
-8. `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
-9. `src/app/components/ViewerHost.test.tsx`
+2. `src/app/spaghetti/selectors/selectViewportResultState.ts`
+3. `src/app/spaghetti/selectors/selectViewportResultStatus.ts`
+4. `src/app/components/TitleStatusBar.tsx`
+5. `src/app/store/runtimeInspectorVm.ts`
+6. `src/app/components/ViewportOverlay.tsx`
+7. `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+8. `src/app/components/ViewportOverlay.test.tsx`
+9. `src/app/store/useAppStore.test.ts`
 
 Recommended execution order:
-1. ship `9.1` so the three presentation-state settings exist with one explicit owner
-2. ship `9.3` so selector/host seams can define honest live-preview versus preview-ready versus accepted state before UI labels harden
-3. ship `9.4` so the viewer applies those states and settings without changing behavior timing yet
-4. ship `9.5` so Browser `live` versus `release` timing and the `50% -> 75% -> 100%` promotion ladder become real behavior
-5. ship `9.5b` so the live app gains one real non-accepted authoritative preview-ready read plus the missing `Auto` retained-base-plus-`previewBrep` layering proof
-6. ship `9.2` so users can edit the now-honest presentation states through a small control surface
-7. ship `9.6` so runtime wording and proof surfaces close the family honestly
+1. inspect the current inspector copy in `TitleStatusBar.tsx` and the short HUD status path in `selectViewportResultStatus.ts` to identify every remaining place that still collapses `preview-ready` into `Final` or otherwise hides the ready-versus-accepted distinction
+2. tighten the short status contract so `ViewportOverlay.tsx` can narrate live preview, preview-ready, accepted, and unavailable states honestly without becoming a second owner of timing truth
+3. harden any runtime-inspector helper text in `TitleStatusBar.tsx` and `runtimeInspectorVm.ts` so the compact copy matches the shipped `lastLoaded / previewMesh / previewBrep` ladder and explicitly stays presentation-only where appropriate
+4. add focused tests in `PrimaryViewportLeftDock.test.tsx` and `ViewportOverlay.test.tsx` for the positive wording cases and one negative case where preview-ready authoritative state must not read as accepted
+5. re-run the existing store/selector proof that changing presentation controls only touches `viewportPresentationSettings` and leaves Browser policy plus accepted runtime truth alone
 
 ### Implementation-Grade Scenarios
 
 - `Users can tune transparency and color independently for last loaded geometry, preview mesh, and preview B-rep without altering build policy`
+- `Auto live with retained accepted base plus preview-ready authoritative overlay never labels the visible state as accepted before release-plus-acceptance`
+- `The compact Geometry HUD can say preview ready without collapsing that state to Final`
+- `The runtime inspector presentation descriptions stay aligned with the same ready-versus-accepted vocabulary used by the HUD`
 - `Auto live shows draft mesh at 50 percent during drag, then upgrades to 75 percent when a preview-ready result becomes available without becoming accepted`
 - `Auto release shows no drag preview, then shows the first preview-ready result at 75 percent only after release`
 - `Draft live remains draft-pure while Final live does not borrow ordinary draft preview just to stay responsive`

@@ -30,15 +30,26 @@ const buildPreviewRenderVmFromPreparation = (
   const items = buildPreviewPreparationEntries(previewPreparation, buildOutputs)
     .map((entry) => ({
       ...entry,
-      id: `preview:${entry.slotId}:${entry.sourceNodeId}:${entry.sourcePartKeyStr}`,
+      id:
+        entry.memberIndex === undefined
+          ? `preview:${entry.slotId}:${entry.sourceNodeId}:${entry.sourcePartKeyStr}`
+          : `preview:${entry.slotId}:${entry.sourceNodeId}:${entry.sourcePartKeyStr}:member-${String(entry.memberIndex + 1).padStart(3, '0')}`,
       nodeId: entry.sourceNodeId,
       isReady: entry.renderable !== null,
       // Preview identity stays slot-scoped even when the underlying artifact identity is part-scoped.
-      viewerKey: entry.slotId,
+      viewerKey:
+        entry.memberIndex === undefined
+          ? entry.slotId
+          : `${entry.slotId}:member-${String(entry.memberIndex + 1).padStart(3, '0')}`,
       viewerPart:
         entry.renderable === null
           ? null
-          : toViewerRenderablePart(entry.renderable, entry.slotId),
+          : toViewerRenderablePart(
+              entry.renderable,
+              entry.memberIndex === undefined
+                ? entry.slotId
+                : `${entry.slotId}:member-${String(entry.memberIndex + 1).padStart(3, '0')}`,
+            ),
     }))
   return {
     items,

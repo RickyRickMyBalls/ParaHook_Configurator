@@ -3,6 +3,19 @@
 ## Doc Header
 
 ### Doc History
+59. 2026-04-10 20:46: Tightened `Nodes-5.5a - Output Preview Collection Surface Polish` inside the dedicated `Nodes-5` future doc into an implementation-ready pass by grounding it in the older `Output Preview` node template plus the already-shipped split/member preparation and published-object seams, then refreshed this umbrella handoff so the next node-contract slice now clearly targets collection-aware slot/object readability instead of a still-general polish note
+58. 2026-04-10 20:41: Marked `Nodes-5.5 - Per-Body Expansion And Wiring Surface` shipped inside the dedicated `Nodes-5` future doc after plural `New Objects` extrude outputs gained real child `SolidBody` member rows plus virtual member output ports and focused proof across effective-port, evaluator, selector, validator, and node-surface seams, then refreshed this umbrella handoff so the next node-contract slice now advances to `Nodes-5.5a - Output Preview Collection Surface Polish`
+57. 2026-04-10 20:26: Tightened `Nodes-5.5 - Per-Body Expansion And Wiring Surface` inside the dedicated `Nodes-5` future doc into an implementation-ready pass by grounding it in the live extrude managed-output row seam, the current selector-owned body-count/result-shape read, and the existing sketch collection parent-versus-child precedent, then refreshed this umbrella handoff so the next node-contract slice now points at plural `New Objects` child `SolidBody` expansion instead of a still-broad later row idea
+56. 2026-04-10 20:23: Added `Nodes-5.5a - Output Preview Collection Surface Polish` inside the dedicated `Nodes-5` future doc after the newer `5.4a` extrude output-mode work made the remaining `Output Preview` UI debt more visible, then refreshed this umbrella handoff so the shared lane now explicitly separates per-body extrude-row expansion from the later output-preview collection-surface cleanup
+55. 2026-04-10 19:39: Tightened `Nodes-5.4a - Extrude Combine Versus New Objects Authored Contract` inside the dedicated `Nodes-5` future doc into an implementation-ready authored extrude slice by grounding it in the live `Geometry/Extrude` params/evaluator contract in `nodeRegistry.ts`, the current extrude managed-row surface in `NodeView.tsx`, and the focused extrude registry/evaluator/node-surface tests, then refreshed this umbrella handoff so the next node-contract pass now points at one explicit authored-mode implementation instead of leaving `5.4a` as a broad product idea
+54. 2026-04-10 19:34: Marked `Nodes-5.4 - Grouped Versus Split Publication Contract` shipped inside the dedicated `Nodes-5` future doc after `Output Preview` adopted explicit slot-level grouped-versus-split metadata, the preview/output/build-unit seams widened one accepted split `solidBodies` slot into deterministic member-scoped identities while preserving grouped back-compat, and the focused proof advanced this umbrella handoff toward `Nodes-5.4a - Extrude Combine Versus New Objects Authored Contract`
+53. 2026-04-10 19:08: Marked `Nodes-5.3 - Output Preview Collection Input Acceptance` shipped inside the dedicated `Nodes-5` future doc after the shared endpoint-compatibility bridge widened so `solidBodies` now feeds `Output Preview in:solid:*`, focused validation/parity proof confirmed aggregate body collections wire into slot ports alongside atomic `solidBody` and legacy `toeLoft`, and the debug-inspector proof showed those collection-fed slots still normalize through the current one-slot preview/output surface, then advanced this umbrella handoff toward `Nodes-5.4 - Grouped Versus Split Publication Contract`
+52. 2026-04-10 19:02: Tightened `Nodes-5.3 - Output Preview Collection Input Acceptance` inside the dedicated `Nodes-5` future doc into an implementation-ready next slice by grounding it in the live `Output Preview in:solid:*` validation tests plus the still one-slot-to-one-source seams in `previewPreparation.ts` and `outputSurface.ts`, then refreshed this umbrella handoff so the next node-contract pass now points at singular-versus-collection slot acceptance and normalization while keeping grouped-versus-split publication policy deferred to `Nodes-5.4`
+51. 2026-04-10 18:59: Marked `Nodes-5.2 - Extrude Collection Output Contract` shipped inside the dedicated `Nodes-5` future doc after `Geometry/Extrude` adopted the explicit `solidBodies` output contract, the positive evaluator path began publishing the deterministic wrapped aggregate body shape, and the focused extrude node-surface proof updated its visible output copy to stay honest about collection-capable publication, then advanced this umbrella handoff toward `Nodes-5.3 - Output Preview Collection Input Acceptance`
+50. 2026-04-10 18:43: Tightened `Nodes-5.2 - Extrude Collection Output Contract` inside the dedicated `Nodes-5` future doc into an implementation-ready next slice by grounding it in the live singular `SolidBody` registry, evaluator, and node-surface seams, then refreshed this umbrella handoff so the next node-contract pass now points directly at honest `Geometry/Extrude` collection publication while keeping `Output Preview` collection acceptance staged for `Nodes-5.3`
+49. 2026-04-10 18:39: Marked `Nodes-5.1 - Solid Body Collection Type And Evaluator Contract` shipped inside the dedicated `Nodes-5` future doc after the shared spaghetti schema, evaluator, and endpoint layers adopted the explicit `solidBodies` kind and wrapped aggregate validation while focused evaluator and validation tests proved the new collection contract without widening `Geometry/Extrude` output publication or `Output Preview`, then advanced this umbrella handoff toward `Nodes-5.2 - Extrude Collection Output Contract`
+48. 2026-04-10 18:25: Tightened `Nodes-5.1 - Solid Body Collection Type And Evaluator Contract` inside the dedicated `Nodes-5` future doc into an implementation-ready first slice by grounding it in the live singular-only `solidBody` schema, evaluator, and endpoint seams, then refreshed this umbrella handoff so the next node-contract pass now starts with one explicit collection type-and-validation boundary instead of a vague later body-multiplicity note
+47. 2026-04-10 16:08: Added `Nodes-5 - Solid Body Collections And Output Preview Publication Split` as the next dedicated umbrella lane after the shipped `Nodes-3` row-family work, created its standalone future-doc handoff under `Nodes/Future/`, and narrowed this index so the new body-collection/output-preview contract now reads as one explicit shared execution ladder instead of staying only as an ad hoc extrude/output-preview follow-on idea
 46. 2026-04-08 12:03: Marked `Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep` shipped inside the dedicated `Nodes-3` future doc after `src/app/spaghetti/canvas/NodeView.tsx` and `src/app/spaghetti/types/fieldTree.ts` locked explicit structured-parent composite ownership for `Vec2` / `Vec3`, then refreshed this umbrella handoff so the full `Nodes-3` row-family ladder now reads as shipped and points forward to later family adoption under `Nodes-4`
 45. 2026-04-08 11:47: Tightened `Nodes-3.4 - Composite Row Child Ownership And Family Follow-On Prep` inside the dedicated `Nodes-3` future doc into an implementation-ready pass by grounding it in the live composite-row expansion seams in `src/app/spaghetti/canvas/NodeView.tsx`, the current composite type ownership in `src/app/spaghetti/types/fieldTree.ts`, and the existing expansion-state path in `src/app/spaghetti/canvas/SpaghettiCanvas.tsx`, then refreshed this umbrella handoff so the next row-family slice is now an explicit composite ownership contract pass instead of only a later family-adoption note
 44. 2026-04-08 11:43: Marked `Nodes-3.3 - Collection Parent And Child Row Contract` shipped after `src/app/spaghetti/canvas/NodeView.tsx` gave `SketchProfiles` and `SketchProfile` explicit aggregate-parent versus singular-member attached-body meaning while focused node tests and selector aggregate-consumption tests stayed green, then advanced this umbrella handoff toward the later `Nodes-3.4` composite-row contract follow-on
@@ -316,7 +329,98 @@ This phase keeps `Sketch` and `Extrude` from hardening into unrelated custom sys
   - composite row
   - collection row
   are clearer.
+- `Nodes-5` should carry the next shared contract once family adoption is stable enough:
+  - solid body collections
+  - grouped-versus-split publication
+  - `Output Preview` collection acceptance
 - If shared template work grows beyond this umbrella surface, split it into a dedicated node-template architecture doc rather than duplicating rules across family docs.
+
+## [ ] Nodes-5 - Solid Body Collections And Output Preview Publication Split
+
+### Summary
+
+Turn `SolidBody` from a singular-only downstream assumption into one explicit collection-capable graph/output contract.
+
+This umbrella now has a dedicated future-phase home:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Future/Nodes_Phase Nodes-5 - Solid Body Collections And Output Preview Publication Split.md`
+
+That doc now owns the actual `Nodes-5.1` through `Nodes-5.6` breakdown, including the new `Nodes-5.5a` output-preview polish follow-on.
+
+Current status:
+- `Nodes-5` is the next dedicated shared node-contract lane after `Nodes-4`
+- the work is intentionally split into small enough slices that Codex can implement one at a time without reopening the whole node/output stack
+- `Nodes-5.1` is now shipped through:
+  - explicit `solidBodies` shared type naming in `src/app/spaghetti/schema/spaghettiTypes.ts`
+  - matching persisted kind support in `src/app/spaghetti/schema/spaghettiSchema.ts`
+  - wrapped aggregate validation in `src/app/spaghetti/compiler/evaluateGraph.ts`
+  - focused evaluator and validation proof that `solidBodies` is first-class but not yet accepted by `Output Preview in:solid:*`
+- `Nodes-5.2` is now shipped through:
+  - the explicit `solidBodies` `Geometry/Extrude.SolidBody` output declaration in `src/app/spaghetti/registry/nodeRegistry.ts`
+  - the deterministic wrapped aggregate publication path in `src/app/spaghetti/compiler/evaluateGraph.ts`
+  - focused registry, evaluator, and node-surface proof that keeps one calm visible `SolidBody` row while describing collection-capable publication honestly
+- `Nodes-5.3` is now shipped through:
+  - widened `solidBodies -> Output Preview in:solid:*` endpoint compatibility
+  - focused validation and contract-parity proof for collection-fed slot wiring
+  - focused debug-inspector proof that collection-fed slots still normalize through the current one-slot preview/output surface
+- `Nodes-5.4` is now shipped through:
+  - explicit slot-level grouped-versus-split publication metadata on `Output Preview`
+  - deterministic split fan-out from one accepted `solidBodies` slot into member-scoped output/build identities
+  - focused output-surface, build-request, and preview-identity proof while preserving grouped back-compat
+- `Nodes-5.4a` is now shipped through:
+  - authored `Geometry/Extrude` `Combine` versus `New Objects` output-mode params and normalization
+  - effective singular-versus-collection extrude output truth in registry/evaluator code
+  - focused extrude node-surface proof that the parent output row follows authored result-shape truth
+- `Nodes-5.5` is now shipped through:
+  - real plural extrude child `SolidBody` rows under the aggregate `SolidBodies` parent in authored `New Objects`
+  - deterministic extrude member virtual output ports and evaluated child values for per-member wiring
+  - focused effective-port, validator, selector, and node-surface proof while keeping `Combine` singular
+- the next open implementation-ready slice is now `Nodes-5.5a`
+- `Nodes-5.5a` should now polish the collection-aware `Output Preview` surface:
+  - make one accepted `SolidBodies` slot read honestly as a collection source
+  - make split publication from one collection-fed slot read clearly as many published objects from one source
+  - stay on slot/object readability and provenance rather than reopening publication semantics
+
+### Questions
+
+- Should multiplicity live in one explicit `solid body collection` type rather than overloading `solidBody` to sometimes mean one and sometimes many?
+- Should grouped-versus-split behavior be owned by publication/output-preview semantics rather than by pretending a body itself is sometimes singular and sometimes plural?
+- Which first slice is safest: type/evaluator contract, extrude output contract, or output-preview acceptance?
+
+### Spec
+
+- Keep this index as the umbrella summary only.
+- Use the dedicated `Nodes-5` future doc for the actual subphase ladder and implementation-ready details.
+- Treat `Nodes-5` as shared architecture work, not an extrude-only family tweak, because later `Loft`, `Sweep`, `Revolve`, and `Boolean` should inherit the same collection-capable body contract.
+- Treat `Nodes-5.1` as the first concrete implementation-ready entry point:
+  - that schema/types plus evaluator/endpoint pass is now shipped
+  - do not reopen it while moving into `Nodes-5.2` unless a concrete regression requires it
+- Treat `Nodes-5.2` as the next concrete implementation-ready entry point:
+  - that pass is now shipped
+  - do not reopen it while moving into `Nodes-5.3` unless a concrete regression requires it
+- Treat `Nodes-5.3` as the next concrete implementation-ready entry point:
+  - that pass is now shipped
+  - do not reopen it while moving into `Nodes-5.4` unless a concrete regression requires it
+- Treat `Nodes-5.4` as the next concrete implementation-ready entry point:
+  - that pass is now shipped
+  - do not reopen it while moving into `Nodes-5.4a` unless a concrete regression requires it
+- Treat `Nodes-5.4a` as the next concrete implementation-ready entry point:
+  - that pass is now shipped
+  - do not reopen it while moving into `Nodes-5.5` unless a concrete regression requires it
+- Treat `Nodes-5.5` as the next concrete implementation-ready entry point:
+  - that pass is now shipped
+  - do not reopen it while moving into `Nodes-5.5a` unless a concrete regression requires it
+- Treat `Nodes-5.5a` as the next follow-on after that:
+  - polish the older `Output Preview` collection surface so one accepted `SolidBodies` slot and one split-publication fan-out read honestly in the node UI
+  - keep the pass focused on row/surface clarity and already-owned truth exposure rather than reopening contracts that already shipped in `Nodes-5.3` and `Nodes-5.4`
+- The intended ladder should stay small and explicit:
+  - `Nodes-5.1` type and evaluator contract
+  - `Nodes-5.2` extrude collection output semantics
+  - `Nodes-5.3` output-preview collection input acceptance
+  - `Nodes-5.4` grouped-versus-split publication contract
+  - `Nodes-5.4a` authored extrude `Combine` versus `New Objects`
+  - `Nodes-5.5` visible per-body row expansion and wiring
+  - `Nodes-5.5a` output-preview collection surface polish
+  - `Nodes-5.6` hardening, regression proof, and family handoff
 
 ### What I Have Versus What I Need
 

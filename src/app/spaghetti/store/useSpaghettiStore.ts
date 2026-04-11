@@ -148,6 +148,7 @@ export type GraphCompileBuildState = {
   pendingStatsPartKeys: string[]
   pendingTargetBuildUnitIds: BuildUnitId[]
   pendingAffectedBuildUnitIds: BuildUnitId[]
+  currentDocumentRevision: number
   currentGraphRevision: number
   lastBuildSeq: number | null
   latestIssuedGraphRevision: number | null
@@ -2630,6 +2631,7 @@ const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   pendingStatsPartKeys: [],
   pendingTargetBuildUnitIds: [],
   pendingAffectedBuildUnitIds: [],
+  currentDocumentRevision: 0,
   currentGraphRevision: 0,
   lastBuildSeq: null,
   latestIssuedGraphRevision: null,
@@ -3074,6 +3076,8 @@ const withInitialGraphDocumentState = (
   )
 }
 
+type GraphDocumentRevisionScope = 'document-only' | 'geometry'
+
 const withUpdatedActiveGraphDocumentState = (
   state: Pick<
     SpaghettiStoreState,
@@ -3099,8 +3103,9 @@ const withUpdatedActiveGraphDocumentState = (
     | 'consolePreviewNodeId'
   >,
   graph: SpaghettiGraph,
+  revisionScope: GraphDocumentRevisionScope = 'geometry',
 ): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
-  return withUpdatedGraphDocumentState(state, state.activeGraphDocumentId, graph)
+  return withUpdatedGraphDocumentState(state, state.activeGraphDocumentId, graph, revisionScope)
 }
 
 const withUpdatedGraphDocumentState = (
@@ -3129,6 +3134,7 @@ const withUpdatedGraphDocumentState = (
   >,
   graphDocumentId: string,
   graph: SpaghettiGraph,
+  revisionScope: GraphDocumentRevisionScope = 'geometry',
 ): GraphDocumentStateSlice & CachedGraphStateSlice & ViewportStateSlice & FeatureStackIrCacheSlice => {
   const targetDocument = state.graphDocumentsById[graphDocumentId]
   if (targetDocument === undefined) {
@@ -3145,6 +3151,11 @@ const withUpdatedGraphDocumentState = (
     nextDocument.graphDocumentId,
     graph,
   )
+  const nextDocumentRevision = (currentRuntime?.compileBuild.currentDocumentRevision ?? 0) + 1
+  const nextGeometryRevision =
+    revisionScope === 'geometry'
+      ? (currentRuntime?.compileBuild.currentGraphRevision ?? 0) + 1
+      : (currentRuntime?.compileBuild.currentGraphRevision ?? 0)
 
   return withBrowserViewportState(state, {
     graphDocumentsById: {
@@ -3157,7 +3168,8 @@ const withUpdatedGraphDocumentState = (
         ...nextRuntime,
         compileBuild: {
           ...nextRuntime.compileBuild,
-          currentGraphRevision: (currentRuntime?.compileBuild.currentGraphRevision ?? 0) + 1,
+          currentDocumentRevision: nextDocumentRevision,
+          currentGraphRevision: nextGeometryRevision,
         },
       },
     },
@@ -3607,7 +3619,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         [nodeId]: { x, y },
       })
       return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph, 'document-only'),
       }
     })
   },
@@ -3625,7 +3637,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
       }
       const nextGraph = upsertNodePos(state.graph, updatesByNodeId)
       return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph, 'document-only'),
       }
     })
   },
@@ -3633,7 +3645,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     set((state) => {
       const nextGraph = normalizeGraphForStoreCommit(state.graph)
       return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph, 'document-only'),
       }
     })
   },
@@ -3641,7 +3653,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     set((state) => {
       const nextGraph = upsertNodeMode(state.graph, nodeId, mode)
       return {
-        ...withUpdatedActiveGraphDocumentState(state, nextGraph),
+        ...withUpdatedActiveGraphDocumentState(state, nextGraph, 'document-only'),
       }
     })
   },
@@ -6102,6 +6114,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               pendingStatsPartKeys: [...options.pendingStatsPartKeys],
               pendingTargetBuildUnitIds: [...(options.pendingTargetBuildUnitIds ?? [])],
               pendingAffectedBuildUnitIds: [...(options.pendingAffectedBuildUnitIds ?? [])],
+              currentDocumentRevision: runtime.compileBuild.currentDocumentRevision,
               currentGraphRevision: runtime.compileBuild.currentGraphRevision,
               lastBuildSeq: options.buildSeq,
               latestIssuedGraphRevision: runtime.compileBuild.currentGraphRevision,

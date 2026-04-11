@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+25. 2026-04-10 00:00: Added the standalone future phase doc for `Worker 9`, linking the new affected-subgraph invalidation lane to its implementation-ready planning surface under `Worker/Future/` so the index no longer carries the whole lane only as an end-of-file summary
+24. 2026-04-10 00:00: Refreshed `Worker 9` so it no longer reads as only an extrude-specific changed-param cleanup, broadening the slot into affected-subgraph invalidation and retained-sibling recomposition for graph-native parallel branches while keeping the concrete `Extrude 2 should not rebuild Object 1` symptom as the first motivating case
+23. 2026-04-10 00:00: Filled in the new `Worker 9` placeholder at the end of the index, turning it into a focused next worker-family slot for graph-native partial invalidation precision so sibling `Geometry/Extrude` outputs can stay retained when an unrelated extrude depth edit changes only one targeted build unit
+22. 2026-04-10 00:00: Added placeholder roadmap slots for `Worker 8` and `Worker 9`, intentionally leaving `Worker 8` blank for later and reserving `Worker 9` as the next standalone worker-family slot
 21. 2026-04-09 12:10: Refreshed the Worker family after shipping the full `Worker-Vision-1` ladder, pointing the vision family at the new shipped `Worker-Vision-1` record under `Shipped/` and the new future `Worker-Vision-2` draft-policy doc under `Future/` so the family handoff now matches the real next worker-execution lane
 20. 2026-04-09 11:10: Added the new dedicated `Worker-Vision.md` companion doc to this Worker family so the shipped `5.3A` umbrella can stay focused on the current worker seam while longer-range runtime scheduling, draft-versus-authoritative execution, and supersession direction now live in a separate forward-looking vision surface
 19. 2026-03-25 21:10: Marked `[5.3A-7] Graph-Native Worker Cutover And Legacy Contract Deletion` complete after shipping the final graph-native worker boundary cut, moved its standalone phase record into `Worker/Shipped/`, and refreshed the umbrella Worker read so the full `[5.3A]` mini-family now treats the shared worker contract, dispatcher boundary, result semantics, Browser truth, and Console truth as landed history instead of an open compatibility-cleanup ladder
@@ -108,6 +112,12 @@ This doc remains the umbrella record for the shipped worker boundary and the arc
 
 For the forward-looking worker scheduling and runtime-result direction beyond the shipped `5.3A` cleanup ladder, use:
 - `docs/Human-Plans/Architecture/Worker/Worker-Vision.md`
+
+Reserved roadmap slots:
+- `Worker 8`
+  - intentionally blank for later
+- `Worker 9`
+  - next open standalone worker-family slot
 
 ### Scope
 
@@ -972,4 +982,58 @@ Decision:
   - a code-searchable absence of the legacy request/protocol shapes this phase claims to delete
 
 
-## [ ] Worker 8 - Worker-Vision1.md
+## [ ] Worker 8
+
+Intentionally blank for later.
+
+## [ ] Worker 9
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 9 - Affected Subgraph Invalidation And Retained Sibling Recomposition.md`
+
+Focus:
+- graph-native affected-subgraph invalidation precision
+- changed-input routing for worker-facing geometry requests
+- retained-sibling recomposition for parallel geometry branches
+- stop unrelated sibling outputs from rebuilding when one authored branch changes
+
+Current observed gap:
+- several graph-native geometry branches may exist in parallel and only meet again at downstream composition such as `Output Preview`
+- when the user changes one authored node in one branch, the current worker request translation can still collapse that graph-native change into overly broad affected work
+- the first concrete symptom is still:
+  - one `Geometry/Sketch` may feed several profiles into several downstream `Geometry/Extrude` nodes
+  - when the user changes depth on only one downstream extrude, the current worker request translation still collapses that graph-native change into shared `sp_featureStackIR` change detection
+  - worker-side affected-part routing currently treats `sp_*` changes as broad affected work, so sibling extrudes that are still valid can be rebuilt instead of remaining retained
+
+Desired behavior:
+- if one branch changes, only that node and its true downstream dependency cone should rebuild
+- parallel sibling branches outside that affected cone should remain retained
+- downstream composition should recompose from retained plus rebuilt results instead of forcing broad sibling reloads
+- the first concrete target is still:
+  - if `Extrude 2` depth changes and `Extrude 1` has no dependency on that authored value, `Extrude 1` should remain retained
+  - shared sketch ancestry alone should not be enough to force sibling extrude rebuilds when the upstream sketch profiles themselves did not change
+- accepted result truth should continue to classify:
+  - changed output as `rebuilt`
+  - untouched sibling output as `retained`
+
+Likely ownership seam:
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/worker/pipeline/paramRouting.ts`
+- any worker/runtime seam that decides how accepted retained outputs are recomposed when only one branch was rebuilt
+- any worker-facing changed-param or affected-part hint contract that still treats graph-native feature-stack edits too coarsely
+
+Questions this slot should answer:
+- what is the smallest correct affected-part set for a graph-native authored change inside one branch of a parallel geometry graph?
+- how should the worker/runtime represent the affected downstream cone versus unaffected sibling branches?
+- how should worker-facing changed-input hints distinguish:
+  - sketch/profile topology changes
+  - local downstream feature-parameter changes such as extrude depth, taper, or direction
+- which shared-sketch edits truly require several downstream extrudes to rebuild, and which should stay local to one extrude or one branch?
+- how should `Output Preview` or later composition surfaces consume retained plus rebuilt branch results without treating composition itself as a reason to rebuild unrelated siblings?
+
+Success bar:
+- editing one node in one geometry branch no longer causes unrelated sibling branches to rebuild or reload just because they share a later composition surface
+- the first proof remains:
+  - editing one extrude depth no longer causes unrelated sibling extrudes to rebuild just because they share the same upstream sketch node
+- worker progress and accepted bundle truth show the changed branch output as rebuilt and the unaffected sibling output as retained
+- Browser and runtime inspector surfaces become more honest automatically because the underlying affected-part routing is narrower and correct

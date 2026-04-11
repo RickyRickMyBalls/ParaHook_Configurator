@@ -14,6 +14,7 @@ export const TYPE_COLOR_MAP = {
   sketchProfiles: '#10b981',
   sketchProfile: '#6ee7b7',
   solidBody: '#cbd5e1',
+  solidBodies: '#cbd5e1',
   stations: '#a78bfa',
   railMath: '#9ca3af',
   toeLoft: '#cbd5e1',

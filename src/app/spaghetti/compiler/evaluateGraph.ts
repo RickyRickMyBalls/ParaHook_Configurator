@@ -1,19 +1,30 @@
 import { getNodeDef } from '../registry/nodeRegistry'
 import type {
   PortType,
+  OpaqueRefToken,
+  SolidBodiesValue,
+  SolidBodyValue,
   SpaghettiEdge,
   SpaghettiGraph,
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
 import type { SpaghettiDiagnostic } from './validateGraph'
 import { validateGraph } from './validateGraph'
-import { listEffectiveInputPorts } from '../features/effectivePorts'
+import {
+  listEffectiveInputPorts,
+  resolveEffectiveOutputPort,
+} from '../features/effectivePorts'
 import {
   listDriverVirtualInputPorts,
   getDriverVirtualOutputValue,
   parseDriverVirtualInputPortId,
   listDriverVirtualOutputPorts,
 } from '../features/driverVirtualPorts'
+import { getExtrudeProfileSourcePath } from '../features/extrudeProfileConnections'
+import {
+  getExtrudeBodyMemberOutputValue,
+  listExtrudeBodyMemberOutputPorts,
+} from '../features/extrudeBodyVirtualPorts'
 import { getSketchProfileMemberOutputValue, listSketchProfileMemberOutputPorts } from '../features/sketchProfileVirtualPorts'
 import {
   getFieldTree,
@@ -81,7 +92,7 @@ const isSpline3 = (
   value.points.every((point) => isVec3(point)) &&
   typeof value.closed === 'boolean'
 
-const isOpaqueRefToken = (value: unknown): value is { __opaqueRef: string } =>
+const isOpaqueRefToken = (value: unknown): value is OpaqueRefToken =>
   isRecord(value) &&
   Object.keys(value).length === 1 &&
   typeof value.__opaqueRef === 'string'
@@ -108,8 +119,18 @@ const isSketchProfiles = (value: unknown): value is Array<{
 const isExtrusionProfileContributorValue = (value: unknown): boolean =>
   isProfileOutputLike(value) || isSketchProfiles(value)
 
-const isSolidBody = (value: unknown): value is { bodyId: string } =>
+const isAtomicSolidBody = (value: unknown): value is Extract<SolidBodyValue, { bodyId: string }> =>
   isRecord(value) && typeof value.bodyId === 'string' && value.bodyId.length > 0
+
+const isSolidBody = (value: unknown): value is SolidBodyValue =>
+  isAtomicSolidBody(value) || isOpaqueRefToken(value)
+
+const isSolidBodies = (value: unknown): value is SolidBodiesValue =>
+  isRecord(value) &&
+  Object.keys(value).length === 1 &&
+  Array.isArray(value.bodies) &&
+  value.bodies.length > 0 &&
+  value.bodies.every((entry) => isSolidBody(entry))
 
 const isValidForPortType = (value: unknown, type: PortType): boolean => {
   switch (type.kind) {
@@ -134,7 +155,9 @@ const isValidForPortType = (value: unknown, type: PortType): boolean => {
     case 'sketchProfile':
       return value === null || isProfileOutputLike(value)
     case 'solidBody':
-      return value === null || isSolidBody(value) || isOpaqueRefToken(value)
+      return value === null || isSolidBody(value)
+    case 'solidBodies':
+      return value === null || isSolidBodies(value)
     case 'stations':
       return true
     case 'railMath':
@@ -229,6 +252,7 @@ const defaultValueForLeafType = (type: PortType): unknown => {
       return []
     case 'sketchProfile':
     case 'solidBody':
+    case 'solidBodies':
       return null
     case 'stations':
       return []
@@ -401,7 +425,7 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
         })
         return undefined
       }
-      return getValueAtPath(sourceValue, edge.from.path)
+      return getValueAtPath(sourceValue, getExtrudeProfileSourcePath(edge))
     }
 
     const resolveLiteralOrDefaultComposite = (
@@ -628,11 +652,14 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
       continue
     }
 
-    const computed = computedUnknown
-    const outputPortIds = new Set(nodeDef.outputs.map((port) => port.portId))
+      const computed = computedUnknown
+      const effectiveOutputPorts = nodeDef.outputs.map(
+        (outputPort) => resolveEffectiveOutputPort(node, outputPort.portId, nodeDef, graph) ?? outputPort,
+      )
+    const outputPortIds = new Set(effectiveOutputPorts.map((port) => port.portId))
     const nodeOutputs: Record<string, unknown> = {}
 
-    for (const outputPort of nodeDef.outputs) {
+    for (const outputPort of effectiveOutputPorts) {
       if (!(outputPort.portId in computed)) {
         errors.push({
           level: 'error',
@@ -695,6 +722,24 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
 
     for (const virtualOutput of listSketchProfileMemberOutputPorts(node)) {
       const virtualValue = getSketchProfileMemberOutputValue(node, virtualOutput.portId)
+      if (virtualValue === undefined) {
+        continue
+      }
+      if (!isValidForPortType(virtualValue, virtualOutput.type)) {
+        errors.push({
+          level: 'error',
+          code: 'OUTPUT_INVALID_SHAPE',
+          message: `Invalid output shape for "${nodeId}.${virtualOutput.portId}" (${virtualOutput.type.kind}).`,
+          nodeId,
+        })
+        continue
+      }
+      nodeOutputs[virtualOutput.portId] = virtualValue
+    }
+
+    const parentSolidBodyValue = nodeOutputs.SolidBody
+    for (const virtualOutput of listExtrudeBodyMemberOutputPorts(graph, node)) {
+      const virtualValue = getExtrudeBodyMemberOutputValue(parentSolidBodyValue, virtualOutput.portId)
       if (virtualValue === undefined) {
         continue
       }

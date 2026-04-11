@@ -18,6 +18,7 @@ const portTypeSchema = z
       'sketchProfiles',
       'sketchProfile',
       'solidBody',
+      'solidBodies',
       'stations',
       'railMath',
       'toeLoft',

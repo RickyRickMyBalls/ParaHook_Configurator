@@ -43,6 +43,20 @@ const previewPreparation = (): GraphPreviewPreparation => ({
   previewIntent: 'outputPreview',
 })
 
+const extrudeBuildInputs = (): SpaghettiBuildInputs => ({
+  orderedPartKeys: ['extrude#1', 'extrude#2'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        'extrude#1': [{ op: 'extrude', featureId: 'node-extrude-1' }],
+        'extrude#2': [{ op: 'extrude', featureId: 'node-extrude-2' }],
+      },
+    },
+  },
+})
+
 describe('buildRequestFromBuildInputs', () => {
   it('builds graph-native compiled build data plus output-entry build units', () => {
     expect(buildRequestFromBuildInputs(cubeBuildInputs(), previewPreparation())).toEqual({
@@ -112,6 +126,141 @@ describe('buildRequestFromBuildInputs', () => {
     ).toEqual([
       'cube#1',
       'cube#2',
+    ])
+  })
+
+  it('drops authored extrudes that are not wired into output preview from worker-facing build data', () => {
+    const translated = buildRequestFromBuildInputs(extrudeBuildInputs(), {
+      ...previewPreparation(),
+      outputSlotIds: [],
+      previewCandidateSlotIds: [],
+      previewCandidatePartKeys: [],
+      sourceNodeIdBySlotId: {},
+      sourcePartKeyBySlotId: {},
+      sourcePortIdBySlotId: {},
+      sourcePartKeyByNodeId: {},
+      slotStatusBySlotId: {},
+    })
+
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual([])
+    expect(translated.buildStatsPartKeys).toEqual([])
+    expect(translated.compiledBuildData.resolvedShared?.sp_featureStackIR).toEqual({
+      schemaVersion: 1,
+      parts: {},
+    })
+  })
+
+  it('keeps unresolved output-preview extrudes out of the required worker part list', () => {
+    const translated = buildRequestFromBuildInputs(extrudeBuildInputs(), {
+      ...previewPreparation(),
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude#2'],
+      sourceNodeIdBySlotId: {
+        s001: 'node-extrude-2',
+      },
+      sourcePartKeyBySlotId: {
+        s001: 'extrude#2',
+      },
+      sourcePortIdBySlotId: {
+        s001: 'SolidBody',
+      },
+      sourcePartKeyByNodeId: {
+        'node-extrude-2': 'extrude#2',
+      },
+      slotStatusBySlotId: {
+        s001: 'unresolved',
+      },
+    })
+
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual([])
+    expect(translated.buildStatsPartKeys).toEqual([])
+    expect(translated.targetBuildUnitIds).toEqual(['output-entry:s001:node-extrude-2'])
+    expect(translated.compiledBuildData.resolvedShared?.sp_featureStackIR).toEqual({
+      schemaVersion: 1,
+      parts: {},
+    })
+  })
+
+  it('keeps output-preview-ready extrudes in the worker-facing required part list', () => {
+    const translated = buildRequestFromBuildInputs(extrudeBuildInputs(), {
+      ...previewPreparation(),
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude#2'],
+      sourceNodeIdBySlotId: {
+        s001: 'node-extrude-2',
+      },
+      sourcePartKeyBySlotId: {
+        s001: 'extrude#2',
+      },
+      sourcePortIdBySlotId: {
+        s001: 'SolidBody',
+      },
+      sourcePartKeyByNodeId: {
+        'node-extrude-2': 'extrude#2',
+      },
+      slotStatusBySlotId: {
+        s001: 'ok',
+      },
+    })
+
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude#2'])
+    expect(translated.buildStatsPartKeys).toEqual(['extrude#2'])
+    expect(translated.compiledBuildData.resolvedShared?.sp_featureStackIR).toEqual({
+      schemaVersion: 1,
+      parts: {
+        'extrude#2': [{ op: 'extrude', featureId: 'node-extrude-2' }],
+      },
+    })
+  })
+
+  it('fans split publication into multiple deterministic output-entry build units', () => {
+    const translated = buildRequestFromBuildInputs(extrudeBuildInputs(), {
+      ...previewPreparation(),
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude#2'],
+      sourceNodeIdBySlotId: {
+        s001: 'node-extrude-2',
+      },
+      sourcePartKeyBySlotId: {
+        s001: 'extrude#2',
+      },
+      sourcePortIdBySlotId: {
+        s001: 'SolidBody',
+      },
+      sourcePartKeyByNodeId: {
+        'node-extrude-2': 'extrude#2',
+      },
+      publicationModeBySlotId: {
+        s001: 'split',
+      },
+      splitMemberCountBySlotId: {
+        s001: 2,
+      },
+      slotStatusBySlotId: {
+        s001: 'ok',
+      },
+    })
+
+    expect(translated.compiledBuildData.outputEntries).toEqual([
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-2:member-001',
+        outputEntryId: 'output-entry:s001:node-extrude-2:member-001',
+        sourceNodeId: 'node-extrude-2',
+        partKey: 'extrude#2',
+      },
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-2:member-002',
+        outputEntryId: 'output-entry:s001:node-extrude-2:member-002',
+        sourceNodeId: 'node-extrude-2',
+        partKey: 'extrude#2',
+      },
+    ])
+    expect(translated.targetBuildUnitIds).toEqual([
+      'output-entry:s001:node-extrude-2:member-001',
+      'output-entry:s001:node-extrude-2:member-002',
     ])
   })
 })

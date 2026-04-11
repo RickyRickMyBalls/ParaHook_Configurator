@@ -834,16 +834,16 @@ let nextDraftSchedulingRuntimeEventSeq = 1
 
 const DEFAULT_VIEWPORT_PRESENTATION_SETTINGS = {
   lastLoaded: {
-    opacity: 1,
+    opacity: 0.5,
     color: '#5f83d6',
   },
   previewMesh: {
     opacity: 0.5,
-    color: '#5f83d6',
+    color: '#ffff00',
   },
   previewBrep: {
-    opacity: 0.75,
-    color: '#5f83d6',
+    opacity: 0.5,
+    color: '#00ff00',
   },
 } satisfies ViewportPresentationSettings
 

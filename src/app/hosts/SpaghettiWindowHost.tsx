@@ -60,6 +60,19 @@ type FloatingPosition = {
   y: number
 }
 
+type FloatingResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+
+const floatingResizeDirections: readonly FloatingResizeDirection[] = [
+  'n',
+  's',
+  'e',
+  'w',
+  'ne',
+  'nw',
+  'se',
+  'sw',
+] as const
+
 type FloatingSize = {
   width: number
   height: number
@@ -1051,8 +1064,11 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   } | null>(null)
   const resizeRef = useRef<{
     editorViewportId: string
+    direction: FloatingResizeDirection
     startPointerX: number
     startPointerY: number
+    startX: number
+    startY: number
     startWidth: number
     startHeight: number
   } | null>(null)
@@ -1761,7 +1777,11 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   ])
 
   const handleViewportResizeStart = useCallback(
-    (editorViewportId: string, event: ReactPointerEvent<HTMLDivElement>) => {
+    (
+      editorViewportId: string,
+      direction: FloatingResizeDirection,
+      event: ReactPointerEvent<HTMLDivElement>,
+    ) => {
       if (event.button !== 0) {
         return
       }
@@ -1774,10 +1794,14 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
       }
       setActiveEditorViewportId(editorViewportId)
       const startSize = getFloatingSizeForViewport(editorViewportId, viewportState.size)
+      const startPos = getFloatingPosForViewport(editorViewportId, viewportState.position)
       resizeRef.current = {
         editorViewportId,
+        direction,
         startPointerX: event.clientX,
         startPointerY: event.clientY,
+        startX: startPos.x,
+        startY: startPos.y,
         startWidth: startSize.width,
         startHeight: startSize.height,
       }
@@ -1787,20 +1811,35 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
         if (state === null) {
           return
         }
+        const deltaX = moveEvent.clientX - state.startPointerX
+        const deltaY = moveEvent.clientY - state.startPointerY
+        const movesWestEdge = state.direction === 'w' || state.direction === 'nw' || state.direction === 'sw'
+        const movesEastEdge = state.direction === 'e' || state.direction === 'ne' || state.direction === 'se'
+        const movesNorthEdge = state.direction === 'n' || state.direction === 'ne' || state.direction === 'nw'
+        const movesSouthEdge = state.direction === 's' || state.direction === 'se' || state.direction === 'sw'
+        const startRight = state.startX + state.startWidth
+        const startBottom = state.startY + state.startHeight
+        const rawWidth = movesWestEdge
+          ? state.startWidth - deltaX
+          : movesEastEdge
+            ? state.startWidth + deltaX
+            : state.startWidth
+        const rawHeight = movesNorthEdge
+          ? state.startHeight - deltaY
+          : movesSouthEdge
+            ? state.startHeight + deltaY
+            : state.startHeight
         const nextSize = clampFloatingSize({
-          width: state.startWidth + (moveEvent.clientX - state.startPointerX),
-          height: state.startHeight + (moveEvent.clientY - state.startPointerY),
+          width: rawWidth,
+          height: rawHeight,
         })
+        const rawPos = {
+          x: movesWestEdge ? startRight - nextSize.width : state.startX,
+          y: movesNorthEdge ? startBottom - nextSize.height : state.startY,
+        }
+        const clamped = clampFloatingPos(rawPos, nextSize)
         floatingSizeByViewportIdRef.current[state.editorViewportId] = nextSize
         setEditorViewportSize(state.editorViewportId, nextSize)
-        const currentViewportState =
-          orderedViewportStates.find(
-            (currentViewport) => currentViewport.viewport.editorViewportId === state.editorViewportId,
-          ) ?? null
-        const clamped = clampFloatingPos(
-          getFloatingPosForViewport(state.editorViewportId, currentViewportState?.position),
-          nextSize,
-        )
         floatingPosByViewportIdRef.current[state.editorViewportId] = clamped
         setEditorViewportPosition(state.editorViewportId, clamped)
       }
@@ -1819,7 +1858,6 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
     [
       clampFloatingPos,
       clampFloatingSize,
-      getFloatingPosForViewport,
       getFloatingSizeForViewport,
       orderedViewportStates,
       setActiveEditorViewportId,
@@ -1839,11 +1877,11 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
   )
 
   const handleSpaghettiResizeStart = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
+    (direction: FloatingResizeDirection, event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || activeEditorViewport === null || !canResizeFloatingWindow) {
         return
       }
-      handleViewportResizeStart(activeEditorViewport.editorViewportId, event)
+      handleViewportResizeStart(activeEditorViewport.editorViewportId, direction, event)
     },
     [activeEditorViewport, canResizeFloatingWindow, handleViewportResizeStart],
   )
@@ -2869,18 +2907,25 @@ export function SpaghettiWindowHost(props: SpaghettiWindowHostProps) {
                         </div>
                       ) : null}
                       {viewportState.windowMode === 'expanded' ? (
-                        <div
-                          className="SpaghettiFloatingResizeHandle"
-                          onPointerDown={
-                            isActiveViewportShell
-                              ? handleSpaghettiResizeStart
-                              : (event) =>
-                                  handleViewportResizeStart(
-                                    viewportState.viewport.editorViewportId,
-                                    event,
-                                  )
-                          }
-                        />
+                        <>
+                          {floatingResizeDirections.map((direction) => (
+                            <div
+                              key={direction}
+                              className={`SpaghettiFloatingResizeHandle SpaghettiFloatingResizeHandle--${direction}`}
+                              data-spaghetti-floating-resize-handle={direction}
+                              onPointerDown={
+                                isActiveViewportShell
+                                  ? (event) => handleSpaghettiResizeStart(direction, event)
+                                  : (event) =>
+                                      handleViewportResizeStart(
+                                        viewportState.viewport.editorViewportId,
+                                        direction,
+                                        event,
+                                      )
+                              }
+                            />
+                          ))}
+                        </>
                       ) : null}
                     </div>
                   )

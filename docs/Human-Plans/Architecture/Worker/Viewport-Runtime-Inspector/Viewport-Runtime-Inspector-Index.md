@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-04-10 21:05: Added the standalone future phase doc `Viewport-Runtime-Inspector_Phase VRI-4 - Multi-Lane Runtime Cards And Parallel Graph Execution.md`, then refreshed this family index so the runtime-inspector family now has an explicit post-`VRI-3` handoff for keeping cards as the stable runtime unit while widening them into per-lane progress bars for `Draft` plus `B-Rep` today and later graph-parallel execution lanes
 26. 2026-04-09 10:14: Marked `VRI-3.5 - Untouched Truth Hardening And Family Handoff` shipped by refreshing this family index so the runtime inspector now derives compact untouched meaning from accepted target-versus-affected ids with repeated-accept summary stability, and `VRI-3` now reads as closed for the first honest change-impact subset before later dependency-linked widening
 25. 2026-04-09 10:08: Tightened this family index so the immediate handoff to `VRI-3.5 - Untouched Truth Hardening And Family Handoff` now explicitly says the final `VRI-3` slice should derive untouched meaning only from the shipped accepted target-versus-affected ids through the current `runtimeInspectorVm`, store-proof, and left-dock proof seams before the family closes
 24. 2026-04-09 10:05: Marked `VRI-3.4 - Impact Row Surface` shipped by refreshing this family index so the runtime inspector now reads as rendering grouped rebuilt, reused, and evicted impact rows beneath the compact accepted-impact summary, and the immediate handoff now moves forward to `VRI-3.5 - Untouched Truth Hardening And Family Handoff`
@@ -233,3 +234,23 @@ Current shipped final step:
 - `VRI-3.5 - Untouched Truth Hardening And Family Handoff`
   - shipped
   - the runtime inspector now derives one compact untouched metric from accepted target-versus-affected ids and proves repeated accepted edits replace prior untouched summary truth cleanly without widening into dependency-jump UI
+
+Current next step:
+- `VRI-4 - Multi-Lane Runtime Cards And Parallel Graph Execution`
+  - keep runtime cards as the stable user-facing work unit, but widen each card so it can expose more than one lane-local progress row such as `Draft Geometry` and `B-Rep Geometry`, then prepare the inspector to stay readable when later graph-native parallel branches allow several lanes to run at once beneath one authored work unit
+
+### [ ] `VRI-4` - Multi-Lane Runtime Cards And Parallel Graph Execution
+
+- keep cards as the primary runtime-inspector unit even after the worker split
+- widen cards so one card can carry multiple lane-local loading bars and states
+- make `Draft` plus `B-Rep` read as parallel execution lanes for one work unit instead of unrelated competing cards
+- prepare the inspector for later true graph-parallel execution without collapsing into a generic worker dashboard
+
+Standalone future phase doc:
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Future/Viewport-Runtime-Inspector_Phase VRI-4 - Multi-Lane Runtime Cards And Parallel Graph Execution.md`
+
+Recommended first proof:
+- one runtime card can render one or more lane rows beneath the same card header
+- `Auto` can show both `Draft Geometry` and `B-Rep Geometry` bars on the same card when both lanes are relevant
+- lane-local states such as `queued`, `running`, `reused`, `superseded`, `delayed`, and `suppressed` remain explicit without inventing fake percentages
+- later graph-parallel execution can widen the same card model with grouped branch rows instead of forcing an immediate redesign of the inspector surface

@@ -888,13 +888,69 @@
 
 .SpaghettiFloatingResizeHandle {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  cursor: nwse-resize;
   z-index: 12;
   pointer-events: auto;
+}
+
+.SpaghettiFloatingResizeHandle--n,
+.SpaghettiFloatingResizeHandle--s {
+  left: 12px;
+  right: 12px;
+  height: 8px;
+}
+
+.SpaghettiFloatingResizeHandle--n {
+  top: -4px;
+  cursor: ns-resize;
+}
+
+.SpaghettiFloatingResizeHandle--s {
+  bottom: -4px;
+  cursor: ns-resize;
+}
+
+.SpaghettiFloatingResizeHandle--e,
+.SpaghettiFloatingResizeHandle--w {
+  top: 12px;
+  bottom: 12px;
+  width: 8px;
+}
+
+.SpaghettiFloatingResizeHandle--e {
+  right: -4px;
+  cursor: ew-resize;
+}
+
+.SpaghettiFloatingResizeHandle--w {
+  left: -4px;
+  cursor: ew-resize;
+}
+
+.SpaghettiFloatingResizeHandle--ne,
+.SpaghettiFloatingResizeHandle--nw,
+.SpaghettiFloatingResizeHandle--se,
+.SpaghettiFloatingResizeHandle--sw {
+  width: 16px;
+  height: 16px;
+}
+
+.SpaghettiFloatingResizeHandle--ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.SpaghettiFloatingResizeHandle--nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.SpaghettiFloatingResizeHandle--se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+  z-index: 12;
   background-image: linear-gradient(
     225deg,
     transparent 0%,
@@ -905,6 +961,12 @@
     transparent 100%
   );
   opacity: 0.85;
+}
+
+.SpaghettiFloatingResizeHandle--sw {
+  left: -4px;
+  bottom: -4px;
+  cursor: nesw-resize;
 }
 
 .SpaghettiMeatballHost {

@@ -1,4 +1,8 @@
-import { getNodeDef, type NodeDefinition } from '../registry/nodeRegistry'
+import {
+  getNodeDef,
+  readGeometryExtrudeBodyGenerationModeFromParams,
+  type NodeDefinition,
+} from '../registry/nodeRegistry'
 import type {
   OutputPreviewParams,
   PortSpec,
@@ -9,6 +13,7 @@ import {
   listDriverVirtualInputPorts,
   listDriverVirtualOutputPorts,
 } from './driverVirtualPorts'
+import { listExtrudeBodyMemberOutputPorts } from './extrudeBodyVirtualPorts'
 import { listFeatureVirtualInputPorts } from './featureVirtualPorts'
 import { listSketchProfileMemberOutputPorts } from './sketchProfileVirtualPorts'
 
@@ -36,6 +41,33 @@ const listOutputPreviewSlotInputPorts = (node: SpaghettiNode): PortSpec[] => {
   }))
 }
 
+const listNodeDeclaredOutputPorts = (
+  node: SpaghettiNode,
+  nodeDef?: NodeDefinition | undefined,
+): PortSpec[] => {
+  const declaredOutputs = nodeDef?.outputs ?? getNodeDef(node.type)?.outputs ?? []
+  if (node.type !== 'Geometry/Extrude') {
+    return declaredOutputs
+  }
+  return declaredOutputs.map((port) => {
+    if (port.portId !== 'SolidBody') {
+      return port
+    }
+    const bodyGenerationMode = readGeometryExtrudeBodyGenerationModeFromParams(node.params)
+    return bodyGenerationMode === 'NewObjects'
+      ? {
+          ...port,
+          label: 'SolidBodies',
+          type: { kind: 'solidBodies' },
+        }
+      : {
+          ...port,
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        }
+  })
+}
+
 export const listEffectiveInputPorts = (
   node: SpaghettiNode,
   nodeDef?: NodeDefinition | undefined,
@@ -56,12 +88,19 @@ export const listEffectiveInputPorts = (
 export const listEffectiveOutputPorts = (
   node: SpaghettiNode,
   nodeDef?: NodeDefinition | undefined,
+  graph?: import('../schema/spaghettiTypes').SpaghettiGraph | undefined,
 ): PortSpec[] => {
   const resolvedNodeDef = nodeDef ?? getNodeDef(node.type)
-  const declaredOutputs = resolvedNodeDef?.outputs ?? []
+  const declaredOutputs = listNodeDeclaredOutputPorts(node, resolvedNodeDef)
   const virtualDriverOutputs = listDriverVirtualOutputPorts(node, resolvedNodeDef)
   const sketchProfileMemberOutputs = listSketchProfileMemberOutputPorts(node)
-  return [...declaredOutputs, ...virtualDriverOutputs, ...sketchProfileMemberOutputs]
+  const extrudeBodyMemberOutputs = listExtrudeBodyMemberOutputPorts(graph, node)
+  return [
+    ...declaredOutputs,
+    ...virtualDriverOutputs,
+    ...sketchProfileMemberOutputs,
+    ...extrudeBodyMemberOutputs,
+  ]
 }
 
 export const resolveEffectiveInputPort = (
@@ -88,8 +127,9 @@ export const resolveEffectiveOutputPort = (
   node: SpaghettiNode,
   portId: string,
   nodeDef?: NodeDefinition | undefined,
+  graph?: import('../schema/spaghettiTypes').SpaghettiGraph | undefined,
 ): PortSpec | undefined => {
-  const declared = findPortById(nodeDef?.outputs ?? getNodeDef(node.type)?.outputs ?? [], portId)
+  const declared = findPortById(listNodeDeclaredOutputPorts(node, nodeDef), portId)
   if (declared !== undefined) {
     return declared
   }
@@ -97,5 +137,9 @@ export const resolveEffectiveOutputPort = (
   if (driverVirtual !== undefined) {
     return driverVirtual
   }
-  return findPortById(listSketchProfileMemberOutputPorts(node), portId)
+  const sketchProfileMember = findPortById(listSketchProfileMemberOutputPorts(node), portId)
+  if (sketchProfileMember !== undefined) {
+    return sketchProfileMember
+  }
+  return findPortById(listExtrudeBodyMemberOutputPorts(graph, node), portId)
 }

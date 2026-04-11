@@ -16,6 +16,7 @@ export type GraphPublishedOutputEntry = {
   outputEntryId: string
   slotId: string
   sourceNodeId: string
+  memberIndex?: number
   label: string
   state: GraphPublishedOutputState
   acceptedArtifactKey: string | null
@@ -63,9 +64,12 @@ export const GRAPH_OUTPUT_SURFACE_VERSION = 1
 export const buildGraphOutputEntryId = (
   slotId: string,
   sourceNodeId: string | null | undefined,
+  memberIndex?: number | null,
 ): string =>
   typeof sourceNodeId === 'string' && sourceNodeId.length > 0
-    ? `output-entry:${slotId}:${sourceNodeId}`
+    ? memberIndex === null || memberIndex === undefined
+      ? `output-entry:${slotId}:${sourceNodeId}`
+      : `output-entry:${slotId}:${sourceNodeId}:member-${String(memberIndex + 1).padStart(3, '0')}`
     : `output-entry:${slotId}:unbound`
 
 export const buildGraphOutputSurface = (options: {
@@ -93,48 +97,60 @@ export const buildGraphOutputSurface = (options: {
     }
   }
 
-  const entries = previewPreparation.outputSlotIds.map((slotId) => {
+  const entries = previewPreparation.outputSlotIds.flatMap((slotId) => {
     const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId] ?? ''
     const sourcePartKey = previewPreparation.sourcePartKeyBySlotId[slotId]
     const rawStatus = previewPreparation.slotStatusBySlotId[slotId] ?? 'empty'
-    const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId)
-    const bundleEntry = bundleEntryByOutputEntryId.get(outputEntryId) ?? null
-    const acceptedArtifactKey =
-      bundleEntry?.artifacts[0]?.partKeyStr ??
-      (sourcePartKey === undefined ? null : (acceptedArtifactKeyByPartKey.get(sourcePartKey) ?? null))
+    const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
+    const memberIndices =
+      publicationMode === 'split'
+        ? Array.from(
+            { length: Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) },
+            (_, index) => index,
+          )
+        : [undefined]
 
-    let state: GraphPublishedOutputState = 'empty'
-    let diagnosticsState: GraphPublishedOutputDiagnosticsState = 'none'
+    return memberIndices.map((memberIndex) => {
+      const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId, memberIndex)
+      const bundleEntry = bundleEntryByOutputEntryId.get(outputEntryId) ?? null
+      const acceptedArtifactKey =
+        bundleEntry?.artifacts[0]?.partKeyStr ??
+        (sourcePartKey === undefined ? null : (acceptedArtifactKeyByPartKey.get(sourcePartKey) ?? null))
 
-    if (rawStatus === 'empty' || sourceNodeId.length === 0) {
-      state = 'empty'
-      diagnosticsState = 'none'
-    } else if (rawStatus === 'unresolved') {
-      state = 'unresolved'
-      diagnosticsState = 'hasDiagnostics'
-    } else if (bundleEntry?.status === 'evicted') {
-      state = 'unresolved'
-      diagnosticsState = 'unknown'
-    } else if (acceptedArtifactKey !== null) {
-      state = 'resolved'
-      diagnosticsState = 'none'
-    } else {
-      state = 'unresolved'
-      diagnosticsState = 'unknown'
-    }
+      let state: GraphPublishedOutputState = 'empty'
+      let diagnosticsState: GraphPublishedOutputDiagnosticsState = 'none'
 
-    return {
-      outputEntryId,
-      slotId,
-      sourceNodeId,
-      label: slotId,
-      state,
-      acceptedArtifactKey,
-      buildUnitId: bundleEntry?.buildUnitId ?? null,
-      resultEntryStatus: bundleEntry?.status ?? null,
-      resultClass: bundleEntry?.resultClass ?? null,
-      diagnosticsState,
-    } satisfies GraphPublishedOutputEntry
+      if (rawStatus === 'empty' || sourceNodeId.length === 0) {
+        state = 'empty'
+        diagnosticsState = 'none'
+      } else if (rawStatus === 'unresolved') {
+        state = 'unresolved'
+        diagnosticsState = 'hasDiagnostics'
+      } else if (bundleEntry?.status === 'evicted') {
+        state = 'unresolved'
+        diagnosticsState = 'unknown'
+      } else if (acceptedArtifactKey !== null) {
+        state = 'resolved'
+        diagnosticsState = 'none'
+      } else {
+        state = 'unresolved'
+        diagnosticsState = 'unknown'
+      }
+
+      return {
+        outputEntryId,
+        slotId,
+        sourceNodeId,
+        ...(memberIndex === undefined ? {} : { memberIndex }),
+        label: slotId,
+        state,
+        acceptedArtifactKey,
+        buildUnitId: bundleEntry?.buildUnitId ?? null,
+        resultEntryStatus: bundleEntry?.status ?? null,
+        resultClass: bundleEntry?.resultClass ?? null,
+        diagnosticsState,
+      } satisfies GraphPublishedOutputEntry
+    })
   })
 
   return {
@@ -151,32 +167,48 @@ export const buildGraphPublishedContentSurface = (options: {
   outputSurface: GraphOutputSurface | null | undefined
 }): GraphPublishedContentSurface | null => {
   const { graph, graphDocumentId, outputSurface } = options
-  const normalizedParams = readNormalizedOutputPreviewParams(
-    graph,
-    outputSurface?.entries.map((entry) => ({ slotId: entry.slotId })),
-  )
+  const normalizedParams = readNormalizedOutputPreviewParams(graph)
   if (normalizedParams === null) {
     return null
   }
-  const outputEntryBySlotId = new Map(
-    (outputSurface?.entries ?? []).map((entry) => [entry.slotId, entry] as const),
-  )
+  const outputEntriesBySlotId = new Map<string, GraphOutputSurface['entries']>()
+  for (const entry of outputSurface?.entries ?? []) {
+    const existing = outputEntriesBySlotId.get(entry.slotId)
+    if (existing === undefined) {
+      outputEntriesBySlotId.set(entry.slotId, [entry])
+      continue
+    }
+    existing.push(entry)
+  }
   const publishedObjects = normalizedParams.objects.flatMap((objectRow) => {
-    const entry = outputEntryBySlotId.get(objectRow.slotId)
-    if (entry === undefined || entry.state === 'empty') {
+    const entries = outputEntriesBySlotId.get(objectRow.slotId) ?? []
+    if (entries.length === 0) {
       return []
     }
-    return [
-      {
-        objectId: objectRow.objectId,
-        label: objectRow.label,
-        outputEntryId: entry.outputEntryId,
-        slotId: objectRow.slotId,
-        sourceNodeId: entry.sourceNodeId.length ? entry.sourceNodeId : null,
-        acceptedArtifactKey: entry.acceptedArtifactKey,
-        state: entry.state,
-      } satisfies GraphPublishedObjectSurfaceEntry,
-    ]
+    const publicationMode =
+      normalizedParams.slots.find((slot) => slot.slotId === objectRow.slotId)?.publicationMode ??
+      'grouped'
+    return entries.flatMap((entry, memberIndex) => {
+      if (entry.state === 'empty') {
+        return []
+      }
+      const suffix = publicationMode === 'split' && entries.length > 1 ? ` ${memberIndex + 1}` : ''
+      const objectId =
+        publicationMode === 'split'
+          ? `${objectRow.objectId}:member-${String(memberIndex + 1).padStart(3, '0')}`
+          : objectRow.objectId
+      return [
+        {
+          objectId,
+          label: `${objectRow.label}${suffix}`,
+          outputEntryId: entry.outputEntryId,
+          slotId: objectRow.slotId,
+          sourceNodeId: entry.sourceNodeId.length ? entry.sourceNodeId : null,
+          acceptedArtifactKey: entry.acceptedArtifactKey,
+          state: entry.state,
+        } satisfies GraphPublishedObjectSurfaceEntry,
+      ]
+    })
   })
 
   if (publishedObjects.length === 0) {

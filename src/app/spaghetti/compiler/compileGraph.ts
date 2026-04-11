@@ -14,6 +14,7 @@ import {
   type ProfileLoop,
   type SketchPlaneTransform,
 } from '../features/featureTypes'
+import { getExtrudeProfileSourcePath } from '../features/extrudeProfileConnections'
 import { applyFeatureVirtualInputOverrides } from '../features/featureVirtualPorts'
 import {
   getNodeDef,
@@ -288,7 +289,10 @@ const resolveGeometryExtrudeContributors = (
     }
 
     const sourceValue =
-      getValueAtPath(resolvedOutputsByNodeId?.[edge.from.nodeId]?.[edge.from.portId], edge.from.path) ??
+      getValueAtPath(
+        resolvedOutputsByNodeId?.[edge.from.nodeId]?.[edge.from.portId],
+        getExtrudeProfileSourcePath(edge),
+      ) ??
       (incomingEdges.length === 1 ? resolvedProfileInput : resolvedInputEntries?.[index])
     const plane = readGeometrySketchPlaneFromNode(sketchNode)
     const planeTransform = readGeometrySketchPlaneTransformFromNode(sketchNode)

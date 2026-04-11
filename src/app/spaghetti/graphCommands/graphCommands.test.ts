@@ -140,6 +140,44 @@ describe('graphCommands', () => {
     ])
   })
 
+  it('connectEdgeWithAutoReplace strips inert SketchProfiles source paths when wiring aggregate extrude input', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        { nodeId: 'node-sketch', type: 'Geometry/Sketch', params: {} },
+        { nodeId: 'node-extrude', type: 'Geometry/Extrude', params: {} },
+      ],
+      edges: [],
+    }
+
+    const next = connectEdgeWithAutoReplace({
+      edgeId: 'edge-sketch-profiles',
+      from: {
+        nodeId: 'node-sketch',
+        portId: 'SketchProfiles',
+        path: ['member', '0'],
+      },
+      to: {
+        nodeId: 'node-extrude',
+        portId: 'ExtrusionProfile',
+      },
+    })(graph)
+
+    expect(next.edges).toEqual([
+      {
+        edgeId: 'edge-sketch-profiles',
+        from: {
+          nodeId: 'node-sketch',
+          portId: 'SketchProfiles',
+        },
+        to: {
+          nodeId: 'node-extrude',
+          portId: 'ExtrusionProfile',
+        },
+      },
+    ])
+  })
+
   it('OutputPreview remains non-deletable via applyGraphCommand + normalization', () => {
     useSpaghettiStore.getState().setGraph(emptyGraph)
     const state = useSpaghettiStore.getState()

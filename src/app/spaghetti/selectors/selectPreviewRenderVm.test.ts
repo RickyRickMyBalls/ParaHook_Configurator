@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { PartArtifact } from '../../../shared/buildTypes'
+import type { GraphPreviewPreparation } from '../previewPreparation'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
-import { selectPreviewRenderVm } from './selectPreviewRenderVm'
+import {
+  selectPreviewRenderVm,
+  selectPreviewRenderVmFromPreparation,
+} from './selectPreviewRenderVm'
 
 const outputPreviewNode = (slotIds: string[]) => ({
   nodeId: 'node-output-preview-1',
@@ -218,5 +222,42 @@ describe('selectPreviewRenderVm', () => {
 
   it('matches stable PreviewRenderVm contract snapshot', () => {
     expect(selectPreviewRenderVm(graph, outputs)).toMatchSnapshot()
+  })
+
+  it('fans split publication into multiple preview items and viewer keys from one slot', () => {
+    const preparation: GraphPreviewPreparation = {
+      outputPreviewNodeId: 'node-output-preview-1',
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude'],
+      sourceNodeIdBySlotId: { s001: 'node-extrude-1' },
+      sourcePartKeyBySlotId: { s001: 'extrude' },
+      sourcePortIdBySlotId: { s001: 'SolidBody' },
+      sourcePartKeyByNodeId: { 'node-extrude-1': 'extrude' },
+      publicationModeBySlotId: { s001: 'split' },
+      splitMemberCountBySlotId: { s001: 2 },
+      slotStatusBySlotId: { s001: 'ok' },
+      buildStatsReadyPartKeys: [],
+      previewIntent: 'outputPreview',
+    }
+    const artifact: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 20, length: 20, height: 20 },
+      partKeyStr: 'extrude',
+      partKey: { id: 'extrude', instance: null },
+    }
+
+    const vm = selectPreviewRenderVmFromPreparation(preparation, [artifact])
+
+    expect(vm.items.map((item) => item.viewerKey)).toEqual([
+      's001:member-001',
+      's001:member-002',
+    ])
+    expect(vm.viewerParts.map((item) => item.viewerKey)).toEqual([
+      's001:member-001',
+      's001:member-002',
+    ])
   })
 })

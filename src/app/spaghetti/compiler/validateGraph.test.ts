@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import type { NodeDefinition } from '../registry/nodeRegistry'
 import type { PortSpec, PortType, SpaghettiGraph } from '../schema/spaghettiTypes'
+import { buildExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import { profileIdFromSignature } from '../features/profileDerivation'
@@ -25,6 +26,7 @@ const makeFixtureNodeDef = (config: {
 const profileLoopType: PortType = { kind: 'profileLoop' }
 const numberMmType: PortType = { kind: 'number', unit: 'mm' }
 const numberDegType: PortType = { kind: 'number', unit: 'deg' }
+const solidBodiesType: PortType = { kind: 'solidBodies' }
 
 const fixtureNodeDefs: Record<string, NodeDefinition> = {
   'Test/ProfileLoopSource': makeFixtureNodeDef({
@@ -70,6 +72,28 @@ const fixtureNodeDefs: Record<string, NodeDefinition> = {
         type: numberDegType,
       },
     ],
+  }),
+  'Test/SolidBodiesSource': makeFixtureNodeDef({
+    label: 'Test SolidBodies Source',
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: solidBodiesType,
+      },
+    ],
+  }),
+  'Test/SolidBodiesSink': makeFixtureNodeDef({
+    label: 'Test SolidBodies Sink',
+    inputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: solidBodiesType,
+      },
+    ],
+    outputs: [],
   }),
 }
 
@@ -1449,6 +1473,145 @@ describe('validateGraph OutputPreview dynamic slot inputs', () => {
           to: {
             nodeId: 'n-output-preview',
             portId: 'in:solid:s001',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts solidBodies output wired into OutputPreview in:solid slot port', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-solidbodies',
+          type: 'Test/SolidBodiesSource',
+          params: {},
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-output-preview-slot-solid-bodies',
+          from: {
+            nodeId: 'n-solidbodies',
+            portId: 'value',
+          },
+          to: {
+            nodeId: 'n-output-preview',
+            portId: 'in:solid:s001',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts NewObjects extrude member output wired into OutputPreview in:solid slot port', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                { rowId: 'row-1', componentId: 'line-1', type: 'line', a: { kind: 'lit', x: 0, y: 0 }, b: { kind: 'lit', x: 40, y: 0 } },
+                { rowId: 'row-2', componentId: 'line-2', type: 'line', a: { kind: 'lit', x: 40, y: 0 }, b: { kind: 'lit', x: 40, y: 20 } },
+                { rowId: 'row-3', componentId: 'line-3', type: 'line', a: { kind: 'lit', x: 40, y: 20 }, b: { kind: 'lit', x: 0, y: 20 } },
+                { rowId: 'row-4', componentId: 'line-4', type: 'line', a: { kind: 'lit', x: 0, y: 20 }, b: { kind: 'lit', x: 0, y: 0 } },
+                { rowId: 'row-5', componentId: 'line-5', type: 'line', a: { kind: 'lit', x: 60, y: 0 }, b: { kind: 'lit', x: 100, y: 0 } },
+                { rowId: 'row-6', componentId: 'line-6', type: 'line', a: { kind: 'lit', x: 100, y: 0 }, b: { kind: 'lit', x: 100, y: 20 } },
+                { rowId: 'row-7', componentId: 'line-7', type: 'line', a: { kind: 'lit', x: 100, y: 20 }, b: { kind: 'lit', x: 60, y: 20 } },
+                { rowId: 'row-8', componentId: 'line-8', type: 'line', a: { kind: 'lit', x: 60, y: 20 }, b: { kind: 'lit', x: 60, y: 0 } },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: { collapsed: false },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofiles-whole-to-extrude',
+          from: { nodeId: 'n-sketch', portId: 'SketchProfiles' },
+          to: { nodeId: 'n-extrude', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'e-extrude-member-to-output-preview',
+          from: { nodeId: 'n-extrude', portId: buildExtrudeBodyMemberPortId(0) },
+          to: { nodeId: 'n-output-preview', portId: 'in:solid:s001' },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts solidBodies endpoints when both sides explicitly use the new aggregate kind', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-solidbodies-source',
+          type: 'Test/SolidBodiesSource',
+          params: {},
+        },
+        {
+          nodeId: 'n-solidbodies-sink',
+          type: 'Test/SolidBodiesSink',
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-solidbodies-kind-match',
+          from: {
+            nodeId: 'n-solidbodies-source',
+            portId: 'value',
+          },
+          to: {
+            nodeId: 'n-solidbodies-sink',
+            portId: 'value',
           },
         },
       ],

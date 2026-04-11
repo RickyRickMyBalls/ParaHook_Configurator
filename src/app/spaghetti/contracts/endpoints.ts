@@ -10,6 +10,7 @@ import {
   resolveEffectiveInputPort,
   resolveEffectiveOutputPort,
 } from '../features/effectivePorts'
+import { normalizeExtrudeProfileConnectionEndpoints } from '../features/extrudeProfileConnections'
 import {
   buildDriverVirtualInputPortId,
   buildDriverVirtualOutputPortId,
@@ -207,7 +208,7 @@ export const resolveEndpoint = (
 
   const port =
     direction === 'out'
-      ? resolveEffectiveOutputPort(node, canonicalPortId, nodeDef)
+      ? resolveEffectiveOutputPort(node, canonicalPortId, nodeDef, graph)
       : resolveEffectiveInputPort(node, canonicalPortId, nodeDef)
   if (port === undefined) {
     return {
@@ -290,7 +291,9 @@ const arePortTypesCompatible = (
   }
   const solidPreviewCompat =
     (fromType.kind === 'solidBody' && toType.kind === 'toeLoft') ||
-    (fromType.kind === 'toeLoft' && toType.kind === 'solidBody')
+    (fromType.kind === 'toeLoft' && toType.kind === 'solidBody') ||
+    (fromType.kind === 'solidBodies' && toType.kind === 'toeLoft') ||
+    (fromType.kind === 'toeLoft' && toType.kind === 'solidBodies')
   return solidPreviewCompat && fromType.unit === toType.unit
 }
 
@@ -298,7 +301,6 @@ const isWholePortSketchProfilesToExtrusionProfileCompat = (
   fromResolved: ResolvedEndpoint,
   toResolved: ResolvedEndpoint,
 ): boolean =>
-  fromResolved.path === undefined &&
   toResolved.path === undefined &&
   fromResolved.type?.kind === 'sketchProfiles' &&
   toResolved.type?.kind === 'sketchProfile'
@@ -314,8 +316,12 @@ export const validateConnectionContract = (
   toEndpoint: EdgeEndpoint,
   opts?: ValidateConnectionContractOptions,
 ): ConnectionContractResult => {
-  const fromResolved = resolveEndpoint(graph, nodeRegistry, fromEndpoint, 'out')
-  const toResolved = resolveEndpoint(graph, nodeRegistry, toEndpoint, 'in')
+  const normalizedEndpoints = normalizeExtrudeProfileConnectionEndpoints({
+    from: fromEndpoint,
+    to: toEndpoint,
+  })
+  const fromResolved = resolveEndpoint(graph, nodeRegistry, normalizedEndpoints.from, 'out')
+  const toResolved = resolveEndpoint(graph, nodeRegistry, normalizedEndpoints.to, 'in')
   const baseDetails = buildBaseDetails(
     fromEndpoint,
     toEndpoint,

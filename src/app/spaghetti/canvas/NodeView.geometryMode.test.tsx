@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
 import { buildExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
 import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
 import type { ExtrudeNodeVm, SketchNodeVm } from '../selectors'
@@ -80,6 +81,7 @@ const extrudeNode: SpaghettiNode = {
   nodeId: 'node-extrude-1',
   type: 'Geometry/Extrude',
   params: {
+    bodyGenerationMode: 'Combine',
     extrudeType: 'Body',
     extrudeDirection: 'OneSide',
     depthMm: 30,
@@ -88,6 +90,7 @@ const extrudeNode: SpaghettiNode = {
 
 const extrudeVm: ExtrudeNodeVm = {
   extrudeType: 'Body',
+  bodyGenerationMode: 'Combine',
   extrudeDirection: 'OneSide',
   localDepthMm: 30,
   effectiveDepthMm: 30,
@@ -284,31 +287,41 @@ function SketchNodeHarness() {
   )
 }
 
-function ExtrudeNodeHarness() {
+function ExtrudeNodeHarness(props?: {
+  graphNode?: SpaghettiNode
+  extrudeVm?: ExtrudeNodeVm
+  allOutputs?: PortSpec[]
+}) {
   const graphNode = useSpaghettiStore((state) => state.graph.nodes[0] ?? null)
+  const renderedNode = props?.graphNode ?? graphNode
   const nodeMode = useSpaghettiStore((state) =>
-    graphNode === null ? 'essentials' : selectNodeMode(state, graphNode.nodeId),
+    renderedNode === null ? 'essentials' : selectNodeMode(state, renderedNode.nodeId),
   )
-  if (graphNode === null) {
+  if (renderedNode === null) {
     return null
   }
   const effectiveExtrudeType =
-    graphNode.params.extrudeType === 'Walls' ? 'Walls' : 'Body'
+    renderedNode.params.extrudeType === 'Walls' ? 'Walls' : 'Body'
+  const effectiveBodyGenerationMode =
+    renderedNode.params.bodyGenerationMode === 'NewObjects' ? 'NewObjects' : 'Combine'
   const effectiveExtrudeDirection =
-    graphNode.params.extrudeDirection === 'TwoSides'
+    renderedNode.params.extrudeDirection === 'TwoSides'
       ? 'TwoSides'
-      : graphNode.params.extrudeDirection === 'Symmetric'
+      : renderedNode.params.extrudeDirection === 'Symmetric'
         ? 'Symmetric'
         : 'OneSide'
   const depthMm =
-    typeof graphNode.params.depthMm === 'number' ? graphNode.params.depthMm : extrudeVm.localDepthMm
+    typeof renderedNode.params.depthMm === 'number'
+      ? renderedNode.params.depthMm
+      : (props?.extrudeVm ?? extrudeVm).localDepthMm
   const startDepthMm =
-    typeof graphNode.params.startDepthMm === 'number' ? graphNode.params.startDepthMm : depthMm
+    typeof renderedNode.params.startDepthMm === 'number' ? renderedNode.params.startDepthMm : depthMm
   const endDepthMm =
-    typeof graphNode.params.endDepthMm === 'number' ? graphNode.params.endDepthMm : depthMm
+    typeof renderedNode.params.endDepthMm === 'number' ? renderedNode.params.endDepthMm : depthMm
   const liveExtrudeVm: ExtrudeNodeVm = {
-    ...extrudeVm,
+    ...(props?.extrudeVm ?? extrudeVm),
     extrudeType: effectiveExtrudeType,
+    bodyGenerationMode: effectiveBodyGenerationMode,
     extrudeDirection: effectiveExtrudeDirection,
     localDepthMm: depthMm,
     effectiveDepthMm: depthMm,
@@ -323,7 +336,7 @@ function ExtrudeNodeHarness() {
   }
   return (
     <NodeView
-      node={graphNode}
+      node={renderedNode}
       x={0}
       y={0}
       title="Extrude"
@@ -331,7 +344,18 @@ function ExtrudeNodeHarness() {
       template="extrude"
       extrudeVm={liveExtrudeVm}
       allInputs={extrudeInputs}
-      allOutputs={extrudeOutputs}
+      allOutputs={
+        props?.allOutputs ?? [
+          {
+            portId: 'SolidBody',
+            label: effectiveBodyGenerationMode === 'NewObjects' ? 'SolidBodies' : 'SolidBody',
+            type:
+              effectiveBodyGenerationMode === 'NewObjects'
+                ? { kind: 'solidBodies' }
+                : { kind: 'solidBody' },
+          },
+        ]
+      }
       inputCompositeState={emptyCompositeState}
       compositeExpansionRevision={0}
       getCompositeExpanded={() => false}
@@ -567,6 +591,15 @@ const findExtrudeDirectionRow = (
   const row = root
     ?.querySelector('button.ParaSelectTrackButton[aria-label="Direction"]')
     ?.closest('[data-sp-enum-row="1"]')
+  return row instanceof HTMLElement ? row : null
+}
+
+const findExtrudeBodyModeRow = (
+  root: HTMLElement | null | undefined,
+): HTMLElement | null => {
+  const row = root
+    ?.querySelector('button.ParaSelectTrackButton[aria-label="Output"]')
+    ?.closest('[data-sp-extrude-body-mode-row="1"]')
   return row instanceof HTMLElement ? row : null
 }
 
@@ -1117,6 +1150,231 @@ describe('NodeView geometry mode behavior', () => {
     expect(updatedValue?.textContent).toContain('Symmetric')
     expect(updatedFill?.style.width).toBe('100%')
     expect(updatedMarker?.style.left).toBe('100%')
+  })
+
+  it('updates the extrude Output para-select and switches the parent output row label', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const bodyModeRow = findExtrudeBodyModeRow(container)
+    const nextButton = bodyModeRow?.querySelector(
+      '[aria-label="Next Output"]',
+    ) as HTMLButtonElement | null
+
+    expect(bodyModeRow).not.toBeNull()
+    expect(bodyModeRow?.textContent).toContain('Combine')
+    expect(findExtrudeOutputRow(container, 'SolidBody')).not.toBeNull()
+    expect(findExtrudeOutputRow(container, 'SolidBodies')).toBeNull()
+
+    await act(async () => {
+      nextButton?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+      )
+      nextButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().graph.nodes[0]?.params.bodyGenerationMode).toBe(
+      'NewObjects',
+    )
+    expect(findExtrudeBodyModeRow(container)?.textContent).toContain('New Objects')
+    expect(findExtrudeOutputRow(container, 'SolidBody')).toBeNull()
+    expect(findExtrudeOutputRow(container, 'SolidBodies')).not.toBeNull()
+  })
+
+  it('reveals child SolidBody output rows in New Objects mode when member outputs exist', async () => {
+    const memberA = buildExtrudeBodyMemberPortId(0)
+    const memberB = buildExtrudeBodyMemberPortId(1)
+
+    await act(async () => {
+      root?.render(
+        <ExtrudeNodeHarness
+          graphNode={{
+            ...extrudeNode,
+            params: {
+              ...extrudeNode.params,
+              bodyGenerationMode: 'NewObjects',
+            },
+          }}
+          extrudeVm={{
+            ...extrudeVm,
+            bodyGenerationMode: 'NewObjects',
+            hasProfile: true,
+            bodyId: 'node-extrude-1:body:001',
+            bodyCount: 2,
+            bodyMemberPortIds: [memberA, memberB],
+          }}
+          allOutputs={[
+            {
+              portId: 'SolidBody',
+              label: 'SolidBodies',
+              type: { kind: 'solidBodies' },
+            },
+            {
+              portId: memberA,
+              label: 'SolidBody',
+              type: { kind: 'solidBody' },
+            },
+            {
+              portId: memberB,
+              label: 'SolidBody',
+              type: { kind: 'solidBody' },
+            },
+          ]}
+        />,
+      )
+    })
+
+    const bodyRow = findExtrudeOutputRow(container, 'SolidBodies')
+    const chevron = bodyRow?.querySelector('.SpaghettiPortChevron--leading')
+
+    await act(async () => {
+      chevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      chevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelectorAll('[data-sp-extrude-body-child-row]').length).toBe(2)
+  })
+
+  it('renders resolved aggregate SketchProfiles copy and four SolidBody child rows for a four-profile extrude', async () => {
+    const members = [
+      buildExtrudeBodyMemberPortId(0),
+      buildExtrudeBodyMemberPortId(1),
+      buildExtrudeBodyMemberPortId(2),
+      buildExtrudeBodyMemberPortId(3),
+    ]
+
+    await act(async () => {
+      root?.render(
+        <ExtrudeNodeHarness
+          graphNode={{
+            ...extrudeNode,
+            params: {
+              ...extrudeNode.params,
+              bodyGenerationMode: 'NewObjects',
+              depthMm: 25,
+            },
+          }}
+          extrudeVm={{
+            ...extrudeVm,
+            bodyGenerationMode: 'NewObjects',
+            hasProfile: true,
+            profileTargetMode: 'allFromSketch',
+            profileCount: 4,
+            bodyId: 'node-extrude-1:body:001',
+            bodyCount: 4,
+            bodyMemberPortIds: members,
+            profileInputEntries: [
+              {
+                entryId: 'edge-sketch-profiles',
+                endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profiles'),
+                kind: 'aggregate',
+                label: 'SketchProfiles',
+                sourceNodeId: 'node-sketch-1',
+                sourceNodeLabel: 'Sketch',
+              },
+            ],
+          }}
+          allOutputs={[
+            {
+              portId: 'SolidBody',
+              label: 'SolidBodies',
+              type: { kind: 'solidBodies' },
+            },
+            ...members.map((portId) => ({
+              portId,
+              label: 'SolidBody',
+              type: { kind: 'solidBody' as const },
+            })),
+          ]}
+        />,
+      )
+    })
+
+    const inputRow = findExtrudeInputRow(container, 'SketchProfiles')
+    const inputChevron = inputRow?.querySelector('.SpaghettiPortChevron--leading')
+    const bodyRow = findExtrudeOutputRow(container, 'SolidBodies')
+    const bodyChevron = bodyRow?.querySelector('.SpaghettiPortChevron--leading')
+
+    expect(inputRow?.textContent).toContain('All closed profiles')
+    expect(inputRow?.textContent).toContain('4 closed profiles')
+    expect(inputRow?.textContent).not.toContain('Awaiting SketchProfiles contributors')
+
+    await act(async () => {
+      inputChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      inputChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(inputRow?.textContent).toContain('Resolved collection state')
+    expect(inputRow?.textContent).toContain('aggregate SketchProfiles contributor')
+
+    await act(async () => {
+      bodyChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      bodyChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(bodyRow?.textContent).toContain('Ready')
+    expect(container?.querySelectorAll('[data-sp-extrude-body-child-row]').length).toBe(4)
+  })
+
+  it('reveals placeholder child SolidBody rows in New Objects mode before body resolution', async () => {
+    const memberA = buildExtrudeBodyMemberPortId(0)
+    const memberB = buildExtrudeBodyMemberPortId(1)
+
+    await act(async () => {
+      root?.render(
+        <ExtrudeNodeHarness
+          graphNode={{
+            ...extrudeNode,
+            params: {
+              ...extrudeNode.params,
+              bodyGenerationMode: 'NewObjects',
+            },
+          }}
+          extrudeVm={{
+            ...extrudeVm,
+            bodyGenerationMode: 'NewObjects',
+            hasProfile: true,
+            profileCount: 2,
+            bodyMemberPortIds: [memberA, memberB],
+          }}
+        />,
+      )
+    })
+
+    const bodyRow = findExtrudeOutputRow(container, 'SolidBodies')
+    const chevron = bodyRow?.querySelector('.SpaghettiPortChevron--leading')
+
+    await act(async () => {
+      chevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      chevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container?.querySelectorAll('[data-sp-extrude-body-child-row]').length).toBe(2)
+    expect(container?.textContent).toContain('expected body member target')
+    expect(container?.textContent).toContain('waiting for body resolution')
   })
 
   it('keeps collapsed geometry node input and output blocks open while rows stay compact', async () => {

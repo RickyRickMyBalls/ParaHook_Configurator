@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { SpaghettiNode } from '../schema/spaghettiTypes'
+import type { SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import { buildExtrudeBodyMemberPortId } from './extrudeBodyVirtualPorts'
 import {
   listEffectiveInputPorts,
   listEffectiveOutputPorts,
   resolveEffectiveInputPort,
+  resolveEffectiveOutputPort,
 } from './effectivePorts'
 
 const outputPreviewNode = (slotIds: string[]): SpaghettiNode => ({
@@ -101,5 +103,74 @@ describe('effectivePorts driver virtual ports', () => {
     expect(inputCanonical).toHaveLength(2)
     expect(inputCanonical.every((port) => port.optional === true)).toBe(true)
     expect(inputCanonical.every((port) => port.maxConnectionsIn === 1)).toBe(true)
+  })
+})
+
+describe('effectivePorts Geometry/Extrude dynamic output contract', () => {
+  const extrudeNode = (bodyGenerationMode?: 'Combine' | 'NewObjects'): SpaghettiNode => ({
+    nodeId: 'n-extrude',
+    type: 'Geometry/Extrude',
+    params: bodyGenerationMode === undefined ? {} : { bodyGenerationMode },
+  })
+
+  it('defaults the effective output to aggregate SolidBodies in NewObjects mode', () => {
+    const outputPort = resolveEffectiveOutputPort(extrudeNode(), 'SolidBody')
+
+    expect(outputPort).toEqual({
+      portId: 'SolidBody',
+      label: 'SolidBodies',
+      type: { kind: 'solidBodies' },
+    })
+  })
+
+  it('narrows the effective output to SolidBody in Combine mode', () => {
+    const outputPort = resolveEffectiveOutputPort(
+      extrudeNode('Combine'),
+      'SolidBody',
+    )
+
+    expect(outputPort).toEqual({
+      portId: 'SolidBody',
+      label: 'SolidBody',
+      type: { kind: 'solidBody' },
+    })
+  })
+
+  it('keeps listEffectiveOutputPorts deterministic across repeated calls', () => {
+    const node = extrudeNode('NewObjects')
+
+    expect(listEffectiveOutputPorts(node)).toEqual(listEffectiveOutputPorts(node))
+  })
+
+  it('emits member SolidBody output ports for NewObjects when aggregate SketchProfiles is wired', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        { nodeId: 'n-sketch', type: 'Geometry/Sketch', params: {} },
+        extrudeNode('NewObjects'),
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofile-a-to-extrude',
+          from: { nodeId: 'n-sketch', portId: 'SketchProfile:profile-1' },
+          to: { nodeId: 'n-extrude', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'e-sketchprofile-b-to-extrude',
+          from: { nodeId: 'n-sketch', portId: 'SketchProfile:profile-2' },
+          to: { nodeId: 'n-extrude', portId: 'ExtrusionProfile' },
+        },
+      ],
+    }
+
+    const ports = listEffectiveOutputPorts(extrudeNode('NewObjects'), undefined, graph)
+
+    expect(ports.map((port) => port.portId)).toEqual(
+      expect.arrayContaining([
+        'SolidBody',
+        buildExtrudeBodyMemberPortId(0),
+        buildExtrudeBodyMemberPortId(1),
+      ]),
+    )
   })
 })

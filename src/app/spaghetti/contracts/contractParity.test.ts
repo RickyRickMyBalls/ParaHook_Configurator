@@ -366,6 +366,37 @@ describe('contract parity (canvas cheap-check vs validator decision)', () => {
     assertProjectedParity(graph, payload)
   })
 
+  it('keeps parity for solidBodies into OutputPreview dynamic slot input resolution', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 25,
+          },
+        },
+        {
+          nodeId: 'n-output-preview',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [],
+    }
+    const payload: ConnectionPayload = {
+      from: { nodeId: 'n-extrude', portId: 'SolidBody' },
+      to: { nodeId: 'n-output-preview', portId: 'in:solid:s001' },
+    }
+
+    assertProjectedParity(graph, payload)
+  })
+
   it('keeps parity across feature virtual ports (depth/taper/offset)', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,

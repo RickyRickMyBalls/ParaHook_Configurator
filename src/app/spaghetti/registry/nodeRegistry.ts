@@ -164,6 +164,7 @@ const outputPreviewParamsSchema = z
       z
         .object({
           slotId: z.string().min(1),
+          publicationMode: z.enum(['grouped', 'split']).optional(),
         })
         .strict(),
     ),
@@ -245,10 +246,12 @@ const geometrySketchParamsSchema = z
   .strict()
 const geometryExtrudeStoredTypeSchema = z.enum(['Basic', 'Twist', 'Body', 'Walls'])
 const geometryExtrudeStoredDirectionSchema = z.enum(['OneSide', 'TwoSides', 'Symmetric'])
+const geometryExtrudeStoredBodyGenerationModeSchema = z.enum(['Combine', 'NewObjects'])
 const geometryExtrudeParamsSchema = z
   .object({
     extrudeType: geometryExtrudeStoredTypeSchema.optional(),
     extrudeDirection: geometryExtrudeStoredDirectionSchema.optional(),
+    bodyGenerationMode: geometryExtrudeStoredBodyGenerationModeSchema.optional(),
     depthMm: z.number().finite().optional(),
     startDepthMm: z.number().finite().optional(),
     endDepthMm: z.number().finite().optional(),
@@ -314,6 +317,20 @@ const isExtrusionProfileInputLike = (value: unknown): boolean => {
   return Array.isArray(value) && value.length > 0 && value.some((entry) => isExtrusionProfileInputLike(entry))
 }
 
+const countExtrusionProfileTargets = (value: unknown): number => {
+  const isSingleProfile =
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { profileId?: unknown }).profileId === 'string'
+  if (isSingleProfile) {
+    return 1
+  }
+  if (!Array.isArray(value)) {
+    return 0
+  }
+  return value.reduce((count, entry) => count + countExtrusionProfileTargets(entry), 0)
+}
+
 export const GEOMETRY_EXTRUDE_DIRECTION_OPTIONS = [
   'OneSide',
   'TwoSides',
@@ -340,6 +357,19 @@ export const normalizeGeometryExtrudeDirection = (
     return 'Symmetric'
   }
   return 'OneSide'
+}
+
+export const GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_OPTIONS = [
+  'Combine',
+  'NewObjects',
+] as const
+export type GeometryExtrudeBodyGenerationMode =
+  (typeof GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_OPTIONS)[number]
+
+export const normalizeGeometryExtrudeBodyGenerationMode = (
+  value: unknown,
+): GeometryExtrudeBodyGenerationMode => {
+  return value === 'Combine' ? 'Combine' : 'NewObjects'
 }
 
 const toFiniteNumberOr = (value: unknown, fallback: number): number =>
@@ -388,6 +418,12 @@ export const readGeometryExtrudeDirectionFromParams = (
   params: Record<string, unknown>,
 ): GeometryExtrudeDirection => {
   return normalizeGeometryExtrudeDirection(params.extrudeDirection)
+}
+
+export const readGeometryExtrudeBodyGenerationModeFromParams = (
+  params: Record<string, unknown>,
+): GeometryExtrudeBodyGenerationMode => {
+  return normalizeGeometryExtrudeBodyGenerationMode(params.bodyGenerationMode)
 }
 
 export const readGeometryExtrudeTaperAngleDegFromParams = (
@@ -524,6 +560,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     defaultParams: {
       extrudeType: 'Body',
       extrudeDirection: 'OneSide',
+      bodyGenerationMode: 'NewObjects',
       depthMm: defaultGeometryExtrudeDepthMm,
       taperAngleDeg: 0,
     },
@@ -579,8 +616,8 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
     outputs: [
       {
         portId: 'SolidBody',
-        label: 'SolidBody',
-        type: { kind: 'solidBody' },
+        label: 'SolidBodies',
+        type: { kind: 'solidBodies' },
       },
     ],
     compute: ({ nodeId, params, inputs }) => {
@@ -607,14 +644,24 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
           ? inputs.EndDepth
           : readGeometryExtrudeEndDepthMmFromParams(params)
       const profile = inputs.ExtrusionProfile
+      const bodyGenerationMode = readGeometryExtrudeBodyGenerationModeFromParams(params)
       const hasProfile = isExtrusionProfileInputLike(profile)
+      const bodyCount = Math.max(1, countExtrusionProfileTargets(profile))
       const canPublishBody =
         hasProfile &&
         (extrudeDirection === 'TwoSides'
           ? startDepth > 0 && endDepth > 0
           : depth > 0)
       return {
-        SolidBody: canPublishBody ? { bodyId: `${nodeId}:body` } : null,
+        SolidBody: !canPublishBody
+          ? null
+          : bodyGenerationMode === 'NewObjects'
+            ? {
+                bodies: Array.from({ length: bodyCount }, (_, index) => ({
+                  bodyId: `${nodeId}:body:${String(index + 1).padStart(3, '0')}`,
+                })),
+              }
+            : { bodyId: `${nodeId}:body` },
       }
     },
   },

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+23. 2026-04-10 15:40: Added `Worker-Vision-3 Phase 10 - UI-Only Graph Revision Versus Geometry Build Revision Split` as the next standalone follow-on after Phase 9 so the Worker family now explicitly records the need to keep persisted graph layout truth such as node position while preventing those UI-only graph edits from riding the same revision/build-trigger lane that currently wakes geometry compile and worker scheduling
 22. 2026-04-10 11:44: Added `Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation` as the next standalone follow-on after the shipped Phase 8 ladder so the Worker family now explicitly records the planned `50% -> 75% -> 100%` presentation refinement for authoritative-ready-held preview without widening Browser build policy into separate mesh-versus-final controls
 21. 2026-04-10 09:34: Reworked the standalone `Worker-Vision-3 Phase 8` follow-on so the split ladder now starts with `Phase 8.1 - Draft Worker Versus Authoritative Worker Split`, then continues through `8.2` selector/store relevance gating, `8.3` layered `Auto` presentation, and `8.4` strict `Draft` plus `Final` hardening after code review confirmed the live repo still uses one shared worker that serializes draft and authoritative follow-through inside the same execution seam
 20. 2026-04-10 09:26: Added the standalone follow-on `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation.md` so `Worker-Vision-3 Phase 8` can now execute as explicit `8.1`, `8.2`, and `8.3` slices for selector/store relevance gating, layered `Auto` presentation, and strict `Draft` plus `Final` hardening instead of remaining one larger mixed implementation pass
@@ -1778,3 +1779,43 @@ After this slice:
 - active interaction with ready authoritative geometry may upgrade to `75%`
 - released accepted authoritative presentation remains the only `100%` state
 - the Browser still exposes one user-facing execution-policy system rather than separate mesh and final controls
+
+## [ ] Worker-Vision-3 Phase 10 - UI-Only Graph Revision Versus Geometry Build Revision Split
+
+Detailed execution now lives in:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 10 - UI-Only Graph Revision Versus Geometry Build Revision Split.md`
+
+Use that standalone Phase 10 doc for:
+- `Worker-Vision-3 Phase 10.1 - UI-Only Graph Edits Stop Triggering Geometry Build Churn`
+
+If later follow-ons are needed after `10.1`, add them inside that same standalone Phase 10 doc as:
+- `Worker-Vision-3 Phase 10.2 - ...`
+- `Worker-Vision-3 Phase 10.3 - ...`
+
+This umbrella section remains the high-level Phase 10 direction.
+
+### Purpose
+
+Keep full graph-document persistence honest, including node-position layout data needed for later spaghetti-graph file export, while preventing UI-only graph edits from being treated like geometry-authoring changes that should wake compile/build invalidation and worker scheduling.
+
+### Owns
+
+- the high-level direction that graph layout and other editor-only graph UI state may persist in the graph document without automatically becoming worker-relevant
+- the split between full document revision truth and geometry-build-trigger truth
+- keeping worker payload and build invalidation focused on geometry-relevant authored changes only
+- preserving future graph-file export honesty without turning layout metadata into worker work
+
+### Does Not Own
+
+- graph-file export UX or serialization format redesign
+- Browser build policy redesign
+- node-editor interaction polish
+- wider worker scheduling redesign beyond the revision and invalidation contract
+
+### Implementation Target
+
+After this slice:
+- node position and similar graph UI metadata remain saved as part of graph-document truth
+- moving nodes no longer wakes geometry compile/build churn just because the graph document revision changed
+- geometry-authoring changes still advance the worker-facing invalidation path normally
+- the worker-facing payload remains free of layout-only data such as node canvas position

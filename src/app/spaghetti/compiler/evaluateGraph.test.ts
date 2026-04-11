@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import type { SketchFeature } from '../features/featureTypes'
 import { evaluateSpaghettiGraph } from './evaluateGraph'
+import { buildExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
 import { profileIdFromSignature } from '../features/profileDerivation'
 import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 import {
@@ -18,6 +19,8 @@ const testRailMathSourceType = 'Test/RailMathSource'
 const testRailMathSinkType = 'Test/RailMathSink'
 const testToeLoftSourceType = 'Test/ToeLoftSource'
 const testToeLoftSinkType = 'Test/ToeLoftSink'
+const testSolidBodiesSourceType = 'Test/SolidBodiesSource'
+const testSolidBodiesSinkType = 'Test/SolidBodiesSink'
 const testBrokenNumberSourceType = 'Test/BrokenNumberMm'
 const testNumberDegSourceType = 'Test/NumberDeg'
 const testPlaneSourceType = 'Test/PlaneSource'
@@ -195,6 +198,55 @@ beforeAll(() => {
     }),
   }
 
+  registryWithTests[testSolidBodiesSourceType] = {
+    type: testSolidBodiesSourceType as never,
+    label: 'Test SolidBodies Source',
+    paramsSchema: z
+      .object({
+        value: z.unknown(),
+      })
+      .strict(),
+    inputs: [],
+    outputs: [
+      {
+        portId: 'value',
+        label: 'Value',
+        type: { kind: 'solidBodies' },
+      },
+    ],
+    compute: ({ params }) => ({
+      value: params.value,
+    }),
+  }
+
+  registryWithTests[testSolidBodiesSinkType] = {
+    type: testSolidBodiesSinkType as never,
+    label: 'Test SolidBodies Sink',
+    paramsSchema: z
+      .object({
+        in: z.unknown().optional(),
+      })
+      .strict(),
+    inputs: [
+      {
+        portId: 'in',
+        label: 'In',
+        type: { kind: 'solidBodies' },
+        optional: true,
+      },
+    ],
+    outputs: [
+      {
+        portId: 'out',
+        label: 'Out',
+        type: { kind: 'solidBodies' },
+      },
+    ],
+    compute: ({ inputs }) => ({
+      out: inputs.in ?? null,
+    }),
+  }
+
   registryWithTests[testBrokenNumberSourceType] = {
     type: testBrokenNumberSourceType as never,
     label: 'Test Broken Number Source',
@@ -261,6 +313,8 @@ afterAll(() => {
   delete registryWithTests[testRailMathSinkType]
   delete registryWithTests[testToeLoftSourceType]
   delete registryWithTests[testToeLoftSinkType]
+  delete registryWithTests[testSolidBodiesSourceType]
+  delete registryWithTests[testSolidBodiesSinkType]
   delete registryWithTests[testBrokenNumberSourceType]
   delete registryWithTests[testNumberDegSourceType]
   delete registryWithTests[testPlaneSourceType]
@@ -638,6 +692,93 @@ describe('evaluateSpaghettiGraph opaque kinds', () => {
     const invalidResult = evaluateSpaghettiGraph(invalidGraph)
     expect(invalidResult.ok).toBe(false)
     expect(invalidResult.diagnostics.errors.some((error) => error.code === 'OUTPUT_INVALID_SHAPE')).toBe(true)
+  })
+
+  it('accepts explicit solidBodies aggregates but rejects nested collections and boolean mode flags', () => {
+    const aggregateGraph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-solidbodies-source',
+          type: testSolidBodiesSourceType,
+          params: {
+            value: {
+              bodies: [{ bodyId: 'body-a' }, { __opaqueRef: 'body-token-b' }],
+            },
+          },
+        },
+        {
+          nodeId: 'n-solidbodies-sink',
+          type: testSolidBodiesSinkType,
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-solidbodies-aggregate',
+          from: { nodeId: 'n-solidbodies-source', portId: 'value' },
+          to: { nodeId: 'n-solidbodies-sink', portId: 'in' },
+        },
+      ],
+    }
+
+    const aggregateResult = evaluateSpaghettiGraph(aggregateGraph)
+    expect(aggregateResult.ok).toBe(true)
+    expect(aggregateResult.inputsByNodeId['n-solidbodies-sink']?.in).toEqual({
+      bodies: [{ bodyId: 'body-a' }, { __opaqueRef: 'body-token-b' }],
+    })
+    expect(aggregateResult.outputsByNodeId['n-solidbodies-sink']?.out).toEqual({
+      bodies: [{ bodyId: 'body-a' }, { __opaqueRef: 'body-token-b' }],
+    })
+
+    const nestedCollectionGraph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-solidbodies-source',
+          type: testSolidBodiesSourceType,
+          params: {
+            value: {
+              bodies: [{ bodies: [{ bodyId: 'nested-body' }] }],
+            },
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const nestedCollectionResult = evaluateSpaghettiGraph(nestedCollectionGraph)
+    expect(nestedCollectionResult.ok).toBe(false)
+    expect(
+      nestedCollectionResult.diagnostics.errors.some(
+        (error) => error.code === 'OUTPUT_INVALID_SHAPE',
+      ),
+    ).toBe(true)
+
+    const booleanModeGraph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-solidbodies-source',
+          type: testSolidBodiesSourceType,
+          params: {
+            value: {
+              bodies: [{ bodyId: 'body-a' }],
+              combined: true,
+            },
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    const booleanModeResult = evaluateSpaghettiGraph(booleanModeGraph)
+    expect(booleanModeResult.ok).toBe(false)
+    expect(
+      booleanModeResult.diagnostics.errors.some(
+        (error) => error.code === 'OUTPUT_INVALID_SHAPE',
+      ),
+    ).toBe(true)
   })
 })
 
@@ -1171,6 +1312,7 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
+            bodyGenerationMode: 'Combine',
             extrudeType: 'Basic',
             depthMm: 25,
           },
@@ -1228,6 +1370,7 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
+            bodyGenerationMode: 'Combine',
             extrudeType: 'Basic',
             depthMm: 25,
           },
@@ -1288,6 +1431,7 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
+            bodyGenerationMode: 'Combine',
             extrudeType: 'Basic',
             depthMm: 25,
           },
@@ -1348,6 +1492,7 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
+            bodyGenerationMode: 'Combine',
             extrudeType: 'Basic',
             depthMm: 25,
           },
@@ -1399,6 +1544,176 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
     })
   })
 
+  it('publishes SolidBodies in NewObjects mode when whole-port SketchProfiles drives multiple bodies', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+              lineComponent('row-5', 'e5', { x: 140, y: 0 }, { x: 180, y: 0 }),
+              lineComponent('row-6', 'e6', { x: 180, y: 0 }, { x: 180, y: 40 }),
+              lineComponent('row-7', 'e7', { x: 180, y: 40 }, { x: 140, y: 40 }),
+              lineComponent('row-8', 'e8', { x: 140, y: 40 }, { x: 140, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profiles',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodies: [
+        { bodyId: 'n-extrude:body:001' },
+        { bodyId: 'n-extrude:body:002' },
+      ],
+    })
+    expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(0)]).toEqual({
+      bodyId: 'n-extrude:body:001',
+    })
+    expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(1)]).toEqual({
+      bodyId: 'n-extrude:body:002',
+    })
+  })
+
+  it('treats stray SketchProfiles source-path metadata as one aggregate extrude contributor and still publishes all bodies', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+              rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+              rectangleComponent('row-3', 'rect-c', { x: 120, y: 0 }, { x: 160, y: 20 }),
+              rectangleComponent('row-4', 'rect-d', { x: 180, y: 0 }, { x: 220, y: 20 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profiles-stale-path',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+            path: ['member', '0'],
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.inputsByNodeId['n-extrude']?.ExtrusionProfile).toHaveLength(4)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodies: [
+        { bodyId: 'n-extrude:body:001' },
+        { bodyId: 'n-extrude:body:002' },
+        { bodyId: 'n-extrude:body:003' },
+        { bodyId: 'n-extrude:body:004' },
+      ],
+    })
+    expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(0)]).toEqual({
+      bodyId: 'n-extrude:body:001',
+    })
+    expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(3)]).toEqual({
+      bodyId: 'n-extrude:body:004',
+    })
+  })
+
+  it('publishes a one-member SolidBodies collection in NewObjects mode for a single SketchProfile', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodies: [{ bodyId: 'n-extrude:body:001' }],
+    })
+  })
+
   it('publishes null SolidBody when the selected profile input is missing', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
@@ -1441,6 +1756,7 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
           nodeId: 'n-extrude',
           type: 'Geometry/Extrude',
           params: {
+            bodyGenerationMode: 'Combine',
             extrudeDirection: 'TwoSides',
             depthMm: 25,
             startDepthMm: 5,

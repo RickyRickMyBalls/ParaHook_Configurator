@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PartArtifact } from '../../../shared/buildTypes'
+import type { GraphPreviewPreparation } from '../previewPreparation'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
@@ -93,5 +94,44 @@ describe('selectSharedPreviewRenderVm', () => {
     expect(sharedVm.viewerParts.map((item) => item.viewerKey)).toEqual(['graph-document-1:s001'])
     expect(sharedVm.items).toHaveLength(2)
     expect(sharedVm.items[1]?.viewerPart).toBeNull()
+  })
+
+  it('qualifies split publication viewer identities per graph document', () => {
+    const splitPreparation: GraphPreviewPreparation = {
+      outputPreviewNodeId: 'node-output-preview-1',
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude'],
+      sourceNodeIdBySlotId: { s001: 'node-extrude-1' },
+      sourcePartKeyBySlotId: { s001: 'extrude' },
+      sourcePortIdBySlotId: { s001: 'SolidBody' },
+      sourcePartKeyByNodeId: { 'node-extrude-1': 'extrude' },
+      publicationModeBySlotId: { s001: 'split' },
+      splitMemberCountBySlotId: { s001: 2 },
+      slotStatusBySlotId: { s001: 'ok' },
+      buildStatsReadyPartKeys: [],
+      previewIntent: 'outputPreview',
+    }
+    const extrudeArtifact: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 20, length: 20, height: 20 },
+      partKeyStr: 'extrude',
+      partKey: { id: 'extrude', instance: null },
+    }
+
+    const sharedVm = selectSharedPreviewRenderVm([
+      {
+        graphDocumentId: 'graph-document-1',
+        previewPreparation: splitPreparation,
+        buildOutputs: [extrudeArtifact],
+      },
+    ])
+
+    expect(sharedVm.viewerParts.map((item) => item.viewerKey)).toEqual([
+      'graph-document-1:s001:member-001',
+      'graph-document-1:s001:member-002',
+    ])
   })
 })

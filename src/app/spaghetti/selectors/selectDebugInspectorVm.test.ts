@@ -4,6 +4,7 @@ import { buildGraphOutputSurface } from '../outputSurface'
 import { prepareGraphPreviewPreparation } from '../previewPreparation'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import type { SketchFeature } from '../features/featureTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import { selectDebugInspectorVm } from './selectDebugInspectorVm'
 
@@ -14,6 +15,35 @@ const outputPreviewNode = (slotIds: string[]) => ({
     slots: slotIds.map((slotId) => ({ slotId })),
     nextSlotIndex: slotIds.length + 1,
   },
+})
+
+const createSketchFeature = (
+  components: SketchFeature['components'] = [],
+): SketchFeature => ({
+  type: 'sketch',
+  featureId: 'sketch-1',
+  plane: 'XY',
+  components,
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
+
+const lineComponent = (
+  rowId: string,
+  componentId: string,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+): SketchFeature['components'][number] => ({
+  rowId,
+  componentId,
+  type: 'line',
+  a: { kind: 'lit', x: start.x, y: start.y },
+  b: { kind: 'lit', x: end.x, y: end.y },
 })
 
 const cubeGraph: SpaghettiGraph = {
@@ -61,6 +91,54 @@ const cubeArtifact2: PartArtifact = {
   params: { width: 20, length: 20, height: 20 },
   partKeyStr: 'cube#2',
   partKey: { id: 'cube', instance: 2 },
+}
+
+const extrudeGraph: SpaghettiGraph = {
+  schemaVersion: 1,
+  nodes: [
+    outputPreviewNode(['s001']),
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: createSketchFeature([
+          lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+          lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+          lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+          lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+        ]),
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        extrudeType: 'Basic',
+        depthMm: 25,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude',
+      from: { nodeId: 'node-sketch-1', portId: 'SketchProfile' },
+      to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+    },
+    {
+      edgeId: 'edge-extrude-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+  ],
+}
+
+const extrudeArtifact: PartArtifact = {
+  id: 'extrude',
+  label: 'Extrude',
+  kind: 'box',
+  params: { width: 100, length: 50, height: 25 },
+  partKeyStr: 'extrude',
+  partKey: { id: 'extrude', instance: null },
 }
 
 describe('selectDebugInspectorVm', () => {
@@ -191,6 +269,51 @@ describe('selectDebugInspectorVm', () => {
     })
 
     expect(second).toEqual(first)
+  })
+
+  it('keeps OutputPreview slot normalization stable when a slot is fed by solidBodies from Geometry/Extrude', () => {
+    const previewPreparation = prepareGraphPreviewPreparation(extrudeGraph)
+    const outputSurface = buildGraphOutputSurface({
+      graphDocumentId: 'graph-document-extrude',
+      previewPreparation,
+      acceptedBuildOutputs: [extrudeArtifact],
+      publishedAtBuildSeq: 3,
+    })
+    const vm = selectDebugInspectorVm({
+      graph: extrudeGraph,
+      outputSurface,
+      buildOutputs: [extrudeArtifact],
+      compileResult: null,
+    })
+
+    expect(vm.outputPreview.slots).toEqual([
+      {
+        slotId: 's001',
+        state: 'resolved',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKeyStr: 'extrude',
+        artifactPartKeyStr: 'extrude',
+      },
+    ])
+    expect(vm.previewVm.entries).toEqual([
+      {
+        viewerKey: 's001',
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKeyStr: 'extrude',
+        sourceArtifactId: 'extrude',
+        sourceArtifactPartKeyStr: 'extrude',
+      },
+    ])
+    expect(vm.viewer.entries).toEqual([
+      {
+        viewerKey: 's001',
+        artifactId: 'extrude',
+        artifactLabel: 'Extrude',
+        artifactPartKey: 'extrude',
+        artifactPartKeyStr: 'extrude',
+      },
+    ])
   })
 })
 

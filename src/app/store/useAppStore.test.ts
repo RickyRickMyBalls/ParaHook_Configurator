@@ -2412,21 +2412,21 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     expect(selectViewportPresentationSettings(useAppStore.getState())).toEqual({
       lastLoaded: {
-        opacity: 1,
+        opacity: 0.5,
         color: '#5f83d6',
       },
       previewMesh: {
         opacity: 0.5,
-        color: '#5f83d6',
+        color: '#ffff00',
       },
       previewBrep: {
-        opacity: 0.75,
-        color: '#5f83d6',
+        opacity: 0.5,
+        color: '#00ff00',
       },
     })
     expect(selectViewportPresentationStyleSettings(useAppStore.getState(), 'previewBrep')).toEqual({
-      opacity: 0.75,
-      color: '#5f83d6',
+      opacity: 0.5,
+      color: '#00ff00',
     })
   })
 
@@ -2447,15 +2447,15 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
     expect(useAppStore.getState().viewportPresentationSettings).toEqual({
       lastLoaded: {
-        opacity: 1,
+        opacity: 0.5,
         color: '#5f83d6',
       },
       previewMesh: {
         opacity: 1,
-        color: '#5f83d6',
+        color: '#ffff00',
       },
       previewBrep: {
-        opacity: 0.75,
+        opacity: 0.5,
         color: '#aabbcc',
       },
     })
@@ -2543,6 +2543,59 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
         .inFlightBuildSeq,
     ).toBe(92)
+  })
+
+  it('keeps UI-only node-position edits out of release build churn while geometry edits still queue', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(108)
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
+    useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
+    requestBuildSpy.mockClear()
+    useAppStore.setState((state) => ({
+      ...state,
+      pendingBrowserBuildGraphDocumentIds: {},
+      delayedDraftBuildByGraphDocumentId: {},
+      delayedAuthoritativeBuildByGraphDocumentId: {},
+    }))
+
+    const nodeId = useSpaghettiStore.getState().graph.nodes[0]?.nodeId
+    expect(nodeId).toBeTruthy()
+
+    const runtimeBeforeUiEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+    useSpaghettiStore.getState().setNodePos(nodeId ?? '', 48, 96)
+    const runtimeAfterUiEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.compileBuild
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(runtimeAfterUiEdit?.currentDocumentRevision).toBe(
+      (runtimeBeforeUiEdit?.currentDocumentRevision ?? 0) + 1,
+    )
+    expect(runtimeAfterUiEdit?.currentGraphRevision).toBe(runtimeBeforeUiEdit?.currentGraphRevision)
+    expect(useSpaghettiStore.getState().graph.ui?.nodes?.[nodeId ?? '']).toEqual({ x: 48, y: 96 })
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds['graph-document-1']).toBe(
+      undefined,
+    )
+
+    useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
+
+    expect(requestBuildSpy).not.toHaveBeenCalled()
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds).toMatchObject({
+      'graph-document-1': true,
+    })
   })
 
   it('dispatches draft-visible auto work first and then follows with authoritative live work once current draft truth is accepted', async () => {

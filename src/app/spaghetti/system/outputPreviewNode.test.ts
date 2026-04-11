@@ -74,8 +74,31 @@ describe('createOutputPreviewNode', () => {
       objects: [
         { objectId: 'output-object:s001', slotId: 's001', label: 'Pedal Body', orderIndex: 0 },
       ],
-      slots: [{ slotId: 's001' }],
+      slots: [{ slotId: 's001', publicationMode: 'grouped' }],
       nextSlotIndex: 2,
     })
+  })
+
+  it('normalizes explicit split publication mode on output-preview slots', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            componentLabel: 'Pedal Component',
+            objects: [{ slotId: 's001', objectId: 'output-object:s001', label: 'Pedal Body' }],
+            slots: [{ slotId: 's001', publicationMode: 'split' }],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [],
+    }
+
+    expect(readNormalizedOutputPreviewParams(graph)?.slots).toEqual([
+      { slotId: 's001', publicationMode: 'split' },
+    ])
   })
 })

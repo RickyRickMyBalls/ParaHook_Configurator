@@ -74,10 +74,14 @@ import type {
 import { useSpaghettiStore } from '../store/useSpaghettiStore'
 import { setNodeParams as setNodeParamsCommand } from '../graphCommands/setNodeParams'
 import {
+  parseExtrudeBodyMemberPortId,
+} from '../features/extrudeBodyVirtualPorts'
+import {
   buildSketchProfileMemberPortId,
   parseSketchProfileMemberPortId,
 } from '../features/sketchProfileVirtualPorts'
 import {
+  readGeometryExtrudeBodyGenerationModeFromParams,
   readGeometryExtrudeDirectionFromParams,
   readGeometryExtrudeTaperAngleDegFromParams,
   readGeometryExtrudeTypeFromParams,
@@ -2814,6 +2818,9 @@ function NodeViewComponent({
     const endDepthPort = allInputs.find((port) => port.portId === 'EndDepth')
     const taperAnglePort = allInputs.find((port) => port.portId === 'TaperAngle')
     const solidBodyPort = allOutputs.find((port) => port.portId === 'SolidBody')
+    const localBodyGenerationMode = readGeometryExtrudeBodyGenerationModeFromParams(node.params)
+    const effectiveBodyGenerationMode =
+      extrudeVm?.bodyGenerationMode ?? localBodyGenerationMode
     const localExtrudeType = readGeometryExtrudeTypeFromParams(node.params)
     const localExtrudeDirection = readGeometryExtrudeDirectionFromParams(node.params)
     const localTaperAngleDeg =
@@ -2873,32 +2880,63 @@ function NodeViewComponent({
           ? 'one SketchProfile contributor'
           : 'SketchProfiles contributors'
     const bodyStatusLabel = extrudeVm?.bodyId !== undefined ? 'Ready' : 'Waiting'
+    const bodyCount = extrudeVm?.bodyCount ?? (extrudeVm?.bodyId !== undefined ? 1 : 0)
+    const bodyRowLabel =
+      effectiveBodyGenerationMode === 'NewObjects' ? 'SolidBodies' : 'SolidBody'
     const bodyActionTitle =
       extrudeVm?.bodyId !== undefined
         ? effectiveExtrudeType === 'Walls'
           ? 'Wall Output'
-          : 'Body Output'
+          : effectiveBodyGenerationMode === 'NewObjects'
+            ? 'Body Collection Output'
+            : 'Combined Body Output'
         : 'Build requirements'
     const bodyActionHint =
       extrudeVm?.bodyId !== undefined
         ? effectiveExtrudeType === 'Walls'
           ? `Publishes uncapped side walls as ${extrudeVm.bodyId}.`
-          : `Publishes a capped body as ${extrudeVm.bodyId}.`
+          : effectiveBodyGenerationMode === 'NewObjects'
+            ? bodyCount <= 1 && extrudeVm.bodyId !== undefined
+              ? `Publishes a body collection containing ${extrudeVm.bodyId}.`
+              : `Publishes a body collection containing ${bodyCount} bodies in the SolidBodies output collection.`
+            : `Publishes one combined SolidBody as ${extrudeVm.bodyId}.`
         : effectiveExtrudeType === 'Walls'
           ? `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} before this row can publish uncapped side walls.`
-          : `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} before this row can publish a capped body.`
+          : effectiveBodyGenerationMode === 'NewObjects'
+            ? `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} before this row can publish a body collection through SolidBodies.`
+            : `Waiting for ${profileRequirementLabel} and ${depthRequirementLabel} before this row can publish one combined SolidBody.`
     const bodyDetailTitle =
       extrudeVm?.bodyId !== undefined
         ? effectiveExtrudeType === 'Walls'
           ? 'Resolved wall result'
-          : 'Resolved body result'
+          : effectiveBodyGenerationMode === 'NewObjects'
+            ? 'Resolved body collection'
+            : 'Resolved combined body'
         : 'Build requirements'
     const bodyDetailSummary =
       extrudeVm?.bodyId !== undefined
         ? effectiveExtrudeType === 'Walls'
           ? `${extrudeVm.bodyId} | uncapped side walls`
-          : `${extrudeVm.bodyId} | capped body`
+          : effectiveBodyGenerationMode === 'NewObjects'
+            ? `${bodyCount} member${bodyCount === 1 ? '' : 's'} | collection-ready output`
+            : `${extrudeVm.bodyId} | combined body output`
         : `${profileRequirementLabel} | ${depthRequirementLabel}`
+    const bodyMemberPorts =
+      effectiveBodyGenerationMode === 'NewObjects'
+        ? (() => {
+            const resolvedPorts = allOutputs.filter(
+              (port) => parseExtrudeBodyMemberPortId(port.portId) !== null,
+            )
+            if (resolvedPorts.length > 0) {
+              return resolvedPorts
+            }
+            return (extrudeVm?.bodyMemberPortIds ?? []).map((portId) => ({
+              portId,
+              label: 'SolidBody',
+              type: { kind: 'solidBody' as const },
+            }))
+          })()
+        : []
     const profileRowController = getManagedStructuredWireRowProps(
       'in',
       'ExtrusionProfile',
@@ -3009,6 +3047,41 @@ function NodeViewComponent({
                 <div className="SpaghettiSketchEntitySummary">{bodyDetailSummary}</div>
               </div>
             </div>
+            {effectiveBodyGenerationMode === 'NewObjects' && bodyMemberPorts.length > 0
+              ? bodyMemberPorts.map((port, index) => {
+                  const memberPortId = port.portId
+                  const memberResolved = bodyCount > index
+                  const memberBodyId =
+                    memberResolved
+                      ? extrudeVm?.bodyId !== undefined && bodyCount === 1
+                        ? extrudeVm.bodyId
+                        : `${node.nodeId}:body:${`${index + 1}`.padStart(3, '0')}`
+                      : `${node.nodeId}:body:${`${index + 1}`.padStart(3, '0')}`
+                  const memberSummary =
+                    memberResolved
+                      ? mode === 'expanded'
+                        ? `${memberBodyId} | one resolved body member target | member ${index + 1} of ${bodyMemberPorts.length}`
+                        : `${memberBodyId} | one resolved body member target`
+                      : mode === 'expanded'
+                        ? `${memberBodyId} | expected body member target | waiting for body resolution | member ${index + 1} of ${bodyMemberPorts.length}`
+                        : `${memberBodyId} | expected body member target`
+                  return (
+                    <div
+                      key={memberPortId}
+                      data-sp-extrude-body-child-row={memberPortId}
+                      data-sp-extrude-body-child-port-id={memberPortId}
+                    >
+                      {renderOutputPortByType(port, {
+                        endpointPortId: memberPortId,
+                        labelOverride: 'SolidBody',
+                        resolvedValueLabel: memberSummary,
+                        hideDetailsToggle: true,
+                        childTone: true,
+                      })}
+                    </div>
+                  )
+                })
+              : null}
           </div>
         ) : null}
       </div>
@@ -3144,6 +3217,10 @@ function NodeViewComponent({
         })
       },
     })
+    const bodyGenerationModeOptions = [
+      { value: 'Combine', label: 'Combine' },
+      { value: 'NewObjects', label: 'New Objects' },
+    ] as const
 
     return (
       <GeometryNodeShell
@@ -3288,9 +3365,36 @@ function NodeViewComponent({
         }
         outputRail={
           <div className="SpaghettiNodePortColumn SpaghettiNodePortColumn--out">
+            <div
+              className="SpaghettiEnumInputRow SpaghettiPort SpRow SpaghettiPort--out SpaghettiPort--kind-solidBody SpaghettiExtrudeBodyGenerationModeRow"
+              data-sp-extrude-body-mode-row="1"
+              {...SP_INTERACTIVE_PROPS}
+            >
+              <div className="SpaghettiPortMain SpaghettiPortMain--enumValue">
+                <div className="SpaghettiPortEnumValueRow">
+                  <ParaSelect
+                    label="Output"
+                    value={effectiveBodyGenerationMode}
+                    options={[...bodyGenerationModeOptions]}
+                    onChange={(nextValue) => {
+                      if (nextValue !== 'Combine' && nextValue !== 'NewObjects') {
+                        return
+                      }
+                      updateExtrudeParams({
+                        ...node.params,
+                        bodyGenerationMode: nextValue,
+                      })
+                    }}
+                    menuMode="custom"
+                    capGlyph="chevron"
+                    disabled={!showEditors}
+                  />
+                </div>
+              </div>
+            </div>
             {solidBodyPort !== undefined
               ? renderManagedGeometryOutputPort(solidBodyPort, {
-                  rowLabel: 'SolidBody',
+                  rowLabel: bodyRowLabel,
                   headerStatusLabel: bodyStatusLabel,
                   hideDetailsToggle: true,
                   attachedBodyContent: renderExtrudeBodyAttachedBody,
@@ -3328,7 +3432,9 @@ function NodeViewComponent({
             >
               {row.objectId !== undefined ? (
                 <label className="SpaghettiOutputPreviewObjectRow" {...SP_INTERACTIVE_PROPS}>
-                  <span>Object</span>
+                  <span>
+                    {((row.publishedObjectRows?.length ?? 0) > 1) ? 'Object Prefix' : 'Object'}
+                  </span>
                   <input
                     className="SpaghettiOutputPreviewObjectInput"
                     type="text"
@@ -3347,7 +3453,7 @@ function NodeViewComponent({
               ) : null}
               {renderInputPortByType(row.port, {
                 endpointPortId: row.port.portId,
-                labelOverride: row.objectLabel ?? row.slotId,
+                labelOverride: row.inputLabel ?? row.objectLabel ?? row.slotId,
                 resolvedValueLabel: row.statusPrimary,
               })}
               {row.statusSecondary !== undefined ? (
@@ -3358,6 +3464,26 @@ function NodeViewComponent({
                   {...SP_INTERACTIVE_PROPS}
                 >
                   {row.statusSecondary}
+                </div>
+              ) : null}
+              {(row.publishedObjectRows?.length ?? 0) > 0 ? (
+                <div className="SpaghettiOutputPreviewPublishedObjects" {...SP_INTERACTIVE_PROPS}>
+                  <div className="SpaghettiOutputPreviewMeta">
+                    Published Objects
+                  </div>
+                  {row.publishedObjectRows?.map((publishedObjectRow) => (
+                    <div
+                      key={publishedObjectRow.rowId}
+                      className="SpaghettiOutputPreviewPublishedObjectRow"
+                    >
+                      <span className="SpaghettiOutputPreviewPublishedObjectLabel">
+                        {publishedObjectRow.label}
+                      </span>
+                      <span className="SpaghettiOutputPreviewPublishedObjectMeta">
+                        {publishedObjectRow.status}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ) : null}
               {row.slotStatus === 'unresolved' ? (

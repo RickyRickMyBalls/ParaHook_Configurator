@@ -19,9 +19,24 @@ export type PortKind =
   | 'sketchProfiles'
   | 'sketchProfile'
   | 'solidBody'
+  | 'solidBodies'
   | 'stations'
   | 'railMath'
   | 'toeLoft'
+
+export type OpaqueRefToken = {
+  __opaqueRef: string
+}
+
+export type SolidBodyValue =
+  | {
+      bodyId: string
+    }
+  | OpaqueRefToken
+
+export type SolidBodiesValue = {
+  bodies: SolidBodyValue[]
+}
 
 export type Unit = 'mm' | 'deg' | 'unitless'
 
@@ -61,6 +76,7 @@ export type PartSlots = {
 
 export type OutputPreviewSlot = {
   slotId: string
+  publicationMode?: 'grouped' | 'split'
 }
 
 export type OutputPreviewObject = {

@@ -65,8 +65,8 @@ describe('OutputPreview node registry contract', () => {
     expect(nodeDef?.outputs).toEqual([
       {
         portId: 'SolidBody',
-        label: 'SolidBody',
-        type: { kind: 'solidBody' },
+        label: 'SolidBodies',
+        type: { kind: 'solidBodies' },
       },
     ])
     expect(addableTypes).toContain('Geometry/Extrude')

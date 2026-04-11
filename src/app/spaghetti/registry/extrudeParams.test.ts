@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   getNodeDef,
+  readGeometryExtrudeBodyGenerationModeFromParams,
   readGeometryExtrudeDirectionFromParams,
   readGeometryExtrudeTaperAngleDegFromParams,
   readGeometryExtrudeTypeFromParams,
@@ -62,6 +63,25 @@ describe('Geometry/Extrude param readers', () => {
     ).toBe(3.5)
   })
 
+  it('defaults missing body generation mode to NewObjects', () => {
+    expect(
+      readGeometryExtrudeBodyGenerationModeFromParams({
+        extrudeType: 'Walls',
+        depthMm: 20,
+      }),
+    ).toBe('NewObjects')
+  })
+
+  it('keeps NewObjects body generation mode when extra params are present', () => {
+    expect(
+      readGeometryExtrudeBodyGenerationModeFromParams({
+        extrudeType: 'Walls',
+        bodyGenerationMode: 'NewObjects',
+        depthMm: 20,
+      }),
+    ).toBe('NewObjects')
+  })
+
   it('exposes the phase 2 depth row ports without backfilling split params into defaults', () => {
     const extrudeDef = getNodeDef('Geometry/Extrude')
 
@@ -77,6 +97,7 @@ describe('Geometry/Extrude param readers', () => {
     expect(extrudeDef?.defaultParams).toMatchObject({
       extrudeType: 'Body',
       extrudeDirection: 'OneSide',
+      bodyGenerationMode: 'NewObjects',
       depthMm: 20,
       taperAngleDeg: 0,
     })

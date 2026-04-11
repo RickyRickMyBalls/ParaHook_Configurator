@@ -1419,6 +1419,44 @@ describe('NodeView part section order', () => {
     expect(html.includes('Drop part here')).toBe(true)
   })
 
+  it('renders split OutputPreview collection publication as child published objects under one slot', () => {
+    const html = renderOutputPreviewNode([
+      {
+        rowId: 'op-slot:s001',
+        nodeId: 'node-output-preview-1',
+        slotId: 's001',
+        objectId: 'output-object:s001',
+        objectLabel: 'Pedal Body',
+        inputLabel: 's001 Collection',
+        port: outputPreviewPort('s001'),
+        slotStatus: 'ok',
+        statusPrimary: 'Geometry/Extrude',
+        statusSecondary:
+          's001 takes one SolidBodies collection on SolidBody and publishes 2 objects through split publication.',
+        publishedObjectRows: [
+          {
+            rowId: 'op-slot:s001:published:1',
+            label: 'Pedal Body 1',
+            status: 'Published object 1 from this split collection source.',
+          },
+          {
+            rowId: 'op-slot:s001:published:2',
+            label: 'Pedal Body 2',
+            status: 'Published object 2 from this split collection source.',
+          },
+        ],
+        isTrailingEmpty: false,
+      },
+    ])
+
+    expect(html.includes('Object Prefix')).toBe(true)
+    expect(html.includes('s001 Collection')).toBe(true)
+    expect(html.includes('Published Objects')).toBe(true)
+    expect(html.includes('Pedal Body 1')).toBe(true)
+    expect(html.includes('Pedal Body 2')).toBe(true)
+    expect(html.includes('split collection source')).toBe(true)
+  })
+
   it('keeps deterministic section order and feature-stack ownership across current part nodes', () => {
     const nodeTypes: Array<'Part/Baseplate' | 'Part/Cube' | 'Part/ToeHook' | 'Part/HeelKick'> = [
       'Part/Baseplate',
@@ -1851,7 +1889,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -1922,8 +1960,8 @@ describe('NodeView part section order', () => {
     expect(depthRowIndex).toBeGreaterThan(directionRowIndex)
     expect(taperRowIndex).toBeGreaterThan(depthRowIndex)
     expect(html.includes('Ready')).toBe(true)
-    expect(html.includes('Body Output')).toBe(true)
-    expect(html.includes('Publishes a capped body as node-extrude-1:body.')).toBe(true)
+    expect(html.includes('Body Collection Output')).toBe(true)
+    expect(html.includes('Publishes a body collection containing node-extrude-1:body.')).toBe(true)
   })
 
   it('renders the dedicated extrude template empty state as a managed SketchProfile input row', () => {
@@ -1989,7 +2027,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
     })
@@ -2082,7 +2120,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -2106,7 +2144,83 @@ describe('NodeView part section order', () => {
       ),
     ).toBe(true)
     expect(html.includes('Ready')).toBe(true)
-    expect(html.includes('Publishes a capped body as node-extrude-1:body.')).toBe(true)
+    expect(html.includes('Publishes a body collection containing node-extrude-1:body.')).toBe(true)
+  })
+
+  it('keeps Combine mode singular with no child SolidBody rows', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          bodyGenerationMode: 'Combine',
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        bodyGenerationMode: 'Combine',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: true,
+        bodyId: 'node-extrude-1:body',
+        bodyCount: 1,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'SketchProfiles',
+          type: { kind: 'sketchProfile' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Type',
+          label: 'Type',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Direction',
+          label: 'Direction',
+          type: { kind: 'number', unit: 'unitless' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+        {
+          portId: 'Depth',
+          label: 'Depth',
+          type: { kind: 'number', unit: 'mm' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBody' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('data-sp-extrude-body-child-row=')).toBe(false)
   })
 
   it('renders singular SketchProfile copy honestly in the dedicated extrude template', () => {
@@ -2186,7 +2300,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -2207,7 +2321,7 @@ describe('NodeView part section order', () => {
     ).toBe(true)
     expect(
       html.includes(
-        'Waiting for one SketchProfile contributor and positive Depth before this row can publish a capped body.',
+        'Waiting for one SketchProfile contributor and positive Depth before this row can publish a body collection through SolidBodies.',
       ),
     ).toBe(true)
   })
@@ -2296,7 +2410,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -2383,7 +2497,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -2485,14 +2599,14 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
     })
 
     expect(html.includes('positive Start Depth and End Depth')).toBe(true)
-    expect(html.includes('capped body')).toBe(true)
+    expect(html.includes('body collection')).toBe(true)
     expect(html.includes('Taper Angle')).toBe(false)
   })
 
@@ -2561,14 +2675,14 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
     })
 
     expect(html.includes('positive symmetric Depth')).toBe(true)
-    expect(html.includes('capped body')).toBe(true)
+    expect(html.includes('body collection')).toBe(true)
     expect(html.includes('Taper Angle')).toBe(false)
   })
 
@@ -2639,7 +2753,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
     })
@@ -2717,7 +2831,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
     })
@@ -2801,7 +2915,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -2891,7 +3005,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
       nodeMode: 'expanded',
@@ -2965,7 +3079,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
     })
@@ -3054,7 +3168,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'SolidBody',
           label: 'SolidBody',
-          type: { kind: 'solidBody' },
+          type: { kind: 'solidBodies' },
         },
       ],
     })

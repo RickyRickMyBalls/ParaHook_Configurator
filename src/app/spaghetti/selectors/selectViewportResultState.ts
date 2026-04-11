@@ -322,6 +322,29 @@ const hasCurrentOutputContinuation = (
   })
 }
 
+const doesCurrentOutputMatchGeometryResultPartKeys = (
+  previewPreparation: GraphPreviewPreparation | null,
+  geometryResult: GeometryResultBundle | null,
+): boolean => {
+  if (previewPreparation === null || geometryResult === null) {
+    return false
+  }
+
+  const currentPartKeys = [...new Set(previewPreparation.previewCandidatePartKeys)].filter(
+    (partKey) => partKey.length > 0,
+  )
+  const committedPartKeys = [...new Set(geometryResult.request.partKeys)].filter(
+    (partKey) => partKey.length > 0,
+  )
+
+  if (currentPartKeys.length !== committedPartKeys.length) {
+    return false
+  }
+
+  const currentPartKeySet = new Set(currentPartKeys)
+  return committedPartKeys.every((partKey) => currentPartKeySet.has(partKey))
+}
+
 const resolveRetainedBaseCandidate = (options: {
   requestedMode: WorkspaceViewportResultMode
   currentAuthoritativeGeometryResult: GeometryResultBundle | null
@@ -333,6 +356,8 @@ const resolveRetainedBaseCandidate = (options: {
   currentDraftRenderVm: PreviewRenderVm
   committedDraftRenderVm: PreviewRenderVm
   hasCurrentOutputContinuation: boolean
+  currentOutputMatchesCommittedAuthoritative: boolean
+  currentOutputMatchesCommittedDraft: boolean
 }): {
   retainedBaseState: ViewportRetainedBaseState
   baseCandidate: ViewportLayerCandidate
@@ -355,6 +380,7 @@ const resolveRetainedBaseCandidate = (options: {
     }
     if (
       !options.hasCurrentOutputContinuation ||
+      !options.currentOutputMatchesCommittedDraft ||
       options.committedDraftRenderVm.viewerParts.length === 0
     ) {
       return {
@@ -391,7 +417,11 @@ const resolveRetainedBaseCandidate = (options: {
   if (options.committedAuthoritativeGeometryResult === null) {
     return { retainedBaseState: 'none', baseCandidate: EMPTY_LAYER_CANDIDATE }
   }
-  if (!options.hasCurrentOutputContinuation || !hasRenderableAuthoritative) {
+  if (
+    !options.hasCurrentOutputContinuation ||
+    !options.currentOutputMatchesCommittedAuthoritative ||
+    !hasRenderableAuthoritative
+  ) {
     return {
       retainedBaseState: 'cleared-by-dependency-break',
       baseCandidate: EMPTY_LAYER_CANDIDATE,
@@ -795,6 +825,14 @@ export const selectViewportResultState = (
     currentDraftRenderVm: currentDraftGeometryRenderVm,
     committedDraftRenderVm,
     hasCurrentOutputContinuation: hasOutputContinuation,
+    currentOutputMatchesCommittedAuthoritative: doesCurrentOutputMatchGeometryResultPartKeys(
+      options.previewPreparation,
+      options.committedAuthoritativeGeometryResult,
+    ),
+    currentOutputMatchesCommittedDraft: doesCurrentOutputMatchGeometryResultPartKeys(
+      options.previewPreparation,
+      options.committedDraftGeometryResult,
+    ),
   })
   const overlayCandidate = resolveOverlayCandidate({
     requestedMode: options.requestedMode,

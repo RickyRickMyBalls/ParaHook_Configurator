@@ -1,4 +1,5 @@
 import { planEdgeInsertWithDriverInputAutoReplace } from '../canvas/driverInputAutoReplace'
+import { normalizeExtrudeProfileConnectionEndpoints } from '../features/extrudeProfileConnections'
 import type { EdgeEndpoint, SpaghettiGraph } from '../schema/spaghettiTypes'
 import type { GraphCommand } from './types'
 
@@ -16,11 +17,15 @@ export const planConnectEdgeWithAutoReplace = (
     to: EdgeEndpoint
   },
 ): ConnectEdgeWithAutoReplacePlan => {
+  const normalized = normalizeExtrudeProfileConnectionEndpoints({
+    from: options.from,
+    to: options.to,
+  })
   const plan = planEdgeInsertWithDriverInputAutoReplace({
     edges: graph.edges,
     edgeId: options.edgeId,
-    from: options.from,
-    to: options.to,
+    from: normalized.from,
+    to: normalized.to,
   })
   return {
     ...plan,

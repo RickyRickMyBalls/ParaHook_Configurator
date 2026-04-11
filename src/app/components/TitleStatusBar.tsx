@@ -1,10 +1,15 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import {
   type RuntimeInspectorChangeImpactGroupVm,
   type RuntimeInspectorChangeImpactSummaryVm,
   type RuntimeInspectorQueueCardVm,
   useRuntimeInspectorVm,
 } from '../store/runtimeInspectorVm'
+import {
+  selectViewportPresentationSettings,
+  useAppStore,
+  type ViewportPresentationStateId,
+} from '../store/useAppStore'
 
 type TitleStatusBarProps = {
   viewportId: string
@@ -13,8 +18,43 @@ type TitleStatusBarProps = {
 export function TitleStatusBar(props: TitleStatusBarProps) {
   const { viewportId } = props
   const [isInspectorExpanded, setIsInspectorExpanded] = useState(false)
+  const [isPresentationMenuOpen, setIsPresentationMenuOpen] = useState(false)
   const inspectorRegionId = useId()
+  const presentationMenuId = useId()
   const inspectorVm = useRuntimeInspectorVm(viewportId)
+  const viewportPresentationSettings = useAppStore(selectViewportPresentationSettings)
+  const setViewportPresentationOpacity = useAppStore(
+    (state) => state.setViewportPresentationOpacity,
+  )
+  const setViewportPresentationColor = useAppStore((state) => state.setViewportPresentationColor)
+
+  useEffect(() => {
+    if (!isInspectorExpanded) {
+      setIsPresentationMenuOpen(false)
+    }
+  }, [isInspectorExpanded])
+
+  const presentationRows: Array<{
+    id: ViewportPresentationStateId
+    label: string
+    description: string
+  }> = [
+    {
+      id: 'lastLoaded',
+      label: 'Last loaded geometry',
+      description: 'Retained accepted truth during churn',
+    },
+    {
+      id: 'previewMesh',
+      label: 'Preview mesh while changing param',
+      description: 'Live draft mesh preview',
+    },
+    {
+      id: 'previewBrep',
+      label: 'Preview B-rep while changing param',
+      description: 'Ready authoritative preview before acceptance',
+    },
+  ]
 
   const renderQueueCard = (
     task: RuntimeInspectorQueueCardVm,
@@ -144,9 +184,99 @@ export function TitleStatusBar(props: TitleStatusBarProps) {
           aria-label="Viewport runtime inspector"
         >
           <div className="TitleStatusInspectorHeader">
-            <span className="TitleStatusInspectorEyebrow">Runtime Inspector</span>
-            <span className="TitleStatusInspectorState">{inspectorVm.shellStateLabel}</span>
+            <div className="TitleStatusInspectorHeaderText">
+              <span className="TitleStatusInspectorEyebrow">Runtime Inspector</span>
+              <span className="TitleStatusInspectorState">{inspectorVm.shellStateLabel}</span>
+            </div>
+            <div className="TitleStatusInspectorHeaderActions">
+              <button
+                type="button"
+                className={`TitleStatusInspectorInfoButton ${isPresentationMenuOpen ? 'isOpen' : ''}`}
+                aria-label={
+                  isPresentationMenuOpen
+                    ? 'Hide viewport presentation settings'
+                    : 'Show viewport presentation settings'
+                }
+                aria-expanded={isPresentationMenuOpen}
+                aria-controls={presentationMenuId}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setIsPresentationMenuOpen((current) => !current)
+                }}
+              >
+                i
+              </button>
+            </div>
           </div>
+          {isPresentationMenuOpen ? (
+            <section
+              id={presentationMenuId}
+              className="TitleStatusInspectorInfoMenu"
+              aria-label="Viewport presentation settings"
+            >
+              <div className="TitleStatusInspectorSubheader">
+                <span className="TitleStatusInspectorSubheaderLabel">Viewport Presentation</span>
+                <span className="TitleStatusInspectorSubheaderValue">Visual only</span>
+              </div>
+              <div className="TitleStatusInspectorPresentationList">
+                {presentationRows.map((row) => {
+                  const settings = viewportPresentationSettings[row.id]
+                  return (
+                    <div key={row.id} className="TitleStatusInspectorPresentationCard">
+                      <div className="TitleStatusInspectorPresentationCopy">
+                        <span className="TitleStatusInspectorPresentationLabel">{row.label}</span>
+                        <span className="TitleStatusInspectorPresentationDetail">
+                          {row.description}
+                        </span>
+                      </div>
+                      <label className="TitleStatusInspectorPresentationControl">
+                        <span className="TitleStatusInspectorPresentationControlLabel">
+                          Opacity
+                        </span>
+                        <div className="TitleStatusInspectorPresentationControlRow">
+                          <input
+                            className="TitleStatusInspectorPresentationRange"
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={Math.round(settings.opacity * 100)}
+                            aria-label={`${row.label} opacity`}
+                            onChange={(event) => {
+                              setViewportPresentationOpacity(
+                                row.id,
+                                Number(event.currentTarget.value) / 100,
+                              )
+                            }}
+                          />
+                          <span className="TitleStatusInspectorPresentationValue">
+                            {`${Math.round(settings.opacity * 100)}%`}
+                          </span>
+                        </div>
+                      </label>
+                      <label className="TitleStatusInspectorPresentationControl">
+                        <span className="TitleStatusInspectorPresentationControlLabel">Color</span>
+                        <div className="TitleStatusInspectorPresentationColorRow">
+                          <input
+                            className="TitleStatusInspectorPresentationColorPicker"
+                            type="color"
+                            value={settings.color}
+                            aria-label={`${row.label} color`}
+                            onChange={(event) => {
+                              setViewportPresentationColor(row.id, event.currentTarget.value)
+                            }}
+                          />
+                          <span className="TitleStatusInspectorPresentationColorValue">
+                            {settings.color}
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
           <div className="TitleStatusInspectorStatsGrid" role="list" aria-label="Viewport runtime stats">
             {inspectorVm.statCards.map((statCard) => (
               <div key={statCard.label} className="TitleStatusInspectorStatCard" role="listitem">

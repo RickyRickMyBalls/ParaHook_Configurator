@@ -65,6 +65,505 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1189 -->
+### [1189] - 2026-04-10 22:06 - `WS - Phase Nodes-5.5c - Build Contract Cleanup`
+<!-- ENTRY 1189 -->
+HUMAN SUMMARY: `Cleaned up the immediate TypeScript contract fallout from the recent plural extrude/output-preview work so the repo builds again without changing the shipped extrude or split-publication behavior.` 
+#### Scope / Constraints Honored
+- Kept this slice limited to compile-break cleanup in the recent `solidBodies` / split-preview implementation area.
+- Preserved the shipped `Geometry/Extrude`, virtual member-port, and `Output Preview` behavior instead of reopening feature semantics.
+- Avoided broad schema rewrites so the fix stays safe inside the already-dirty branch.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/typeColors.ts` so the color map now includes the newer `solidBodies` port kind.
+- Updated `src/app/spaghetti/features/effectivePorts.test.ts` so the aggregate extrude regression graph is typed as a mutable `SpaghettiGraph` instead of a readonly `as const` literal that no longer satisfies the runtime graph contract.
+- Updated `src/app/spaghetti/integration/buildInputsToRequest.ts` so previous-build patch comparison keeps a defined build-input payload through the narrowed code path.
+- Updated `src/app/spaghetti/outputSurface.ts` and `src/app/spaghetti/previewPreparation.ts` so split-publication lookups tolerate optional preview-preparation maps consistently.
+- Removed the now-unused local `readSlotIds` helper from `src/app/spaghetti/previewPreparation.ts`.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/canvas/typeColors.ts`
+- `src/app/spaghetti/features/effectivePorts.test.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/previewPreparation.ts`
+
+#### Behavior Changes
+- No intended runtime behavior changes; this was a compile-contract cleanup so the existing plural extrude and split `Output Preview` behavior can build successfully again.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+<!-- ENTRY 1188 -->
+### [1188] - 2026-04-10 21:53 - `WS - Phase Nodes-5.5c - SketchProfiles Aggregate Extrude Readiness Fix`
+<!-- ENTRY 1188 -->
+HUMAN SUMMARY: `Normalized the \`SketchProfiles -> ExtrusionProfile\` aggregate contract so stray source-path metadata no longer makes \`Geometry/Extrude\` fall back to an awaiting state, and the same fixed aggregate truth now drives selector readiness, child \`SolidBody\` member rows, and split \`Output Preview\` publication consistently.` 
+#### Scope / Constraints Honored
+- Kept this slice focused on the aggregate `SketchProfiles -> Extrude` handoff and its downstream `SolidBodies` / `Output Preview` surfaces.
+- Preserved the existing public node schema, stable port ids, and grouped-versus-split `Output Preview` semantics.
+- Normalized the aggregate contract at shared seams instead of adding another selector-only fallback.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/features/extrudeProfileConnections.ts` as the shared semantic helper for aggregate-versus-singular extrude profile contributors, aggregate source-path normalization, and aggregate member counting.
+- Updated `src/app/spaghetti/graphCommands/connectEdgeWithAutoReplace.ts`, `src/app/spaghetti/contracts/endpoints.ts`, `src/app/spaghetti/compiler/evaluateGraph.ts`, and `src/app/spaghetti/compiler/compileGraph.ts` so aggregate `SketchProfiles` connections tolerate inert source-path metadata and normalize back onto the intended whole-port extrude contract.
+- Updated `src/app/spaghetti/features/extrudeBodyVirtualPorts.ts` and `src/app/spaghetti/selectors/selectNodeVm.ts` so aggregate readiness, expected child `SolidBody` member rows, and downstream `Output Preview` split publication all derive from the same normalized aggregate contributor truth.
+- Added focused regression proof for normalized aggregate edge insertion, evaluator publication, selector/output-preview truth, and the four-body extrude node surface.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/compiler/compileGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/contracts/endpoints.ts`
+- `src/app/spaghetti/features/extrudeBodyVirtualPorts.ts`
+- `src/app/spaghetti/features/extrudeProfileConnections.ts`
+- `src/app/spaghetti/graphCommands/connectEdgeWithAutoReplace.ts`
+- `src/app/spaghetti/graphCommands/graphCommands.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+
+#### Behavior Changes
+- `Geometry/Extrude` no longer loses aggregate `SketchProfiles` readiness just because a stale or UI-carried source path is attached to the parent collection edge.
+- In `New Objects`, the same fixed aggregate truth now keeps `SolidBodies` child-member rows aligned with the actual upstream profile count.
+- Split `Output Preview` now keeps widening against that normalized aggregate extrude output without changing grouped publication behavior.
+
+#### Verification Steps
+- `.\node_modules\.bin\vitest.cmd run src/app/spaghetti/graphCommands/graphCommands.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1187 -->
+### [1187] - 2026-04-10 21:16 - `WS - Phase Nodes-5.5b - Placeholder Body Member Rows Before Resolution`
+<!-- ENTRY 1187 -->
+HUMAN SUMMARY: `Extended the authored \`New Objects\` extrude surface so the parent \`SolidBodies\` row now reveals deterministic child \`SolidBody\` member rows as early waiting placeholders when profile truth already implies the member count, instead of hiding the per-body drag surface until the runtime body collection fully resolves.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.5b` on unresolved authored `New Objects` child-row readiness for `Geometry/Extrude` only.
+- Preserved the shipped resolved-member wiring behavior from `Nodes-5.5` and the `Output Preview` collection narration from `Nodes-5.5a`.
+- Kept `Combine` singular with no child member rows.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so authored `New Objects` extrudes now keep deterministic child member port ids even before body outputs resolve, using the strongest available profile-side truth and still letting resolved body count take priority once runtime body members exist.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the parent `SolidBodies` row can render those member rows as explicit waiting placeholders with deterministic member identity and honest unresolved copy until real body members resolve.
+- Added focused selector and geometry-mode proof for unresolved placeholder member rows and the clean handoff from placeholder to resolved member surfaces.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+
+#### Behavior Changes
+- In authored `New Objects`, `Geometry/Extrude` can now show child `SolidBody` rows before runtime body resolution when profile truth already justifies the expected member count.
+- Those early child rows read as expected waiting members, not resolved body outputs, and transition onto the existing resolved-member surface once body results exist.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1186 -->
+### [1186] - 2026-04-10 21:03 - `WS - Phase Nodes-5.5a - Output Preview Collection Surface Polish`
+<!-- ENTRY 1186 -->
+HUMAN SUMMARY: `Polished the older \`Output Preview\` node surface so collection-fed slots now read explicitly as one upstream \`SolidBodies\` source, and split publication now shows deterministic child published-object rows under that one slot instead of reading like many unrelated singular sources.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.5a` on visible `Output Preview` surface narration and readability only.
+- Preserved the shipped grouped-versus-split publication contract and existing `Geometry/Extrude` authored output semantics.
+- Kept one real accepted input row per slot instead of inventing multi-wire fan-in or extra slot pins.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so `Output Preview` slot rows now expose whether the connected source is atomic or collection-capable, keep collection-fed slot labels explicit, and synthesize deterministic child published-object rows when one split `SolidBodies` source widens into multiple published objects.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the `Output Preview` template now labels split collection rows as one collection-owned slot, switches the editable label copy to `Object Prefix` when that label fans out, and renders the published-object child list directly under the owning slot row.
+- Added focused selector and node-surface proof for singular `SolidBody`, grouped `SolidBodies`, and split `SolidBodies` readability cases.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `src/app/spaghetti/selectors/selectNodeVm.ts`
+
+#### Behavior Changes
+- `Output Preview` now makes collection-fed slots legible at a glance instead of narrating them like the older one-slot-to-one-object surface.
+- Split publication now renders child published-object rows under the owning slot so users can see that multiple published objects came from one upstream collection source.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 1185 -->
+### [1185] - 2026-04-10 20:41 - `WS - Phase Nodes-5.5 - Per-Body Expansion And Wiring Surface`
+<!-- ENTRY 1185 -->
+HUMAN SUMMARY: `Finished the first real plural extrude surface so authored \`New Objects\` now reveals explicit child \`SolidBody\` rows under the aggregate \`SolidBodies\` parent, with matching virtual member output ports and runtime values that make those child rows actually wireable instead of decorative.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.5` on the extrude surface and member-output contract only.
+- Preserved the shipped `Nodes-5.4a` authored truth that `Combine` stays one singular parent row while `New Objects` owns plural member expansion.
+- Left `Output Preview` collection-surface polish to the dedicated `Nodes-5.5a` follow-on.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Added `src/app/spaghetti/features/extrudeBodyVirtualPorts.ts` so plural extrude results now expose deterministic child `SolidBody` member port ids and per-member runtime values.
+- Updated `src/app/spaghetti/features/effectivePorts.ts`, `src/app/spaghetti/contracts/endpoints.ts`, and `src/app/spaghetti/compiler/evaluateGraph.ts` so those member outputs participate in effective output resolution, connection validation, and evaluated output publication.
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` so the extrude VM now carries plural member-port truth for the node surface without widening unrelated node-output surfaces.
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the `SolidBodies` parent row can reveal real child `SolidBody` rows in `New Objects` mode while `Combine` remains singular.
+- Added focused proof in:
+  - `src/app/spaghetti/features/effectivePorts.test.ts`
+  - `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+  - `src/app/spaghetti/compiler/validateGraph.test.ts`
+  - `src/app/spaghetti/selectors/selectNodeVm.test.ts`
+  - `src/app/spaghetti/canvas/NodeView.test.tsx`
+  - `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+#### Behavior Changes
+- `Geometry/Extrude` in `New Objects` mode now exposes one child `SolidBody` row per resolved member under the aggregate `SolidBodies` parent.
+- Those child rows now map to real output endpoints, so downstream wiring can target one atomic member body.
+- `Combine` mode still stays one calm singular `SolidBody` output row with no child members.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/features/effectivePorts.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/validateGraph.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/selectors/selectNodeVm.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1184 -->
+### [1184] - 2026-04-10 20:16 - `WS - Phase Nodes-5.4a - Move Extrude Output Mode Row Into Outputs Rail`
+<!-- ENTRY 1184 -->
+HUMAN SUMMARY: `Moved the authored extrude \`Output\` para-select out of the input stack and into the outputs rail so `Combine / New Objects` now sits directly above the parent body output row it controls, while keeping the same non-wire behavior and authored contract from `Nodes-5.4a`.` 
+#### Scope / Constraints Honored
+- Kept this follow-on narrow to the extrude node surface only.
+- Preserved the authored output-mode behavior and effective output contract from the shipped `Nodes-5.4a` implementation.
+- Left evaluator, port-contract, and downstream `Output Preview` publication semantics unchanged.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/canvas/NodeView.tsx` so the non-wire `Output` para-select row now renders at the top of the outputs rail instead of inside the input rail.
+- Kept the same `Combine` versus `New Objects` authored param write path and the same parent output-row switching behavior underneath the moved control.
+- Re-ran the focused extrude node-surface proof in `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` and `src/app/spaghetti/canvas/NodeView.test.tsx`.
+
+#### Behavior Changes
+- The extrude `Output` authored row now appears just above `SolidBody` / `SolidBodies` in the outputs section.
+- The row still behaves as a non-wire para-select and still controls the parent output-row contract the same way as before.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 1183 -->
+### [1183] - 2026-04-10 20:13 - `WS - Phase Nodes-5.4a - Extrude Combine Versus New Objects Authored Contract`
+<!-- ENTRY 1183 -->
+HUMAN SUMMARY: `Added an authored extrude Output para-select so \`Geometry/Extrude\` now switches honestly between singular \`SolidBody\` combine behavior and aggregate \`SolidBodies\` new-objects behavior, with the effective output port contract, evaluator result shape, and node surface all following the same authored mode.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.4a` on authored extrude truth by changing `Geometry/Extrude` params, effective output ports, evaluation, and node UI without reopening `Output Preview` grouped-versus-split publication ownership.
+- Preserved backward compatibility for older graphs by defaulting missing authored mode to `NewObjects`, which matches the previously shipped collection output behavior.
+- Left visible child `SolidBody` member-row expansion and drag-off wiring to `Nodes-5.5`.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Added `bodyGenerationMode: 'Combine' | 'NewObjects'` handling in `src/app/spaghetti/registry/nodeRegistry.ts`, including the authored param reader, explicit default normalization, and the new compute rule that returns either one atomic `solidBody` or one wrapped `solidBodies` collection based on authored mode.
+- Updated `src/app/spaghetti/features/effectivePorts.ts`, `src/app/spaghetti/compiler/evaluateGraph.ts`, and the shared validation path so `Geometry/Extrude.SolidBody` now resolves as an effective singular `SolidBody` port in `Combine` mode and an aggregate `SolidBodies` port in `NewObjects` mode while keeping the stable `portId: 'SolidBody'` wire identity.
+- Updated `src/app/spaghetti/selectors/selectNodeVm.ts` and `src/app/spaghetti/canvas/NodeView.tsx` so the extrude template shows one non-wire Output para-select row above the output surface, the parent output row label switches between `SolidBody` and `SolidBodies`, and the attached body copy stays aligned with the authored result mode.
+- Added focused proof in `src/app/spaghetti/registry/nodeRegistry.test.ts`, `src/app/spaghetti/registry/extrudeParams.test.ts`, `src/app/spaghetti/features/effectivePorts.test.ts`, `src/app/spaghetti/compiler/evaluateGraph.test.ts`, `src/app/spaghetti/compiler/validateGraph.test.ts`, `src/app/spaghetti/contracts/contractParity.test.ts`, `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`, and `src/app/spaghetti/canvas/NodeView.test.tsx`.
+
+#### Behavior Changes
+- `Geometry/Extrude` now has an authored `Output` para-select row with `Combine` and `New Objects`.
+- In `Combine`, extrude publishes one singular `SolidBody` result and surfaces a singular `SolidBody` parent output row.
+- In `New Objects`, extrude publishes an aggregate `SolidBodies` result and surfaces a `SolidBodies` parent output row while leaving child member-row expansion for the next slice.
+- Older graphs without the new param continue to behave like the prior collection-capable output by normalizing to `NewObjects`.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/registry/extrudeParams.test.ts src/app/spaghetti/features/effectivePorts.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/contracts/contractParity.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx src/app/spaghetti/canvas/NodeView.test.tsx`
+
+<!-- ENTRY 1182 -->
+### [1182] - 2026-04-10 19:34 - `WS - Phase Nodes-5.4 - Grouped Versus Split Publication Contract`
+<!-- ENTRY 1182 -->
+HUMAN SUMMARY: `Made grouped-versus-split publication explicit on \`Output Preview\` so one accepted \`solidBodies\` slot can now stay grouped or fan out into multiple deterministic published output entries and objects, while grouped behavior for existing graphs stays backward-compatible and authored extrude mode remains deferred to \`Nodes-5.4a\`.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.4` publication-owned by storing grouped-versus-split metadata on `Output Preview` slots instead of inside the body payload.
+- Preserved existing grouped behavior for graphs that do not yet persist the new slot metadata.
+- Left authored `Geometry/Extrude` `Combine` versus `New Objects` mode to `Nodes-5.4a` and visible child-row expansion/wiring to `Nodes-5.5`.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Widened `src/app/spaghetti/schema/spaghettiTypes.ts`, `src/app/spaghetti/system/outputPreviewNode.ts`, and `src/app/spaghetti/registry/nodeRegistry.ts` so `Output Preview` slot params can normalize explicit `publicationMode: 'grouped' | 'split'` while defaulting older graphs to grouped behavior.
+- Updated `src/app/spaghetti/previewPreparation.ts` so preview normalization now carries per-slot publication mode plus split member counts derived from evaluated `solidBodies` values.
+- Updated `src/app/spaghetti/outputSurface.ts` so grouped slots keep one output entry while split `solidBodies` slots fan out into deterministic `output-entry:${slotId}:${sourceNodeId}:member-XXX` entries and matching published object rows.
+- Updated `src/app/spaghetti/selectors/selectPreviewRenderVm.ts` and `src/app/spaghetti/integration/buildInputsToRequest.ts` so split publication uses the same deterministic member identities for preview viewer keys and build-unit targeting.
+- Added focused proof in `src/app/spaghetti/system/outputPreviewNode.test.ts`, `src/app/spaghetti/outputSurface.test.ts`, `src/app/spaghetti/integration/buildInputsToRequest.test.ts`, `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`, and `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`.
+
+#### Behavior Changes
+- `Output Preview` slots can now author grouped-versus-split publication metadata.
+- One accepted `solidBodies` slot in split mode now produces multiple deterministic output/build identities and multiple published objects instead of being forced through one grouped object.
+- Existing grouped slots and older graphs continue to publish through the previous one-slot-to-one-entry shape unless they explicitly opt into split mode.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/system/outputPreviewNode.test.ts src/app/spaghetti/outputSurface.test.ts src/app/spaghetti/integration/buildInputsToRequest.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+- `npm.cmd exec vitest run src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+
+<!-- ENTRY 1181 -->
+### [1181] - 2026-04-10 19:08 - `WS - Phase Nodes-5.3 - Output Preview Collection Input Acceptance`
+<!-- ENTRY 1181 -->
+HUMAN SUMMARY: `Widened \`Output Preview in:solid:*\` so collection-capable \`solidBodies\` sources now wire in alongside atomic \`solidBody\` and the legacy \`toeLoft\` bridge, while the preview/output pipeline stays intentionally on the current one-slot-to-one-entry surface and leaves grouped-vs-split publication policy for `Nodes-5.4`.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.3` on slot acceptance and normalization only by leaving grouped-versus-split publication policy, one-slot-to-many-entry widening, and per-body child-row UI expansion untouched for later `Nodes-5.4` and `Nodes-5.5`.
+- Preserved the existing `Output Preview` slot arity so each `in:solid:${slotId}` port still accepts at most one incoming wire.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/contracts/endpoints.ts` so the shared compatibility bridge now treats `solidBodies` as legal for `Output Preview in:solid:*` slot ports alongside atomic `solidBody` and legacy `toeLoft`.
+- Refreshed `src/app/spaghetti/compiler/validateGraph.test.ts` so collection-fed slot wiring now validates successfully instead of failing with `EDGE_TYPE_MISMATCH`.
+- Added focused parity proof in `src/app/spaghetti/contracts/contractParity.test.ts` covering `Geometry/Extrude.SolidBody -> Output Preview in:solid:*`.
+- Added focused runtime-surface proof in `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts` showing that a collection-fed `Extrude -> Output Preview` slot still normalizes through the current one-slot preview/output surface with one resolved slot entry, one preview entry, and one viewer entry.
+
+#### Files Changed
+- `src/app/spaghetti/contracts/endpoints.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `src/app/spaghetti/contracts/contractParity.test.ts`
+- `src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Output Preview in:solid:*` now accepts collection-capable `solidBodies` inputs in addition to atomic `solidBody` and the legacy `toeLoft` bridge.
+- Collection-fed output-preview slots keep the current one-slot-to-one-entry normalization in preview and output surfaces for now.
+- Grouped-versus-split publication behavior is still not decided in this slice.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/compiler/validateGraph.test.ts src/app/spaghetti/contracts/contractParity.test.ts src/app/spaghetti/selectors/selectDebugInspectorVm.test.ts`
+
+<!-- ENTRY 1180 -->
+### [1180] - 2026-04-10 18:59 - `WS - Phase Nodes-5.2 - Extrude Collection Output Contract`
+<!-- ENTRY 1180 -->
+HUMAN SUMMARY: `Changed \`Geometry/Extrude\` so its `SolidBody` output now publishes the explicit \`solidBodies\` aggregate contract, with the positive path returning one wrapped body collection instead of one atomic body token, while the dedicated node output row stays calm and honest about collection-capable publication and `Output Preview` collection acceptance remains deferred to `Nodes-5.3`.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.2` on the first geometry-publisher boundary only by leaving `Output Preview in:solid:*` acceptance, grouped-versus-split publication semantics, and per-body child-row expansion untouched for later `Nodes-5.3` through `Nodes-5.5`.
+- Preserved the visible `SolidBody` row identity in the extrude node surface while making the underlying output contract and attached-body wording honest about collection-capable publication.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/registry/nodeRegistry.ts` so `Geometry/Extrude` now declares its `SolidBody` output as `type: { kind: 'solidBodies' }` instead of atomic `solidBody`.
+- Changed the positive extrude publication path to emit the deterministic wrapped aggregate `{ bodies: [{ bodyId: '${nodeId}:body' }] }`, while preserving `null` for missing or invalid publication cases.
+- Refreshed the dedicated extrude output-row copy in `src/app/spaghetti/canvas/NodeView.tsx` so the UI now describes a body collection honestly without widening into per-body expansion or `Output Preview` publication policy.
+- Updated focused proof in `src/app/spaghetti/registry/nodeRegistry.test.ts`, `src/app/spaghetti/compiler/evaluateGraph.test.ts`, `src/app/spaghetti/canvas/NodeView.test.tsx`, and `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx` around the new collection-capable extrude output contract.
+
+#### Files Changed
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/registry/nodeRegistry.test.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.test.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- `Geometry/Extrude.SolidBody` now publishes the explicit `solidBodies` aggregate contract instead of atomic `solidBody`.
+- Successful extrude publication now resolves to a wrapped first-pass collection shape containing the one produced body member.
+- The extrude node still shows one visible `SolidBody` managed output row, but its attached summary copy now reads as collection-capable publication rather than singular-only body output.
+- `Output Preview in:solid:*` behavior remains unchanged in this slice and still does not accept `solidBodies`.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/spaghetti/registry/nodeRegistry.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/canvas/NodeView.test.tsx src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
+<!-- ENTRY 1179 -->
+### [1179] - 2026-04-10 18:39 - `WS - Phase Nodes-5.1 - Solid Body Collection Type And Evaluator Contract`
+<!-- ENTRY 1179 -->
+HUMAN SUMMARY: `Added the explicit graph-native \`solidBodies\` collection contract beside atomic \`solidBody\`, taught the evaluator and endpoint validation layers to recognize that wrapped aggregate body shape, and kept \`Geometry/Extrude\` plus \`Output Preview\` behavior unchanged so later `Nodes-5.2` and `Nodes-5.3` can widen publication and acceptance explicitly instead of through hidden type overloading.` 
+#### Scope / Constraints Honored
+- Kept `Nodes-5.1` on the shared type-and-validation boundary only by leaving `src/app/spaghetti/registry/nodeRegistry.ts`, `Geometry/Extrude` output publication, `Output Preview` slot typing, and node-row UI surfaces untouched.
+- Preserved atomic `solidBody` meaning while adding one explicit aggregate `solidBodies` kind, with multiplicity staying structural inside the wrapped aggregate value rather than hidden behind a boolean mode flag.
+- Completed the required permanent changelog update in the same implementation set.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/schema/spaghettiTypes.ts` and `src/app/spaghetti/schema/spaghettiSchema.ts` so the shared graph contract now names `solidBodies` as a first-class port kind beside `solidBody`, with explicit wrapped aggregate value types for one-or-many atomic body members.
+- Updated `src/app/spaghetti/compiler/evaluateGraph.ts` to validate `solidBodies` separately from atomic `solidBody`, allowing one wrapped aggregate collection with one-or-many atomic members while rejecting nested collection values and extra boolean mode flags.
+- Left endpoint compatibility intentionally narrow: `solidBodies` now behaves as an explicit kind for matching aggregate endpoints, while `Output Preview in:solid:*` still rejects `solidBodies` until the later collection-input acceptance phase.
+- Added focused proof in `src/app/spaghetti/compiler/evaluateGraph.test.ts` and `src/app/spaghetti/compiler/validateGraph.test.ts` covering valid aggregate bodies, invalid nested/boolean-flag shapes, explicit `solidBodies -> solidBodies` compatibility, and the preserved rejection of `solidBodies -> Output Preview`.
+
+#### Files Changed
+- `src/app/spaghetti/schema/spaghettiTypes.ts`
+- `src/app/spaghetti/schema/spaghettiSchema.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/compiler/evaluateGraph.test.ts`
+- `src/app/spaghetti/compiler/validateGraph.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- The shared spaghetti schema and evaluator now support an explicit `solidBodies` collection contract in addition to atomic `solidBody`.
+- `solidBodies` values must be wrapped structural aggregates; nested collections and embedded boolean mode flags are rejected as invalid output shapes.
+- `Output Preview in:solid:*` still accepts `solidBody` and legacy `toeLoft`, but does not yet accept `solidBodies`.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\spaghetti\compiler\evaluateGraph.test.ts`
+- `node .\node_modules\vitest\vitest.mjs run src\app\spaghetti\compiler\validateGraph.test.ts`
+
+<!-- ENTRY 1178 -->
+### [1178] - 2026-04-10 15:51 - `WK - Phase Worker-Vision-3 Phase 10.1 - UI-Only Graph Edits Stop Triggering Geometry Build Churn`
+<!-- ENTRY 1178 -->
+HUMAN SUMMARY: `Split saved graph-document revision from geometry-facing build revision so node-position and node-mode UI edits still persist in the graph document but no longer wake Browser or viewport build churn, while real geometry edits continue to advance the worker-facing revision lane.` 
+#### Scope / Constraints Honored
+- Kept saved graph UI truth intact by leaving `graph.ui.nodes` and `graph.ui.nodeModesByNodeId` persisted inside the graph document instead of moving layout metadata elsewhere.
+- Narrowed the change at the graph-runtime revision seam so app-side build triggers still follow one explicit geometry-facing revision owner instead of scattered UI-call-site suppression.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Extended `src/app/spaghetti/store/useSpaghettiStore.ts` with a new `currentDocumentRevision` runtime field and a revision-scope split in `withUpdatedGraphDocumentState(...)`, so every committed graph edit advances document truth while only geometry-relevant edits advance `currentGraphRevision`.
+- Marked the current UI-only graph edit actions `setNodePos(...)`, `setManyNodePos(...)`, `ensureNodePositions()`, and `setNodeMode(...)` as document-only commits, preserving persistence without changing the worker-facing geometry revision.
+- Left the app-store build trigger path on `currentGraphRevision`, which now acts as the narrowed geometry-facing signal the Browser and viewport scheduling logic already watches.
+- Added focused regression proof in `src/app/spaghetti/store/useSpaghettiStore.test.ts` and `src/app/store/useAppStore.test.ts` covering persisted node moves without build churn plus the counter-case where a real graph edit still queues release build work.
+
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Moving nodes or changing saved node row mode now updates persisted graph UI state without advancing the worker-facing geometry revision.
+- Browser and viewport build-trigger logic no longer treats those UI-only graph edits as geometry-dirty churn because the watched revision lane now moves only on geometry-relevant commits.
+- Real geometry-driving graph edits still advance the geometry revision and continue to queue build work normally.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\spaghetti\store\useSpaghettiStore.test.ts`
+- `node .\node_modules\vitest\vitest.mjs run src\app\store\useAppStore.test.ts`
+
+<!-- ENTRY 1177 -->
+### [1177] - 2026-04-10 15:31 - `WK - Phase Worker-Vision-3 Phase 10 - Output Preview-Gated Extrude Worker Relevance`
+<!-- ENTRY 1177 -->
+HUMAN SUMMARY: `Narrowed the worker-facing extrude contract so authored \`Geometry/Extrude\` nodes only become required worker parts when an \`Output Preview\` slot is actually wired to that extrude and the slot is currently \`ok\`, preventing disconnected or unresolved extra extrudes from entering worker progress/error flows such as \`Missing part artifact for key: extrude#2\`.` 
+#### Scope / Constraints Honored
+- Kept this pass worker-facing only by leaving compile-time authored extrude visibility intact while filtering the request translation that feeds worker dispatch, build stats, and runtime part-progress narration.
+- Applied the new relevance rule only to `Geometry/Extrude`, using `Output Preview` slot readiness as the gate and preserving the recent retained-final relevance behavior unchanged.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/integration/buildInputsToRequest.ts` to derive worker-relevant extrude part keys from `previewPreparation.outputSlotIds`, `sourcePartKeyBySlotId`, and `slotStatusBySlotId`, then filter worker-facing `orderedPartKeys`, build-stats part keys, and the forwarded `sp_featureStackIR.parts` payload to that narrowed set.
+- Preserved non-extrude worker parts unchanged while ensuring `slotStatus !== ok` keeps preview-wired extrudes out of the required worker artifact list until the slot resolves.
+- Left compiler/debug surfaces untouched because `compileGraph.ts` still emits the full authored extrude part map and ordered part keys before the worker-facing translation narrows them.
+
+#### Files Changed
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Creating a second extrude without wiring it into `Output Preview` no longer makes that extrude a required worker part.
+- Wiring an extrude into `Output Preview` while the slot is still unresolved no longer makes that extrude a required worker part or build-stats/progress part.
+- Once the same extrude is wired into `Output Preview` and the slot becomes `ok`, it re-enters the worker-facing required part list and its feature-stack payload becomes worker-visible again.
+
+#### Verification Steps
+- Ran `npm.cmd test -- src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- Ran `npm.cmd test -- src/app/spaghetti/compiler/compileGraph.test.ts`
+
+<!-- ENTRY 1176 -->
+### [1176] - 2026-04-10 15:19 - `WK - Phase Worker-Vision-3 Phase 9 - Final Mode Retained Geometry Relevance Fix`
+<!-- ENTRY 1176 -->
+HUMAN SUMMARY: `Tightened Final-mode retained-geometry relevance so stale accepted final output now clears when the current graph drops a previously accepted part, preventing disconnected outputs such as a removed second extrude from lingering visibly in Final after the current wiring no longer supports them.` 
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on stale retained-final relevance in the viewport selector without reopening worker scheduling, Browser policy, or viewer render-layer ownership.
+- Preserved the honest same-output churn behavior while hardening the dependency-break path for output membership changes.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/spaghetti/selectors/selectViewportResultState.ts` so retained draft/final geometry now requires not only current output continuation but also matching current output part-key membership against the committed result before the selector keeps stale accepted geometry visible.
+- Added a focused regression in `src/app/spaghetti/selectors/selectViewportResultState.test.ts` covering the exact partial-disconnect case where current output still exists for one object but a second previously accepted object has been removed from the graph.
+- Kept the existing unresolved-output dependency-break behavior intact while making partial membership changes clear retained final geometry instead of treating them like same-output parameter churn.
+
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+#### Behavior Changes
+- `Final` mode no longer keeps rendering stale accepted geometry when the current graph output membership drops a previously accepted part or object.
+- Disconnecting an upstream input such as the sketch feeding a second extrude now clears the stale retained-final object instead of leaving it visible just because some other output still remains valid.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\spaghetti\selectors\selectViewportResultState.test.ts`
+
+<!-- ENTRY 1175 -->
+### [1175] - 2026-04-10 15:08 - `WK - Phase Worker-Vision-3 Phase 9 - Presentation Default Color And Opacity Cleanup`
+<!-- ENTRY 1175 -->
+HUMAN SUMMARY: `Adjusted the default viewport presentation styling so retained \`lastLoaded\`, \`previewMesh\`, and \`previewBrep\` now start from the requested lighter held-preview baseline: \`lastLoaded\` at 50 percent, preview mesh in yellow, and preview B-rep in green at 50 percent.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow default-style cleanup pass without changing selector timing, Browser build policy, or host/viewer layer ownership.
+- Updated only the app-owned presentation defaults and the focused proof that reads those defaults.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` default `viewportPresentationSettings` so `lastLoaded` now starts at `0.5` opacity, `previewMesh` keeps `0.5` opacity but switches to yellow, and `previewBrep` now starts green at `0.5`.
+- Refreshed the focused store assertions in `src/app/store/useAppStore.test.ts` so initial settings and normalization behavior reflect the new defaults.
+- Updated the left-dock presentation-controls proof in `src/app/workspace/PrimaryViewportLeftDock.test.tsx` so the runtime inspector now expects the new initial opacity and color values.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+#### Behavior Changes
+- `Last loaded geometry` now defaults to `50%` opacity instead of fully opaque.
+- `Preview mesh while changing param` now defaults to yellow at `50%` opacity.
+- `Preview B-rep while changing param` now defaults to green at `50%` opacity.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\store\useAppStore.test.ts src\app\workspace\PrimaryViewportLeftDock.test.tsx`
+
+<!-- ENTRY 1174 -->
+### [1174] - 2026-04-10 15:03 - `WK - Floating Spaghetti Window Eight-Way Resize Fix`
+<!-- ENTRY 1174 -->
+HUMAN SUMMARY: `Expanded the floating spaghetti editor from one bottom-right resize corner to full edge-and-corner resizing, so the host now lets users pull the window from any side while preserving the existing floating position and size store contract.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow floating-host polish pass without changing editor viewport schema, workspace placement ownership, or inner spaghetti panel behavior.
+- Reused the existing position-plus-size store seam so the fix stayed local to the floating host resize math and styling.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/hosts/SpaghettiWindowHost.tsx` to support `n`, `s`, `e`, `w`, `ne`, `nw`, `se`, and `sw` resize directions for expanded floating spaghetti windows.
+- Reworked the floating resize drag math so west and north handles now adjust both size and anchored position while east and south continue to grow naturally from the opposite edge.
+- Added dedicated floating resize-handle styling in `src/app/theme/surfaces/spaghetti.css` for all four edges and four corners, keeping the old bottom-right grip visual on the south-east corner.
+- Added focused host proof that west-edge and north-west corner drags update both persisted size and persisted position correctly.
+
+#### Files Changed
+- `src/app/hosts/SpaghettiWindowHost.tsx`
+- `src/app/theme/surfaces/spaghetti.css`
+- `src/app/hosts/SpaghettiWindowHost.test.tsx`
+
+#### Behavior Changes
+- Floating spaghetti editor windows can now be resized from every edge and corner instead of only from the bottom-right corner.
+- West and north resize drags now keep the opposite edge anchored by updating both window size and floating position together.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\hosts\SpaghettiWindowHost.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1173 -->
+### [1173] - 2026-04-10 14:52 - `WK - Phase Worker-Vision-3 Phase 9.2 - Presentation Controls UI Surface`
+<!-- ENTRY 1173 -->
+HUMAN SUMMARY: `Added the viewport presentation controls behind a compact hidden \`i\` menu inside the runtime inspector, so users can now tune \`lastLoaded\`, \`previewMesh\`, and \`previewBrep\` color and opacity without turning that UI into a loud always-open panel or changing Browser execution policy.` 
+#### Scope / Constraints Honored
+- Kept this pass strictly on the `9.2` UI surface by reusing the shipped app-owned presentation settings and runtime-inspector shell instead of reopening selector or viewer ownership.
+- Placed the controls behind a compact runtime-inspector `i` affordance so the left-dock shell stays quiet by default while the customization surface remains discoverable.
+- Completed the required permanent changelog update in the same change set.
+
+#### Summary of Implementation
+- Updated `src/app/components/TitleStatusBar.tsx` so the expanded runtime inspector now includes a hidden `i` button that toggles a compact `Viewport Presentation` menu.
+- Bound that menu directly to the existing `viewportPresentationSettings` store contract using the shipped `setViewportPresentationOpacity(...)` and `setViewportPresentationColor(...)` actions for `lastLoaded`, `previewMesh`, and `previewBrep`.
+- Added focused styling in `src/app/theme/foundation/base.css` for the compact info button and the presentation-settings popover cards so the controls feel native to the runtime inspector instead of like a generic form block.
+- Added left-dock proof that the controls stay hidden until the `i` menu opens and that changing the UI writes the expected values back into app state.
+
+#### Files Changed
+- `src/app/components/TitleStatusBar.tsx`
+- `src/app/theme/foundation/base.css`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+
+#### Behavior Changes
+- The runtime inspector now exposes viewport presentation customization through a hidden `i` menu in its header.
+- Users can adjust opacity and color for `Last loaded geometry`, `Preview mesh while changing param`, and `Preview B-rep while changing param` without affecting build scheduling or acceptance rules.
+
+#### Verification Steps
+- `node .\node_modules\vitest\vitest.mjs run src\app\workspace\PrimaryViewportLeftDock.test.tsx`
+- `node .\node_modules\vitest\vitest.mjs run src\app\components\ViewerHost.test.tsx src\app\store\useAppStore.test.ts src\app\spaghetti\selectors\selectViewportResultState.test.ts`
+- `npm.cmd run build`
+
 <!-- ENTRY 1172 -->
 ### [1172] - 2026-04-10 14:39 - `WK - Phase Worker-Vision-3 Phase 9.5b - Distinct Authoritative Preview Lane And Auto Layered Promotion`
 <!-- ENTRY 1172 -->

@@ -10,6 +10,7 @@ import type {
   CompiledBuildData,
   CompiledBuildDataOutputEntry,
 } from '../../../shared/buildTypes'
+import { parsePartKeyString } from '../../../shared/buildTypes'
 
 export type SpaghettiBuildInputs = NonNullable<CompileSpaghettiGraphResult['buildInputs']>
 
@@ -60,6 +61,85 @@ const readFeatureStackIR = (buildInputs: SpaghettiBuildInputs): unknown | undefi
     return undefined
   }
   return buildInputs.resolvedShared.sp_featureStackIR
+}
+
+const isFeatureStackPayload = (
+  value: unknown,
+): value is {
+  schemaVersion: 1
+  parts: Record<string, unknown>
+} =>
+  isRecord(value) &&
+  value.schemaVersion === 1 &&
+  isRecord(value.parts)
+
+const collectWorkerRelevantExtrudePartKeys = (
+  previewPreparation: GraphPreviewPreparation,
+): Set<string> => {
+  const partKeys = new Set<string>()
+
+  for (const slotId of previewPreparation.outputSlotIds) {
+    if (previewPreparation.slotStatusBySlotId[slotId] !== 'ok') {
+      continue
+    }
+    const partKey = previewPreparation.sourcePartKeyBySlotId[slotId]
+    if (
+      typeof partKey === 'string' &&
+      partKey.length > 0 &&
+      parsePartKeyString(partKey).id === 'extrude'
+    ) {
+      partKeys.add(partKey)
+    }
+  }
+
+  return partKeys
+}
+
+const filterWorkerFacingOrderedPartKeys = (
+  orderedPartKeys: readonly string[],
+  previewPreparation: GraphPreviewPreparation,
+): string[] => {
+  const workerRelevantExtrudePartKeys = collectWorkerRelevantExtrudePartKeys(previewPreparation)
+
+  return orderedPartKeys.filter((partKey) => {
+    const parsed = parsePartKeyString(partKey)
+    return parsed.id !== 'extrude' || workerRelevantExtrudePartKeys.has(partKey)
+  })
+}
+
+const toWorkerFacingBuildInputs = (
+  buildInputs: SpaghettiBuildInputs,
+  previewPreparation: GraphPreviewPreparation,
+): SpaghettiBuildInputs => {
+  const orderedPartKeys = filterWorkerFacingOrderedPartKeys(
+    buildInputs.orderedPartKeys,
+    previewPreparation,
+  )
+  const allowedPartKeys = new Set(orderedPartKeys)
+  const featureStackIR = readFeatureStackIR(buildInputs)
+  const workerFeatureStackIR = isFeatureStackPayload(featureStackIR)
+    ? {
+        schemaVersion: 1 as const,
+        parts: Object.fromEntries(
+          Object.entries(featureStackIR.parts).filter(([partKey]) => allowedPartKeys.has(partKey)),
+        ),
+      }
+    : featureStackIR
+
+  return {
+    orderedPartKeys,
+    resolvedParts: Object.fromEntries(
+      Object.entries(buildInputs.resolvedParts).filter(([partKey]) => allowedPartKeys.has(partKey)),
+    ),
+    ...(isRecord(buildInputs.resolvedShared)
+      ? {
+          resolvedShared: {
+            ...buildInputs.resolvedShared,
+            ...(workerFeatureStackIR !== undefined ? { sp_featureStackIR: workerFeatureStackIR } : {}),
+          },
+        }
+      : {}),
+  }
 }
 
 const getPatchValue = (patch: ProfilePatch, key: SpProfileKey): unknown =>
@@ -113,6 +193,14 @@ const buildCompiledOutputEntries = (
   for (const slotId of previewPreparation.outputSlotIds) {
     const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
     const partKey = previewPreparation.sourcePartKeyBySlotId[slotId]
+    const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
+    const memberIndices =
+      publicationMode === 'split'
+        ? Array.from(
+            { length: Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) },
+            (_, index) => index,
+          )
+        : [undefined]
     if (
       typeof sourceNodeId !== 'string' ||
       sourceNodeId.length === 0 ||
@@ -122,17 +210,19 @@ const buildCompiledOutputEntries = (
       continue
     }
 
-    const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId)
-    if (seen.has(outputEntryId)) {
-      continue
+    for (const memberIndex of memberIndices) {
+      const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId, memberIndex)
+      if (seen.has(outputEntryId)) {
+        continue
+      }
+      seen.add(outputEntryId)
+      outputEntries.push({
+        buildUnitId: outputEntryId,
+        outputEntryId,
+        sourceNodeId,
+        partKey,
+      })
     }
-    seen.add(outputEntryId)
-    outputEntries.push({
-      buildUnitId: outputEntryId,
-      outputEntryId,
-      sourceNodeId,
-      partKey,
-    })
   }
 
   return outputEntries
@@ -160,15 +250,25 @@ const collectTargetBuildUnitIds = (
 
   for (const slotId of previewPreparation.outputSlotIds) {
     const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
+    const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
+    const memberIndices =
+      publicationMode === 'split'
+        ? Array.from(
+            { length: Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) },
+            (_, index) => index,
+          )
+        : [undefined]
     if (typeof sourceNodeId !== 'string' || sourceNodeId.length === 0) {
       continue
     }
-    const buildUnitId = buildGraphOutputEntryId(slotId, sourceNodeId)
-    if (seen.has(buildUnitId)) {
-      continue
+    for (const memberIndex of memberIndices) {
+      const buildUnitId = buildGraphOutputEntryId(slotId, sourceNodeId, memberIndex)
+      if (seen.has(buildUnitId)) {
+        continue
+      }
+      seen.add(buildUnitId)
+      orderedIds.push(buildUnitId)
     }
-    seen.add(buildUnitId)
-    orderedIds.push(buildUnitId)
   }
 
   return orderedIds
@@ -179,11 +279,19 @@ export const buildRequestFromBuildInputs = (
   previewPreparation: GraphPreviewPreparation,
   previousBuildInputs?: SpaghettiBuildInputs,
 ): BuildInputsRequestTranslation => {
-  const compiledBuildData = toCompiledBuildData(buildInputs, previewPreparation)
-  const profilePatch = toProfilePatch(buildInputs, previousBuildInputs)
+  const workerFacingBuildInputs = toWorkerFacingBuildInputs(buildInputs, previewPreparation)
+  const workerFacingPreviousBuildInputs =
+    previousBuildInputs === undefined
+      ? undefined
+      : toWorkerFacingBuildInputs(previousBuildInputs, previewPreparation)
+  const compiledBuildData = toCompiledBuildData(workerFacingBuildInputs, previewPreparation)
+  const profilePatch = toProfilePatch(
+    workerFacingBuildInputs,
+    workerFacingPreviousBuildInputs,
+  )
   const orderedSourcePartKeys =
-    buildInputs.orderedPartKeys.length > 0
-      ? orderSpaghettiSourcePartKeys(buildInputs.orderedPartKeys)
+    workerFacingBuildInputs.orderedPartKeys.length > 0
+      ? orderSpaghettiSourcePartKeys(workerFacingBuildInputs.orderedPartKeys)
       : deriveSpaghettiSourcePartKeysFromProfilePatch(profilePatch)
   const buildStatsPartKeys = [...orderedSourcePartKeys]
   const targetBuildUnitIds = collectTargetBuildUnitIds(previewPreparation)
@@ -198,7 +306,7 @@ export const buildRequestFromBuildInputs = (
     }
   }
 
-  const previousPatch = toProfilePatch(previousBuildInputs)
+  const previousPatch = toProfilePatch(workerFacingPreviousBuildInputs ?? previousBuildInputs)
   const changedParamIds = spProfileKeys.filter(
     (key) => stableHash(getPatchValue(profilePatch, key)) !== stableHash(getPatchValue(previousPatch, key)),
   )

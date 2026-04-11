@@ -1,5 +1,6 @@
 import type {
   OutputPreviewObject,
+  OutputPreviewSlot,
   OutputPreviewParams,
   SpaghettiGraph,
   SpaghettiNode,
@@ -8,6 +9,7 @@ import type {
 export const OUTPUT_PREVIEW_NODE_TYPE = 'System/OutputPreview' as const
 export const OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL = 'Published Component' as const
 export const OUTPUT_PREVIEW_DEFAULT_OBJECT_LABEL_PREFIX = 'Object' as const
+export const OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE = 'grouped' as const
 
 const buildDefaultOutputPreviewObjectLabel = (orderIndex: number): string =>
   `${OUTPUT_PREVIEW_DEFAULT_OBJECT_LABEL_PREFIX} ${orderIndex + 1}`
@@ -42,6 +44,11 @@ const toNonEmptyString = (value: unknown): string | null =>
 const toPositiveInt = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : fallback
 
+const toPublicationMode = (
+  value: unknown,
+): OutputPreviewSlot['publicationMode'] =>
+  value === 'split' ? 'split' : OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE
+
 const buildDefaultOutputPreviewObjectId = (slotId: string): string => `output-object:${slotId}`
 
 const isLegacyDefaultOutputPreviewObjectLabel = (
@@ -71,12 +78,22 @@ export const normalizeOutputPreviewParams = (
             return []
           }
           const slotId = toNonEmptyString(slot.slotId)
-          return slotId === null ? [] : [{ slotId }]
+          return slotId === null
+            ? []
+            : [{ slotId, publicationMode: toPublicationMode(slot.publicationMode) }]
         })
       : []) as OutputPreviewParams['slots'])
 
   const normalizedSlots =
-    slots.length > 0 ? slots : OUTPUT_PREVIEW_DEFAULT_PARAMS.slots.map((slot) => ({ ...slot }))
+    slots.length > 0
+      ? slots.map((slot) => ({
+          slotId: slot.slotId,
+          publicationMode: toPublicationMode(slot.publicationMode),
+        }))
+      : OUTPUT_PREVIEW_DEFAULT_PARAMS.slots.map((slot) => ({
+          slotId: slot.slotId,
+          publicationMode: OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
+        }))
 
   const rawObjects = Array.isArray(params.objects) ? params.objects : []
   const rawObjectsBySlotId = new Map<string, OutputPreviewObject>()

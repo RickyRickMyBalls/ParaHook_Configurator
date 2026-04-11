@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
+import { buildExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
 import { buildExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
 import { profileIdFromSignature } from '../features/profileDerivation'
 import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
@@ -72,6 +73,102 @@ const lineComponent = (
   type: 'line',
   a: { kind: 'lit', x: start.x, y: start.y },
   b: { kind: 'lit', x: end.x, y: end.y },
+})
+
+const rectangleComponent = (
+  rowId: string,
+  componentId: string,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): SketchFeature['components'][number] => ({
+  rowId,
+  componentId,
+  type: 'rectangle',
+  a: { kind: 'lit', x: a.x, y: a.y },
+  b: { kind: 'lit', x: b.x, y: b.y },
+})
+
+const createOutputPreviewBodyGraph = (options: {
+  bodyGenerationMode: 'Combine' | 'NewObjects'
+  publicationMode: 'grouped' | 'split'
+  profileCount: 1 | 2 | 4
+  aggregateSourcePath?: string[]
+}): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: createSketchFeature(
+          options.profileCount === 4
+            ? [
+                rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+                rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+                rectangleComponent('row-3', 'rect-c', { x: 120, y: 0 }, { x: 160, y: 20 }),
+                rectangleComponent('row-4', 'rect-d', { x: 180, y: 0 }, { x: 220, y: 20 }),
+              ]
+            : options.profileCount === 2
+            ? [
+                lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+                lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+                lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+                lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+                lineComponent('row-5', 'e5', { x: 140, y: 0 }, { x: 180, y: 0 }),
+                lineComponent('row-6', 'e6', { x: 180, y: 0 }, { x: 180, y: 40 }),
+                lineComponent('row-7', 'e7', { x: 180, y: 40 }, { x: 140, y: 40 }),
+                lineComponent('row-8', 'e8', { x: 140, y: 40 }, { x: 140, y: 0 }),
+              ]
+            : [
+                lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+                lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+                lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+                lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+              ],
+        ),
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        bodyGenerationMode: options.bodyGenerationMode,
+        depthMm: 25,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        slots: [{ slotId: 's001', publicationMode: options.publicationMode }],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Pedal Body',
+            orderIndex: 0,
+          },
+        ],
+        nextSlotIndex: 2,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+        ...(options.aggregateSourcePath === undefined ? {} : { path: options.aggregateSourcePath }),
+      },
+      to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+    },
+    {
+      edgeId: 'edge-extrude-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+  ],
 })
 
 describe('selectNodeVm', () => {
@@ -202,6 +299,207 @@ describe('selectNodeVm', () => {
     const row = vm.byNodeId.get('node-output-preview-1')?.outputPreviewRows?.[0]
     expect(row?.rowId).toBe('op-slot:s001')
     expect(row?.nodeId).toBe('node-output-preview-1')
+  })
+
+  it('keeps singular Output Preview slots calm when fed by one SolidBody source', () => {
+    const graph = createOutputPreviewBodyGraph({
+      bodyGenerationMode: 'Combine',
+      publicationMode: 'grouped',
+      profileCount: 1,
+    })
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const row = vm.byNodeId.get('node-output-preview-1')?.outputPreviewRows?.[0]
+
+    expect(row?.inputLabel).toBe('Pedal Body')
+    expect(row?.statusSecondary).toBe(
+      's001 takes one SolidBody source on SolidBody and publishes one object.',
+    )
+    expect(row?.publishedObjectRows).toBeUndefined()
+  })
+
+  it('marks grouped Output Preview collection slots as one SolidBodies source', () => {
+    const graph = createOutputPreviewBodyGraph({
+      bodyGenerationMode: 'NewObjects',
+      publicationMode: 'grouped',
+      profileCount: 1,
+    })
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const row = vm.byNodeId.get('node-output-preview-1')?.outputPreviewRows?.[0]
+
+    expect(row?.inputLabel).toBe('s001 Collection')
+    expect(row?.statusSecondary).toBe(
+      's001 takes one SolidBodies collection on SolidBody and publishes one grouped object.',
+    )
+    expect(row?.publishedObjectRows).toBeUndefined()
+  })
+
+  it('shows split Output Preview publication as many objects from one collection slot', () => {
+    const graph = createOutputPreviewBodyGraph({
+      bodyGenerationMode: 'NewObjects',
+      publicationMode: 'split',
+      profileCount: 2,
+    })
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const row = vm.byNodeId.get('node-output-preview-1')?.outputPreviewRows?.[0]
+
+    expect(row?.inputLabel).toBe('s001 Collection')
+    expect(row?.statusSecondary).toBe(
+      's001 takes one SolidBodies collection on SolidBody and publishes 2 objects through split publication.',
+    )
+    expect(row?.publishedObjectRows).toEqual([
+      {
+        rowId: 'op-slot:s001:published:1',
+        label: 'Pedal Body 1',
+        status: 'Published object 1 from this split collection source.',
+      },
+      {
+        rowId: 'op-slot:s001:published:2',
+        label: 'Pedal Body 2',
+        status: 'Published object 2 from this split collection source.',
+      },
+    ])
+  })
+
+  it('keeps aggregate SketchProfiles extrude readiness and four-way split publication when stale source-path metadata is present', () => {
+    const graph = createOutputPreviewBodyGraph({
+      bodyGenerationMode: 'NewObjects',
+      publicationMode: 'split',
+      profileCount: 4,
+      aggregateSourcePath: ['member', '0'],
+    })
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+    const row = vm.byNodeId.get('node-output-preview-1')?.outputPreviewRows?.[0]
+
+    expect(evaluation.ok).toBe(true)
+    expect(extrudeVm?.profileTargetMode).toBe('allFromSketch')
+    expect(extrudeVm?.profileCount).toBe(4)
+    expect(extrudeVm?.hasProfile).toBe(true)
+    expect(extrudeVm?.bodyCount).toBe(4)
+    expect(extrudeVm?.bodyMemberPortIds).toEqual([
+      buildExtrudeBodyMemberPortId(0),
+      buildExtrudeBodyMemberPortId(1),
+      buildExtrudeBodyMemberPortId(2),
+      buildExtrudeBodyMemberPortId(3),
+    ])
+    expect(row?.statusSecondary).toBe(
+      's001 takes one SolidBodies collection on SolidBody and publishes 4 objects through split publication.',
+    )
+    expect(row?.publishedObjectRows).toEqual([
+      {
+        rowId: 'op-slot:s001:published:1',
+        label: 'Pedal Body 1',
+        status: 'Published object 1 from this split collection source.',
+      },
+      {
+        rowId: 'op-slot:s001:published:2',
+        label: 'Pedal Body 2',
+        status: 'Published object 2 from this split collection source.',
+      },
+      {
+        rowId: 'op-slot:s001:published:3',
+        label: 'Pedal Body 3',
+        status: 'Published object 3 from this split collection source.',
+      },
+      {
+        rowId: 'op-slot:s001:published:4',
+        label: 'Pedal Body 4',
+        status: 'Published object 4 from this split collection source.',
+      },
+    ])
+  })
+
+  it('keeps deterministic placeholder body member port ids before NewObjects bodies resolve', () => {
+    const graph = createOutputPreviewBodyGraph({
+      bodyGenerationMode: 'NewObjects',
+      publicationMode: 'grouped',
+      profileCount: 2,
+    })
+    graph.nodes = graph.nodes.map((node) =>
+      node.nodeId === 'node-extrude-1'
+        ? {
+            ...node,
+            params: {
+              ...node.params,
+              depthMm: 0,
+            },
+          }
+        : node,
+    )
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(extrudeVm?.bodyId).toBeUndefined()
+    expect(extrudeVm?.bodyCount).toBeUndefined()
+    expect(extrudeVm?.bodyMemberPortIds).toEqual([
+      buildExtrudeBodyMemberPortId(0),
+      buildExtrudeBodyMemberPortId(1),
+    ])
+  })
+
+  it('publishes extrude member port ids in NewObjects mode when multiple bodies resolve', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+              lineComponent('row-5', 'e5', { x: 140, y: 0 }, { x: 180, y: 0 }),
+              lineComponent('row-6', 'e6', { x: 180, y: 0 }, { x: 180, y: 40 }),
+              lineComponent('row-7', 'e7', { x: 180, y: 40 }, { x: 140, y: 40 }),
+              lineComponent('row-8', 'e8', { x: 140, y: 40 }, { x: 140, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofiles-to-extrude',
+          from: { nodeId: 'n-sketch', portId: 'SketchProfiles' },
+          to: { nodeId: 'n-extrude', portId: 'ExtrusionProfile' },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const extrudeVm = vm.byNodeId.get('n-extrude')?.extrudeVm
+
+    expect(extrudeVm?.bodyCount).toBe(2)
+    expect(extrudeVm?.bodyMemberPortIds).toEqual([
+      buildExtrudeBodyMemberPortId(0),
+      buildExtrudeBodyMemberPortId(1),
+    ])
   })
 
   it('provides deterministic internal feature dependency rows and edges', () => {
@@ -858,7 +1156,7 @@ describe('selectNodeVm', () => {
     expect(extrudeVm?.profileTargetMode).toBe('allFromSketch')
     expect(extrudeVm?.profileCount).toBe(2)
     expect(extrudeVm?.hasProfile).toBe(true)
-    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body')
+    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body:001')
   })
 
   it('marks SketchProfile extrude targets explicitly as singular in the selector vm', () => {
@@ -911,7 +1209,7 @@ describe('selectNodeVm', () => {
     expect(extrudeVm?.profileCount).toBe(1)
     expect(extrudeVm?.hasProfile).toBe(true)
     expect(extrudeVm?.profileId).toBe(profileIdFromSignature('e5|e6|e7|e8'))
-    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body')
+    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body:001')
   })
 
   it('treats revealed sketch profile member output ports as singular extrude targets in the selector vm', () => {
@@ -968,7 +1266,7 @@ describe('selectNodeVm', () => {
     expect(extrudeVm?.profileCount).toBe(1)
     expect(extrudeVm?.hasProfile).toBe(true)
     expect(extrudeVm?.profileId).toBe(selectedProfileId)
-    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body')
+    expect(extrudeVm?.bodyId).toBe('node-extrude-1:body:001')
   })
 
   it('surfaces one profile input entry per actual aggregate and singular extrude connection', () => {

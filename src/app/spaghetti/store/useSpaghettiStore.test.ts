@@ -716,6 +716,7 @@ describe('useSpaghettiStore graph normalization', () => {
     const secondRuntime = state.graphRuntimeByDocumentId[secondGraphId]
 
     expect(firstRuntime.compileBuild.lastCompileResult?.ok).toBe(true)
+    expect(firstRuntime.compileBuild.currentDocumentRevision).toBe(0)
     expect(firstRuntime.compileBuild.currentGraphRevision).toBe(0)
     expect(firstRuntime.compileBuild.latestIssuedGraphRevision).toBe(0)
     expect(firstRuntime.compileBuild.inFlightGraphRevision).toBe(0)
@@ -784,11 +785,43 @@ describe('useSpaghettiStore graph normalization', () => {
 
     const state = useSpaghettiStore.getState()
     expect(savedBlobParts).toHaveLength(1)
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(1)
     expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
     expect(selectCachedGraphEntryById(state, 'graph-document-1')).toMatchObject({
       isDirty: true,
       lastSavedAt: '2026-03-10T00:00:00.000Z',
     })
+  })
+
+  it('keeps document revision moving for node-position edits without advancing geometry revision', () => {
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-baseplate-1',
+          type: 'Part/Baseplate',
+          params: {},
+        },
+      ],
+      edges: [],
+    })
+
+    const runtimeAfterGeometryEdit =
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']
+    expect(runtimeAfterGeometryEdit?.compileBuild.currentDocumentRevision).toBe(1)
+    expect(runtimeAfterGeometryEdit?.compileBuild.currentGraphRevision).toBe(1)
+
+    useSpaghettiStore.getState().setNodePos('node-baseplate-1', 123.4, 456.7)
+
+    const state = useSpaghettiStore.getState()
+    expect(state.graph.ui?.nodes?.['node-baseplate-1']).toEqual({
+      x: 123,
+      y: 457,
+    })
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentDocumentRevision).toBe(
+      2,
+    )
+    expect(state.graphRuntimeByDocumentId['graph-document-1']?.compileBuild.currentGraphRevision).toBe(1)
   })
 
   it('acceptGraphBuildResult records the accepted graph revision even if the graph changed after the build request was staged', () => {

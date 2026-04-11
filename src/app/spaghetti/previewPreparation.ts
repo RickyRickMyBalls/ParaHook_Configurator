@@ -2,8 +2,11 @@ import type { PartArtifact } from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import { computeFeatureStackIrParts } from './compiler/compileGraph'
 import { evaluateSpaghettiGraph } from './compiler/evaluateGraph'
-import type { SpaghettiGraph, SpaghettiNode } from './schema/spaghettiTypes'
-import { OUTPUT_PREVIEW_NODE_TYPE } from './system/outputPreviewNode'
+import type { SpaghettiGraph, SpaghettiNode, SolidBodiesValue } from './schema/spaghettiTypes'
+import {
+  normalizeOutputPreviewParams,
+  OUTPUT_PREVIEW_NODE_TYPE,
+} from './system/outputPreviewNode'
 import { selectDiagnosticsVm } from './selectors/selectDiagnosticsVm'
 
 export type PreviewPreparationEntry = {
@@ -11,6 +14,7 @@ export type PreviewPreparationEntry = {
   sourceNodeId: string
   sourcePartKeyStr: string
   sourcePortId: string
+  memberIndex?: number
 }
 
 export type GraphPreviewPreparation = {
@@ -22,6 +26,8 @@ export type GraphPreviewPreparation = {
   sourcePartKeyBySlotId: Record<string, string>
   sourcePortIdBySlotId: Record<string, string>
   sourcePartKeyByNodeId: Record<string, string>
+  publicationModeBySlotId?: Record<string, 'grouped' | 'split'>
+  splitMemberCountBySlotId?: Record<string, number>
   slotStatusBySlotId: Record<string, 'ok' | 'unresolved' | 'empty'>
   buildStatsReadyPartKeys: string[]
   previewIntent: 'none' | 'outputPreview'
@@ -29,24 +35,6 @@ export type GraphPreviewPreparation = {
 
 const isOutputPreviewNode = (node: SpaghettiNode): boolean =>
   node.type === OUTPUT_PREVIEW_NODE_TYPE
-
-const readSlotIds = (node: SpaghettiNode): string[] => {
-  const rawSlots = (node.params as { slots?: unknown }).slots
-  if (!Array.isArray(rawSlots)) {
-    return []
-  }
-  return rawSlots.flatMap((slot) => {
-    if (
-      typeof slot !== 'object' ||
-      slot === null ||
-      typeof (slot as { slotId?: unknown }).slotId !== 'string'
-    ) {
-      return []
-    }
-    const slotId = (slot as { slotId: string }).slotId
-    return slotId.length > 0 ? [slotId] : []
-  })
-}
 
 const findMatchingIncomingSlotEdge = (
   graph: SpaghettiGraph,
@@ -81,6 +69,18 @@ const readSourceOutputValue = (
   }
 }
 
+const isSolidBodiesValue = (value: unknown): value is SolidBodiesValue =>
+  typeof value === 'object' &&
+  value !== null &&
+  Array.isArray((value as { bodies?: unknown }).bodies)
+
+const readSplitMemberCount = (value: unknown): number => {
+  if (!isSolidBodiesValue(value)) {
+    return 1
+  }
+  return value.bodies.length > 0 ? value.bodies.length : 1
+}
+
 export const prepareGraphPreviewPreparation = (
   graph: SpaghettiGraph,
 ): GraphPreviewPreparation => {
@@ -95,13 +95,18 @@ export const prepareGraphPreviewPreparation = (
       sourcePartKeyBySlotId: {},
       sourcePortIdBySlotId: {},
       sourcePartKeyByNodeId: {},
+      publicationModeBySlotId: {},
+      splitMemberCountBySlotId: {},
       slotStatusBySlotId: {},
       buildStatsReadyPartKeys: [],
       previewIntent: 'none',
     }
   }
 
-  const outputSlotIds = readSlotIds(outputPreviewNode)
+  const normalizedOutputPreviewParams = normalizeOutputPreviewParams(
+    (outputPreviewNode.params as Record<string, unknown>) ?? {},
+  )
+  const outputSlotIds = normalizedOutputPreviewParams.slots.map((slot) => slot.slotId)
   const evaluation = evaluateSpaghettiGraph(graph)
   const diagnosticsVm = selectDiagnosticsVm({
     graph,
@@ -113,6 +118,13 @@ export const prepareGraphPreviewPreparation = (
   const sourcePartKeyBySlotId: Record<string, string> = {}
   const sourcePortIdBySlotId: Record<string, string> = {}
   const sourcePartKeyByNodeId: Record<string, string> = {}
+  const publicationModeBySlotId: Record<string, 'grouped' | 'split'> = Object.fromEntries(
+    normalizedOutputPreviewParams.slots.map((slot) => [
+      slot.slotId,
+      slot.publicationMode ?? 'grouped',
+    ]),
+  )
+  const splitMemberCountBySlotId: Record<string, number> = {}
   const slotStatusBySlotId = { ...diagnosticsVm.slotStatus }
 
   for (const slotId of outputSlotIds) {
@@ -140,6 +152,10 @@ export const prepareGraphPreviewPreparation = (
     sourcePartKeyBySlotId[slotId] = sourcePartKeyStr
     sourcePortIdBySlotId[slotId] = matchingEdge.from.portId
     sourcePartKeyByNodeId[sourceNodeId] = sourcePartKeyStr
+    splitMemberCountBySlotId[slotId] =
+      publicationModeBySlotId[slotId] === 'split'
+        ? readSplitMemberCount(sourceOutput.value)
+        : 1
     previewEntries.push({
       slotId,
       sourceNodeId,
@@ -157,6 +173,8 @@ export const prepareGraphPreviewPreparation = (
     sourcePartKeyBySlotId,
     sourcePortIdBySlotId,
     sourcePartKeyByNodeId,
+    publicationModeBySlotId,
+    splitMemberCountBySlotId,
     slotStatusBySlotId,
     buildStatsReadyPartKeys: [],
     previewIntent: 'outputPreview',
@@ -185,6 +203,11 @@ export const buildPreviewPreparationEntries = (
       const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
       const sourcePartKeyStr = previewPreparation.sourcePartKeyBySlotId[slotId]
       const sourcePortId = previewPreparation.sourcePortIdBySlotId[slotId]
+      const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
+      const splitMemberCount =
+        publicationMode === 'split'
+          ? Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1)
+          : 1
       if (
         sourceNodeId === undefined ||
         sourcePartKeyStr === undefined ||
@@ -192,14 +215,13 @@ export const buildPreviewPreparationEntries = (
       ) {
         return []
       }
-      return [
-        {
-          slotId,
-          sourceNodeId,
-          sourcePartKeyStr,
-          sourcePortId,
-          renderable: artifactByPartKey.get(sourcePartKeyStr) ?? null,
-        },
-      ]
+      return Array.from({ length: splitMemberCount }, (_, memberIndex) => ({
+        slotId,
+        sourceNodeId,
+        sourcePartKeyStr,
+        sourcePortId,
+        ...(publicationMode === 'split' ? { memberIndex } : {}),
+        renderable: artifactByPartKey.get(sourcePartKeyStr) ?? null,
+      }))
     })
 }

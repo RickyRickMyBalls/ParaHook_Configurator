@@ -652,6 +652,66 @@ describe('selectViewportResultState', () => {
     expect(state.previewRenderVm.viewerParts).toEqual([])
   })
 
+  it('clears retained final geometry when the current output membership drops one previously accepted part', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-object-1',
+        sourceNodeId: 'node-object-1',
+        sourcePartKey: 'object-1',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-old-final',
+        partKeys: ['object-1', 'object-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-old-final',
+      },
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'final',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('final'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [createArtifact('object-1')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: null,
+        visibleSourceKind: 'none',
+        retainedBaseState: 'cleared-by-dependency-break',
+        retainedBaseResultClass: null,
+        retainedBaseSourceKind: 'none',
+        retainedBaseGeometryResult: null,
+        fallbackReason: 'final-unavailable',
+      }),
+    )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([])
+  })
+
   it('uses retained draft mesh preview as the strict draft base during parameter churn', () => {
     const previewPreparation = createPreviewPreparation([
       {
