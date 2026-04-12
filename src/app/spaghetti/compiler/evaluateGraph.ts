@@ -340,10 +340,16 @@ const buildIncomingEdgesMap = (graph: SpaghettiGraph): Map<string, SpaghettiEdge
 }
 
 const supportsMultiInputCollection = (node: SpaghettiNode, portId: string): boolean => {
+  if (node.type === 'System/OutputPreview' && portId.startsWith('in:solid:')) {
+    return true
+  }
   const nodeDef = getNodeDef(node.type)
   const port = nodeDef?.inputs.find((candidate) => candidate.portId === portId)
   return typeof port?.maxConnectionsIn === 'number' && port.maxConnectionsIn > 1
 }
+
+const isOutputPreviewCollectionContributorValue = (value: unknown): boolean =>
+  value === null || isSolidBody(value) || isSolidBodies(value) || isOpaqueRefToken(value)
 
 const isValidMultiInputCollection = (
   node: SpaghettiNode,
@@ -352,6 +358,9 @@ const isValidMultiInputCollection = (
 ): boolean => {
   if (node.type === 'Geometry/Extrude' && portId === 'ExtrusionProfile') {
     return flattenExtrudeProfileContributorValues(values) !== null
+  }
+  if (node.type === 'System/OutputPreview' && portId.startsWith('in:solid:')) {
+    return values.every(isOutputPreviewCollectionContributorValue)
   }
   return false
 }

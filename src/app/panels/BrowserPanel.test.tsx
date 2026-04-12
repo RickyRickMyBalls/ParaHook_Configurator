@@ -41,7 +41,7 @@ const resolveMockOwnerParentKey = (target: any) => {
   if (target.kind === 'component') {
     const componentRow = currentAppState.projectContent?.componentsById?.[target.componentId] ?? null
     if (componentRow !== null) {
-      return componentRow.parentAssemblyId ?? null
+      return componentRow.parentComponentId ?? componentRow.parentAssemblyId ?? null
     }
     if (isReferenceCategoryComponentId(target.componentId)) {
       return currentAppState.referenceWorkspaceTree?.rowId ?? null

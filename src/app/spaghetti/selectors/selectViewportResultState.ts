@@ -5,7 +5,10 @@ import {
   type ViewerRenderablePart,
 } from '../../../shared/buildTypes'
 import type { GeometryMesh, GeometryResultBundle } from '../../../shared/geometryResult'
-import type { GraphPreviewPreparation } from '../previewPreparation'
+import {
+  hasExplicitSolidBodyMemberPublication,
+  type GraphPreviewPreparation,
+} from '../previewPreparation'
 import {
   selectPreviewRenderVmFromPreparation,
   type PreviewRenderVm,
@@ -233,7 +236,7 @@ const buildArtifactPreviewRenderVm = (options: {
   acceptedPreviewBuildBundle: BuildResultBundle | null
   viewerTargetGraphDocumentId: string | null
 }): PreviewRenderVm => {
-  if (options.useProjectDraftPreview) {
+  if (options.useProjectDraftPreview && options.activeDraftProjectViewerParts.length > 0) {
     return {
       items: [],
       viewerParts: [...options.activeDraftProjectViewerParts],
@@ -350,6 +353,10 @@ const doesCurrentOutputMatchGeometryResultPartKeys = (
   geometryResult: GeometryResultBundle | null,
 ): boolean => {
   if (previewPreparation === null || geometryResult === null) {
+    return false
+  }
+
+  if (hasExplicitSolidBodyMemberPublication(previewPreparation)) {
     return false
   }
 
@@ -853,14 +860,21 @@ export const selectViewportResultState = (
     publishedAuthoritativeRenderVm.viewerParts.length > 0
       ? publishedAuthoritativeRenderVm
       : committedAuthoritativeGeometryRenderVm
-  const currentDraftGeometryRenderVm = buildDraftGeometryRenderVm({
-    geometryResult: draftGeometryResult,
-    viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
-  })
-  const committedDraftRenderVm = buildDraftGeometryRenderVm({
-    geometryResult: options.committedDraftGeometryResult,
-    viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
-  })
+  const suppressWholeNodeDraftMeshPreview = hasExplicitSolidBodyMemberPublication(
+    options.previewPreparation,
+  )
+  const currentDraftGeometryRenderVm = suppressWholeNodeDraftMeshPreview
+    ? EMPTY_PREVIEW_RENDER_VM
+    : buildDraftGeometryRenderVm({
+        geometryResult: draftGeometryResult,
+        viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
+      })
+  const committedDraftRenderVm = suppressWholeNodeDraftMeshPreview
+    ? EMPTY_PREVIEW_RENDER_VM
+    : buildDraftGeometryRenderVm({
+        geometryResult: options.committedDraftGeometryResult,
+        viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
+      })
   const hasOutputContinuation = hasCurrentOutputContinuation(options.previewPreparation)
   const currentOutputMatchesCommittedAuthoritative = doesCurrentOutputMatchGeometryResultPartKeys(
     options.previewPreparation,

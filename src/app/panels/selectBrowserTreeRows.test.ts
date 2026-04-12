@@ -963,6 +963,163 @@ describe('selectBrowserTreeRows', () => {
     })
   })
 
+  it('renders nested published subcomponents under their parent component while keeping direct object siblings', () => {
+    const rows = selectBrowserTreeRows({
+      referenceWorkspaceTree: emptyReferenceWorkspaceTree,
+      contentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published',
+          kind: 'component',
+          label: 'Pedal Assembly',
+          meta: 'Graph 1',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: null,
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: null,
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 3,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: null,
+        },
+        {
+          rowId: 'project-component:project-file-1:graph-document-1:published-subcomponent:s001',
+          kind: 'component',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: null,
+          componentSourceKind: 'published-component',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 2,
+          slotId: 's001',
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: null,
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:output-object:s001:member-001',
+          kind: 'object',
+          label: 'Object 1 1',
+          meta: '',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published-subcomponent:s001',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:output-entry:s001:node-extrude-a:member-001',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-extrude-a',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:output-object:s001:member-002',
+          kind: 'object',
+          label: 'Object 1 2',
+          meta: '',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published-subcomponent:s001',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-a',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:output-entry:s001:node-extrude-a:member-002',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-extrude-a',
+        },
+        {
+          rowId: 'project-object:project-file-1:graph-document-1:output-object:s002',
+          kind: 'object',
+          label: 'Object 2',
+          meta: '',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry:s002:node-extrude-b',
+          slotId: 's002',
+          sourceNodeId: 'node-extrude-b',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:output-entry:s002:node-extrude-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-extrude-b',
+        },
+      ],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: null,
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: true,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    const authoredRows = rows.contentRows.filter((row) =>
+      row.rowId.startsWith('project-component:project-file-1:graph-document-1:') ||
+      row.rowId.startsWith('project-object:project-file-1:graph-document-1:'),
+    )
+
+    expect(authoredRows.map((row) => row.rowId)).toEqual([
+      'project-component:project-file-1:graph-document-1:published',
+      'project-component:project-file-1:graph-document-1:published-subcomponent:s001',
+      'project-object:project-file-1:graph-document-1:output-object:s001:member-001',
+      'project-object:project-file-1:graph-document-1:output-object:s001:member-002',
+      'project-object:project-file-1:graph-document-1:output-object:s002',
+    ])
+    expect(
+      authoredRows.find(
+        (row) => row.rowId === 'project-component:project-file-1:graph-document-1:published',
+      ),
+    ).toMatchObject({
+      rowKind: 'component',
+      depth: 1,
+      parentComponentId: null,
+    })
+    expect(
+      authoredRows.find(
+        (row) => row.rowId === 'project-component:project-file-1:graph-document-1:published-subcomponent:s001',
+      ),
+    ).toMatchObject({
+      rowKind: 'component',
+      depth: 2,
+      parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+    })
+    expect(
+      authoredRows.find(
+        (row) => row.rowId === 'project-object:project-file-1:graph-document-1:output-object:s002',
+      ),
+    ).toMatchObject({
+      rowKind: 'object',
+      depth: 2,
+      parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+    })
+  })
+
   it('renders singleton root objects directly under the assembly without a component row', () => {
     const rows = selectBrowserTreeRows({
       referenceWorkspaceTree: emptyReferenceWorkspaceTree,

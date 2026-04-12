@@ -9,8 +9,9 @@ import {
   getPreviewPreparationEntriesForSlot,
   type GraphPreviewPreparation,
 } from './previewPreparation'
+import { resolveEffectiveOutputPort } from './features/effectivePorts'
 import type { SpaghettiGraph } from './schema/spaghettiTypes'
-import { readNormalizedOutputPreviewParams } from './system/outputPreviewNode'
+import { readNormalizedOutputPreviewParams, OUTPUT_PREVIEW_NODE_TYPE } from './system/outputPreviewNode'
 
 export type GraphPublishedOutputState = 'empty' | 'unresolved' | 'resolved'
 export type GraphPublishedOutputDiagnosticsState = 'none' | 'hasDiagnostics' | 'unknown'
@@ -46,6 +47,13 @@ export type GraphPublishedObjectSurfaceEntry = {
   state: GraphPublishedOutputState
 }
 
+export type GraphPublishedCollectionSubcomponentSurfaceEntry = {
+  subcomponentId: string
+  label: string
+  slotId: string
+  objects: GraphPublishedObjectSurfaceEntry[]
+}
+
 export type GraphPublishedContentSurfaceRow =
   | {
       kind: 'object'
@@ -55,6 +63,8 @@ export type GraphPublishedContentSurfaceRow =
       kind: 'component'
       componentLabel: string
       objects: GraphPublishedObjectSurfaceEntry[]
+      directObjects?: GraphPublishedObjectSurfaceEntry[]
+      subcomponents?: GraphPublishedCollectionSubcomponentSurfaceEntry[]
     }
 
 export type GraphPublishedContentSurface = {
@@ -230,6 +240,8 @@ export const buildGraphPublishedContentSurface = (options: {
   if (normalizedParams === null) {
     return null
   }
+  const outputPreviewNodeId =
+    graph.nodes.find((node) => node.type === OUTPUT_PREVIEW_NODE_TYPE)?.nodeId ?? null
   const outputEntriesBySlotId = new Map<string, GraphOutputSurface['entries']>()
   for (const entry of outputSurface?.entries ?? []) {
     const existing = outputEntriesBySlotId.get(entry.slotId)
@@ -239,12 +251,36 @@ export const buildGraphPublishedContentSurface = (options: {
     }
     existing.push(entry)
   }
-  const publishedObjects = normalizedParams.objects.flatMap((objectRow) => {
+  const graphNodesById = new Map(graph.nodes.map((node) => [node.nodeId, node] as const))
+  const collectionSourceFlagsBySlotId = new Map<string, boolean[]>()
+  if (outputPreviewNodeId !== null) {
+    for (const edge of graph.edges) {
+      if (edge.to.nodeId !== outputPreviewNodeId || !edge.to.portId.startsWith('in:solid:')) {
+        continue
+      }
+      const slotId = edge.to.portId.slice('in:solid:'.length)
+      const sourceNode = graphNodesById.get(edge.from.nodeId)
+      const effectiveOutputPort =
+        sourceNode === undefined
+          ? undefined
+          : resolveEffectiveOutputPort(sourceNode, edge.from.portId, undefined, graph)
+      const isCollectionSourcePort =
+        effectiveOutputPort?.type.kind === 'solidBodies' || edge.from.portId === 'SolidBodies'
+      const existing = collectionSourceFlagsBySlotId.get(slotId)
+      if (existing === undefined) {
+        collectionSourceFlagsBySlotId.set(slotId, [isCollectionSourcePort])
+        continue
+      }
+      existing.push(isCollectionSourcePort)
+    }
+  }
+
+  const publishedSlotRows = normalizedParams.objects.flatMap((objectRow) => {
     const entries = outputEntriesBySlotId.get(objectRow.slotId) ?? []
     if (entries.length === 0) {
       return []
     }
-    return entries.flatMap((entry, memberIndex) => {
+    const objects = entries.flatMap((entry, memberIndex) => {
       if (entry.state === 'empty') {
         return []
       }
@@ -265,7 +301,22 @@ export const buildGraphPublishedContentSurface = (options: {
         } satisfies GraphPublishedObjectSurfaceEntry,
       ]
     })
+    if (objects.length === 0) {
+      return []
+    }
+    const collectionSourceFlags = collectionSourceFlagsBySlotId.get(objectRow.slotId) ?? []
+    const hasCollectionSourcePort = collectionSourceFlags.some(Boolean)
+    return [
+      {
+        slotId: objectRow.slotId,
+        label: objectRow.label,
+        objects,
+        isCollectionRow: hasCollectionSourcePort,
+      },
+    ]
   })
+
+  const publishedObjects = publishedSlotRows.flatMap((slotRow) => slotRow.objects)
 
   if (publishedObjects.length === 0) {
     return {
@@ -279,6 +330,22 @@ export const buildGraphPublishedContentSurface = (options: {
       rows: [{ kind: 'object', object: publishedObjects[0] }],
     }
   }
+  const collectionSlotRows = publishedSlotRows.filter((slotRow) => slotRow.isCollectionRow)
+  const directSlotRows = publishedSlotRows.filter((slotRow) => !slotRow.isCollectionRow)
+  const shouldMaterializeCollectionSubcomponents =
+    collectionSlotRows.length >= 2 || (collectionSlotRows.length >= 1 && directSlotRows.length >= 1)
+  if (!shouldMaterializeCollectionSubcomponents) {
+    return {
+      graphDocumentId,
+      rows: [
+        {
+          kind: 'component',
+          componentLabel: normalizedParams.componentLabel,
+          objects: publishedObjects,
+        },
+      ],
+    }
+  }
   return {
     graphDocumentId,
     rows: [
@@ -286,6 +353,15 @@ export const buildGraphPublishedContentSurface = (options: {
         kind: 'component',
         componentLabel: normalizedParams.componentLabel,
         objects: publishedObjects,
+        ...(directSlotRows.length > 0
+          ? { directObjects: directSlotRows.flatMap((slotRow) => slotRow.objects) }
+          : {}),
+        subcomponents: collectionSlotRows.map((slotRow) => ({
+          subcomponentId: `${normalizedParams.objects.find((objectRow) => objectRow.slotId === slotRow.slotId)?.objectId ?? `output-subcomponent:${slotRow.slotId}`}:collection`,
+          label: slotRow.label,
+          slotId: slotRow.slotId,
+          objects: slotRow.objects,
+        })),
       },
     ],
   }

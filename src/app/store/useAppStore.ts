@@ -279,6 +279,7 @@ export type ProjectAssemblyRecord = {
 export type ProjectComponentRecord = {
   componentId: string
   parentAssemblyId?: string | null
+  parentComponentId?: string | null
   ownerGraphDocumentId: string | null
   sourceGraphDocumentId: string | null
   sourceOutputEntryId: string | null
@@ -287,6 +288,7 @@ export type ProjectComponentRecord = {
   componentSourceKind: 'published-component' | 'receive-link' | 'authored'
   resolutionState: 'resolved' | 'unresolved'
   receiveId: string | null
+  childRowIds?: string[]
   childObjectIds: string[]
 }
 
@@ -369,6 +371,7 @@ export type ProjectContentBrowserRowVm =
       label: string
       meta: string
       parentAssemblyId?: string | null
+      parentComponentId?: string | null
       isVisible?: boolean
       visibilityPartKeys?: string[]
       buildState?: ProjectContentBuildState
@@ -1362,7 +1365,11 @@ const buildReferenceRootAssemblyRecord = (
       .filter((assembly) => assembly.parentAssemblyId === REFERENCE_ROOT_ROW_ID)
       .map((assembly) => assembly.assemblyId),
     ...Object.values(state.projectContent.componentsById)
-      .filter((component) => component.parentAssemblyId === REFERENCE_ROOT_ROW_ID)
+      .filter(
+        (component) =>
+          component.parentAssemblyId === REFERENCE_ROOT_ROW_ID &&
+          (component.parentComponentId ?? null) === null,
+      )
       .map((component) => component.componentId),
     ...Object.values(state.projectContent.objectsById)
       .filter(
@@ -1394,6 +1401,7 @@ const buildReferenceCategoryComponentRecord = (
       state.projectContent,
       buildReferenceCategoryRowId(categoryId),
     ) ?? REFERENCE_ROOT_ROW_ID,
+  parentComponentId: null,
   ownerGraphDocumentId: null,
   sourceGraphDocumentId: null,
   sourceOutputEntryId: null,
@@ -1402,6 +1410,9 @@ const buildReferenceCategoryComponentRecord = (
   componentSourceKind: 'receive-link',
   resolutionState: 'resolved',
   receiveId: null,
+  childRowIds: Object.values(state.projectContent.objectsById)
+    .filter((objectRow) => objectRow.parentComponentId === buildReferenceCategoryRowId(categoryId))
+    .map((objectRow) => objectRow.objectId),
   childObjectIds: Object.values(state.projectContent.objectsById)
     .filter((objectRow) => objectRow.parentComponentId === buildReferenceCategoryRowId(categoryId))
     .map((objectRow) => objectRow.objectId),
@@ -1685,6 +1696,7 @@ export const resolveWorkspaceSelectedContentOwnerTarget = (
         ownerLabel: component.label,
         ...resolveContentOwnerParentTarget(state, {
           parentAssemblyId: component.parentAssemblyId ?? null,
+          parentComponentId: component.parentComponentId ?? null,
         }),
         fallbackGraphDocumentId: component.sourceGraphDocumentId,
         supportsViewerTransform: false,
@@ -1980,7 +1992,10 @@ const buildDefaultContentOrderForParent = (
     return [...authoredChildIds, ...importedChildIds]
   }
   const parentComponent = resolveProjectComponentRecord(state, parentTarget.componentId)
-  const authoredChildIds = parentComponent?.childObjectIds ?? []
+  const authoredChildIds =
+    parentComponent === undefined || parentComponent === null
+      ? []
+      : getProjectComponentChildRowIds(parentComponent)
   const importedChildIds = getImportedReferenceItemsForParent(state, parentTarget).map((item) =>
     buildImportedReferenceRowId(item.referenceId),
   )
@@ -3301,11 +3316,34 @@ const buildProjectPublishedComponentId = (
   graphDocumentId: string,
 ): string => `project-component:${projectFileId}:${graphDocumentId}:published`
 
+const buildProjectPublishedSubcomponentId = (
+  projectFileId: string,
+  graphDocumentId: string,
+  slotId: string,
+): string => `project-component:${projectFileId}:${graphDocumentId}:published-subcomponent:${slotId}`
+
+const buildProjectPublishedComponentIdFromSubcomponentId = (
+  subcomponentId: string | null | undefined,
+): string | null => {
+  if (typeof subcomponentId !== 'string' || subcomponentId.length === 0) {
+    return null
+  }
+  const marker = ':published-subcomponent:'
+  const markerIndex = subcomponentId.indexOf(marker)
+  if (markerIndex < 0) {
+    return null
+  }
+  return `${subcomponentId.slice(0, markerIndex)}:published`
+}
+
 const buildProjectObjectId = (
   projectFileId: string,
   graphDocumentId: string,
   objectId: string,
 ): string => `project-object:${projectFileId}:${graphDocumentId}:${objectId}`
+
+const getProjectComponentChildRowIds = (component: ProjectComponentRecord): string[] =>
+  component.childRowIds ?? component.childObjectIds
 
 const buildGraphViewerPartKey = (
   graphDocumentId: string,
@@ -3363,7 +3401,7 @@ const deriveRuntimeContentPlacementOverlay = (
     }
     runtimeContentPlacementByRowId[component.componentId] = {
       parentAssemblyId: component.parentAssemblyId ?? null,
-      parentComponentId: null,
+      parentComponentId: component.parentComponentId ?? null,
     }
   })
 
@@ -3490,18 +3528,41 @@ const buildProjectContentDerivation = (
     defaultParentComponentId: string | null,
   ): RuntimeContentPlacementRecord => {
     const overlayPlacement = previousPlacementOverlay[rowId]
+    const publishedTopComponentId =
+      buildProjectPublishedComponentIdFromSubcomponentId(defaultParentComponentId)
+    const shouldUpgradeLegacyPublishedParent =
+      publishedTopComponentId !== null &&
+      overlayPlacement?.parentComponentId === publishedTopComponentId
     if (overlayPlacement !== undefined) {
+      if (shouldUpgradeLegacyPublishedParent) {
+        return {
+          parentAssemblyId: defaultParentAssemblyId,
+          parentComponentId: defaultParentComponentId,
+        }
+      }
       return overlayPlacement
     }
     const previousComponent = previousComponents[rowId]
     if (previousComponent !== undefined && isRuntimeBackedComponentRecord(previousComponent)) {
+      if (publishedTopComponentId !== null && previousComponent.parentComponentId === publishedTopComponentId) {
+        return {
+          parentAssemblyId: defaultParentAssemblyId,
+          parentComponentId: defaultParentComponentId,
+        }
+      }
       return {
         parentAssemblyId: previousComponent.parentAssemblyId ?? defaultParentAssemblyId,
-        parentComponentId: null,
+        parentComponentId: previousComponent.parentComponentId ?? defaultParentComponentId,
       }
     }
     const previousObject = previousObjects[rowId]
     if (previousObject !== undefined && isRuntimeBackedObjectRecord(previousObject)) {
+      if (publishedTopComponentId !== null && previousObject.parentComponentId === publishedTopComponentId) {
+        return {
+          parentAssemblyId: defaultParentAssemblyId,
+          parentComponentId: defaultParentComponentId,
+        }
+      }
       return {
         parentAssemblyId: previousObject.parentAssemblyId ?? defaultParentAssemblyId,
         parentComponentId: previousObject.parentComponentId ?? defaultParentComponentId,
@@ -3553,6 +3614,15 @@ const buildProjectContentDerivation = (
         validRuntimeRowIds.add(
           buildProjectPublishedComponentId(project.projectFileId, documentEntry.graphDocumentId),
         )
+        publishedRow.subcomponents?.forEach((subcomponent) => {
+          validRuntimeRowIds.add(
+            buildProjectPublishedSubcomponentId(
+              project.projectFileId,
+              documentEntry.graphDocumentId,
+              subcomponent.slotId,
+            ),
+          )
+        })
         publishedRow.objects.forEach((objectRow) => {
           validRuntimeRowIds.add(
             buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
@@ -3616,9 +3686,39 @@ const buildProjectContentDerivation = (
         const resolutionState = publishedRow.objects.some((objectRow) => objectRow.state === 'resolved')
           ? 'resolved'
           : 'unresolved'
+        const publishedSubcomponents = publishedRow.subcomponents ?? []
+        const topLevelChildRowIds: string[] = []
+        const includedTopLevelRowIds = new Set<string>()
+        publishedRow.objects.forEach((objectRow) => {
+          const matchingSubcomponent = publishedSubcomponents.find(
+            (subcomponent) => subcomponent.slotId === objectRow.slotId,
+          )
+          if (matchingSubcomponent !== undefined) {
+            const subcomponentId = buildProjectPublishedSubcomponentId(
+              project.projectFileId,
+              documentEntry.graphDocumentId,
+              matchingSubcomponent.slotId,
+            )
+            if (!includedTopLevelRowIds.has(subcomponentId)) {
+              includedTopLevelRowIds.add(subcomponentId)
+              topLevelChildRowIds.push(subcomponentId)
+            }
+            return
+          }
+          const directObjectId = buildProjectObjectId(
+            project.projectFileId,
+            documentEntry.graphDocumentId,
+            objectRow.objectId,
+          )
+          if (!includedTopLevelRowIds.has(directObjectId)) {
+            includedTopLevelRowIds.add(directObjectId)
+            topLevelChildRowIds.push(directObjectId)
+          }
+        })
         componentsById[componentId] = {
           componentId,
           parentAssemblyId: componentPlacement.parentAssemblyId,
+          parentComponentId: componentPlacement.parentComponentId,
           ownerGraphDocumentId: documentEntry.graphDocumentId,
           sourceGraphDocumentId: documentEntry.graphDocumentId,
           sourceOutputEntryId: null,
@@ -3630,17 +3730,60 @@ const buildProjectContentDerivation = (
           componentSourceKind: 'published-component',
           resolutionState,
           receiveId: null,
+          childRowIds: topLevelChildRowIds,
           childObjectIds,
         }
+        publishedSubcomponents.forEach((subcomponent) => {
+          const subcomponentId = buildProjectPublishedSubcomponentId(
+            project.projectFileId,
+            documentEntry.graphDocumentId,
+            subcomponent.slotId,
+          )
+          const subcomponentChildObjectIds = subcomponent.objects.map((objectRow) =>
+            buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+          )
+          const subcomponentPlacement = resolveRuntimePlacement(
+            subcomponentId,
+            componentPlacement.parentAssemblyId,
+            componentId,
+          )
+          nextRuntimePlacementByRowId[subcomponentId] = subcomponentPlacement
+          componentsById[subcomponentId] = {
+            componentId: subcomponentId,
+            parentAssemblyId: subcomponentPlacement.parentAssemblyId,
+            parentComponentId: subcomponentPlacement.parentComponentId,
+            ownerGraphDocumentId: documentEntry.graphDocumentId,
+            sourceGraphDocumentId: documentEntry.graphDocumentId,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: subcomponent.label,
+            componentSourceKind: 'published-component',
+            resolutionState: subcomponent.objects.some((objectRow) => objectRow.state === 'resolved')
+              ? 'resolved'
+              : 'unresolved',
+            receiveId: null,
+            childRowIds: subcomponentChildObjectIds,
+            childObjectIds: subcomponentChildObjectIds,
+          }
+        })
         publishedRow.objects.forEach((objectRow, index) => {
           const objectId = childObjectIds[index]
           if (objectId === undefined) {
             return
           }
+          const parentSubcomponent = publishedSubcomponents.find(
+            (subcomponent) => subcomponent.slotId === objectRow.slotId,
+          )
           const objectPlacement = resolveRuntimePlacement(
             objectId,
             componentPlacement.parentAssemblyId,
-            componentId,
+            parentSubcomponent === undefined
+              ? componentId
+              : buildProjectPublishedSubcomponentId(
+                  project.projectFileId,
+                  documentEntry.graphDocumentId,
+                  parentSubcomponent.slotId,
+                ),
           )
           nextRuntimePlacementByRowId[objectId] = objectPlacement
           objectsById[objectId] = {
@@ -3693,6 +3836,7 @@ const buildProjectContentDerivation = (
     componentsById[component.componentId] = {
       ...component,
       parentAssemblyId: component.parentAssemblyId,
+      parentComponentId: component.parentComponentId ?? null,
       ownerGraphDocumentId: component.ownerGraphDocumentId ?? null,
       sourceGraphDocumentId: component.sourceGraphDocumentId ?? null,
       componentSourceKind: 'authored',
@@ -3721,11 +3865,22 @@ const buildProjectContentDerivation = (
   })
 
   Object.values(componentsById).forEach((component) => {
+    if (
+      component.parentComponentId !== null &&
+      component.parentComponentId !== undefined &&
+      componentsById[component.parentComponentId] === undefined
+    ) {
+      component.parentComponentId = null
+    }
     if (component.parentAssemblyId === null || component.parentAssemblyId === undefined) {
       component.parentAssemblyId = rootAssemblyId
     }
     if (!(component.parentAssemblyId in assembliesById)) {
       component.parentAssemblyId = rootAssemblyId
+    }
+    if (component.parentComponentId != null) {
+      component.parentAssemblyId =
+        componentsById[component.parentComponentId]?.parentAssemblyId ?? component.parentAssemblyId
     }
   })
 
@@ -3749,10 +3904,45 @@ const buildProjectContentDerivation = (
   })
 
   Object.values(componentsById).forEach((component) => {
+    component.childRowIds = orderByPreviousIds(
+      [
+        ...Object.values(componentsById)
+          .filter((candidate) => candidate.parentComponentId === component.componentId)
+          .map((candidate) => candidate.componentId),
+        ...Object.values(objectsById)
+          .filter((objectRow) => objectRow.parentComponentId === component.componentId)
+          .map((objectRow) => objectRow.objectId),
+      ],
+      previousComponents[component.componentId]?.childRowIds ??
+        previousComponents[component.componentId]?.childObjectIds,
+    )
+  })
+
+  Object.values(componentsById).forEach((component) => {
+    const descendantObjectIds: string[] = []
+    const visitComponent = (componentId: string, visited: Set<string>) => {
+      if (visited.has(componentId)) {
+        return
+      }
+      visited.add(componentId)
+      const currentComponent = componentsById[componentId]
+      if (currentComponent === undefined) {
+        return
+      }
+      getProjectComponentChildRowIds(currentComponent).forEach((childRowId) => {
+        const childComponent = componentsById[childRowId]
+        if (childComponent !== undefined) {
+          visitComponent(childComponent.componentId, visited)
+          return
+        }
+        if (objectsById[childRowId] !== undefined) {
+          descendantObjectIds.push(childRowId)
+        }
+      })
+    }
+    visitComponent(component.componentId, new Set<string>())
     component.childObjectIds = orderByPreviousIds(
-      Object.values(objectsById)
-        .filter((objectRow) => objectRow.parentComponentId === component.componentId)
-        .map((objectRow) => objectRow.objectId),
+      descendantObjectIds,
       previousComponents[component.componentId]?.childObjectIds,
     )
   })
@@ -3774,7 +3964,11 @@ const buildProjectContentDerivation = (
       .filter((candidate) => candidate.parentAssemblyId === assembly.assemblyId)
       .map((candidate) => candidate.assemblyId)
     const childComponentIds = Object.values(componentsById)
-      .filter((component) => component.parentAssemblyId === assembly.assemblyId)
+      .filter(
+        (component) =>
+          component.parentAssemblyId === assembly.assemblyId &&
+          (component.parentComponentId ?? null) === null,
+      )
       .map((component) => component.componentId)
     const looseObjectIds = Object.values(objectsById)
       .filter(
@@ -3872,6 +4066,7 @@ const areProjectComponentsEqual = (
         other !== undefined &&
         entry.componentId === other.componentId &&
         entry.parentAssemblyId === other.parentAssemblyId &&
+        (entry.parentComponentId ?? null) === (other.parentComponentId ?? null) &&
         entry.ownerGraphDocumentId === other.ownerGraphDocumentId &&
         entry.sourceGraphDocumentId === other.sourceGraphDocumentId &&
         entry.sourceOutputEntryId === other.sourceOutputEntryId &&
@@ -3880,6 +4075,10 @@ const areProjectComponentsEqual = (
         entry.componentSourceKind === other.componentSourceKind &&
         entry.resolutionState === other.resolutionState &&
         entry.receiveId === other.receiveId &&
+        areOrderedStringArraysEqual(
+          getProjectComponentChildRowIds(entry),
+          getProjectComponentChildRowIds(other),
+        ) &&
         areOrderedStringArraysEqual(entry.childObjectIds, other.childObjectIds)
       )
     })
@@ -5519,6 +5718,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             [componentId]: {
               componentId,
               parentAssemblyId,
+              parentComponentId: null,
               ownerGraphDocumentId: null,
               sourceGraphDocumentId: null,
               sourceOutputEntryId: null,
@@ -8114,14 +8314,17 @@ const selectProjectObjectsForComponent = (
   state: Pick<AppState, 'projectContent'>,
   component: ProjectComponentRecord,
 ): ProjectObjectRecord[] => {
-  const ownedObjects = Object.values(state.projectContent.objectsById).filter(
-    (objectRow) => objectRow.parentComponentId === component.componentId,
+  const ownedObjects = component.childObjectIds
+    .map((objectId) => state.projectContent.objectsById[objectId] ?? null)
+    .filter((objectRow): objectRow is ProjectObjectRecord => objectRow !== null)
+  const directOwnedObjects = Object.values(state.projectContent.objectsById).filter(
+    (objectRow) =>
+      objectRow.parentComponentId === component.componentId &&
+      !component.childObjectIds.includes(objectRow.objectId),
   )
   const orderedObjectIds = [
-    ...component.childObjectIds.filter((objectId) =>
-      ownedObjects.some((objectRow) => objectRow.objectId === objectId),
-    ),
-    ...ownedObjects
+    ...ownedObjects.map((objectRow) => objectRow.objectId),
+    ...directOwnedObjects
       .map((objectRow) => objectRow.objectId)
       .filter((objectId) => !component.childObjectIds.includes(objectId)),
   ]
@@ -8571,70 +8774,7 @@ export const selectCurrentProjectContentBrowserRows = (
     let assemblyHasUnresolvedContent = false
     const assemblyRebuildGraphDocumentIds = new Set<string>()
 
-    assembly.childRowIds.forEach((childRowId) => {
-      const childAssembly = state.projectContent.assembliesById[childRowId]
-      if (childAssembly !== undefined) {
-        pushAssemblyBranchRows(childAssembly)
-        return
-      }
-      const component = state.projectContent.componentsById[childRowId]
-      if (component === undefined) {
-        const objectRow = state.projectContent.objectsById[childRowId]
-        if (objectRow === undefined) {
-          return
-        }
-        const sourceGraphLabel =
-          graphLabelByDocumentId.get(objectRow.sourceGraphDocumentId) ?? objectRow.sourceGraphDocumentId
-        const hasUnresolvedContent = objectRow.resolutionState !== 'resolved'
-        assemblyHasUnresolvedContent ||= hasUnresolvedContent
-        const objectBuildState = selectProjectContentBuildState({
-          graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
-          ownerGraphDocumentIds: [objectRow.ownerGraphDocumentId],
-          hasUnresolvedContent,
-          hasContent: true,
-        })
-        if (objectBuildState.buildState === 'rebuild') {
-          assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
-        }
-        const objectRenderedParts = getRenderedPartsForObject(objectRow.objectId)
-        const objectVisibilityPartKeys = objectRenderedParts.map((part) => part.viewerKey)
-        rows.push({
-          rowId: objectRow.objectId,
-          kind: 'object',
-          label: objectRow.label,
-          meta:
-            objectRow.objectSourceKind === 'receive-link'
-              ? objectRow.resolutionState === 'resolved'
-                ? 'Linked Object'
-                : 'Unresolved Link'
-              : sourceGraphLabel,
-          parentAssemblyId: objectRow.parentAssemblyId,
-          isVisible:
-            objectRow.resolutionState === 'resolved' &&
-            resolveRenderedVisibility(objectVisibilityPartKeys),
-          visibilityPartKeys:
-            objectRow.resolutionState === 'resolved' ? objectVisibilityPartKeys : [],
-          buildState: objectBuildState.buildState,
-          buildStateLabel: objectBuildState.buildStateLabel,
-          rebuildGraphDocumentIds:
-            objectBuildState.buildState === 'rebuild' ? [objectRow.ownerGraphDocumentId] : [],
-          statusLabel: objectRow.resolutionState === 'resolved' ? '' : 'Unresolved',
-          statusTone: objectRow.resolutionState === 'resolved' ? 'quiet' : 'warning',
-          ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
-          parentComponentId: objectRow.parentComponentId,
-          objectSourceKind: objectRow.objectSourceKind,
-          sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
-          sourceOutputEntryId: objectRow.sourceOutputEntryId,
-          slotId: objectRow.slotId,
-          sourceNodeId: objectRow.sourceNodeId,
-          resolutionState: objectRow.resolutionState,
-          highlightViewerKey: objectRenderedParts[0]?.viewerKey ?? null,
-          authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
-          authoringNodeId: objectRow.sourceNodeId,
-        })
-        return
-      }
-
+    const appendComponentBranchRows = (component: ProjectComponentRecord) => {
       const componentObjects = selectProjectObjectsForComponent(state, component)
       if (
         component.componentSourceKind === 'published-component' &&
@@ -8721,6 +8861,7 @@ export const selectCurrentProjectContentBrowserRows = (
               : 'Unresolved Link'
             : sourceGraphLabel,
         parentAssemblyId: component.parentAssemblyId,
+        parentComponentId: component.parentComponentId ?? null,
         isVisible: resolveRenderedVisibility(componentVisibilityPartKeys),
         visibilityPartKeys: componentVisibilityPartKeys,
         buildState: componentBuildState.buildState,
@@ -8755,7 +8896,16 @@ export const selectCurrentProjectContentBrowserRows = (
             : sourceNodeId,
       })
 
-      componentObjects.forEach((objectRow) => {
+      getProjectComponentChildRowIds(component).forEach((childRowId) => {
+        const childComponent = state.projectContent.componentsById[childRowId]
+        if (childComponent !== undefined) {
+          appendComponentBranchRows(childComponent)
+          return
+        }
+        const objectRow = state.projectContent.objectsById[childRowId]
+        if (objectRow === undefined) {
+          return
+        }
         const hasUnresolvedContent = objectRow.resolutionState !== 'resolved'
         const objectBuildState = selectProjectContentBuildState({
           graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
@@ -8798,6 +8948,72 @@ export const selectCurrentProjectContentBrowserRows = (
           authoringNodeId: objectRow.sourceNodeId,
         })
       })
+    }
+
+    assembly.childRowIds.forEach((childRowId) => {
+      const childAssembly = state.projectContent.assembliesById[childRowId]
+      if (childAssembly !== undefined) {
+        pushAssemblyBranchRows(childAssembly)
+        return
+      }
+      const component = state.projectContent.componentsById[childRowId]
+      if (component === undefined) {
+        const objectRow = state.projectContent.objectsById[childRowId]
+        if (objectRow === undefined) {
+          return
+        }
+        const sourceGraphLabel =
+          graphLabelByDocumentId.get(objectRow.sourceGraphDocumentId) ?? objectRow.sourceGraphDocumentId
+        const hasUnresolvedContent = objectRow.resolutionState !== 'resolved'
+        assemblyHasUnresolvedContent ||= hasUnresolvedContent
+        const objectBuildState = selectProjectContentBuildState({
+          graphRuntimeByDocumentId: state.graphRuntimeByDocumentId,
+          ownerGraphDocumentIds: [objectRow.ownerGraphDocumentId],
+          hasUnresolvedContent,
+          hasContent: true,
+        })
+        if (objectBuildState.buildState === 'rebuild') {
+          assemblyRebuildGraphDocumentIds.add(objectRow.ownerGraphDocumentId)
+        }
+        const objectRenderedParts = getRenderedPartsForObject(objectRow.objectId)
+        const objectVisibilityPartKeys = objectRenderedParts.map((part) => part.viewerKey)
+        rows.push({
+          rowId: objectRow.objectId,
+          kind: 'object',
+          label: objectRow.label,
+          meta:
+            objectRow.objectSourceKind === 'receive-link'
+              ? objectRow.resolutionState === 'resolved'
+                ? 'Linked Object'
+                : 'Unresolved Link'
+              : sourceGraphLabel,
+          parentAssemblyId: objectRow.parentAssemblyId,
+          isVisible:
+            objectRow.resolutionState === 'resolved' &&
+            resolveRenderedVisibility(objectVisibilityPartKeys),
+          visibilityPartKeys:
+            objectRow.resolutionState === 'resolved' ? objectVisibilityPartKeys : [],
+          buildState: objectBuildState.buildState,
+          buildStateLabel: objectBuildState.buildStateLabel,
+          rebuildGraphDocumentIds:
+            objectBuildState.buildState === 'rebuild' ? [objectRow.ownerGraphDocumentId] : [],
+          statusLabel: objectRow.resolutionState === 'resolved' ? '' : 'Unresolved',
+          statusTone: objectRow.resolutionState === 'resolved' ? 'quiet' : 'warning',
+          ownerGraphDocumentId: objectRow.ownerGraphDocumentId,
+          parentComponentId: objectRow.parentComponentId,
+          objectSourceKind: objectRow.objectSourceKind,
+          sourceGraphDocumentId: objectRow.sourceGraphDocumentId,
+          sourceOutputEntryId: objectRow.sourceOutputEntryId,
+          slotId: objectRow.slotId,
+          sourceNodeId: objectRow.sourceNodeId,
+          resolutionState: objectRow.resolutionState,
+          highlightViewerKey: objectRenderedParts[0]?.viewerKey ?? null,
+          authoringGraphDocumentId: objectRow.sourceGraphDocumentId,
+          authoringNodeId: objectRow.sourceNodeId,
+        })
+        return
+      }
+      appendComponentBranchRows(component)
     })
 
     const assemblyRows = rows.slice(assemblyStartIndex + 1)
@@ -9102,6 +9318,15 @@ const resolveConsoleContentBreadcrumbLabels = (
     const component = resolveProjectComponentRecord(state, target.componentId)
     if (component === null) {
       return null
+    }
+    if (component.parentComponentId != null) {
+      return [
+        ...(resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'component',
+          componentId: component.parentComponentId,
+        }) ?? [component.parentComponentId]),
+        component.label,
+      ]
     }
     const parentAssemblyId =
       component.parentAssemblyId ?? resolveParentAssemblyIdByChildRowId(state.projectContent, target.componentId)

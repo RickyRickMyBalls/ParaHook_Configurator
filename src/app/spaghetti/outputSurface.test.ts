@@ -33,6 +33,41 @@ const createGraph = (params: Record<string, unknown>): SpaghettiGraph => ({
   edges: [],
 })
 
+const createConnectedGraph = (options: {
+  params: Record<string, unknown>
+  sources: Array<{
+    nodeId: string
+    portId: string
+    params?: Record<string, unknown>
+  }>
+}): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: options.params,
+    },
+    ...options.sources.map((source) => ({
+      nodeId: source.nodeId,
+      type: 'Geometry/Extrude',
+      params: source.params ?? {},
+    })),
+  ],
+  edges: options.sources.map((source, index) => ({
+    edgeId: `edge-${index + 1}`,
+    from: { nodeId: source.nodeId, portId: source.portId },
+    to: {
+      nodeId: 'node-output-preview-1',
+      portId:
+        Array.isArray((options.params as { slots?: Array<{ slotId: string }> }).slots) &&
+        (options.params as { slots: Array<{ slotId: string }> }).slots[index] !== undefined
+          ? `in:solid:${(options.params as { slots: Array<{ slotId: string }> }).slots[index]!.slotId}`
+          : 'in:solid:s001',
+    },
+  })),
+})
+
 const createPreviewGraph = (params: Record<string, unknown>): SpaghettiGraph => ({
   schemaVersion: 1,
   nodes: [
@@ -676,6 +711,245 @@ describe('buildGraphPublishedContentSurface', () => {
               sourceNodeId: 'node-extrude-2',
               acceptedArtifactKey: 'extrude#2',
               state: 'resolved',
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('keeps many SolidBodies rows as row-owned subcomponents under one top-level component', () => {
+    const graph = createConnectedGraph({
+      params: {
+        componentLabel: 'Pedal Assembly',
+        objects: [
+          { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+          { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
+        ],
+        slots: [
+          { slotId: 's001', publicationMode: 'split' },
+          { slotId: 's002', publicationMode: 'split' },
+        ],
+        nextSlotIndex: 3,
+      },
+      sources: [
+        { nodeId: 'node-extrude-a', portId: 'SolidBody', params: { bodyGenerationMode: 'NewObjects' } },
+        { nodeId: 'node-extrude-b', portId: 'SolidBody', params: { bodyGenerationMode: 'NewObjects' } },
+      ],
+    })
+
+    const surface = buildGraphPublishedContentSurface({
+      graphDocumentId: 'graph-document-1',
+      graph,
+      outputSurface: createOutputSurface([
+        {
+          outputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-a',
+          memberIndex: 0,
+          label: 's001',
+          state: 'resolved',
+          acceptedArtifactKey: 'extrude:a:001',
+        },
+        {
+          outputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-a',
+          memberIndex: 1,
+          label: 's001',
+          state: 'resolved',
+          acceptedArtifactKey: 'extrude:a:002',
+        },
+        {
+          outputEntryId: 'output-entry:s002:node-extrude-b',
+          slotId: 's002',
+          sourceNodeId: 'node-extrude-b',
+          label: 's002',
+          state: 'resolved',
+          acceptedArtifactKey: 'extrude:b:001',
+        },
+      ]),
+    })
+
+    expect(surface).toEqual({
+      graphDocumentId: 'graph-document-1',
+      rows: [
+        {
+          kind: 'component',
+          componentLabel: 'Pedal Assembly',
+          objects: [
+            {
+              objectId: 'output-object:s001:member-001',
+              label: 'Object 1 1',
+              outputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              acceptedArtifactKey: 'extrude:a:001',
+              state: 'resolved',
+            },
+            {
+              objectId: 'output-object:s001:member-002',
+              label: 'Object 1 2',
+              outputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              acceptedArtifactKey: 'extrude:a:002',
+              state: 'resolved',
+            },
+            {
+              objectId: 'output-object:s002',
+              label: 'Object 2',
+              outputEntryId: 'output-entry:s002:node-extrude-b',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              acceptedArtifactKey: 'extrude:b:001',
+              state: 'resolved',
+            },
+          ],
+          subcomponents: [
+            {
+              subcomponentId: 'output-object:s001:collection',
+              label: 'Object 1',
+              slotId: 's001',
+              objects: [
+                {
+                  objectId: 'output-object:s001:member-001',
+                  label: 'Object 1 1',
+                  outputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+                  slotId: 's001',
+                  sourceNodeId: 'node-extrude-a',
+                  acceptedArtifactKey: 'extrude:a:001',
+                  state: 'resolved',
+                },
+                {
+                  objectId: 'output-object:s001:member-002',
+                  label: 'Object 1 2',
+                  outputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+                  slotId: 's001',
+                  sourceNodeId: 'node-extrude-a',
+                  acceptedArtifactKey: 'extrude:a:002',
+                  state: 'resolved',
+                },
+              ],
+            },
+            {
+              subcomponentId: 'output-object:s002:collection',
+              label: 'Object 2',
+              slotId: 's002',
+              objects: [
+                {
+                  objectId: 'output-object:s002',
+                  label: 'Object 2',
+                  outputEntryId: 'output-entry:s002:node-extrude-b',
+                  slotId: 's002',
+                  sourceNodeId: 'node-extrude-b',
+                  acceptedArtifactKey: 'extrude:b:001',
+                  state: 'resolved',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('keeps singular rows as direct object siblings when mixed with one SolidBodies row', () => {
+    const graph = createConnectedGraph({
+      params: {
+        componentLabel: 'Pedal Assembly',
+        objects: [
+          { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+          { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
+        ],
+        slots: [
+          { slotId: 's001', publicationMode: 'grouped' },
+          { slotId: 's002', publicationMode: 'grouped' },
+        ],
+        nextSlotIndex: 3,
+      },
+      sources: [
+        { nodeId: 'node-extrude-a', portId: 'SolidBody', params: { bodyGenerationMode: 'NewObjects' } },
+        { nodeId: 'node-extrude-b', portId: 'SolidBody', params: { bodyGenerationMode: 'Combine' } },
+      ],
+    })
+
+    const surface = buildGraphPublishedContentSurface({
+      graphDocumentId: 'graph-document-1',
+      graph,
+      outputSurface: createOutputSurface([
+        {
+          outputEntryId: 'output-entry:s001:node-extrude-a',
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-a',
+          label: 's001',
+          state: 'resolved',
+          acceptedArtifactKey: 'extrude:a',
+        },
+        {
+          outputEntryId: 'output-entry:s002:node-extrude-b',
+          slotId: 's002',
+          sourceNodeId: 'node-extrude-b',
+          label: 's002',
+          state: 'resolved',
+          acceptedArtifactKey: 'extrude:b',
+        },
+      ]),
+    })
+
+    expect(surface).toEqual({
+      graphDocumentId: 'graph-document-1',
+      rows: [
+        {
+          kind: 'component',
+          componentLabel: 'Pedal Assembly',
+          objects: [
+            {
+              objectId: 'output-object:s001',
+              label: 'Object 1',
+              outputEntryId: 'output-entry:s001:node-extrude-a',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              acceptedArtifactKey: 'extrude:a',
+              state: 'resolved',
+            },
+            {
+              objectId: 'output-object:s002',
+              label: 'Object 2',
+              outputEntryId: 'output-entry:s002:node-extrude-b',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              acceptedArtifactKey: 'extrude:b',
+              state: 'resolved',
+            },
+          ],
+          directObjects: [
+            {
+              objectId: 'output-object:s002',
+              label: 'Object 2',
+              outputEntryId: 'output-entry:s002:node-extrude-b',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              acceptedArtifactKey: 'extrude:b',
+              state: 'resolved',
+            },
+          ],
+          subcomponents: [
+            {
+              subcomponentId: 'output-object:s001:collection',
+              label: 'Object 1',
+              slotId: 's001',
+              objects: [
+                {
+                  objectId: 'output-object:s001',
+                  label: 'Object 1',
+                  outputEntryId: 'output-entry:s001:node-extrude-a',
+                  slotId: 's001',
+                  sourceNodeId: 'node-extrude-a',
+                  acceptedArtifactKey: 'extrude:a',
+                  state: 'resolved',
+                },
+              ],
             },
           ],
         },

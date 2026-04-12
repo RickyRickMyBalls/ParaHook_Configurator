@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import { compileSpaghettiGraph } from '../compiler/compileGraph'
+import { buildExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
 import {
   buildRequestFromBuildInputs,
   type SpaghettiBuildInputs,
 } from './buildInputsToRequest'
+import { prepareGraphPreviewPreparation } from '../previewPreparation'
+import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import type { GraphPreviewPreparation } from '../previewPreparation'
 
 const cubeBuildInputs = (): SpaghettiBuildInputs => ({
@@ -55,6 +60,161 @@ const extrudeBuildInputs = (): SpaghettiBuildInputs => ({
       },
     },
   },
+})
+
+const createSketchFeature = (
+  components: Array<Record<string, unknown>>,
+): Record<string, unknown> => ({
+  type: 'sketch',
+  featureId: 'sketch-1',
+  plane: 'XY',
+  components,
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
+
+const rectangleComponent = (
+  rowId: string,
+  componentId: string,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): Record<string, unknown> => ({
+  rowId,
+  componentId,
+  type: 'rectangle',
+  a: { kind: 'lit', x: a.x, y: a.y },
+  b: { kind: 'lit', x: b.x, y: b.y },
+})
+
+const createSingularOnlySameRowOutputPreviewGraph = (): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: createSketchFeature([
+          rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+          rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+        ]),
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        bodyGenerationMode: 'NewObjects',
+        depthMm: 25,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        slots: [{ slotId: 's001', publicationMode: 'grouped' }],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Pedal Body',
+            orderIndex: 0,
+          },
+        ],
+        nextSlotIndex: 2,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+      },
+      to: {
+        nodeId: 'node-extrude-1',
+        portId: 'ExtrusionProfile',
+      },
+    },
+    {
+      edgeId: 'edge-extrude-member-1-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: buildExtrudeBodyMemberPortId(0) },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+    {
+      edgeId: 'edge-extrude-member-2-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: buildExtrudeBodyMemberPortId(1) },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+  ],
+})
+
+const createMixedSameRowOutputPreviewGraph = (): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: createSketchFeature([
+          rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+          rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+        ]),
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        bodyGenerationMode: 'NewObjects',
+        depthMm: 25,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        slots: [{ slotId: 's001', publicationMode: 'grouped' }],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Pedal Body',
+            orderIndex: 0,
+          },
+        ],
+        nextSlotIndex: 2,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+      },
+      to: {
+        nodeId: 'node-extrude-1',
+        portId: 'ExtrusionProfile',
+      },
+    },
+    {
+      edgeId: 'edge-extrude-whole-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+    {
+      edgeId: 'edge-extrude-member-1-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: buildExtrudeBodyMemberPortId(0) },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+  ],
 })
 
 describe('buildRequestFromBuildInputs', () => {
@@ -325,6 +485,108 @@ describe('buildRequestFromBuildInputs', () => {
     expect(translated.targetBuildUnitIds).toEqual([
       'output-entry:s001:node-extrude-2:port-SolidBody%3A001',
       'output-entry:s001:node-extrude-2:port-SolidBody%3A002',
+    ])
+  })
+
+  it('keeps the singular-only same-row OutputPreview repro buildable when preview preparation is derived from the actual graph', () => {
+    const graph = createSingularOnlySameRowOutputPreviewGraph()
+    const compileResult = compileSpaghettiGraph(graph)
+
+    expect(compileResult.ok).toBe(true)
+    expect(compileResult.buildInputs).toBeDefined()
+
+    const previewPreparation = prepareGraphPreviewPreparation(graph)
+    expect(previewPreparation.slotStatusBySlotId).toEqual({ s001: 'ok' })
+    expect(previewPreparation.sourceEntriesBySlotId).toEqual({
+      s001: [
+        {
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKeyStr: 'extrude',
+          sourcePortId: 'SolidBody:001',
+        },
+        {
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKeyStr: 'extrude',
+          sourcePortId: 'SolidBody:002',
+        },
+      ],
+    })
+
+    const translated = buildRequestFromBuildInputs(compileResult.buildInputs!, previewPreparation)
+
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude'])
+    expect(translated.compiledBuildData.outputEntries).toEqual([
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+        outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+        sourceNodeId: 'node-extrude-1',
+        partKey: 'extrude',
+        bodyId: 'node-extrude-1:body:001',
+      },
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
+        outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
+        sourceNodeId: 'node-extrude-1',
+        partKey: 'extrude',
+        bodyId: 'node-extrude-1:body:002',
+      },
+    ])
+    expect(translated.targetBuildUnitIds).toEqual([
+      'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+      'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
+    ])
+  })
+
+  it('keeps the mixed same-row OutputPreview control buildable when preview preparation is derived from the actual graph', () => {
+    const graph = createMixedSameRowOutputPreviewGraph()
+    const compileResult = compileSpaghettiGraph(graph)
+
+    expect(compileResult.ok).toBe(true)
+    expect(compileResult.buildInputs).toBeDefined()
+
+    const previewPreparation = prepareGraphPreviewPreparation(graph)
+    expect(previewPreparation.slotStatusBySlotId).toEqual({ s001: 'ok' })
+    expect(previewPreparation.sourceEntriesBySlotId).toEqual({
+      s001: [
+        {
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKeyStr: 'extrude',
+          sourcePortId: 'SolidBody:001',
+        },
+        {
+          slotId: 's001',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKeyStr: 'extrude',
+          sourcePortId: 'SolidBody',
+        },
+      ],
+    })
+
+    const translated = buildRequestFromBuildInputs(compileResult.buildInputs!, previewPreparation)
+
+    expect(translated.compiledBuildData.orderedPartKeys).toEqual(['extrude'])
+    expect(translated.compiledBuildData.outputEntries).toEqual([
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+        outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+        sourceNodeId: 'node-extrude-1',
+        partKey: 'extrude',
+        bodyId: 'node-extrude-1:body:001',
+      },
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-1',
+        outputEntryId: 'output-entry:s001:node-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        partKey: 'extrude',
+        bodyId: null,
+      },
+    ])
+    expect(translated.targetBuildUnitIds).toEqual([
+      'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+      'output-entry:s001:node-extrude-1',
     ])
   })
 })

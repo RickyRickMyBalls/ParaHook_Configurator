@@ -65,6 +65,354 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1251 -->
+### [1251] - 2026-04-12 19:51 - `OP - OutputPreview 1 Phase 6c.5 - Build Fixture Compatibility Fix`
+<!-- ENTRY 1251 -->
+HUMAN SUMMARY: `Fixed the post-\`6c.5\` TypeScript build break by upgrading stale test \`outputSurface\` fixtures to the current \`GraphOutputSurface\` contract and tightening one nullable parent-component guard in \`useAppStore.ts\`, bringing \`npm run build\` back to green.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly on build correctness after the shipped `6c.5` work.
+- Did not change the runtime Browser/publication model beyond the already-shipped `6c.5` behavior.
+- Limited changes to fixture compatibility and one TypeScript nullability guard.
+#### Summary of Implementation
+- Added a local `createOutputSurface(...)` helper in [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so test fixtures now construct full `GraphOutputSurface` values with the required `graphDocumentId`, `publishedAtBuildSeq`, and `surfaceVersion` fields.
+- Replaced the stale partial `outputSurface` literals in the affected `useAppStore` tests with that helper.
+- Tightened the published-component parent guard in [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) from a `!== null` check to `!= null` so TypeScript no longer sees a possible `undefined` index access.
+#### Files Changed
+- `src/app/store/useAppStore.test.ts`
+- `src/app/store/useAppStore.ts`
+#### Behavior Changes
+- No intended runtime behavior change beyond restoring successful typecheck/build for the shipped `6c.5` path.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1250 -->
+### [1250] - 2026-04-12 19:44 - `OP - OutputPreview 1 Phase 6c.5 - Partial Flatten Repair And Final Proof`
+<!-- ENTRY 1250 -->
+HUMAN SUMMARY: `Closed the last live \`6c\` seam by upgrading legacy flat published-object parents into their row-owned published subcomponents when many \`SolidBodies\` rows are active, so collection members no longer leak loose under the top-level component after the newer nested hierarchy is derived.`
+#### Scope / Constraints Honored
+- Kept this pass on the narrow `6c.5` closeout seam: repair the partial-flatten migration bug and re-run focused Browser/content proof.
+- Preserved the simpler locked `6c` model where each active `SolidBodies` wire owns one subcomponent and each concrete solid body remains an object row.
+- Avoided introducing generated-content Browser part rows or reopening broader publication-model questions.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so runtime-backed published objects and components upgrade out of legacy top-level published-component parents when the newly derived default parent is a row-owned published subcomponent.
+- Added a focused regression in [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) that simulates the old flattened placement overlay and proves the next derivation reparents those collection members into the correct nested subcomponent.
+- Re-ran the existing many-row, mixed-row, and Browser tree proofs to confirm the hierarchy still holds after the migration repair.
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+#### Behavior Changes
+- Previously flattened runtime-backed published collection members can now migrate into the correct nested published subcomponent when a newer many-row `SolidBodies` hierarchy is derived.
+- The many-row collection Browser shape now has a stable path to:
+  - one top-level component
+  - one nested subcomponent per active `SolidBodies` wire
+  - concrete solid-body object rows under the correct subcomponent
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "migrates legacy flat published object placement into row-owned subcomponents when many collection rows are active|syncs many published SolidBodies rows into nested published subcomponents in project content|keeps mixed singular published rows direct while collection rows become nested subcomponents"`
+- `cmd /c npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts -t "renders nested published subcomponents under their parent component while keeping direct object siblings"`
+
+<!-- ENTRY 1249 -->
+### [1249] - 2026-04-12 14:15 - `OP - OutputPreview 1 Phase 6c - Effective SolidBodies Port Detection Fix`
+<!-- ENTRY 1249 -->
+HUMAN SUMMARY: `Fixed the live multi-row \`SolidBodies\` publication seam by classifying Output Preview collection rows from the effective source port type instead of the raw edge port id, so Browser subcomponents can appear for real extrude \`NewObjects\` rows wired through \`SolidBody\` ports.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly on live row-classification truth for Output Preview publication and did not redesign Browser hierarchy behavior.
+- Preserved the existing nested subcomponent Browser/project-content support from the earlier `6c` work.
+- Updated focused regressions to match the real extrude graph shape instead of the earlier simplified `SolidBodies` raw-port shorthand.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/outputSurface.ts`](./src/app/spaghetti/outputSurface.ts) to resolve each source edge through the effective output port table and detect collection rows from `type.kind === 'solidBodies'`.
+- Kept a compatibility fallback for legacy/raw `SolidBodies` edge ids while letting live extrude `SolidBody` edges in `NewObjects` mode classify as collection rows.
+- Updated [`src/app/spaghetti/outputSurface.test.ts`](./src/app/spaghetti/outputSurface.test.ts) and [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so the row-owned subcomponent regressions use real extrude `bodyGenerationMode` params.
+#### Files Changed
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/outputSurface.test.ts`
+- `src/app/store/useAppStore.test.ts`
+#### Behavior Changes
+- Output Preview rows fed by real extrude `NewObjects` outputs can now materialize as row-owned published subcomponents even when the wire still uses raw port id `SolidBody`.
+- Multi-row `SolidBodies` publication now has a truthful path from live graph wiring into Browser subcomponent rendering.
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/app/spaghetti/outputSurface.test.ts`
+- `cmd /c npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "syncs many published SolidBodies rows into nested published subcomponents in project content|keeps mixed singular published rows direct while collection rows become nested subcomponents"`
+
+<!-- ENTRY 1248 -->
+### [1248] - 2026-04-12 14:06 - `OP - OutputPreview 1 Phase 6c.4 - Browser Projection And Mixed-Row Proof`
+<!-- ENTRY 1248 -->
+HUMAN SUMMARY: `Finished the Browser-side carry-through for row-owned collection publication by letting component rows parent under components, so multi-row \`SolidBodies\` output now shows nested published subcomponents in the Browser instead of collapsing back to one flat published component.`
+#### Scope / Constraints Honored
+- Kept this pass on the `6c.4` Browser-only boundary: Browser row shaping, tree projection, and focused Browser proof.
+- Preserved the `6c.3` project-content/runtime hierarchy and did not reopen object identity or output-surface shaping.
+- Limited Browser changes to honest projection of the already-authored hierarchy instead of redesigning Browser UX.
+#### Summary of Implementation
+- Widened Browser-facing component rows to carry `parentComponentId` so nested published subcomponents can surface in Browser state.
+- Updated `selectCurrentProjectContentBrowserRows(...)` to emit nested component rows and direct object siblings from component-owned `childRowIds` instead of flattening every component subtree into one component-plus-objects list.
+- Updated `selectBrowserTreeRows(...)` so component rows can parent under either assemblies or components, and so component policy inheritance can flow through parent components before assembly fallback.
+- Added focused Browser proof for:
+  - real app-store many-row and mixed-row publication cases
+  - tree-selector rendering of a nested published subcomponent plus direct object sibling under one top-level published component
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/OutputPreview/Future/OutputPreview 1 - Phase 6c - Row-Owned Collection Subcomponents.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Browser/project-content rows now show nested published subcomponents under the top-level published component when multiple `SolidBodies` rows are active.
+- Mixed collection-plus-singular publication now shows one nested collection subcomponent plus one direct object sibling instead of flattening both under one undifferentiated component.
+- Browser row policy/parent resolution can now follow parent components for nested published component rows.
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "syncs many published SolidBodies rows into nested published subcomponents in project content|keeps mixed singular published rows direct while collection rows become nested subcomponents"`
+- `cmd /c npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts -t "renders nested published subcomponents under their parent component while keeping direct object siblings"`
+
+<!-- ENTRY 1247 -->
+### [1247] - 2026-04-12 13:51 - `Workspace 7.5-13 - Spaghetti Floating Open Defaults For Header And Canvas Chrome`
+<!-- ENTRY 1247 -->
+HUMAN SUMMARY: `Changed the new floating \`Spaghetti Editor\` open path so fresh graph windows now start with the titlebar toolbar lane collapsed and the canvas toolbar hidden, while leaving existing viewport-specific chrome choices untouched when a graph is reopened or refocused.`
+#### Scope / Constraints Honored
+- Kept this pass on the real new-viewport open path instead of adding a titlebar-side override or focus-time reset.
+- Left the `i` window-settings behavior unchanged.
+- Preserved existing viewport-local chrome state when `openGraphDocumentInViewport(...)` re-focuses an already open graph.
+#### Summary of Implementation
+- Updated `useSpaghettiStore` so the shared append-new-viewport path seeds newly created editor viewports with `editorViewportHeaderCollapsedById[viewportId] = true` and `editorViewportCanvasToolbarVisibleById[viewportId] = false`.
+- Wired both `openGraphDocumentInViewport(...)` and `openGraphDocumentInNewViewport(...)` to carry those seeded chrome defaults through the same canonical new-viewport creation flow.
+- Added focused store proofs for:
+  - fresh `openGraphDocumentInViewport(...)` creation
+  - fresh `openGraphDocumentInNewViewport(...)` creation
+  - re-focusing an already open viewport without clobbering its current chrome state
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+#### Behavior Changes
+- When a graph opens into a new floating `Spaghetti Editor` window, the `t` toolbar state now starts off and the `c` canvas-toolbar state now starts off.
+- Reopening or re-focusing an already open graph keeps that viewport's current `t` / `c` state instead of reapplying defaults.
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/spaghetti/store/useSpaghettiStore.test.ts`
+
+<!-- ENTRY 1246 -->
+### [1246] - 2026-04-12 13:34 - `OP - OutputPreview 1 Phase 6c.3 - Project Content Sync And Runtime Placement`
+<!-- ENTRY 1246 -->
+HUMAN SUMMARY: `Carried the shipped \`6c.2\` row-owned collection surface into \`useAppStore.ts\` so project content can now materialize nested published subcomponents under one top-level published component while keeping every published object bound to its own \`sourceOutputEntryId\` and viewer part.`
+#### Scope / Constraints Honored
+- Kept this pass on the `6c.3` boundary: project-content sync, runtime placement, and focused app-store proof only.
+- Preserved the `6c.2` compatibility shape by keeping `childObjectIds` as the flattened subtree view even while published subcomponents now exist as their own component records.
+- Did not attempt Browser tree projection polish or selector-tree proof; that follow-on still belongs to `6c.4`.
+#### Summary of Implementation
+- Widened `ProjectComponentRecord` so runtime-backed published components can carry an optional `parentComponentId` plus ordered `childRowIds`.
+- Added deterministic published-subcomponent ids by `projectFileId + graphDocumentId + slotId` and taught runtime placement overlays to preserve nested published-component parents.
+- Updated the `useAppStore` published-content sync so:
+  - multi-row `SolidBodies` publication creates one top-level published component plus one nested published subcomponent per collection row
+  - mixed collection-plus-singular publication keeps singular rows as direct object children under the top-level component
+  - every object still preserves its direct `sourceOutputEntryId`
+- Added focused `useAppStore` regressions for:
+  - many collection rows producing nested published subcomponents in project content
+  - one collection row plus one singular row keeping the singular object direct beside the nested collection subcomponent
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/OutputPreview/Future/OutputPreview 1 - Phase 6c - Row-Owned Collection Subcomponents.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Project content can now represent nested published subcomponents under one top-level published component instead of flattening all collection-row objects back out.
+- Runtime placement overlays now preserve nested published-component parents for row-owned collection groups.
+- Rendered project parts remain output-entry-scoped because published objects still carry their original `sourceOutputEntryId` even under the new parent grouping.
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "syncs many published SolidBodies rows into nested published subcomponents in project content|keeps mixed singular published rows direct while collection rows become nested subcomponents"`
+
+<!-- ENTRY 1245 -->
+### [1245] - 2026-04-12 13:11 - `OP - OutputPreview 1 Phase 6c.2 - Output Surface Row-Owned Collection Materialization`
+<!-- ENTRY 1245 -->
+HUMAN SUMMARY: `Widened \`buildGraphPublishedContentSurface(...)\` so multi-row \`SolidBodies\` publication can carry one top-level component plus row-owned collection subcomponents, while preserving the existing flattened \`objects\` field for downstream compatibility until \`6c.3\` carries the new shape into project content and Browser sync.`
+#### Scope / Constraints Honored
+- Kept this pass on the `6c.2` boundary: `outputSurface.ts` contract widening plus focused output-surface regressions only.
+- Preserved the existing simple surface for zero-object, single-object, and single-collection-row cases where no extra subcomponent layer is required.
+- Did not patch `useAppStore.ts`, Browser selectors, or runtime tree placement; that carry-through still belongs to `6c.3`.
+#### Summary of Implementation
+- Added a row-owned collection subcomponent surface entry type so the publication surface can express one top-level component with collection-owned child groups.
+- Extended component rows with optional `directObjects` and `subcomponents` fields while keeping the existing flattened `objects` list intact for compatibility.
+- Classified `OutputPreview` slot rows by incoming source port ownership so `SolidBodies` rows materialize as row-owned subcomponents only when there are many collection rows or a mixed collection-plus-singular shape.
+- Added focused regressions for:
+  - two `SolidBodies` rows that should stay as two distinct row-owned subcomponents
+  - one `SolidBodies` row plus one singular `SolidBody` row that should keep the collection row grouped while the singular row stays direct
+#### Files Changed
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/outputSurface.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/OutputPreview/Future/OutputPreview 1 - Phase 6c - Row-Owned Collection Subcomponents.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- `GraphPublishedContentSurface` can now distinguish flat object rows from row-owned collection subcomponents under one top-level published component.
+- Multi-row `SolidBodies` publication no longer has to collapse to a single flat component shape inside `outputSurface`.
+- Downstream consumers still see the compatibility `objects` list until `6c.3` starts consuming the new `directObjects` and `subcomponents` fields.
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/app/spaghetti/outputSurface.test.ts`
+
+<!-- ENTRY 1244 -->
+### [1244] - 2026-04-12 12:47 - `OP - OutputPreview 1 Phase 6b.5 - Proof Matrix And Family Handoff`
+<!-- ENTRY 1244 -->
+HUMAN SUMMARY: `Closed the \`OutputPreview 6b\` family by adding the missing split published-child Browser/viewer identity regression in \`src/app/store/useAppStore.test.ts\` and re-running the focused proof matrix across singular-member rendering, same-row aggregation parity, and viewport pick routing without exposing any narrower follow-up seam.`
+#### Scope / Constraints Honored
+- Kept this pass on the `6b.5` closeout boundary: proof coverage, family handoff, and no speculative reopening of already-fixed `6b.3*` or `6b.4` behavior.
+- Added only the smallest missing regression needed to prove split published child objects remain output-entry-scoped through the app-store Browser/viewer seam.
+- Left runtime behavior unchanged and avoided introducing any new viewer-only ownership shortcuts.
+#### Summary of Implementation
+- Added a focused `useAppStore` regression that proves two split published child objects from one `SolidBodies` slot keep distinct rendered viewer keys, distinct Browser highlight keys, and distinct object-owned part-key resolution by `sourceOutputEntryId`.
+- Reused the existing targeted `6b` proof surfaces for:
+  - singular-member accepted-geometry rendering
+  - singular-only same-row and mixed same-row aggregation parity
+  - viewport object pick round-trip into Browser/workspace selection
+- Closed the `6b.5` family handoff in the phase doc after the final focused matrix stayed green and did not reveal any narrower `6c` owner.
+#### Files Changed
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/OutputPreview/Future/OutputPreview 1 - Phase 6b - Single Solid Body Object.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes (if any)
+- No runtime behavior change in this pass.
+- Added regression coverage for the final split published-child Browser/viewer identity seam that `6b.5` needed before family closeout.
+#### Verification Steps
+- `cmd /c npm.cmd test -- --run src/app/spaghetti/integration/buildInputsToRequest.test.ts src/app/spaghetti/outputSurface.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/components/ViewerHost.test.tsx`
+- `cmd /c npm.cmd test -- --run src/app/store/useAppStore.test.ts -t "keeps split published child objects output-entry-scoped through rendered parts, Browser rows, and object selection"`
+
+<!-- ENTRY 1243 -->
+### [1243] - 2026-04-12 12:27 - `OP - OutputPreview 1 Phase 6b.3f - Same-Row Singular Aggregation Resolution`
+<!-- ENTRY 1243 -->
+HUMAN SUMMARY: `Repaired the singular-only same-row `SolidBody + SolidBody -> one SolidBodies row` compile/build seam by teaching OutputPreview dynamic collection slots to accept multi-edge contributor aggregation during graph evaluation, then locked that path with real graph-derived regressions for both the singular-only repro and the mixed same-row control.`
+#### Scope / Constraints Honored
+- Kept this pass narrow to the OutputPreview same-row multi-contributor aggregation seam that was still blocking `6b.3f`.
+- Preserved the existing `6b.3a-e` output-entry, artifact-preview, draft-mesh, retained-base, and selector fallback work instead of reopening those later lanes.
+- Avoided coarse whole-parent fallback and did not introduce any new viewer-only ownership.
+
+#### Summary of Implementation
+- Updated `evaluateSpaghettiGraph(...)` so dynamic `System/OutputPreview` slot inputs such as `in:solid:s001` are treated as valid multi-input collection owners during evaluation.
+- Added an OutputPreview-specific multi-input collection validator that accepts aggregated `SolidBody`, `SolidBodies`, and legacy opaque contributor values for the same slot.
+- Added graph-derived regressions in `buildInputsToRequest.test.ts` proving that:
+  - singular-only same-row `SolidBody:001 + SolidBody:002 -> one grouped SolidBodies row` now compiles, prepares preview entries, and emits two deterministic body-specific output entries
+  - mixed same-row `SolidBodies + SolidBody:* -> one grouped SolidBodies row` remains buildable as the control case
+
+#### Files Changed
+- `src/app/spaghetti/compiler/evaluateGraph.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+
+#### Behavior Changes (if any)
+- OutputPreview grouped `SolidBodies` rows can now accept more than one same-row contributor during evaluation without failing with `MULTIPLE_INPUTS`.
+- Singular-only same-row `SolidBody:*` aggregation can now flow into preview preparation and downstream build-request shaping instead of stopping at compile failure.
+
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- --run src/app/spaghetti/integration/buildInputsToRequest.test.ts src/app/spaghetti/compiler/evaluateGraph.test.ts src/app/spaghetti/previewPreparation.test.ts src/app/spaghetti/outputSurface.test.ts src/worker/pipeline/artifactEmitter.test.ts`
+
+<!-- ENTRY 1242 -->
+### [1242] - 2026-04-12 11:38 - `OP - OutputPreview 1 Phase 6b.3e - Subset Collection Final Re-Proof`
+<!-- ENTRY 1242 -->
+HUMAN SUMMARY: `Closed the next explicit-subset waiting seam after `6b.3d` by letting the viewer-target accepted subset bundle/artifacts surface even when project draft preview mode is active but has not produced any live project-content viewer parts yet. That keeps the authored two-wire `SolidBody:* -> SolidBodies` case from staying artificially empty just because the shared project-draft composition lane has not rehydrated the subset objects yet.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the viewer-target artifact-preview admission rule for explicit subset publication.
+- Preserved the earlier `6b.3a-d` identity, artifact-fallback, draft-mesh, and retained-base guards instead of reopening them.
+- Avoided coarse parent fallback by preferring existing accepted subset artifacts over an empty shared project-draft lane.
+
+#### Summary of Implementation
+- Updated `buildArtifactPreviewRenderVm(...)` so `useProjectDraftPreview` only wins when there are actual live project draft viewer parts to render.
+- When project draft preview is enabled but currently empty, the selector now falls back to the viewer-target accepted preview bundle and build outputs instead of returning an empty artifact-preview lane.
+- Added a focused regression proving that an explicit `SolidBody:*` subset can still render through accepted subset artifacts even while shared project draft composition has not produced viewer parts yet.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+#### Behavior Changes
+- Viewer-target accepted subset artifacts now remain visible in draft mode when project draft preview is enabled but has no live viewer parts yet.
+- The authored explicit-subset `OutputPreview` case no longer stays empty solely because the shared project-content draft composition lane has not rehydrated the subset objects.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- Ran `cmd /c npx vitest run src/app/spaghetti/previewPreparation.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+<!-- ENTRY 1241 -->
+### [1241] - 2026-04-12 11:22 - `OP - OutputPreview 1 Phase 6b.3d - Retained Geometry Subset Guard`
+<!-- ENTRY 1241 -->
+HUMAN SUMMARY: `Closed the next authored-subset seam after `6b.3c` by preventing retained committed draft/final geometry from surviving explicit `SolidBody:*` subset publication on coarse part-key matching alone. The viewport no longer keeps stale whole-extrude geometry alive behind a `Waiting For Geometry` state just because the old result was built for the same upstream part key.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on retained-base continuation policy for explicit subset publication.
+- Preserved the `6b.3a-c` output-entry, artifact-fallback, and draft-mesh guards instead of reopening them.
+- Avoided broad viewer or runtime changes by tightening the selector's continuation truth test where retained geometry is admitted.
+
+#### Summary of Implementation
+- Updated `doesCurrentOutputMatchGeometryResultPartKeys(...)` so explicit `SolidBody:*` subset publication no longer qualifies retained committed geometry on coarse `partKeys` equality alone.
+- This makes retained committed final and retained committed draft geometry clear as a dependency break for explicit subset publication, because a whole-node geometry result cannot prove member-subset equivalence.
+- Added focused regressions proving that explicit subset publication clears both retained committed final and retained committed draft geometry even when the old geometry result was built for the same upstream part key.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+#### Behavior Changes
+- Explicit `SolidBody:*` subset publication no longer keeps stale retained committed geometry visible just because the previous result used the same upstream part key.
+- When the authored subset has no current truthful geometry yet, the viewport now clears retained draft/final base geometry instead of showing the whole prior extrude while status remains `Waiting For Geometry`.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- Ran `cmd /c npx vitest run src/app/spaghetti/previewPreparation.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+<!-- ENTRY 1240 -->
+### [1240] - 2026-04-12 11:06 - `OP - OutputPreview 1 Phase 6b.3c - Draft Geometry Mesh Subset Guard`
+<!-- ENTRY 1240 -->
+HUMAN SUMMARY: `Closed the next explicit-subset seam after `6b.3b` by suppressing whole-node draft mesh preview whenever `OutputPreview` is publishing explicit `SolidBody:*` members from one upstream extrude. While the viewport is still `Waiting For Geometry`, the user now sees either contributor-correct artifact-backed subset geometry or no geometry yet, instead of the full upstream collection masquerading as the published subset.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the whole-node draft mesh lane that remained visible after `6b.3a-b`.
+- Preserved the `6b.3` body-id/body-artifact contract and the `6b.3a-b` output-entry plus artifact-fallback rules instead of reopening them.
+- Avoided viewer-only masking by placing the truth gate in shared preview-preparation and viewport-result selector state.
+
+#### Summary of Implementation
+- Added `hasExplicitSolidBodyMemberPublication(...)` in `previewPreparation.ts` so selector code can detect when `OutputPreview` is publishing explicit `SolidBody:*` contributors instead of a whole aggregate collection.
+- Updated `selectViewportResultState(...)` so explicit-member subset publication suppresses the whole-node draft geometry mesh lane for both current and committed draft mesh candidates.
+- Kept artifact-backed subset preview available, so the viewport still renders contributor-specific geometry when that truthful lane exists and otherwise stays empty while the status remains `Waiting For Geometry`.
+- Added focused regressions proving that explicit subset publication no longer surfaces whole-node draft mesh while the viewport is waiting for accepted geometry.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+#### Behavior Changes
+- Explicit `SolidBody:*` subset publication no longer shows the whole upstream extrude mesh through the draft preview lane while `OutputPreview` is still waiting for contributor-correct geometry.
+- When no truthful subset renderable exists yet, the viewport now stays empty instead of over-rendering phantom sibling bodies from unpublished members.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/previewPreparation.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+<!-- ENTRY 1239 -->
+### [1239] - 2026-04-12 10:49 - `OP - OutputPreview 1 Phase 6b.3b - Explicit Contributor Fallback Guard`
+<!-- ENTRY 1239 -->
+HUMAN SUMMARY: `Closed the next published-subset seam after `6b.3a` by stopping explicit `SolidBody:*` contributors from silently reusing the whole parent extrude artifact when a contributor-specific bundle artifact is missing. Draft, viewport-result, and shared preview composition now prefer `unresolved / no renderable yet` over showing phantom sibling bodies from the upstream collection.`
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on coarse-parent fallback policy for explicit contributor subset rendering.
+- Preserved the `6b.3` body-id/body-artifact contract and the `6b.3a` same-slot output-entry identity contract.
+- Avoided viewer-only masking; the fix lives in the shared preview-preparation renderable selection seam so downstream readers stay aligned on one truthful source.
+
+#### Summary of Implementation
+- Added an explicit-contributor fallback guard in `buildPreviewPreparationEntries(...)` so extrude member ports such as `SolidBody:001` and `SolidBody:002` no longer inherit the parent `sourcePartKeyStr` artifact when there is no matching `artifactByOutputEntryId`.
+- Left coarse parent fallback intact for non-member and aggregate publication paths, so grouped/whole-collection rendering keeps its existing behavior.
+- Added focused regressions across preview preparation, preview render-vm, viewport-result state, and shared composition proving that unresolved explicit contributors stay unresolved instead of reviving the full parent collection.
+
+#### Files Changed
+- `docs/CHANGELOG.md`
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+#### Behavior Changes
+- Explicit `SolidBody:*` contributors without a contributor-specific artifact match no longer render the whole upstream extrude/`solidBodies` collection as a fallback.
+- Draft preview, viewport result state, and shared preview composition now agree that unresolved explicit contributors should produce no renderable rather than phantom sibling geometry.
+
+#### Verification Steps
+- Ran `cmd /c npx vitest run src/app/spaghetti/previewPreparation.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
 <!-- ENTRY 1238 -->
 ### [1238] - 2026-04-12 10:38 - `OP - OutputPreview 1 Phase 6b.3a - Same-Slot Explicit Contributor Resolution`
 <!-- ENTRY 1238 -->

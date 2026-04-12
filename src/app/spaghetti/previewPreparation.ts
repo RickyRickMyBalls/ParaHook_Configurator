@@ -2,6 +2,7 @@ import type { BuildResultBundle, PartArtifact } from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import { computeFeatureStackIrParts } from './compiler/compileGraph'
 import { evaluateSpaghettiGraph } from './compiler/evaluateGraph'
+import { parseExtrudeBodyMemberPortId } from './features/extrudeBodyVirtualPorts'
 import type { SpaghettiGraph, SpaghettiNode, SolidBodiesValue } from './schema/spaghettiTypes'
 import { buildGraphOutputEntryIdsForSlot } from './outputSurface'
 import {
@@ -254,6 +255,19 @@ export const getPreviewPreparationEntriesForSlot = (
   }))
 }
 
+export const hasExplicitSolidBodyMemberPublication = (
+  previewPreparation: GraphPreviewPreparation | null,
+): boolean => {
+  if (previewPreparation === null) {
+    return false
+  }
+  return previewPreparation.outputSlotIds.some((slotId) =>
+    getPreviewPreparationEntriesForSlot(previewPreparation, slotId).some(
+      (entry) => parseExtrudeBodyMemberPortId(entry.sourcePortId) !== null,
+    ),
+  )
+}
+
 export const buildPreviewPreparationEntries = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: readonly PartArtifact[],
@@ -282,6 +296,9 @@ export const buildPreviewPreparationEntries = (
     }
   }
 
+  const shouldAllowCoarseParentFallback = (entry: PreviewPreparationEntry): boolean =>
+    parseExtrudeBodyMemberPortId(entry.sourcePortId) === null
+
   return previewPreparation.previewCandidateSlotIds
     .filter((slotId) => previewPreparation.slotStatusBySlotId[slotId] !== 'unresolved')
     .flatMap((slotId) => {
@@ -294,7 +311,9 @@ export const buildPreviewPreparationEntries = (
           outputEntryId,
           renderable:
             artifactByOutputEntryId.get(outputEntryId) ??
-            artifactByPartKey.get(entry.sourcePartKeyStr) ??
+            (shouldAllowCoarseParentFallback(entry)
+              ? (artifactByPartKey.get(entry.sourcePartKeyStr) ?? null)
+              : null) ??
             null,
         }
       })

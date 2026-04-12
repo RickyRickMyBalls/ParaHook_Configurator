@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+34. 2026-04-12 12:54:39: Added the dedicated follow-on plan doc `OutputPreview-1 Phase 6c - Row-Owned Collection Subcomponents` after product direction locked the next Browser/publication-structure rule: many active `SolidBodies` input rows should no longer collapse into one component just because the total published object count is greater than one, so the family now reopens beyond `6b` with a row-owned collection grouping pass
 33. 2026-04-12 08:28:59: Added the dedicated follow-on plan doc `OutputPreview-1 Phase 6b - Single Solid Body Object` after a new live repro showed that shipped `Phase 6` fixed default split publication but not the later viewport identity seam where split child objects still collapse to shared selection and one singular `SolidBody` member can still render the whole upstream collection, so the family now reopens with a research-first `6b` ladder
 32. 2026-04-12 06:08:19: Marked `OutputPreview-1 Phase 6.5 - Proof Matrix And Family Handoff` shipped in the dedicated `Phase 6` planning doc after the final proof matrix gained explicit grouped-override and touched-legacy materialization coverage, the focused backend-to-surface test set passed cleanly, and `Phase 6 - Default Split Publication Backend Cleanup` closed without a new follow-on seam
 31. 2026-04-12 06:00:36: Tightened `OutputPreview-1 Phase 6.5 - Proof Matrix And Family Handoff` in the dedicated `Phase 6` planning doc by grounding the final pass in the already-shipped backend, repair, selector/debug, preview-preparation, and output-surface proof seams, and by locking the family handoff to proof-matrix consolidation plus closeout instead of more contract churn
@@ -108,6 +109,7 @@ The current `OutputPreview-1` status is:
 - `Phase 5c - Shared Managed Row Base Refactor` `planned`
 - `Phase 6 - Default Split Publication Backend Cleanup` `shipped`
 - `Phase 6b - Single Solid Body Object` `planned`
+- `Phase 6c - Row-Owned Collection Subcomponents` `planned`
 
 ## [ ] `OutputPreview-1` - `Collection Source And Publication Surface`
 
@@ -218,6 +220,14 @@ The key direction is:
   - `Phase 6b.1 - Research And Runtime Trace`
   - `Phase 6b.2 - Published Object Identity Contract Lock`
   - `Phase 6b.3 - Singular SolidBody Membership Filtering`
+
+`OutputPreview-1 Phase 6c` is now the chosen Browser/publication-structure follow-on because:
+- `Phase 6b` closed the per-object identity, rendering, and selection seams, but the Browser publication structure still collapses all published objects into one component whenever total object count is greater than one
+- product direction now wants collection ownership to stay row-owned:
+  - one active `SolidBodies` row may stay flat
+  - many active `SolidBodies` rows should each own their own subcomponent
+- the dedicated planning home for that follow-on is:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/OutputPreview/Future/OutputPreview 1 - Phase 6c - Row-Owned Collection Subcomponents.md`
   - `Phase 6b.4 - Split Object Selection And Browser Alignment`
   - `Phase 6b.5 - Proof Matrix And Family Handoff`
 

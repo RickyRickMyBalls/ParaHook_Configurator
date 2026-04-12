@@ -356,10 +356,14 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(activeViewport?.graphDocumentId).toBe(secondGraphId)
     expect(state.activeGraphDocumentId).toBe(secondGraphId)
     expect(state.graph).toEqual(selectGraphByDocumentId(state, secondGraphId))
+    expect(state.editorViewportHeaderCollapsedById[nextViewportId ?? '']).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[nextViewportId ?? '']).toBe(false)
   })
 
   it('openGraphDocumentInViewport open-or-focuses an existing viewport for the same graph', () => {
     const firstViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
+    useSpaghettiStore.getState().setEditorViewportHeaderCollapsed(firstViewportId ?? '', false)
+    useSpaghettiStore.getState().setEditorViewportCanvasToolbarVisible(firstViewportId ?? '', true)
     const secondViewportId = useSpaghettiStore.getState().openGraphDocumentInViewport('graph-document-1')
     const state = useSpaghettiStore.getState()
 
@@ -368,6 +372,8 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(selectOrderedEditorViewports(state)).toHaveLength(1)
     expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(firstViewportId)
     expect(state.activeGraphDocumentId).toBe('graph-document-1')
+    expect(state.editorViewportHeaderCollapsedById[firstViewportId ?? '']).toBe(false)
+    expect(state.editorViewportCanvasToolbarVisibleById[firstViewportId ?? '']).toBe(true)
   })
 
   it('openGraphDocumentInNewViewport creates a second viewport on the same graph document', () => {
@@ -393,6 +399,8 @@ describe('useSpaghettiStore graph normalization', () => {
     })
     expect(selectActiveEditorViewport(state)?.editorViewportId).toBe(secondViewportId)
     expect(state.activeGraphDocumentId).toBe('graph-document-1')
+    expect(state.editorViewportHeaderCollapsedById[secondViewportId ?? '']).toBe(true)
+    expect(state.editorViewportCanvasToolbarVisibleById[secondViewportId ?? '']).toBe(false)
   })
 
   it('bindEditorViewportToGraphDocument rebinds the viewport and refreshes the active graph bridge', () => {

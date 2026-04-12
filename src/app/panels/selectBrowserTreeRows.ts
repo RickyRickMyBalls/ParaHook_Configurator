@@ -177,6 +177,7 @@ export type BrowserSketchTreeRowVm = BrowserTreeRowBaseVm & {
 export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm &
   BrowserReferenceContainerTraits & {
   rowKind: 'component'
+  parentComponentId?: string | null
   isVisible: boolean
   visibilityPartKeys: string[]
   buildState: ProjectContentBuildState
@@ -654,6 +655,13 @@ export const selectBrowserTreeRows = (options: {
       | Extract<ProjectContentBrowserRowVm, { kind: 'object' }>
     >
   >()
+  const componentChildrenRowsByParentId = new Map<
+    string,
+    Array<
+      | Extract<ProjectContentBrowserRowVm, { kind: 'component' }>
+      | Extract<ProjectContentBrowserRowVm, { kind: 'object' }>
+    >
+  >()
   const objectRowsByParentId = new Map<
     string,
     Array<Extract<ProjectContentBrowserRowVm, { kind: 'object' }>>
@@ -704,6 +712,15 @@ export const selectBrowserTreeRows = (options: {
   normalizedContentRows
     .filter((row): row is Extract<ProjectContentBrowserRowVm, { kind: 'component' }> => row.kind === 'component')
     .forEach((row) => {
+      if ((row.parentComponentId ?? null) !== null) {
+        const existing = componentChildrenRowsByParentId.get(row.parentComponentId!)
+        if (existing === undefined) {
+          componentChildrenRowsByParentId.set(row.parentComponentId!, [row])
+        } else {
+          existing.push(row)
+        }
+        return
+      }
       const parentAssemblyId = row.parentAssemblyId ?? defaultTopLevelAssemblyId
       if (parentAssemblyId == null) {
         return
@@ -791,6 +808,19 @@ export const selectBrowserTreeRows = (options: {
         effectiveBrowserBuildPolicy: authoredBrowserBuildPolicy,
         effectiveBrowserBuildPolicySource: 'self',
         effectiveBrowserBuildPolicySourceLabel: row.label,
+      }
+    }
+    const parentComponent =
+      row.parentComponentId == null ? null : componentRowById.get(row.parentComponentId) ?? null
+    if (parentComponent !== null) {
+      const parentComponentAuthored = browserContentBuildPolicyByRowId[parentComponent.rowId] ?? null
+      if (parentComponentAuthored !== null) {
+        return {
+          authoredBrowserBuildPolicy,
+          effectiveBrowserBuildPolicy: parentComponentAuthored,
+          effectiveBrowserBuildPolicySource: 'component',
+          effectiveBrowserBuildPolicySourceLabel: parentComponent.label,
+        }
       }
     }
     const parentAssemblyId = row.parentAssemblyId ?? defaultTopLevelAssemblyId
@@ -1021,7 +1051,10 @@ export const selectBrowserTreeRows = (options: {
     const authoredChildren =
       parent.kind === 'assembly'
         ? (assemblyChildrenRowsByParentId.get(parent.rowId) ?? [])
-        : (objectRowsByParentId.get(parent.rowId) ?? [])
+        : [
+            ...(componentChildrenRowsByParentId.get(parent.rowId) ?? []),
+            ...(objectRowsByParentId.get(parent.rowId) ?? []),
+          ]
     const authoredByRowId = new Map<string, typeof authoredChildren[number]>(
       authoredChildren.map((row) => [row.rowId, row]),
     )
@@ -1096,12 +1129,17 @@ export const selectBrowserTreeRows = (options: {
     const orderedChildren = getOrderedContentChildrenForParent({
       kind: 'component',
       rowId: componentRow.rowId,
-    }) as Array<Extract<ProjectContentBrowserRowVm, { kind: 'object' }>>
+    }) as Array<Extract<ProjectContentBrowserRowVm, { kind: 'component' | 'object' }>>
     const childCount = orderedChildren.length
     const isComponentExpanded = childCount > 0 && !collapsedContentRowIds.includes(componentRow.rowId)
     const referenceContainerChildren =
       componentRow.referenceContainerKind === 'category'
-        ? orderedChildren.filter((row) => typeof row.referenceId === 'string')
+        ? orderedChildren.filter(
+            (
+              row,
+            ): row is Extract<ProjectContentBrowserRowVm, { kind: 'object' }> =>
+              row.kind === 'object' && typeof row.referenceId === 'string',
+          )
         : []
     const referenceContainerPresentation =
       componentRow.referenceContainerKind === 'category'
@@ -1125,6 +1163,7 @@ export const selectBrowserTreeRows = (options: {
       buildStateLabel: componentRow.buildStateLabel ?? '',
       rebuildGraphDocumentIds: componentRow.rebuildGraphDocumentIds ?? [],
       ownerGraphDocumentId: componentRow.ownerGraphDocumentId,
+      parentComponentId: componentRow.parentComponentId ?? null,
       sourceGraphDocumentId: componentRow.sourceGraphDocumentId,
       sourceOutputEntryId: componentRow.sourceOutputEntryId,
       componentSourceKind: componentRow.componentSourceKind,
@@ -1183,9 +1222,14 @@ export const selectBrowserTreeRows = (options: {
       hasMoreSiblings ? 'vertical' : 'none',
     ]
     orderedChildren.forEach((childRow, childIndex) => {
+      const childHasMoreSiblings = childIndex < orderedChildren.length - 1
+      if (childRow.kind === 'component') {
+        appendComponentRow(childRow, depth + 1, childAncestorGuides, childHasMoreSiblings)
+        return
+      }
       const treeGuides = [
         ...childAncestorGuides,
-        childIndex < orderedChildren.length - 1 ? 'tee' : 'elbow',
+        childHasMoreSiblings ? 'tee' : 'elbow',
       ] satisfies BrowserTreeGuideKind[]
       appendObjectRow(childRow, depth + 1, treeGuides)
     })

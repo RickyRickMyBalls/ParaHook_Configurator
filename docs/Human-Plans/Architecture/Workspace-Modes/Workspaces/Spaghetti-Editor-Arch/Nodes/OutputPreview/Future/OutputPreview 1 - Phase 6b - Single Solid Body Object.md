@@ -3,6 +3,18 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-04-12 12:47:01: Marked `OutputPreview-1 Phase 6b.5 - Proof Matrix And Family Handoff` complete after the final focused proof matrix stayed green across singular-member rendering, same-row singular-only and mixed aggregation parity, split published child Browser/viewer identity, and viewport pick round-trip, leaving no narrower `6c` owner to reopen
+20. 2026-04-12 12:41:11: Tightened `OutputPreview-1 Phase 6b.5 - Proof Matrix And Family Handoff` into an implementation-ready closeout pass after live proof confirmed `6b.3f`, `6b.3g`, and `6b.4` are now healthy, so the remaining work is the final Browser-plus-viewport verification matrix and the go/no-go decision on whether the `6b` family can close without reopening already-fixed seams
+19. 2026-04-12 12:38:00: Marked `OutputPreview-1 Phase 6b.3f - Same-Row Singular Aggregation Resolution`, `OutputPreview-1 Phase 6b.3g - Aggregation Matrix And Mixed Contributor Parity`, and `OutputPreview-1 Phase 6b.4 - Split Object Selection And Browser Alignment` complete after the live authored repro confirmed singular-only and mixed same-row `SolidBodies` aggregation now resolve correctly and split published child selection/highlight parity is clean
+18. 2026-04-12 11:50:01: Added the next pre-`6b.4` follow-up ladder after the new authored repro matrix proved the remaining failure is narrower than generic subset resolution: whole `SolidBodies` rows already work, separate singular `SolidBody` rows already work, and mixed `SolidBody + SolidBodies` same-row aggregation at least enters `Building Final...`, while only singular-only same-row `SolidBody + SolidBody -> one SolidBodies row` still stalls at `Waiting For Geometry`
+17. 2026-04-12 11:38:34: Marked `OutputPreview-1 Phase 6b.3e - Subset Collection Final Re-Proof` complete after the now-isolated authored explicit-subset waiting seam was narrowed to the viewer-target artifact-preview admission rule, then repaired so accepted subset bundle artifacts can still render when project draft preview is enabled but currently contributes no live viewer parts
+16. 2026-04-12 11:33:48: Tightened `OutputPreview-1 Phase 6b.3e - Subset Collection Final Re-Proof` into an implementation-ready pass after live proof showed the viewport is now honest but the authored explicit-subset case still never resolves out of `Waiting For Geometry`, narrowing the next owner to the subset build/output-entry/bundle resolution path instead of any more viewport fallback or retained-geometry masking
+15. 2026-04-12 11:22:03: Marked `OutputPreview-1 Phase 6b.3d - Retained Geometry Subset Guard` complete after the next live authored-subset repro proved that even with `6b.3c` landed the viewport could still keep stale whole-extrude geometry alive through retained committed draft/final fallback on coarse part-key continuation alone, then shifted the end-to-end subset proof to `6b.3e`
+14. 2026-04-12 11:06:22: Marked `OutputPreview-1 Phase 6b.3c - Draft Geometry Mesh Subset Guard` complete after the remaining post-`6b.3a-b` authored subset over-render was traced to the whole-node draft geometry mesh lane, then repaired by suppressing that draft mesh whenever `OutputPreview` is publishing explicit `SolidBody:*` members that the whole upstream extrude mesh cannot truthfully represent
+13. 2026-04-12 11:00:58: Tightened `OutputPreview-1 Phase 6b.3c - Draft Geometry Mesh Subset Guard` into an implementation-ready pass, grounding the next work in the live `Waiting For Geometry` repro where the viewport still over-renders the whole upstream extrude through the draft geometry mesh lane even after `6b.3a-b` repaired output-entry preservation and artifact-preview fallback
+12. 2026-04-12 10:58:18: Added a new `OutputPreview-1 Phase 6b.3c - Draft Geometry Mesh Subset Guard` follow-up after the latest live repro proved that even with `6b.3a-b` landed the viewport can still over-render the whole upstream extrude through the draft-geometry `Waiting For Geometry` lane, then shifted the authored subset re-proof step down to `6b.3d`
+11. 2026-04-12 10:49:54: Marked `OutputPreview-1 Phase 6b.3b - Explicit Contributor Fallback Guard` complete after the shared preview-preparation renderable fallback was tightened so explicit `SolidBody:*` contributors no longer silently reuse the coarse parent extrude artifact when their contributor-specific artifact is missing, keeping draft, viewport-result, and shared composition honest about unresolved subset members
+10. 2026-04-12 10:45:34: Tightened `OutputPreview-1 Phase 6b.3b - Explicit Contributor Fallback Guard` into an implementation-ready pass after the live post-`6b.3a` repro proved that same-slot explicit contributors can now stay distinct yet draft `OutputPreview` still falls back to the whole upstream `solidBodies` collection, so the next owner is now the coarse-parent renderable fallback lane rather than output-entry preservation
 9. 2026-04-12 10:38:24: Marked `OutputPreview-1 Phase 6b.3a - Same-Slot Explicit Contributor Resolution` complete after the same-slot duplicate contributor seam was narrowed to an order-sensitive output-entry identity rule, then repaired by making every colliding explicit contributor use a stable port-qualified output id so build-input shaping, accepted bundle lookup, and preview render preparation all resolve both body-specific entries consistently
 8. 2026-04-12 10:30:41: Tightened `OutputPreview-1 Phase 6b.3a - Same-Slot Explicit Contributor Resolution` into an implementation-ready pass, grounding the next work in the live debug proof that one `SolidBodies` slot with two explicit `SolidBody` contributors from the same upstream extrude currently resolves only one body-specific artifact while the sibling contributor disappears somewhere between output-entry identity, accepted bundle hydration, and preview-preparation lookup
 7. 2026-04-12 10:25:32: Added the `6b.3a-c` follow-up ladder before `OutputPreview-1 Phase 6b.4 - Split Object Selection And Browser Alignment`, capturing the newly proven same-slot explicit-contributor seam where one `SolidBody` contributor resolves to a body-specific artifact while its sibling contributor from the same upstream extrude still remains unresolved and can fall back too coarsely
@@ -312,7 +324,7 @@ Acceptance checks:
 - both contributors keep distinct artifact addresses all the way into the accepted bundle / preview-preparation bridge
 - final subset rendering no longer waits forever because one requested contributor silently vanished upstream
 
-## [ ] `OutputPreview-1 Phase 6b.3b` - `Explicit Contributor Fallback Guard`
+## [x] `OutputPreview-1 Phase 6b.3b` - `Explicit Contributor Fallback Guard`
 
 Purpose:
 - prevent unresolved explicit member contributors from falling back to the coarse parent extrude owner and making subset publication appear as the whole collection
@@ -322,31 +334,404 @@ Owns:
 - ensuring the preview/final bridge prefers `no renderable for this contributor yet` over `render the whole extrude collection anyway`
 - making the debug and runtime surface honest enough that later `6b.4` selection work is not polluted by aggregate fallback masquerading as a selection bug
 
-Does not own:
-- fixing why a contributor was unresolved in the first place when that belongs to `6b.3a`
-- later Browser-to-viewport selection parity once the geometry source itself is honest
+Completed result:
+- `6b.3b` confirmed that the first bad coarse-parent reuse lived in the shared preview-preparation renderable selection seam, not in later viewer-only composition.
+- explicit extrude member ports such as `SolidBody:001` and `SolidBody:002` now opt out of parent-part fallback when no contributor-specific bundle artifact is available.
+- because preview render-vm, viewport-result state, and shared preview composition all read through that shared helper, the same truthful `no contributor artifact, no contributor renderable` rule now applies across the main published subset lanes.
+
+What this phase accomplished:
+- same-slot explicit contributor subset publication no longer silently renders phantom sibling bodies from the parent `solidBodies` collection when a requested contributor is unresolved
+- grouped or aggregate publication can still use the old parent-artifact fallback where that behavior is still valid, so this pass stayed narrow to explicit member contributors
+- the remaining open follow-on is now narrower than the old proof-only handoff:
+  - `6b.3c` now owns the whole-node draft-geometry mesh lane that can still over-render the full upstream extrude while viewport status says `Waiting For Geometry`
+  - the authored end-to-end proof matrix now shifts down to `6b.3e`
+
+Main files changed:
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+Focused proof that landed:
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+Verification notes:
+- focused tests passed for explicit contributor subset rows where only one contributor-specific artifact is available and the sibling must remain unresolved/null instead of reviving the whole parent artifact
+- this phase intentionally does not claim the full authored user repro is closed because the latest live check still shows one further seam:
+  - even after `6b.3a-b`, the viewport can still show all upstream bodies through the draft geometry mesh lane while status says `Waiting For Geometry`
+  - that remaining over-render now belongs in `6b.3c`, not in the artifact fallback path repaired here
+- if the authored subset graph now renders only the requested members, the next remaining follow-on should be selection/highlight parity in `6b.4`
 
 Acceptance checks:
 - if one explicit contributor is unresolved, the viewport does not fall back to the whole upstream `solidBodies` collection for that contributor
 - subset publication can no longer show phantom sibling bodies that were never requested in the slot
 - Browser/debug truth and viewport truth agree on which explicit contributors are currently renderable versus unresolved
 
-## [ ] `OutputPreview-1 Phase 6b.3c` - `Subset Collection Final Re-Proof`
+## [x] `OutputPreview-1 Phase 6b.3c` - `Draft Geometry Mesh Subset Guard`
+
+Completed result:
+- `6b.3c` confirmed that the remaining visible lie after `6b.3a-b` lived in the whole-node draft geometry mesh lane in `selectViewportResultState.ts`, not in output-entry preservation or accepted bundle artifact fallback.
+- the selector now asks one explicit helper in `previewPreparation.ts` whether `OutputPreview` is publishing explicit `SolidBody:*` members, then suppresses whole-node draft mesh candidates when that publication shape is present.
+- artifact-backed subset preview remains available, so this pass only blocks the dishonest whole-extrude draft mesh path and otherwise leaves truthful contributor-specific preview lanes intact.
+
+What this phase accomplished:
+- explicit subset publication no longer gets to display the whole upstream extrude mesh merely because draft geometry is the freshest node-level result
+- while viewport status remains `Waiting For Geometry`, the user now sees either:
+  - contributor-correct subset geometry from accepted/artifact-backed preview
+  - or no geometry yet
+  - but never the unpublished sibling bodies from the full upstream collection
+- the next follow-on was later narrowed one step further by live proof:
+  - `6b.3d` owns the retained committed geometry subset guard for cases where coarse part-key continuation can still keep the old whole extrude visible
+  - `6b.3e` now owns the authored end-to-end subset collection re-proof across draft and final
+  - `6b.4` remains the later Browser/viewport selection and highlight parity pass
+
+Main files changed:
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Focused proof that landed:
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Verification notes:
+- focused tests passed for the explicit subset waiting-state repro where whole-node draft mesh previously surfaced while accepted geometry was still unavailable
+- this phase intentionally does not claim the full authored user repro is closed in final mode, because the remaining work is now to re-prove the authored subset case end-to-end after the draft-mesh guard
+- if later manual proof finds geometry truth is correct but Browser/viewer selection still drifts, that remaining work still belongs in `6b.4`
+
+Purpose:
+- stop the viewport from showing the whole upstream extrude through the draft-geometry mesh lane when `OutputPreview` only publishes an explicit subset of `SolidBody:*` contributors
+
+Owns:
+- tracing the remaining over-render through the draft-geometry / retained-draft / waiting-for-geometry lane after `6b.3a-b`
+- deciding when a published explicit-contributor subset should suppress whole-node draft mesh preview because that mesh does not yet represent the published subset truth
+- keeping the viewport honest while final is unavailable or draft is waiting, so the user sees either:
+  - only subset-correct contributor-specific artifact-backed geometry
+  - or no geometry yet
+  - but never the whole upstream collection masquerading as the published subset
+
+Does not own:
+- re-fixing artifact-preview fallback already closed in `6b.3b`
+- Browser/viewer pick parity that belongs in `6b.4`
+- the final authored proof matrix, which now belongs in `6b.3e`
+
+Current seam read:
+- the latest live repro shows:
+  - final = unavailable
+  - draft status = `Waiting For Geometry`
+  - viewport still starts showing all upstream extrude bodies even though only two explicit `SolidBody` wires are connected to the `OutputPreview` `SolidBodies` slot
+- that means the visible over-render is no longer coming from accepted bundle artifact fallback
+- the stronger current owner is the draft geometry preview lane in `selectViewportResultState.ts`, likely through `currentDraftGeometryRenderVm`, retained draft base, or another whole-node mesh path that does not know this published output is only a subset
+
+Locked direction:
+- treat this as a draft-geometry visibility gate, not as another output-entry or artifact lookup pass
+- when `OutputPreview` is publishing an explicit subset of `SolidBody:*` contributors from one upstream extrude, whole-node draft mesh preview is not honest enough to display as that published subset
+- prefer:
+  - subset-correct contributor-specific artifact-backed preview
+  - or no visible geometry yet while status remains `Waiting For Geometry`
+- do not let the whole-node draft mesh lane claim visibility merely because it is the freshest geometry result for the source node
+- keep this pass narrow:
+  - no new worker contract unless there is no way to detect subset publication versus whole-collection publication in current app-side truth
+  - no attempt to solve final unavailability itself if the main visible lie is still the draft mesh lane
+
+Historical implementation-prep notes:
+- which selector decision first allows the whole-node draft mesh lane to win for explicit subset publication:
+  - `currentDraftGeometryRenderVm`
+  - retained draft base
+  - overlay candidate
+  - visible result candidate selection
+- what is the smallest truthful predicate for "whole-node draft mesh preview is incompatible with this published subset"?
+- should that predicate live:
+  - in `previewPreparation` as one explicit helper
+  - or directly in `selectViewportResultState.ts` where draft mesh candidates are admitted
+- once whole-node draft mesh is suppressed for explicit subset publication, does status remain correctly `Waiting For Geometry` without further status-layer repair?
+
+Implementation target files were:
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- possibly `src/app/spaghetti/previewPreparation.ts` if the selector needs one explicit helper that marks subset publication as incompatible with whole-node draft mesh preview
+- `src/app/components/ViewerHost.tsx` or `src/app/components/ViewportOverlay.tsx` only if the live draft lane is being sourced there rather than in selector state
+- focused tests in:
+  - `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+  - `src/app/spaghetti/selectors/selectViewportResultStatus.test.ts` if status/fallback semantics need explicit proof
+
+Implementation order that landed:
+1. Add one failing selector regression for the exact live case:
+   - explicit subset `SolidBody:*` contributors
+   - final unavailable
+   - draft `Waiting For Geometry`
+   - current draft mesh exists for the whole source extrude
+   - expected: viewport does not show that whole-node draft mesh
+2. Trace which candidate lane currently surfaces that mesh as visible.
+3. Add the smallest truth test that marks explicit published subset rows as incompatible with whole-node draft mesh preview.
+4. Gate only the offending draft lane with that predicate.
+5. Re-run the subset waiting-state repro and verify the status still reads honestly.
+
+Completion stop rule:
+- this phase is complete once explicit subset publication no longer shows whole-node draft mesh while the viewport is in the `Waiting For Geometry` state
+- if draft and final now both stay subset-honest, stop and hand the full authored re-proof to `6b.3e`
+- if geometry truth is now correct but later Browser/viewport selection still drifts, stop and hand that remaining work to `6b.4`
+
+Acceptance checks:
+- when `OutputPreview` publishes an explicit subset of `SolidBody:*` contributors from one extrude and draft/final are still waiting, the viewport does not show the whole upstream extrude mesh
+- the user sees either subset-correct geometry or no geometry yet, but not phantom sibling bodies from the unpublished members
+- the `Waiting For Geometry` state stays honest instead of displaying whole-node draft mesh that contradicts the published subset
+
+## [x] `OutputPreview-1 Phase 6b.3d` - `Retained Geometry Subset Guard`
+
+Purpose:
+- stop retained committed draft/final geometry from surviving explicit `SolidBody:*` subset publication on coarse upstream part-key matching alone
+
+Owns:
+- the retained-base / last-loaded continuation gate in `selectViewportResultState.ts`
+- deciding when a previously accepted or committed geometry result is too coarse to remain visible for the current explicit subset publication
+- keeping `Waiting For Geometry` honest by clearing stale whole-extrude retained geometry when the current authored output is only a member subset
+
+Completed result:
+- `6b.3d` confirmed that after `6b.3c` suppressed the whole-node draft mesh lane, one more whole-parent seam still survived through retained committed geometry.
+- the retained-base continuation test was still using `partKeys` only, which let explicit subset publication continue to qualify an old whole-extrude geometry result as if it were still the same published output.
+- the selector now treats explicit `SolidBody:*` subset publication as incompatible with retained committed geometry continuation on coarse part-key equality alone, so stale whole-extrude retained draft/final bases clear instead of staying visible behind `Waiting For Geometry`.
+
+What this phase accomplished:
+- explicit subset publication no longer keeps stale retained committed final geometry alive just because the old result came from the same upstream extrude part key
+- explicit subset publication no longer keeps stale retained committed draft geometry alive for the same coarse continuation reason
+- the next follow-on now shifts cleanly to proof:
+  - `6b.3e` owns the authored end-to-end subset collection re-proof across draft and final
+  - `6b.4` remains the later Browser/viewport selection and highlight parity pass
+
+Main files changed:
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Focused proof that landed:
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Verification notes:
+- focused selector tests passed for explicit subset publication where retained committed geometry previously stayed visible under `Waiting For Geometry`
+- this phase intentionally does not claim the full authored user repro is closed end-to-end, because the remaining work is now to re-prove that the authored subset eventually resolves truthfully in both draft and final
+- if later manual proof finds the subset geometry becomes correct but Browser/viewer selection still drifts, that remaining work still belongs in `6b.4`
+
+Acceptance checks:
+- when `OutputPreview` publishes an explicit subset of `SolidBody:*` contributors, retained committed geometry does not survive on coarse upstream `partKeys` equality alone
+- the viewport no longer shows stale whole-extrude retained geometry behind `Waiting For Geometry` for an explicit subset publication
+- if there is no current truthful subset geometry yet, the selector clears retained base geometry instead of pretending the old whole-node result is still the same output
+
+## [x] `OutputPreview-1 Phase 6b.3e` - `Subset Collection Final Re-Proof`
+
+Completed result:
+- `6b.3e` confirmed that after `6b.3a-d` cleaned up the visible lies, one more waiting seam still survived in the viewer-target artifact-preview admission rule.
+- when `useProjectDraftPreview` was enabled, the selector always preferred shared project draft composition even if that lane currently had zero live viewer parts, which let the authored explicit subset stay empty even when accepted subset bundle artifacts already existed for the viewer target graph.
+- the selector now falls back to those viewer-target accepted subset artifacts whenever project draft preview is enabled but currently empty, so authored subset publication can leave the artificial empty/waiting state without reviving coarse parent geometry.
+
+What this phase accomplished:
+- explicit `SolidBody:* -> SolidBodies` subset publication no longer stays empty solely because shared project draft composition has not rehydrated the subset objects yet
+- viewer-target accepted subset artifacts now remain eligible to render in draft mode when they are the only truthful available geometry for the authored subset
+- the next intended follow-on is now back to manual authored proof:
+  - if the real graph now resolves and renders the requested subset members, the remaining planned work is `6b.4`
+  - if the real graph still stays stuck, the next seam will need a new narrower follow-up before `6b.4`
+
+Main files changed:
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Focused proof that landed:
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/spaghetti/previewPreparation.test.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `src/app/spaghetti/selectors/selectSharedPreviewRenderVm.test.ts`
+
+Verification notes:
+- focused tests passed for the case where project draft preview is enabled but has no live viewer parts, and the viewer-target accepted subset artifacts must remain renderable
+- this phase intentionally does not claim the real authored user repro is closed until the same two-wire subset graph is re-tested in the app
+- if manual proof shows geometry truth is now correct but Browser/viewer selection still drifts, that remaining work still belongs in `6b.4`
+- the newer authored repro matrix narrowed the remaining waiting seam further than this phase originally assumed:
+  - whole `SolidBodies -> one SolidBodies row` works
+  - two separate singular `SolidBody` rows into two separate `OutputPreview` rows works
+  - mixed `SolidBody + SolidBodies` contributors in one row enters `Building Final...`
+  - only singular-only same-row `SolidBody + SolidBody -> one SolidBodies row` still stalls at `Waiting For Geometry`
+- that narrower same-row singular-only aggregation seam now belongs in `6b.3f`, and the follow-on parity/proof matrix for mixed versus singular-only row aggregation now belongs in `6b.3g`
 
 Purpose:
 - re-prove the exact authored case that now sits between shipped `6b.3` and the later split-selection work in `6b.4`
 
 Owns:
-- focused proof for one `SolidBodies` slot assembled from many explicit `SolidBody:*` rows from the same upstream extrude
-- confirming that draft and final both render only the requested subset members after `6b.3a-b`
-- deciding whether any remaining issue is truly selection/highlight parity and therefore belongs in `6b.4`
+- the now-isolated end-to-end subset resolution seam for one `SolidBodies` slot assembled from many explicit `SolidBody:*` rows from the same upstream extrude
+- proving whether those explicit contributors survive all the way through output-entry shaping, accepted bundle hydration, accepted build outputs, and final/preview geometry availability
+- landing the smallest truthful fix so the authored subset resolves out of `Waiting For Geometry` instead of stalling after `6b.3a-d` already made the viewport honest
+
+Does not own:
+- more draft-mesh or retained-base hiding work already closed in `6b.3c-d`
+- Browser/viewer selection parity that still belongs in `6b.4`
+- reopening grouped/full-collection publication behavior that is already working
+
+Current seam read:
+- the latest live authored repro now behaves truthfully in one important way:
+  - with two explicit `SolidBody` wires into one `OutputPreview` `SolidBodies` slot, the viewport clears instead of showing stale whole-extrude geometry
+  - status still remains `Waiting For Geometry`
+- that means the visible masking problems are now narrowed enough that the remaining bug is the real one:
+  - the explicit subset publication never resolves into accepted geometry
+  - the authored subset is getting stuck somewhere between source contributor truth and the accepted result surfaces that `OutputPreview` needs in order to leave the waiting state
+- the strongest next owner is therefore the subset build/output-resolution chain, not the viewport composition layer
+
+Locked direction:
+- treat this as an end-to-end subset resolution pass, not a viewer presentation pass
+- trace the authored subset through the full publication/build chain:
+  - `outputEntryId` shaping
+  - build input shaping
+  - accepted bundle entry hydration
+  - accepted build output artifact emission
+  - accepted preview/final geometry availability
+- prefer the smallest truthful repair that makes the authored explicit subset resolve as a real published subset collection
+- do not reintroduce coarse parent fallback just to make the waiting state disappear
+
+Questions this phase must answer:
+- do both explicit `SolidBody:*` contributors make it into the active build request as distinct subset members for the same `SolidBodies` slot?
+- does the accepted bundle contain the expected output entries for that subset collection, and if so are they carrying the right body-specific artifacts?
+- if artifacts exist, which downstream selector/store seam still treats the authored subset as unresolved?
+- if artifacts do not exist, where are the explicit contributors collapsing before accepted bundle or output emission?
+- does final authoritative geometry need one small subset-collection carry-through field, or is the missing truth already available in current bundle/output-entry contracts?
+
+Likely files:
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- focused tests in:
+  - `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+  - `src/worker/pipeline/artifactEmitter.test.ts`
+  - `src/app/spaghetti/outputSurface.test.ts`
+  - `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Suggested implementation order:
+1. Add one failing regression for the authored case:
+   - one `Extrude`
+   - many produced `SolidBody` members
+   - one `OutputPreview` `SolidBodies` slot
+   - two explicit `SolidBody:*` contributors from that same extrude
+   - expected: the subset eventually resolves and leaves `Waiting For Geometry`
+2. Inspect the emitted output-entry ids and build inputs for that exact case.
+3. Confirm whether accepted bundle entries and accepted build outputs are emitted for the subset collection.
+4. Patch the first seam where explicit subset contributor truth disappears.
+5. Re-run the authored repro in `Draft` and `Final` and verify it now resolves truthfully.
+
+Implementation stop rule:
+- this phase is complete once the authored explicit-subset case leaves `Waiting For Geometry` and resolves as the requested subset without reviving whole-parent fallback
+- if draft/final geometry is now correct and any remaining symptom is only Browser/viewer selection drift, stop and hand that work to `6b.4`
 
 Acceptance checks:
 - one authored `Extrude` that produces `solidBodies (3)` can feed one `OutputPreview` `SolidBodies` slot with exactly two explicit `SolidBody` contributors and render exactly those two bodies
 - final authoritative load completes for that subset collection instead of remaining stuck while preview truth drifts
 - if all geometry truth is now correct, any remaining symptom is limited to the later split-object Browser/viewer alignment lane
 
-## [ ] `OutputPreview-1 Phase 6b.4` - `Split Object Selection And Browser Alignment`
+## [x] `OutputPreview-1 Phase 6b.3f` - `Same-Row Singular Aggregation Resolution`
+
+Purpose:
+- make one `OutputPreview` `SolidBodies` row resolve when it is assembled from many singular `SolidBody:*` contributors and no native `SolidBodies` contributor is present
+
+Owns:
+- the singular-only same-row aggregation seam revealed by the authored repro matrix
+- proving why `SolidBody + SolidBody -> one SolidBodies row` still stalls at `Waiting For Geometry` while:
+  - whole `SolidBodies -> one row` already works
+  - separate singular rows already work
+  - mixed `SolidBody + SolidBodies` same-row aggregation at least progresses into `Building Final...`
+- landing the smallest truthful repair so a row-owned collection assembled purely from singular members can enter the same accepted build path as the healthier aggregation variants
+
+Does not own:
+- Browser/viewer selection parity that still belongs in `6b.4`
+- reopening whole-collection publication behavior that already works
+- final family closeout or broader proof-matrix work beyond the narrow same-row singular-only aggregation seam
+
+Current seam read:
+- the current authored matrix is:
+  - `SolidBodies array -> one SolidBodies row` = works and produces separate objects
+  - `SolidBody row A -> row 1` and `SolidBody row B -> row 2` = works and produces separate objects
+  - `SolidBody + SolidBodies -> one SolidBodies row` = enters `Building Final...`
+  - `SolidBody + SolidBody -> one SolidBodies row` = stalls at `Waiting For Geometry`
+- that means the remaining bug is not generic `SolidBody` publishing and not generic `SolidBodies` collection publishing
+- the strongest current owner is the row-owned collection aggregation path for singular-only contributors inside one shared `SolidBodies` slot
+
+Locked direction:
+- treat this as a same-row singular-only aggregation pass, not as a viewer fallback pass
+- compare the emitted contracts for three authored shapes:
+  - whole-collection contributor
+  - mixed `SolidBody + SolidBodies` same-row contributor set
+  - singular-only `SolidBody + SolidBody` same-row contributor set
+- find the first seam where the singular-only same-row case fails to produce the same kind of row-owned collection build target as the healthier cases
+- prefer the smallest truthful carry-through that keeps one row-owned `SolidBodies` collection honest regardless of whether its contributors arrived as singular members or as one native collection
+
+Questions this phase must answer:
+- does one same-row singular-only `SolidBodies` slot emit the same target build units as the working mixed or whole-collection variants?
+- is singular-only same-row aggregation collapsing too early into many independent contributor entries instead of one row-owned collection target?
+- is there a missing row-owned aggregation marker or collection-membership field when no native `SolidBodies` contributor is present?
+- why does mixed same-row aggregation reach `Building Final...` while singular-only same-row aggregation remains at `Waiting For Geometry`?
+
+Likely files:
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/worker/pipeline/artifactEmitter.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- focused tests in:
+  - `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+  - `src/app/spaghetti/outputSurface.test.ts`
+  - `src/worker/pipeline/artifactEmitter.test.ts`
+  - `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Suggested implementation order:
+1. Add one failing regression for the exact singular-only same-row authored case:
+   - one `Extrude`
+   - many `SolidBody` members
+   - one `OutputPreview` `SolidBodies` row
+   - two explicit `SolidBody:*` contributors into that same row
+   - expected: the row progresses out of `Waiting For Geometry`
+2. Build a matching control regression for the working mixed same-row case:
+   - one `SolidBody:*`
+   - one `SolidBodies`
+   - same `OutputPreview` row
+   - expected: enters the accepted build path
+3. Diff output-entry ids, build inputs, accepted bundle entries, and accepted build outputs between those two cases.
+4. Patch the first seam where singular-only same-row aggregation stops behaving like a row-owned collection.
+5. Re-run the authored matrix and verify the singular-only same-row case now resolves.
+
+Implementation stop rule:
+- this phase is complete once singular-only same-row `SolidBody + SolidBody -> one SolidBodies row` leaves `Waiting For Geometry` without reviving coarse whole-parent fallback
+- if the singular-only same-row case becomes healthy but mixed-versus-singular row behavior still differs in non-obvious ways, stop and hand that parity work to `6b.3g`
+- if geometry truth is now healthy and only selection/highlight still drifts, stop and hand that work to `6b.4`
+
+Acceptance checks:
+- one `OutputPreview` `SolidBodies` row assembled from two singular `SolidBody:*` contributors resolves out of `Waiting For Geometry`
+- that row renders the requested subset members instead of nothing and instead of the whole parent collection
+- the working whole-collection and separate-row cases remain healthy
+
+## [x] `OutputPreview-1 Phase 6b.3g` - `Aggregation Matrix And Mixed Contributor Parity`
+
+Purpose:
+- normalize and re-prove row-owned `SolidBodies` aggregation across whole-collection, mixed, and singular-only contributor shapes before moving on to split-object selection work
+
+Owns:
+- the final aggregation parity matrix for one `OutputPreview` `SolidBodies` row across:
+  - one native `SolidBodies` contributor
+  - many singular `SolidBody:*` contributors
+  - mixed `SolidBody:* + SolidBodies` contributors
+- confirming that those row-owned collection shapes now share one consistent accepted-build and published-object outcome
+- deciding whether any remaining symptom after aggregation parity is truly in `6b.4`
+
+Does not own:
+- reopening per-object selection/highlight behavior that still belongs in `6b.4`
+- unrelated project-content or Browser build-policy behavior
+
+Acceptance checks:
+- one native `SolidBodies` contributor into one row still works
+- many singular `SolidBody:*` contributors into one row now works too
+- mixed `SolidBody:* + SolidBodies` contributors into one row no longer has a special status/progression path that differs in confusing ways from the other healthy cases
+- if all three row-aggregation shapes are geometry-correct, any remaining issue is limited to later split-object Browser/viewer alignment
+
+## [x] `OutputPreview-1 Phase 6b.4` - `Split Object Selection And Browser Alignment`
 
 Purpose:
 - make split published child objects independently selectable and highlightable in the viewport
@@ -364,20 +749,96 @@ Acceptance checks:
 - Browser highlight, viewer highlight, and viewport pick round-trip through the same per-object identity
 - object visibility and transform-group reads do not collapse back to the slot-level key for split objects
 
-## [ ] `OutputPreview-1 Phase 6b.5` - `Proof Matrix And Family Handoff`
+## [x] `OutputPreview-1 Phase 6b.5` - `Proof Matrix And Family Handoff`
 
 Purpose:
 - close the published-object identity repair with one focused proof matrix and a clean family handoff
 
 Owns:
-- the final proof across singular-member rendering, split-object selection, Browser row identity, viewer picks, and visibility/highlight reads
+- the final Browser-plus-viewport proof across singular-member rendering, same-row aggregation parity, split-object selection, Browser row identity, viewer picks, and visibility/highlight reads
 - confirmation that shipped `Phase 6` still remains correct while `6b` closes the newer viewport-specific follow-on seam
-- deciding whether the family can close again or whether one narrower `6c` seam truly remains
+- deciding whether the family can close again or whether one narrower `6c` seam truly remains after the now-shipped `6b.3f`, `6b.3g`, and `6b.4` repairs
+
+Does not own:
+- reopening the already-fixed geometry-owner seams from `6b.3`, `6b.3a-e`, or `6b.3f-g` unless the final proof matrix exposes one real regression
+- reopening split-object selection work already proven healthy in `6b.4` unless the final Browser-plus-viewport round-trip fails
+- introducing new architecture beyond the minimum proof, closeout wording, and any narrowly required follow-on handoff
+
+Current closeout read:
+- the latest live checks now say the formerly open `6b` follow-on seams are healthy:
+  - situation `3` is fixed
+  - situation `4` is fixed
+  - selection and highlight are clean
+- that means `6b.5` is no longer a bug-hunting phase first; it is now a proof and closeout phase first
+- the remaining job is to re-run one compact matrix that proves the family coheres across:
+  - one singular `SolidBody` member wire
+  - one same-row `SolidBodies` publication built from many singular `SolidBody:*` contributors
+  - one mixed same-row `SolidBody:* + SolidBodies` publication
+  - one split published `SolidBodies` result with independent Browser and viewport selection/highlight
+- only if that final matrix exposes a new mismatch should the family reopen into a narrower follow-up seam
+
+Locked direction:
+- treat this as a closeout proof pass, not as an excuse to reopen earlier implementation phases speculatively
+- verify the final behavior through the user-visible authored matrix first, then tighten any missing focused tests or closeout wording from that proof
+- prefer one clear final answer about family state:
+  - `6b` closes cleanly, or
+  - one smaller `6c` seam remains with a clearly named owner
+- preserve the vision rule that published/project identity and viewer presentation stay downstream from graph-authored truth instead of drifting back into slot-level or viewer-only ownership shortcuts
+
+Questions this phase must answer:
+- does the final live matrix still show honest singular-member rendering without whole-parent fallback?
+- do same-row singular-only and mixed contributor `SolidBodies` publications now resolve through the same practical status/build path without confusing parity drift?
+- do Browser selection, viewer highlight, and viewport picks all resolve through one clear per-published-object identity?
+- can the family now describe one stable owner chain from authored graph output entry to published object to viewer/render identity?
+- if something still fails, is it truly one new narrow seam that deserves `6c`, or only missing proof/cleanup inside `6b`?
+
+Likely files:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/OutputPreview/Future/OutputPreview 1 - Phase 6b - Single Solid Body Object.md`
+- if the final proof exposes a real residue seam, likely implementation touch points are still limited to:
+  - `src/app/spaghetti/previewPreparation.ts`
+  - `src/app/spaghetti/outputSurface.ts`
+  - `src/app/spaghetti/selectors/selectViewportResultState.ts`
+  - focused tests in:
+    - `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+    - `src/app/spaghetti/previewPreparation.test.ts`
+    - `src/app/spaghetti/outputSurface.test.ts`
+    - `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+
+Suggested implementation order:
+1. Re-run one compact live authored proof matrix that covers:
+   - one singular `SolidBody` member wire
+   - one singular-only same-row `SolidBody + SolidBody -> one SolidBodies row`
+   - one mixed same-row `SolidBody + SolidBodies -> one SolidBodies row`
+   - one split published child-object selection/highlight round-trip
+2. Confirm that each case is healthy in the right way:
+   - the requested geometry renders
+   - status leaves `Waiting For Geometry` when appropriate
+   - Browser selection, viewport picks, and highlight stay aligned per child object
+3. Add or tighten only the smallest missing proof tests needed to preserve the now-confirmed behavior.
+4. If the matrix stays clean, mark `6b.5` complete and record the family handoff/closeout result.
+5. If the matrix exposes one new narrow seam, stop and write that seam down explicitly as the next follow-up instead of reopening broad `6b` ownership.
+
+Implementation stop rule:
+- this phase is complete once the final proof matrix is recorded cleanly enough to close `6b` without ambiguity
+- if the final proof exposes one real remaining mismatch, stop after naming the narrow owner and do not fold that new work into the closeout wording as if the family were fully done
 
 Acceptance checks:
 - the proof explicitly covers:
   - one singular `SolidBody` member wire
+  - one singular-only same-row `SolidBody + SolidBody -> one SolidBodies row`
+  - one mixed same-row `SolidBody + SolidBodies -> one SolidBodies row`
   - one split `SolidBodies` slot with many published child objects
   - Browser-selected object -> viewer highlight
   - viewport-picked object -> Browser/workspace selection
 - the family can explain one clear owner for published-object identity instead of mixing `slotId`, `memberIndex`, and `sourceOutputEntryId` ad hoc
+- the final closeout can say either:
+  - `Phase 6b` is complete and the family can hand off cleanly, or
+  - one narrower `6c` seam remains with an explicit owner and stop-rule boundary
+
+Verification notes:
+- the focused proof matrix stayed green across:
+  - singular-member rendering already covered in `selectViewportResultState`
+  - singular-only same-row and mixed same-row aggregation already covered in `buildInputsToRequest`
+  - split published child Browser/viewer identity now covered directly in `useAppStore`
+  - viewport-picked object -> Browser/workspace selection already covered in `ViewerHost`
+- no narrower `6c` seam was exposed by that final matrix, so the `6b` family can close cleanly

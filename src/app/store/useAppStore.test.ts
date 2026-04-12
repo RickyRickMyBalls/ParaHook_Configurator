@@ -9,8 +9,13 @@ import {
   createAuthoritativeGeometryResultBundle,
   createDraftGeometryResultBundle,
 } from '../../shared/geometryResult'
-import { buildGraphOutputSurface } from '../spaghetti/outputSurface'
+import {
+  buildGraphOutputSurface,
+  GRAPH_OUTPUT_SURFACE_VERSION,
+  type GraphOutputSurface,
+} from '../spaghetti/outputSurface'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
+import { OUTPUT_PREVIEW_NODE_TYPE } from '../spaghetti/system/outputPreviewNode'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
 
@@ -129,6 +134,47 @@ const createPreviewPreparation = (
   ),
   buildStatsReadyPartKeys: [],
   previewIntent: 'outputPreview',
+})
+
+const createOutputSurface = (entries: GraphOutputSurface['entries']): GraphOutputSurface => ({
+  graphDocumentId: 'graph-document-1',
+  publishedAtBuildSeq: 7,
+  surfaceVersion: GRAPH_OUTPUT_SURFACE_VERSION,
+  entries,
+})
+
+const createOutputPreviewGraph = (options: {
+  objects: Array<{ objectId: string; slotId: string; label: string; orderIndex: number }>
+  slots: Array<{ slotId: string; publicationMode: 'grouped' | 'split' }>
+  sources: Array<{ nodeId: string; portId: string; params?: Record<string, unknown> }>
+  componentLabel?: string
+}) => ({
+  schemaVersion: 1 as const,
+  nodes: [
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        componentLabel: options.componentLabel ?? 'Published Component',
+        objects: options.objects,
+        slots: options.slots,
+        nextSlotIndex: options.slots.length + 1,
+      },
+    },
+    ...options.sources.map((source) => ({
+      nodeId: source.nodeId,
+      type: 'Geometry/Extrude',
+      params: source.params ?? {},
+    })),
+  ],
+  edges: options.sources.map((source, index) => ({
+    edgeId: `edge-${index + 1}`,
+    from: { nodeId: source.nodeId, portId: source.portId },
+    to: {
+      nodeId: 'node-output-preview-1',
+      portId: `in:solid:${options.slots[index]!.slotId}`,
+    },
+  })),
 })
 
 describe('useAppStore spaghetti compatibility wrappers', () => {
@@ -1580,6 +1626,560 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     ])
   })
 
+  it('syncs many published SolidBodies rows into nested published subcomponents in project content', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      selectCurrentProjectRootComponents,
+      selectRenderedProjectPartSet,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const rowOneArtifactA = {
+      id: 'row-one-body-a',
+      label: 'Row One Body A',
+      kind: 'box' as const,
+      params: { width: 10, length: 10, height: 10 },
+      partKeyStr: 'output-entry:s001:node-extrude-a:member-001',
+      partKey: { id: 'output-entry:s001:node-extrude-a:member-001', instance: null },
+    }
+    const rowOneArtifactB = {
+      id: 'row-one-body-b',
+      label: 'Row One Body B',
+      kind: 'box' as const,
+      params: { width: 12, length: 12, height: 12 },
+      partKeyStr: 'output-entry:s001:node-extrude-a:member-002',
+      partKey: { id: 'output-entry:s001:node-extrude-a:member-002', instance: null },
+    }
+    const rowTwoArtifact = {
+      id: 'row-two-body',
+      label: 'Row Two Body',
+      kind: 'box' as const,
+      params: { width: 14, length: 14, height: 14 },
+      partKeyStr: 'output-entry:s002:node-extrude-b',
+      partKey: { id: 'output-entry:s002:node-extrude-b', instance: null },
+    }
+
+    useSpaghettiStore.setState((state) => ({
+      graphDocumentsById: {
+        ...state.graphDocumentsById,
+        'graph-document-1': {
+          ...state.graphDocumentsById['graph-document-1'],
+          graph: createOutputPreviewGraph({
+            componentLabel: 'Pedal Assembly',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+              { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
+            ],
+            slots: [
+              { slotId: 's001', publicationMode: 'split' },
+              { slotId: 's002', publicationMode: 'split' },
+            ],
+            sources: [
+              {
+                nodeId: 'node-extrude-a',
+                portId: 'SolidBody',
+                params: { bodyGenerationMode: 'NewObjects' },
+              },
+              {
+                nodeId: 'node-extrude-b',
+                portId: 'SolidBody',
+                params: { bodyGenerationMode: 'NewObjects' },
+              },
+            ],
+          }),
+        },
+      },
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          acceptedBuildBundle: {
+            buildRequestId: 'build-request-6c3-many',
+            graphDocumentId: 'graph-document-1',
+            seq: 13,
+            resultClass: 'final' as const,
+            executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+            summary: {
+              rebuiltCount: 3,
+              retainedCount: 0,
+              evictedCount: 0,
+            },
+            entries: [
+              {
+                buildUnitId: 'output-entry:s001:node-extrude-a:member-001',
+                outputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+                sourceNodeId: 'node-extrude-a',
+                status: 'rebuilt' as const,
+                resultClass: 'final' as const,
+                artifacts: [rowOneArtifactA],
+              },
+              {
+                buildUnitId: 'output-entry:s001:node-extrude-a:member-002',
+                outputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+                sourceNodeId: 'node-extrude-a',
+                status: 'rebuilt' as const,
+                resultClass: 'final' as const,
+                artifacts: [rowOneArtifactB],
+              },
+              {
+                buildUnitId: 'output-entry:s002:node-extrude-b',
+                outputEntryId: 'output-entry:s002:node-extrude-b',
+                sourceNodeId: 'node-extrude-b',
+                status: 'rebuilt' as const,
+                resultClass: 'final' as const,
+                artifacts: [rowTwoArtifact],
+              },
+            ],
+          },
+          acceptedPreviewBuildBundle: null,
+          acceptedBuildOutputs: [],
+          acceptedPreviewBuildOutputs: [],
+          outputSurface: createOutputSurface([
+            {
+              outputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              label: 'Object 1 1',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s001:node-extrude-a:member-001',
+            },
+            {
+              outputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              label: 'Object 1 2',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s001:node-extrude-a:member-002',
+            },
+            {
+              outputEntryId: 'output-entry:s002:node-extrude-b',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              label: 'Object 2',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s002:node-extrude-b',
+            },
+          ]),
+        },
+      },
+    }))
+
+    const topComponentId = 'project-component:project-file-1:graph-document-1:published'
+    const subcomponentOneId =
+      'project-component:project-file-1:graph-document-1:published-subcomponent:s001'
+    const subcomponentTwoId =
+      'project-component:project-file-1:graph-document-1:published-subcomponent:s002'
+
+    expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual([
+      expect.objectContaining({
+        componentId: topComponentId,
+        parentAssemblyId: 'assembly-root:project-file-1',
+        parentComponentId: null,
+        label: 'Pedal Assembly',
+        childRowIds: [subcomponentOneId, subcomponentTwoId],
+        childObjectIds: [
+          'project-object:project-file-1:graph-document-1:output-object:s001:member-001',
+          'project-object:project-file-1:graph-document-1:output-object:s001:member-002',
+          'project-object:project-file-1:graph-document-1:output-object:s002',
+        ],
+      }),
+    ])
+    expect(useAppStore.getState().projectContent.componentsById[subcomponentOneId]).toEqual(
+      expect.objectContaining({
+        componentId: subcomponentOneId,
+        parentComponentId: topComponentId,
+        label: 'Object 1',
+        childRowIds: [
+          'project-object:project-file-1:graph-document-1:output-object:s001:member-001',
+          'project-object:project-file-1:graph-document-1:output-object:s001:member-002',
+        ],
+      }),
+    )
+    expect(useAppStore.getState().projectContent.componentsById[subcomponentTwoId]).toEqual(
+      expect.objectContaining({
+        componentId: subcomponentTwoId,
+        parentComponentId: topComponentId,
+        label: 'Object 2',
+        childRowIds: ['project-object:project-file-1:graph-document-1:output-object:s002'],
+      }),
+    )
+    expect(
+      useAppStore.getState().projectContent.objectsById[
+        'project-object:project-file-1:graph-document-1:output-object:s001:member-001'
+      ],
+    ).toEqual(
+      expect.objectContaining({
+        parentComponentId: subcomponentOneId,
+        sourceOutputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+      }),
+    )
+    expect(
+      useAppStore.getState().projectContent.objectsById[
+        'project-object:project-file-1:graph-document-1:output-object:s002'
+      ],
+    ).toEqual(
+      expect.objectContaining({
+        parentComponentId: subcomponentTwoId,
+        sourceOutputEntryId: 'output-entry:s002:node-extrude-b',
+      }),
+    )
+
+    expect(
+      selectRenderedProjectPartSet({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        parts: expect.arrayContaining([
+          expect.objectContaining({
+            objectId:
+              'project-object:project-file-1:graph-document-1:output-object:s001:member-001',
+            parentComponentId: subcomponentOneId,
+            viewerKey: 'graph-document-1:output-entry:s001:node-extrude-a:member-001',
+          }),
+          expect.objectContaining({
+            objectId: 'project-object:project-file-1:graph-document-1:output-object:s002',
+            parentComponentId: subcomponentTwoId,
+            viewerKey: 'graph-document-1:output-entry:s002:node-extrude-b',
+          }),
+        ]),
+      }),
+    )
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: topComponentId,
+          kind: 'component',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: null,
+          childObjectCount: 3,
+        }),
+        expect.objectContaining({
+          rowId: subcomponentOneId,
+          kind: 'component',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: topComponentId,
+          childObjectCount: 2,
+        }),
+        expect.objectContaining({
+          rowId: subcomponentTwoId,
+          kind: 'component',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: topComponentId,
+          childObjectCount: 1,
+        }),
+      ]),
+    )
+  })
+
+  it('migrates legacy flat published object placement into row-owned subcomponents when many collection rows are active', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const topComponentId = 'project-component:project-file-1:graph-document-1:published'
+    const subcomponentOneId =
+      'project-component:project-file-1:graph-document-1:published-subcomponent:s001'
+    const subcomponentTwoId =
+      'project-component:project-file-1:graph-document-1:published-subcomponent:s002'
+    const rowOneObjectIds = [
+      'project-object:project-file-1:graph-document-1:output-object:s001:member-001',
+      'project-object:project-file-1:graph-document-1:output-object:s001:member-002',
+    ]
+
+    useAppStore.setState((state) => ({
+      ...state,
+      runtimeContentPlacementByRowId: {
+        ...state.runtimeContentPlacementByRowId,
+        [rowOneObjectIds[0]!]: {
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: topComponentId,
+        },
+        [rowOneObjectIds[1]!]: {
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: topComponentId,
+        },
+      },
+    }))
+
+    useSpaghettiStore.setState((state) => ({
+      graphDocumentsById: {
+        ...state.graphDocumentsById,
+        'graph-document-1': {
+          ...state.graphDocumentsById['graph-document-1'],
+          graph: createOutputPreviewGraph({
+            componentLabel: 'Pedal Assembly',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+              { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
+            ],
+            slots: [
+              { slotId: 's001', publicationMode: 'split' },
+              { slotId: 's002', publicationMode: 'split' },
+            ],
+            sources: [
+              {
+                nodeId: 'node-extrude-a',
+                portId: 'SolidBody',
+                params: { bodyGenerationMode: 'NewObjects' },
+              },
+              {
+                nodeId: 'node-extrude-b',
+                portId: 'SolidBody',
+                params: { bodyGenerationMode: 'NewObjects' },
+              },
+            ],
+          }),
+        },
+      },
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          outputSurface: createOutputSurface([
+            {
+              outputEntryId: 'output-entry:s001:node-extrude-a:member-001',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              label: 'Object 1 1',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s001:node-extrude-a:member-001',
+            },
+            {
+              outputEntryId: 'output-entry:s001:node-extrude-a:member-002',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              label: 'Object 1 2',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s001:node-extrude-a:member-002',
+            },
+            {
+              outputEntryId: 'output-entry:s002:node-extrude-b:member-001',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              label: 'Object 2 1',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s002:node-extrude-b:member-001',
+            },
+            {
+              outputEntryId: 'output-entry:s002:node-extrude-b:member-002',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              label: 'Object 2 2',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s002:node-extrude-b:member-002',
+            },
+          ]),
+        },
+      },
+    }))
+
+    rowOneObjectIds.forEach((objectId) => {
+      expect(useAppStore.getState().projectContent.objectsById[objectId]).toEqual(
+        expect.objectContaining({
+          parentComponentId: subcomponentOneId,
+        }),
+      )
+    })
+    expect(useAppStore.getState().projectContent.componentsById[subcomponentOneId]).toEqual(
+      expect.objectContaining({
+        parentComponentId: topComponentId,
+        childRowIds: rowOneObjectIds,
+      }),
+    )
+    expect(useAppStore.getState().projectContent.componentsById[subcomponentTwoId]).toEqual(
+      expect.objectContaining({
+        parentComponentId: topComponentId,
+      }),
+    )
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: topComponentId,
+          kind: 'component',
+        }),
+        expect.objectContaining({
+          rowId: subcomponentOneId,
+          kind: 'component',
+          parentComponentId: topComponentId,
+        }),
+        expect.objectContaining({
+          rowId: subcomponentTwoId,
+          kind: 'component',
+          parentComponentId: topComponentId,
+        }),
+      ]),
+    )
+    rowOneObjectIds.forEach((objectId) => {
+      expect(browserRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            rowId: objectId,
+            kind: 'object',
+            parentComponentId: subcomponentOneId,
+          }),
+        ]),
+      )
+    })
+  })
+
+  it('keeps mixed singular published rows direct while collection rows become nested subcomponents', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      selectCurrentProjectRootComponents,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.setState((state) => ({
+      graphDocumentsById: {
+        ...state.graphDocumentsById,
+        'graph-document-1': {
+          ...state.graphDocumentsById['graph-document-1'],
+          graph: createOutputPreviewGraph({
+            componentLabel: 'Pedal Assembly',
+            objects: [
+              { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
+              { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
+            ],
+            slots: [
+              { slotId: 's001', publicationMode: 'grouped' },
+              { slotId: 's002', publicationMode: 'grouped' },
+            ],
+            sources: [
+              {
+                nodeId: 'node-extrude-a',
+                portId: 'SolidBody',
+                params: { bodyGenerationMode: 'NewObjects' },
+              },
+              {
+                nodeId: 'node-extrude-b',
+                portId: 'SolidBody',
+                params: { bodyGenerationMode: 'Combine' },
+              },
+            ],
+          }),
+        },
+      },
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          outputSurface: createOutputSurface([
+            {
+              outputEntryId: 'output-entry:s001:node-extrude-a',
+              slotId: 's001',
+              sourceNodeId: 'node-extrude-a',
+              label: 'Object 1',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s001:node-extrude-a',
+            },
+            {
+              outputEntryId: 'output-entry:s002:node-extrude-b',
+              slotId: 's002',
+              sourceNodeId: 'node-extrude-b',
+              label: 'Object 2',
+              state: 'resolved',
+              acceptedArtifactKey: 'output-entry:s002:node-extrude-b',
+            },
+          ]),
+        },
+      },
+    }))
+
+    const topComponentId = 'project-component:project-file-1:graph-document-1:published'
+    const subcomponentId =
+      'project-component:project-file-1:graph-document-1:published-subcomponent:s001'
+    const directObjectId = 'project-object:project-file-1:graph-document-1:output-object:s002'
+
+    expect(selectCurrentProjectRootComponents(useAppStore.getState())).toEqual([
+      expect.objectContaining({
+        componentId: topComponentId,
+        childRowIds: [subcomponentId, directObjectId],
+        childObjectIds: [
+          'project-object:project-file-1:graph-document-1:output-object:s001',
+          directObjectId,
+        ],
+      }),
+    ])
+    expect(useAppStore.getState().projectContent.componentsById[subcomponentId]).toEqual(
+      expect.objectContaining({
+        parentComponentId: topComponentId,
+        label: 'Object 1',
+        childRowIds: ['project-object:project-file-1:graph-document-1:output-object:s001'],
+      }),
+    )
+    expect(useAppStore.getState().projectContent.objectsById[directObjectId]).toEqual(
+      expect.objectContaining({
+        parentComponentId: topComponentId,
+        sourceOutputEntryId: 'output-entry:s002:node-extrude-b',
+      }),
+    )
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: topComponentId,
+          kind: 'component',
+          parentComponentId: null,
+          childObjectCount: 2,
+        }),
+        expect.objectContaining({
+          rowId: subcomponentId,
+          kind: 'component',
+          parentComponentId: topComponentId,
+          childObjectCount: 1,
+        }),
+        expect.objectContaining({
+          rowId: directObjectId,
+          kind: 'object',
+          parentComponentId: topComponentId,
+        }),
+      ]),
+    )
+  })
+
   it('derives singleton published outputs and receive links as direct project objects', async () => {
     const {
       selectCurrentProjectContentBrowserRows,
@@ -1949,6 +2549,263 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         highlightViewerKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
       }),
     ])
+  })
+
+  it('keeps split published child objects output-entry-scoped through rendered parts, Browser rows, and object selection', async () => {
+    const {
+      resolveOwnedContentSelection,
+      selectCurrentProjectContentBrowserRows,
+      selectRenderedProjectPartSet,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation: GraphPreviewPreparation = {
+      outputPreviewNodeId: 'node-output-preview-1',
+      outputSlotIds: ['slot-solid-bodies'],
+      previewCandidateSlotIds: ['slot-solid-bodies'],
+      previewCandidatePartKeys: ['extrude'],
+      sourceNodeIdBySlotId: { 'slot-solid-bodies': 'node-extrude-1' },
+      sourcePartKeyBySlotId: { 'slot-solid-bodies': 'extrude' },
+      sourcePortIdBySlotId: { 'slot-solid-bodies': 'SolidBody' },
+      sourcePartKeyByNodeId: { 'node-extrude-1': 'extrude' },
+      publicationModeBySlotId: { 'slot-solid-bodies': 'split' },
+      splitMemberCountBySlotId: { 'slot-solid-bodies': 2 },
+      slotStatusBySlotId: { 'slot-solid-bodies': 'ok' },
+      buildStatsReadyPartKeys: [],
+      previewIntent: 'outputPreview',
+    }
+    const memberArtifactA = {
+      id: 'extrude-member-001',
+      label: 'Body 1',
+      kind: 'box' as const,
+      params: { width: 10, length: 20, height: 5 },
+      partKeyStr: 'extrude:node-extrude-1:body:001',
+      partKey: { id: 'extrude:node-extrude-1:body:001', instance: null },
+    }
+    const memberArtifactB = {
+      id: 'extrude-member-002',
+      label: 'Body 2',
+      kind: 'box' as const,
+      params: { width: 12, length: 18, height: 5 },
+      partKeyStr: 'extrude:node-extrude-1:body:002',
+      partKey: { id: 'extrude:node-extrude-1:body:002', instance: null },
+    }
+    const acceptedBundle = {
+      buildRequestId: 'build-request-8',
+      graphDocumentId: 'graph-document-1',
+      seq: 8,
+      resultClass: 'final' as const,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      summary: {
+        rebuiltCount: 2,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:slot-solid-bodies:node-extrude-1:member-001',
+          outputEntryId: 'output-entry:slot-solid-bodies:node-extrude-1:member-001',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt' as const,
+          resultClass: 'final' as const,
+          artifacts: [memberArtifactA],
+        },
+        {
+          buildUnitId: 'output-entry:slot-solid-bodies:node-extrude-1:member-002',
+          outputEntryId: 'output-entry:slot-solid-bodies:node-extrude-1:member-002',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt' as const,
+          resultClass: 'final' as const,
+          artifacts: [memberArtifactB],
+        },
+      ],
+    }
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildBundle: acceptedBundle,
+          acceptedPreviewBuildBundle: acceptedBundle,
+          acceptedBuildOutputs: [],
+          acceptedPreviewBuildOutputs: [],
+          outputSurface: createOutputSurface([
+            {
+              outputEntryId: 'output-entry:slot-solid-bodies:node-extrude-1:member-001',
+              slotId: 'slot-solid-bodies',
+              sourceNodeId: 'node-extrude-1',
+              label: 'Body 1',
+              state: 'resolved',
+              acceptedArtifactKey: 'extrude:node-extrude-1:body:001',
+            },
+            {
+              outputEntryId: 'output-entry:slot-solid-bodies:node-extrude-1:member-002',
+              slotId: 'slot-solid-bodies',
+              sourceNodeId: 'node-extrude-1',
+              label: 'Body 2',
+              state: 'resolved',
+              acceptedArtifactKey: 'extrude:node-extrude-1:body:002',
+            },
+          ]),
+        },
+      },
+    }))
+
+    useAppStore.setState((state) => ({
+      ...state,
+      currentProject: {
+        ...state.currentProject,
+        rootAssemblyId: 'assembly-root:project-file-1',
+      },
+      projectContent: {
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['project-component:project-file-1:graph-document-1:published'],
+          },
+        },
+        componentsById: {
+          'project-component:project-file-1:graph-document-1:published': {
+            componentId: 'project-component:project-file-1:graph-document-1:published',
+            ownerGraphDocumentId: 'graph-document-1',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            label: 'Component 1',
+            componentSourceKind: 'published-component',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [
+              'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-001',
+              'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002',
+            ],
+          },
+        },
+        objectsById: {
+          'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-001': {
+            objectId:
+              'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-001',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry:slot-solid-bodies:node-extrude-1:member-001',
+            sourceNodeId: 'node-extrude-1',
+            slotId: 'slot-solid-bodies',
+            label: 'Body 1',
+            resolutionState: 'resolved',
+          },
+          'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002': {
+            objectId:
+              'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: 'project-component:project-file-1:graph-document-1:published',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry:slot-solid-bodies:node-extrude-1:member-002',
+            sourceNodeId: 'node-extrude-1',
+            slotId: 'slot-solid-bodies',
+            label: 'Body 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    expect(
+      selectRenderedProjectPartSet({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual({
+      parts: [
+        expect.objectContaining({
+          objectId:
+            'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-001',
+          viewerKey: 'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-001',
+          viewerPart: expect.objectContaining({
+            viewerKey: 'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-001',
+            artifact: memberArtifactA,
+          }),
+        }),
+        expect.objectContaining({
+          objectId:
+            'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002',
+          viewerKey: 'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-002',
+          viewerPart: expect.objectContaining({
+            viewerKey: 'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-002',
+            artifact: memberArtifactB,
+          }),
+        }),
+      ],
+      viewerParts: [
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-001',
+          artifact: memberArtifactA,
+        }),
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-002',
+          artifact: memberArtifactB,
+        }),
+      ],
+      contributingGraphDocumentIds: ['graph-document-1'],
+    })
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId:
+            'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-001',
+          kind: 'object',
+          visibilityPartKeys: [
+            'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-001',
+          ],
+          highlightViewerKey:
+            'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-001',
+        }),
+        expect.objectContaining({
+          rowId:
+            'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002',
+          kind: 'object',
+          visibilityPartKeys: [
+            'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-002',
+          ],
+          highlightViewerKey:
+            'graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-002',
+        }),
+      ]),
+    )
+
+    expect(
+      resolveOwnedContentSelection(useAppStore.getState(), {
+        kind: 'object',
+        objectId:
+          'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002',
+      }),
+    ).toEqual({
+      rootRowId:
+        'project-object:project-file-1:graph-document-1:output-object:slot-solid-bodies:member-002',
+      rootKind: 'object',
+      partKeys: ['graph-document-1:output-entry:slot-solid-bodies:node-extrude-1:member-002'],
+      groupedRowIds: [],
+    })
   })
 
   it('keeps missing linked source publication visible as an unresolved receive-link object', async () => {

@@ -3005,13 +3005,19 @@ const focusViewportCollection = (
 const appendFocusedViewport = (
   state: Pick<
     SpaghettiStoreState,
-    'editorViewportsById' | 'editorViewportOrder' | 'graphDocumentsById'
+    | 'editorViewportsById'
+    | 'editorViewportOrder'
+    | 'graphDocumentsById'
+    | 'editorViewportHeaderCollapsedById'
+    | 'editorViewportCanvasToolbarVisibleById'
   >,
   graphDocumentId: string,
 ): {
   editorViewportId: string
   editorViewportsById: Record<string, EditorViewport>
   editorViewportOrder: string[]
+  editorViewportHeaderCollapsedById: Record<string, boolean>
+  editorViewportCanvasToolbarVisibleById: Record<string, boolean>
 } | null => {
   if (state.graphDocumentsById[graphDocumentId] === undefined) {
     return null
@@ -3033,6 +3039,14 @@ const appendFocusedViewport = (
       editorViewportId,
     ),
     editorViewportOrder: [...state.editorViewportOrder, editorViewportId],
+    editorViewportHeaderCollapsedById: {
+      ...state.editorViewportHeaderCollapsedById,
+      [editorViewportId]: true,
+    },
+    editorViewportCanvasToolbarVisibleById: {
+      ...state.editorViewportCanvasToolbarVisibleById,
+      [editorViewportId]: false,
+    },
   }
 }
 
@@ -6590,6 +6604,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportsById: nextViewportState.editorViewportsById,
         editorViewportOrder: nextViewportState.editorViewportOrder,
         activeEditorViewportId: nextViewportState.editorViewportId,
+        editorViewportHeaderCollapsedById: nextViewportState.editorViewportHeaderCollapsedById,
+        editorViewportCanvasToolbarVisibleById:
+          nextViewportState.editorViewportCanvasToolbarVisibleById,
         editorViewportSelectedNodeIdById: {
           ...current.editorViewportSelectedNodeIdById,
           [nextViewportState.editorViewportId]:
@@ -6633,6 +6650,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         editorViewportsById: nextViewportState.editorViewportsById,
         editorViewportOrder: nextViewportState.editorViewportOrder,
         activeEditorViewportId: nextViewportState.editorViewportId,
+        editorViewportHeaderCollapsedById: nextViewportState.editorViewportHeaderCollapsedById,
+        editorViewportCanvasToolbarVisibleById:
+          nextViewportState.editorViewportCanvasToolbarVisibleById,
         editorViewportSelectedNodeIdById: {
           ...current.editorViewportSelectedNodeIdById,
           [nextViewportState.editorViewportId]:
