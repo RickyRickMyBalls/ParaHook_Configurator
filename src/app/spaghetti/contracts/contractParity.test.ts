@@ -484,6 +484,34 @@ describe('contract parity (canvas cheap-check vs validator decision)', () => {
     expect(decision.ok).toBe(true)
   })
 
+  it('keeps parity for whole-port SketchProfile singular wiring into ExtrusionProfile', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [],
+    }
+
+    const payload: ConnectionPayload = {
+      from: { nodeId: 'n-sketch', portId: 'SketchProfile' },
+      to: { nodeId: 'n-extrude', portId: 'ExtrusionProfile' },
+    }
+
+    assertProjectedParity(graph, payload)
+    const decision = getProjectedContractDecision(graph, payload)
+    expect(decision.ok).toBe(true)
+  })
+
   it('keeps parity for composite leaf-path rules (valid, invalid, non-leaf, duplicate)', () => {
     const baseGraph: SpaghettiGraph = {
       schemaVersion: 1,

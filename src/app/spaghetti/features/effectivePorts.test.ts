@@ -29,15 +29,15 @@ describe('effectivePorts OutputPreview dynamic slots', () => {
     ])
   })
 
-  it('emits toeLoft-typed optional inputs with maxConnectionsIn=1', () => {
+  it('emits SolidBodies-typed optional inputs with unbounded incoming connections', () => {
     const node = outputPreviewNode(['s001'])
     const port = resolveEffectiveInputPort(node, 'in:solid:s001')
 
     expect(port).toBeDefined()
-    expect(port?.label).toBe('s001')
-    expect(port?.type).toEqual({ kind: 'toeLoft' })
+    expect(port?.label).toBe('SolidBodies')
+    expect(port?.type).toEqual({ kind: 'solidBodies' })
     expect(port?.optional).toBe(true)
-    expect(port?.maxConnectionsIn).toBe(1)
+    expect(port?.maxConnectionsIn).toBe(Number.MAX_SAFE_INTEGER)
   })
 
   it('returns identical ordering and content across repeated resolver calls', () => {

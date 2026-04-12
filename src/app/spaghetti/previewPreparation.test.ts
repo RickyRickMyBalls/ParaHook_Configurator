@@ -1,0 +1,168 @@
+import { describe, expect, it } from 'vitest'
+import {
+  getPreviewPreparationEntriesForSlot,
+  prepareGraphPreviewPreparation,
+} from './previewPreparation'
+import type { SpaghettiGraph } from './schema/spaghettiTypes'
+import { OUTPUT_PREVIEW_NODE_TYPE } from './system/outputPreviewNode'
+
+const createPreviewPreparationGraph = (
+  outputPreviewParams: Record<string, unknown>,
+): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: {
+          type: 'sketch',
+          featureId: 'sketch-1',
+          plane: 'XY',
+          components: [
+            {
+              rowId: 'row-1',
+              componentId: 'rect-a',
+              type: 'rectangle',
+              a: { kind: 'lit', x: 0, y: 0 },
+              b: { kind: 'lit', x: 40, y: 20 },
+            },
+            {
+              rowId: 'row-2',
+              componentId: 'rect-b',
+              type: 'rectangle',
+              a: { kind: 'lit', x: 60, y: 0 },
+              b: { kind: 'lit', x: 100, y: 20 },
+            },
+          ],
+          outputs: {
+            profiles: [],
+            diagnostics: [],
+          },
+          uiState: {
+            collapsed: false,
+          },
+        },
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        bodyGenerationMode: 'NewObjects',
+        depthMm: 25,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: outputPreviewParams,
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude',
+      from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+      to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+    },
+    {
+      edgeId: 'edge-extrude-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+  ],
+})
+
+describe('prepareGraphPreviewPreparation', () => {
+  it('fans split publication entries from normalized OutputPreview slot publication mode', () => {
+    const previewPreparation = prepareGraphPreviewPreparation(
+      createPreviewPreparationGraph({
+        slots: [{ slotId: 's001', publicationMode: 'split' }],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Pedal Body',
+            orderIndex: 0,
+          },
+        ],
+        nextSlotIndex: 2,
+      }),
+    )
+
+    expect(previewPreparation.publicationModeBySlotId).toEqual({ s001: 'split' })
+    expect(getPreviewPreparationEntriesForSlot(previewPreparation, 's001')).toEqual([
+      {
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKeyStr: 'extrude',
+        sourcePortId: 'SolidBody',
+        memberIndex: 0,
+      },
+      {
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKeyStr: 'extrude',
+        sourcePortId: 'SolidBody',
+        memberIndex: 1,
+      },
+    ])
+    expect(previewPreparation.splitMemberCountBySlotId).toEqual({ s001: 2 })
+  })
+
+  it('keeps explicit grouped override grouped through backend-normalized publication metadata', () => {
+    const previewPreparation = prepareGraphPreviewPreparation(
+      createPreviewPreparationGraph({
+        slots: [{ slotId: 's001', publicationMode: 'grouped' }],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Pedal Body',
+            orderIndex: 0,
+          },
+        ],
+        nextSlotIndex: 2,
+      }),
+    )
+
+    expect(previewPreparation.publicationModeBySlotId).toEqual({ s001: 'grouped' })
+    expect(getPreviewPreparationEntriesForSlot(previewPreparation, 's001')).toEqual([
+      {
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKeyStr: 'extrude',
+        sourcePortId: 'SolidBody',
+      },
+    ])
+    expect(previewPreparation.splitMemberCountBySlotId).toEqual({ s001: 1 })
+  })
+
+  it('keeps legacy omitted slot publication grouped through backend normalization', () => {
+    const previewPreparation = prepareGraphPreviewPreparation(
+      createPreviewPreparationGraph({
+        slots: [{ slotId: 's001' }],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Pedal Body',
+            orderIndex: 0,
+          },
+        ],
+        nextSlotIndex: 2,
+      }),
+    )
+
+    expect(previewPreparation.publicationModeBySlotId).toEqual({ s001: 'grouped' })
+    expect(getPreviewPreparationEntriesForSlot(previewPreparation, 's001')).toEqual([
+      {
+        slotId: 's001',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKeyStr: 'extrude',
+        sourcePortId: 'SolidBody',
+      },
+    ])
+    expect(previewPreparation.splitMemberCountBySlotId).toEqual({ s001: 1 })
+  })
+})

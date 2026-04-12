@@ -27,7 +27,7 @@ describe('ensureOutputPreviewSingletonPatch', () => {
       objects: [
         { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
       ],
-      slots: [{ slotId: 's001' }],
+      slots: [{ slotId: 's001', publicationMode: 'split' }],
       nextSlotIndex: 2,
     })
   })

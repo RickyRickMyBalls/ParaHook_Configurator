@@ -34,15 +34,15 @@ const readSlotIds = (node: SpaghettiNode): string[] => {
   })
 }
 
-const findMatchingIncomingSlotEdge = (
+const listMatchingIncomingSlotEdges = (
   graph: SpaghettiGraph,
   outputPreviewNodeId: string,
   slotId: string,
-): SpaghettiGraph['edges'][number] | undefined => {
+): SpaghettiGraph['edges'][number][] => {
   const targetPortId = `in:solid:${slotId}`
-  return graph.edges.find(
-    (edge) => edge.to.nodeId === outputPreviewNodeId && edge.to.portId === targetPortId,
-  )
+  return graph.edges
+    .filter((edge) => edge.to.nodeId === outputPreviewNodeId && edge.to.portId === targetPortId)
+    .sort((a, b) => a.edgeId.localeCompare(b.edgeId))
 }
 
 export const selectPreviewRenderList = (
@@ -74,27 +74,32 @@ export const selectPreviewRenderList = (
 
   const renderEntries: PreviewRenderEntry[] = []
   for (const slotId of slotIds) {
-    const matchingEdge = findMatchingIncomingSlotEdge(graph, outputPreviewNode.nodeId, slotId)
-    if (matchingEdge === undefined) {
+    const matchingEdges = listMatchingIncomingSlotEdges(graph, outputPreviewNode.nodeId, slotId)
+    if (matchingEdges.length === 0) {
       continue
     }
 
-    const sourceNodeId = matchingEdge.from.nodeId
-    // OutputPreview stays graph-topology-only here: slot edge -> source nodeId -> compile-owned partKey -> build artifact.
-    const sourcePartKey = partMapping[sourceNodeId]
-    if (sourcePartKey === undefined) {
-      throw new Error(
-        `OP-5 STOP: missing nodeIdToPartKey mapping for connected source nodeId "${sourceNodeId}".`,
-      )
-    }
+    matchingEdges.forEach((matchingEdge, edgeIndex) => {
+      const sourceNodeId = matchingEdge.from.nodeId
+      // OutputPreview stays graph-topology-only here: slot edge -> source nodeId -> compile-owned partKey -> build artifact.
+      const sourcePartKey = partMapping[sourceNodeId]
+      if (sourcePartKey === undefined) {
+        throw new Error(
+          `OP-5 STOP: missing nodeIdToPartKey mapping for connected source nodeId "${sourceNodeId}".`,
+        )
+      }
 
-    renderEntries.push({
-      key: slotId,
-      slotId,
-      sourceNodeId,
-      sourcePartKeyStr: sourcePartKey,
-      sourcePortId: matchingEdge.from.portId,
-      renderable: artifactByPartKey.get(sourcePartKey) ?? null,
+      renderEntries.push({
+        key:
+          matchingEdges.length === 1
+            ? slotId
+            : `${slotId}:${matchingEdge.from.nodeId}:${matchingEdge.from.portId}:${edgeIndex + 1}`,
+        slotId,
+        sourceNodeId,
+        sourcePartKeyStr: sourcePartKey,
+        sourcePortId: matchingEdge.from.portId,
+        renderable: artifactByPartKey.get(sourcePartKey) ?? null,
+      })
     })
   }
 

@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+235. 2026-04-12 10:09:21: Added `docs/Agents/Implementation-Behavior.md` as the new repo-wide implementation behavior guide for file ownership, hook/effect boundaries, migration retirement, and cleanup bias, then refreshed the `Agents` section of this docs map so the new guidance is discoverable beside the existing planning-agent docs
 234. 2026-04-09 12:10: Moved `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md` into `Shipped/` after the full ladder landed, added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-2 - Draft Preview Scheduling And Settle Rules.md` as the next dedicated future execution surface under `Worker-Vision.md`, and refreshed the Worker subtree listing so the family docs map now matches the shipped `Vision-1` plus future `Vision-2` handoff
 233. 2026-04-09 11:25: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md` to the docs map as the first dedicated future execution surface under `Worker-Vision.md`, then refreshed the Worker subtree listing so the new runtime-supersession lane is discoverable beside the Worker family umbrella docs
 232. 2026-04-09 11:10: Added `docs/Human-Plans/Architecture/Worker/Worker-Vision.md` to the docs map as the new forward-looking worker runtime-direction companion beside `Worker.md`, then refreshed the Worker subtree listing so the family now exposes both the shipped worker umbrella seam and the newer scheduling-plus-runtime vision surface
@@ -596,6 +597,7 @@ Rule notes:
 - `Vision.md`
 - Agents
 ## -Agents
+    - `Implementation-Behavior.md`
     - `Agents-Planning.md`
 ## -Archive
     - `00_Phase_Log.md`

@@ -222,6 +222,44 @@ describe('selectPreviewRenderList', () => {
     ])
   })
 
+  it('returns multiple render entries when one slot accepts multiple contributors', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [outputPreviewNode(['s001']), cubeNode2, cubeNode],
+      edges: [
+        {
+          edgeId: 'edge-cube-2',
+          from: { nodeId: 'node-cube-2', portId: 'solid' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+        },
+        {
+          edgeId: 'edge-cube-1',
+          from: { nodeId: 'node-cube-1', portId: 'solid' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+        },
+      ],
+    }
+
+    expect(selectPreviewRenderList(graph, [cubeArtifact2(), cubeArtifact1()])).toEqual([
+      {
+        key: 's001:node-cube-1:solid:1',
+        slotId: 's001',
+        sourceNodeId: 'node-cube-1',
+        sourcePartKeyStr: 'cube#1',
+        sourcePortId: 'solid',
+        renderable: cubeArtifact1(),
+      },
+      {
+        key: 's001:node-cube-2:solid:2',
+        slotId: 's001',
+        sourceNodeId: 'node-cube-2',
+        sourcePartKeyStr: 'cube#2',
+        sourcePortId: 'solid',
+        renderable: cubeArtifact2(),
+      },
+    ])
+  })
+
   it('ignores interior empty slots and keeps connected slot ordering', () => {
     const graph = baseGraph(['s001', 's002', 's003', 's004'], [
       {

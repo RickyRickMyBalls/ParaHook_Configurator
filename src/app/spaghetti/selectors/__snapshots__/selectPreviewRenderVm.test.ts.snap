@@ -4,9 +4,10 @@ exports[`selectPreviewRenderVm > matches stable PreviewRenderVm contract snapsho
 {
   "items": [
     {
-      "id": "preview:s001:node-toe:toeHook#1",
+      "id": "preview:output-entry:s001:node-toe",
       "isReady": true,
       "nodeId": "node-toe",
+      "outputEntryId": "output-entry:s001:node-toe",
       "renderable": {
         "id": "toeHook",
         "kind": "box",
@@ -26,7 +27,7 @@ exports[`selectPreviewRenderVm > matches stable PreviewRenderVm contract snapsho
       "sourceNodeId": "node-toe",
       "sourcePartKeyStr": "toeHook#1",
       "sourcePortId": "toeLoft",
-      "viewerKey": "s001",
+      "viewerKey": "output-entry:s001:node-toe",
       "viewerPart": {
         "artifact": {
           "id": "toeHook",
@@ -43,7 +44,7 @@ exports[`selectPreviewRenderVm > matches stable PreviewRenderVm contract snapsho
           },
           "partKeyStr": "toeHook#1",
         },
-        "viewerKey": "s001",
+        "viewerKey": "output-entry:s001:node-toe",
       },
     },
   ],
@@ -64,7 +65,7 @@ exports[`selectPreviewRenderVm > matches stable PreviewRenderVm contract snapsho
         },
         "partKeyStr": "toeHook#1",
       },
-      "viewerKey": "s001",
+      "viewerKey": "output-entry:s001:node-toe",
     },
   ],
 }

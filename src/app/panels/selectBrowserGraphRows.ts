@@ -1,4 +1,7 @@
-import type { GraphOutputSurface } from '../spaghetti/outputSurface'
+import {
+  buildQualifiedGraphOutputEntryId,
+  type GraphOutputSurface,
+} from '../spaghetti/outputSurface'
 import type { GraphDocument } from '../spaghetti/schema/spaghettiTypes'
 import type {
   CachedGraphEntry,
@@ -40,8 +43,8 @@ export type BrowserGraphRowVm = {
 
 const buildGraphViewerPartKey = (
   graphDocumentId: string,
-  slotId: string,
-): string => `${graphDocumentId}:${slotId}`
+  outputEntryId: string,
+): string => buildQualifiedGraphOutputEntryId(graphDocumentId, outputEntryId) ?? graphDocumentId
 
 const describePublishedOutputMeta = (
   outputSurface: GraphOutputSurface | null,
@@ -145,7 +148,10 @@ export const selectBrowserGraphRows = (options: {
         label: publishedEntry.label,
         meta: describePublishedOutputMeta(outputSurface, publishedEntry),
         state: publishedEntry.state,
-        highlightViewerKey: buildGraphViewerPartKey(document.graphDocumentId, publishedEntry.slotId),
+        highlightViewerKey: buildGraphViewerPartKey(
+          document.graphDocumentId,
+          publishedEntry.outputEntryId,
+        ),
         authoringGraphDocumentId: document.graphDocumentId,
         authoringNodeId: publishedEntry.sourceNodeId.length > 0 ? publishedEntry.sourceNodeId : null,
       }))

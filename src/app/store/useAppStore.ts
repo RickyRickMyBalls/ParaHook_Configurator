@@ -18,7 +18,10 @@ import {
 import { selectSharedPreviewRenderVm } from '../spaghetti/selectors/selectSharedPreviewRenderVm'
 import { sketchFeatureSchema } from '../spaghetti/features/featureSchema'
 import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInputsToRequest'
-import { buildGraphPublishedContentSurface } from '../spaghetti/outputSurface'
+import {
+  buildGraphPublishedContentSurface,
+  buildQualifiedGraphOutputEntryId,
+} from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
 import {
   DEFAULT_BUILD_EXECUTION_INTENT,
@@ -28,6 +31,7 @@ import {
   type BuildResult,
   type CompiledBuildData,
   type GeometryExecutionTarget,
+  toViewerRenderablePart,
   type ViewerRenderablePart,
 } from '../../shared/buildTypes'
 import {
@@ -543,7 +547,7 @@ export type RenderedProjectPartVm = {
   sourceGraphDocumentId: string
   sourceOutputEntryId: string
   sourceNodeId: string | null
-  slotId: string
+  slotId: string | null
   label: string
   viewerKey: string
   viewerPart: ViewerRenderablePart
@@ -1734,9 +1738,16 @@ export const resolveWorkspaceSelectedContentOwnerTarget = (
 }
 
 export const buildObjectPartKeys = (objectRecord: ProjectObjectRecord): string[] =>
-  objectRecord.slotId === null
-    ? []
-    : [`${objectRecord.ownerGraphDocumentId}:${objectRecord.slotId}`]
+  (() => {
+    const outputEntryViewerKey = buildQualifiedGraphOutputEntryId(
+      objectRecord.ownerGraphDocumentId,
+      objectRecord.sourceOutputEntryId,
+    )
+    if (outputEntryViewerKey !== null) {
+      return [outputEntryViewerKey]
+    }
+    return objectRecord.slotId === null ? [] : [`${objectRecord.ownerGraphDocumentId}:${objectRecord.slotId}`]
+  })()
 
 export const resolveOwnedContentSelection = (
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
@@ -3298,8 +3309,34 @@ const buildProjectObjectId = (
 
 const buildGraphViewerPartKey = (
   graphDocumentId: string,
-  slotId: string | null,
-): string | null => (slotId === null ? null : `${graphDocumentId}:${slotId}`)
+  outputEntryId: string | null,
+): string | null => buildQualifiedGraphOutputEntryId(graphDocumentId, outputEntryId)
+
+const buildViewerPartByQualifiedOutputEntryKey = (options: {
+  graphDocumentId: string
+  runtime: GraphRuntimeState | undefined
+}): Map<string, ViewerRenderablePart> => {
+  const qualifiedViewerPartByKey = new Map<string, ViewerRenderablePart>()
+  const acceptedBundle =
+    options.runtime?.acceptedPreviewBuildBundle ?? options.runtime?.acceptedBuildBundle ?? null
+  if (acceptedBundle === null) {
+    return qualifiedViewerPartByKey
+  }
+
+  acceptedBundle.entries.forEach((entry) => {
+    if (entry.status === 'evicted') {
+      return
+    }
+    const artifact = entry.artifacts[0] ?? null
+    const viewerKey = buildGraphViewerPartKey(options.graphDocumentId, entry.outputEntryId)
+    if (artifact === null || viewerKey === null || qualifiedViewerPartByKey.has(viewerKey)) {
+      return
+    }
+    qualifiedViewerPartByKey.set(viewerKey, toViewerRenderablePart(artifact, viewerKey))
+  })
+
+  return qualifiedViewerPartByKey
+}
 
 const buildProjectReceiveObjectId = (
   projectFileId: string,
@@ -4955,6 +4992,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           buildRequestId: result.buildRequestId,
           buildSeq: result.seq,
           bundle: result.bundle,
+          draftGeometryResult: result.draftGeometryResult,
           authoritativeGeometryResult: result.authoritativeGeometryResult,
         })
       : useSpaghettiStore.getState().acceptGraphBuildResult({
@@ -8178,6 +8216,18 @@ export const selectRenderedProjectPartSet = (
     candidateGraphDocumentIds.map((graphDocumentId) => ({
       graphDocumentId,
       previewPreparation: state.graphRuntimeByDocumentId[graphDocumentId]?.previewPreparation ?? null,
+      buildBundle: selectShouldSuppressBrowserGraphRuntimeOutput(
+        {
+          currentProject: state.currentProject,
+          projectContent: state.projectContent,
+          browserGraphBuildPolicyByGraphDocumentId:
+            state.browserGraphBuildPolicyByGraphDocumentId ?? {},
+          browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId ?? {},
+        },
+        graphDocumentId,
+      )
+        ? null
+        : state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildBundle ?? null,
       buildOutputs:
         selectShouldSuppressBrowserGraphRuntimeOutput(
           {
@@ -8193,6 +8243,31 @@ export const selectRenderedProjectPartSet = (
           : state.graphRuntimeByDocumentId[graphDocumentId]?.acceptedBuildOutputs ?? [],
     })),
   )
+  const bundleViewerPartByKey = new Map<string, ViewerRenderablePart>()
+  candidateGraphDocumentIds.forEach((graphDocumentId) => {
+    if (
+      selectShouldSuppressBrowserGraphRuntimeOutput(
+        {
+          currentProject: state.currentProject,
+          projectContent: state.projectContent,
+          browserGraphBuildPolicyByGraphDocumentId:
+            state.browserGraphBuildPolicyByGraphDocumentId ?? {},
+          browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId ?? {},
+        },
+        graphDocumentId,
+      )
+    ) {
+      return
+    }
+    buildViewerPartByQualifiedOutputEntryKey({
+      graphDocumentId,
+      runtime: state.graphRuntimeByDocumentId[graphDocumentId],
+    }).forEach((viewerPart, viewerKey) => {
+      if (!bundleViewerPartByKey.has(viewerKey)) {
+        bundleViewerPartByKey.set(viewerKey, viewerPart)
+      }
+    })
+  })
   const viewerPartByKey = new Map(
     sharedRenderVm.viewerParts.map((viewerPart) => [viewerPart.viewerKey, viewerPart] as const),
   )
@@ -8200,16 +8275,19 @@ export const selectRenderedProjectPartSet = (
   const renderedParts = Object.values(state.projectContent.objectsById).flatMap((objectRow) => {
     if (
       objectRow.resolutionState !== 'resolved' ||
-      objectRow.slotId === null ||
+      objectRow.sourceOutputEntryId === null ||
       !candidateGraphDocumentIds.includes(objectRow.ownerGraphDocumentId)
     ) {
       return []
     }
-    const viewerKey = buildGraphViewerPartKey(objectRow.ownerGraphDocumentId, objectRow.slotId)
+    const viewerKey = buildGraphViewerPartKey(
+      objectRow.ownerGraphDocumentId,
+      objectRow.sourceOutputEntryId,
+    )
     if (viewerKey === null) {
       return []
     }
-    const viewerPart = viewerPartByKey.get(viewerKey)
+    const viewerPart = bundleViewerPartByKey.get(viewerKey) ?? viewerPartByKey.get(viewerKey)
     if (viewerPart === undefined) {
       return []
     }

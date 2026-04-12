@@ -26,7 +26,22 @@ Canonical direction and docs-structure references:
 - `docs/Vision.md`
 - `docs/Human-Plans/roadmap/Vision-roadmap.md`
 - `docs/Doc-Index.md`
+- `docs/Agents/Implementation-Behavior.md`
 - `docs/Phase-Plans/00_Phase-Setup.md`
+
+## Implementation Behavior Rule
+
+For implementation, cleanup, and refactor work, Codex should follow
+`docs/Agents/Implementation-Behavior.md` as the default behavior guide for:
+- file ownership and splitting decisions
+- hook/effect boundaries
+- component extraction and prop-flow judgment
+- migration and compatibility retirement
+- behavior-first testing and cleanup bias
+
+If a more local architecture/task doc gives a narrower rule for the current
+system, follow the narrower local rule without violating the general cleanup and
+retirement principles above.
 
 ## File Reference Rule
 

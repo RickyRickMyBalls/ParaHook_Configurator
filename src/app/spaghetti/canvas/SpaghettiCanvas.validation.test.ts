@@ -1,7 +1,77 @@
 import { describe, expect, it } from 'vitest'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { validateGraph } from '../compiler/validateGraph'
-import { validateConnectionCheap } from './SpaghettiCanvas'
+import { resolveCanvasEdgeSourceKind, validateConnectionCheap } from './SpaghettiCanvas'
+
+describe('canvas edge source kind normalization', () => {
+  it('keeps stale aggregate SketchProfiles source-path metadata on the collection wire tone', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-stale-aggregate',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+            path: ['member', '0'],
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+            path: ['staleTarget'],
+          },
+        },
+      ],
+    }
+
+    expect(resolveCanvasEdgeSourceKind(graph, graph.edges[0]!)).toBe('sketchProfiles')
+  })
+
+  it('keeps singular SketchProfile contributors on the singular wire tone', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {},
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {},
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-singular-profile',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    expect(resolveCanvasEdgeSourceKind(graph, graph.edges[0]!)).toBe('sketchProfile')
+  })
+})
 
 describe('feature virtual input resolver consistency', () => {
   const basePartNode = {

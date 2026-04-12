@@ -15,10 +15,45 @@ import {
   getPartArtifactKey,
 } from '../../shared/buildTypes'
 
+const cloneMesh = (
+  mesh: NonNullable<GeometryResultBundle['meshPreview']>,
+): NonNullable<GeometryResultBundle['meshPreview']> => ({
+  vertices: [...mesh.vertices],
+  indices: [...mesh.indices],
+})
+
+const buildBodyArtifact = (options: {
+  outputPartKey: string
+  baseArtifact: PartArtifact | undefined
+  bodyId: string
+  geometryResult: GeometryResultBundle
+}): PartArtifact | null => {
+  const body = Object.values(options.geometryResult.bodies).find(
+    (candidate) =>
+      candidate.partKey === options.outputPartKey && candidate.bodyId === options.bodyId,
+  )
+  if (body === undefined) {
+    return null
+  }
+  const artifactKey = `${options.outputPartKey}:${options.bodyId}`
+  return {
+    id: options.baseArtifact?.id ?? options.outputPartKey,
+    label: options.baseArtifact?.label ?? options.outputPartKey,
+    kind: 'mesh',
+    mesh: cloneMesh(body.mesh),
+    partKeyStr: artifactKey,
+    partKey: {
+      id: artifactKey,
+      instance: null,
+    },
+  }
+}
+
 const buildResultEntriesFromCompiledData = (options: {
   compiledBuildData?: CompiledBuildData
   resultClass: BuildResultBundle['resultClass']
   parts: PartArtifact[]
+  geometryResult: GeometryResultBundle | null
 }): BuildResultEntry[] => {
   const artifactByPartKey = new Map(
     options.parts.map((artifact) => [getPartArtifactKey(artifact), artifact] as const),
@@ -37,7 +72,17 @@ const buildResultEntriesFromCompiledData = (options: {
   }
 
   return outputEntries.flatMap((outputEntry) => {
-    const artifact = artifactByPartKey.get(outputEntry.partKey)
+    const artifact =
+      (outputEntry.bodyId === undefined ||
+      outputEntry.bodyId === null ||
+      options.geometryResult === null
+        ? null
+        : buildBodyArtifact({
+            outputPartKey: outputEntry.partKey,
+            baseArtifact: artifactByPartKey.get(outputEntry.partKey),
+            bodyId: outputEntry.bodyId,
+            geometryResult: options.geometryResult,
+          })) ?? artifactByPartKey.get(outputEntry.partKey)
     if (artifact === undefined) {
       return []
     }
@@ -61,12 +106,14 @@ const buildResultBundle = (options: {
   executionIntent: BuildExecutionIntent
   compiledBuildData?: CompiledBuildData
   parts: PartArtifact[]
+  geometryResult: GeometryResultBundle | null
 }): BuildResultBundle => {
   const resultClass = buildResultClassFromExecutionIntent(options.executionIntent)
   const entries = buildResultEntriesFromCompiledData({
     compiledBuildData: options.compiledBuildData,
     resultClass,
     parts: options.parts,
+    geometryResult: options.geometryResult,
   })
 
   return {
@@ -111,6 +158,8 @@ export const emitArtifacts = (
     executionIntent: options.executionIntent,
     compiledBuildData: options.compiledBuildData,
     parts,
+    geometryResult:
+      options.draftGeometryResult ?? options.authoritativeGeometryResult ?? null,
   }),
   ...(options.draftGeometryResult !== undefined && options.draftGeometryResult !== null
     ? { draftGeometryResult: cloneGeometryResultBundle(options.draftGeometryResult) }

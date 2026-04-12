@@ -2,9 +2,21 @@ import type { PartArtifact, ViewerRenderablePart } from '../../../shared/buildTy
 import { partKeyToString } from '../../../shared/buildTypes'
 import type { CompileSpaghettiGraphResult } from '../compiler/compileGraph'
 import { computeFeatureStackIrParts } from '../compiler/compileGraph'
+import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
+import {
+  classifyExtrudeProfileContributorEdge,
+  isProfileOutputLike,
+  isSketchProfilesValue,
+  isWholeExtrusionProfileTargetEndpoint,
+  type ExtrudeProfileContributor,
+} from '../features/extrudeProfileConnections'
 import type { GraphOutputSurface } from '../outputSurface'
 import type { SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
-import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
+import {
+  OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
+  OUTPUT_PREVIEW_NODE_TYPE,
+  readNormalizedOutputPreviewParams,
+} from '../system/outputPreviewNode'
 import {
   selectPreviewRenderVm,
   type PreviewRenderVm,
@@ -19,10 +31,37 @@ export type DebugArtifactRow = {
 
 export type DebugOutputPreviewSlotRow = {
   slotId: string
+  publicationMode: 'grouped' | 'split'
   state: 'empty' | 'unresolved' | 'resolved'
   sourceNodeId: string | null
   sourcePartKeyStr: string | null
   artifactPartKeyStr: string | null
+}
+
+export type DebugExtrudeProfileEdgeRow = {
+  edgeId: string
+  fromNodeId: string
+  fromPortId: string
+  fromPath: string | null
+  toNodeId: string
+  toPortId: string
+  toPath: string | null
+  rawEdgeJson: string
+}
+
+export type DebugExtrudeConnectedOutputPreviewSlotRow = {
+  slotId: string
+  publicationMode: 'grouped' | 'split'
+  objectLabel: string | null
+  edgeId: string
+}
+
+export type DebugExtrudeCaptureRow = {
+  nodeId: string
+  profileInputSummary: string
+  solidBodySummary: string
+  incomingProfileEdges: DebugExtrudeProfileEdgeRow[]
+  connectedOutputPreviewSlots: DebugExtrudeConnectedOutputPreviewSlotRow[]
 }
 
 export type DebugPreviewRenderRow = {
@@ -43,6 +82,7 @@ export type DebugViewerInputRow = {
 }
 
 export type DebugInspectorVm = {
+  graphDocumentId: string | null
   compile: {
     hasCompile: boolean
     ok: boolean | null
@@ -53,6 +93,9 @@ export type DebugInspectorVm = {
   outputPreview: {
     nodeId: string | null
     slots: DebugOutputPreviewSlotRow[]
+  }
+  extrudeCapture: {
+    extrudes: DebugExtrudeCaptureRow[]
   }
   previewVm: {
     renderEntryCount: number
@@ -106,12 +149,23 @@ const buildArtifactRows = (buildOutputs: readonly PartArtifact[]): DebugArtifact
     partKeyStr: artifact.partKeyStr,
   }))
 
+const readOutputPreviewPublicationModeBySlotId = (
+  graph: SpaghettiGraph,
+): ReadonlyMap<string, 'grouped' | 'split'> =>
+  new Map(
+    (readNormalizedOutputPreviewParams(graph)?.slots ?? []).map((slot) => [
+      slot.slotId,
+      slot.publicationMode ?? OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
+    ]),
+  )
+
 const buildOutputPreviewSlots = (
   graph: SpaghettiGraph,
   outputSurface: GraphOutputSurface | null,
   buildOutputs: readonly PartArtifact[],
 ): DebugInspectorVm['outputPreview'] => {
   const outputPreviewNode = graph.nodes.find(isOutputPreviewNode)
+  const publicationModeBySlotId = readOutputPreviewPublicationModeBySlotId(graph)
   if (outputPreviewNode === undefined) {
     return {
       nodeId: null,
@@ -140,6 +194,8 @@ const buildOutputPreviewSlots = (
         : (artifactByPartKey.get(entry.acceptedArtifactKey)?.partKeyStr ?? entry.acceptedArtifactKey)
     return {
       slotId: entry.slotId,
+      publicationMode:
+        publicationModeBySlotId.get(entry.slotId) ?? OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
       state: entry.state,
       sourceNodeId,
       sourcePartKeyStr,
@@ -150,6 +206,139 @@ const buildOutputPreviewSlots = (
   return {
     nodeId: outputPreviewNode.nodeId,
     slots,
+  }
+}
+
+const formatPath = (path: string[] | undefined): string | null =>
+  path === undefined || path.length === 0 ? null : path.join('.')
+
+const isSolidBodyLike = (value: unknown): value is { bodyId: string } =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as { bodyId?: unknown }).bodyId === 'string'
+
+const isSolidBodiesLike = (value: unknown): value is { bodies: unknown[] } =>
+  typeof value === 'object' &&
+  value !== null &&
+  Array.isArray((value as { bodies?: unknown[] }).bodies)
+
+const describeExtrudeProfileInput = (
+  value: unknown,
+  contributors: readonly ExtrudeProfileContributor[],
+): string => {
+  if (isSketchProfilesValue(value)) {
+    if (contributors.some((contributor) => contributor.kind === 'aggregate')) {
+      return `aggregate profiles (${value.length})`
+    }
+    if (contributors.length === 1 && contributors[0]?.kind === 'single' && value.length === 1) {
+      return `single profile (${value[0].profileId})`
+    }
+    return `profiles (${value.length})`
+  }
+  if (isProfileOutputLike(value)) {
+    return `single profile (${value.profileId})`
+  }
+  if (value === undefined) {
+    return 'missing'
+  }
+  if (value === null) {
+    return 'null'
+  }
+  return typeof value
+}
+
+const describeExtrudeSolidBodyOutput = (value: unknown): string => {
+  if (isSolidBodiesLike(value)) {
+    return `solidBodies (${value.bodies.length})`
+  }
+  if (isSolidBodyLike(value)) {
+    return `solidBody (${value.bodyId})`
+  }
+  if (value === undefined) {
+    return 'missing'
+  }
+  if (value === null) {
+    return 'null'
+  }
+  return typeof value
+}
+
+const buildExtrudeCapture = (
+  graph: SpaghettiGraph,
+): DebugInspectorVm['extrudeCapture'] => {
+  const evaluation = evaluateSpaghettiGraph(graph)
+  const normalizedOutputPreviewParams = readNormalizedOutputPreviewParams(graph)
+  const publicationModeBySlotId = readOutputPreviewPublicationModeBySlotId(graph)
+  const objectLabelBySlotId = new Map(
+    (normalizedOutputPreviewParams?.objects ?? []).map((objectRow) => [objectRow.slotId, objectRow.label] as const),
+  )
+
+  const extrudes = graph.nodes
+    .filter((node) => node.type === 'Geometry/Extrude')
+    .map((node) => {
+      const incomingProfileContributors = graph.edges
+        .filter(
+          (edge) =>
+            edge.to.nodeId === node.nodeId && isWholeExtrusionProfileTargetEndpoint(edge.to),
+        )
+        .map((edge) => {
+          const contributor = classifyExtrudeProfileContributorEdge(edge)
+          return contributor === null ? null : { edge, contributor }
+        })
+        .filter(
+          (
+            entry,
+          ): entry is { edge: SpaghettiGraph['edges'][number]; contributor: ExtrudeProfileContributor } =>
+            entry !== null,
+        )
+      const incomingProfileEdges = incomingProfileContributors.map(({ edge }) => ({
+          edgeId: edge.edgeId,
+          fromNodeId: edge.from.nodeId,
+          fromPortId: edge.from.portId,
+          fromPath: formatPath(edge.from.path),
+          toNodeId: edge.to.nodeId,
+          toPortId: edge.to.portId,
+          toPath: formatPath(edge.to.path),
+          rawEdgeJson: JSON.stringify(edge),
+        }))
+      const connectedOutputPreviewSlots = graph.nodes
+        .filter(isOutputPreviewNode)
+        .flatMap((outputPreviewNode) =>
+          graph.edges
+            .filter(
+              (edge) =>
+                edge.from.nodeId === node.nodeId &&
+                edge.to.nodeId === outputPreviewNode.nodeId &&
+                edge.to.portId.startsWith('in:solid:'),
+            )
+            .map((edge) => {
+              const slotId = edge.to.portId.slice('in:solid:'.length)
+              return {
+                slotId,
+                publicationMode:
+                  publicationModeBySlotId.get(slotId) ?? OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
+                objectLabel: objectLabelBySlotId.get(slotId) ?? null,
+                edgeId: edge.edgeId,
+              }
+            }),
+        )
+
+      return {
+        nodeId: node.nodeId,
+        profileInputSummary: describeExtrudeProfileInput(
+          evaluation.inputsByNodeId[node.nodeId]?.ExtrusionProfile,
+          incomingProfileContributors.map((entry) => entry.contributor),
+        ),
+        solidBodySummary: describeExtrudeSolidBodyOutput(
+          evaluation.outputsByNodeId[node.nodeId]?.SolidBody,
+        ),
+        incomingProfileEdges,
+        connectedOutputPreviewSlots,
+      }
+    })
+
+  return {
+    extrudes,
   }
 }
 
@@ -175,6 +364,7 @@ const buildViewerRows = (
   }))
 
 export const selectDebugInspectorVm = (options: {
+  graphDocumentId?: string | null
   graph: SpaghettiGraph
   outputSurface: GraphOutputSurface | null
   buildOutputs: PartArtifact[]
@@ -185,6 +375,7 @@ export const selectDebugInspectorVm = (options: {
   const viewerParts = previewVm.viewerParts
 
   return {
+    graphDocumentId: options.graphDocumentId ?? null,
     compile: {
       hasCompile: compileResult !== null,
       ok: compileResult?.ok ?? null,
@@ -193,6 +384,7 @@ export const selectDebugInspectorVm = (options: {
       artifacts: buildArtifactRows(buildOutputs),
     },
     outputPreview: buildOutputPreviewSlots(graph, outputSurface, buildOutputs),
+    extrudeCapture: buildExtrudeCapture(graph),
     previewVm: {
       renderEntryCount: previewVm.items.length,
       entries: buildPreviewRows(previewVm),

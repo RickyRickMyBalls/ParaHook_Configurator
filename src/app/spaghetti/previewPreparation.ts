@@ -1,10 +1,12 @@
-import type { PartArtifact } from '../../shared/buildTypes'
+import type { BuildResultBundle, PartArtifact } from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
 import { computeFeatureStackIrParts } from './compiler/compileGraph'
 import { evaluateSpaghettiGraph } from './compiler/evaluateGraph'
 import type { SpaghettiGraph, SpaghettiNode, SolidBodiesValue } from './schema/spaghettiTypes'
+import { buildGraphOutputEntryIdsForSlot } from './outputSurface'
 import {
   normalizeOutputPreviewParams,
+  OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
   OUTPUT_PREVIEW_NODE_TYPE,
 } from './system/outputPreviewNode'
 import { selectDiagnosticsVm } from './selectors/selectDiagnosticsVm'
@@ -26,6 +28,7 @@ export type GraphPreviewPreparation = {
   sourcePartKeyBySlotId: Record<string, string>
   sourcePortIdBySlotId: Record<string, string>
   sourcePartKeyByNodeId: Record<string, string>
+  sourceEntriesBySlotId?: Record<string, PreviewPreparationEntry[]>
   publicationModeBySlotId?: Record<string, 'grouped' | 'split'>
   splitMemberCountBySlotId?: Record<string, number>
   slotStatusBySlotId: Record<string, 'ok' | 'unresolved' | 'empty'>
@@ -36,15 +39,15 @@ export type GraphPreviewPreparation = {
 const isOutputPreviewNode = (node: SpaghettiNode): boolean =>
   node.type === OUTPUT_PREVIEW_NODE_TYPE
 
-const findMatchingIncomingSlotEdge = (
+const listMatchingIncomingSlotEdges = (
   graph: SpaghettiGraph,
   outputPreviewNodeId: string,
   slotId: string,
-): SpaghettiGraph['edges'][number] | undefined => {
+): SpaghettiGraph['edges'][number][] => {
   const targetPortId = `in:solid:${slotId}`
-  return graph.edges.find(
-    (edge) => edge.to.nodeId === outputPreviewNodeId && edge.to.portId === targetPortId,
-  )
+  return graph.edges
+    .filter((edge) => edge.to.nodeId === outputPreviewNodeId && edge.to.portId === targetPortId)
+    .sort((a, b) => a.edgeId.localeCompare(b.edgeId))
 }
 
 const isGraphNativePreviewSource = (
@@ -81,6 +84,17 @@ const readSplitMemberCount = (value: unknown): number => {
   return value.bodies.length > 0 ? value.bodies.length : 1
 }
 
+const readPreviewPreparationPublicationMode = (
+  previewPreparation: GraphPreviewPreparation,
+  slotId: string,
+): 'grouped' | 'split' => {
+  const normalizedPublicationMode = previewPreparation.publicationModeBySlotId?.[slotId]
+  if (normalizedPublicationMode === 'grouped' || normalizedPublicationMode === 'split') {
+    return normalizedPublicationMode
+  }
+  return (previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) > 1 ? 'split' : 'grouped'
+}
+
 export const prepareGraphPreviewPreparation = (
   graph: SpaghettiGraph,
 ): GraphPreviewPreparation => {
@@ -95,6 +109,7 @@ export const prepareGraphPreviewPreparation = (
       sourcePartKeyBySlotId: {},
       sourcePortIdBySlotId: {},
       sourcePartKeyByNodeId: {},
+      sourceEntriesBySlotId: {},
       publicationModeBySlotId: {},
       splitMemberCountBySlotId: {},
       slotStatusBySlotId: {},
@@ -118,61 +133,84 @@ export const prepareGraphPreviewPreparation = (
   const sourcePartKeyBySlotId: Record<string, string> = {}
   const sourcePortIdBySlotId: Record<string, string> = {}
   const sourcePartKeyByNodeId: Record<string, string> = {}
+  const sourceEntriesBySlotId: Record<string, PreviewPreparationEntry[]> = {}
   const publicationModeBySlotId: Record<string, 'grouped' | 'split'> = Object.fromEntries(
     normalizedOutputPreviewParams.slots.map((slot) => [
       slot.slotId,
-      slot.publicationMode ?? 'grouped',
+      slot.publicationMode ?? OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
     ]),
   )
   const splitMemberCountBySlotId: Record<string, number> = {}
   const slotStatusBySlotId = { ...diagnosticsVm.slotStatus }
 
   for (const slotId of outputSlotIds) {
-    const matchingEdge = findMatchingIncomingSlotEdge(graph, outputPreviewNode.nodeId, slotId)
-    if (matchingEdge === undefined) {
+    const matchingEdges = listMatchingIncomingSlotEdges(graph, outputPreviewNode.nodeId, slotId)
+    if (matchingEdges.length === 0) {
       continue
     }
 
-    const sourceOutput = readSourceOutputValue(evaluation, matchingEdge)
-    if (
-      isGraphNativePreviewSource(graph, matchingEdge.from.nodeId) &&
-      sourceOutput.known &&
-      (sourceOutput.value === null || sourceOutput.value === undefined)
-    ) {
-      slotStatusBySlotId[slotId] = 'unresolved'
+    const slotEntries: PreviewPreparationEntry[] = []
+
+    for (const matchingEdge of matchingEdges) {
+      const sourceOutput = readSourceOutputValue(evaluation, matchingEdge)
+      if (
+        isGraphNativePreviewSource(graph, matchingEdge.from.nodeId) &&
+        sourceOutput.known &&
+        (sourceOutput.value === null || sourceOutput.value === undefined)
+      ) {
+        slotStatusBySlotId[slotId] = 'unresolved'
+      }
+
+      const sourceNodeId = matchingEdge.from.nodeId
+      const sourcePartKeyStr = partMapping[sourceNodeId]
+      if (sourcePartKeyStr === undefined) {
+        continue
+      }
+
+      sourcePartKeyByNodeId[sourceNodeId] = sourcePartKeyStr
+      if (sourceNodeIdBySlotId[slotId] === undefined) {
+        sourceNodeIdBySlotId[slotId] = sourceNodeId
+        sourcePartKeyBySlotId[slotId] = sourcePartKeyStr
+        sourcePortIdBySlotId[slotId] = matchingEdge.from.portId
+      }
+
+      const publicationMode = publicationModeBySlotId[slotId]
+      const entryCount =
+        publicationMode === 'split' && isSolidBodiesValue(sourceOutput.value)
+          ? readSplitMemberCount(sourceOutput.value)
+          : 1
+
+      for (let memberIndex = 0; memberIndex < entryCount; memberIndex += 1) {
+        slotEntries.push({
+          slotId,
+          sourceNodeId,
+          sourcePartKeyStr,
+          sourcePortId: matchingEdge.from.portId,
+          ...(entryCount > 1 ? { memberIndex } : {}),
+        })
+      }
     }
 
-    const sourceNodeId = matchingEdge.from.nodeId
-    const sourcePartKeyStr = partMapping[sourceNodeId]
-    if (sourcePartKeyStr === undefined) {
+    if (slotEntries.length === 0) {
       continue
     }
 
-    sourceNodeIdBySlotId[slotId] = sourceNodeId
-    sourcePartKeyBySlotId[slotId] = sourcePartKeyStr
-    sourcePortIdBySlotId[slotId] = matchingEdge.from.portId
-    sourcePartKeyByNodeId[sourceNodeId] = sourcePartKeyStr
+    sourceEntriesBySlotId[slotId] = slotEntries
     splitMemberCountBySlotId[slotId] =
-      publicationModeBySlotId[slotId] === 'split'
-        ? readSplitMemberCount(sourceOutput.value)
-        : 1
-    previewEntries.push({
-      slotId,
-      sourceNodeId,
-      sourcePartKeyStr,
-      sourcePortId: matchingEdge.from.portId,
-    })
+      publicationModeBySlotId[slotId] === 'split' ? slotEntries.length : 1
+    previewEntries.push(...slotEntries)
   }
 
   return {
     outputPreviewNodeId: outputPreviewNode.nodeId,
     outputSlotIds,
-    previewCandidateSlotIds: previewEntries.map((entry) => entry.slotId),
+    previewCandidateSlotIds: [...new Set(previewEntries.map((entry) => entry.slotId))],
     previewCandidatePartKeys: [...new Set(previewEntries.map((entry) => entry.sourcePartKeyStr))],
     sourceNodeIdBySlotId,
     sourcePartKeyBySlotId,
     sourcePortIdBySlotId,
     sourcePartKeyByNodeId,
+    sourceEntriesBySlotId,
     publicationModeBySlotId,
     splitMemberCountBySlotId,
     slotStatusBySlotId,
@@ -181,11 +219,48 @@ export const prepareGraphPreviewPreparation = (
   }
 }
 
+export const getPreviewPreparationEntriesForSlot = (
+  previewPreparation: GraphPreviewPreparation,
+  slotId: string,
+): PreviewPreparationEntry[] => {
+  const explicitEntries = previewPreparation.sourceEntriesBySlotId?.[slotId]
+  if (explicitEntries !== undefined) {
+    return explicitEntries
+  }
+
+  const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
+  const sourcePartKeyStr = previewPreparation.sourcePartKeyBySlotId[slotId]
+  const sourcePortId = previewPreparation.sourcePortIdBySlotId[slotId]
+  if (
+    sourceNodeId === undefined ||
+    sourcePartKeyStr === undefined ||
+    sourcePortId === undefined
+  ) {
+    return []
+  }
+
+  const publicationMode = readPreviewPreparationPublicationMode(previewPreparation, slotId)
+  const splitMemberCount =
+    publicationMode === 'split'
+      ? Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1)
+      : 1
+
+  return Array.from({ length: splitMemberCount }, (_, memberIndex) => ({
+    slotId,
+    sourceNodeId,
+    sourcePartKeyStr,
+    sourcePortId,
+    ...(publicationMode === 'split' ? { memberIndex } : {}),
+  }))
+}
+
 export const buildPreviewPreparationEntries = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: readonly PartArtifact[],
+  buildBundle?: BuildResultBundle | null,
 ): Array<
   PreviewPreparationEntry & {
+    outputEntryId: string
     renderable: PartArtifact | null
   }
 > => {
@@ -196,32 +271,32 @@ export const buildPreviewPreparationEntries = (
       artifactByPartKey.set(partKey, artifact)
     }
   }
+  const artifactByOutputEntryId = new Map<string, PartArtifact>()
+  for (const entry of buildBundle?.entries ?? []) {
+    if (entry.status === 'evicted') {
+      continue
+    }
+    const artifact = entry.artifacts[0] ?? null
+    if (artifact !== null && !artifactByOutputEntryId.has(entry.outputEntryId)) {
+      artifactByOutputEntryId.set(entry.outputEntryId, artifact)
+    }
+  }
 
   return previewPreparation.previewCandidateSlotIds
     .filter((slotId) => previewPreparation.slotStatusBySlotId[slotId] !== 'unresolved')
     .flatMap((slotId) => {
-      const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
-      const sourcePartKeyStr = previewPreparation.sourcePartKeyBySlotId[slotId]
-      const sourcePortId = previewPreparation.sourcePortIdBySlotId[slotId]
-      const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
-      const splitMemberCount =
-        publicationMode === 'split'
-          ? Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1)
-          : 1
-      if (
-        sourceNodeId === undefined ||
-        sourcePartKeyStr === undefined ||
-        sourcePortId === undefined
-      ) {
-        return []
-      }
-      return Array.from({ length: splitMemberCount }, (_, memberIndex) => ({
-        slotId,
-        sourceNodeId,
-        sourcePartKeyStr,
-        sourcePortId,
-        ...(publicationMode === 'split' ? { memberIndex } : {}),
-        renderable: artifactByPartKey.get(sourcePartKeyStr) ?? null,
-      }))
+      const slotEntries = getPreviewPreparationEntriesForSlot(previewPreparation, slotId)
+      const outputEntryIds = buildGraphOutputEntryIdsForSlot(slotId, slotEntries)
+      return slotEntries.map((entry, entryIndex) => {
+        const outputEntryId = outputEntryIds[entryIndex] ?? slotId
+        return {
+          ...entry,
+          outputEntryId,
+          renderable:
+            artifactByOutputEntryId.get(outputEntryId) ??
+            artifactByPartKey.get(entry.sourcePartKeyStr) ??
+            null,
+        }
+      })
     })
 }

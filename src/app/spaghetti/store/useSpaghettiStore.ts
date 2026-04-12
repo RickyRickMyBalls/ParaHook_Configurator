@@ -817,6 +817,7 @@ export type SpaghettiStoreState = {
     routingIdentity: BuildRoutingIdentity & {
       buildSeq: number
       bundle?: BuildResultBundle
+      draftGeometryResult?: GeometryResultBundle
       authoritativeGeometryResult?: GeometryResultBundle
     },
   ) => boolean
@@ -3412,7 +3413,16 @@ export const selectViewerTargetGraphAcceptedAuthoritativeGeometryResult = (
 export const selectViewerTargetGraphAcceptedPreviewBuildOutputs = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
 ): PartArtifact[] =>
-  selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildOutputs ?? EMPTY_PART_ARTIFACTS
+  doesRuntimeAcceptedDraftRevisionMatchCurrentGraphRevision(selectViewerTargetGraphRuntime(state))
+    ? selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildOutputs ?? EMPTY_PART_ARTIFACTS
+    : EMPTY_PART_ARTIFACTS
+
+export const selectViewerTargetGraphAcceptedPreviewBuildBundle = (
+  state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
+): BuildResultBundle | null =>
+  doesRuntimeAcceptedDraftRevisionMatchCurrentGraphRevision(selectViewerTargetGraphRuntime(state))
+    ? selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildBundle ?? null
+    : null
 
 export const selectViewerTargetGraphAcceptedPreviewGeometryResult = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
@@ -6324,6 +6334,14 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               inFlightBuildSeq: null,
               inFlightExecutionIntent: null,
             },
+            acceptedDraftGraphRevision:
+              routingIdentity.draftGeometryResult === undefined
+                ? runtime.acceptedDraftGraphRevision
+                : compileBuild.inFlightGraphRevision,
+            acceptedDraftGeometryResult:
+              routingIdentity.draftGeometryResult === undefined
+                ? cloneAcceptedGeometryLane(runtime.acceptedDraftGeometryResult)
+                : cloneAcceptedGeometryLane(routingIdentity.draftGeometryResult),
             stagedAuthoritativePreviewResult: {
               buildSeq: routingIdentity.buildSeq,
               buildRequestId: routingIdentity.buildRequestId,

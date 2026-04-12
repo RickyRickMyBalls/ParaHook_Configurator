@@ -1,4 +1,8 @@
-import type { PartArtifact, ViewerRenderablePart } from '../../../shared/buildTypes'
+import type {
+  BuildResultBundle,
+  PartArtifact,
+  ViewerRenderablePart,
+} from '../../../shared/buildTypes'
 import type { GraphPreviewPreparation } from '../previewPreparation'
 import {
   selectPreviewRenderVmFromPreparation,
@@ -10,6 +14,7 @@ export type SharedPreviewRenderContribution = {
   graphDocumentId: string
   previewPreparation: GraphPreviewPreparation | null
   buildOutputs: PartArtifact[]
+  buildBundle?: BuildResultBundle | null
 }
 
 export type SharedPreviewRenderVm = PreviewRenderVm & {
@@ -54,6 +59,7 @@ export const selectSharedPreviewRenderVm = (
     const previewVm = selectPreviewRenderVmFromPreparation(
       contribution.previewPreparation,
       contribution.buildOutputs,
+      contribution.buildBundle ?? null,
     )
     contributingGraphDocumentIds.push(contribution.graphDocumentId)
     items.push(

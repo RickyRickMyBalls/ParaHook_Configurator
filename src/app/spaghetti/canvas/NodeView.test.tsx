@@ -214,10 +214,10 @@ const renderPartNode = (
 
 const outputPreviewPort = (slotId: string): PortSpec => ({
   portId: `in:solid:${slotId}`,
-  label: slotId,
-  type: { kind: 'toeLoft' },
+  label: 'SolidBodies',
+  type: { kind: 'solidBodies' },
   optional: true,
-  maxConnectionsIn: 1,
+  maxConnectionsIn: Number.MAX_SAFE_INTEGER,
 })
 
 const numberPort = (portId: string, label: string): PortSpec => ({
@@ -605,7 +605,7 @@ const renderExtrudeNode = (options: {
   allOutputs: PortSpec[]
   nodeMode?: 'collapsed' | 'essentials' | 'expanded'
 }): string => {
-  seedGraphForRender(options.node)
+  seedGraphForRender(options.node, options.nodeMode)
   return renderToStaticMarkup(
     <NodeView
       node={options.node}
@@ -1381,7 +1381,7 @@ describe('NodeView part section order', () => {
     expect(html.includes('Effective')).toBe(false)
   })
 
-  it('renders OutputPreview parts-list slot rows in order with filled and empty states', () => {
+  it('renders OutputPreview managed slot rows in order with filled and empty states', () => {
     const html = renderOutputPreviewNode([
       {
         rowId: 'op-slot:s001',
@@ -1400,7 +1400,7 @@ describe('NodeView part section order', () => {
         port: outputPreviewPort('s002'),
         slotStatus: 'empty',
         statusPrimary: '(empty)',
-        statusSecondary: 'Drop part here',
+        statusSecondary: 'Drop bodies here',
         isTrailingEmpty: true,
       },
     ])
@@ -1410,13 +1410,15 @@ describe('NodeView part section order', () => {
     const filledLabelIndex = html.indexOf('Toe Hook')
     const emptyLabelIndex = html.indexOf('(empty)')
 
-    expect(html.includes('Parts List')).toBe(true)
     expect(s001Index).toBeGreaterThan(-1)
     expect(s002Index).toBeGreaterThan(-1)
     expect(s001Index).toBeLessThan(s002Index)
     expect(filledLabelIndex).toBeGreaterThan(-1)
     expect(emptyLabelIndex).toBeGreaterThan(-1)
-    expect(html.includes('Drop part here')).toBe(true)
+    expect(html.includes('Parts List')).toBe(false)
+    expect(html.includes('Drop bodies here')).toBe(true)
+    expect((html.match(/data-sp-port-attached-body="input"/g) ?? []).length).toBe(2)
+    expect((html.match(/data-sp-output-preview-attached-body="essentials"/g) ?? []).length).toBe(2)
   })
 
   it('renders split OutputPreview collection publication as child published objects under one slot', () => {
@@ -1427,34 +1429,171 @@ describe('NodeView part section order', () => {
         slotId: 's001',
         objectId: 'output-object:s001',
         objectLabel: 'Pedal Body',
-        inputLabel: 's001 Collection',
+        inputLabel: 'SolidBodies',
         port: outputPreviewPort('s001'),
         slotStatus: 'ok',
         statusPrimary: 'Geometry/Extrude',
-        statusSecondary:
-          's001 takes one SolidBodies collection on SolidBody and publishes 2 objects through split publication.',
+        statusSecondary: '1 collection contributor · split to 2 objects',
         publishedObjectRows: [
           {
             rowId: 'op-slot:s001:published:1',
             label: 'Pedal Body 1',
-            status: 'Published object 1 from this split collection source.',
+            status: 'Split published object 1 from this row-owned collection.',
           },
           {
             rowId: 'op-slot:s001:published:2',
             label: 'Pedal Body 2',
-            status: 'Published object 2 from this split collection source.',
+            status: 'Split published object 2 from this row-owned collection.',
           },
         ],
         isTrailingEmpty: false,
       },
     ])
 
-    expect(html.includes('Object Prefix')).toBe(true)
-    expect(html.includes('s001 Collection')).toBe(true)
-    expect(html.includes('Published Objects')).toBe(true)
+    expect(html.includes('Published Prefix')).toBe(false)
+    expect(html.includes('Parts List')).toBe(false)
+    expect(html.includes('SolidBodies')).toBe(true)
+    expect(html.includes('SpaghettiPortShell--managedCollectionIn')).toBe(true)
+    expect(html.includes('SpaghettiOutputPreviewSolidBodiesPortRow')).toBe(false)
+    expect(html.includes('--sp-port-color:#9c88f4')).toBe(true)
+    expect(html.includes('Subcomponent')).toBe(false)
+    expect(html.includes('Prefix')).toBe(true)
+    expect(html.includes('2 published child objects')).toBe(true)
     expect(html.includes('Pedal Body 1')).toBe(true)
     expect(html.includes('Pedal Body 2')).toBe(true)
-    expect(html.includes('split collection source')).toBe(true)
+    expect(html.includes('Split published object 1 from this row-owned collection.')).toBe(true)
+    expect((html.match(/data-sp-port-attached-body="input"/g) ?? []).length).toBe(1)
+    expect(html.includes('data-sp-output-preview-attached-body="essentials"')).toBe(true)
+  })
+
+  it('renders grouped OutputPreview publication as one child published object under one source row', () => {
+    const html = renderOutputPreviewNode([
+      {
+        rowId: 'op-slot:s001',
+        nodeId: 'node-output-preview-1',
+        slotId: 's001',
+        objectId: 'output-object:s001',
+        objectLabel: 'Pedal Body',
+        inputLabel: 'SolidBodies',
+        port: outputPreviewPort('s001'),
+        slotStatus: 'ok',
+        statusPrimary: 'Geometry/Extrude',
+        statusSecondary: '1 collection contributor · grouped publication',
+        publishedObjectRows: [
+          {
+            rowId: 'op-slot:s001:published:1',
+            label: 'Pedal Body',
+            status: 'Grouped published object from this collection source.',
+          },
+        ],
+        isTrailingEmpty: false,
+      },
+    ])
+
+    expect(html.includes('Published Object')).toBe(false)
+    expect(html.includes('Parts List')).toBe(false)
+    expect(html.includes('Name')).toBe(true)
+    expect(html.includes('1 published child object')).toBe(true)
+    expect(html.includes('Pedal Body')).toBe(true)
+    expect(html.includes('Grouped published object from this collection source.')).toBe(true)
+    expect(html.includes('data-sp-output-preview-attached-body="essentials"')).toBe(true)
+  })
+
+  it('keeps one SolidBodies row flat while publishing four child objects inside one component', () => {
+    const html = renderOutputPreviewNode([
+      {
+        rowId: 'op-slot:s001',
+        nodeId: 'node-output-preview-1',
+        slotId: 's001',
+        objectId: 'output-object:s001',
+        objectLabel: 'Pedal Body',
+        inputLabel: 'SolidBodies',
+        port: outputPreviewPort('s001'),
+        slotStatus: 'ok',
+        statusPrimary: 'Extrude',
+        statusSecondary: '1 collection contributor · split to 4 objects',
+        publishedObjectRows: [
+          {
+            rowId: 'op-slot:s001:published:1',
+            label: 'Pedal Body 1',
+            status: 'Split published object 1 from this row-owned collection.',
+          },
+          {
+            rowId: 'op-slot:s001:published:2',
+            label: 'Pedal Body 2',
+            status: 'Split published object 2 from this row-owned collection.',
+          },
+          {
+            rowId: 'op-slot:s001:published:3',
+            label: 'Pedal Body 3',
+            status: 'Split published object 3 from this row-owned collection.',
+          },
+          {
+            rowId: 'op-slot:s001:published:4',
+            label: 'Pedal Body 4',
+            status: 'Split published object 4 from this row-owned collection.',
+          },
+        ],
+        isTrailingEmpty: false,
+      },
+    ])
+
+    expect(html.includes('Subcomponent')).toBe(false)
+    expect(html.includes('4 published child objects')).toBe(true)
+    expect(html.includes('Pedal Body 4')).toBe(true)
+    expect(html.includes('data-sp-output-preview-attached-body="essentials"')).toBe(true)
+  })
+
+  it('renders multiple active OutputPreview collection rows as subcomponent-style groups under one component', () => {
+    const html = renderOutputPreviewNode([
+      {
+        rowId: 'op-slot:s001',
+        nodeId: 'node-output-preview-1',
+        slotId: 's001',
+        objectId: 'output-object:s001',
+        objectLabel: 'Pedal Body',
+        inputLabel: 'SolidBodies',
+        port: outputPreviewPort('s001'),
+        slotStatus: 'ok',
+        statusPrimary: 'Geometry/Extrude',
+        statusSecondary: '1 collection contributor · grouped publication',
+        publishedObjectRows: [
+          {
+            rowId: 'op-slot:s001:published:1',
+            label: 'Pedal Body',
+            status: 'Grouped published object from this collection source.',
+          },
+        ],
+        isTrailingEmpty: false,
+      },
+      {
+        rowId: 'op-slot:s002',
+        nodeId: 'node-output-preview-1',
+        slotId: 's002',
+        objectId: 'output-object:s002',
+        objectLabel: 'Pedal Hook',
+        inputLabel: 'SolidBodies',
+        port: outputPreviewPort('s002'),
+        slotStatus: 'ok',
+        statusPrimary: 'Geometry/Extrude',
+        statusSecondary: '1 collection contributor · grouped publication',
+        publishedObjectRows: [
+          {
+            rowId: 'op-slot:s002:published:1',
+            label: 'Pedal Hook',
+            status: 'Grouped published object from this collection source.',
+          },
+        ],
+        isTrailingEmpty: false,
+      },
+    ])
+
+    expect(html.includes('Parts List')).toBe(false)
+    expect((html.match(/Subcomponent/g) ?? []).length).toBe(2)
+    expect((html.match(/>Name</g) ?? []).length).toBe(2)
+    expect(html.includes('Pedal Body')).toBe(true)
+    expect(html.includes('Pedal Hook')).toBe(true)
+    expect((html.match(/data-sp-port-attached-body="input"/g) ?? []).length).toBe(2)
   })
 
   it('keeps deterministic section order and feature-stack ownership across current part nodes', () => {
@@ -1776,6 +1915,7 @@ describe('NodeView part section order', () => {
     })
 
     expect(html.includes('SketchProfiles')).toBe(true)
+    expect(html.includes('SpaghettiPortShell--managedCollectionOut')).toBe(true)
     expect(html.includes('2 profiles')).toBe(true)
     expect(html.includes('Parent collection')).toBe(true)
     expect(
@@ -1844,6 +1984,18 @@ describe('NodeView part section order', () => {
         taperVisible: true,
         taperDriven: false,
         hasProfile: true,
+        profileTargetMode: 'single',
+        profileInputEntries: [
+          {
+            endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profile'),
+            entryId: 'edge-sketch-profile',
+            kind: 'single',
+            label: 'SketchProfile',
+            sourceNodeId: 'node-sketch-1',
+            sourceNodeLabel: 'Sketch',
+            profileId: 'profile-1',
+          },
+        ],
         profileId: 'profile-1',
         profileArea: 5000,
         bodyId: 'node-extrude-1:body',
@@ -1852,7 +2004,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -1902,7 +2054,9 @@ describe('NodeView part section order', () => {
     expect(html.includes('data-sp-geometry-block="outputs"')).toBe(true)
     expect(html.includes('SpaghettiExtrudeInputStack')).toBe(true)
     expect(html.includes('data-sp-enum-row="1"')).toBe(true)
-    expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(true)
+    expect(html.includes('SpaghettiPortShell--managedCollectionIn')).toBe(true)
+    expect(html.includes('SpaghettiPortShell--managedCollectionOut')).toBe(true)
+    expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(false)
     expect(html.includes('SketchProfiles')).toBe(true)
     expect(html.includes('Type')).toBe(true)
     expect(html.includes('ParaSelect')).toBe(true)
@@ -1915,12 +2069,7 @@ describe('NodeView part section order', () => {
     expect(html.includes('aria-label="Previous Direction"')).toBe(true)
     expect(html.includes('aria-label="Next Direction"')).toBe(true)
     expect(html.includes('data-sp-port-row-open="1"')).toBe(true)
-    expect(html.includes('Profile Target')).toBe(true)
-    expect(
-      html.includes(
-        'Consume one upstream SketchProfile from Geometry/Sketch as one contributor in this SketchProfiles collection input.',
-      ),
-    ).toBe(true)
+    expect(html.includes('Profile Target')).toBe(false)
     expect(html.includes('Depth')).toBe(true)
     expect(html.includes('Taper Angle')).toBe(true)
     expect(html.includes('ParaSlider')).toBe(false)
@@ -1949,7 +2098,7 @@ describe('NodeView part section order', () => {
     expect(html.includes('SpaghettiPortAnchor--out')).toBe(true)
     expect(html.includes('SpaghettiPortChevron--leading')).toBe(true)
     expect(html.includes('data-sp-extrude-body-summary="1"')).toBe(true)
-    const sketchProfileRowIndex = html.indexOf('SpaghettiExtrudeProfilePortRow')
+    const sketchProfileRowIndex = html.indexOf('SpaghettiPortShell--managedCollectionIn')
     const typeRowIndex = html.indexOf('aria-label="Type"')
     const directionRowIndex = html.indexOf('aria-label="Direction"')
     const depthRowIndex = html.indexOf('SpaghettiPortPrimitiveValueRow')
@@ -1960,8 +2109,7 @@ describe('NodeView part section order', () => {
     expect(depthRowIndex).toBeGreaterThan(directionRowIndex)
     expect(taperRowIndex).toBeGreaterThan(depthRowIndex)
     expect(html.includes('Ready')).toBe(true)
-    expect(html.includes('Body Collection Output')).toBe(true)
-    expect(html.includes('Publishes a body collection containing node-extrude-1:body.')).toBe(true)
+    expect(html.includes('Body Collection Output')).toBe(false)
   })
 
   it('renders the dedicated extrude template empty state as a managed SketchProfile input row', () => {
@@ -1997,7 +2145,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2033,15 +2181,66 @@ describe('NodeView part section order', () => {
     })
 
     expect(html.includes('SketchProfile')).toBe(true)
-    expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(true)
-    expect(html.includes('Awaiting SketchProfiles contributors')).toBe(true)
-    expect(
-      html.includes(
-        'Wire one SketchProfile output or the parent SketchProfiles output from Geometry/Sketch into this SketchProfiles collection input.',
-      ),
-    ).toBe(true)
+    expect(html.includes('SpaghettiPortShell--managedCollectionIn')).toBe(true)
+    expect(html.includes('SpaghettiExtrudeProfilePortRow')).toBe(false)
+    expect(html.includes('No SketchProfiles contributors yet')).toBe(true)
+    expect(html.includes('Profile Target')).toBe(false)
     expect(html.includes('Depth Value')).toBe(false)
+  })
+
+  it('keeps the extrude header status out of the empty-state branch when a SketchProfiles wire is connected', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: false,
+        profileWireCount: 1,
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'SketchProfiles',
+          type: { kind: 'sketchProfiles' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBodies' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('SketchProfiles connected | awaiting profile state')).toBe(true)
     expect(html.includes('No SketchProfiles contributors yet')).toBe(false)
+    expect(html.includes('Profile Target')).toBe(false)
+    expect(html.includes('Waiting')).toBe(true)
   })
 
   it('renders aggregate SketchProfiles copy honestly in the dedicated extrude template', () => {
@@ -2090,7 +2289,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2134,17 +2333,78 @@ describe('NodeView part section order', () => {
       ),
     ).toBe(true)
     expect(html.includes('aggregate SketchProfiles contributor')).toBe(true)
-    expect(html.includes('All closed profiles | 2 closed profiles')).toBe(true)
+    expect(html.includes('Parent collection | 2 closed profiles')).toBe(true)
     expect(html.includes('data-sp-port-header-lane="status"')).toBe(true)
     expect(html.includes('data-sp-port-header-status="1"')).toBe(true)
     expect(html.includes('data-sp-port-attached-body="output"')).toBe(true)
-    expect(
-      html.includes(
-        'Consume all closed profiles from the upstream SketchProfiles output from Geometry/Sketch as the start faces for this extrude.',
-      ),
-    ).toBe(true)
+    expect(html.includes('Profile Target')).toBe(false)
     expect(html.includes('Ready')).toBe(true)
-    expect(html.includes('Publishes a body collection containing node-extrude-1:body.')).toBe(true)
+  })
+
+  it('distinguishes a wired aggregate SketchProfiles parent from an empty extrude collection input', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: false,
+        profileTargetMode: 'allFromSketch',
+        profileCount: 0,
+        profileInputEntries: [
+          {
+            endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profiles'),
+            entryId: 'edge-sketch-profiles',
+            kind: 'aggregate',
+            label: 'SketchProfiles',
+            sourceNodeId: 'node-sketch-1',
+            sourceNodeLabel: 'Sketch',
+          },
+        ],
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'SketchProfiles',
+          type: { kind: 'sketchProfiles' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBodies' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('Parent collection wired | awaiting closed profiles')).toBe(true)
+    expect(html.includes('aggregate SketchProfiles contributor')).toBe(true)
+    expect(html.includes('Profile Target')).toBe(false)
+    expect(html.includes('No SketchProfiles contributors yet')).toBe(false)
   })
 
   it('keeps Combine mode singular with no child SolidBody rows', () => {
@@ -2184,7 +2444,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2270,7 +2530,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2314,16 +2574,84 @@ describe('NodeView part section order', () => {
     ).toBe(true)
     expect(html.includes('singular SketchProfile contributor')).toBe(true)
     expect(html.includes('1 contributor | prof-123 | area 12.5')).toBe(true)
-    expect(
-      html.includes(
-        'Consume one upstream SketchProfile from Geometry/Sketch as one contributor in this SketchProfiles collection input.',
-      ),
-    ).toBe(true)
-    expect(
-      html.includes(
-        'Waiting for one SketchProfile contributor and positive Depth before this row can publish a body collection through SolidBodies.',
-      ),
-    ).toBe(true)
+    expect(html.includes('Profile Target')).toBe(false)
+    expect(html.includes('Waiting')).toBe(true)
+  })
+
+  it('keeps multiple singular SketchProfile contributors collection-shaped in the dedicated extrude template', () => {
+    const html = renderExtrudeNode({
+      node: {
+        nodeId: 'node-extrude-1',
+        type: 'Geometry/Extrude',
+        params: {
+          extrudeType: 'Body',
+          extrudeDirection: 'OneSide',
+          depthMm: 30,
+        },
+      },
+      extrudeVm: {
+        extrudeType: 'Body',
+        extrudeDirection: 'OneSide',
+        localDepthMm: 30,
+        effectiveDepthMm: 30,
+        depthVisible: true,
+        depthDriven: false,
+        localStartDepthMm: 30,
+        effectiveStartDepthMm: 30,
+        startDepthVisible: false,
+        startDepthDriven: false,
+        localEndDepthMm: 30,
+        effectiveEndDepthMm: 30,
+        endDepthVisible: false,
+        endDepthDriven: false,
+        taperVisible: true,
+        hasProfile: true,
+        profileTargetMode: 'single',
+        profileCount: 2,
+        profileInputEntries: [
+          {
+            endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profile-a'),
+            entryId: 'edge-sketch-profile-a',
+            kind: 'single',
+            label: 'SketchProfile',
+            sourceNodeId: 'node-sketch-1',
+            sourceNodeLabel: 'Sketch',
+            profileId: 'prof-aaaa1111',
+          },
+          {
+            endpointPortId: buildExtrudeProfileEntryPortId('edge-sketch-profile-b'),
+            entryId: 'edge-sketch-profile-b',
+            kind: 'single',
+            label: 'SketchProfile',
+            sourceNodeId: 'node-sketch-2',
+            sourceNodeLabel: 'Sketch',
+            profileId: 'prof-bbbb2222',
+          },
+        ],
+      },
+      allInputs: [
+        {
+          portId: 'ExtrusionProfile',
+          label: 'SketchProfiles',
+          type: { kind: 'sketchProfiles' },
+          optional: true,
+          maxConnectionsIn: 1,
+        },
+      ],
+      allOutputs: [
+        {
+          portId: 'SolidBody',
+          label: 'SolidBody',
+          type: { kind: 'solidBodies' },
+        },
+      ],
+      nodeMode: 'expanded',
+    })
+
+    expect(html.includes('2 contributors | 2 closed profiles')).toBe(true)
+    expect(html.includes('singular SketchProfile contributor')).toBe(true)
+    expect(html.includes('Profile Target')).toBe(false)
+    expect(html.includes('1 contributor | profile | area 0')).toBe(false)
   })
 
   it('renders one child row per mixed aggregate and singular extrude profile contributor', () => {
@@ -2380,7 +2708,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2467,7 +2795,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2503,18 +2831,10 @@ describe('NodeView part section order', () => {
       nodeMode: 'expanded',
     })
 
-    expect(html.includes('positive Depth')).toBe(true)
     expect(html.includes('Waiting')).toBe(true)
     expect(html.includes('data-sp-port-header-lane="status"')).toBe(true)
     expect(html.includes('data-sp-port-header-status="1"')).toBe(true)
     expect(html.includes('data-sp-port-attached-body="output"')).toBe(true)
-    expect(html.includes('uncapped side walls')).toBe(true)
-    expect(html.includes('Build requirements')).toBe(true)
-    expect(
-      html.includes(
-        'Waiting for SketchProfiles contributors and positive Depth before this row can publish uncapped side walls.',
-      ),
-    ).toBe(true)
     expect(html.includes('Taper Angle')).toBe(false)
   })
 
@@ -2555,7 +2875,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2605,8 +2925,9 @@ describe('NodeView part section order', () => {
       nodeMode: 'expanded',
     })
 
-    expect(html.includes('positive Start Depth and End Depth')).toBe(true)
-    expect(html.includes('body collection')).toBe(true)
+    expect(html.includes('Start Depth')).toBe(true)
+    expect(html.includes('End Depth')).toBe(true)
+    expect(html.includes('Waiting')).toBe(true)
     expect(html.includes('Taper Angle')).toBe(false)
   })
 
@@ -2645,7 +2966,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2681,8 +3002,8 @@ describe('NodeView part section order', () => {
       nodeMode: 'expanded',
     })
 
-    expect(html.includes('positive symmetric Depth')).toBe(true)
-    expect(html.includes('body collection')).toBe(true)
+    expect(html.includes('Depth')).toBe(true)
+    expect(html.includes('Waiting')).toBe(true)
     expect(html.includes('Taper Angle')).toBe(false)
   })
 
@@ -2723,7 +3044,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2801,7 +3122,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2878,7 +3199,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -2968,7 +3289,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -3012,7 +3333,7 @@ describe('NodeView part section order', () => {
     })
 
     expect(html.includes('Taper Angle')).toBe(false)
-    expect(html.includes('positive symmetric Depth')).toBe(true)
+    expect(html.includes('Depth')).toBe(true)
   })
 
   it('keeps the dedicated extrude depth row primitive in expanded mode', () => {
@@ -3049,7 +3370,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },
@@ -3124,7 +3445,7 @@ describe('NodeView part section order', () => {
         {
           portId: 'ExtrusionProfile',
           label: 'SketchProfiles',
-          type: { kind: 'sketchProfile' },
+          type: { kind: 'sketchProfiles' },
           optional: true,
           maxConnectionsIn: 1,
         },

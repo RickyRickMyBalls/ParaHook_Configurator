@@ -5,7 +5,10 @@ import type {
   PartArtifact,
 } from '../../shared/buildTypes'
 import { artifactToPartKeyStr } from '../parts/partKeyResolver'
-import type { GraphPreviewPreparation } from './previewPreparation'
+import {
+  getPreviewPreparationEntriesForSlot,
+  type GraphPreviewPreparation,
+} from './previewPreparation'
 import type { SpaghettiGraph } from './schema/spaghettiTypes'
 import { readNormalizedOutputPreviewParams } from './system/outputPreviewNode'
 
@@ -65,12 +68,60 @@ export const buildGraphOutputEntryId = (
   slotId: string,
   sourceNodeId: string | null | undefined,
   memberIndex?: number | null,
+  sourcePortId?: string | null,
 ): string =>
   typeof sourceNodeId === 'string' && sourceNodeId.length > 0
     ? memberIndex === null || memberIndex === undefined
-      ? `output-entry:${slotId}:${sourceNodeId}`
-      : `output-entry:${slotId}:${sourceNodeId}:member-${String(memberIndex + 1).padStart(3, '0')}`
+      ? sourcePortId === null || sourcePortId === undefined || sourcePortId === 'SolidBody'
+        ? `output-entry:${slotId}:${sourceNodeId}`
+        : `output-entry:${slotId}:${sourceNodeId}:port-${encodeURIComponent(sourcePortId)}`
+      : sourcePortId === null || sourcePortId === undefined || sourcePortId === 'SolidBody'
+        ? `output-entry:${slotId}:${sourceNodeId}:member-${String(memberIndex + 1).padStart(3, '0')}`
+        : `output-entry:${slotId}:${sourceNodeId}:port-${encodeURIComponent(sourcePortId)}:member-${String(memberIndex + 1).padStart(3, '0')}`
     : `output-entry:${slotId}:unbound`
+
+export const buildGraphOutputEntryIdsForSlot = (
+  slotId: string,
+  entries: ReadonlyArray<{
+    sourceNodeId: string
+    sourcePortId: string
+    memberIndex?: number
+  }>,
+): string[] => {
+  const baseOutputEntryIds = entries.map((entry) =>
+    buildGraphOutputEntryId(slotId, entry.sourceNodeId, entry.memberIndex),
+  )
+  const duplicateBaseOutputEntryIds = new Set<string>()
+  const seenBaseOutputEntryIds = new Set<string>()
+  for (const outputEntryId of baseOutputEntryIds) {
+    if (seenBaseOutputEntryIds.has(outputEntryId)) {
+      duplicateBaseOutputEntryIds.add(outputEntryId)
+      continue
+    }
+    seenBaseOutputEntryIds.add(outputEntryId)
+  }
+
+  const seen = new Set<string>()
+  return entries.map((entry, entryIndex) => {
+    const baseOutputEntryId = baseOutputEntryIds[entryIndex]
+    let outputEntryId = duplicateBaseOutputEntryIds.has(baseOutputEntryId)
+      ? buildGraphOutputEntryId(slotId, entry.sourceNodeId, entry.memberIndex, entry.sourcePortId)
+      : baseOutputEntryId
+    if (seen.has(outputEntryId)) {
+      outputEntryId = `${outputEntryId}:dup-${String(entryIndex + 1).padStart(3, '0')}`
+    }
+    seen.add(outputEntryId)
+    return outputEntryId
+  })
+}
+
+export const buildQualifiedGraphOutputEntryId = (
+  graphDocumentId: string,
+  outputEntryId: string | null | undefined,
+): string | null =>
+  typeof outputEntryId === 'string' && outputEntryId.length > 0
+    ? `${graphDocumentId}:${outputEntryId}`
+    : null
 
 export const buildGraphOutputSurface = (options: {
   graphDocumentId: string
@@ -98,29 +149,37 @@ export const buildGraphOutputSurface = (options: {
   }
 
   const entries = previewPreparation.outputSlotIds.flatMap((slotId) => {
-    const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId] ?? ''
-    const sourcePartKey = previewPreparation.sourcePartKeyBySlotId[slotId]
+    const slotEntries = getPreviewPreparationEntriesForSlot(previewPreparation, slotId)
     const rawStatus = previewPreparation.slotStatusBySlotId[slotId] ?? 'empty'
-    const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
-    const memberIndices =
-      publicationMode === 'split'
-        ? Array.from(
-            { length: Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) },
-            (_, index) => index,
-          )
-        : [undefined]
+    if (slotEntries.length === 0) {
+      return [
+        {
+          outputEntryId: buildGraphOutputEntryId(slotId, ''),
+          slotId,
+          sourceNodeId: '',
+          label: slotId,
+          state: rawStatus === 'unresolved' ? ('unresolved' as const) : ('empty' as const),
+          acceptedArtifactKey: null,
+          buildUnitId: null,
+          resultEntryStatus: null,
+          resultClass: null,
+          diagnosticsState: rawStatus === 'unresolved' ? ('hasDiagnostics' as const) : ('none' as const),
+        } satisfies GraphPublishedOutputEntry,
+      ]
+    }
 
-    return memberIndices.map((memberIndex) => {
-      const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId, memberIndex)
+    const outputEntryIds = buildGraphOutputEntryIdsForSlot(slotId, slotEntries)
+    return slotEntries.map((entry, entryIndex) => {
+      const outputEntryId = outputEntryIds[entryIndex]
       const bundleEntry = bundleEntryByOutputEntryId.get(outputEntryId) ?? null
       const acceptedArtifactKey =
         bundleEntry?.artifacts[0]?.partKeyStr ??
-        (sourcePartKey === undefined ? null : (acceptedArtifactKeyByPartKey.get(sourcePartKey) ?? null))
+        (acceptedArtifactKeyByPartKey.get(entry.sourcePartKeyStr) ?? null)
 
       let state: GraphPublishedOutputState = 'empty'
       let diagnosticsState: GraphPublishedOutputDiagnosticsState = 'none'
 
-      if (rawStatus === 'empty' || sourceNodeId.length === 0) {
+      if (rawStatus === 'empty' || entry.sourceNodeId.length === 0) {
         state = 'empty'
         diagnosticsState = 'none'
       } else if (rawStatus === 'unresolved') {
@@ -140,8 +199,8 @@ export const buildGraphOutputSurface = (options: {
       return {
         outputEntryId,
         slotId,
-        sourceNodeId,
-        ...(memberIndex === undefined ? {} : { memberIndex }),
+        sourceNodeId: entry.sourceNodeId,
+        ...(entry.memberIndex === undefined ? {} : { memberIndex: entry.memberIndex }),
         label: slotId,
         state,
         acceptedArtifactKey,
@@ -185,18 +244,15 @@ export const buildGraphPublishedContentSurface = (options: {
     if (entries.length === 0) {
       return []
     }
-    const publicationMode =
-      normalizedParams.slots.find((slot) => slot.slotId === objectRow.slotId)?.publicationMode ??
-      'grouped'
     return entries.flatMap((entry, memberIndex) => {
       if (entry.state === 'empty') {
         return []
       }
-      const suffix = publicationMode === 'split' && entries.length > 1 ? ` ${memberIndex + 1}` : ''
-      const objectId =
-        publicationMode === 'split'
-          ? `${objectRow.objectId}:member-${String(memberIndex + 1).padStart(3, '0')}`
-          : objectRow.objectId
+      const needsIndexedObjectIdentity = entries.length > 1
+      const suffix = needsIndexedObjectIdentity ? ` ${memberIndex + 1}` : ''
+      const objectId = needsIndexedObjectIdentity
+        ? `${objectRow.objectId}:member-${String(memberIndex + 1).padStart(3, '0')}`
+        : objectRow.objectId
       return [
         {
           objectId,

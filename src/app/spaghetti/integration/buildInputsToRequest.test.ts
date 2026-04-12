@@ -77,6 +77,7 @@ describe('buildRequestFromBuildInputs', () => {
             outputEntryId: 'output-entry:s001:node-cube',
             sourceNodeId: 'node-cube',
             partKey: 'cube',
+            bodyId: null,
           },
         ],
       },
@@ -250,17 +251,80 @@ describe('buildRequestFromBuildInputs', () => {
         outputEntryId: 'output-entry:s001:node-extrude-2:member-001',
         sourceNodeId: 'node-extrude-2',
         partKey: 'extrude#2',
+        bodyId: 'node-extrude-2:body:001',
       },
       {
         buildUnitId: 'output-entry:s001:node-extrude-2:member-002',
         outputEntryId: 'output-entry:s001:node-extrude-2:member-002',
         sourceNodeId: 'node-extrude-2',
         partKey: 'extrude#2',
+        bodyId: 'node-extrude-2:body:002',
       },
     ])
     expect(translated.targetBuildUnitIds).toEqual([
       'output-entry:s001:node-extrude-2:member-001',
       'output-entry:s001:node-extrude-2:member-002',
+    ])
+  })
+
+  it('builds unique output-entry ids when one slot flattens multiple contributors from the same node', () => {
+    const translated = buildRequestFromBuildInputs(extrudeBuildInputs(), {
+      ...previewPreparation(),
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude#2'],
+      sourceNodeIdBySlotId: {
+        s001: 'node-extrude-2',
+      },
+      sourcePartKeyBySlotId: {
+        s001: 'extrude#2',
+      },
+      sourcePortIdBySlotId: {
+        s001: 'SolidBody:001',
+      },
+      sourcePartKeyByNodeId: {
+        'node-extrude-2': 'extrude#2',
+      },
+      sourceEntriesBySlotId: {
+        s001: [
+          {
+            slotId: 's001',
+            sourceNodeId: 'node-extrude-2',
+            sourcePartKeyStr: 'extrude#2',
+            sourcePortId: 'SolidBody:001',
+          },
+          {
+            slotId: 's001',
+            sourceNodeId: 'node-extrude-2',
+            sourcePartKeyStr: 'extrude#2',
+            sourcePortId: 'SolidBody:002',
+          },
+        ],
+      },
+      slotStatusBySlotId: {
+        s001: 'ok',
+      },
+    })
+
+    expect(translated.compiledBuildData.outputEntries).toEqual([
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-2:port-SolidBody%3A001',
+        outputEntryId: 'output-entry:s001:node-extrude-2:port-SolidBody%3A001',
+        sourceNodeId: 'node-extrude-2',
+        partKey: 'extrude#2',
+        bodyId: 'node-extrude-2:body:001',
+      },
+      {
+        buildUnitId: 'output-entry:s001:node-extrude-2:port-SolidBody%3A002',
+        outputEntryId: 'output-entry:s001:node-extrude-2:port-SolidBody%3A002',
+        sourceNodeId: 'node-extrude-2',
+        partKey: 'extrude#2',
+        bodyId: 'node-extrude-2:body:002',
+      },
+    ])
+    expect(translated.targetBuildUnitIds).toEqual([
+      'output-entry:s001:node-extrude-2:port-SolidBody%3A001',
+      'output-entry:s001:node-extrude-2:port-SolidBody%3A002',
     ])
   })
 })

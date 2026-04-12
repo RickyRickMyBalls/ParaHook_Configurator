@@ -209,9 +209,9 @@ export const createBrowserRowInteractionHandlers = (
         selectedPartKey:
           selectedRow.rowKind === 'part'
             ? selectedRow.partKey
-            : selectedRow.rowKind === 'object' && !deps.sharedViewerCompositionActive
+            : selectedRow.rowKind === 'object'
               ? selectedRow.highlightViewerKey
-            : null,
+              : null,
       },
     )
   }

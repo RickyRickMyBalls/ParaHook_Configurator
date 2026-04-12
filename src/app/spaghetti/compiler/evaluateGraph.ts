@@ -20,7 +20,13 @@ import {
   parseDriverVirtualInputPortId,
   listDriverVirtualOutputPorts,
 } from '../features/driverVirtualPorts'
-import { getExtrudeProfileSourcePath } from '../features/extrudeProfileConnections'
+import {
+  flattenExtrudeProfileContributorValues,
+  getExtrudeProfileSourcePath,
+  isProfileOutputLike,
+  isSketchProfilesValue,
+  isWholeExtrusionProfileTargetEndpoint,
+} from '../features/extrudeProfileConnections'
 import {
   getExtrudeBodyMemberOutputValue,
   listExtrudeBodyMemberOutputPorts,
@@ -97,28 +103,6 @@ const isOpaqueRefToken = (value: unknown): value is OpaqueRefToken =>
   Object.keys(value).length === 1 &&
   typeof value.__opaqueRef === 'string'
 
-const isProfileOutputLike = (
-  value: unknown,
-): value is {
-  profileId: string
-  profileIndex: number
-  area: number
-} =>
-  isRecord(value) &&
-  typeof value.profileId === 'string' &&
-  value.profileId.length > 0 &&
-  isFiniteNumber(value.profileIndex) &&
-  isFiniteNumber(value.area)
-
-const isSketchProfiles = (value: unknown): value is Array<{
-  profileId: string
-  profileIndex: number
-  area: number
-}> => Array.isArray(value) && value.every((entry) => isProfileOutputLike(entry))
-
-const isExtrusionProfileContributorValue = (value: unknown): boolean =>
-  isProfileOutputLike(value) || isSketchProfiles(value)
-
 const isAtomicSolidBody = (value: unknown): value is Extract<SolidBodyValue, { bodyId: string }> =>
   isRecord(value) && typeof value.bodyId === 'string' && value.bodyId.length > 0
 
@@ -151,7 +135,7 @@ const isValidForPortType = (value: unknown, type: PortType): boolean => {
     case 'profileLoop':
       return true
     case 'sketchProfiles':
-      return isSketchProfiles(value)
+      return isSketchProfilesValue(value)
     case 'sketchProfile':
       return value === null || isProfileOutputLike(value)
     case 'solidBody':
@@ -367,10 +351,19 @@ const isValidMultiInputCollection = (
   values: readonly unknown[],
 ): boolean => {
   if (node.type === 'Geometry/Extrude' && portId === 'ExtrusionProfile') {
-    return values.length > 0 && values.every((value) => isExtrusionProfileContributorValue(value))
+    return flattenExtrudeProfileContributorValues(values) !== null
   }
   return false
 }
+
+const isWholeInputEdgeForPort = (
+  node: SpaghettiNode,
+  portId: string,
+  edge: SpaghettiEdge,
+): boolean =>
+  node.type === 'Geometry/Extrude' && portId === 'ExtrusionProfile'
+    ? isWholeExtrusionProfileTargetEndpoint(edge.to)
+    : normalizePath(edge.to.path) === undefined
 
 export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult => {
   const validation = validateGraph(graph)
@@ -448,14 +441,18 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
     const effectiveInputPorts = listEffectiveInputPorts(node, nodeDef)
 
     for (const inputPort of effectiveInputPorts) {
-      const matchingEdges = incomingEdges.filter((edge) => edge.to.portId === inputPort.portId)
+      const matchingEdges = incomingEdges.filter((edge) =>
+        node.type === 'Geometry/Extrude' && inputPort.portId === 'ExtrusionProfile'
+          ? isWholeExtrusionProfileTargetEndpoint(edge.to)
+          : edge.to.portId === inputPort.portId,
+      )
       const fieldTree = getFieldTree(inputPort.type)
       const literalValue = node.params[inputPort.portId]
       const defaultValue = defaultValueFromFieldNode(fieldTree)
 
       if (isCompositeFieldNode(fieldTree)) {
-        const wholeEdges = matchingEdges.filter(
-          (edge) => normalizePath(edge.to.path) === undefined,
+        const wholeEdges = matchingEdges.filter((edge) =>
+          isWholeInputEdgeForPort(node, inputPort.portId, edge),
         )
         const leafEdges = matchingEdges.filter(
           (edge) => normalizePath(edge.to.path) !== undefined,
@@ -535,7 +532,9 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
         continue
       }
 
-      const wholeEdges = matchingEdges.filter((edge) => normalizePath(edge.to.path) === undefined)
+      const wholeEdges = matchingEdges.filter((edge) =>
+        isWholeInputEdgeForPort(node, inputPort.portId, edge),
+      )
       if (wholeEdges.length === 0) {
         if (inputPort.optional === true) {
           continue
@@ -547,6 +546,26 @@ export const evaluateSpaghettiGraph = (graph: SpaghettiGraph): EvaluationResult 
           message: `Missing required input "${inputPort.portId}" on node "${nodeId}".`,
           nodeId,
         })
+        continue
+      }
+
+      if (node.type === 'Geometry/Extrude' && inputPort.portId === 'ExtrusionProfile') {
+        const sourceValues = wholeEdges.map((edge) => resolveSourceValueFromEdge(edge))
+        if (sourceValues.some((value) => value === undefined)) {
+          continue
+        }
+        const resolvedProfiles = flattenExtrudeProfileContributorValues(sourceValues)
+        if (resolvedProfiles === null) {
+          hasNodeError = true
+          errors.push({
+            level: 'error',
+            code: 'INPUT_SOURCE_VALUE_MISSING',
+            message: `Invalid multi-input collection shape for "${nodeId}.${inputPort.portId}".`,
+            nodeId,
+          })
+          continue
+        }
+        inputs[inputPort.portId] = resolvedProfiles
         continue
       }
 

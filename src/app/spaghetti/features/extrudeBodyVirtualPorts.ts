@@ -1,5 +1,8 @@
 import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
-import { countProfilesForExtrudeContributorEdge } from './extrudeProfileConnections'
+import {
+  countProfilesForExtrudeContributorEdge,
+  isWholeExtrusionProfileTargetEndpoint,
+} from './extrudeProfileConnections'
 import { readGeometryExtrudeBodyGenerationModeFromParams } from '../registry/nodeRegistry'
 import { parseSketchProfileMemberPortId } from './sketchProfileVirtualPorts'
 
@@ -35,8 +38,7 @@ const listWholeIncomingProfileEdges = (
   graph.edges.filter(
     (edge) =>
       edge.to.nodeId === nodeId &&
-      edge.to.portId === 'ExtrusionProfile' &&
-      (edge.to.path === undefined || edge.to.path.length === 0),
+      isWholeExtrusionProfileTargetEndpoint(edge.to),
   )
 
 const countResolvedExtrudeBodyMembersFromGraph = (

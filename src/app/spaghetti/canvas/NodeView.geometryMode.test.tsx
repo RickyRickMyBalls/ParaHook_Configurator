@@ -3,10 +3,14 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { evaluateSpaghettiGraph } from '../compiler/evaluateGraph'
 import { buildExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
 import { buildExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
-import type { PortSpec, SpaghettiNode } from '../schema/spaghettiTypes'
+import type { SketchFeature } from '../features/featureTypes'
+import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import type { ExtrudeNodeVm, SketchNodeVm } from '../selectors'
+import { selectDiagnosticsVm } from '../selectors/selectDiagnosticsVm'
+import { selectNodeVm } from '../selectors/selectNodeVm'
 import { buildSketchProfileMemberPortId } from '../features/sketchProfileVirtualPorts'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -108,6 +112,35 @@ const extrudeVm: ExtrudeNodeVm = {
   hasProfile: false,
 }
 
+const createSketchFeature = (
+  components: SketchFeature['components'] = [],
+): SketchFeature => ({
+  type: 'sketch',
+  featureId: 'sketch-geometry-mode',
+  plane: 'XY',
+  components,
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
+
+const rectangleComponent = (
+  rowId: string,
+  componentId: string,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): SketchFeature['components'][number] => ({
+  rowId,
+  componentId,
+  type: 'rectangle',
+  a: { kind: 'lit', x: a.x, y: a.y },
+  b: { kind: 'lit', x: b.x, y: b.y },
+})
+
 const sketchInputPortDetails = {
   SketchPlane: [
     { text: 'type: plane' },
@@ -142,7 +175,7 @@ const extrudeInputs: PortSpec[] = [
   {
     portId: 'ExtrusionProfile',
     label: 'SketchProfiles',
-    type: { kind: 'sketchProfile' },
+    type: { kind: 'sketchProfiles' },
     optional: true,
     maxConnectionsIn: 1,
   },
@@ -697,20 +730,18 @@ describe('NodeView geometry mode behavior', () => {
     expect(contentBlock).toBeNull()
     expect(outputsBlock?.getAttribute('data-sp-geometry-block-open')).toBe('1')
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
-    expect(inputRow?.classList.contains('SpaghettiExtrudeProfilePortRow')).toBe(true)
+    expect(inputRow?.classList.contains('SpaghettiPortShell--managedCollectionIn')).toBe(true)
+    expect(inputRow?.classList.contains('SpaghettiExtrudeProfilePortRow')).toBe(false)
     expect(inputRow?.textContent).toContain('SketchProfiles')
-    expect(inputRow?.textContent).toContain('Awaiting SketchProfiles contributors')
+    expect(inputRow?.textContent).toContain('No SketchProfiles contributors yet')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('1')
-    expect(inputRow?.textContent).toContain('Profile Target')
-    expect(inputRow?.textContent).toContain(
-      'Wire one SketchProfile output or the parent SketchProfiles output from Geometry/Sketch into this SketchProfiles collection input.',
-    )
-    expect(inputRow?.textContent).not.toContain('No SketchProfiles contributors yet')
+    expect(inputRow?.textContent).not.toContain('Profile Target')
+    expect(inputRow?.textContent).toContain('No SketchProfiles contributors yet')
 
     await act(async () => {
       inputLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -724,7 +755,7 @@ describe('NodeView geometry mode behavior', () => {
     })
 
     expect(inputRow?.getAttribute('data-sp-port-row-open')).toBe('0')
-    expect(inputRow?.textContent).toContain('Awaiting SketchProfiles contributors')
+    expect(inputRow?.textContent).toContain('No SketchProfiles contributors yet')
   })
 
   it('reveals one child row per actual extrude profile connection entry in essentials and expanded modes', async () => {
@@ -1274,7 +1305,6 @@ describe('NodeView geometry mode behavior', () => {
             hasProfile: true,
             profileTargetMode: 'allFromSketch',
             profileCount: 4,
-            bodyId: 'node-extrude-1:body:001',
             bodyCount: 4,
             bodyMemberPortIds: members,
             profileInputEntries: [
@@ -1286,6 +1316,12 @@ describe('NodeView geometry mode behavior', () => {
                 sourceNodeId: 'node-sketch-1',
                 sourceNodeLabel: 'Sketch',
               },
+            ],
+            resolvedProfileMembers: [
+              { profileId: 'prof_16dpmc3', area: 100 },
+              { profileId: 'prof_ai8hai', area: 100 },
+              { profileId: 'prof_1eap4xv', area: 100 },
+              { profileId: 'prof_1o1ryio', area: 100 },
             ],
           }}
           allOutputs={[
@@ -1309,7 +1345,7 @@ describe('NodeView geometry mode behavior', () => {
     const bodyRow = findExtrudeOutputRow(container, 'SolidBodies')
     const bodyChevron = bodyRow?.querySelector('.SpaghettiPortChevron--leading')
 
-    expect(inputRow?.textContent).toContain('All closed profiles')
+    expect(inputRow?.textContent).toContain('Parent collection')
     expect(inputRow?.textContent).toContain('4 closed profiles')
     expect(inputRow?.textContent).not.toContain('Awaiting SketchProfiles contributors')
 
@@ -1323,6 +1359,8 @@ describe('NodeView geometry mode behavior', () => {
 
     expect(inputRow?.textContent).toContain('Resolved collection state')
     expect(inputRow?.textContent).toContain('aggregate SketchProfiles contributor')
+    expect(container?.querySelectorAll('[data-sp-extrude-profile-member-row]').length).toBe(4)
+    expect(inputRow?.textContent).toContain('resolved closed profile member')
 
     await act(async () => {
       bodyChevron?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -1375,6 +1413,78 @@ describe('NodeView geometry mode behavior', () => {
     expect(container?.querySelectorAll('[data-sp-extrude-body-child-row]').length).toBe(2)
     expect(container?.textContent).toContain('expected body member target')
     expect(container?.textContent).toContain('waiting for body resolution')
+  })
+
+  it('renders the parent SketchProfiles row as resolved for legacy aggregate extrude target ids', async () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+              rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+              rectangleComponent('row-3', 'rect-c', { x: 120, y: 0 }, { x: 160, y: 20 }),
+              rectangleComponent('row-4', 'rect-d', { x: 180, y: 0 }, { x: 220, y: 20 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            extrudeType: 'Body',
+            extrudeDirection: 'OneSide',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-profiles-legacy-target',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles', path: ['member', '0'] },
+          to: { nodeId: 'node-extrude-1', portId: 'SketchProfiles', path: ['staleTarget'] },
+        },
+      ],
+      ui: {
+        nodeModesByNodeId: {
+          'node-extrude-1': 'collapsed',
+        },
+      },
+    }
+    const evaluation = evaluateSpaghettiGraph(graph)
+    const diagnosticsVm = selectDiagnosticsVm({ graph, evaluation })
+    const vm = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const resolvedExtrudeVm = vm.byNodeId.get('node-extrude-1')?.extrudeVm
+
+    expect(resolvedExtrudeVm?.profileTargetMode).toBe('allFromSketch')
+    expect(resolvedExtrudeVm?.hasProfile).toBe(true)
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph(graph)
+      root?.render(
+        <ExtrudeNodeHarness
+          graphNode={graph.nodes[1]}
+          extrudeVm={resolvedExtrudeVm}
+          allOutputs={[
+            {
+              portId: 'SolidBody',
+              label: 'SolidBodies',
+              type: { kind: 'solidBodies' },
+            },
+          ]}
+        />,
+      )
+    })
+
+    const inputRow = findExtrudeInputRow(container, 'SketchProfiles')
+
+    expect(inputRow?.textContent).toContain('Parent collection')
+    expect(inputRow?.textContent).toContain('4 closed profiles')
+    expect(inputRow?.textContent).not.toContain('Awaiting SketchProfiles contributors')
   })
 
   it('keeps collapsed geometry node input and output blocks open while rows stay compact', async () => {
@@ -1661,6 +1771,9 @@ describe('NodeView geometry mode behavior', () => {
     expect(sketchOutputRow?.querySelector('[data-sp-port-header-lane="status"]')).not.toBeNull()
     expect(sketchOutputRow?.querySelector('[data-sp-port-header-status="1"]')).not.toBeNull()
     expect(sketchOutputRow?.querySelector('[data-sp-port-attached-body="output"]')).not.toBeNull()
+    expect(sketchOutputRow?.classList.contains('SpaghettiPortShell--managedCollectionOut')).toBe(
+      true,
+    )
 
     await act(async () => {
       useSpaghettiStore.getState().setGraph({
@@ -1681,6 +1794,9 @@ describe('NodeView geometry mode behavior', () => {
     expect(extrudeOutputRow?.querySelector('[data-sp-port-header-lane="status"]')).not.toBeNull()
     expect(extrudeOutputRow?.querySelector('[data-sp-port-header-status="1"]')).not.toBeNull()
     expect(extrudeOutputRow?.querySelector('[data-sp-port-attached-body="output"]')).not.toBeNull()
+    expect(extrudeOutputRow?.classList.contains('SpaghettiPortShell--managedCollectionOut')).toBe(
+      true,
+    )
   })
 
   it('keeps composite parent rows tied to real typed ownership and whole-wire drive state', async () => {

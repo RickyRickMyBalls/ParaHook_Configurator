@@ -1,4 +1,5 @@
 import {
+  type BuildResultBundle,
   toViewerRenderablePart,
   type PartArtifact,
   type ViewerRenderablePart,
@@ -89,6 +90,7 @@ export type ViewportResultState = {
   visibleSourceKind: ViewportVisibleSourceKind
   geometryResult: GeometryResultBundle | null
   artifactBuildOutputs: readonly PartArtifact[]
+  acceptedPreviewBuildBundle: BuildResultBundle | null
   previewPreparation: GraphPreviewPreparation | null
   renderVm: PreviewRenderVm
   previewRenderVm: PreviewRenderVm
@@ -114,6 +116,7 @@ type SelectViewportResultStateOptions = {
   acceptedDraftGeometryResult: GeometryResultBundle | null
   committedAuthoritativeGeometryResult: GeometryResultBundle | null
   committedDraftGeometryResult: GeometryResultBundle | null
+  acceptedPreviewBuildBundle?: BuildResultBundle | null
   acceptedPreviewBuildOutputs: readonly PartArtifact[]
   previewPreparation: GraphPreviewPreparation | null
   viewerTargetGraphDocumentId: string | null
@@ -136,6 +139,7 @@ type ViewportLayerCandidate = {
 type BuildViewportResultStateArgs = {
   options: SelectViewportResultStateOptions
   artifactBuildOutputs: readonly PartArtifact[]
+  acceptedPreviewBuildBundle: BuildResultBundle | null
   previewRenderVm: PreviewRenderVm
   currentAuthoritativeGeometryResult: GeometryResultBundle | null
   currentAuthoritativeRenderVm: PreviewRenderVm
@@ -145,11 +149,11 @@ type BuildViewportResultStateArgs = {
   currentDraftGeometryRenderVm: PreviewRenderVm
   retainedBaseState: ViewportRetainedBaseState
   baseCandidate: ViewportLayerCandidate
+  draftPreviewCandidate: ViewportLayerCandidate
   visibleResultClass: ViewportVisibleResultClass
   visibleSourceKind: ViewportVisibleSourceKind
   geometryResult: GeometryResultBundle | null
   renderVm: PreviewRenderVm
-  overlayCandidate: ViewportLayerCandidate
   isPendingFinal: boolean
   isUsingFallback: boolean
   fallbackReason: ViewportFallbackReason | null
@@ -226,6 +230,7 @@ const buildArtifactPreviewRenderVm = (options: {
   activeDraftProjectViewerParts: readonly ViewerRenderablePart[]
   previewPreparation: GraphPreviewPreparation | null
   artifactBuildOutputs: readonly PartArtifact[]
+  acceptedPreviewBuildBundle: BuildResultBundle | null
   viewerTargetGraphDocumentId: string | null
 }): PreviewRenderVm => {
   if (options.useProjectDraftPreview) {
@@ -240,6 +245,24 @@ const buildArtifactPreviewRenderVm = (options: {
   const previewVm = selectPreviewRenderVmFromPreparation(
     options.previewPreparation,
     [...options.artifactBuildOutputs],
+    options.acceptedPreviewBuildBundle,
+  )
+  return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
+}
+
+const buildPublishedAuthoritativeRenderVm = (options: {
+  previewPreparation: GraphPreviewPreparation | null
+  artifactBuildOutputs: readonly PartArtifact[]
+  acceptedPreviewBuildBundle: BuildResultBundle | null
+  viewerTargetGraphDocumentId: string | null
+}): PreviewRenderVm => {
+  if (options.previewPreparation === null || options.acceptedPreviewBuildBundle === null) {
+    return EMPTY_PREVIEW_RENDER_VM
+  }
+  const previewVm = selectPreviewRenderVmFromPreparation(
+    options.previewPreparation,
+    [...options.artifactBuildOutputs],
+    options.acceptedPreviewBuildBundle,
   )
   return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
 }
@@ -313,7 +336,7 @@ const hasCurrentOutputContinuation = (
     const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
     const sourcePartKey = previewPreparation.sourcePartKeyBySlotId[slotId]
     return (
-      slotStatus === 'ok' &&
+      slotStatus !== 'empty' &&
       typeof sourceNodeId === 'string' &&
       sourceNodeId.length > 0 &&
       typeof sourcePartKey === 'string' &&
@@ -442,6 +465,7 @@ const resolveOverlayCandidate = (options: {
   requestedMode: WorkspaceViewportResultMode
   previewReadyAuthoritativeGeometryResult: GeometryResultBundle | null
   previewReadyAuthoritativeRenderVm: PreviewRenderVm
+  currentDraftRenderVm: PreviewRenderVm
   currentDraftGeometryResult: GeometryResultBundle | null
   previewRenderVm: PreviewRenderVm
 }): ViewportLayerCandidate => {
@@ -457,12 +481,23 @@ const resolveOverlayCandidate = (options: {
       renderVm: options.previewReadyAuthoritativeRenderVm,
     }
   }
-  return options.requestedMode !== 'final' && options.previewRenderVm.viewerParts.length > 0
+  if (options.requestedMode === 'final') {
+    return EMPTY_LAYER_CANDIDATE
+  }
+  if (options.previewRenderVm.viewerParts.length > 0) {
+    return {
+      resultClass: 'draft',
+      sourceKind: 'artifact-preview',
+      geometryResult: options.currentDraftGeometryResult,
+      renderVm: options.previewRenderVm,
+    }
+  }
+  return options.currentDraftRenderVm.viewerParts.length > 0
     ? {
         resultClass: 'draft',
-        sourceKind: 'artifact-preview',
+        sourceKind: 'retained-draft',
         geometryResult: options.currentDraftGeometryResult,
-        renderVm: options.previewRenderVm,
+        renderVm: options.currentDraftRenderVm,
       }
     : EMPTY_LAYER_CANDIDATE
 }
@@ -665,6 +700,7 @@ const resolveAcceptedState = (options: {
 const buildViewportResultState = ({
   options,
   artifactBuildOutputs,
+  acceptedPreviewBuildBundle,
   previewRenderVm,
   currentAuthoritativeGeometryResult,
   currentAuthoritativeRenderVm,
@@ -674,11 +710,11 @@ const buildViewportResultState = ({
   currentDraftGeometryRenderVm,
   retainedBaseState,
   baseCandidate,
+  draftPreviewCandidate,
   visibleResultClass,
   visibleSourceKind,
   geometryResult,
   renderVm,
-  overlayCandidate,
   isPendingFinal,
   isUsingFallback,
   fallbackReason,
@@ -701,12 +737,7 @@ const buildViewportResultState = ({
       previewReadyAuthoritativeGeometryResult,
       previewReadyAuthoritativeRenderVm,
     ),
-    draftPreviewCandidate: buildCandidate(
-      'draft',
-      'artifact-preview',
-      currentDraftGeometryResult,
-      previewRenderVm,
-    ),
+    draftPreviewCandidate,
     currentAuthoritativeDiffersFromCommitted: doesGeometryResultDifferFromCommitted(
       previewReadyAuthoritativeGeometryResult,
       options.committedAuthoritativeGeometryResult,
@@ -750,6 +781,7 @@ const buildViewportResultState = ({
     visibleSourceKind,
     geometryResult,
     artifactBuildOutputs,
+    acceptedPreviewBuildBundle,
     previewPreparation: options.previewPreparation,
     renderVm,
     previewRenderVm,
@@ -759,15 +791,15 @@ const buildViewportResultState = ({
     retainedBaseGeometryResult: baseCandidate.geometryResult,
     retainedBaseRenderVm: baseCandidate.renderVm,
     overlayResultClass:
-      previewState.presentationStateId === null ? null : overlayCandidate.resultClass,
+      previewState.presentationStateId === null ? null : previewState.resultClass,
     overlaySourceKind:
-      previewState.presentationStateId === null ? 'none' : overlayCandidate.sourceKind,
+      previewState.presentationStateId === null ? 'none' : previewState.sourceKind,
     overlayGeometryResult:
-      previewState.presentationStateId === null ? null : overlayCandidate.geometryResult,
+      previewState.presentationStateId === null ? null : previewState.geometryResult,
     overlayRenderVm:
       previewState.presentationStateId === null
         ? EMPTY_PREVIEW_RENDER_VM
-        : overlayCandidate.renderVm,
+        : previewState.renderVm,
     isPendingFinal,
     isUsingFallback,
     fallbackReason,
@@ -791,20 +823,36 @@ export const selectViewportResultState = (
     activeDraftProjectViewerParts: options.activeDraftProjectViewerParts,
     previewPreparation: options.previewPreparation,
     artifactBuildOutputs,
+    acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
-  const authoritativeRenderVm = buildAuthoritativeRenderVm({
+  const publishedAuthoritativeRenderVm = buildPublishedAuthoritativeRenderVm({
+    previewPreparation: options.previewPreparation,
+    artifactBuildOutputs,
+    acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
+    viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
+  })
+  const authoritativeGeometryRenderVm = buildAuthoritativeRenderVm({
     geometryResult: finalGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
+  const authoritativeRenderVm =
+    finalGeometryResult !== null && publishedAuthoritativeRenderVm.viewerParts.length > 0
+      ? publishedAuthoritativeRenderVm
+      : authoritativeGeometryRenderVm
   const previewReadyAuthoritativeRenderVm = buildAuthoritativeRenderVm({
     geometryResult: previewReadyAuthoritativeGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
-  const committedAuthoritativeRenderVm = buildAuthoritativeRenderVm({
+  const committedAuthoritativeGeometryRenderVm = buildAuthoritativeRenderVm({
     geometryResult: options.committedAuthoritativeGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
+  const committedAuthoritativeRenderVm =
+    options.committedAuthoritativeGeometryResult !== null &&
+    publishedAuthoritativeRenderVm.viewerParts.length > 0
+      ? publishedAuthoritativeRenderVm
+      : committedAuthoritativeGeometryRenderVm
   const currentDraftGeometryRenderVm = buildDraftGeometryRenderVm({
     geometryResult: draftGeometryResult,
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
@@ -814,6 +862,14 @@ export const selectViewportResultState = (
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
   const hasOutputContinuation = hasCurrentOutputContinuation(options.previewPreparation)
+  const currentOutputMatchesCommittedAuthoritative = doesCurrentOutputMatchGeometryResultPartKeys(
+    options.previewPreparation,
+    options.committedAuthoritativeGeometryResult,
+  )
+  const currentOutputMatchesCommittedDraft = doesCurrentOutputMatchGeometryResultPartKeys(
+    options.previewPreparation,
+    options.committedDraftGeometryResult,
+  )
   const { retainedBaseState, baseCandidate } = resolveRetainedBaseCandidate({
     requestedMode: options.requestedMode,
     currentAuthoritativeGeometryResult: finalGeometryResult,
@@ -825,26 +881,39 @@ export const selectViewportResultState = (
     currentDraftRenderVm: currentDraftGeometryRenderVm,
     committedDraftRenderVm,
     hasCurrentOutputContinuation: hasOutputContinuation,
-    currentOutputMatchesCommittedAuthoritative: doesCurrentOutputMatchGeometryResultPartKeys(
-      options.previewPreparation,
-      options.committedAuthoritativeGeometryResult,
-    ),
-    currentOutputMatchesCommittedDraft: doesCurrentOutputMatchGeometryResultPartKeys(
-      options.previewPreparation,
-      options.committedDraftGeometryResult,
-    ),
+    currentOutputMatchesCommittedAuthoritative,
+    currentOutputMatchesCommittedDraft,
   })
   const overlayCandidate = resolveOverlayCandidate({
     requestedMode: options.requestedMode,
     previewReadyAuthoritativeGeometryResult,
     previewReadyAuthoritativeRenderVm,
+    currentDraftRenderVm: currentDraftGeometryRenderVm,
     currentDraftGeometryResult: draftGeometryResult,
     previewRenderVm,
   })
-  const hasUsableDraftPreview = previewRenderVm.viewerParts.length > 0
   const hasRenderableFinal = authoritativeRenderVm.viewerParts.length > 0
   const hasRenderablePreviewReadyAuthoritative =
     previewReadyAuthoritativeRenderVm.viewerParts.length > 0
+  const waitingDraftFallbackCandidate =
+    overlayCandidate.resultClass === null &&
+    browserExecutionPolicy === 'live' &&
+    isInteractionActive &&
+    options.requestedMode === 'auto' &&
+    options.committedDraftGeometryResult !== null &&
+    committedDraftRenderVm.viewerParts.length > 0 &&
+    hasOutputContinuation &&
+    currentOutputMatchesCommittedDraft
+      ? buildCandidate(
+          'draft',
+          'retained-draft',
+          options.committedDraftGeometryResult,
+          committedDraftRenderVm,
+        )
+      : EMPTY_LAYER_CANDIDATE
+  const draftPreviewCandidate =
+    overlayCandidate.resultClass === 'draft' ? overlayCandidate : waitingDraftFallbackCandidate
+  const hasUsableDraftPreview = draftPreviewCandidate.resultClass !== null
   const hasUsableGeometry = hasUsableDraftPreview || hasRenderableFinal
   const suppressVisiblePreviewDuringRelease =
     browserExecutionPolicy === 'release' && isInteractionActive
@@ -854,6 +923,7 @@ export const selectViewportResultState = (
       return buildViewportResultState({
         options,
         artifactBuildOutputs,
+        acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
         previewRenderVm,
         currentAuthoritativeGeometryResult: finalGeometryResult,
         currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -863,11 +933,11 @@ export const selectViewportResultState = (
         currentDraftGeometryRenderVm,
         retainedBaseState,
         baseCandidate,
+        draftPreviewCandidate,
         visibleResultClass: baseCandidate.resultClass,
         visibleSourceKind: baseCandidate.sourceKind,
         geometryResult: baseCandidate.geometryResult,
         renderVm: baseCandidate.renderVm,
-        overlayCandidate: EMPTY_LAYER_CANDIDATE,
         isPendingFinal: false,
         isUsingFallback: false,
         fallbackReason: null,
@@ -877,6 +947,7 @@ export const selectViewportResultState = (
     return buildViewportResultState({
       options,
       artifactBuildOutputs,
+      acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
       previewRenderVm,
       currentAuthoritativeGeometryResult: finalGeometryResult,
       currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -886,11 +957,11 @@ export const selectViewportResultState = (
       currentDraftGeometryRenderVm,
       retainedBaseState,
       baseCandidate,
+      draftPreviewCandidate,
       visibleResultClass: null,
       visibleSourceKind: 'none',
       geometryResult: null,
       renderVm: EMPTY_PREVIEW_RENDER_VM,
-      overlayCandidate: EMPTY_LAYER_CANDIDATE,
       isPendingFinal: false,
       isUsingFallback: true,
       fallbackReason: 'no-accepted-geometry',
@@ -905,6 +976,7 @@ export const selectViewportResultState = (
     return buildViewportResultState({
       options,
       artifactBuildOutputs,
+      acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
       previewRenderVm,
       currentAuthoritativeGeometryResult: finalGeometryResult,
       currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -914,11 +986,11 @@ export const selectViewportResultState = (
       currentDraftGeometryRenderVm,
       retainedBaseState,
       baseCandidate,
+      draftPreviewCandidate,
       visibleResultClass: 'final',
       visibleSourceKind: 'authoritative-preview',
       geometryResult: previewReadyAuthoritativeGeometryResult,
       renderVm: previewReadyAuthoritativeRenderVm,
-      overlayCandidate,
       isPendingFinal: false,
       isUsingFallback: false,
       fallbackReason: null,
@@ -929,6 +1001,7 @@ export const selectViewportResultState = (
     return buildViewportResultState({
       options,
       artifactBuildOutputs,
+      acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
       previewRenderVm,
       currentAuthoritativeGeometryResult: finalGeometryResult,
       currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -938,11 +1011,11 @@ export const selectViewportResultState = (
       currentDraftGeometryRenderVm,
       retainedBaseState,
       baseCandidate,
+      draftPreviewCandidate,
       visibleResultClass: 'final',
       visibleSourceKind: 'retained-final',
       geometryResult: finalGeometryResult,
       renderVm: authoritativeRenderVm,
-      overlayCandidate,
       isPendingFinal: false,
       isUsingFallback: false,
       fallbackReason: null,
@@ -953,6 +1026,7 @@ export const selectViewportResultState = (
     return buildViewportResultState({
       options,
       artifactBuildOutputs,
+      acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
       previewRenderVm,
       currentAuthoritativeGeometryResult: finalGeometryResult,
       currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -962,14 +1036,17 @@ export const selectViewportResultState = (
       currentDraftGeometryRenderVm,
       retainedBaseState,
       baseCandidate,
+      draftPreviewCandidate,
       visibleResultClass: 'draft',
-      visibleSourceKind: 'artifact-preview',
-      geometryResult: draftGeometryResult,
-      renderVm: previewRenderVm,
-      overlayCandidate,
+      visibleSourceKind: draftPreviewCandidate.sourceKind,
+      geometryResult: draftPreviewCandidate.geometryResult,
+      renderVm: draftPreviewCandidate.renderVm,
       isPendingFinal: options.modeBehavior.allowsFinalReplacement && !hasRenderableFinal,
-      isUsingFallback: true,
-      fallbackReason: 'artifact-preview-bridge',
+      isUsingFallback: draftPreviewCandidate.sourceKind === 'artifact-preview',
+      fallbackReason:
+        draftPreviewCandidate.sourceKind === 'artifact-preview'
+          ? 'artifact-preview-bridge'
+          : null,
     })
   }
 
@@ -977,6 +1054,7 @@ export const selectViewportResultState = (
     return buildViewportResultState({
       options,
       artifactBuildOutputs,
+      acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
       previewRenderVm,
       currentAuthoritativeGeometryResult: finalGeometryResult,
       currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -986,11 +1064,11 @@ export const selectViewportResultState = (
       currentDraftGeometryRenderVm,
       retainedBaseState,
       baseCandidate,
+      draftPreviewCandidate,
       visibleResultClass: null,
       visibleSourceKind: 'none',
       geometryResult: null,
       renderVm: EMPTY_PREVIEW_RENDER_VM,
-      overlayCandidate,
       isPendingFinal: false,
       isUsingFallback: true,
       fallbackReason: 'final-unavailable',
@@ -1001,6 +1079,7 @@ export const selectViewportResultState = (
     return buildViewportResultState({
       options,
       artifactBuildOutputs,
+      acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
       previewRenderVm,
       currentAuthoritativeGeometryResult: finalGeometryResult,
       currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -1010,11 +1089,11 @@ export const selectViewportResultState = (
       currentDraftGeometryRenderVm,
       retainedBaseState,
       baseCandidate,
+      draftPreviewCandidate,
       visibleResultClass: null,
       visibleSourceKind: 'none',
       geometryResult: null,
       renderVm: EMPTY_PREVIEW_RENDER_VM,
-      overlayCandidate,
       isPendingFinal: false,
       isUsingFallback: true,
       fallbackReason: 'no-accepted-geometry',
@@ -1024,6 +1103,7 @@ export const selectViewportResultState = (
   return buildViewportResultState({
     options,
     artifactBuildOutputs,
+    acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle ?? null,
     previewRenderVm,
     currentAuthoritativeGeometryResult: finalGeometryResult,
     currentAuthoritativeRenderVm: authoritativeRenderVm,
@@ -1033,11 +1113,11 @@ export const selectViewportResultState = (
     currentDraftGeometryRenderVm,
     retainedBaseState,
     baseCandidate,
+    draftPreviewCandidate,
     visibleResultClass: null,
     visibleSourceKind: 'none',
     geometryResult: null,
     renderVm: EMPTY_PREVIEW_RENDER_VM,
-    overlayCandidate,
     isPendingFinal: false,
     isUsingFallback: true,
     fallbackReason: 'mode-disallows-available-result',

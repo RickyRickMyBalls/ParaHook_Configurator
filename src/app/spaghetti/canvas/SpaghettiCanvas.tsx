@@ -24,6 +24,7 @@ import {
   selectEditorViewportSelectedEdgeId,
   selectEditorViewportSelectedNodeId,
   selectGraphByDocumentId,
+  selectGraphRuntimeByDocumentId,
   selectNodeMode,
   useSpaghettiStore,
   type ConnectionDragState,
@@ -96,6 +97,10 @@ import {
   validateConnectionContract,
 } from '../contracts/endpoints'
 import { parseExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
+import {
+  classifyExtrudeProfileContributorEdge,
+  isWholeExtrusionProfileTargetEndpoint,
+} from '../features/extrudeProfileConnections'
 
 type EndpointPayload = {
   nodeId: string
@@ -174,6 +179,20 @@ const resolveEndpointKind = (
     return fieldNode.type.kind
   }
   return port.type.kind
+}
+
+export const resolveCanvasEdgeSourceKind = (
+  graph: SpaghettiGraph,
+  edge: SpaghettiGraph['edges'][number],
+): PortSpec['type']['kind'] | null => {
+  const extrudeContributor = classifyExtrudeProfileContributorEdge(edge)
+  if (extrudeContributor?.kind === 'aggregate') {
+    return 'sketchProfiles'
+  }
+  if (extrudeContributor?.kind === 'single') {
+    return 'sketchProfile'
+  }
+  return resolveEndpointKind(graph, edge.from, 'out')
 }
 
 const normalizePath = (path: string[] | undefined): string[] | undefined =>
@@ -449,6 +468,11 @@ export function SpaghettiCanvas({
   onSetViewMode,
 }: SpaghettiCanvasProps) {
   const graph = useSpaghettiStore((state) => selectGraphByDocumentId(state, graphDocumentId))
+  const graphDocumentRevision = useSpaghettiStore(
+    (state) =>
+      selectGraphRuntimeByDocumentId(state, graphDocumentId)?.compileBuild.currentDocumentRevision ??
+      0,
+  )
   const selectedNodeId = useSpaghettiStore((state) =>
     selectEditorViewportSelectedNodeId(state, editorViewportId),
   )
@@ -843,8 +867,14 @@ export function SpaghettiCanvas({
     )
   }, [availableNodeTypes, nodeAddMenu?.query])
 
-  const sortedNodes = useMemo(() => [...graph.nodes].sort(compareNodes), [graph.nodes])
-  const sortedEdges = useMemo(() => [...graph.edges].sort(compareEdges), [graph.edges])
+  const sortedNodes = useMemo(
+    () => [...graph.nodes].sort(compareNodes),
+    [graph.nodes, graphDocumentRevision],
+  )
+  const sortedEdges = useMemo(
+    () => [...graph.edges].sort(compareEdges),
+    [graph.edges, graphDocumentRevision],
+  )
   useEffect(() => {
     if (!DEV || probeNodeIdRef.current !== null) {
       return
@@ -894,19 +924,19 @@ export function SpaghettiCanvas({
       lastUiActionRef.current = null
     }
     return nextEvaluation
-  }, [graph])
+  }, [graph, graphDocumentRevision])
   const diagnosticsVm = useMemo(
     () =>
       selectDiagnosticsVm({
         graph,
         evaluation,
       }),
-    [evaluation, graph],
+    [evaluation, graph, graphDocumentRevision],
   )
   const nodePos = graph.ui?.nodes ?? {}
   const nodeRenderDataById = useMemo(() => {
     const t0 = DEV ? performance.now() : 0
-    const selected = selectNodeVm(graph, evaluation, diagnosticsVm)
+    const selected = selectNodeVm(graph, evaluation, diagnosticsVm, graphDocumentRevision)
     if (DEV) {
       console.log(
         '[perf] buildNodeRenderData ms',
@@ -916,7 +946,7 @@ export function SpaghettiCanvas({
       )
     }
     return selected.byNodeId
-  }, [diagnosticsVm, evaluation, graph])
+  }, [diagnosticsVm, evaluation, graph, graphDocumentRevision])
   const extrudeProfileEntryByEndpointKey = useMemo(() => {
     const next = new Map<
       string,
@@ -1340,7 +1370,7 @@ export function SpaghettiCanvas({
 
   const resolveRenderedInputPortIdForEdge = useCallback(
     (edge: SpaghettiGraph['edges'][number]): string => {
-      if (edge.to.portId !== 'ExtrusionProfile') {
+      if (!isWholeExtrusionProfileTargetEndpoint(edge.to)) {
         return edge.to.portId
       }
       for (const candidate of nodeRenderDataById.get(edge.to.nodeId)?.extrudeVm?.profileInputEntries ?? []) {
@@ -1392,7 +1422,7 @@ export function SpaghettiCanvas({
   const edgeColorById = useMemo(() => {
     const next: Record<string, string> = {}
     for (const edge of graph.edges) {
-      const sourceKind = resolveEndpointKind(graph, edge.from, 'out')
+      const sourceKind = resolveCanvasEdgeSourceKind(graph, edge)
       next[edge.edgeId] = sourceKind === null ? getTypeColor('number') : getTypeColor(sourceKind)
     }
     return next
@@ -1400,11 +1430,11 @@ export function SpaghettiCanvas({
   const renderedEdges = useMemo(
     () =>
       graph.edges.map((edge) =>
-        edge.to.portId === 'ExtrusionProfile'
+        isWholeExtrusionProfileTargetEndpoint(edge.to)
           ? {
               ...edge,
               to: {
-                ...edge.to,
+                nodeId: edge.to.nodeId,
                 portId: resolveRenderedInputPortIdForEdge(edge),
               },
             }
@@ -2714,6 +2744,7 @@ export function SpaghettiCanvas({
                 template={nodeVm?.template}
                 utilityVm={nodeVm?.utilityVm}
                 sketchVm={nodeVm?.sketchVm}
+                extrudeVm={nodeVm?.extrudeVm}
                 allInputs={nodeVm?.allInputs ?? []}
                 allOutputs={nodeVm?.allOutputs ?? []}
                 uiSections={nodeVm?.uiSections}

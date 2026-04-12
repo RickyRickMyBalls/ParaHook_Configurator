@@ -4,8 +4,10 @@ import type {
   SpaghettiNode,
 } from '../schema/spaghettiTypes'
 import {
+  buildDefaultOutputPreviewSlot,
   normalizeOutputPreviewParams,
   OUTPUT_PREVIEW_NODE_TYPE,
+  readOutputPreviewSlotPublicationMode,
 } from './outputPreviewNode'
 
 const IN_SOLID_PREFIX = 'in:solid:'
@@ -83,7 +85,7 @@ export const ensureOutputPreviewSlotsPatch = (
   let slotsChanged = false
 
   if (nextSlots === null || nextSlots.length === 0) {
-    nextSlots = [{ slotId: SEEDED_SLOT_ID }]
+    nextSlots = [buildDefaultOutputPreviewSlot(SEEDED_SLOT_ID)]
     slotsSeeded = true
     slotsChanged = true
     const seededNextSlotIndex = Math.max(nextSlotIndex, 2)
@@ -97,7 +99,7 @@ export const ensureOutputPreviewSlotsPatch = (
   const trailingEmptyCount = countTrailingEmptySlots(nextSlots, filledSlotIds)
 
   if (trailingEmptyCount === 0) {
-    nextSlots = [...nextSlots, { slotId: `s${pad3(nextSlotIndex)}` }]
+    nextSlots = [...nextSlots, buildDefaultOutputPreviewSlot(`s${pad3(nextSlotIndex)}`)]
     nextSlotIndex += 1
     slotsChanged = true
     nextSlotIndexChanged = true
@@ -108,6 +110,9 @@ export const ensureOutputPreviewSlotsPatch = (
   }
 
   const normalizedParams = normalizeOutputPreviewParams(paramsRecord, nextSlots)
+  const legacyCompatSlotsPresent = (nextSlots ?? []).some(
+    (slot) => readOutputPreviewSlotPublicationMode(slot.publicationMode).source === 'legacy-compat',
+  )
   const metadataChanged =
     JSON.stringify({
       componentLabel: paramsRecord.componentLabel,
@@ -118,12 +123,12 @@ export const ensureOutputPreviewSlotsPatch = (
       objects: normalizedParams.objects,
     })
 
-  if (!slotsChanged && !nextSlotIndexChanged && !metadataChanged) {
+  if (!slotsChanged && !nextSlotIndexChanged && !metadataChanged && !legacyCompatSlotsPresent) {
     return null
   }
 
   const nodeId = outputPreviewNode.nodeId
-  const resolvedSlots = nextSlots
+  const resolvedSlots = legacyCompatSlotsPresent ? normalizedParams.slots : nextSlots
   const shouldWriteNextSlotIndex = nextSlotIndexChanged || slotsSeeded
 
   return (prev: SpaghettiGraph): SpaghettiGraph => ({

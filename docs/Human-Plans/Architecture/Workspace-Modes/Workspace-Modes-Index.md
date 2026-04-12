@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+89. 2026-04-12 08:50:58: Added the new planned `Workspace 8 - Browser-Truth Published Object Rendering And Visibility` phase to this workspace-family index, grounding the next multi-graph render/read direction in the rule that published Browser/project-content objects should render by default across the project while explicit graph/object visibility becomes the honest user control for turning them off
 88. 2026-04-06 11:36: Added the new workspace-family home `Workspaces/Model-Viewport/Model-Viewport-Index.md`, created its first `Model-Viewport 1` future phase doc around the geometry-execution reset plus preview-policy direction, and refreshed this workspace umbrella so `Model Viewport` now has its own dedicated planning home for the draft-preview versus authoritative-geometry overhaul
 87. 2026-04-03 19:38: Promoted `Dashboard` out of `Wish-Features` into the real workspace-family roadmap by adding `Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding.md`, grounding its first `Phase 0` read in the live `Workspace 7.x` surface seams, and refreshing this workspace-family index so the new surface-onboarding lane now sits beside the other active future workspace docs
 86. 2026-04-01 08:35: Added the native `Workspace 7.5-5 - Multiple Spaghetti Editor Surface Parity` follow-on under `Workspace-Modes/Future/`, refreshed the `Workspace 7.5` family read so the next multi-editor-shell task now has its own dedicated planning surface instead of hiding only inside `7.5-4`, and kept the workspace-family ladder honest by separating shell-parity cleanup from the later multi-editor surface parity lane
@@ -1471,6 +1472,7 @@ Current source doc:
 - `Workspace 7.5-4` is the new open parity-cleanup and carry-forward lane for the remaining Browser-versus-Spaghetti shell mismatches and later toolbar rules
 - `Workspace 7.5-5` is the next dedicated follow-on for honest multiple-`Spaghetti Editor` surfaces once the generic shell parity cleanup from `7.5-4` is no longer the right home for that deeper editor-specific carry item
 - `Workspace 7.5-17` should now be the dedicated research-first onboarding lane for `Dashboard` and later `Notepad`, treating them as real workspace surfaces on top of the existing `Workspace 7.x` slot model while keeping note content persistence outside workspace-layout persistence
+- `Workspace 8` should then lock Browser/project-content render truth so every resolved published object across all project graphs renders by default once it exists in Browser, while explicit graph/object visibility becomes the honest user control for turning that published content off
 - the first slot-local actions beyond the selector should be `Split Top`, `Split Right`, `Split Bottom`, `Split Left`, `Float`, and `Pop Out`, while duplicate/close/merge actions wait for a later subphase
 - one protected primary `Model Viewport` can stay special in the first cut, but the architecture should allow later additional model viewports instead of hard-coding one forever
 - this phase should build on shipped `Workspace 6` activation and intent seams plus the `Workspace 5.x` multi-surface groundwork instead of replacing them
@@ -1525,3 +1527,23 @@ Current source doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Shipped/Workspace_Phase Workspace-7.2c-3 - Old Left Dock Shell Retirement And Cleanup.md`
 - vision grounding:
   - `docs/Human-Plans/Architecture/Workspace-Modes/vision1.md`
+
+### [ ] Workspace 8 - Browser-Truth Published Object Rendering And Visibility
+#### Header
+- make Browser/project-content truth the default render-eligibility owner for published objects
+- render resolved published objects from all project graphs by default once they exist in Browser
+- let explicit graph and object visibility become the honest user control for turning published content off instead of active editor/open-graph state
+
+#### Forward read
+- `Workspace 8` should treat Browser membership as the default proof that a published object belongs in the base rendered project set
+- active graph and active viewer targeting should keep owning edit focus, draft lanes, preview overlays, and viewport-local command behavior, but they should not silently decide whether already-published project objects exist in the base render set
+- multi-graph projects should therefore render published objects from every participating graph by default, while graph-level and object-level visibility controls decide what the user hides
+- build/execution policy should stay separate from existence and visibility:
+  - `do not rebuild` is not the same rule as `do not render`
+  - explicit user hide is the honest off switch for published project objects
+- later Browser, viewer, and workspace-selection work should all read the same truth:
+  - if a published object makes it to Browser/project content and stays resolved, it is eligible to render
+  - if the user hides that graph or object, it stops rendering
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`

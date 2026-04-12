@@ -1,4 +1,5 @@
 import {
+  type BuildResultBundle,
   toViewerRenderablePart,
   type PartArtifact,
   type ViewerRenderablePart,
@@ -11,6 +12,7 @@ import {
 } from '../previewPreparation'
 
 export type PreviewRenderVmItem = ReturnType<typeof buildPreviewPreparationEntries>[number] & {
+  outputEntryId: string
   id: string
   nodeId: string
   isReady: boolean
@@ -26,31 +28,24 @@ export type PreviewRenderVm = {
 const buildPreviewRenderVmFromPreparation = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: PartArtifact[],
+  buildBundle: BuildResultBundle | null = null,
 ): PreviewRenderVm => {
-  const items = buildPreviewPreparationEntries(previewPreparation, buildOutputs)
-    .map((entry) => ({
-      ...entry,
-      id:
-        entry.memberIndex === undefined
-          ? `preview:${entry.slotId}:${entry.sourceNodeId}:${entry.sourcePartKeyStr}`
-          : `preview:${entry.slotId}:${entry.sourceNodeId}:${entry.sourcePartKeyStr}:member-${String(entry.memberIndex + 1).padStart(3, '0')}`,
-      nodeId: entry.sourceNodeId,
-      isReady: entry.renderable !== null,
-      // Preview identity stays slot-scoped even when the underlying artifact identity is part-scoped.
-      viewerKey:
-        entry.memberIndex === undefined
-          ? entry.slotId
-          : `${entry.slotId}:member-${String(entry.memberIndex + 1).padStart(3, '0')}`,
-      viewerPart:
-        entry.renderable === null
-          ? null
-          : toViewerRenderablePart(
-              entry.renderable,
-              entry.memberIndex === undefined
-                ? entry.slotId
-                : `${entry.slotId}:member-${String(entry.memberIndex + 1).padStart(3, '0')}`,
-            ),
-    }))
+  const renderableEntryByOutputEntryId = new Map(
+    buildPreviewPreparationEntries(previewPreparation, buildOutputs, buildBundle).map((entry) => [
+      entry.outputEntryId,
+      entry,
+    ] as const),
+  )
+
+  const items = [...renderableEntryByOutputEntryId.values()].map((entry) => ({
+    ...entry,
+    id: `preview:${entry.outputEntryId}`,
+    nodeId: entry.sourceNodeId,
+    isReady: entry.renderable !== null,
+    viewerKey: entry.outputEntryId,
+    viewerPart:
+      entry.renderable === null ? null : toViewerRenderablePart(entry.renderable, entry.outputEntryId),
+  }))
   return {
     items,
     viewerParts: items.flatMap((item) => (item.viewerPart === null ? [] : [item.viewerPart])),
@@ -59,24 +54,28 @@ const buildPreviewRenderVmFromPreparation = (
 
 let lastGraph: SpaghettiGraph | undefined
 let lastBuildOutputs: PartArtifact[] | undefined
+let lastBuildBundle: BuildResultBundle | null | undefined
 let lastPreviewRenderVm: PreviewRenderVm | undefined
 let lastPreviewPreparation: GraphPreviewPreparation | undefined
 
 export const selectPreviewRenderVm = (
   graph: SpaghettiGraph,
   buildOutputs: PartArtifact[],
+  buildBundle: BuildResultBundle | null = null,
 ): PreviewRenderVm => {
   if (
     lastPreviewRenderVm !== undefined &&
     lastGraph === graph &&
-    lastBuildOutputs === buildOutputs
+    lastBuildOutputs === buildOutputs &&
+    lastBuildBundle === buildBundle
   ) {
     return lastPreviewRenderVm
   }
   const previewPreparation = prepareGraphPreviewPreparation(graph)
-  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs)
+  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs, buildBundle)
   lastGraph = graph
   lastBuildOutputs = buildOutputs
+  lastBuildBundle = buildBundle
   lastPreviewPreparation = previewPreparation
   lastPreviewRenderVm = next
   return next
@@ -85,17 +84,20 @@ export const selectPreviewRenderVm = (
 export const selectPreviewRenderVmFromPreparation = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: PartArtifact[],
+  buildBundle: BuildResultBundle | null = null,
 ): PreviewRenderVm => {
   if (
     lastPreviewRenderVm !== undefined &&
     lastPreviewPreparation === previewPreparation &&
-    lastBuildOutputs === buildOutputs
+    lastBuildOutputs === buildOutputs &&
+    lastBuildBundle === buildBundle
   ) {
     return lastPreviewRenderVm
   }
-  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs)
+  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs, buildBundle)
   lastGraph = undefined
   lastBuildOutputs = buildOutputs
+  lastBuildBundle = buildBundle
   lastPreviewPreparation = previewPreparation
   lastPreviewRenderVm = next
   return next

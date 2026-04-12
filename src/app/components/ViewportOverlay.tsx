@@ -33,6 +33,7 @@ import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import {
   selectSharedViewerComposition,
   selectViewerTargetGraphAcceptedGeometryResult,
+  selectViewerTargetGraphAcceptedPreviewBuildBundle,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
   selectViewerTargetGraphAcceptedPreviewGeometryResult,
   selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
@@ -491,6 +492,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   )
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
+  const viewerTargetBuildBundle = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildBundle)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const viewerTargetPreviewGeometryResult = useSpaghettiStore(
     selectViewerTargetGraphAcceptedPreviewGeometryResult,
@@ -811,6 +813,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
         committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
         committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
+        acceptedPreviewBuildBundle: viewerTargetBuildBundle,
         acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
         previewPreparation: viewerTargetPreviewPreparation,
         viewerTargetGraphDocumentId,
@@ -866,10 +869,11 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       sharedViewerComposition,
       viewerTargetBuildOutputs,
       viewerTargetCommittedGeometryResult,
-      viewerTargetCommittedPreviewGeometryResult,
-      viewerTargetGeometryResult,
-      viewerTargetGraphDocumentId,
-      viewerTargetPreviewReadyAuthoritativeGeometryResult,
+        viewerTargetCommittedPreviewGeometryResult,
+        viewerTargetGeometryResult,
+        viewerTargetGraphDocumentId,
+        viewerTargetBuildBundle,
+        viewerTargetPreviewReadyAuthoritativeGeometryResult,
       viewerTargetPreviewGeometryResult,
       viewerTargetPreviewPreparation,
       viewportResultMode,

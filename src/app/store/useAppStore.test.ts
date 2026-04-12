@@ -1198,8 +1198,8 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       rootRowId: 'object:linked-object-2',
       rootKind: 'multi-select',
       partKeys: [
-        'graph-document-1:slot-linked-a',
-        'graph-document-1:slot-linked-b',
+        'graph-document-1:output-entry:slot-linked-a:node-linked-a',
+        'graph-document-1:output-entry:slot-linked-b:node-linked-b',
       ],
       groupedRowIds: [],
     })
@@ -1801,6 +1801,152 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         isVisible: false,
         visibilityPartKeys: [],
         highlightViewerKey: null,
+      }),
+    ])
+  })
+
+  it('hydrates rendered project parts directly from accepted bundle output entries when flattened accepted artifacts are stale or missing', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      selectRenderedProjectPartSet,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const acceptedBundle = {
+      buildRequestId: 'build-request-7',
+      graphDocumentId: 'graph-document-1',
+      seq: 7,
+      resultClass: 'final' as const,
+      executionIntent: DEFAULT_BUILD_EXECUTION_INTENT,
+      summary: {
+        rebuiltCount: 1,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:slot-baseplate:node-baseplate-1',
+          outputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+          sourceNodeId: 'node-baseplate-1',
+          status: 'rebuilt' as const,
+          resultClass: 'final' as const,
+          artifacts: [baseplateArtifact],
+        },
+      ],
+    }
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        'graph-document-1': {
+          ...state.graphRuntimeByDocumentId['graph-document-1'],
+          previewPreparation,
+          acceptedBuildBundle: acceptedBundle,
+          acceptedPreviewBuildBundle: acceptedBundle,
+          acceptedBuildOutputs: [],
+          acceptedPreviewBuildOutputs: [],
+          outputSurface: buildGraphOutputSurface({
+            graphDocumentId: 'graph-document-1',
+            previewPreparation,
+            acceptedBundle,
+            acceptedBuildOutputs: [],
+            publishedAtBuildSeq: 7,
+          }),
+        },
+      },
+    }))
+
+    useAppStore.setState((state) => ({
+      ...state,
+      currentProject: {
+        ...state.currentProject,
+        rootAssemblyId: 'assembly-root:project-file-1',
+      },
+      projectContent: {
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['project-object:project-file-1:graph-document-1:output-object:slot-baseplate'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'project-object:project-file-1:graph-document-1:output-object:slot-baseplate': {
+            objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+            sourceNodeId: 'node-baseplate-1',
+            slotId: 'slot-baseplate',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    expect(
+      selectRenderedProjectPartSet({
+        currentProject: useAppStore.getState().currentProject,
+        projectContent: useAppStore.getState().projectContent,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual({
+      parts: [
+        expect.objectContaining({
+          objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+          viewerKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+          viewerPart: expect.objectContaining({
+            viewerKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+            artifact: baseplateArtifact,
+          }),
+        }),
+      ],
+      viewerParts: [
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
+          artifact: baseplateArtifact,
+        }),
+      ],
+      contributingGraphDocumentIds: ['graph-document-1'],
+    })
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows).toEqual([
+      expect.objectContaining({
+        rowId: 'assembly-root:project-file-1',
+        kind: 'assembly',
+        isVisible: true,
+        visibilityPartKeys: ['graph-document-1:output-entry:slot-baseplate:node-baseplate-1'],
+      }),
+      expect.objectContaining({
+        rowId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+        kind: 'object',
+        isVisible: true,
+        visibilityPartKeys: ['graph-document-1:output-entry:slot-baseplate:node-baseplate-1'],
+        highlightViewerKey: 'graph-document-1:output-entry:slot-baseplate:node-baseplate-1',
       }),
     ])
   })
@@ -3956,6 +4102,20 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
     const graphDocumentId = 'graph-document-1'
+    const incomingDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId,
+        buildRequestId: 'live-authoritative-build-1',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [0, 0, 0, 3, 0, 0, 0, 1, 0],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
     const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
       request: {
         graphDocumentId,
@@ -4027,6 +4187,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           geometryTarget: 'authoritative',
           authoritativePolicy: 'live',
         },
+        draftGeometryResult: incomingDraftGeometryResult,
         authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
           request: {
             graphDocumentId,
@@ -4049,6 +4210,8 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
 
     const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(runtime?.acceptedDraftGraphRevision).toBe(2)
+    expect(runtime?.acceptedDraftGeometryResult).toEqual(incomingDraftGeometryResult)
     expect(runtime?.acceptedAuthoritativeGraphRevision).toBe(1)
     expect(runtime?.acceptedAuthoritativeGeometryResult).toEqual(committedAuthoritativeGeometryResult)
     expect(runtime?.stagedAuthoritativePreviewResult).toEqual(
@@ -4056,6 +4219,13 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         buildSeq: 301,
         buildRequestId: 'live-authoritative-build-1',
         graphRevision: 2,
+        authoritativeGeometryResult: expect.objectContaining({
+          request: {
+            graphDocumentId,
+            buildRequestId: 'live-authoritative-build-1',
+            partKeys: ['baseplate'],
+          },
+        }),
       }),
     )
     expect(runtime?.compileBuild.inFlightBuildSeq).toBeNull()
@@ -4277,6 +4447,45 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             acceptedBuildOutputs: [baseplateArtifact],
             publishedAtBuildSeq: 8,
           }),
+        },
+      },
+    }))
+    useAppStore.setState((state) => ({
+      currentProject: {
+        ...state.currentProject,
+        graphDocuments: [
+          {
+            graphDocumentId: 'graph-document-1',
+            label: 'Graph 1',
+            sourceFilePath: null,
+            orderIndex: 0,
+          },
+        ],
+        rootAssemblyId: 'assembly-root:project-file-1',
+      },
+      projectContent: {
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['project-object:project-file-1:graph-document-1:output-object:slot-baseplate'],
+          },
+        },
+        componentsById: {},
+        objectsById: {
+          'project-object:project-file-1:graph-document-1:output-object:slot-baseplate': {
+            objectId: 'project-object:project-file-1:graph-document-1:output-object:slot-baseplate',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-root:project-file-1',
+            parentComponentId: null,
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry:slot-baseplate:node-baseplate-1',
+            sourceNodeId: 'node-baseplate-1',
+            slotId: 'slot-baseplate',
+            label: 'Baseplate',
+            resolutionState: 'resolved',
+          },
         },
       },
     }))
@@ -4941,17 +5150,19 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         expect.objectContaining({
           kind: 'assembly',
           isVisible: true,
-          visibilityPartKeys: ['graph-document-1:slot-baseplate'],
+          visibilityPartKeys: ['graph-document-1:output-entry:slot-baseplate:node-baseplate-1'],
         }),
         expect.objectContaining({
           kind: 'object',
           isVisible: true,
-          visibilityPartKeys: ['graph-document-1:slot-baseplate'],
+          visibilityPartKeys: ['graph-document-1:output-entry:slot-baseplate:node-baseplate-1'],
         }),
       ]),
     )
 
-    useAppStore.getState().setPartVisibility('graph-document-1:slot-baseplate', false)
+    useAppStore
+      .getState()
+      .setPartVisibility('graph-document-1:output-entry:slot-baseplate:node-baseplate-1', false)
 
     expect(listRows()).toEqual(
       expect.arrayContaining([

@@ -1,6 +1,11 @@
 import type { CompileSpaghettiGraphResult } from '../compiler/compileGraph'
-import { buildGraphOutputEntryId } from '../outputSurface'
-import type { GraphPreviewPreparation } from '../previewPreparation'
+import { buildGraphOutputEntryIdsForSlot } from '../outputSurface'
+import { buildExtrudeBodyId } from '../features/extrudeBodyIdentity'
+import { parseExtrudeBodyMemberPortId } from '../features/extrudeBodyVirtualPorts'
+import {
+  getPreviewPreparationEntriesForSlot,
+  type GraphPreviewPreparation,
+} from '../previewPreparation'
 import {
   deriveSpaghettiSourcePartKeysFromProfilePatch,
   orderSpaghettiSourcePartKeys,
@@ -82,13 +87,13 @@ const collectWorkerRelevantExtrudePartKeys = (
     if (previewPreparation.slotStatusBySlotId[slotId] !== 'ok') {
       continue
     }
-    const partKey = previewPreparation.sourcePartKeyBySlotId[slotId]
-    if (
-      typeof partKey === 'string' &&
-      partKey.length > 0 &&
-      parsePartKeyString(partKey).id === 'extrude'
-    ) {
-      partKeys.add(partKey)
+    for (const entry of getPreviewPreparationEntriesForSlot(previewPreparation, slotId)) {
+      if (
+        entry.sourcePartKeyStr.length > 0 &&
+        parsePartKeyString(entry.sourcePartKeyStr).id === 'extrude'
+      ) {
+        partKeys.add(entry.sourcePartKeyStr)
+      }
     }
   }
 
@@ -191,38 +196,31 @@ const buildCompiledOutputEntries = (
   const seen = new Set<string>()
 
   for (const slotId of previewPreparation.outputSlotIds) {
-    const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
-    const partKey = previewPreparation.sourcePartKeyBySlotId[slotId]
-    const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
-    const memberIndices =
-      publicationMode === 'split'
-        ? Array.from(
-            { length: Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) },
-            (_, index) => index,
-          )
-        : [undefined]
-    if (
-      typeof sourceNodeId !== 'string' ||
-      sourceNodeId.length === 0 ||
-      typeof partKey !== 'string' ||
-      partKey.length === 0
-    ) {
+    const slotEntries = getPreviewPreparationEntriesForSlot(previewPreparation, slotId)
+    if (slotEntries.length === 0) {
       continue
     }
+    const outputEntryIds = buildGraphOutputEntryIdsForSlot(slotId, slotEntries)
 
-    for (const memberIndex of memberIndices) {
-      const outputEntryId = buildGraphOutputEntryId(slotId, sourceNodeId, memberIndex)
+    slotEntries.forEach((entry, entryIndex) => {
+      const outputEntryId = outputEntryIds[entryIndex]
       if (seen.has(outputEntryId)) {
-        continue
+        return
       }
       seen.add(outputEntryId)
+      const portMemberIndex = parseExtrudeBodyMemberPortId(entry.sourcePortId)?.memberIndex
+      const bodyMemberIndex = entry.memberIndex ?? portMemberIndex
       outputEntries.push({
         buildUnitId: outputEntryId,
         outputEntryId,
-        sourceNodeId,
-        partKey,
+        sourceNodeId: entry.sourceNodeId,
+        partKey: entry.sourcePartKeyStr,
+        bodyId:
+          bodyMemberIndex === undefined
+            ? null
+            : buildExtrudeBodyId(entry.sourceNodeId, bodyMemberIndex),
       })
-    }
+    })
   }
 
   return outputEntries
@@ -249,20 +247,12 @@ const collectTargetBuildUnitIds = (
   const seen = new Set<string>()
 
   for (const slotId of previewPreparation.outputSlotIds) {
-    const sourceNodeId = previewPreparation.sourceNodeIdBySlotId[slotId]
-    const publicationMode = previewPreparation.publicationModeBySlotId?.[slotId] ?? 'grouped'
-    const memberIndices =
-      publicationMode === 'split'
-        ? Array.from(
-            { length: Math.max(1, previewPreparation.splitMemberCountBySlotId?.[slotId] ?? 1) },
-            (_, index) => index,
-          )
-        : [undefined]
-    if (typeof sourceNodeId !== 'string' || sourceNodeId.length === 0) {
+    const slotEntries = getPreviewPreparationEntriesForSlot(previewPreparation, slotId)
+    if (slotEntries.length === 0) {
       continue
     }
-    for (const memberIndex of memberIndices) {
-      const buildUnitId = buildGraphOutputEntryId(slotId, sourceNodeId, memberIndex)
+    const buildUnitIds = buildGraphOutputEntryIdsForSlot(slotId, slotEntries)
+    for (const buildUnitId of buildUnitIds) {
       if (seen.has(buildUnitId)) {
         continue
       }

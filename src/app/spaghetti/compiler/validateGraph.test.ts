@@ -183,6 +183,41 @@ describe('validateGraph endpoint paths', () => {
     expect(result.errors).toEqual([])
   })
 
+  it('accepts whole-port SketchProfile wiring into ExtrusionProfile as one singular contributor lane', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: getDefaultNodeParams('Geometry/Extrude'),
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketchprofile-whole-to-extrude',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfile',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const result = validateGraph(graph)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
   it('accepts resolved sketch profile member output ports as distinct singular endpoints', () => {
     const profileId = profileIdFromSignature('line-1|line-2|line-3|line-4')
     const graph: SpaghettiGraph = {
@@ -1622,19 +1657,21 @@ describe('validateGraph OutputPreview dynamic slot inputs', () => {
     expect(result.errors).toHaveLength(0)
   })
 
-  it('enforces maxConnectionsIn = 1 on OutputPreview in:solid slot ports', () => {
+  it('accepts multiple body contributors into one OutputPreview in:solid slot port', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
         {
-          nodeId: 'n-toehook',
-          type: 'Part/ToeHook',
+          nodeId: 'n-extrude-a',
+          type: 'Geometry/Extrude',
           params: {},
         },
         {
-          nodeId: 'n-heelkick',
-          type: 'Part/HeelKick',
-          params: {},
+          nodeId: 'n-extrude-b',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+          },
         },
         {
           nodeId: 'n-output-preview',
@@ -1647,10 +1684,10 @@ describe('validateGraph OutputPreview dynamic slot inputs', () => {
       ],
       edges: [
         {
-          edgeId: 'e-output-preview-slot-max-1',
+          edgeId: 'e-output-preview-slot-body-1',
           from: {
-            nodeId: 'n-toehook',
-            portId: 'toeLoft',
+            nodeId: 'n-extrude-a',
+            portId: 'SolidBody',
           },
           to: {
             nodeId: 'n-output-preview',
@@ -1658,10 +1695,10 @@ describe('validateGraph OutputPreview dynamic slot inputs', () => {
           },
         },
         {
-          edgeId: 'e-output-preview-slot-max-2',
+          edgeId: 'e-output-preview-slot-body-2',
           from: {
-            nodeId: 'n-heelkick',
-            portId: 'hookLoft',
+            nodeId: 'n-extrude-b',
+            portId: 'SolidBody',
           },
           to: {
             nodeId: 'n-output-preview',
@@ -1672,8 +1709,8 @@ describe('validateGraph OutputPreview dynamic slot inputs', () => {
     }
 
     const result = validateGraph(graph)
-    expect(result.ok).toBe(false)
-    expect(result.errors.some((error) => error.code === 'EDGE_TO_MAX_CONNECTIONS')).toBe(true)
+    expect(result.ok).toBe(true)
+    expect(result.errors).toHaveLength(0)
   })
 })
 

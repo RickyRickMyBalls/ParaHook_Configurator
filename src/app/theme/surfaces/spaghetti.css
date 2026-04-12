@@ -2333,7 +2333,9 @@
 
 .SpaghettiPort--kind-sketchProfile { --sp-port-color: #6ee7b7; }
 
-.SpaghettiPort--kind-solidBody { --sp-port-color: #cbd5e1; }
+.SpaghettiPort--kind-solidBody { --sp-port-color: #b19dff; }
+
+.SpaghettiPort--kind-solidBodies { --sp-port-color: #9c88f4; }
 
 .SpaghettiPort--kind-stations { --sp-port-color: #a78bfa; }
 
@@ -3187,29 +3189,29 @@
   padding: 12px 8px 8px 8px;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortMain::after {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortMain::after {
   display: none;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortDetailsBox {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortDetailsBox {
   margin-top: -6px;
   padding: 12px 8px 8px 8px;
   border-color: var(--sp-port-color);
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPortDetail--in {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortDetail--in {
   padding-left: 14px;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPortDetail--in::before {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortDetail--in::before {
   left: 2px;
 }
 
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortMain::after {
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortMain::after {
   display: none;
 }
 
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortDetailsBox {
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortDetailsBox {
   margin-top: -6px;
   padding: 12px 8px 8px 8px;
   border-color: var(--sp-port-color);
@@ -3277,11 +3279,11 @@
   background: rgba(245, 158, 11, 0.18);
 }
 
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPortDetail--out {
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortDetail--out {
   padding-right: 14px;
 }
 
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPortDetail--out::after {
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortDetail--out::after {
   right: 2px;
 }
 
@@ -3351,7 +3353,10 @@
 .SpaghettiPortDetail--sketchProfile::after { background: #6ee7b7; }
 
 .SpaghettiPortDetail--solidBody::before,
-.SpaghettiPortDetail--solidBody::after { background: #cbd5e1; }
+.SpaghettiPortDetail--solidBody::after { background: #b19dff; }
+
+.SpaghettiPortDetail--solidBodies::before,
+.SpaghettiPortDetail--solidBodies::after { background: #9c88f4; }
 
 .SpaghettiPortDetail--stations::before,
 .SpaghettiPortDetail--stations::after { background: #a78bfa; }
@@ -3876,7 +3881,7 @@
   opacity: 0.78;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -3885,13 +3890,31 @@
   border-radius: 0;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortMain {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortMain {
   --sp-port-color: inherit;
   --sp-port-main-pad-y: 2px;
   border-color: var(--sp-port-color);
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortHeader {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortMain::after {
+  display: none;
+}
+
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortDetailsBox {
+  margin-top: -6px;
+  padding: 12px 8px 8px 8px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortDetail--in {
+  padding-left: 14px;
+}
+
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortDetail--in::before {
+  left: 2px;
+}
+
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3901,12 +3924,12 @@
   height: auto;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortHeaderLeft {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortHeaderLeft {
   margin-left: -10px;
   gap: 3px;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortHeaderRight {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortHeaderRight {
   min-width: 0;
   max-width: 46%;
   margin-left: auto;
@@ -3914,8 +3937,8 @@
   overflow: hidden;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortName,
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortType {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortName,
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortType {
   display: inline-flex;
   align-items: center;
   min-height: 14px;
@@ -3928,7 +3951,7 @@
   padding: 0;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortName {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortName {
   position: static;
   margin: 0;
   min-width: 0;
@@ -3939,7 +3962,7 @@
   color: rgba(241, 243, 248, 0.95);
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortType {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortType {
   position: static;
   margin: 0;
   min-width: 0;
@@ -3951,10 +3974,86 @@
   opacity: 1;
 }
 
-.SpaghettiExtrudeNodeTemplate .SpaghettiExtrudeProfilePortRow .SpaghettiPortChevron {
+.SpaghettiPort.SpaghettiPort--in.SpaghettiPortShell--managedCollectionIn .SpaghettiPortChevron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: 0;
+  box-sizing: border-box;
+  padding: 0 2px 0 calc(var(--sp-pin-gutter) - 15px);
+  background: transparent;
+  border-radius: 0;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortMain {
+  --sp-port-color: inherit;
+  --sp-port-main-pad-y: 2px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortMain::after {
+  display: none;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortDetailsBox {
+  margin-top: -6px;
+  padding: 12px 8px 8px 8px;
+  border-color: var(--sp-port-color);
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortDetail--out {
+  padding-right: 14px;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortDetail--out::after {
+  right: 2px;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 14px;
+  height: auto;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortName {
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: auto;
+  align-self: center;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortHeaderRight {
+  min-width: 0;
+  max-width: 40%;
+  margin-left: auto;
+  justify-self: auto;
+  align-self: center;
+  overflow: hidden;
+}
+
+.SpaghettiPort.SpaghettiPort--out.SpaghettiPortShell--managedCollectionOut .SpaghettiPortType {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  justify-self: auto;
+  align-self: center;
+  color: var(--sp-port-color);
+  opacity: 1;
 }
 
 .SpaghettiTemplateSection--outputs {
@@ -4749,51 +4848,44 @@
   max-width: 100%;
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--in {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) {
   box-sizing: border-box;
   padding-right: 14px;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) {
   padding: 0 calc(var(--sp-pin-gutter) - 15px) 0 2px;
   background: transparent;
   border-radius: 0;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortMain {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortMain {
   --sp-port-color: inherit;
   --sp-port-main-pad-y: 2px;
   border-color: var(--sp-port-color);
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortHeaderLeft {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortHeaderLeft {
   margin-left: -10px;
   gap: 3px;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortType {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortType {
   color: var(--sp-port-color);
   opacity: 1;
 }
 
 .SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out {
+  width: 100%;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) {
   padding: 0 2px 0 calc(var(--sp-pin-gutter) - 15px);
   background: transparent;
   border-radius: 0;
 }
 
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortMain {
-  --sp-port-color: inherit;
-  --sp-port-main-pad-y: 2px;
-  border-color: var(--sp-port-color);
-}
-
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortType {
-  color: var(--sp-port-color);
-  opacity: 1;
-}
-
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortHeader {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4803,15 +4895,17 @@
   height: auto;
 }
 
-.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in .SpaghettiPortHeader {
+.SpaghettiGeometryNodeStackSection--inputs .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortHeader {
   min-height: 14px;
 }
 
-.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out .SpaghettiPortHeader {
-  min-height: 14px;
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortMain {
+  --sp-port-color: inherit;
+  --sp-port-main-pad-y: 2px;
+  border-color: var(--sp-port-color);
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortName {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortName {
   min-width: 0;
   max-width: none;
   overflow: hidden;
@@ -4821,7 +4915,7 @@
   align-self: center;
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortHeaderRight {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortHeaderRight {
   min-width: 0;
   max-width: 40%;
   margin-left: auto;
@@ -4830,7 +4924,7 @@
   overflow: hidden;
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--in .SpaghettiPortType {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--in:not(.SpaghettiPortShell--managedCollectionIn) .SpaghettiPortType {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -4840,7 +4934,7 @@
   align-self: center;
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--out .SpaghettiPortName {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortName {
   min-width: 0;
   max-width: none;
   overflow: hidden;
@@ -4850,7 +4944,7 @@
   align-self: center;
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--out .SpaghettiPortHeaderRight {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortHeaderRight {
   min-width: 0;
   max-width: 40%;
   margin-left: auto;
@@ -4859,7 +4953,7 @@
   overflow: hidden;
 }
 
-.SpaghettiGeometryNodeStackSection .SpaghettiPort--out .SpaghettiPortType {
+.SpaghettiGeometryNodeStackSection .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortType {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -4867,6 +4961,12 @@
   white-space: nowrap;
   justify-self: auto;
   align-self: center;
+  color: var(--sp-port-color);
+  opacity: 1;
+}
+
+.SpaghettiGeometryNodeStackSection--outputs .SpaghettiPort--out:not(.SpaghettiPortShell--managedCollectionOut) .SpaghettiPortHeader {
+  min-height: 14px;
 }
 
 .SpaghettiGeometryPortRow {
@@ -5656,6 +5756,9 @@
 }
 
 .SpaghettiOutputPreviewSection .SpaghettiNodePortColumn--in {
+  width: 100%;
+  max-width: 100%;
+  margin-right: 0;
   gap: 8px;
 }
 
@@ -5665,16 +5768,25 @@
   gap: 4px;
 }
 
+.SpaghettiOutputPreviewAttachedBody {
+  gap: 6px;
+  padding-top: 4px;
+}
+
 .SpaghettiOutputPreviewComponentRow,
 .SpaghettiOutputPreviewObjectRow {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
 }
 
 .SpaghettiOutputPreviewComponentRow {
   margin-bottom: 4px;
+}
+
+.SpaghettiOutputPreviewObjectRow--grouped {
+  width: 100%;
 }
 
 .SpaghettiOutputPreviewComponentRow span,
@@ -5691,10 +5803,10 @@
   min-width: 0;
   box-sizing: border-box;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(15, 23, 42, 0.54);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.46);
   color: rgba(241, 245, 249, 0.96);
-  padding: 5px 8px;
+  padding: 4px 8px;
   font-size: 11px;
   line-height: 1.2;
 }
@@ -5707,18 +5819,86 @@
 }
 
 .SpaghettiOutputPreviewMeta {
-  margin-left: 16px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: rgba(203, 213, 225, 0.86);
+}
+
+.SpaghettiOutputPreviewPublishedGroup {
+  padding-left: 8px;
+  border-left: 1px solid rgba(148, 163, 184, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiOutputPreviewPublishedGroup--subcomponent {
+  padding-top: 4px;
+}
+
+.SpaghettiOutputPreviewPublishedGroupHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.SpaghettiOutputPreviewPublishedGroupBadge {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(30, 41, 59, 0.72);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(191, 219, 254, 0.9);
+}
+
+.SpaghettiOutputPreviewPublishedGroupLabel {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.SpaghettiOutputPreviewPublishedGroupMeta {
   font-size: 10px;
   line-height: 1.2;
-  color: rgba(226, 232, 240, 0.88);
+  color: rgba(191, 201, 216, 0.8);
+}
+
+.SpaghettiOutputPreviewPublishedObjectRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 0 3px 8px;
+  border-left: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.SpaghettiOutputPreviewPublishedObjectLabel {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgba(241, 245, 249, 0.96);
+}
+
+.SpaghettiOutputPreviewPublishedObjectMeta {
+  font-size: 9px;
+  line-height: 1.2;
+  color: rgba(191, 201, 216, 0.82);
 }
 
 .SpaghettiOutputPreviewHint {
   color: rgba(148, 163, 184, 0.92);
 }
 
+.SpaghettiOutputPreviewWarningRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .SpaghettiOutputPreviewWarning {
-  margin-left: 16px;
   width: 14px;
   height: 14px;
   border-radius: 999px;
@@ -5729,6 +5909,12 @@
   line-height: 12px;
   text-align: center;
   font-weight: 700;
+}
+
+.SpaghettiOutputPreviewWarningText {
+  font-size: 10px;
+  line-height: 1.2;
+  color: rgba(255, 229, 149, 0.96);
 }
 
 .SpaghettiUtilityNodeTemplate {

@@ -8,6 +8,9 @@ import {
 } from '../features/extrudeBodyVirtualPorts'
 import {
   classifyExtrudeProfileContributorEdge,
+  isProfileOutputLike,
+  isSketchProfilesValue,
+  isWholeExtrusionProfileTargetEndpoint,
   type ExtrudeProfileContributor,
 } from '../features/extrudeProfileConnections'
 import { listSketchProfileMemberOutputPorts } from '../features/sketchProfileVirtualPorts'
@@ -34,6 +37,7 @@ import {
 import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import {
   normalizeOutputPreviewParams,
+  OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
   OUTPUT_PREVIEW_NODE_TYPE,
 } from '../system/outputPreviewNode'
 import type { PortDetailLine } from '../canvas/PortView'
@@ -126,35 +130,6 @@ const isSpline2Like = (value: unknown): value is { points: Array<{ x: number; y:
     return typeof vec.x === 'number' && Number.isFinite(vec.x) && typeof vec.y === 'number' && Number.isFinite(vec.y)
   })
 }
-
-const isProfileOutputLike = (
-  value: unknown,
-): value is {
-  profileId: string
-  profileIndex: number
-  area: number
-} => {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-  const candidate = value as { profileId?: unknown; profileIndex?: unknown; area?: unknown }
-  return (
-    typeof candidate.profileId === 'string' &&
-    candidate.profileId.length > 0 &&
-    typeof candidate.profileIndex === 'number' &&
-    Number.isFinite(candidate.profileIndex) &&
-    typeof candidate.area === 'number' &&
-    Number.isFinite(candidate.area)
-  )
-}
-
-const isSketchProfilesLike = (
-  value: unknown,
-): value is Array<{
-  profileId: string
-  profileIndex: number
-  area: number
-}> => Array.isArray(value) && value.every((entry) => isProfileOutputLike(entry))
 
 const isSolidBodyLike = (value: unknown): value is { bodyId: string } =>
   typeof value === 'object' &&
@@ -259,6 +234,7 @@ export type SketchNodeVm = {
 }
 
 export type ExtrudeNodeVm = {
+  profileWireCount?: number
   profileInputEntries?: Array<{
     entryId: string
     endpointPortId: string
@@ -267,6 +243,10 @@ export type ExtrudeNodeVm = {
     sourceNodeId: string
     sourceNodeLabel: string
     profileId?: string
+  }>
+  resolvedProfileMembers?: Array<{
+    profileId: string
+    area: number
   }>
   extrudeType: GeometryExtrudeType
   bodyGenerationMode?: GeometryExtrudeBodyGenerationMode
@@ -304,8 +284,7 @@ export type ExtrudeNodeVm = {
 const buildExpectedExtrudeBodyMemberPortIds = (params: {
   bodyGenerationMode: GeometryExtrudeBodyGenerationMode
   resolvedBodyCount: number
-  resolvedAggregateProfiles: ReadonlyArray<unknown> | null
-  resolvedSingleProfile: unknown | null
+  resolvedProfiles: ReadonlyArray<unknown>
   validProfileIncoming: ReadonlyArray<{
     edge: SpaghettiGraph['edges'][number]
     contributor: ExtrudeProfileContributor
@@ -317,17 +296,37 @@ const buildExpectedExtrudeBodyMemberPortIds = (params: {
   const expectedCount =
     params.resolvedBodyCount > 0
       ? params.resolvedBodyCount
-      : params.resolvedAggregateProfiles !== null
-        ? params.resolvedAggregateProfiles.length
-        : params.resolvedSingleProfile !== null
-          ? 1
-          : params.validProfileIncoming.filter((entry) => entry.contributor.kind === 'single').length
+      : params.resolvedProfiles.length > 0
+        ? params.resolvedProfiles.length
+        : params.validProfileIncoming.filter((entry) => entry.contributor.kind === 'single').length
   return Array.from({ length: expectedCount }, (_, memberIndex) =>
     buildExtrudeBodyMemberPortId(memberIndex),
   )
 }
 
+const buildOutputPreviewPublishedObjectStatus = (params: {
+  flattenedObjectCount: number
+  memberIndex: number
+  publicationMode: 'grouped' | 'split'
+  hasCollectionSource: boolean
+}): string => {
+  const memberLabel =
+    params.flattenedObjectCount > 1 ? ` ${params.memberIndex + 1}` : ''
+  if (params.publicationMode === 'split') {
+    return params.hasCollectionSource
+      ? `Split published object${memberLabel} from this row-owned collection.`
+      : `Split published object${memberLabel} from this split collection source.`
+  }
+  if (params.flattenedObjectCount === 1) {
+    return params.hasCollectionSource
+      ? 'Grouped published object from this collection source.'
+      : 'Published object from this accepted source row.'
+  }
+  return `Published object${memberLabel} from this row-owned collection.`
+}
+
 const buildOutputPreviewSlotRows = (params: {
+  graph: SpaghettiGraph
   node: SpaghettiNode
   incoming: readonly SpaghettiGraph['edges'][number][]
   effectiveInputPorts: readonly PortSpec[]
@@ -353,51 +352,99 @@ const buildOutputPreviewSlotRows = (params: {
     if (port === undefined) {
       return []
     }
-    const matchingEdges = params.incoming.filter((edge) => edge.to.portId === portId)
-    const matchingEdge = matchingEdges[0]
+    const matchingEdges = params.incoming
+      .filter((edge) => edge.to.portId === portId)
+      .sort((a, b) => a.edgeId.localeCompare(b.edgeId))
     const slotStatus =
-      params.slotStatusById[slotId] ?? (matchingEdge === undefined ? 'empty' : 'ok')
+      params.slotStatusById[slotId] ?? (matchingEdges.length === 0 ? 'empty' : 'ok')
 
-    if (matchingEdge !== undefined) {
-      const upstreamNode = params.nodeById.get(matchingEdge.from.nodeId)
-      const upstreamLabel =
-        upstreamNode === undefined ? matchingEdge.from.nodeId : resolveNodeDisplayLabel(upstreamNode)
+    if (matchingEdges.length > 0) {
       const objectRow = objectBySlotId.get(slotId)
-      const publicationMode = slotBySlotId.get(slotId)?.publicationMode ?? 'grouped'
-      const sourceOutputPort = upstreamNode
-        ? listEffectiveOutputPorts(upstreamNode).find(
-            (candidate) => candidate.portId === matchingEdge.from.portId,
-          )
-        : undefined
-      const sourceKind = sourceOutputPort?.type.kind ?? 'unknown'
-      const sourceValue =
-        params.evaluation.outputsByNodeId[matchingEdge.from.nodeId]?.[matchingEdge.from.portId]
-      const splitMemberCount =
-        sourceKind === 'solidBodies' && publicationMode === 'split'
-          ? Math.max(1, isSolidBodiesLike(sourceValue) ? sourceValue.bodies.length : 1)
-          : 1
+      const publicationMode =
+        slotBySlotId.get(slotId)?.publicationMode ?? OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE
       const objectLabel = objectRow?.label ?? slotId
-      const inputLabel = sourceKind === 'solidBodies' ? `${slotId} Collection` : objectLabel
-      const sourceContractLabel =
-        sourceKind === 'solidBodies'
-          ? 'SolidBodies collection'
-          : sourceKind === 'solidBody'
-            ? 'SolidBody source'
-            : sourceKind === 'toeLoft'
-              ? 'toeLoft source'
-              : `${sourceKind} source`
-      const publicationSummary =
-        sourceKind === 'solidBodies' && publicationMode === 'split'
-          ? `publishes ${splitMemberCount} objects through split publication`
-          : publicationMode === 'grouped'
-            ? `publishes ${sourceKind === 'solidBodies' ? 'one grouped object' : 'one object'}`
-            : 'publishes one object'
+      const contributorEntries = matchingEdges.map((matchingEdge) => {
+        const upstreamNode = params.nodeById.get(matchingEdge.from.nodeId)
+        const upstreamLabel =
+          upstreamNode === undefined
+            ? matchingEdge.from.nodeId
+            : resolveNodeDisplayLabel(upstreamNode)
+        const sourceOutputPort = upstreamNode
+          ? listEffectiveOutputPorts(upstreamNode, undefined, params.graph).find(
+              (candidate) => candidate.portId === matchingEdge.from.portId,
+            )
+          : undefined
+        const sourceKind = sourceOutputPort?.type.kind ?? 'unknown'
+        const sourceValue =
+          params.evaluation.outputsByNodeId[matchingEdge.from.nodeId]?.[matchingEdge.from.portId]
+        const publishedObjectCount =
+          sourceKind === 'solidBodies' && publicationMode === 'split'
+            ? Math.max(1, isSolidBodiesLike(sourceValue) ? sourceValue.bodies.length : 1)
+            : 1
+        return {
+          edge: matchingEdge,
+          upstreamLabel,
+          sourceKind,
+          publishedObjectCount,
+        }
+      })
+      const contributorCounts = {
+        solidBody: contributorEntries.filter((entry) => entry.sourceKind === 'solidBody').length,
+        solidBodies: contributorEntries.filter((entry) => entry.sourceKind === 'solidBodies').length,
+        toeLoft: contributorEntries.filter((entry) => entry.sourceKind === 'toeLoft').length,
+      }
+      const contributorParts = [
+        contributorCounts.solidBody > 0
+          ? `${contributorCounts.solidBody} SolidBody contributor${contributorCounts.solidBody === 1 ? '' : 's'}`
+          : null,
+        contributorCounts.solidBodies > 0
+          ? `${contributorCounts.solidBodies} SolidBodies contributor${contributorCounts.solidBodies === 1 ? '' : 's'}`
+          : null,
+        contributorCounts.toeLoft > 0
+          ? `${contributorCounts.toeLoft} toeLoft contributor${contributorCounts.toeLoft === 1 ? '' : 's'}`
+          : null,
+      ].filter((part): part is string => part !== null)
+      const compactContributorSummary =
+        contributorEntries.length === 1
+          ? contributorEntries[0].sourceKind === 'solidBodies'
+            ? '1 collection contributor'
+            : contributorEntries[0].sourceKind === 'solidBody'
+              ? '1 body contributor'
+              : contributorParts[0] ?? '1 contributor'
+          : contributorCounts.solidBody === contributorEntries.length
+            ? `${contributorEntries.length} body contributors`
+            : contributorCounts.solidBodies === contributorEntries.length
+              ? `${contributorEntries.length} collection contributors`
+              : `${contributorEntries.length} contributors`
+      const flattenedObjectCount = contributorEntries.reduce(
+        (total, entry) => total + entry.publishedObjectCount,
+        0,
+      )
+      const hasCollectionSource =
+        contributorEntries.length > 1 ||
+        contributorEntries.some((entry) => entry.sourceKind === 'solidBodies')
+      const compactPublicationSummary =
+        flattenedObjectCount <= 1
+          ? publicationMode === 'split'
+            ? 'split publication'
+            : 'grouped publication'
+          : publicationMode === 'split'
+            ? `split to ${flattenedObjectCount} objects`
+            : `${flattenedObjectCount} objects in one group`
       const publishedObjectRows =
-        sourceKind === 'solidBodies' && publicationMode === 'split'
-          ? Array.from({ length: splitMemberCount }, (_, memberIndex) => ({
+        flattenedObjectCount > 0
+          ? Array.from({ length: flattenedObjectCount }, (_, memberIndex) => ({
               rowId: `op-slot:${slotId}:published:${memberIndex + 1}`,
-              label: `${objectLabel} ${memberIndex + 1}`,
-              status: `Published object ${memberIndex + 1} from this split collection source.`,
+              label:
+                flattenedObjectCount > 1
+                  ? `${objectLabel} ${memberIndex + 1}`
+                  : objectLabel,
+              status: buildOutputPreviewPublishedObjectStatus({
+                flattenedObjectCount,
+                memberIndex,
+                publicationMode,
+                hasCollectionSource,
+              }),
             }))
           : undefined
       const unresolvedEdge = matchingEdges.find(
@@ -415,11 +462,14 @@ const buildOutputPreviewSlotRows = (params: {
           slotId,
           objectId: objectRow?.objectId,
           objectLabel,
-          inputLabel,
+          inputLabel: 'SolidBodies',
           port,
           slotStatus,
-          statusPrimary: upstreamLabel,
-          statusSecondary: `${slotId} takes one ${sourceContractLabel} on ${matchingEdge.from.portId} and ${publicationSummary}.`,
+          statusPrimary:
+            contributorEntries.length === 1
+              ? contributorEntries[0].upstreamLabel
+              : `${contributorEntries.length} contributors`,
+          statusSecondary: `${compactContributorSummary} · ${compactPublicationSummary}`,
           publishedObjectRows,
           warningMessage,
           isTrailingEmpty: false,
@@ -436,11 +486,11 @@ const buildOutputPreviewSlotRows = (params: {
         slotId,
         objectId: objectRow?.objectId,
         objectLabel: objectRow?.label ?? slotId,
-        inputLabel: slotId,
+        inputLabel: 'SolidBodies',
         port,
         slotStatus,
         statusPrimary: '(empty)',
-        statusSecondary: isTrailingEmpty ? `${slotId} | Drop part here` : slotId,
+        statusSecondary: isTrailingEmpty ? 'Drop bodies here' : slotId,
         isTrailingEmpty,
       },
     ]
@@ -629,7 +679,11 @@ const buildNodeVm = (
 
     const inputPortDetails: Record<string, PortDetailLine[]> = Object.fromEntries(
       nodeInputs.map((port) => {
-        const incomingForPort = incoming.filter((edge) => edge.to.portId === port.portId)
+        const incomingForPort = incoming.filter((edge) =>
+          node.type === 'Geometry/Extrude' && port.portId === 'ExtrusionProfile'
+            ? isWholeExtrusionProfileTargetEndpoint(edge.to)
+            : edge.to.portId === port.portId,
+        )
         const lines: PortDetailLine[] = [
           { text: `type: ${describePortType(port.type)}`, kind: port.type.kind },
           { text: `optional: ${port.optional === true ? 'yes' : 'no'}` },
@@ -720,7 +774,7 @@ const buildNodeVm = (
         localPlane,
         effectivePlane,
         planeDriven: wholeIncomingForPlane.length > 0,
-        profileCount: isSketchProfilesLike(profileOutput) ? profileOutput.length : 0,
+        profileCount: isSketchProfilesValue(profileOutput) ? profileOutput.length : 0,
         hasSelectedProfile: isProfileOutputLike(selectedProfile),
       }
     })()
@@ -804,9 +858,9 @@ const buildNodeVm = (
           : 0
       const wholeIncomingForProfile = incoming.filter(
         (edge) =>
-          edge.to.portId === 'ExtrusionProfile' &&
-          (edge.to.path === undefined || edge.to.path.length === 0),
+          isWholeExtrusionProfileTargetEndpoint(edge.to),
       )
+      const profileWireCount = wholeIncomingForProfile.length
       const validProfileIncoming = wholeIncomingForProfile
         .map((edge) => {
           const contributor = classifyExtrudeProfileContributorEdge(edge)
@@ -818,19 +872,7 @@ const buildNodeVm = (
           ): entry is { edge: SpaghettiGraph['edges'][number]; contributor: ExtrudeProfileContributor } =>
             entry !== null,
         )
-      const resolvedSingleProfile = isProfileOutputLike(profileInput) ? profileInput : null
-      const aggregateProfileSourceNodeId = validProfileIncoming.find(
-        (entry) => entry.contributor.kind === 'aggregate',
-      )?.edge.from.nodeId
-      const aggregateProfilesFromSource =
-        aggregateProfileSourceNodeId === undefined
-          ? null
-          : evaluation.outputsByNodeId[aggregateProfileSourceNodeId]?.SketchProfiles
-      const resolvedAggregateProfiles = isSketchProfilesLike(profileInput)
-        ? profileInput
-        : isSketchProfilesLike(aggregateProfilesFromSource)
-          ? aggregateProfilesFromSource
-          : null
+      const resolvedProfiles = isSketchProfilesValue(profileInput) ? profileInput : []
       const aggregateProfileWired = validProfileIncoming.some(
         (entry) => entry.contributor.kind === 'aggregate',
       )
@@ -838,27 +880,19 @@ const buildNodeVm = (
         (entry) => entry.contributor.kind === 'single',
       )
       const profileTargetMode =
-        resolvedAggregateProfiles !== null || aggregateProfileWired
+        aggregateProfileWired
           ? 'allFromSketch'
-          : resolvedSingleProfile !== null || singleProfileWired
+          : singleProfileWired
             ? 'single'
             : undefined
-      const profileCount =
-        resolvedAggregateProfiles !== null
-          ? resolvedAggregateProfiles.length
-          : resolvedSingleProfile !== null
-            ? 1
-            : 0
+      const profileCount = resolvedProfiles.length
       const bodyMemberPortIds = buildExpectedExtrudeBodyMemberPortIds({
         bodyGenerationMode,
         resolvedBodyCount,
-        resolvedAggregateProfiles,
-        resolvedSingleProfile,
+        resolvedProfiles,
         validProfileIncoming,
       })
-      const hasResolvedProfileTarget =
-        resolvedSingleProfile !== null ||
-        (resolvedAggregateProfiles !== null && resolvedAggregateProfiles.length > 0)
+      const hasResolvedProfileTarget = resolvedProfiles.length > 0
       const profileInputEntries = validProfileIncoming
         .map(({ edge, contributor }) => {
           const sourceNode = nodeById.get(edge.from.nodeId)
@@ -873,6 +907,14 @@ const buildNodeVm = (
             ...(contributor.profileId !== undefined ? { profileId: contributor.profileId } : {}),
           }
         })
+      const resolvedProfileMembers = resolvedProfiles.map((profile) => ({
+        profileId: profile.profileId,
+        area: profile.area,
+      }))
+      const resolvedSingleProfile =
+        !aggregateProfileWired && resolvedProfiles.length === 1 && singleProfileWired
+          ? resolvedProfiles[0]
+          : null
       const wholeIncomingForDepth = incoming.filter(
         (edge) =>
           edge.to.portId === 'Depth' &&
@@ -918,7 +960,9 @@ const buildNodeVm = (
         taperVisible: effectiveType === 'Body' && effectiveDirection === 'OneSide',
         taperDriven: wholeIncomingForTaperAngle.length > 0,
         hasProfile: hasResolvedProfileTarget,
+        ...(profileWireCount > 0 ? { profileWireCount } : {}),
         ...(profileInputEntries.length > 0 ? { profileInputEntries } : {}),
+        ...(resolvedProfileMembers.length > 0 ? { resolvedProfileMembers } : {}),
         ...(profileTargetMode !== undefined ? { profileTargetMode } : {}),
         ...(profileCount > 0 ? { profileCount } : {}),
         ...(resolvedSingleProfile !== null
@@ -1107,6 +1151,7 @@ const buildNodeVm = (
     const outputPreviewRows =
       node.type === OUTPUT_PREVIEW_NODE_TYPE
         ? buildOutputPreviewSlotRows({
+            graph,
             node,
             incoming,
             effectiveInputPorts,
@@ -1171,18 +1216,21 @@ const buildNodeVm = (
 let lastGraph: SpaghettiGraph | undefined
 let lastEvaluation: EvaluationResult | undefined
 let lastDiagnosticsVmArg: DiagnosticsVm | undefined
+let lastCacheKey: string | number | undefined
 let lastNodeVmResult: SelectNodeVmResult | undefined
 
 export const selectNodeVm = (
   graph: SpaghettiGraph,
   evaluation: EvaluationResult,
   diagnosticsVm?: DiagnosticsVm,
+  cacheKey?: string | number,
 ): SelectNodeVmResult => {
   if (
     lastNodeVmResult !== undefined &&
     lastGraph === graph &&
     lastEvaluation === evaluation &&
-    lastDiagnosticsVmArg === diagnosticsVm
+    lastDiagnosticsVmArg === diagnosticsVm &&
+    lastCacheKey === cacheKey
   ) {
     return lastNodeVmResult
   }
@@ -1190,6 +1238,7 @@ export const selectNodeVm = (
   lastGraph = graph
   lastEvaluation = evaluation
   lastDiagnosticsVmArg = diagnosticsVm
+  lastCacheKey = cacheKey
   lastNodeVmResult = next
   return next
 }

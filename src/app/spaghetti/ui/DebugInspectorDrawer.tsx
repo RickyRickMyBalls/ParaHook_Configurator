@@ -1,9 +1,11 @@
 import { useMemo, type CSSProperties } from 'react'
 import {
   selectViewerTargetGraph,
+  selectViewerTargetGraphDocumentId,
   selectViewerTargetGraphAcceptedBuildOutputs,
   selectViewerTargetGraphCompileResult,
   selectViewerTargetGraphOutputSurface,
+  selectViewerTargetGraphRuntime,
   useSpaghettiStore,
 } from '../store/useSpaghettiStore'
 import { selectDebugInspectorVm } from '../selectors/selectDebugInspectorVm'
@@ -18,13 +20,18 @@ const renderValue = (value: string | null): string => value ?? '-'
 
 export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspectorDrawerProps) {
   const graph = useSpaghettiStore(selectViewerTargetGraph)
+  const graphDocumentId = useSpaghettiStore(selectViewerTargetGraphDocumentId)
   const buildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const compileResult = useSpaghettiStore(selectViewerTargetGraphCompileResult)
   const outputSurface = useSpaghettiStore(selectViewerTargetGraphOutputSurface)
+  const graphDocumentRevision = useSpaghettiStore(
+    (state) => selectViewerTargetGraphRuntime(state)?.compileBuild.currentDocumentRevision ?? 0,
+  )
 
   const debugVm = useMemo(
     () =>
       selectDebugInspectorVm({
+        graphDocumentId,
         graph:
           graph ?? {
             schemaVersion: 1,
@@ -35,7 +42,7 @@ export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspector
         buildOutputs,
         compileResult,
       }),
-    [buildOutputs, compileResult, graph, outputSurface],
+    [buildOutputs, compileResult, graph, graphDocumentId, graphDocumentRevision, outputSurface],
   )
 
   return (
@@ -105,6 +112,81 @@ export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspector
 
           <section className="SpaghettiDebugSection">
             <div className="SpaghettiDebugSectionHeader">
+              <h3>Extrude Capture</h3>
+              <span>{debugVm.extrudeCapture.extrudes.length} extrude node(s)</span>
+            </div>
+            <div className="SpaghettiDebugMetaGrid">
+              <div>
+                <span>Graph document</span>
+                <strong>{renderValue(debugVm.graphDocumentId)}</strong>
+              </div>
+            </div>
+            {debugVm.extrudeCapture.extrudes.length === 0 ? (
+              <div className="SpaghettiDebugTableEmpty">No Geometry/Extrude nodes found.</div>
+            ) : (
+              debugVm.extrudeCapture.extrudes.map((extrude) => (
+                <div key={extrude.nodeId} className="SpaghettiDebugSection">
+                  <div className="SpaghettiDebugSectionHeader">
+                    <h3>{extrude.nodeId}</h3>
+                    <span>{extrude.incomingProfileEdges.length} profile edge(s)</span>
+                  </div>
+                  <div className="SpaghettiDebugMetaGrid">
+                    <div>
+                      <span>Evaluated profile input</span>
+                      <strong>{extrude.profileInputSummary}</strong>
+                    </div>
+                    <div>
+                      <span>Evaluated body output</span>
+                      <strong>{extrude.solidBodySummary}</strong>
+                    </div>
+                  </div>
+                  <div className="SpaghettiDebugTable" role="table" aria-label={`Extrude profile edges for ${extrude.nodeId}`}>
+                    <div className="SpaghettiDebugTableRow SpaghettiDebugTableRow--header" role="row">
+                      <span role="columnheader">edgeId</span>
+                      <span role="columnheader">from</span>
+                      <span role="columnheader">to</span>
+                      <span role="columnheader">raw edge</span>
+                    </div>
+                    {extrude.incomingProfileEdges.length === 0 ? (
+                      <div className="SpaghettiDebugTableEmpty">No incoming ExtrusionProfile edges.</div>
+                    ) : (
+                      extrude.incomingProfileEdges.map((edge) => (
+                        <div key={edge.edgeId} className="SpaghettiDebugTableRow" role="row">
+                          <span>{edge.edgeId}</span>
+                          <span>{`${edge.fromNodeId}.${edge.fromPortId}${edge.fromPath === null ? '' : `.${edge.fromPath}`}`}</span>
+                          <span>{`${edge.toNodeId}.${edge.toPortId}${edge.toPath === null ? '' : `.${edge.toPath}`}`}</span>
+                          <span>{edge.rawEdgeJson}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="SpaghettiDebugTable" role="table" aria-label={`OutputPreview slots connected to ${extrude.nodeId}`}>
+                    <div className="SpaghettiDebugTableRow SpaghettiDebugTableRow--header" role="row">
+                      <span role="columnheader">slotId</span>
+                      <span role="columnheader">publicationMode</span>
+                      <span role="columnheader">object label</span>
+                      <span role="columnheader">edgeId</span>
+                    </div>
+                    {extrude.connectedOutputPreviewSlots.length === 0 ? (
+                      <div className="SpaghettiDebugTableEmpty">No OutputPreview slots connected to this extrude.</div>
+                    ) : (
+                      extrude.connectedOutputPreviewSlots.map((slot) => (
+                        <div key={`${extrude.nodeId}:${slot.slotId}:${slot.edgeId}`} className="SpaghettiDebugTableRow" role="row">
+                          <span>{slot.slotId}</span>
+                          <span>{slot.publicationMode}</span>
+                          <span>{renderValue(slot.objectLabel)}</span>
+                          <span>{slot.edgeId}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </section>
+
+          <section className="SpaghettiDebugSection">
+            <div className="SpaghettiDebugSectionHeader">
               <h3>OutputPreview</h3>
               <span>{debugVm.outputPreview.slots.length} slot(s)</span>
             </div>
@@ -117,6 +199,7 @@ export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspector
             <div className="SpaghettiDebugTable" role="table" aria-label="OutputPreview slots">
               <div className="SpaghettiDebugTableRow SpaghettiDebugTableRow--header" role="row">
                 <span role="columnheader">slotId</span>
+                <span role="columnheader">publicationMode</span>
                 <span role="columnheader">state</span>
                 <span role="columnheader">sourceNodeId</span>
                 <span role="columnheader">sourcePartKeyStr</span>
@@ -128,6 +211,7 @@ export function DebugInspectorDrawer({ isOpen, onToggle, style }: DebugInspector
                 debugVm.outputPreview.slots.map((slot) => (
                   <div key={slot.slotId} className="SpaghettiDebugTableRow" role="row">
                     <span>{slot.slotId}</span>
+                    <span>{slot.publicationMode}</span>
                     <span>{slot.state}</span>
                     <span>{renderValue(slot.sourceNodeId)}</span>
                     <span>{renderValue(slot.sourcePartKeyStr)}</span>

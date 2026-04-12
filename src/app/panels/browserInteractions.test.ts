@@ -328,6 +328,27 @@ describe('createBrowserRowInteractionHandlers', () => {
     expect(deps.appendBrowserEntry).not.toHaveBeenCalled()
   })
 
+  it('keeps forwarding object highlight keys into viewer selection even during shared composition', () => {
+    const row = objectRow('object-1', 'Pedal Body')
+    const deps = createDeps({
+      sharedViewerCompositionActive: true,
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [row],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(row)
+
+    expect(deps.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: { kind: 'object', objectId: 'object-1' },
+      explicitSelectedTargets: [{ kind: 'object', objectId: 'object-1' }],
+      selectionAnchorTarget: { kind: 'object', objectId: 'object-1' },
+    })
+    expect(deps.selectPart).toHaveBeenCalledWith('part:object-1')
+  })
+
   it('keeps converged reference container rows on owner targets instead of legacy reference targets', () => {
     const row: BrowserAssemblyTreeRowVm = {
       ...assemblyRow('reference-root', 'References'),

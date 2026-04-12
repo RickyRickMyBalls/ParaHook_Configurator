@@ -1336,6 +1336,11 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
     const result = evaluateSpaghettiGraph(graph)
 
     expect(result.ok).toBe(true)
+    expect(result.inputsByNodeId['n-extrude']?.ExtrusionProfile).toEqual([
+      expect.objectContaining({
+        profileIndex: 0,
+      }),
+    ])
     expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
       bodyId: 'n-extrude:body',
     })
@@ -1398,10 +1403,12 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
       profileId: selectedProfileId,
       profileIndex: 1,
     })
-    expect(result.inputsByNodeId['n-extrude']?.ExtrusionProfile).toMatchObject({
-      profileId: selectedProfileId,
-      profileIndex: 1,
-    })
+    expect(result.inputsByNodeId['n-extrude']?.ExtrusionProfile).toEqual([
+      expect.objectContaining({
+        profileId: selectedProfileId,
+        profileIndex: 1,
+      }),
+    ])
     expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
       bodyId: 'n-extrude:body',
     })
@@ -1532,12 +1539,10 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
         profileId: selectedProfileId,
         profileIndex: 1,
       }),
-      [
-        expect.objectContaining({
-          profileIndex: 0,
-          area: 900,
-        }),
-      ],
+      expect.objectContaining({
+        profileIndex: 0,
+        area: 900,
+      }),
     ])
     expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
       bodyId: 'n-extrude:body',
@@ -1663,6 +1668,122 @@ describe('evaluateSpaghettiGraph Geometry/Extrude', () => {
     })
     expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(3)]).toEqual({
       bodyId: 'n-extrude:body:004',
+    })
+  })
+
+  it('treats stray ExtrusionProfile target-path metadata as one aggregate extrude contributor and still publishes all bodies', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+              rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+              rectangleComponent('row-3', 'rect-c', { x: 120, y: 0 }, { x: 160, y: 20 }),
+              rectangleComponent('row-4', 'rect-d', { x: 180, y: 0 }, { x: 220, y: 20 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profiles-stale-target-path',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+            path: ['staleTarget'],
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.inputsByNodeId['n-extrude']?.ExtrusionProfile).toHaveLength(4)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodies: [
+        { bodyId: 'n-extrude:body:001' },
+        { bodyId: 'n-extrude:body:002' },
+        { bodyId: 'n-extrude:body:003' },
+        { bodyId: 'n-extrude:body:004' },
+      ],
+    })
+    expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(0)]).toEqual({
+      bodyId: 'n-extrude:body:001',
+    })
+    expect(result.outputsByNodeId['n-extrude']?.[buildExtrudeBodyMemberPortId(3)]).toEqual({
+      bodyId: 'n-extrude:body:004',
+    })
+  })
+
+  it('treats legacy SketchProfiles target ids as the canonical aggregate extrude target', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              rectangleComponent('row-1', 'rect-a', { x: 0, y: 0 }, { x: 40, y: 20 }),
+              rectangleComponent('row-2', 'rect-b', { x: 60, y: 0 }, { x: 100, y: 20 }),
+              rectangleComponent('row-3', 'rect-c', { x: 120, y: 0 }, { x: 160, y: 20 }),
+              rectangleComponent('row-4', 'rect-d', { x: 180, y: 0 }, { x: 220, y: 20 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profiles-legacy-target',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'SketchProfiles',
+            path: ['staleTarget'],
+          },
+        },
+      ],
+    }
+
+    const result = evaluateSpaghettiGraph(graph)
+
+    expect(result.ok).toBe(true)
+    expect(result.inputsByNodeId['n-extrude']?.ExtrusionProfile).toHaveLength(4)
+    expect(result.outputsByNodeId['n-extrude']?.SolidBody).toEqual({
+      bodies: [
+        { bodyId: 'n-extrude:body:001' },
+        { bodyId: 'n-extrude:body:002' },
+        { bodyId: 'n-extrude:body:003' },
+        { bodyId: 'n-extrude:body:004' },
+      ],
     })
   })
 

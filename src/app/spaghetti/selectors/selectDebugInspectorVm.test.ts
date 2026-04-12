@@ -171,6 +171,7 @@ describe('selectDebugInspectorVm', () => {
     expect(vm.outputPreview.slots).toEqual([
       {
         slotId: 's010',
+        publicationMode: 'grouped',
         state: 'resolved',
         sourceNodeId: 'node-cube-2',
         sourcePartKeyStr: 'cube#2',
@@ -178,6 +179,7 @@ describe('selectDebugInspectorVm', () => {
       },
       {
         slotId: 's020',
+        publicationMode: 'grouped',
         state: 'resolved',
         sourceNodeId: 'node-cube-1',
         sourcePartKeyStr: 'cube#1',
@@ -185,6 +187,7 @@ describe('selectDebugInspectorVm', () => {
       },
       {
         slotId: 's030',
+        publicationMode: 'grouped',
         state: 'empty',
         sourceNodeId: null,
         sourcePartKeyStr: null,
@@ -228,6 +231,7 @@ describe('selectDebugInspectorVm', () => {
         artifactPartKeyStr: 'cube#1',
       },
     ])
+    expect(vm.extrudeCapture.extrudes).toEqual([])
   })
 
   it('always reports the viewer as receiving preview input', () => {
@@ -289,12 +293,40 @@ describe('selectDebugInspectorVm', () => {
     expect(vm.outputPreview.slots).toEqual([
       {
         slotId: 's001',
+        publicationMode: 'grouped',
         state: 'resolved',
         sourceNodeId: 'node-extrude-1',
         sourcePartKeyStr: 'extrude',
         artifactPartKeyStr: 'extrude',
       },
     ])
+    expect(vm.extrudeCapture.extrudes).toHaveLength(1)
+    expect(vm.extrudeCapture.extrudes[0]).toMatchObject({
+      nodeId: 'node-extrude-1',
+      solidBodySummary: 'solidBodies (1)',
+      incomingProfileEdges: [
+        {
+          edgeId: 'edge-sketch-to-extrude',
+          fromNodeId: 'node-sketch-1',
+          fromPortId: 'SketchProfile',
+          fromPath: null,
+          toNodeId: 'node-extrude-1',
+          toPortId: 'ExtrusionProfile',
+          toPath: null,
+          rawEdgeJson:
+            '{"edgeId":"edge-sketch-to-extrude","from":{"nodeId":"node-sketch-1","portId":"SketchProfile"},"to":{"nodeId":"node-extrude-1","portId":"ExtrusionProfile"}}',
+        },
+      ],
+      connectedOutputPreviewSlots: [
+        {
+          slotId: 's001',
+          publicationMode: 'grouped',
+          objectLabel: 'Object 1',
+          edgeId: 'edge-extrude-to-output-preview',
+        },
+      ],
+    })
+    expect(vm.extrudeCapture.extrudes[0]?.profileInputSummary.startsWith('single profile (')).toBe(true)
     expect(vm.previewVm.entries).toEqual([
       {
         viewerKey: 's001',
@@ -312,6 +344,173 @@ describe('selectDebugInspectorVm', () => {
         artifactLabel: 'Extrude',
         artifactPartKey: 'extrude',
         artifactPartKeyStr: 'extrude',
+      },
+    ])
+  })
+
+  it('captures raw aggregate extrude edge payloads and split OutputPreview slot metadata for live-payload debugging', () => {
+    const aggregateExtrudeGraph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 's001', publicationMode: 'split' }],
+            objects: [
+              {
+                objectId: 'output-object:s001',
+                slotId: 's001',
+                label: 'Pedal Body',
+                orderIndex: 0,
+              },
+            ],
+            nextSlotIndex: 2,
+          },
+        },
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+              lineComponent('row-5', 'e5', { x: 140, y: 0 }, { x: 180, y: 0 }),
+              lineComponent('row-6', 'e6', { x: 180, y: 0 }, { x: 180, y: 40 }),
+              lineComponent('row-7', 'e7', { x: 180, y: 40 }, { x: 140, y: 40 }),
+              lineComponent('row-8', 'e8', { x: 140, y: 40 }, { x: 140, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-to-extrude',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles', path: ['member', '0'] },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile', path: ['staleTarget'] },
+        },
+        {
+          edgeId: 'edge-extrude-to-output-preview',
+          from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+        },
+      ],
+    }
+
+    const vm = selectDebugInspectorVm({
+      graphDocumentId: 'graph-document-live-capture',
+      graph: aggregateExtrudeGraph,
+      outputSurface: null,
+      buildOutputs: [],
+      compileResult: null,
+    })
+
+    expect(vm.graphDocumentId).toBe('graph-document-live-capture')
+    expect(vm.extrudeCapture.extrudes).toEqual([
+      {
+        nodeId: 'node-extrude-1',
+        profileInputSummary: 'aggregate profiles (2)',
+        solidBodySummary: 'solidBodies (2)',
+        incomingProfileEdges: [
+          {
+            edgeId: 'edge-sketch-to-extrude',
+            fromNodeId: 'node-sketch-1',
+            fromPortId: 'SketchProfiles',
+            fromPath: 'member.0',
+            toNodeId: 'node-extrude-1',
+            toPortId: 'ExtrusionProfile',
+            toPath: 'staleTarget',
+            rawEdgeJson:
+              '{"edgeId":"edge-sketch-to-extrude","from":{"nodeId":"node-sketch-1","portId":"SketchProfiles","path":["member","0"]},"to":{"nodeId":"node-extrude-1","portId":"ExtrusionProfile","path":["staleTarget"]}}',
+          },
+        ],
+        connectedOutputPreviewSlots: [
+          {
+            slotId: 's001',
+            publicationMode: 'split',
+            objectLabel: 'Pedal Body',
+            edgeId: 'edge-extrude-to-output-preview',
+          },
+        ],
+      },
+    ])
+  })
+
+  it('captures legacy SketchProfiles target ids through the same aggregate extrude debug surface', () => {
+    const aggregateExtrudeGraph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: createSketchFeature([
+              lineComponent('row-1', 'e1', { x: 0, y: 0 }, { x: 100, y: 0 }),
+              lineComponent('row-2', 'e2', { x: 100, y: 0 }, { x: 100, y: 50 }),
+              lineComponent('row-3', 'e3', { x: 100, y: 50 }, { x: 0, y: 50 }),
+              lineComponent('row-4', 'e4', { x: 0, y: 50 }, { x: 0, y: 0 }),
+              lineComponent('row-5', 'e5', { x: 140, y: 0 }, { x: 180, y: 0 }),
+              lineComponent('row-6', 'e6', { x: 180, y: 0 }, { x: 180, y: 40 }),
+              lineComponent('row-7', 'e7', { x: 180, y: 40 }, { x: 140, y: 40 }),
+              lineComponent('row-8', 'e8', { x: 140, y: 40 }, { x: 140, y: 0 }),
+            ]),
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-to-extrude-legacy-target',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles', path: ['member', '0'] },
+          to: { nodeId: 'node-extrude-1', portId: 'SketchProfiles', path: ['staleTarget'] },
+        },
+      ],
+    }
+
+    const vm = selectDebugInspectorVm({
+      graphDocumentId: 'graph-document-legacy-target',
+      graph: aggregateExtrudeGraph,
+      outputSurface: null,
+      buildOutputs: [],
+      compileResult: null,
+    })
+
+    expect(vm.extrudeCapture.extrudes).toEqual([
+      {
+        nodeId: 'node-extrude-1',
+        profileInputSummary: 'aggregate profiles (2)',
+        solidBodySummary: 'solidBodies (2)',
+        incomingProfileEdges: [
+          {
+            edgeId: 'edge-sketch-to-extrude-legacy-target',
+            fromNodeId: 'node-sketch-1',
+            fromPortId: 'SketchProfiles',
+            fromPath: 'member.0',
+            toNodeId: 'node-extrude-1',
+            toPortId: 'SketchProfiles',
+            toPath: 'staleTarget',
+            rawEdgeJson:
+              '{"edgeId":"edge-sketch-to-extrude-legacy-target","from":{"nodeId":"node-sketch-1","portId":"SketchProfiles","path":["member","0"]},"to":{"nodeId":"node-extrude-1","portId":"SketchProfiles","path":["staleTarget"]}}',
+          },
+        ],
+        connectedOutputPreviewSlots: [],
       },
     ])
   })

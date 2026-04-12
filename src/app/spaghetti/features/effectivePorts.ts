@@ -30,14 +30,15 @@ const listOutputPreviewSlotInputPorts = (node: SpaghettiNode): PortSpec[] => {
   }
   return params.slots.map((slot) => ({
     // "solid" is an ID contract token for OutputPreview slots.
-    // Type compatibility is enforced by kind (`toeLoft`) in validators/resolvers.
+    // This row is collection-capable and later validator compat widens it
+    // to accept singular and aggregate body contributors plus legacy toeLoft.
     portId: `in:solid:${slot.slotId}`,
-    label: slot.slotId,
-    type: { kind: 'toeLoft' },
+    label: 'SolidBodies',
+    type: { kind: 'solidBodies' },
     // Optional means the slot may be unconnected without diagnostics.
     // It does not relax type/path validation for actual connections.
     optional: true,
-    maxConnectionsIn: 1,
+    maxConnectionsIn: Number.MAX_SAFE_INTEGER,
   }))
 }
 

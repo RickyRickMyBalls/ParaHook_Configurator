@@ -47,7 +47,7 @@ describe('ensureOutputPreviewSlotsPatch', () => {
         objects: [
           { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
         ],
-        slots: [{ slotId: 's001' }],
+        slots: [{ slotId: 's001', publicationMode: 'split' }],
         nextSlotIndex: 2,
       })
     },
@@ -79,7 +79,10 @@ describe('ensureOutputPreviewSlotsPatch', () => {
         { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
         { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
       ],
-      slots: [{ slotId: 's001' }, { slotId: 's002' }],
+      slots: [
+        { slotId: 's001', publicationMode: 'grouped' },
+        { slotId: 's002', publicationMode: 'split' },
+      ],
       nextSlotIndex: 3,
     })
   })
@@ -100,7 +103,7 @@ describe('ensureOutputPreviewSlotsPatch', () => {
       objects: [
         { objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 },
       ],
-      slots: [{ slotId: 's001' }],
+      slots: [{ slotId: 's001', publicationMode: 'grouped' }],
       nextSlotIndex: 4,
     })
   })
@@ -134,8 +137,35 @@ describe('ensureOutputPreviewSlotsPatch', () => {
         { objectId: 'output-object:s002', slotId: 's002', label: 'Object 2', orderIndex: 1 },
         { objectId: 'output-object:s003', slotId: 's003', label: 'Object 3', orderIndex: 2 },
       ],
-      slots: [{ slotId: 's001' }, { slotId: 's002' }, { slotId: 's003' }],
+      slots: [
+        { slotId: 's001', publicationMode: 'grouped' },
+        { slotId: 's002', publicationMode: 'grouped' },
+        { slotId: 's003', publicationMode: 'grouped' },
+      ],
       nextSlotIndex: 4,
+    })
+  })
+
+  it('materializes touched legacy omitted slots to explicit grouped mode even without structural slot changes', () => {
+    const graph = makeGraph({
+      componentLabel: 'Published Component',
+      objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 }],
+      slots: [{ slotId: 's001' }],
+      nextSlotIndex: 2,
+    })
+
+    const patch = ensureOutputPreviewSlotsPatch(graph)
+    const normalized = patch === null ? graph : patch(graph)
+    const outputPreviewNode = normalized.nodes.find(
+      (node) => node.type === OUTPUT_PREVIEW_NODE_TYPE,
+    )
+
+    expect(patch).not.toBeNull()
+    expect(outputPreviewNode?.params).toEqual({
+      componentLabel: 'Published Component',
+      objects: [{ objectId: 'output-object:s001', slotId: 's001', label: 'Object 1', orderIndex: 0 }],
+      slots: [{ slotId: 's001', publicationMode: 'grouped' }],
+      nextSlotIndex: 2,
     })
   })
 

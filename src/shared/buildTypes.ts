@@ -198,6 +198,7 @@ export type CompiledBuildDataOutputEntry = {
   outputEntryId: string
   sourceNodeId: string
   partKey: string
+  bodyId?: string | null
 }
 
 export type BuildIdentity = {
@@ -223,7 +224,8 @@ const isCompiledBuildDataOutputEntry = (
   typeof value.sourceNodeId === 'string' &&
   value.sourceNodeId.length > 0 &&
   typeof value.partKey === 'string' &&
-  value.partKey.length > 0
+  value.partKey.length > 0 &&
+  (value.bodyId === undefined || value.bodyId === null || typeof value.bodyId === 'string')
 
 export const isCompiledBuildData = (value: unknown): value is CompiledBuildData =>
   isRecord(value) &&

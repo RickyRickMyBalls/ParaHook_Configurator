@@ -9,10 +9,21 @@ import type {
 export const OUTPUT_PREVIEW_NODE_TYPE = 'System/OutputPreview' as const
 export const OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL = 'Published Component' as const
 export const OUTPUT_PREVIEW_DEFAULT_OBJECT_LABEL_PREFIX = 'Object' as const
-export const OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE = 'grouped' as const
+export const OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE = 'split' as const
+export const OUTPUT_PREVIEW_LEGACY_COMPAT_PUBLICATION_MODE = 'grouped' as const
+
+export type OutputPreviewPublicationModeRead = {
+  publicationMode: NonNullable<OutputPreviewSlot['publicationMode']>
+  source: 'explicit' | 'legacy-compat'
+}
 
 const buildDefaultOutputPreviewObjectLabel = (orderIndex: number): string =>
   `${OUTPUT_PREVIEW_DEFAULT_OBJECT_LABEL_PREFIX} ${orderIndex + 1}`
+
+export const buildDefaultOutputPreviewSlot = (slotId: string): OutputPreviewSlot => ({
+  slotId,
+  publicationMode: OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
+})
 
 export const OUTPUT_PREVIEW_DEFAULT_PARAMS: OutputPreviewParams = {
   componentLabel: OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL,
@@ -24,7 +35,7 @@ export const OUTPUT_PREVIEW_DEFAULT_PARAMS: OutputPreviewParams = {
       orderIndex: 0,
     },
   ],
-  slots: [{ slotId: 's001' }],
+  slots: [buildDefaultOutputPreviewSlot('s001')],
   nextSlotIndex: 2,
 }
 
@@ -44,10 +55,26 @@ const toNonEmptyString = (value: unknown): string | null =>
 const toPositiveInt = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : fallback
 
-const toPublicationMode = (
+const toExplicitPublicationMode = (
   value: unknown,
-): OutputPreviewSlot['publicationMode'] =>
-  value === 'split' ? 'split' : OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE
+): OutputPreviewPublicationModeRead['publicationMode'] | null =>
+  value === 'split' || value === 'grouped' ? value : null
+
+export const readOutputPreviewSlotPublicationMode = (
+  value: unknown,
+): OutputPreviewPublicationModeRead => {
+  const explicitPublicationMode = toExplicitPublicationMode(value)
+  if (explicitPublicationMode !== null) {
+    return {
+      publicationMode: explicitPublicationMode,
+      source: 'explicit',
+    }
+  }
+  return {
+    publicationMode: OUTPUT_PREVIEW_LEGACY_COMPAT_PUBLICATION_MODE,
+    source: 'legacy-compat',
+  }
+}
 
 const buildDefaultOutputPreviewObjectId = (slotId: string): string => `output-object:${slotId}`
 
@@ -80,7 +107,13 @@ export const normalizeOutputPreviewParams = (
           const slotId = toNonEmptyString(slot.slotId)
           return slotId === null
             ? []
-            : [{ slotId, publicationMode: toPublicationMode(slot.publicationMode) }]
+            : [
+                {
+                  slotId,
+                  publicationMode: readOutputPreviewSlotPublicationMode(slot.publicationMode)
+                    .publicationMode,
+                },
+              ]
         })
       : []) as OutputPreviewParams['slots'])
 
@@ -88,12 +121,9 @@ export const normalizeOutputPreviewParams = (
     slots.length > 0
       ? slots.map((slot) => ({
           slotId: slot.slotId,
-          publicationMode: toPublicationMode(slot.publicationMode),
+          publicationMode: readOutputPreviewSlotPublicationMode(slot.publicationMode).publicationMode,
         }))
-      : OUTPUT_PREVIEW_DEFAULT_PARAMS.slots.map((slot) => ({
-          slotId: slot.slotId,
-          publicationMode: OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
-        }))
+      : OUTPUT_PREVIEW_DEFAULT_PARAMS.slots.map((slot) => ({ ...slot }))
 
   const rawObjects = Array.isArray(params.objects) ? params.objects : []
   const rawObjectsBySlotId = new Map<string, OutputPreviewObject>()

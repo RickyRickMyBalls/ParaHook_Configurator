@@ -18,7 +18,7 @@ describe('OutputPreview node registry contract', () => {
       {
         portId: 'ExtrusionProfile',
         label: 'SketchProfiles',
-        type: { kind: 'sketchProfile' },
+        type: { kind: 'sketchProfiles' },
         optional: true,
         maxConnectionsIn: Number.MAX_SAFE_INTEGER,
       },

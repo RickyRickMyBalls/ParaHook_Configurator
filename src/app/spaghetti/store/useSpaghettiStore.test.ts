@@ -35,6 +35,7 @@ import {
   selectSharedViewerCompositionGraphDocumentIds,
   selectViewerTargetGraphAcceptedAuthoritativeGeometryResult,
   selectViewerTargetGraphAcceptedBuildOutputs,
+  selectViewerTargetGraphAcceptedPreviewBuildOutputs,
   selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   selectViewerTargetGraphCommittedDraftGeometryResult,
   selectViewerTargetGraphDocumentId,
@@ -1431,6 +1432,52 @@ describe('useSpaghettiStore graph normalization', () => {
     ])
   })
 
+  it('gates viewer-target accepted preview build outputs by the current accepted draft revision while preserving stored artifacts', () => {
+    const graphDocumentId = 'graph-document-1'
+
+    useSpaghettiStore.setState((state) => ({
+      viewerTargetGraphDocumentId: graphDocumentId,
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          acceptedDraftGraphRevision: 1,
+          acceptedPreviewBuildOutputs: [baseplateArtifact],
+        },
+      },
+    }))
+
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+        ?.acceptedPreviewBuildOutputs,
+    ).toEqual([baseplateArtifact])
+    expect(selectViewerTargetGraphAcceptedPreviewBuildOutputs(useSpaghettiStore.getState())).toEqual(
+      [],
+    )
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          acceptedDraftGraphRevision: 2,
+        },
+      },
+    }))
+
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+        ?.acceptedPreviewBuildOutputs,
+    ).toEqual([baseplateArtifact])
+    expect(selectViewerTargetGraphAcceptedPreviewBuildOutputs(useSpaghettiStore.getState())).toEqual(
+      [baseplateArtifact],
+    )
+  })
+
   it('acceptGraphBuildResult stores retained geometry results per graph without cross-graph overwrite', () => {
     const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
       {
@@ -2527,6 +2574,99 @@ describe('useSpaghettiStore graph normalization', () => {
     )
     expect(releaseSpy).toHaveBeenCalledWith(['shape-set-authoritative-71'])
     expect(releaseSpy).toHaveBeenCalledWith(['shape-set-stale-71'])
+  })
+
+  it('stages live authoritative preview while advancing the accepted draft lane to the incoming current revision', () => {
+    const graphDocumentId = 'graph-document-1'
+    const previousDraftGeometryResult = createAcceptedGeometryResult({
+      graphDocumentId,
+      buildRequestId: 'accepted-draft-81',
+      partKeys: ['baseplate'],
+    })
+    const previousAuthoritativeGeometryResult = createAcceptedAuthoritativeGeometryResult({
+      graphDocumentId,
+      buildRequestId: 'accepted-authoritative-81',
+      partKeys: ['baseplate'],
+      handleId: 'shape-set-authoritative-81',
+    })
+    const incomingDraftGeometryResult = createAcceptedGeometryResult({
+      graphDocumentId,
+      buildRequestId: 'build-request-82',
+      partKeys: ['baseplate', 'wall'],
+    })
+    const incomingAuthoritativeGeometryResult = createAcceptedAuthoritativeGeometryResult({
+      graphDocumentId,
+      buildRequestId: 'build-request-82',
+      partKeys: ['baseplate', 'wall'],
+      handleId: 'shape-set-authoritative-82',
+    })
+
+    useSpaghettiStore.setState((state) => ({
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          acceptedDraftGraphRevision: 1,
+          acceptedDraftGeometryResult: previousDraftGeometryResult,
+          acceptedAuthoritativeGraphRevision: 1,
+          acceptedAuthoritativeGeometryResult: previousAuthoritativeGeometryResult,
+        },
+      },
+    }))
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate', 'wall'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_depth'],
+      pendingStatsPartKeys: ['baseplate', 'wall'],
+      pendingTargetBuildUnitIds: [],
+      pendingAffectedBuildUnitIds: [],
+      buildRequestId: 'build-request-82',
+      buildSeq: 82,
+      executionIntent: {
+        ...DEFAULT_BUILD_EXECUTION_INTENT,
+        geometryTarget: 'authoritative',
+        authoritativePolicy: 'live',
+      },
+    })
+
+    const staged = useSpaghettiStore.getState().stageAuthoritativePreviewGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId,
+      buildRequestId: 'build-request-82',
+      buildSeq: 82,
+      draftGeometryResult: incomingDraftGeometryResult,
+      authoritativeGeometryResult: incomingAuthoritativeGeometryResult,
+    })
+
+    const runtime = useSpaghettiStore.getState().graphRuntimeByDocumentId[graphDocumentId]
+    expect(staged).toBe(true)
+    expect(runtime?.acceptedDraftGraphRevision).toBe(2)
+    expect(runtime?.acceptedDraftGeometryResult).toEqual(incomingDraftGeometryResult)
+    expect(runtime?.acceptedAuthoritativeGraphRevision).toBe(1)
+    expect(runtime?.acceptedAuthoritativeGeometryResult).toEqual(
+      previousAuthoritativeGeometryResult,
+    )
+    expect(runtime?.stagedAuthoritativePreviewResult).toEqual(
+      expect.objectContaining({
+        buildSeq: 82,
+        buildRequestId: 'build-request-82',
+        graphRevision: 2,
+        authoritativeGeometryResult: incomingAuthoritativeGeometryResult,
+      }),
+    )
+    expect(runtime?.compileBuild.inFlightBuildSeq).toBeNull()
   })
 
   it('focus changes do not rebind an in-flight graph build result', () => {

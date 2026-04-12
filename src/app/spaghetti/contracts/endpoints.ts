@@ -289,7 +289,7 @@ const arePortTypesCompatible = (
   if (fromType.kind === toType.kind && fromType.unit === toType.unit) {
     return true
   }
-  const solidPreviewCompat =
+const solidPreviewCompat =
     (fromType.kind === 'solidBody' && toType.kind === 'toeLoft') ||
     (fromType.kind === 'toeLoft' && toType.kind === 'solidBody') ||
     (fromType.kind === 'solidBodies' && toType.kind === 'toeLoft') ||
@@ -297,13 +297,28 @@ const arePortTypesCompatible = (
   return solidPreviewCompat && fromType.unit === toType.unit
 }
 
-const isWholePortSketchProfilesToExtrusionProfileCompat = (
+const isOutputPreviewCollectionContributorCompat = (
   fromResolved: ResolvedEndpoint,
   toResolved: ResolvedEndpoint,
 ): boolean =>
   toResolved.path === undefined &&
-  fromResolved.type?.kind === 'sketchProfiles' &&
-  toResolved.type?.kind === 'sketchProfile'
+  toResolved.node?.type === 'System/OutputPreview' &&
+  toResolved.portId.startsWith('in:solid:') &&
+  toResolved.type?.kind === 'solidBodies' &&
+  (fromResolved.type?.kind === 'solidBody' ||
+    fromResolved.type?.kind === 'solidBodies' ||
+    fromResolved.type?.kind === 'toeLoft')
+
+const isExtrudeProfileContributorToCollectionCompat = (
+  fromResolved: ResolvedEndpoint,
+  toResolved: ResolvedEndpoint,
+): boolean =>
+  toResolved.path === undefined &&
+  toResolved.node?.type === 'Geometry/Extrude' &&
+  toResolved.portId === 'ExtrusionProfile' &&
+  toResolved.type?.kind === 'sketchProfiles' &&
+  (fromResolved.type?.kind === 'sketchProfiles' ||
+    fromResolved.type?.kind === 'sketchProfile')
 
 type ValidateConnectionContractOptions = {
   incrementalState?: ConnectionContractIncrementalState
@@ -378,7 +393,8 @@ export const validateConnectionContract = (
   }
   if (
     !arePortTypesCompatible(fromResolved.type, toResolved.type) &&
-    !isWholePortSketchProfilesToExtrusionProfileCompat(fromResolved, toResolved)
+    !isOutputPreviewCollectionContributorCompat(fromResolved, toResolved) &&
+    !isExtrudeProfileContributorToCollectionCompat(fromResolved, toResolved)
   ) {
     return fail('EDGE_TYPE_MISMATCH', baseDetails)
   }

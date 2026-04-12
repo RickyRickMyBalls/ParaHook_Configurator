@@ -1107,7 +1107,7 @@ describe('compileSpaghettiGraph determinism', () => {
         offsetResolved: 0,
         plane: 'XZ',
         planeTransform,
-        bodyId: 'n-extrude:body',
+        bodyId: 'n-extrude:body:001',
       },
     ])
   })
@@ -1201,23 +1201,38 @@ describe('compileSpaghettiGraph determinism', () => {
           }),
         ],
       },
-      {
+      expect.objectContaining({
         op: 'extrude',
         featureId: 'n-extrude',
         profileSelection: {
-          mode: 'allFromSketch',
+          mode: 'single',
           sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 0,
         },
-        profileRef: null,
-        extrudeType: 'Body',
-        extrudeDirection: 'OneSide',
-        depthResolved: 14,
-        taperResolved: 0,
-        offsetResolved: 0,
-        plane: 'XY',
-        planeTransform: defaultPlaneTransform,
-        bodyId: 'n-extrude:body',
-      },
+        profileRef: {
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 0,
+        },
+        bodyId: 'n-extrude:body:001',
+      }),
+      expect.objectContaining({
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 1,
+        },
+        profileRef: {
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 1,
+        },
+        bodyId: 'n-extrude:body:002',
+      }),
     ])
   })
 
@@ -1463,32 +1478,54 @@ describe('compileSpaghettiGraph determinism', () => {
           }),
         ],
       },
-      {
+      expect.objectContaining({
         op: 'extrude',
         featureId: 'n-extrude',
         profileSelection: {
-          mode: 'contributors',
-          contributors: [
-            {
-              kind: 'single',
-              sketchFeatureId: 'n-sketch-a',
-              profileId,
-              profileIndex: 1,
-            },
-            {
-              kind: 'allFromSketch',
-              sketchFeatureId: 'n-sketch-b',
-            },
-          ],
+          mode: 'single',
+          sketchFeatureId: 'n-sketch-a',
+          profileId,
+          profileIndex: 1,
         },
-        profileRef: null,
-        extrudeType: 'Body',
-        extrudeDirection: 'OneSide',
-        depthResolved: 18,
-        taperResolved: 0,
-        offsetResolved: 0,
-        bodyId: 'n-extrude:body',
-      },
+        profileRef: {
+          sketchFeatureId: 'n-sketch-a',
+          profileId,
+          profileIndex: 1,
+        },
+        bodyId: 'n-extrude:body:001',
+      }),
+      expect.objectContaining({
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch-b',
+          profileId: expect.any(String),
+          profileIndex: 0,
+        },
+        profileRef: {
+          sketchFeatureId: 'n-sketch-b',
+          profileId: expect.any(String),
+          profileIndex: 0,
+        },
+        bodyId: 'n-extrude:body:002',
+      }),
+      expect.objectContaining({
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch-b',
+          profileId: expect.any(String),
+          profileIndex: 1,
+        },
+        profileRef: {
+          sketchFeatureId: 'n-sketch-b',
+          profileId: expect.any(String),
+          profileIndex: 1,
+        },
+        bodyId: 'n-extrude:body:003',
+      }),
     ])
   })
 
@@ -1629,8 +1666,22 @@ describe('compileSpaghettiGraph determinism', () => {
         op: 'extrude',
         featureId: 'n-extrude-a',
         profileSelection: {
-          mode: 'allFromSketch',
+          mode: 'single',
           sketchFeatureId: 'n-sketch-a',
+          profileId: expect.any(String),
+          profileIndex: 0,
+        },
+      }),
+    )
+    expect(featureIr?.parts?.['extrude#1']?.[2]).toEqual(
+      expect.objectContaining({
+        op: 'extrude',
+        featureId: 'n-extrude-a',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch-a',
+          profileId: expect.any(String),
+          profileIndex: 1,
         },
       }),
     )
@@ -1646,11 +1697,129 @@ describe('compileSpaghettiGraph determinism', () => {
         op: 'extrude',
         featureId: 'n-extrude-b',
         profileSelection: {
-          mode: 'allFromSketch',
+          mode: 'single',
           sketchFeatureId: 'n-sketch-b',
+          profileId: expect.any(String),
+          profileIndex: 0,
         },
       }),
     )
+  })
+
+  it('splits Geometry/Extrude NewObjects into per-body runtime IR operations', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'n-sketch',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'rect-1',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 20, y: 10 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'rect-2',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 30, y: 0 },
+                  b: { kind: 'lit', x: 45, y: 10 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'n-extrude',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Body',
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 18,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'e-sketch-profiles',
+          from: {
+            nodeId: 'n-sketch',
+            portId: 'SketchProfiles',
+          },
+          to: {
+            nodeId: 'n-extrude',
+            portId: 'ExtrusionProfile',
+          },
+        },
+      ],
+    }
+
+    const evaluation = evaluateSpaghettiGraph(graph)
+    expect(evaluation.ok).toBe(true)
+
+    const result = computeFeatureStackIrParts(graph, {
+      resolvedInputsByNodeId: evaluation.inputsByNodeId,
+      resolvedOutputsByNodeId: evaluation.outputsByNodeId,
+    })
+    expect(result.warnings).toEqual([])
+
+    expect(result.parts.extrude).toEqual([
+      expect.objectContaining({
+        op: 'sketch',
+        featureId: 'n-sketch',
+        profilesResolved: [
+          expect.objectContaining({ profileIndex: 0 }),
+          expect.objectContaining({ profileIndex: 1 }),
+        ],
+      }),
+      expect.objectContaining({
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 0,
+        },
+        profileRef: {
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 0,
+        },
+        bodyId: 'n-extrude:body:001',
+      }),
+      expect.objectContaining({
+        op: 'extrude',
+        featureId: 'n-extrude',
+        profileSelection: {
+          mode: 'single',
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 1,
+        },
+        profileRef: {
+          sketchFeatureId: 'n-sketch',
+          profileId: expect.any(String),
+          profileIndex: 1,
+        },
+        bodyId: 'n-extrude:body:002',
+      }),
+    ])
   })
 
   it('preserves authored Geometry/Extrude taper in the shared geometry request payload', () => {

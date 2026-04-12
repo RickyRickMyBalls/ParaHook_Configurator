@@ -8,6 +8,8 @@ import {
   cloneOutputPreviewDefaultParams,
   OUTPUT_PREVIEW_NODE_TYPE,
 } from '../system/outputPreviewNode'
+import { isSketchProfilesValue } from '../features/extrudeProfileConnections'
+import { buildExtrudeBodyId } from '../features/extrudeBodyIdentity'
 import type { PortSpec, Unit } from '../schema/spaghettiTypes'
 import type { SketchFeature } from '../features/featureTypes'
 
@@ -306,30 +308,11 @@ export const normalizeGeometryExtrudeType = (value: unknown): GeometryExtrudeTyp
   return value === 'Walls' ? 'Walls' : 'Body'
 }
 
-const isExtrusionProfileInputLike = (value: unknown): boolean => {
-  const isSingleProfile =
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { profileId?: unknown }).profileId === 'string'
-  if (isSingleProfile) {
-    return true
-  }
-  return Array.isArray(value) && value.length > 0 && value.some((entry) => isExtrusionProfileInputLike(entry))
-}
+const isExtrusionProfileInputLike = (value: unknown): boolean =>
+  isSketchProfilesValue(value) && value.length > 0
 
-const countExtrusionProfileTargets = (value: unknown): number => {
-  const isSingleProfile =
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { profileId?: unknown }).profileId === 'string'
-  if (isSingleProfile) {
-    return 1
-  }
-  if (!Array.isArray(value)) {
-    return 0
-  }
-  return value.reduce((count, entry) => count + countExtrusionProfileTargets(entry), 0)
-}
+const countExtrusionProfileTargets = (value: unknown): number =>
+  isSketchProfilesValue(value) ? value.length : 0
 
 export const GEOMETRY_EXTRUDE_DIRECTION_OPTIONS = [
   'OneSide',
@@ -569,7 +552,7 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
       {
         portId: 'ExtrusionProfile',
         label: 'SketchProfiles',
-        type: { kind: 'sketchProfile' },
+        type: { kind: 'sketchProfiles' },
         optional: true,
         maxConnectionsIn: unboundedIncomingConnections,
       },
@@ -656,14 +639,14 @@ export const registry: Record<NodeTypeId, NodeDefinition> = {
         SolidBody: !canPublishBody
           ? null
           : bodyGenerationMode === 'NewObjects'
-            ? {
-                bodies: Array.from({ length: bodyCount }, (_, index) => ({
-                  bodyId: `${nodeId}:body:${String(index + 1).padStart(3, '0')}`,
-                })),
-              }
-            : { bodyId: `${nodeId}:body` },
-      }
-    },
+              ? {
+                  bodies: Array.from({ length: bodyCount }, (_, index) => ({
+                    bodyId: buildExtrudeBodyId(nodeId, index),
+                  })),
+                }
+            : { bodyId: buildExtrudeBodyId(nodeId) },
+        }
+      },
   },
   'Geometry/Sketch': {
     type: 'Geometry/Sketch',

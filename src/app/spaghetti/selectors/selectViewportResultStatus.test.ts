@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { toViewerRenderablePart, type PartArtifact } from '../../../shared/buildTypes'
 import type { ViewportResultState } from './selectViewportResultState'
 import { selectViewportResultStatus } from './selectViewportResultStatus'
+
+const createArtifact = (partKeyStr: string): PartArtifact => ({
+  id: `artifact:${partKeyStr}`,
+  kind: 'box',
+  label: partKeyStr,
+  partKeyStr,
+  partKey: { id: partKeyStr, instance: null },
+  params: { width: 10, length: 20, height: 5 },
+})
 
 const createViewportResultState = (
   overrides: Partial<ViewportResultState> = {},
@@ -52,6 +62,7 @@ const createViewportResultState = (
   visibleSourceKind: 'none',
   geometryResult: null,
   artifactBuildOutputs: [],
+  acceptedPreviewBuildBundle: null,
   previewPreparation: null,
   renderVm: {
     items: [],
@@ -149,6 +160,50 @@ describe('selectViewportResultStatus', () => {
     expect(
       selectViewportResultStatus(
         createViewportResultState({
+          isUsingFallback: true,
+          fallbackReason: 'no-accepted-geometry',
+        }),
+      ),
+    ).toEqual({
+      kind: 'waiting-for-geometry',
+      label: 'Waiting For Geometry',
+    })
+  })
+
+  it('keeps Waiting For Geometry while retained committed fallback remains visible', () => {
+    expect(
+      selectViewportResultStatus(
+        createViewportResultState({
+          hasRetainedAcceptedBase: true,
+          retainedBaseState: 'retained',
+          retainedBaseResultClass: 'final',
+          retainedBaseSourceKind: 'retained-final',
+          retainedBasePresentationStateId: 'lastLoaded',
+          lastLoadedState: {
+            isAvailable: true,
+            presentationStateId: 'lastLoaded',
+            resultClass: 'final',
+            sourceKind: 'retained-final',
+            geometryResult: null,
+            renderVm: {
+              items: [],
+              viewerParts: [
+                toViewerRenderablePart(
+                  createArtifact('authoritative-preview'),
+                  'graph-document-1:authoritative-preview',
+                ),
+              ],
+            },
+          },
+          retainedBaseRenderVm: {
+            items: [],
+            viewerParts: [
+              toViewerRenderablePart(
+                createArtifact('authoritative-preview'),
+                'graph-document-1:authoritative-preview',
+              ),
+            ],
+          },
           isUsingFallback: true,
           fallbackReason: 'no-accepted-geometry',
         }),

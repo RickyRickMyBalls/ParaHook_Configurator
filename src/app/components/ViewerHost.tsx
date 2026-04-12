@@ -47,9 +47,11 @@ import {
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 import { resolveWorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
 import { applyActiveDraftExtrudePreviewOverride } from './activeDraftExtrudePreview'
+import { buildQualifiedGraphOutputEntryId } from '../spaghetti/outputSurface'
 import {
   selectSharedViewerComposition,
   selectViewerTargetGraphAcceptedGeometryResult,
+  selectViewerTargetGraphAcceptedPreviewBuildBundle,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
   selectViewerTargetGraphAcceptedPreviewGeometryResult,
   selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
@@ -237,6 +239,7 @@ export function ViewerHost(props: ViewerHostProps) {
     selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   )
   const viewerTargetPreviewPreparation = useSpaghettiStore(selectViewerTargetGraphPreviewPreparation)
+  const viewerTargetBuildBundle = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildBundle)
   const viewerTargetBuildOutputs = useSpaghettiStore(selectViewerTargetGraphAcceptedPreviewBuildOutputs)
   const viewerTargetPreviewGeometryResult = useSpaghettiStore(
     selectViewerTargetGraphAcceptedPreviewGeometryResult,
@@ -376,6 +379,7 @@ export function ViewerHost(props: ViewerHostProps) {
         acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
         committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
         committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
+        acceptedPreviewBuildBundle: viewerTargetBuildBundle,
         acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
         previewPreparation: viewerTargetPreviewPreparation,
         viewerTargetGraphDocumentId,
@@ -427,9 +431,10 @@ export function ViewerHost(props: ViewerHostProps) {
       currentProjectGraphDocumentIds.length,
       delayedAuthoritativeBuildByGraphDocumentId,
       delayedDraftBuildByGraphDocumentId,
-      projectContent,
-      sharedViewerComposition,
-      viewerTargetBuildOutputs,
+        projectContent,
+        sharedViewerComposition,
+        viewerTargetBuildBundle,
+        viewerTargetBuildOutputs,
       viewerTargetCommittedGeometryResult,
       viewerTargetCommittedPreviewGeometryResult,
       viewerTargetGeometryResult,
@@ -464,6 +469,19 @@ export function ViewerHost(props: ViewerHostProps) {
           ),
           overlayOpacity:
             viewportResultState.overlayResultClass === 'final' ? 0.75 : 0.5,
+        }
+      }
+
+      if (viewportResultMode === 'auto' && viewportResultState.retainedBaseResultClass === 'final') {
+        return {
+          baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
+          baseStyle: resolveViewportLayerStyle(
+            viewportPresentationSettings,
+            viewportResultState.retainedBasePresentationStateId,
+          ),
+          overlayParts: [],
+          overlayStyle: resolveViewportLayerStyle(viewportPresentationSettings, null),
+          overlayOpacity: 0.5,
         }
       }
 
@@ -1214,7 +1232,16 @@ export function ViewerHost(props: ViewerHostProps) {
           if (fallbackSelectedPartKey !== null) {
             return fallbackSelectedPartKey
           }
-          return appState.projectContent.objectsById[target.objectId]?.slotId ?? null
+          const objectRow = appState.projectContent.objectsById[target.objectId]
+          if (objectRow === undefined) {
+            return null
+          }
+          return (
+            buildQualifiedGraphOutputEntryId(
+              objectRow.ownerGraphDocumentId,
+              objectRow.sourceOutputEntryId,
+            ) ?? objectRow.slotId
+          )
         }
         return null
       }

@@ -140,7 +140,7 @@ describe('graphCommands', () => {
     ])
   })
 
-  it('connectEdgeWithAutoReplace strips inert SketchProfiles source paths when wiring aggregate extrude input', () => {
+  it('connectEdgeWithAutoReplace strips inert aggregate extrude source and target paths', () => {
     const graph: SpaghettiGraph = {
       schemaVersion: 1,
       nodes: [
@@ -160,6 +160,7 @@ describe('graphCommands', () => {
       to: {
         nodeId: 'node-extrude',
         portId: 'ExtrusionProfile',
+        path: ['staleTarget'],
       },
     })(graph)
 

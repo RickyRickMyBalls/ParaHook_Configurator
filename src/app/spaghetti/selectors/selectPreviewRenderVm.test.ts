@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PartArtifact } from '../../../shared/buildTypes'
+import type { BuildResultBundle, PartArtifact } from '../../../shared/buildTypes'
 import type { GraphPreviewPreparation } from '../previewPreparation'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
 import { getDefaultNodeParams } from '../registry/nodeRegistry'
@@ -127,8 +127,8 @@ describe('selectPreviewRenderVm', () => {
     expect(vm.items[0]?.nodeId).toBe('node-toe')
     expect(vm.items[0]?.isReady).toBe(true)
     expect(vm.items[0]?.sourcePartKeyStr).toBe('toeHook#1')
-    expect(vm.items[0]?.viewerKey).toBe('s001')
-    expect(vm.viewerParts[0]?.viewerKey).toBe('s001')
+    expect(vm.items[0]?.viewerKey).toBe('output-entry:s001:node-toe')
+    expect(vm.viewerParts[0]?.viewerKey).toBe('output-entry:s001:node-toe')
     expect(vm.viewerParts[0]?.artifact.partKeyStr).toBe('toeHook#1')
   })
 
@@ -155,7 +155,7 @@ describe('selectPreviewRenderVm', () => {
     expect(vm.items[0]?.nodeId).toBe('node-cube')
     expect(vm.items[0]?.sourcePortId).toBe('solid')
     expect(vm.items[0]?.sourcePartKeyStr).toBe('cube')
-    expect(vm.items[0]?.viewerPart?.viewerKey).toBe('s001')
+    expect(vm.items[0]?.viewerPart?.viewerKey).toBe('output-entry:s001:node-cube')
     expect(vm.items[0]?.viewerPart?.artifact.partKeyStr).toBe('cube')
     expect(vm.viewerParts).toHaveLength(1)
   })
@@ -203,13 +203,19 @@ describe('selectPreviewRenderVm', () => {
     expect(vm.viewerParts).toEqual([])
   })
 
-  it('keeps multi-slot preview identity slot-scoped while resolving distinct multi-part artifacts', () => {
+  it('keeps multi-slot preview identity output-entry-scoped while resolving distinct multi-part artifacts', () => {
     const vm = selectPreviewRenderVm(multiCubeGraph, [cubeArtifact2, cubeArtifact1])
 
     expect(vm.items.map((item) => item.slotId)).toEqual(['s010', 's020'])
     expect(vm.items.map((item) => item.sourcePartKeyStr)).toEqual(['cube#2', 'cube#1'])
-    expect(vm.items.map((item) => item.viewerKey)).toEqual(['s010', 's020'])
-    expect(vm.viewerParts.map((item) => item.viewerKey)).toEqual(['s010', 's020'])
+    expect(vm.items.map((item) => item.viewerKey)).toEqual([
+      'output-entry:s010:node-cube-2',
+      'output-entry:s020:node-cube-1',
+    ])
+    expect(vm.viewerParts.map((item) => item.viewerKey)).toEqual([
+      'output-entry:s010:node-cube-2',
+      'output-entry:s020:node-cube-1',
+    ])
     expect(vm.viewerParts.map((item) => item.artifact.partKeyStr)).toEqual(['cube#2', 'cube#1'])
   })
 
@@ -252,12 +258,206 @@ describe('selectPreviewRenderVm', () => {
     const vm = selectPreviewRenderVmFromPreparation(preparation, [artifact])
 
     expect(vm.items.map((item) => item.viewerKey)).toEqual([
-      's001:member-001',
-      's001:member-002',
+      'output-entry:s001:node-extrude-1:member-001',
+      'output-entry:s001:node-extrude-1:member-002',
     ])
     expect(vm.viewerParts.map((item) => item.viewerKey)).toEqual([
-      's001:member-001',
-      's001:member-002',
+      'output-entry:s001:node-extrude-1:member-001',
+      'output-entry:s001:node-extrude-1:member-002',
+    ])
+  })
+
+  it('prefers accepted bundle entry artifacts for split members over the coarse part-key fallback', () => {
+    const preparation: GraphPreviewPreparation = {
+      outputPreviewNodeId: 'node-output-preview-1',
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude'],
+      sourceNodeIdBySlotId: { s001: 'node-extrude-1' },
+      sourcePartKeyBySlotId: { s001: 'extrude' },
+      sourcePortIdBySlotId: { s001: 'SolidBody' },
+      sourcePartKeyByNodeId: { 'node-extrude-1': 'extrude' },
+      publicationModeBySlotId: { s001: 'split' },
+      splitMemberCountBySlotId: { s001: 2 },
+      slotStatusBySlotId: { s001: 'ok' },
+      buildStatsReadyPartKeys: [],
+      previewIntent: 'outputPreview',
+    }
+    const coarseArtifact: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 20, length: 20, height: 20 },
+      partKeyStr: 'extrude',
+      partKey: { id: 'extrude', instance: null },
+    }
+    const memberArtifactA: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 10, length: 20, height: 20 },
+      partKeyStr: 'extrude:node-extrude-1:body:001',
+      partKey: { id: 'extrude:node-extrude-1:body:001', instance: null },
+    }
+    const memberArtifactB: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 30, length: 20, height: 20 },
+      partKeyStr: 'extrude:node-extrude-1:body:002',
+      partKey: { id: 'extrude:node-extrude-1:body:002', instance: null },
+    }
+    const acceptedBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-1',
+      graphDocumentId: 'graph-document-1',
+      seq: 1,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 2,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:s001:node-extrude-1:member-001',
+          outputEntryId: 'output-entry:s001:node-extrude-1:member-001',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [memberArtifactA],
+        },
+        {
+          buildUnitId: 'output-entry:s001:node-extrude-1:member-002',
+          outputEntryId: 'output-entry:s001:node-extrude-1:member-002',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [memberArtifactB],
+        },
+      ],
+    }
+
+    const vm = selectPreviewRenderVmFromPreparation(preparation, [coarseArtifact], acceptedBundle)
+
+    expect(vm.viewerParts.map((item) => item.artifact.partKeyStr)).toEqual([
+      'extrude:node-extrude-1:body:001',
+      'extrude:node-extrude-1:body:002',
+    ])
+  })
+
+  it('prefers accepted bundle entry artifacts for same-slot explicit contributors from the same node', () => {
+    const preparation: GraphPreviewPreparation = {
+      outputPreviewNodeId: 'node-output-preview-1',
+      outputSlotIds: ['s001'],
+      previewCandidateSlotIds: ['s001'],
+      previewCandidatePartKeys: ['extrude'],
+      sourceNodeIdBySlotId: { s001: 'node-extrude-1' },
+      sourcePartKeyBySlotId: { s001: 'extrude' },
+      sourcePortIdBySlotId: { s001: 'SolidBody:001' },
+      sourcePartKeyByNodeId: { 'node-extrude-1': 'extrude' },
+      sourceEntriesBySlotId: {
+        s001: [
+          {
+            slotId: 's001',
+            sourceNodeId: 'node-extrude-1',
+            sourcePartKeyStr: 'extrude',
+            sourcePortId: 'SolidBody:001',
+          },
+          {
+            slotId: 's001',
+            sourceNodeId: 'node-extrude-1',
+            sourcePartKeyStr: 'extrude',
+            sourcePortId: 'SolidBody:002',
+          },
+        ],
+      },
+      publicationModeBySlotId: { s001: 'grouped' },
+      splitMemberCountBySlotId: { s001: 1 },
+      slotStatusBySlotId: { s001: 'ok' },
+      buildStatsReadyPartKeys: [],
+      previewIntent: 'outputPreview',
+    }
+    const coarseArtifact: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 20, length: 20, height: 20 },
+      partKeyStr: 'extrude',
+      partKey: { id: 'extrude', instance: null },
+    }
+    const memberArtifactA: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 10, length: 20, height: 20 },
+      partKeyStr: 'extrude:node-extrude-1:body:001',
+      partKey: { id: 'extrude:node-extrude-1:body:001', instance: null },
+    }
+    const memberArtifactB: PartArtifact = {
+      id: 'extrude',
+      label: 'Extrude',
+      kind: 'box',
+      params: { width: 30, length: 20, height: 20 },
+      partKeyStr: 'extrude:node-extrude-1:body:002',
+      partKey: { id: 'extrude:node-extrude-1:body:002', instance: null },
+    }
+    const acceptedBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-1',
+      graphDocumentId: 'graph-document-1',
+      seq: 1,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 2,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+          outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [memberArtifactA],
+        },
+        {
+          buildUnitId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
+          outputEntryId: 'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [memberArtifactB],
+        },
+      ],
+    }
+
+    const vm = selectPreviewRenderVmFromPreparation(preparation, [coarseArtifact], acceptedBundle)
+
+    expect(vm.items.map((item) => item.outputEntryId)).toEqual([
+      'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
+      'output-entry:s001:node-extrude-1:port-SolidBody%3A002',
+    ])
+    expect(vm.viewerParts.map((item) => item.artifact.partKeyStr)).toEqual([
+      'extrude:node-extrude-1:body:001',
+      'extrude:node-extrude-1:body:002',
     ])
   })
 })
