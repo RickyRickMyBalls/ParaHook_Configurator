@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-04-12 21:44:03: Shipped `Cleanup 3 - Shared Boundary And Worker Contract Repair`, moved its standalone phase record from `Cleanup/Future/` to `Cleanup/Shipped/`, and refreshed the family ladder so the boundary-repair lane now reads as completed before the workspace-truth cleanup phase
+9. 2026-04-12 21:10: Added two focused follow-on cleanup seams to the family ladder, introducing `Cleanup 4A - Workspace Surface Catalog And Capability Registry` after the workspace-truth phase and `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence` after the CAD packaging phase so the index now captures the next likely cross-cutting organization work without overloading Cleanup with viewer-only or future motion-family architecture
+8. 2026-04-12 20:45: Split the CAD cleanup ladder more cleanly by keeping `Cleanup 7` focused on node-owned authoring truth and command-adapter unification, adding a new `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction`, and shifting the later umbrella phases up by one so node-family packaging has its own explicit cleanup lane
+7. 2026-04-12 20:15: Reframed `Cleanup 7` from the narrower transform-session wording into the broader `Node-Owned CAD Authoring And Command Adapter Unification` lane, locking that spaghetti CAD nodes should own authored truth while toolbar, console, and viewport command flows act as adapters over shared graph mutation and preview seams, and added the standalone future phase doc for that cleanup lane
+6. 2026-04-12 19:55: Shipped `Cleanup 1 - Startup Path Canonicalization`, corrected the earlier starter-asset assumption after a live rescan showed `public/vite.svg` is still used by `index.html` as the favicon, and moved the phase record into `Cleanup/Shipped/` after retiring the real dead starter entry residue
 5. 2026-04-12 13:42: Added standalone future phase docs for `Cleanup 2` through `Cleanup 6` so the big-vision ownership and boundary lanes now have real planning surfaces under `Cleanup/Future/`
 4. 2026-04-12 13:31: Expanded the Cleanup family phase ladder into a broader big-vision cleanup roadmap based on `Cleanup-Vision.md` and `Canonical-Ownership-Targets.md`, adding follow-on umbrella phases for owner decisions, shared boundaries, workspace/app-shell simplification, project-and-browser ownership cleanup, graph/runtime acceptance, transform unification, Browser/Console cleanup, optional-surface scope decisions, and final naming/docs hardening
 3. 2026-04-12 13:12: Added `Canonical-Owner-Decisions.md` as the compact cleanup decision register for one-real-owner rules and refreshed this index so the Cleanup family now distinguishes between broad ownership targets and a tighter decision sheet
@@ -158,7 +163,7 @@ What was missing was the umbrella family index that turns those docs into an ong
 
 ### Cleanup Phase Ladder
 
-## [ ] Cleanup 1 - Startup Path Canonicalization
+## [x] Cleanup 1 - Startup Path Canonicalization
 
 This is the first cleanup phase for the family.
 
@@ -172,16 +177,17 @@ Initial focus:
 - make `src/main.tsx` the clearly documented canonical owner of app startup
 - remove or retire any residue that still suggests a parallel app entry path
 - keep bootstrap wiring and root app composition honest about where startup truth lives
+- keep `public/vite.svg` only because the live repo still uses it as the favicon through `index.html`
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-1 - Startup Path Canonicalization.md`
+- `Shipped/Cleanup_Phase Cleanup-1 - Startup Path Canonicalization.md`
 
 Target result:
 - one clear startup path
 - no fake secondary app-entry story
 - cleaner follow-on cleanup work for app bootstrap and ownership boundaries
 
-## [ ] Cleanup 2 - Canonical Owner Decision Lock
+## [x] Cleanup 2 - Canonical Owner Decision Lock
 
 This is the next family phase after startup cleanup.
 
@@ -207,7 +213,7 @@ Target result:
 Standalone phase doc:
 - `Future/Cleanup_Phase Cleanup-2 - Canonical Owner Decision Lock.md`
 
-## [ ] Cleanup 3 - Shared Boundary And Worker Contract Repair
+## [x] Cleanup 3 - Shared Boundary And Worker Contract Repair
 
 This is the boundary-repair phase for the family.
 
@@ -225,7 +231,7 @@ Target result:
 - cleaner separation between shared contracts and app internals
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-3 - Shared Boundary And Worker Contract Repair.md`
+- `Shipped/Cleanup_Phase Cleanup-3 - Shared Boundary And Worker Contract Repair.md`
 
 ## [ ] Cleanup 4 - Workspace Truth And AppShell Simplification
 
@@ -246,6 +252,34 @@ Target result:
 
 Standalone phase doc:
 - `Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
+
+## [ ] Cleanup 4A - Workspace Surface Catalog And Capability Registry
+
+This is the workspace-surface taxonomy and capability cleanup phase.
+
+Reason:
+- the repo already has one real workspace surface-kind seam, but actual surface capabilities and onboarding rules are still spread across slot rendering, persistence, action helpers, host selectors, and per-surface assumptions
+- `Cleanup 4` should simplify top-level workspace truth first so this phase can catalog surfaces against a cleaner owner instead of against old AppShell leakage
+- future workspace growth should not require re-answering from scratch whether a surface is slotted, floating, popped out, singleton, duplicated, optional, viewport-local, or background-only
+
+Initial focus:
+- define one explicit workspace surface catalog for the current real surface families
+- record capability rules such as:
+  - supports `slotted`
+  - supports `floating`
+  - supports `popout`
+  - singleton versus multi-instance
+  - core versus optional versus background-runtime classification
+- reduce duplicated capability assumptions currently spread across workspace render, actions, labels, and persistence seams
+- add a clear onboarding rule for future surface families so new workspaces do not land as one-off shell special cases
+
+Target result:
+- one obvious place to answer what a workspace surface kind is allowed to do
+- fewer repeated `surfaceKind` branches that quietly encode product policy in multiple places
+- cleaner separation between real workspace surfaces, viewport-local tools, and background runtimes
+
+Standalone phase doc:
+- `Future/Cleanup_Phase Cleanup-4A - Workspace Surface Catalog And Capability Registry.md`
 
 ## [ ] Cleanup 5 - Project Content And Browser Derivation Cleanup
 
@@ -287,24 +321,72 @@ Target result:
 Standalone phase doc:
 - `Future/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`
 
-## [ ] Cleanup 7 - Transform Session Ownership Unification
+## [ ] Cleanup 7 - Node-Owned CAD Authoring And Command Adapter Unification
 
-This is the cross-surface transform cleanup phase.
+This is the cross-surface CAD authoring ownership phase.
 
 Reason:
-- reference/content transform state currently has multiple readers and command-entry surfaces
-- `Canonical-Ownership-Targets.md` already says transform-session truth belongs in `useAppStore`
+- spaghetti CAD authoring is growing across node surfaces, viewport tools, toolbar flows, and console command entry
+- cleanup needs one durable rule that node params, wiring, and outputs stay canonical while command surfaces adapt into that same truth
+- `Cleanup 6` should settle graph runtime and accepted-result ownership first so later CAD command surfaces do not invent a second preview/result owner
 
 Initial focus:
-- keep active transform session, draft state, history, snap, and committed results canonical in app store
-- reduce toolbar, viewer, Browser, and Console to control surfaces over the same transform owner
-- prevent transform behavior from splitting into parallel local session truths
+- keep authored CAD truth canonical in spaghetti node params, wiring, outputs, and graph runtime rather than in toolbar-local or viewport-local state
+- treat toolbar, console, and viewport interaction as adapters over the active node and one shared graph mutation path
+- make draft preview and stale authoritative result state read as graph/runtime truth instead of as toolbar-owned truth
+- lock the reuse rule that node families such as `Sketch`, `Extrude`, `Loft`, and later `Transform` should follow the same node-owned authoring pattern
+
+Important boundary:
+- this phase locks the ownership rule
+- it does not also need to own the repo packaging plan for every CAD node family or every 2D sketch command surface
 
 Target result:
-- one transform-session owner with many control surfaces
-- fewer duplicate transform state machines
+- one node-owned CAD authoring model with many command-entry surfaces
+- fewer toolbar-local state machines and fewer hidden command-side graph mutations
 
-## [ ] Cleanup 8 - Browser And Console Complexity Reduction
+Standalone phase doc:
+- `Future/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`
+
+## [ ] Cleanup 8 - CAD Node Family Packaging And Command Library Extraction
+
+This is the CAD repo-shape and family-packaging phase.
+
+Reason:
+- ParaHook can support a few node families with the current spread across `registry/`, `features/`, `ui/features/`, `system/`, store branches, and viewer helpers, but that shape will get harder to extend once many 3D node families and many 2D sketch commands are live
+- `Cleanup 7` should lock ownership first so this phase can package around a stable rule instead of reorganizing folders while ownership is still unsettled
+- 3D node families and 2D sketch-editing commands should not keep growing as one blended implementation bucket
+
+Initial focus:
+- define the durable folder contract for CAD node families such as `Sketch`, `Extrude`, `Loft`, `Shell`, `Combine`, `Hole`, `Array Pattern`, `Transform`, and `Output Preview`
+- extract current node-family logic away from mixed placement across registry, feature helpers, UI feature views, and system helpers into family-oriented folders
+- carve 2D sketch commands such as `move`, `stretch`, `polygon`, `join`, `explode`, `dimensions`, `copy`, `rotate`, and `mirror` into a command library rather than continuing to grow them as store-local behavior
+- separate pure command logic from interactive tool-session adapters so viewport, toolbar, and console entry can reuse the same command library cleanly
+
+Target result:
+- CAD node families have one obvious place to live
+- 2D sketch commands have one obvious place to live
+- future node growth does not force every family to touch the same giant files
+
+## [ ] Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence
+
+This is the CAD authored-contract convergence phase.
+
+Reason:
+- CAD node-family packaging alone will not fully solve the remaining seam between part-local feature-stack authoring and graph-native node authoring
+- current families such as `Sketch` and `Extrude` still read as partially hybrid across registry, feature schema, feature-stack UI, and graph/store seams
+- future CAD growth should not force every new operation to re-decide whether it is a feature-stack concept, a graph-native node, or an inconsistent mix of both
+
+Initial focus:
+- define one explicit convergence rule for how feature-stack CAD contracts and graph-native CAD node contracts relate
+- decide which authored fields, ports, outputs, and lowering seams should be shared between those worlds
+- reduce hybrid implementation drift where one family owns partly duplicated contracts across feature helpers, graph node definitions, and UI entry surfaces
+- make later node families such as `Loft`, `Shell`, `Combine`, `Hole`, `Array Pattern`, and `Transform` follow one clearer authored contract pattern
+
+Target result:
+- one clearer answer for when a CAD operation is feature-stack owned, graph-node owned, or intentionally shared through one contract
+- less family-by-family reinvention as the CAD operation set expands
+
+## [ ] Cleanup 9 - Browser And Console Complexity Reduction
 
 This is the large-controller cleanup phase.
 
@@ -320,7 +402,7 @@ Initial focus:
 Target result:
 - Browser and Console remain powerful, but their biggest files stop acting like hidden ownership buckets
 
-## [ ] Cleanup 9 - Optional Workspace Family Scope Decisions
+## [ ] Cleanup 10 - Optional Workspace Family Scope Decisions
 
 This is the product-scope cleanup phase.
 
@@ -339,7 +421,7 @@ Target result:
 - optional surfaces stop distorting core architecture by accident
 - docs and folder weight better match true product scope
 
-## [ ] Cleanup 10 - Naming, Docs, And Honest Label Hardening
+## [ ] Cleanup 11 - Naming, Docs, And Honest Label Hardening
 
 This is the final cleanup-shape phase.
 
@@ -364,19 +446,22 @@ The current recommended cleanup sequence under this family is:
 2. canonical owner decision lock
 3. shared boundary and worker contract repair
 4. workspace truth and AppShell simplification
-5. project content and Browser derivation cleanup
-6. graph runtime and accepted result ownership
-7. transform session ownership unification
-8. Browser and Console complexity reduction
-9. optional workspace family scope decisions
-10. naming, docs, and honest label hardening
+5. workspace surface catalog and capability registry
+6. project content and Browser derivation cleanup
+7. graph runtime and accepted result ownership
+8. node-owned CAD authoring and command adapter unification
+9. CAD node family packaging and command library extraction
+10. feature-stack and graph-native CAD contract convergence
+11. Browser and Console complexity reduction
+12. optional workspace family scope decisions
+13. naming, docs, and honest label hardening
 
 This order may still tighten later as the family grows.
 
 Current read:
 - `Startup Path Canonicalization` is the right first cut because it is small and foundational
 - `Canonical Owner Decision Lock` should happen early so the later cleanup lanes are moving toward named owners instead of vague cleanup taste
-- Browser, transform, and graph-result cleanup should follow the owner decisions rather than precede them
+- Browser, node-authoring, and graph-result cleanup should follow the owner decisions rather than precede them
 
 ### Success Read
 

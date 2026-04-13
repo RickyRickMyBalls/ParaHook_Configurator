@@ -50,19 +50,14 @@ import {
   floatWorkspaceSurface,
   popoutWorkspaceSurface,
   restoreDetachedSurfaceByKind,
-  splitWorkspaceSurfaceToSide,
 } from './workspace/workspaceSurfaceActions'
-import {
-  readPersistedWorkspaceLayout,
-  serializeWorkspaceLayout,
-  writePersistedWorkspaceLayout,
-} from './workspace/workspacePersistence'
 import {
   createDefaultModelViewportPopoutState,
   defaultBrowserHostRouteId,
   defaultPrimaryViewportSlotId,
   type WorkspaceDetachedSlotSurfaceState,
 } from './workspace/workspaceShellTypes'
+import { useWorkspacePersistenceBridge } from './workspace/useWorkspacePersistenceBridge'
 const floatingDockLockGap = 25
 const modelViewportPopoutBackground = 'rgb(7, 11, 18)'
 const detachedViewerFloatingMinWidth = 320
@@ -305,9 +300,6 @@ export function AppShell() {
   const setViewportSlotSurfaceKind = useWorkspaceStore((state) => state.setViewportSlotSurfaceKind)
   const setViewportLayoutSplitRatio = useWorkspaceStore((state) => state.setViewportLayoutSplitRatio)
   const setActiveViewerViewportId = useWorkspaceStore((state) => state.setActiveViewerViewportId)
-  const hydratePersistedWorkspaceLayout = useWorkspaceStore(
-    (state) => state.hydratePersistedWorkspaceLayout,
-  )
   const setDetachedSurfaceKind = useWorkspaceStore((state) => state.setDetachedSurfaceKind)
   const hydratePersistedNotepadState = useNotepadStore((state) => state.hydratePersistedNotepadState)
   const setActiveNoteId = useNotepadStore((state) => state.setActiveNoteId)
@@ -338,7 +330,6 @@ export function AppShell() {
     titleBarHeight: number
   } | null>(null)
   const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
-  const hasHydratedWorkspacePersistenceRef = useRef(false)
   const hasHydratedNotepadPersistenceRef = useRef(false)
   const hasHydratedDashboardPersistenceRef = useRef(false)
 
@@ -365,17 +356,6 @@ export function AppShell() {
     },
   })
 
-  const editorViewportSplitViewSignature = Object.values(editorViewportsById)
-    .map((viewport) =>
-      [
-        viewport.editorViewportId,
-        viewport.windowMode,
-        viewport.splitDirection,
-        viewport.splitDockSide,
-        viewport.splitRatio,
-      ].join(':'),
-    )
-    .join('|')
   const splitRatio = activeEditorSurface?.splitRatio ?? activeEditorViewport?.splitRatio ?? 0.5
   const isBrowserDockPreviewActive = activeLeftDockPreviewPanelId === 'browser'
   const isMeatballDockPreviewActive = activeLeftDockPreviewPanelId === 'meatball-editor'
@@ -568,23 +548,6 @@ export function AppShell() {
     return targetViewerSlot?.slotId ?? defaultPrimaryViewportSlotId
   }, [primaryViewportId, viewportSlotsById])
 
-  const ensureLegacySplitViewMigrated = useCallback(
-    (editorViewportId: string, splitDockSideForMigration: 'top' | 'right' | 'bottom' | 'left', ratio: number) => {
-      const existingSlot = Object.values(useWorkspaceStore.getState().viewportSlotsById).find(
-        (slot) =>
-          slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === editorViewportId,
-      )
-      if (existingSlot === undefined) {
-        splitWorkspaceSurfaceToSide(editorViewportId, splitDockSideForMigration, {
-          preferredRatio: ratio,
-          targetSlotId: resolveViewerTargetSlotId(),
-        })
-      }
-      useSpaghettiStore.getState().setEditorViewportWindowMode(editorViewportId, 'expanded')
-    },
-    [resolveViewerTargetSlotId],
-  )
-
   useEffect(() => {
     const previousBrowserSlotCount = browserSlotCountRef.current
     if (
@@ -620,6 +583,8 @@ export function AppShell() {
     sketchPlanePickSession,
     workspaceActiveSurface,
   })
+
+  useWorkspacePersistenceBridge()
 
   useEffect(() => {
     if (hasHydratedNotepadPersistenceRef.current) {
@@ -661,90 +626,6 @@ export function AppShell() {
         return
       }
       writePersistedDashboardState(serializeDashboardState(state))
-    })
-    return unsubscribe
-  }, [])
-
-  useEffect(() => {
-    if (hasHydratedWorkspacePersistenceRef.current) {
-      return
-    }
-    hasHydratedWorkspacePersistenceRef.current = true
-    const persistedLayout = readPersistedWorkspaceLayout()
-    if (persistedLayout !== null) {
-      const shouldRestorePersistedLayout =
-        typeof window.confirm !== 'function' ||
-        window.confirm('Restore your saved workspace layout? Click Cancel to start fresh.')
-      if (shouldRestorePersistedLayout) {
-        hydratePersistedWorkspaceLayout(persistedLayout)
-        const spaghettiState = useSpaghettiStore.getState()
-        const legacySplitPlacements: Array<{
-          editorViewportId: string
-          splitDockSide: 'top' | 'right' | 'bottom' | 'left'
-          splitRatio: number
-        }> = []
-        for (const [editorViewportId, placement] of Object.entries(
-          persistedLayout.editorSurfacePlacementById,
-        )) {
-          if (spaghettiState.editorViewportsById[editorViewportId] === undefined) {
-            continue
-          }
-          spaghettiState.setEditorViewportPosition(editorViewportId, placement.position)
-          spaghettiState.setEditorViewportSize(editorViewportId, placement.size)
-          spaghettiState.setEditorViewportSplitRatio(editorViewportId, placement.splitRatio)
-          spaghettiState.setEditorViewportSplitDirection(editorViewportId, placement.splitDirection)
-          spaghettiState.setEditorViewportSplitDockSide(editorViewportId, placement.splitDockSide)
-          spaghettiState.setEditorViewportSplitPriority(editorViewportId, placement.splitPriority)
-          if (placement.windowMode === 'split view') {
-            const splitDockSideForMigration =
-              placement.splitDirection === 'vertical'
-                ? placement.splitDockSide === 'left' || placement.splitDockSide === 'right'
-                  ? placement.splitDockSide
-                  : 'left'
-                : placement.splitDockSide
-            legacySplitPlacements.push({
-              editorViewportId,
-              splitDockSide: splitDockSideForMigration,
-              splitRatio: placement.splitRatio,
-            })
-            spaghettiState.setEditorViewportWindowMode(editorViewportId, 'expanded')
-            continue
-          }
-          spaghettiState.setEditorViewportWindowMode(editorViewportId, placement.windowMode)
-        }
-        for (const placement of legacySplitPlacements) {
-          ensureLegacySplitViewMigrated(
-            placement.editorViewportId,
-            placement.splitDockSide,
-            placement.splitRatio,
-          )
-        }
-      }
-    }
-    writePersistedWorkspaceLayout(serializeWorkspaceLayout(useWorkspaceStore.getState()))
-  }, [ensureLegacySplitViewMigrated, hydratePersistedWorkspaceLayout])
-
-  useEffect(() => {
-    for (const [editorViewportId, viewport] of Object.entries(editorViewportsById ?? {})) {
-      if (viewport.windowMode !== 'split view') {
-        continue
-      }
-      const splitDockSideForMigration =
-        viewport.splitDirection === 'vertical'
-          ? viewport.splitDockSide === 'left' || viewport.splitDockSide === 'right'
-            ? viewport.splitDockSide
-            : 'left'
-          : viewport.splitDockSide ?? 'bottom'
-      ensureLegacySplitViewMigrated(editorViewportId, splitDockSideForMigration, viewport.splitRatio ?? 0.5)
-    }
-  }, [editorViewportSplitViewSignature, ensureLegacySplitViewMigrated, viewportSlotsById])
-
-  useEffect(() => {
-    const unsubscribe = useWorkspaceStore.subscribe((state) => {
-      if (!hasHydratedWorkspacePersistenceRef.current) {
-        return
-      }
-      writePersistedWorkspaceLayout(serializeWorkspaceLayout(state))
     })
     return unsubscribe
   }, [])

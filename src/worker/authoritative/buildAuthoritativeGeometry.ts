@@ -6,13 +6,13 @@ import type {
 import { createAuthoritativeGeometryResultBundle } from '../../shared/geometryResult'
 import type { CompiledBuildData } from '../../shared/buildTypes'
 import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
-import { resolveSketchPlaneFrame } from '../../shared/sketchPlaneFrame'
 import type {
   GeometryRequestExtrudeOp,
   GeometryRequestPlane,
   GeometryRequestSketchOp,
   GeometryRequestSketchProfile,
-} from '../../app/spaghetti/contracts/geometryRequest'
+} from '../../shared/geometryRequest'
+import { resolveSketchPlaneFrame } from '../../shared/sketchPlaneFrame'
 import {
   executeFeatureStack,
   isFeatureStackIRPayload,

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-12 20:01: Refreshed the startup owner decision after shipped `Cleanup 1` so the support-only list no longer treats `src/App.tsx` as a still-live residue file and instead records that starter entry seam as retired
 1. 2026-04-12 13:12: Created this compact cleanup decision register so ParaHook has one fast reference for "which truth lives where" alongside the broader `Canonical-Ownership-Targets.md` target map
 
 ### Purpose
@@ -72,8 +73,8 @@ Derived or supporting only:
   - root composition
 - `src/app/bootstrapBuildWiring.ts`
   - startup glue
-- `src/App.tsx`
-  - should be retired as starter residue
+- retired starter residue
+  - should stay retired instead of being reintroduced as a second app entry story
 
 Decision:
 - app startup lives in `src/main.tsx`

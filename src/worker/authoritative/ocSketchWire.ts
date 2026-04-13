@@ -1,5 +1,5 @@
-import type { GeometryRequestSketchProfile } from '../../app/spaghetti/contracts/geometryRequest'
-import type { Segment2 } from '../../app/spaghetti/features/featureTypes'
+import type { GeometryRequestSketchProfile } from '../../shared/geometryRequest'
+import type { Segment2 } from '../../shared/sketchTypes'
 
 export type OcInstance = Record<string, unknown>
 

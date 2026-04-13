@@ -1,5 +1,5 @@
-import type { SketchPlaneTransform } from '../../app/spaghetti/features/featureTypes'
 import { projectSketchPointToWorld } from '../../shared/sketchPlaneFrame'
+import type { SketchPlaneTransform } from '../../shared/sketchTypes'
 import type { Face, MeshPack, Point2, Shape3D, Wire } from './cadTypes'
 
 type SketchPlane = 'XY' | 'XZ' | 'YZ'

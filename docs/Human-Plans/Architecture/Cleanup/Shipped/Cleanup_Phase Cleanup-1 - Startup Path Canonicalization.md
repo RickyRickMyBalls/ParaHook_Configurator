@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-04-12 19:55: Tightened the startup residue scope against the live reference scan, then completed `Cleanup 1` by retiring `src/App.tsx`, `src/App.css`, and `src/assets/react.svg`, preserving `public/vite.svg` because `index.html` still uses it as the favicon, and confirming the real startup path still builds through `src/main.tsx`
 2. 2026-04-12 13:47: Tightened `Phase 1 - Lock Startup Ownership Narrative` into an implementation-ready doc-first pass after a fresh startup-path reread confirmed the live runtime seam is still `src/main.tsx` -> `src/app/main.tsx` -> `AppShell`, `bootstrapBuildWiring()` remains startup glue with a one-time `wired` guard, and the only repo hits for `src/App.tsx` outside docs are the starter file itself
 1. 2026-04-12 13:01: Created this standalone `Cleanup 1` future phase doc after a live startup-path read of `src/main.tsx`, `src/app/main.tsx`, `src/app/bootstrapBuildWiring.ts`, and `src/App.tsx` confirmed that `src/main.tsx` is the real runtime entry path, `bootstrapBuildWiring()` is startup glue rather than a second entry owner, and `src/App.tsx` plus its Vite assets are unreferenced starter residue
 
@@ -39,7 +40,7 @@ Do not use it for:
 
 ## Doc Body
 
-## [ ] Cleanup 1 - Startup Path Canonicalization
+## [x] Cleanup 1 - Startup Path Canonicalization
 
 ### Header
 
@@ -123,11 +124,8 @@ Current live read from the codebase:
 
 Reference scan read:
 - there are no live runtime references to `src/App.tsx`
-- `src/App.css`
-- `src/assets/react.svg`
-- `public/vite.svg`
-
-are only referenced by the starter file and should be retired if the startup cleanup removes that file
+- `src/App.css` and `src/assets/react.svg` are only referenced by the starter file and should be retired with it
+- `public/vite.svg` is still referenced by `index.html` as the favicon and should stay until a later icon cleanup deliberately replaces it
 
 ### Locked Direction
 
@@ -140,7 +138,7 @@ are only referenced by the starter file and should be retired if the startup cle
 
 ### Phase Ladder
 
-## [ ] Phase 1 - Lock Startup Ownership Narrative
+## [x] Phase 1 - Lock Startup Ownership Narrative
 
 ### Header
 
@@ -171,8 +169,8 @@ Current live Phase 1 seams:
 
 Read:
 - the current startup implementation is already honest in code
-- the remaining Phase 1 work is mainly to lock the story in docs and phase language before `Phase 2` deletes residue
-- this should stay a doc-first pass, not an eager source rewrite
+- the doc pass locked the startup-owner story before file deletion
+- the live reference scan also narrowed the residue list by proving `public/vite.svg` is still a real favicon asset rather than dead starter residue
 
 Locked Phase 1 in-scope:
 - confirm the current startup chain and write it down in this phase doc and nearby family docs if needed
@@ -220,11 +218,11 @@ Implementation stop rule:
 - if the live source files already read honestly, do not invent a code change just to make the phase feel larger
 
 Checklist:
-- [ ] re-scan startup references before code changes
-- [ ] confirm no runtime path imports `src/App.tsx`
-- [ ] keep the startup-owner narrative aligned across cleanup docs
-- [ ] confirm `src/main.tsx`, `src/app/main.tsx`, and `bootstrapBuildWiring.ts` are described consistently as owner, composition seam, and startup glue
-- [ ] stop before deleting starter residue
+- [x] re-scan startup references before code changes
+- [x] confirm no runtime path imports `src/App.tsx`
+- [x] keep the startup-owner narrative aligned across cleanup docs
+- [x] confirm `src/main.tsx`, `src/app/main.tsx`, and `bootstrapBuildWiring.ts` are described consistently as owner, composition seam, and startup glue
+- [x] stop before deleting starter residue
 
 Done shape:
 - one explicit startup narrative exists before residue retirement begins
@@ -247,7 +245,7 @@ Verification:
   - `src/app/bootstrapBuildWiring.ts`
 - confirm the doc language now matches the live startup seam exactly
 
-## [ ] Phase 2 - Retire Fake Second Entry Residue
+## [x] Phase 2 - Retire Fake Second Entry Residue
 
 ### Header
 
@@ -258,7 +256,7 @@ Locked Phase 2 in-scope:
 - delete `src/App.tsx` if Phase 1 still confirms it is unused
 - delete `src/App.css` if it is only used by `src/App.tsx`
 - delete `src/assets/react.svg` if it is only used by `src/App.tsx`
-- delete `public/vite.svg` if it is only used by `src/App.tsx`
+- keep `public/vite.svg` because the live repo still uses it as the favicon through `index.html`
 - re-run a focused reference scan after deletion to confirm nothing still points at those files
 
 Locked Phase 2 out-of-scope:
@@ -273,17 +271,17 @@ Execution rules:
 - if any of the starter assets are unexpectedly reused elsewhere, keep them and narrow the deletion to the truly dead files
 
 Checklist:
-- [ ] remove `src/App.tsx`
-- [ ] remove `src/App.css` if now unused
-- [ ] remove `src/assets/react.svg` if now unused
-- [ ] remove `public/vite.svg` if now unused
-- [ ] re-scan for remaining references after the deletions
+- [x] remove `src/App.tsx`
+- [x] remove `src/App.css` if now unused
+- [x] remove `src/assets/react.svg` if now unused
+- [x] keep `public/vite.svg` because it is still live
+- [x] re-scan for remaining references after the deletions
 
 Done shape:
 - the source tree no longer suggests a fake second app entry path
 - starter-only assets are gone when they are truly dead
 
-## [ ] Phase 3 - Tighten Startup Boundary Readability
+## [x] Phase 3 - Tighten Startup Boundary Readability
 
 ### Header
 
@@ -314,15 +312,15 @@ Preferred outcome:
 - otherwise make the smallest possible clarification instead of inventing a broader startup architecture project
 
 Checklist:
-- [ ] re-read `src/main.tsx`, `src/app/main.tsx`, and `src/app/bootstrapBuildWiring.ts`
-- [ ] decide whether a tiny naming or comment clarification is still needed
-- [ ] stop if the startup boundary already reads clearly
+- [x] re-read `src/main.tsx`, `src/app/main.tsx`, and `src/app/bootstrapBuildWiring.ts`
+- [x] decide whether a tiny naming or comment clarification is still needed
+- [x] stop if the startup boundary already reads clearly
 
 Done shape:
 - entry path, root composition, and startup glue each have one obvious role
 - no broader bootstrap rewrite was needed
 
-## [ ] Phase 4 - Verification And Cleanup Closeout
+## [x] Phase 4 - Verification And Cleanup Closeout
 
 ### Header
 
@@ -335,10 +333,10 @@ Verification target:
 - docs still describe the same startup ownership story the code now follows
 
 Verification checklist:
-- [ ] run a reference scan for `App.tsx`, `App.css`, `react.svg`, and `vite.svg`
-- [ ] run the project build or a focused TypeScript or Vite verification after file deletion
-- [ ] manually re-read `src/main.tsx` and confirm it is still the only honest startup path
-- [ ] update `Cleanup-Index.md` or shipped records when the phase is complete
+- [x] run a reference scan for `App.tsx`, `App.css`, `react.svg`, and `vite.svg`
+- [x] run the project build or a focused TypeScript or Vite verification after file deletion
+- [x] manually re-read `src/main.tsx` and confirm it is still the only honest startup path
+- [x] update `Cleanup-Index.md` or shipped records when the phase is complete
 
 Done shape:
 - startup cleanup is verifiably complete
@@ -354,8 +352,8 @@ Expected primary file targets for this phase:
 - delete `src/App.tsx`
 - delete `src/App.css` if unused
 - delete `src/assets/react.svg` if unused
-- delete `public/vite.svg` if unused
-- later move this doc to `../Shipped/` when complete
+- keep `public/vite.svg` while it remains the live favicon
+- this doc now lives in `../Shipped/` because the phase is complete
 
 ### Ladder Rules
 

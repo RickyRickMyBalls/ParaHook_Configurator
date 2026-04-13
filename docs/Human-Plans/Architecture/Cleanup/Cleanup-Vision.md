@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+3. 2026-04-12 21:18: Lightly refreshed the cleanup vision so it now names the repo-shape north star more explicitly, clarifies that the real shared worker-facing boundary should converge on an explicit shared surface such as `src/shared/` instead of the older `app/protocol.ts` placeholder story, and folds in the newer workspace-surface and CAD-family packaging direction without turning the vision doc into another cleanup index
+2. 2026-04-12 20:01: Updated the cleanup vision after shipped `Cleanup 1` so the dead-residue audit and immediate backlog no longer speak as if `src/App.tsx` is still present, while preserving the broader cleanup lane that starter-residue style false architecture should keep getting retired
 1. 2026-04-12 17:05: Added this dedicated Cleanup vision doc after a whole-`src` audit of `/20/parahook` found that the current codebase is not random, but it is carrying a large amount of dead residue, transitional seams, oversized ownership surfaces, and toolchain breakage that now need a deliberate cleanup ladder instead of one-off opportunistic edits
 
 ### Purpose
@@ -95,7 +97,7 @@ Baseline toolchain health must become a first-class cleanup target.
 #### 3. There is real dead residue
 
 Examples found during the audit:
-- the default Vite starter still exists in `src/App.tsx`
+- the default Vite starter residue had survived long enough to look like a second app entry path before shipped `Cleanup 1` retired it
 - there are multiple zero-byte source files in:
   - `src/geometry/`
   - `src/viewer/renderers/`
@@ -128,8 +130,8 @@ They are holding too many different reasons to change.
 #### 5. The repo contains explicit architecture rules that are not yet true in code
 
 Example:
-- lint says worker-facing contracts should go through `app/protocol.ts`
-- that file does not currently exist
+- lint still points at an older `app/protocol.ts` story
+- the repo does not currently have that file, and the cleaner direction is converging on an explicit shared surface such as `src/shared/`
 - worker files still import directly from app internals
 
 This is important because it means the codebase already knows what cleaner boundaries should look like.
@@ -163,6 +165,24 @@ The cleanup target is:
 - fewer compatibility seams
 - less surprise in where behavior lives
 - a repo that is easier to safely extend
+
+### Repo Shape North Star
+
+After cleanup, the repo should read more like a set of deliberate product families and less like a pile of technical layers that each new feature has to touch.
+
+Important direction:
+- workspace surfaces should feel like a real catalog with one clear capability story, not like repeated `surfaceKind` branches spread across shell code
+- CAD node families should have one obvious place to live, with a repeatable family pattern instead of each family being reassembled across registry, UI, store, and system folders
+- 2D sketch commands should read as a command library with reusable tool adapters, not as one ever-growing store file
+- worker-facing contracts should live in an explicit shared boundary instead of being borrowed from app implementation folders
+
+The target is not one giant top-down reorg.
+
+The target is a repo where:
+- workspace families have a predictable onboarding pattern
+- CAD families have a predictable packaging pattern
+- viewer, app, worker, and shared seams are easier to trace
+- future growth adds to known homes instead of creating new accidental ones
 
 ### What Cleanup Means Here
 
@@ -343,6 +363,7 @@ This lane includes:
 - reducing AppShell migration responsibility
 - extracting persistence hydration from hot composition paths
 - simplifying detached/popout/floating surface ownership
+- clarifying the real workspace-surface catalog and capability story instead of letting it stay spread across host assumptions
 - removing completed legacy workspace migration logic
 
 Exit condition:
@@ -357,6 +378,7 @@ This lane includes:
 - splitting `useSpaghettiStore`
 - splitting `NodeView`
 - separating graph truth, view-model shaping, and widget rendering
+- giving CAD node families and sketch-command logic clearer homes instead of continuing to widen the same mixed files
 - removing editor debug/perf residue from the main runtime path
 
 Exit condition:
@@ -442,7 +464,7 @@ The audit suggests these immediate cleanup seeds:
 
 - fix current typecheck failures in active runtime files before any broader cleanup sweep
 - fix lint configuration so generated artifacts do not pollute the signal
-- delete `src/App.tsx` starter residue if it is truly not part of runtime
+- keep the shipped startup-path cleanup honest by not reintroducing default starter residue or a fake second app entry path
 - audit and remove zero-byte files under `src/`
 - create the missing shared worker protocol surface and reroute worker imports through it
 - retire remaining runtime migration code once persisted layouts no longer require it
@@ -450,4 +472,3 @@ The audit suggests these immediate cleanup seeds:
 
 These are not the whole cleanup plan.
 They are the first honest places to start.
-

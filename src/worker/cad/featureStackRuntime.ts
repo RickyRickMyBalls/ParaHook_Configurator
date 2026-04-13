@@ -1,7 +1,7 @@
 import {
   createDefaultSketchPlaneTransform,
   type SketchPlaneTransform,
-} from '../../app/spaghetti/features/featureTypes'
+} from '../../shared/sketchTypes'
 import { tessellateProfileLoop } from '../../app/spaghetti/compiler/runtimeTessellation'
 import {
   isGeometryRequestPayload,
@@ -9,7 +9,7 @@ import {
   type GeometryRequestPayload,
   type GeometryRequestSketchOp,
   type GeometryRequestSketchProfile,
-} from '../../app/spaghetti/contracts/geometryRequest'
+} from '../../shared/geometryRequest'
 import { compareSpaghettiSourcePartKeys } from '../../shared/buildStatsKeys'
 import {
   extrudeFaceOnPlane,

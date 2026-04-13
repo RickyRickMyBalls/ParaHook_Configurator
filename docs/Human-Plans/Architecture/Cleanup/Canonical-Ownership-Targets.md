@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-12 20:01: Updated the startup-owner target after shipped `Cleanup 1` so the doc now records `src/App.tsx` as retired residue instead of a still-live fake second entry path, and refreshed the immediate backlog seed to protect that shipped state rather than planning the same retirement again
 1. 2026-04-12 17:18: Added this dedicated Cleanup follow-on doc after the whole-`src` audit and Cleanup Vision pass identified that one of the main cleanup needs is deciding which truths must become canonical owners instead of remaining spread across stores, hosts, selectors, and compatibility seams
 
 ### Purpose
@@ -107,7 +108,7 @@ Why:
 - it calls `bootstrapBuildWiring()`
 
 Cleanup note:
-- `src/App.tsx` is starter residue and should not continue to look like a second app entry path
+- `src/App.tsx` was retired as starter residue by shipped `Cleanup 1` and should not be reintroduced as a fake second app entry path
 
 #### 2. Workspace layout and surface placement
 
@@ -458,10 +459,9 @@ When a cleanup refactor starts, ask:
 
 The current best canonical-ownership cleanup seeds are:
 
-- remove the fake second startup story by retiring `src/App.tsx`
+- keep the shipped startup-path cleanup honest by not reintroducing `src/App.tsx`-style fake entry residue
 - define the canonical shared worker contract layer and route worker imports through it
 - explicitly tighten accepted build-result ownership inside graph runtime state
 - keep Browser row trees derived and avoid storing them as product truth
 - keep transform sessions canonical in app store rather than in toolbar or viewer code
 - reduce AppShell and host components to composition over canonical workspace/app truth
-

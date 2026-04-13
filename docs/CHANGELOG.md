@@ -65,6 +65,121 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1255 -->
+### [1255] - 2026-04-12 22:08 - `Cleanup 4 - Phase 3 - AppShell Workspace Persistence Extraction`
+<!-- ENTRY 1255 -->
+HUMAN SUMMARY: `Reduced \`AppShell\` back toward composition by moving the workspace persistence hydration, persisted-layout write-back, and legacy split replay band into a dedicated \`useWorkspacePersistenceBridge\` hook under \`src/app/workspace/\`, while intentionally leaving split-menu policy and broader migration retirement for the later cleanup phases.`
+#### Scope / Constraints Honored
+- Kept this pass narrow on the `Cleanup 4 / Phase 3` owner-like AppShell band instead of attempting a broad shell rewrite.
+- Reduced AppShell's workspace-ownership read without changing the canonical owner, which remains `src/app/workspace/useWorkspaceStore.ts`.
+- Intentionally left split-menu orchestration in `useAppShellWorkspaceMenus.tsx` and the broader migration-retirement work for later phases.
+#### Summary of Implementation
+- Added [`src/app/workspace/useWorkspacePersistenceBridge.ts`](./src/app/workspace/useWorkspacePersistenceBridge.ts) as a focused workspace hook that now owns:
+  - persisted workspace layout hydration
+  - persisted workspace layout write-back subscription
+  - legacy split replay into the newer workspace slot system
+- Updated [`src/app/AppShell.tsx`](./src/app/AppShell.tsx) to mount that new hook and remove the old inline workspace persistence and legacy split replay band.
+- Updated the `Cleanup 4` phase doc to mark `Phase 3` complete and record the resulting implementation shape.
+#### Files Changed
+- `src/app/workspace/useWorkspacePersistenceBridge.ts`
+- `src/app/AppShell.tsx`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- No intended end-user behavior change; this pass is an ownership and code-shape cleanup.
+- Workspace persistence hydration and legacy split replay still happen, but they are now isolated in a workspace-local hook instead of inflating `AppShell`.
+- The migration seam still exists, but it is closer to the workspace system and easier for `Phase 4` to target directly.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1254 -->
+### [1254] - 2026-04-12 21:41 - `Cleanup 3 - Phase 4 - Worker Import Repoint`
+<!-- ENTRY 1254 -->
+HUMAN SUMMARY: `Repointed the worker runtime files to read the moved geometry-request and sketch-type contract symbols from their real shared owners in \`src/shared/\`, so the shared-boundary story is now honest at both the file-home and import-path levels without widening into app-owned tessellation or broad worker test cleanup.`
+#### Scope / Constraints Honored
+- Kept this pass on the `Cleanup 3 / Phase 4` import-repoint seam instead of widening into more shared contract moves.
+- Repointed only the worker runtime imports that were still reading the old app-side geometry-request shim and `featureTypes.ts` re-export surface.
+- Intentionally left `src/app/spaghetti/compiler/runtimeTessellation.ts` app-owned and left broader worker test import cleanup out of scope.
+#### Summary of Implementation
+- Updated [`src/worker/authoritative/buildAuthoritativeGeometry.ts`](./src/worker/authoritative/buildAuthoritativeGeometry.ts) to import geometry-request contract types from [`src/shared/geometryRequest.ts`](./src/shared/geometryRequest.ts).
+- Updated [`src/worker/authoritative/ocSketchWire.ts`](./src/worker/authoritative/ocSketchWire.ts) to import `GeometryRequestSketchProfile` from [`src/shared/geometryRequest.ts`](./src/shared/geometryRequest.ts) and `Segment2` from [`src/shared/sketchTypes.ts`](./src/shared/sketchTypes.ts).
+- Updated [`src/worker/cad/cadKernelAdapter.ts`](./src/worker/cad/cadKernelAdapter.ts) to import `SketchPlaneTransform` from [`src/shared/sketchTypes.ts`](./src/shared/sketchTypes.ts).
+- Updated [`src/worker/cad/featureStackRuntime.ts`](./src/worker/cad/featureStackRuntime.ts) to import geometry-request types from [`src/shared/geometryRequest.ts`](./src/shared/geometryRequest.ts) and sketch-plane helpers from [`src/shared/sketchTypes.ts`](./src/shared/sketchTypes.ts) while leaving the app-owned `runtimeTessellation.ts` seam in place.
+- Updated the `Cleanup 3` phase doc to mark `Phase 4` complete and record the resulting runtime import baseline.
+#### Files Changed
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/ocSketchWire.ts`
+- `src/worker/cad/cadKernelAdapter.ts`
+- `src/worker/cad/featureStackRuntime.ts`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-3 - Shared Boundary And Worker Contract Repair.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- No intended end-user behavior change; this pass only repairs runtime import ownership to match the already-moved shared contract truth.
+- Worker runtime files now read the moved geometry-request and sketch-type contract symbols from their canonical shared homes.
+- The remaining app-owned tessellation seam and test-only import cleanup remain explicit follow-on work instead of hidden boundary drift.
+#### Verification Steps
+- `rg -n "spaghetti/contracts/geometryRequest|spaghetti/features/featureTypes" src/worker/authoritative src/worker/cad -g "*.ts" -g "*.tsx"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1253 -->
+### [1253] - 2026-04-12 21:14 - `Cleanup 3 - Phase 3 - Shared Contract Truth Move`
+<!-- ENTRY 1253 -->
+HUMAN SUMMARY: `Moved the geometry-request contract into \`src/shared/\` by adding focused shared \`geometryRequest\` and \`sketchTypes\` files, reducing the old app-side contract file to a forwarding shim, and decoupling the shared sketch-plane frame helper from app spaghetti feature types without dragging broader compiler or feature-model code into the boundary.`
+#### Scope / Constraints Honored
+- Kept this pass on the `Cleanup 3 / Phase 3` move set instead of widening into the later broad import-repoint pass.
+- Moved the true shared contract truth into `src/shared/` while intentionally leaving `runtimeTessellation.ts` app-owned.
+- Avoided a whole-file move of `src/app/spaghetti/features/featureTypes.ts` by extracting only the narrow shared sketch primitives needed for the contract.
+#### Summary of Implementation
+- Added [`src/shared/geometryRequest.ts`](./src/shared/geometryRequest.ts) as the new canonical home for geometry-request contract types and payload guards.
+- Added [`src/shared/sketchTypes.ts`](./src/shared/sketchTypes.ts) as the focused shared home for `SketchPlane`, `Vec3Literal`, `SketchPlaneTransform`, `createDefaultSketchPlaneTransform`, `Segment2`, and `ProfileLoop`.
+- Reduced [`src/app/spaghetti/contracts/geometryRequest.ts`](./src/app/spaghetti/contracts/geometryRequest.ts) to a forwarding shim that re-exports the shared contract.
+- Updated [`src/app/spaghetti/features/featureTypes.ts`](./src/app/spaghetti/features/featureTypes.ts) to re-export the extracted shared sketch primitives while keeping the broader feature-authoring model app-owned.
+- Updated [`src/shared/sketchPlaneFrame.ts`](./src/shared/sketchPlaneFrame.ts) so the shared frame helper now depends on the shared sketch primitives instead of reaching into app spaghetti feature types.
+#### Files Changed
+- `src/shared/geometryRequest.ts`
+- `src/shared/sketchTypes.ts`
+- `src/app/spaghetti/contracts/geometryRequest.ts`
+- `src/app/spaghetti/features/featureTypes.ts`
+- `src/shared/sketchPlaneFrame.ts`
+- `docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-3 - Shared Boundary And Worker Contract Repair.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- No intended end-user behavior change; this pass is a contract-ownership move.
+- The canonical owner for geometry-request contract truth now lives under `src/shared/`.
+- The old app-side geometry-request path remains available as a forwarding seam so later import repointing can happen in a narrower follow-up pass.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1252 -->
+### [1252] - 2026-04-12 20:00 - `Cleanup 1 - Startup Path Canonicalization`
+<!-- ENTRY 1252 -->
+HUMAN SUMMARY: `Completed the first startup cleanup pass by deleting the dead Vite starter entry residue \`src/App.tsx\`, \`src/App.css\`, and \`src/assets/react.svg\`, while intentionally keeping \`public/vite.svg\` because the live app still uses it as the favicon through \`index.html\`.`
+#### Scope / Constraints Honored
+- Kept this pass tightly on startup-path cleanup and starter residue retirement.
+- Preserved the real startup chain through `src/main.tsx`, `src/app/main.tsx`, and `bootstrapBuildWiring.ts`.
+- Narrowed the original residue assumption instead of deleting `public/vite.svg`, because the live reference scan showed it is still used by `index.html`.
+#### Summary of Implementation
+- Deleted the dead starter entry file `src/App.tsx`.
+- Deleted the starter-only stylesheet `src/App.css`.
+- Deleted the unused starter React asset `src/assets/react.svg`.
+- Moved the `Cleanup 1` phase record into `docs/Human-Plans/Architecture/Cleanup/Shipped/` and tightened the cleanup docs so they now match the live startup and favicon ownership story.
+#### Files Changed
+- `src/App.tsx`
+- `src/App.css`
+- `src/assets/react.svg`
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Index.md`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-1 - Startup Path Canonicalization.md`
+#### Behavior Changes
+- The source tree no longer suggests a fake second app entry path through the old Vite starter files.
+- The real startup path remains `src/main.tsx` -> `src/app/main.tsx` -> `AppShell`.
+- The favicon remains unchanged because `public/vite.svg` is still the live icon source in `index.html`.
+#### Verification Steps
+- `rg -n --glob '!docs/**' --glob '!node_modules/**' -e 'App\.tsx|App\.css|react\.svg|vite\.svg|src/App\.tsx' .`
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1251 -->
 ### [1251] - 2026-04-12 19:51 - `OP - OutputPreview 1 Phase 6c.5 - Build Fixture Compatibility Fix`
 <!-- ENTRY 1251 -->

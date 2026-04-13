@@ -3,7 +3,7 @@ import {
   type SketchPlane,
   type SketchPlaneTransform,
   type Vec3Literal,
-} from '../app/spaghetti/features/featureTypes'
+} from './sketchTypes'
 
 export type SketchPoint2 = {
   x: number
