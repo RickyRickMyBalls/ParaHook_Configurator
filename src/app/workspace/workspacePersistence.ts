@@ -36,6 +36,10 @@ import {
   type WorkspaceViewportId,
 } from './workspaceShellTypes'
 import {
+  parseWorkspaceSurfaceKind,
+  workspaceSurfaceParticipatesInPersistence,
+} from './workspaceSurfaceCatalog'
+import {
   resolveDefaultWorkspaceSplitDockSide,
   resolveWorkspaceSplitDirectionForDockSide,
 } from './workspaceSplitTypes'
@@ -330,17 +334,9 @@ const normalizeViewportSlotRecord = (
   if (!isRecord(value)) {
     return null
   }
+  const parsedSurfaceKind = parseWorkspaceSurfaceKind(value.surfaceKind)
   const surfaceKind: WorkspaceSurfaceKind =
-    value.surfaceKind === 'browser' ||
-    value.surfaceKind === 'console' ||
-    value.surfaceKind === 'spaghettiEditor' ||
-    value.surfaceKind === 'notepad' ||
-    value.surfaceKind === 'dashboard' ||
-    value.surfaceKind === 'modelViewer'
-      ? value.surfaceKind
-      : slotId === defaultPrimaryViewportSlotId
-        ? 'modelViewer'
-        : 'browser'
+    parsedSurfaceKind ?? (slotId === defaultPrimaryViewportSlotId ? 'modelViewer' : 'browser')
   const leafNodeId =
     typeof value.leafNodeId === 'string' && value.leafNodeId.length > 0
       ? value.leafNodeId
@@ -353,17 +349,14 @@ const normalizeViewportSlotRecord = (
   }
   if (isRecord(value.retainedSurfaceInstanceIdsByKind)) {
     for (const [kind, surfaceInstanceId] of Object.entries(value.retainedSurfaceInstanceIdsByKind)) {
+      const retainedSurfaceKind = parseWorkspaceSurfaceKind(kind)
       if (
-        (kind === 'modelViewer' ||
-          kind === 'browser' ||
-          kind === 'console' ||
-          kind === 'spaghettiEditor' ||
-          kind === 'notepad' ||
-          kind === 'dashboard') &&
+        retainedSurfaceKind !== null &&
+        workspaceSurfaceParticipatesInPersistence(retainedSurfaceKind) &&
         typeof surfaceInstanceId === 'string' &&
         surfaceInstanceId.length > 0
       ) {
-        retainedSurfaceInstanceIdsByKind[kind] = surfaceInstanceId
+        retainedSurfaceInstanceIdsByKind[retainedSurfaceKind] = surfaceInstanceId
       }
     }
   }
@@ -652,15 +645,7 @@ const normalizeWorkspaceSurfacePlacement = (
   if (!isRecord(value)) {
     return null
   }
-  const surfaceKind: WorkspaceSurfaceKind =
-    value.surfaceKind === 'browser' ||
-    value.surfaceKind === 'console' ||
-    value.surfaceKind === 'spaghettiEditor' ||
-    value.surfaceKind === 'notepad' ||
-    value.surfaceKind === 'dashboard' ||
-    value.surfaceKind === 'modelViewer'
-      ? value.surfaceKind
-      : 'browser'
+  const surfaceKind: WorkspaceSurfaceKind = parseWorkspaceSurfaceKind(value.surfaceKind) ?? 'browser'
   const hostMode =
     value.hostMode === 'slotted' ||
     value.hostMode === 'floating' ||
@@ -862,16 +847,11 @@ export const normalizePersistedWorkspaceLayout = (
           if (!isRecord(detachedSurface)) {
             return null
           }
-          const surfaceKind =
-            detachedSurface.surfaceKind === 'modelViewer' ||
-            detachedSurface.surfaceKind === 'browser' ||
-            detachedSurface.surfaceKind === 'console' ||
-            detachedSurface.surfaceKind === 'dashboard' ||
-            detachedSurface.surfaceKind === 'notepad' ||
-            detachedSurface.surfaceKind === 'spaghettiEditor'
-              ? detachedSurface.surfaceKind
-              : null
-          if (surfaceKind === null) {
+          const surfaceKind = parseWorkspaceSurfaceKind(detachedSurface.surfaceKind)
+          if (
+            surfaceKind === null ||
+            !workspaceSurfaceParticipatesInPersistence(surfaceKind)
+          ) {
             return null
           }
           return [

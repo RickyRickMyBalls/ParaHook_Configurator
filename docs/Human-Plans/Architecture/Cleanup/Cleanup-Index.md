@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-04-12 22:53:27: Closed out `Cleanup 4A - Workspace Surface Catalog And Capability Registry` as a shipped cleanup lane after the taxonomy baseline, capability-drift inventory, canonical catalog contract, and initial source-catalog repoint all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the workspace-surface catalog cleanup now reads as finished history before the later optional-surface scope decisions
+11. 2026-04-12 22:30:43: Refined the family ladder handoff between `Cleanup 4A` and `Cleanup 10` so `Radio` is now called out explicitly as the main current example of an optional workspace surface versus background-runtime taxonomy mismatch in `Cleanup 4A`, while `Cleanup 10` keeps the final product-scope decision for dashboard, notepad, and radio
 10. 2026-04-12 21:44:03: Shipped `Cleanup 3 - Shared Boundary And Worker Contract Repair`, moved its standalone phase record from `Cleanup/Future/` to `Cleanup/Shipped/`, and refreshed the family ladder so the boundary-repair lane now reads as completed before the workspace-truth cleanup phase
 9. 2026-04-12 21:10: Added two focused follow-on cleanup seams to the family ladder, introducing `Cleanup 4A - Workspace Surface Catalog And Capability Registry` after the workspace-truth phase and `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence` after the CAD packaging phase so the index now captures the next likely cross-cutting organization work without overloading Cleanup with viewer-only or future motion-family architecture
 8. 2026-04-12 20:45: Split the CAD cleanup ladder more cleanly by keeping `Cleanup 7` focused on node-owned authoring truth and command-adapter unification, adding a new `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction`, and shifting the later umbrella phases up by one so node-family packaging has its own explicit cleanup lane
@@ -233,7 +235,7 @@ Target result:
 Standalone phase doc:
 - `Shipped/Cleanup_Phase Cleanup-3 - Shared Boundary And Worker Contract Repair.md`
 
-## [ ] Cleanup 4 - Workspace Truth And AppShell Simplification
+## [x] Cleanup 4 - Workspace Truth And AppShell Simplification
 
 This is the top-level workspace ownership phase.
 
@@ -251,9 +253,9 @@ Target result:
 - workspace layout truth is not re-owned by hosts
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
+- `Shipped/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
 
-## [ ] Cleanup 4A - Workspace Surface Catalog And Capability Registry
+## [x] Cleanup 4A - Workspace Surface Catalog And Capability Registry
 
 This is the workspace-surface taxonomy and capability cleanup phase.
 
@@ -272,6 +274,7 @@ Initial focus:
   - core versus optional versus background-runtime classification
 - reduce duplicated capability assumptions currently spread across workspace render, actions, labels, and persistence seams
 - add a clear onboarding rule for future surface families so new workspaces do not land as one-off shell special cases
+- use `Radio` as the main current taxonomy example where a product-visible runtime behaves like an optional workspace surface candidate while still living outside `WorkspaceSurfaceKind`
 
 Target result:
 - one obvious place to answer what a workspace surface kind is allowed to do
@@ -279,7 +282,7 @@ Target result:
 - cleaner separation between real workspace surfaces, viewport-local tools, and background runtimes
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-4A - Workspace Surface Catalog And Capability Registry.md`
+- `Shipped/Cleanup_Phase Cleanup-4A - Workspace Surface Catalog And Capability Registry.md`
 
 ## [ ] Cleanup 5 - Project Content And Browser Derivation Cleanup
 
@@ -416,6 +419,7 @@ Initial focus:
   - optional and isolated
   - or retired
 - make docs and architecture reflect that answer instead of leaving scope implied by shell wiring
+- finalize the product answer for dashboard, notepad, and radio after the earlier `Cleanup 4A` taxonomy work has made it explicit whether `Radio` should remain a background runtime only or become an optional workspace surface plus runtime pair
 
 Target result:
 - optional surfaces stop distorting core architecture by accident

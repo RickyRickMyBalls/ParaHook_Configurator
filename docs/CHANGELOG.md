@@ -65,6 +65,43 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1257 -->
+### [1257] - 2026-04-12 22:49 - `Cleanup 4A - Phase 4 - Workspace Surface Catalog Source And Initial Repoint`
+<!-- ENTRY 1257 -->
+HUMAN SUMMARY: `Added a real \`workspaceSurfaceCatalog\` source of truth under \`src/app/workspace/\` and repointed the main label, render, persistence, action, and selector seams to it, so current workspace-surface facts no longer have to be re-answered through repeated raw \`surfaceKind\` branches.`
+#### Scope / Constraints Honored
+- Kept this pass narrow on the `Cleanup 4A / Phase 4` catalog-repoint seam instead of widening into a broader workspace redesign.
+- Preserved the current `WorkspaceSurfaceKind` set and did not promote `Radio` into it.
+- Kept browser numbering, console-only filtering, and persistence fallback defaults outside the catalog as consumer-specific logic.
+#### Summary of Implementation
+- Added [`src/app/workspace/workspaceSurfaceCatalog.ts`](./src/app/workspace/workspaceSurfaceCatalog.ts) as the new canonical source for current workspace-surface facts:
+  - default labels
+  - render families
+  - scope classification
+  - stable capability flags
+  - persistence participation
+  - coordination hints
+- Updated [`src/app/workspace/workspaceViewportLabels.ts`](./src/app/workspace/workspaceViewportLabels.ts) to read default labels and the core-surface filter from the catalog.
+- Updated [`src/app/workspace/ViewportSurfaceRegistry.tsx`](./src/app/workspace/ViewportSurfaceRegistry.tsx) to read render-family identity from the catalog before routing to the current surface component branches.
+- Updated [`src/app/workspace/workspacePersistence.ts`](./src/app/workspace/workspacePersistence.ts) to parse and filter persisted workspace surfaces through catalog-backed helpers instead of repeating the accepted surface union across normalization paths.
+- Updated [`src/app/workspace/workspaceSurfaceActions.ts`](./src/app/workspace/workspaceSurfaceActions.ts) to read coordination and stable capability facts from the catalog in the main action/re-dock/split paths.
+- Updated [`src/app/hosts/useAppShellWorkspaceSelectors.ts`](./src/app/hosts/useAppShellWorkspaceSelectors.ts) to read catalog-backed coordination and render-family metadata for the clearest grouped surface queries.
+#### Files Changed
+- [`src/app/workspace/workspaceSurfaceCatalog.ts`](./src/app/workspace/workspaceSurfaceCatalog.ts)
+- [`src/app/workspace/workspaceViewportLabels.ts`](./src/app/workspace/workspaceViewportLabels.ts)
+- [`src/app/workspace/ViewportSurfaceRegistry.tsx`](./src/app/workspace/ViewportSurfaceRegistry.tsx)
+- [`src/app/workspace/workspacePersistence.ts`](./src/app/workspace/workspacePersistence.ts)
+- [`src/app/workspace/workspaceSurfaceActions.ts`](./src/app/workspace/workspaceSurfaceActions.ts)
+- [`src/app/hosts/useAppShellWorkspaceSelectors.ts`](./src/app/hosts/useAppShellWorkspaceSelectors.ts)
+- [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-4A - Workspace Surface Catalog And Capability Registry.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-4A%20-%20Workspace%20Surface%20Catalog%20And%20Capability%20Registry.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- No intended end-user behavior change.
+- The workspace layer now has one explicit source of truth for current workspace-surface facts, while consumer-specific formatting and the `Radio` taxonomy question remain outside the catalog.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1256 -->
 ### [1256] - 2026-04-12 22:18 - `Cleanup 4 - Phase 4 - Workspace Compatibility Bridge Isolation`
 <!-- ENTRY 1256 -->

@@ -7,6 +7,11 @@ import {
   type WorkspaceSurfaceKind,
   type WorkspaceViewportSlotId,
 } from './workspaceShellTypes'
+import {
+  getWorkspaceSurfaceCoordination,
+  workspaceSurfaceSupportsHostMode,
+  workspaceSurfaceSupportsSplit,
+} from './workspaceSurfaceCatalog'
 import type { WorkspaceSplitDockSide } from './workspaceSplitTypes'
 import { useWorkspaceStore } from './useWorkspaceStore'
 
@@ -75,7 +80,11 @@ export function floatWorkspaceSurface(surfaceInstanceId: string) {
   if (slottedSurface === null) {
     return null
   }
-  if (slottedSurface.surfaceKind === 'browser') {
+  if (!workspaceSurfaceSupportsHostMode(slottedSurface.surfaceKind, 'floating')) {
+    return null
+  }
+  const coordination = getWorkspaceSurfaceCoordination(slottedSurface.surfaceKind)
+  if (coordination === 'browserShell') {
     const detachedSurface = workspaceState.detachViewportSlotSurface(
       slottedSurface.slotId,
       'floating',
@@ -90,11 +99,11 @@ export function floatWorkspaceSurface(surfaceInstanceId: string) {
   if (detachedSurface === null) {
     return null
   }
-  if (slottedSurface.surfaceKind === 'console') {
+  if (coordination === 'consoleStore') {
     useConsoleStore.getState().switchToFloating()
     return detachedSurface
   }
-  if (slottedSurface.surfaceKind === 'spaghettiEditor') {
+  if (coordination === 'spaghettiViewport') {
     const spaghettiState = useSpaghettiStore.getState()
     spaghettiState.setActiveEditorViewportId?.(surfaceInstanceId)
     spaghettiState.setEditorViewportWindowMode(surfaceInstanceId, 'expanded')
@@ -109,7 +118,11 @@ export function popoutWorkspaceSurface(surfaceInstanceId: string) {
   if (slottedSurface === null) {
     return null
   }
-  if (slottedSurface.surfaceKind === 'browser') {
+  if (!workspaceSurfaceSupportsHostMode(slottedSurface.surfaceKind, 'popout')) {
+    return null
+  }
+  const coordination = getWorkspaceSurfaceCoordination(slottedSurface.surfaceKind)
+  if (coordination === 'browserShell') {
     workspaceState.popoutSurface(surfaceInstanceId)
     return slottedSurface.slotId
   }
@@ -117,11 +130,11 @@ export function popoutWorkspaceSurface(surfaceInstanceId: string) {
   if (detachedSurface === null) {
     return null
   }
-  if (slottedSurface.surfaceKind === 'console') {
+  if (coordination === 'consoleStore') {
     useConsoleStore.getState().switchToPopout()
     return detachedSurface
   }
-  if (slottedSurface.surfaceKind === 'spaghettiEditor') {
+  if (coordination === 'spaghettiViewport') {
     const spaghettiState = useSpaghettiStore.getState()
     spaghettiState.setActiveEditorViewportId?.(surfaceInstanceId)
     spaghettiState.setEditorViewportWindowMode(surfaceInstanceId, 'separateWindow')
@@ -187,6 +200,8 @@ export function splitWorkspaceSurfaceToSide(
     slottedSurface?.surfaceKind === 'spaghettiEditor' ||
     detachedSurface?.surfaceKind === 'spaghettiEditor' ||
     spaghettiState.editorViewportsById[surfaceInstanceId] !== undefined
+  const currentSurfaceKind =
+    slottedSurface?.surfaceKind ?? detachedSurface?.surfaceKind ?? (isSpaghettiSurface ? 'spaghettiEditor' : null)
 
   if (
     slottedSurface?.surfaceKind === 'browser' ||
@@ -212,8 +227,12 @@ export function splitWorkspaceSurfaceToSide(
   if (targetSlot === undefined) {
     return null
   }
+  if (currentSurfaceKind === null || !workspaceSurfaceSupportsSplit(currentSurfaceKind)) {
+    return null
+  }
+  const coordination = getWorkspaceSurfaceCoordination(currentSurfaceKind)
 
-  if (slottedSurface?.surfaceKind === 'console' || detachedSurface?.surfaceKind === 'console') {
+  if (coordination === 'consoleStore') {
     if (detachedSurface !== null) {
       const nextSlot = workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
       useConsoleStore.getState().switchToDocked(false)
@@ -228,7 +247,7 @@ export function splitWorkspaceSurfaceToSide(
     return nextSlotId
   }
 
-  if (isSpaghettiSurface) {
+  if (coordination === 'spaghettiViewport') {
     spaghettiState.setActiveEditorViewportId?.(surfaceInstanceId)
     spaghettiState.setEditorViewportSplitDockSide(surfaceInstanceId, splitDockSide)
     spaghettiState.setEditorViewportWindowMode(surfaceInstanceId, 'expanded')
@@ -238,38 +257,15 @@ export function splitWorkspaceSurfaceToSide(
     return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
       surfaceKind: 'spaghettiEditor',
       surfaceInstanceId,
-      preferredRatio: options?.preferredRatio,
-    })
+        preferredRatio: options?.preferredRatio,
+      })
   }
-
-  if (slottedSurface?.surfaceKind === 'modelViewer' || detachedSurface?.surfaceKind === 'modelViewer') {
+  if (coordination === 'plain') {
     if (detachedSurface !== null) {
       return workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
     }
     return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
-      surfaceKind: 'modelViewer',
-      surfaceInstanceId,
-      preferredRatio: options?.preferredRatio,
-    })
-  }
-
-  if (slottedSurface?.surfaceKind === 'dashboard' || detachedSurface?.surfaceKind === 'dashboard') {
-    if (detachedSurface !== null) {
-      return workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
-    }
-    return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
-      surfaceKind: 'dashboard',
-      surfaceInstanceId,
-      preferredRatio: options?.preferredRatio,
-    })
-  }
-
-  if (slottedSurface?.surfaceKind === 'notepad' || detachedSurface?.surfaceKind === 'notepad') {
-    if (detachedSurface !== null) {
-      return workspaceState.redockDetachedSurface(surfaceInstanceId, splitDockSide)
-    }
-    return workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
-      surfaceKind: 'notepad',
+      surfaceKind: currentSurfaceKind,
       surfaceInstanceId,
       preferredRatio: options?.preferredRatio,
     })
@@ -292,6 +288,7 @@ export function commitWorkspaceSurfaceSlotSplit(
   if (surfaceKind === null) {
     return null
   }
+  const coordination = getWorkspaceSurfaceCoordination(surfaceKind)
   if (detachedSurface !== null) {
     const nextSlotId = workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
       surfaceKind,
@@ -299,16 +296,16 @@ export function commitWorkspaceSurfaceSlotSplit(
       preferredRatio: options?.preferredRatio,
     })
     workspaceState.clearDetachedSlotSurface(surfaceInstanceId)
-    if (surfaceKind === 'browser') {
+    if (coordination === 'browserShell') {
       workspaceState.setBrowserFloating(false)
       workspaceState.setBrowserViewportSplit(false)
     }
-    if (surfaceKind === 'console') {
+    if (coordination === 'consoleStore') {
       useConsoleStore.getState().switchToDocked(false)
     }
     return nextSlotId
   }
-  if (surfaceKind === 'browser') {
+  if (coordination === 'browserShell') {
     const nextSlotId = workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
       surfaceKind,
       surfaceInstanceId,
@@ -319,7 +316,7 @@ export function commitWorkspaceSurfaceSlotSplit(
     workspaceState.setBrowserViewportSplit(false)
     return nextSlotId
   }
-  if (surfaceKind === 'console') {
+  if (coordination === 'consoleStore') {
     const nextSlotId = workspaceState.splitViewportSlot(targetSlotId, splitDockSide, {
       surfaceKind,
       surfaceInstanceId,
@@ -347,18 +344,21 @@ export function commitWorkspaceSurfaceRootSplit(
   const slottedSurface = findSlotBySurfaceInstanceId(surfaceInstanceId)
   const detachedSurface = workspaceState.detachedSlotSurfaceById[surfaceInstanceId] ?? null
   const surfaceKind = resolveSurfaceKindForAction(surfaceInstanceId)
-  if (surfaceKind !== 'browser' && surfaceKind !== 'spaghettiEditor' && surfaceKind !== 'console') {
+  if (surfaceKind === null) {
+    return null
+  }
+  const coordination = getWorkspaceSurfaceCoordination(surfaceKind)
+  if (coordination === 'plain' || !workspaceSurfaceSupportsSplit(surfaceKind)) {
     return null
   }
   if (
-    surfaceKind !== 'browser' &&
-    surfaceKind !== 'console' &&
+    coordination === 'spaghettiViewport' &&
     slottedSurface !== null &&
     detachedSurface === null
   ) {
     return null
   }
-  if (surfaceKind === 'spaghettiEditor') {
+  if (coordination === 'spaghettiViewport') {
     spaghettiState.setActiveEditorViewportId?.(surfaceInstanceId)
     spaghettiState.setEditorViewportSplitDockSide(surfaceInstanceId, splitDockSide)
     spaghettiState.setEditorViewportWindowMode(surfaceInstanceId, 'expanded')
@@ -371,11 +371,11 @@ export function commitWorkspaceSurfaceRootSplit(
       hostViewportId: detachedSurface.hostViewportId,
     })
     workspaceState.clearDetachedSlotSurface(surfaceInstanceId)
-    if (surfaceKind === 'browser') {
+    if (coordination === 'browserShell') {
       workspaceState.setBrowserFloating(false)
       workspaceState.setBrowserViewportSplit(false)
     }
-    if (surfaceKind === 'console') {
+    if (coordination === 'consoleStore') {
       useConsoleStore.getState().switchToDocked(false)
     }
     return null
@@ -385,12 +385,12 @@ export function commitWorkspaceSurfaceRootSplit(
     surfaceInstanceId,
     preferredRatio: options?.preferredRatio,
   })
-  if (surfaceKind === 'browser') {
+  if (coordination === 'browserShell') {
     workspaceState.releaseHostRoute(defaultBrowserHostRouteId)
     workspaceState.setBrowserFloating(false)
     workspaceState.setBrowserViewportSplit(false)
   }
-  if (surfaceKind === 'console') {
+  if (coordination === 'consoleStore') {
     useConsoleStore.getState().switchToDocked(false)
   }
   return null

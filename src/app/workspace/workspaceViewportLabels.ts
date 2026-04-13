@@ -1,10 +1,12 @@
 import { defaultPrimaryViewportSlotId, type WorkspaceViewportSlot } from './workspaceShellTypes'
 import type { WorkspaceSplitDockSide } from './workspaceSplitTypes'
+import {
+  getWorkspaceSurfaceDefaultLabel,
+  isWorkspaceSurfaceCore,
+  type CoreWorkspaceSurfaceKind,
+} from './workspaceSurfaceCatalog'
 
-export type ConsoleWorkspaceSurfaceKind = Exclude<
-  WorkspaceViewportSlot['surfaceKind'],
-  'dashboard' | 'notepad'
->
+export type ConsoleWorkspaceSurfaceKind = CoreWorkspaceSurfaceKind
 
 export type WorkspaceViewportOption = {
   viewportId: string
@@ -20,18 +22,7 @@ export type ConsoleWorkspaceViewportOption = Omit<WorkspaceViewportOption, 'surf
 
 export const getWorkspaceViewportSurfaceLabel = (
   surfaceKind: WorkspaceViewportSlot['surfaceKind'],
-): string =>
-  surfaceKind === 'modelViewer'
-    ? 'Model Viewport'
-    : surfaceKind === 'browser'
-      ? 'Browser Viewport'
-        : surfaceKind === 'console'
-          ? 'Console Viewport'
-          : surfaceKind === 'notepad'
-            ? 'Notepad'
-          : surfaceKind === 'dashboard'
-            ? 'Dashboard Viewport'
-            : 'Spaghetti Editor Viewport'
+): string => getWorkspaceSurfaceDefaultLabel(surfaceKind)
 
 export const getOrderedWorkspaceViewportSlots = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,
@@ -88,7 +79,7 @@ export const buildConsoleWorkspaceViewportOptions = (
 ): ConsoleWorkspaceViewportOption[] =>
   buildWorkspaceViewportOptions(viewportSlotsById, primaryViewportId).filter(
     (option): option is ConsoleWorkspaceViewportOption =>
-      option.surfaceKind !== 'dashboard' && option.surfaceKind !== 'notepad',
+      isWorkspaceSurfaceCore(option.surfaceKind),
   )
 
 export const getWorkspaceViewportDisplayLabel = (

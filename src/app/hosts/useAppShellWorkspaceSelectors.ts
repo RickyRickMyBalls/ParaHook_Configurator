@@ -2,6 +2,10 @@ import { useMemo } from 'react'
 import type { EditorViewport } from '../spaghetti/schema/spaghettiTypes'
 import { floatingConsoleCompatibilitySurfaceInstanceId } from '../workspace/workspaceSurfaceActions'
 import {
+  getWorkspaceSurfaceCoordination,
+  getWorkspaceSurfaceRenderFamily,
+} from '../workspace/workspaceSurfaceCatalog'
+import {
   defaultPrimaryViewportSlotId,
   type EditorWorkspaceSurfaceState,
   type WorkspaceDetachedSlotSurfaceState,
@@ -82,7 +86,7 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
       activeEditorViewportId.length > 0
         ? Object.values(viewportSlotsById).find(
             (slot) =>
-              slot.surfaceKind === 'spaghettiEditor' &&
+              getWorkspaceSurfaceCoordination(slot.surfaceKind) === 'spaghettiViewport' &&
               slot.surfaceInstanceId === activeEditorViewportId,
           ) ?? null
         : null
@@ -93,7 +97,8 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
       const windowMode = viewport.windowMode ?? placement?.windowMode
       const isSlotted = Object.values(viewportSlotsById).some(
         (slot) =>
-          slot.surfaceKind === 'spaghettiEditor' && slot.surfaceInstanceId === editorViewportId,
+          getWorkspaceSurfaceCoordination(slot.surfaceKind) === 'spaghettiViewport' &&
+          slot.surfaceInstanceId === editorViewportId,
       )
       return (
         !isSlotted &&
@@ -104,10 +109,10 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
       )
     })
     const hasSlottedSpaghettiSurface = Object.values(viewportSlotsById).some(
-      (slot) => slot.surfaceKind === 'spaghettiEditor',
+      (slot) => getWorkspaceSurfaceCoordination(slot.surfaceKind) === 'spaghettiViewport',
     )
     const hasDetachedSpaghettiSurface = Object.values(detachedSlotSurfaceById).some(
-      (surface) => surface.surfaceKind === 'spaghettiEditor',
+      (surface) => getWorkspaceSurfaceCoordination(surface.surfaceKind) === 'spaghettiViewport',
     )
     const hasPopoutSpaghettiSurface = Object.values(editorViewportsById).some(
       (viewport) => (viewport.windowMode ?? '') === 'separateWindow',
@@ -143,7 +148,7 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
       workspaceSplitMenuTargetEditorViewportId !== null
         ? Object.values(viewportSlotsById).find(
             (slot) =>
-              slot.surfaceKind === 'spaghettiEditor' &&
+              getWorkspaceSurfaceCoordination(slot.surfaceKind) === 'spaghettiViewport' &&
               slot.surfaceInstanceId === workspaceSplitMenuTargetEditorViewportId,
           ) ?? null
         : activeEditorSlot
@@ -153,17 +158,21 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
       activeEditorSplitPriority
 
     const browserSlotCount = Object.values(viewportSlotsById).filter(
-      (slot) => slot.surfaceKind === 'browser',
+      (slot) => getWorkspaceSurfaceCoordination(slot.surfaceKind) === 'browserShell',
     ).length
     const consoleSlotCount = Object.values(viewportSlotsById).filter(
-      (slot) => slot.surfaceKind === 'console',
+      (slot) => getWorkspaceSurfaceCoordination(slot.surfaceKind) === 'consoleStore',
     ).length
 
     const activeDetachedBrowserSurface =
-      Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'browser') ??
+      Object.values(detachedSlotSurfaceById).find(
+        (surface) => getWorkspaceSurfaceCoordination(surface.surfaceKind) === 'browserShell',
+      ) ??
       null
     const activeDetachedConsoleSurface =
-      Object.values(detachedSlotSurfaceById).find((surface) => surface.surfaceKind === 'console') ??
+      Object.values(detachedSlotSurfaceById).find(
+        (surface) => getWorkspaceSurfaceCoordination(surface.surfaceKind) === 'consoleStore',
+      ) ??
       null
     const workspaceSplitMenuTargetSurfaceKind: 'console' | 'spaghettiEditor' | null =
       workspaceSplitMenuTargetSurfaceInstanceId === null
@@ -178,22 +187,34 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
             : null
 
     const detachedViewerFloatingSurfaces = Object.values(detachedSlotSurfaceById).filter(
-      (surface) => surface.surfaceKind === 'modelViewer' && surface.hostMode === 'floating',
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'modelViewer' &&
+        surface.hostMode === 'floating',
     )
     const detachedViewerPopoutSurfaces = Object.values(detachedSlotSurfaceById).filter(
-      (surface) => surface.surfaceKind === 'modelViewer' && surface.hostMode === 'popout',
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'modelViewer' &&
+        surface.hostMode === 'popout',
     )
     const detachedDashboardFloatingSurfaces = Object.values(detachedSlotSurfaceById).filter(
-      (surface) => surface.surfaceKind === 'dashboard' && surface.hostMode === 'floating',
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'dashboard' &&
+        surface.hostMode === 'floating',
     )
     const detachedDashboardPopoutSurfaces = Object.values(detachedSlotSurfaceById).filter(
-      (surface) => surface.surfaceKind === 'dashboard' && surface.hostMode === 'popout',
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'dashboard' &&
+        surface.hostMode === 'popout',
     )
     const detachedNotepadFloatingSurfaces = Object.values(detachedSlotSurfaceById).filter(
-      (surface) => surface.surfaceKind === 'notepad' && surface.hostMode === 'floating',
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'notepad' &&
+        surface.hostMode === 'floating',
     )
     const detachedNotepadPopoutSurfaces = Object.values(detachedSlotSurfaceById).filter(
-      (surface) => surface.surfaceKind === 'notepad' && surface.hostMode === 'popout',
+      (surface) =>
+        getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'notepad' &&
+        surface.hostMode === 'popout',
     )
 
     const rootNode = viewportLayoutNodesById[viewportSlotRootNodeId] ?? null

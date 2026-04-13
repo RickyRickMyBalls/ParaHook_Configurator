@@ -4,6 +4,9 @@ import { SpaghettiPanel } from '../panels/SpaghettiPanel'
 import { selectEditorViewportById, useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { NotepadSurface } from '../notepad/NotepadSurface'
 import { DashboardSurface } from './DashboardSurface'
+import {
+  getWorkspaceSurfaceRenderFamily,
+} from './workspaceSurfaceCatalog'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
 
@@ -37,8 +40,9 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
   )
   const browserPresentationMode = useWorkspaceStore((state) => state.browserShell.presentationMode)
   const setBrowserPresentationMode = useWorkspaceStore((state) => state.setBrowserPresentationMode)
+  const renderFamily = getWorkspaceSurfaceRenderFamily(surfaceKind)
 
-  if (surfaceKind === 'browser') {
+  if (renderFamily === 'browser') {
     return (
       <div
         className="BrowserViewportSplitHost WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--browser"
@@ -62,7 +66,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     )
   }
 
-  if (surfaceKind === 'console') {
+  if (renderFamily === 'console') {
     return (
       <div
         className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--console"
@@ -74,7 +78,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     )
   }
 
-  if (surfaceKind === 'spaghettiEditor') {
+  if (renderFamily === 'spaghettiEditor') {
     return (
       <div
         className="WorkspaceViewportSlotSurface WorkspaceViewportSlotSurface--spaghetti"
@@ -96,7 +100,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     )
   }
 
-  if (surfaceKind === 'dashboard') {
+  if (renderFamily === 'dashboard') {
     return (
       <DashboardSurface
         surfaceInstanceId={surfaceInstanceId}
@@ -105,7 +109,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     )
   }
 
-  if (surfaceKind === 'notepad') {
+  if (renderFamily === 'notepad') {
     return <NotepadSurface surfaceInstanceId={surfaceInstanceId} />
   }
 

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+8. 2026-04-12 22:21:41: Closed out this standalone `Cleanup 4` phase record after all four internal phases shipped, marked the top-level lane complete, and prepared the doc to move from `Cleanup/Future/` into `Cleanup/Shipped/` so the family handoff to `Cleanup 4A` points at a finished workspace-truth cleanup record instead of an in-progress future plan
 7. 2026-04-12 22:18:15: Completed `Phase 4 - Retire Migration-Era Ownership Leakage` as a focused code-and-verification pass by isolating the retained legacy editor split replay and detached browser/console restore plumbing into explicit workspace-side compatibility bridges, shrinking `AppShell.tsx` and `useWorkspacePersistenceBridge.ts` away from transitional owner-like behavior without changing the canonical workspace owner
 6. 2026-04-12 22:08:46: Completed `Phase 3 - Reduce AppShell To Composition Over Workspace Truth` as a focused code-and-verification pass by moving the workspace persistence hydration, persisted-layout write-back, and legacy split replay band out of `src/app/AppShell.tsx` into the new `src/app/workspace/useWorkspacePersistenceBridge.ts` hook, reducing the shell back toward composition while intentionally leaving split-menu policy and the broader migration-retirement seam for later cleanup phases
 5. 2026-04-12 22:01:34: Completed `Phase 2 - Trace Host Re-Ownership Hotspots` as a docs-and-verification pass by adding one explicit host re-ownership inventory across `AppShell.tsx`, `workspaceSurfaceActions.ts`, `PopupWorkspaceShell.tsx`, `workspacePersistence.ts`, and the AppShell host hooks, separating supporting read-model seams from acceptable coordination, owner-like split and placement orchestration that should shrink in `Phase 3`, and legacy split/persisted-layout migration residue that belongs to `Phase 4`
@@ -41,7 +42,7 @@ Do not use it for:
 
 ## Doc Body
 
-## [ ] Cleanup 4 - Workspace Truth And AppShell Simplification
+## [x] Cleanup 4 - Workspace Truth And AppShell Simplification
 
 ### Header
 
@@ -162,7 +163,7 @@ The live repo already points at the intended owner split, but it is not fully ca
 - `docs/Human-Plans/Architecture/Cleanup/Canonical-Owner-Decisions.md`
 - `docs/Human-Plans/Architecture/Cleanup/Cleanup-Vision.md`
 - `docs/Human-Plans/Architecture/Cleanup/Cleanup-Index.md`
-- `docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
 
 #### Strongest live repo seams for this pass:
 - `src/app/workspace/useWorkspaceStore.ts`
@@ -209,7 +210,7 @@ The live repo already points at the intended owner split, but it is not fully ca
 - `Phase 2` can trace leaks against one honest target instead of against broad shell discomfort
 
 #### Recommended file changes:
-- edit `docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
+- edit `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
 
 #### Verification:
 - manually re-read:
@@ -373,7 +374,7 @@ This is the locked workspace owner baseline later `Cleanup 4` phases should cite
 - one explicit host re-ownership hotspot inventory
 
 #### Recommended file changes:
-- edit `docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
+- edit `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`
 
 #### Verification:
 - manually re-read the `Phase 1` workspace owner baseline in this doc
