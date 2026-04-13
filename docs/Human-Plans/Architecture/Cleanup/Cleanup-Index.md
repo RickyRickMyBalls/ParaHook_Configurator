@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-04-13 13:45:19: Closed out `Cleanup 9 - Browser And Console Complexity Reduction` as a shipped cleanup lane after its Browser/Console boundary baseline, owner-drift inventory, split-rule lock, first sink-reduction proof boundary, narrow shared graph-target proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the Browser/Console cleanup lane now reads as completed history before later optional-surface and naming follow-ons
+19. 2026-04-13 12:43:45: Added the standalone future phase doc for `Cleanup 9 - Browser And Console Complexity Reduction`, grounding the next cleanup lane in the cleanup vision's large-controller warning plus the live Browser and Console sink surfaces in `useBrowserPanelController.ts`, `stagedNavigation.ts`, `useConsoleInteraction.ts`, and `workspaceIntents.ts`, and turning the family-ladder placeholder into a real implementation-ready planning surface under `Cleanup/Future/`
 18. 2026-04-13 12:40:33: Closed out `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence` as a shipped cleanup lane after its convergence-boundary baseline, hybrid-contract inventory, shared-core rule, family-local boundary lock, narrow Geometry seam proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the authored-contract lane now reads as completed history before later Browser/Console and naming follow-ons
 17. 2026-04-13 10:32:51: Added the standalone future phase doc for `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence`, grounding the authored-contract follow-on lane in the shipped `Cleanup 7` owner baseline plus the shipped `Cleanup 8` packaging proof and linking the family ladder to the new implementation-ready planning surface under `Cleanup/Future/`
 16. 2026-04-13 10:15:35: Closed out `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction` as a shipped cleanup lane after the packaging-boundary baseline, mixed-placement inventory, family-folder contract, sketch-command-library contract, narrow `OutputPreview` plus draw-command extraction, and final proof/handoff phases all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the CAD packaging lane now reads as completed history before `Cleanup 8A`
@@ -401,7 +403,7 @@ Target result:
 Standalone phase doc:
 - `Shipped/Cleanup_Phase Cleanup-8A - Feature-Stack And Graph-Native CAD Contract Convergence.md`
 
-## [ ] Cleanup 9 - Browser And Console Complexity Reduction
+## [x] Cleanup 9 - Browser And Console Complexity Reduction
 
 This is the large-controller cleanup phase.
 
@@ -416,6 +418,9 @@ Initial focus:
 
 Target result:
 - Browser and Console remain powerful, but their biggest files stop acting like hidden ownership buckets
+
+Standalone phase doc:
+- `Shipped/Cleanup_Phase Cleanup-9 - Browser And Console Complexity Reduction.md`
 
 ## [ ] Cleanup 10 - Optional Workspace Family Scope Decisions
 

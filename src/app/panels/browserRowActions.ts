@@ -2,15 +2,22 @@ import type {
   BrowserRenderableRowVm,
   BrowserTreeRowActionVm,
 } from './selectBrowserTreeRows'
+import type { OpenGraphDocumentIntentStrategy } from '../store/workspaceIntents'
+
+export type BrowserGraphTargetActionOptions = {
+  strategy?: OpenGraphDocumentIntentStrategy
+  fitNodeInViewport?: boolean
+}
 
 export type BrowserRowActionHandlers = {
   sharedViewerCompositionActive: boolean
   onSaveGraph: (cachedGraphId: string) => void
-  onOpenGraph: (graphDocumentId: string) => void
+  onActivateGraphTarget: (
+    graphDocumentId: string,
+    nodeId: string | null,
+    options?: BrowserGraphTargetActionOptions,
+  ) => void
   onTransformReference: (referenceId: string) => void
-  onViewInGraph: (graphDocumentId: string, nodeId: string | null) => void
-  onOpenGraphInNewViewport: (graphDocumentId: string) => void
-  onSwapFocusedEditorViewportToGraphDocument: (graphDocumentId: string) => void
   onRevealGraph: (graphDocumentId: string) => void
   onFocusViewport: (editorViewportId: string) => void
   onCloseViewport: (editorViewportId: string) => void
@@ -27,7 +34,9 @@ export const runBrowserRowAction = (
       return
     }
     if (action.actionId === 'open') {
-      handlers.onOpenGraph(row.graphDocumentId)
+      handlers.onActivateGraphTarget(row.graphDocumentId, null, {
+        strategy: 'open-or-focus',
+      })
       return
     }
     if (action.actionId === 'reveal') {
@@ -35,18 +44,24 @@ export const runBrowserRowAction = (
       return
     }
     if (action.actionId === 'new-editor') {
-      handlers.onOpenGraphInNewViewport(row.graphDocumentId)
+      handlers.onActivateGraphTarget(row.graphDocumentId, null, {
+        strategy: 'open-new',
+      })
       return
     }
     if (action.actionId === 'swap-editor') {
-      handlers.onSwapFocusedEditorViewportToGraphDocument(row.graphDocumentId)
+      handlers.onActivateGraphTarget(row.graphDocumentId, null, {
+        strategy: 'swap-focused-or-open',
+      })
     }
     return
   }
 
   if (row.rowKind === 'graph-rebuild-object' || row.rowKind === 'graph-node') {
     if (action.actionId === 'view-in-graph') {
-      handlers.onViewInGraph(row.authoringGraphDocumentId, row.authoringNodeId)
+      handlers.onActivateGraphTarget(row.authoringGraphDocumentId, row.authoringNodeId, {
+        fitNodeInViewport: true,
+      })
     }
     return
   }
@@ -70,7 +85,9 @@ export const runBrowserRowAction = (
 
   if (row.rowKind === 'component' || row.rowKind === 'object' || row.rowKind === 'sketch') {
     if (action.actionId === 'view-in-graph' && row.authoringGraphDocumentId !== null) {
-      handlers.onViewInGraph(row.authoringGraphDocumentId, row.authoringNodeId)
+      handlers.onActivateGraphTarget(row.authoringGraphDocumentId, row.authoringNodeId, {
+        fitNodeInViewport: row.authoringNodeId !== null,
+      })
     }
     return
   }

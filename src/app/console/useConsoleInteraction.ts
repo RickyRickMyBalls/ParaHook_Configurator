@@ -30,8 +30,7 @@ import {
   getWorkspaceViewportSurfaceLabel,
 } from '../workspace/workspaceViewportLabels'
 import {
-  activateGraphDocumentIntent,
-  activateGraphNodeIntent,
+  activateGraphTargetIntent,
   selectTargetIntent,
   startSketchDrawIntent,
   startSketchPlaneIntent,
@@ -433,6 +432,29 @@ export function useConsoleInteraction(
       }
     }
   }, [rootGuidedOptOutRef, setStagedNavigationSession])
+
+  const activateConsoleGraphTarget = useCallback(
+    (
+      graphDocumentId: string,
+      nodeId: string | null,
+      options: {
+        strategy?: 'open-or-focus' | 'swap-focused-or-open' | 'open-new'
+        fitNodeInViewport?: boolean
+      } = {},
+    ) =>
+      activateGraphTargetIntent(
+        buildWorkspaceIntentDepsFromStoreState(),
+        {
+          graphDocumentId,
+          nodeId,
+        },
+        {
+          strategy: options.strategy ?? 'open-or-focus',
+          fitNodeInViewport: options.fitNodeInViewport ?? false,
+        },
+      ),
+    [buildWorkspaceIntentDepsFromStoreState],
+  )
 
   const rehydrateGuidedRootSession = useCallback(() => {
     if (rootGuidedOptOutRef.current === false) {
@@ -903,22 +925,10 @@ export function useConsoleInteraction(
       return true
     }
 
-    if (
-      stagedResult.selections.selectedNodeId !== null &&
-      stagedResult.selections.graphDocumentId !== null
-    ) {
-      activateGraphNodeIntent(
-        buildWorkspaceIntentDepsFromStoreState(),
+    if (stagedResult.selections.graphDocumentId !== null) {
+      activateConsoleGraphTarget(
         stagedResult.selections.graphDocumentId,
         stagedResult.selections.selectedNodeId,
-        {
-          strategy: 'open-or-focus',
-        },
-      )
-    } else if (stagedResult.selections.graphDocumentId !== null) {
-      activateGraphDocumentIntent(
-        buildWorkspaceIntentDepsFromStoreState(),
-        stagedResult.selections.graphDocumentId,
         {
           strategy: 'open-or-focus',
         },
@@ -1613,13 +1623,9 @@ export function useConsoleInteraction(
           graphRootEditorRevealRestoreRef.current = ensureSpaghettiEditorVisibleForGraphRoot(
             directGraphShortcutGraphDocumentId,
           )
-          activateGraphDocumentIntent(
-            buildWorkspaceIntentDepsFromStoreState(),
-            directGraphShortcutGraphDocumentId,
-            {
-              strategy: 'open-or-focus',
-            },
-          )
+          activateConsoleGraphTarget(directGraphShortcutGraphDocumentId, null, {
+            strategy: 'open-or-focus',
+          })
           const directedGraphHandoff = resolveConsoleWorkspaceContextSync(
             buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
             {
@@ -1667,13 +1673,9 @@ export function useConsoleInteraction(
             consoleActionContext.graphDocumentId,
           )
           if (consoleActionContext.graphDocumentId !== null) {
-            activateGraphDocumentIntent(
-              buildWorkspaceIntentDepsFromStoreState(),
-              consoleActionContext.graphDocumentId,
-              {
-                strategy: 'open-or-focus',
-              },
-            )
+            activateConsoleGraphTarget(consoleActionContext.graphDocumentId, null, {
+              strategy: 'open-or-focus',
+            })
           }
         }
         appendConsoleEntry({
@@ -1820,8 +1822,7 @@ export function useConsoleInteraction(
             !isObjectLocalViewerNavigation &&
             stagedResult.selections.graphDocumentId !== null
           ) {
-            activateGraphNodeIntent(
-              buildWorkspaceIntentDepsFromStoreState(),
+            activateConsoleGraphTarget(
               stagedResult.selections.graphDocumentId,
               stagedResult.selections.selectedNodeId,
               {
@@ -1830,13 +1831,9 @@ export function useConsoleInteraction(
             )
           } else if (stagedResult.selections.graphDocumentId !== null) {
             if (!isObjectLocalViewerNavigation) {
-              activateGraphDocumentIntent(
-                buildWorkspaceIntentDepsFromStoreState(),
-                stagedResult.selections.graphDocumentId,
-                {
-                  strategy: 'open-or-focus',
-                },
-              )
+              activateConsoleGraphTarget(stagedResult.selections.graphDocumentId, null, {
+                strategy: 'open-or-focus',
+              })
             }
           }
           if (
@@ -3322,13 +3319,9 @@ export function useConsoleInteraction(
             useSpaghettiStore
               .getState()
               .applyGraphCommand(removeNodeCommand(stagedResult.selections.selectedNodeId))
-            activateGraphDocumentIntent(
-              buildWorkspaceIntentDepsFromStoreState(),
-              stagedResult.selections.graphDocumentId,
-              {
-                strategy: 'open-or-focus',
-              },
-            )
+            activateConsoleGraphTarget(stagedResult.selections.graphDocumentId, null, {
+              strategy: 'open-or-focus',
+            })
             const resumedHandoff = resolveConsoleWorkspaceContextSync(
               buildStagedNavigationContextFromStoreState(useSpaghettiStore.getState()),
               {
@@ -3380,9 +3373,9 @@ export function useConsoleInteraction(
             stagedResult.selections.graphDocumentId !== null
           ) {
             setStagedNavigationSession(stagedResult.session)
-            const targetViewportId = activateGraphDocumentIntent(
-              buildWorkspaceIntentDepsFromStoreState(),
+            const targetViewportId = activateConsoleGraphTarget(
               stagedResult.selections.graphDocumentId,
+              null,
               {
                 strategy: 'open-or-focus',
               },

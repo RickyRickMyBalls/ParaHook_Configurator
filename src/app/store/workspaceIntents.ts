@@ -106,6 +106,17 @@ export type ActivateGraphNodeIntentOptions = OpenGraphDocumentIntentOptions & {
   fitNodeInViewport?: boolean
 }
 
+export type GraphIntentTarget = {
+  graphDocumentId: string
+  nodeId: string | null
+}
+
+export type ActivateGraphTargetIntentOptions = ActivateGraphNodeIntentOptions
+
+export type ActivateGraphTargetIntentResult = OpenGraphDocumentIntentResult & {
+  nodeId: string | null
+}
+
 const findViewportForGraphDocument = (
   editorViewportsById: Record<string, EditorViewportRecord>,
   graphDocumentId: string,
@@ -211,6 +222,26 @@ export const activateGraphDocumentIntent = (
   })
   activateSurfaceIntent(deps, 'spaghetti')
   return result
+}
+
+export const activateGraphTargetIntent = (
+  deps: WorkspaceIntentDeps,
+  target: GraphIntentTarget,
+  options: ActivateGraphTargetIntentOptions = {},
+): ActivateGraphTargetIntentResult => {
+  if (target.nodeId === null) {
+    const result = activateGraphDocumentIntent(deps, target.graphDocumentId, options)
+    return {
+      ...result,
+      nodeId: null,
+    }
+  }
+
+  const result = activateGraphNodeIntent(deps, target.graphDocumentId, target.nodeId, options)
+  return {
+    ...result,
+    nodeId: target.nodeId,
+  }
 }
 
 export const activateGraphNodeIntent = (

@@ -154,11 +154,8 @@ const action = (actionId: BrowserTreeRowActionVm['actionId']): BrowserTreeRowAct
 const handlers = (sharedViewerCompositionActive = false) => ({
   sharedViewerCompositionActive,
   onSaveGraph: vi.fn(),
-  onOpenGraph: vi.fn(),
+  onActivateGraphTarget: vi.fn(),
   onTransformReference: vi.fn(),
-  onViewInGraph: vi.fn(),
-  onOpenGraphInNewViewport: vi.fn(),
-  onSwapFocusedEditorViewportToGraphDocument: vi.fn(),
   onRevealGraph: vi.fn(),
   onFocusViewport: vi.fn(),
   onCloseViewport: vi.fn(),
@@ -178,7 +175,9 @@ describe('runBrowserRowAction', () => {
 
     runBrowserRowAction(graphRebuildRow, action('view-in-graph'), nextHandlers)
 
-    expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
+    expect(nextHandlers.onActivateGraphTarget).toHaveBeenCalledWith('graph-document-1', 'node-a', {
+      fitNodeInViewport: true,
+    })
   })
 
   it('routes a graph node row through the same authoring jump path', () => {
@@ -186,7 +185,9 @@ describe('runBrowserRowAction', () => {
 
     runBrowserRowAction(graphNodeRow, action('view-in-graph'), nextHandlers)
 
-    expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
+    expect(nextHandlers.onActivateGraphTarget).toHaveBeenCalledWith('graph-document-1', 'node-a', {
+      fitNodeInViewport: true,
+    })
   })
 
   it('still routes reveal through the graph reveal handler while shared composition is active', () => {
@@ -234,7 +235,9 @@ describe('runBrowserRowAction', () => {
       nextHandlers,
     )
 
-    expect(nextHandlers.onViewInGraph).toHaveBeenCalledWith('graph-document-1', 'node-a')
+    expect(nextHandlers.onActivateGraphTarget).toHaveBeenCalledWith('graph-document-1', 'node-a', {
+      fitNodeInViewport: true,
+    })
     expect(nextHandlers.onRevealGraph).not.toHaveBeenCalled()
   })
 
@@ -260,5 +263,38 @@ describe('runBrowserRowAction', () => {
     runBrowserRowAction(viewportRow, action('focus'), nextHandlers)
 
     expect(nextHandlers.onFocusViewport).toHaveBeenCalledWith('editor-viewport-1')
+  })
+
+  it('routes graph document open and editor actions through the shared graph-target handler', () => {
+    const nextHandlers = handlers(false)
+
+    runBrowserRowAction(graphRow, action('open'), nextHandlers)
+    runBrowserRowAction(graphRow, action('new-editor'), nextHandlers)
+    runBrowserRowAction(graphRow, action('swap-editor'), nextHandlers)
+
+    expect(nextHandlers.onActivateGraphTarget).toHaveBeenNthCalledWith(
+      1,
+      'graph-document-1',
+      null,
+      {
+        strategy: 'open-or-focus',
+      },
+    )
+    expect(nextHandlers.onActivateGraphTarget).toHaveBeenNthCalledWith(
+      2,
+      'graph-document-1',
+      null,
+      {
+        strategy: 'open-new',
+      },
+    )
+    expect(nextHandlers.onActivateGraphTarget).toHaveBeenNthCalledWith(
+      3,
+      'graph-document-1',
+      null,
+      {
+        strategy: 'swap-focused-or-open',
+      },
+    )
   })
 })

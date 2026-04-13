@@ -32,8 +32,8 @@ import {
 } from '../store/useAppStore'
 import type { BrowserBuildPolicy } from '../store/useAppStore'
 import {
+  activateGraphTargetIntent,
   activateGraphDocumentIntent,
-  activateGraphNodeIntent,
   activateObjectIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
@@ -593,35 +593,27 @@ export function useBrowserPanelController(
     [],
   )
 
-  const handleOpenOrFocusGraph = useCallback(
-    (graphDocumentId: string): string | null =>
-      activateGraphDocumentIntent(workspaceIntentDeps, graphDocumentId, {
-        strategy: 'open-or-focus',
-        spawnPosition: newEditorSpawnPosition,
-      }).editorViewportId,
-    [newEditorSpawnPosition, workspaceIntentDeps],
-  )
-
   const handleActivateGraphTarget = useCallback(
     (
       graphDocumentId: string,
       nodeId: string | null,
       options: {
-        strategy?: 'open-or-focus' | 'swap-focused-or-open'
+        strategy?: 'open-or-focus' | 'swap-focused-or-open' | 'open-new'
         fitNodeInViewport?: boolean
       } = {},
     ): string | null => {
-      if (nodeId === null) {
-        return activateGraphDocumentIntent(workspaceIntentDeps, graphDocumentId, {
+      return activateGraphTargetIntent(
+        workspaceIntentDeps,
+        {
+          graphDocumentId,
+          nodeId,
+        },
+        {
           strategy: options.strategy ?? 'open-or-focus',
           spawnPosition: newEditorSpawnPosition,
-        }).editorViewportId
-      }
-      return activateGraphNodeIntent(workspaceIntentDeps, graphDocumentId, nodeId, {
-        strategy: options.strategy ?? 'open-or-focus',
-        spawnPosition: newEditorSpawnPosition,
-        fitNodeInViewport: options.fitNodeInViewport ?? false,
-      }).editorViewportId
+          fitNodeInViewport: options.fitNodeInViewport ?? false,
+        },
+      ).editorViewportId
     },
     [newEditorSpawnPosition, workspaceIntentDeps],
   )
@@ -1199,15 +1191,6 @@ export function useBrowserPanelController(
     ],
   )
 
-  const handleViewInGraph = useCallback(
-    (graphDocumentId: string, nodeId: string | null) => {
-      handleActivateGraphTarget(graphDocumentId, nodeId, {
-        fitNodeInViewport: nodeId !== null,
-      })
-    },
-    [handleActivateGraphTarget],
-  )
-
   const handleRetryImportedReferenceRow = useCallback(
     (referenceId: string) => {
       closeBrowserOverlays()
@@ -1364,19 +1347,8 @@ export function useBrowserPanelController(
             console.error(`Failed to save cached graph "${cachedGraphId}".`, error)
           })
         },
-        onOpenGraph: handleOpenOrFocusGraph,
+        onActivateGraphTarget: handleActivateGraphTarget,
         onTransformReference: handleTransformReferenceRow,
-        onViewInGraph: handleViewInGraph,
-        onOpenGraphInNewViewport: (graphDocumentId) => {
-          const editorViewportId = openGraphDocumentInNewViewport(graphDocumentId)
-          if (editorViewportId !== null) {
-            setEditorViewportPosition(editorViewportId, newEditorSpawnPosition)
-          }
-        },
-        onSwapFocusedEditorViewportToGraphDocument: (graphDocumentId) => {
-          const viewportId = swapFocusedEditorViewportToGraphDocument(graphDocumentId)
-          void viewportId
-        },
         onRevealGraph: handleRevealGraph,
         onFocusViewport: (editorViewportId) => {
           setActiveEditorViewportId(editorViewportId)
@@ -1388,17 +1360,12 @@ export function useBrowserPanelController(
       appendBrowserEntry,
       closeBrowserOverlays,
       closeEditorViewport,
-      handleOpenOrFocusGraph,
+      handleActivateGraphTarget,
       handleRevealGraph,
       handleTransformReferenceRow,
-      handleViewInGraph,
-      newEditorSpawnPosition,
-      openGraphDocumentInNewViewport,
       saveCachedGraphEntryToFile,
       setActiveEditorViewportId,
-      setEditorViewportPosition,
       sharedViewerComposition,
-      swapFocusedEditorViewportToGraphDocument,
     ],
   )
 

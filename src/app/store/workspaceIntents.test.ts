@@ -167,6 +167,81 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
   })
 
+  it('routes graph-document targets through the shared graph-target intent helper', async () => {
+    const { activateGraphTargetIntent } = await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const result = activateGraphTargetIntent(
+      {
+        app: useAppStore.getState(),
+        spaghetti: useSpaghettiStore.getState(),
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        nodeId: null,
+      },
+      {
+        strategy: 'open-or-focus',
+      },
+    )
+
+    expect(result.graphDocumentId).toBe('graph-document-1')
+    expect(result.nodeId).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-document',
+      graphDocumentId: 'graph-document-1',
+    })
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
+  })
+
+  it('routes graph-node targets through the shared graph-target intent helper', async () => {
+    const { activateGraphTargetIntent } = await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+      ],
+      edges: [],
+    })
+
+    const result = activateGraphTargetIntent(
+      {
+        app: useAppStore.getState(),
+        spaghetti: useSpaghettiStore.getState(),
+      },
+      {
+        graphDocumentId: 'graph-document-1',
+        nodeId: 'node-sketch-1',
+      },
+      {
+        strategy: 'open-or-focus',
+      },
+    )
+
+    expect(result.graphDocumentId).toBe('graph-document-1')
+    expect(result.nodeId).toBe('node-sketch-1')
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-sketch-1',
+    })
+  })
+
   it('starts sketch review through the shared workspace intent band built from current store state', async () => {
     const { buildWorkspaceIntentDepsFromCurrentStoreState, startSketchReviewIntent } =
       await import('./workspaceIntents')

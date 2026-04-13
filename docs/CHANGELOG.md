@@ -65,6 +65,39 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1269 -->
+### [1269] - 2026-04-13 13:32 - `Cleanup 9 - Phase 5 - Browser And Console Graph-Target Intent Proof`
+<!-- ENTRY 1269 -->
+HUMAN SUMMARY: `Implemented the first Cleanup 9 sink-reduction slice by extracting a shared graph-target activation seam into \`src/app/store/workspaceIntents.ts\` `, converging Browser graph-row action routing through one shared graph-target handler in \`src/app/panels/browserRowActions.ts\` `, thinning the Browser and Console controller sinks that used to rebuild document-versus-node activation locally, and verifying the focused Browser/shared-intent proof band plus a green build.`
+#### Scope / Constraints Honored
+- Kept this pass inside the locked `Cleanup 9 / Phase 5` activation-and-reveal seam instead of widening into Browser row-selector reshaping, Console prompt or assist redesign, workspace-shell work, or unrelated Browser/Console cleanup.
+- Preserved `src/app/console/stagedNavigation.ts` as a Console-local grammar/helper surface and did not move canonical graph/project/reference/workspace truth into the shared activation seam.
+- Left the downstream adapter surfaces [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx) and [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) unchanged after confirming the proof could land without repointing them directly.
+#### Summary of Implementation
+- Added [`src/app/store/workspaceIntents.ts`](./src/app/store/workspaceIntents.ts) `activateGraphTargetIntent(...)` as the narrow shared graph-target activation helper over the existing graph-document versus graph-node activation band, keeping the seam honest to activation meaning rather than UI ownership.
+- Reworked [`src/app/panels/browserRowActions.ts`](./src/app/panels/browserRowActions.ts) so graph `open`, `view-in-graph`, `new-editor`, and `swap-editor` actions now converge through one `onActivateGraphTarget(...)` handler while Browser-local `reveal` remains separate.
+- Repointed [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) to the shared graph-target intent seam so the controller no longer rebuilds the document-versus-node activation branch locally.
+- Repointed [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts) through one local `activateConsoleGraphTarget(...)` callback backed by the shared workspace intent seam, reducing repeated document-versus-node activation branching in the Console sink without changing sketch-plane or sketch-draw ownership.
+- Added focused proof in [`src/app/store/workspaceIntents.test.ts`](./src/app/store/workspaceIntents.test.ts) and [`src/app/panels/browserRowActions.test.ts`](./src/app/panels/browserRowActions.test.ts) for the new shared graph-target helper and the converged Browser graph-row action handler.
+#### Files Changed
+- [`src/app/store/workspaceIntents.ts`](./src/app/store/workspaceIntents.ts)
+- [`src/app/store/workspaceIntents.test.ts`](./src/app/store/workspaceIntents.test.ts)
+- [`src/app/panels/browserRowActions.ts`](./src/app/panels/browserRowActions.ts)
+- [`src/app/panels/browserRowActions.test.ts`](./src/app/panels/browserRowActions.test.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts)
+- [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-9 - Browser And Console Complexity Reduction.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-9%20-%20Browser%20And%20Console%20Complexity%20Reduction.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Browser graph-row action handling now uses one shared graph-target routing seam for open, authoring-node jump, new editor, and swap-editor behavior, while graph reveal remains Browser-local.
+- Console graph-target activation paths now reuse one shared graph-target intent seam instead of rebuilding separate graph-document and graph-node activation branches at each call site.
+#### Verification Steps
+- Passed: `cmd /c npm.cmd test -- src/app/store/workspaceIntents.test.ts src/app/panels/browserRowActions.test.ts src/app/panels/BrowserPanel.test.tsx`
+- Passed: `cmd /c npm.cmd run build`
+- Failed outside this seam: `cmd /c npm.cmd test -- src/app/console/stagedNavigation.test.ts src/app/console/stagedNavigation.workspaceModes.test.ts`
+- Failed outside this seam: `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx`
+- The observed failing assertions were in unchanged broader Console/staged-navigation expectations such as root choice lists, zoom-back scope expectations, sketch-plane guided prefills, and object-zoom expectation data, so they were left for later follow-up instead of widening this Phase 5 pass.
+
 <!-- ENTRY 1268 -->
 ### [1268] - 2026-04-13 12:24 - `Cleanup 8A - Phase 5 - Geometry Sketch-Extrude Contract Convergence Slice`
 <!-- ENTRY 1268 -->
