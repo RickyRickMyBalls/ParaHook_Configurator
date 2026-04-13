@@ -65,6 +65,38 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1268 -->
+### [1268] - 2026-04-13 12:24 - `Cleanup 8A - Phase 5 - Geometry Sketch-Extrude Contract Convergence Slice`
+<!-- ENTRY 1268 -->
+HUMAN SUMMARY: `Implemented the first Cleanup 8A convergence slice by extracting the graph-native sketch-to-extrude profile contract seam into a new Geometry family contract module, reducing the older flat sketch/extrude helper files to compatibility re-exports, repointing the bounded registry and selector consumers, and verifying the locked proof band plus a full build.`
+#### Scope / Constraints Honored
+- Kept this pass narrow to the locked `Cleanup 8A / Phase 5` sketch-to-extrude contract seam instead of widening into whole `Sketch` or `Extrude` family migration, shared-core schema/lowering rewrites, or broad selector/view cleanup.
+- Preserved the shared authored core in [`src/app/spaghetti/features/featureTypes.ts`](./src/app/spaghetti/features/featureTypes.ts), [`src/app/spaghetti/features/featureSchema.ts`](./src/app/spaghetti/features/featureSchema.ts), and [`src/app/spaghetti/features/compileFeatureStack.ts`](./src/app/spaghetti/features/compileFeatureStack.ts) without changing their ownership or runtime meaning.
+- Left the downstream adapter-only UI surfaces in [`src/app/spaghetti/ui/FeatureStackView.tsx`](./src/app/spaghetti/ui/FeatureStackView.tsx) and [`src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx`](./src/app/spaghetti/ui/features/ExtrudeFeatureView.tsx) unchanged after confirming they do not import the converged seam directly.
+#### Summary of Implementation
+- Added [`src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts`](./src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts) as the first family-local Geometry contract home for sketch profile member-port ids, extrude contributor classification and endpoint normalization, extrude entry-port ids, extrude body-member ids, and the supporting graph-native sketch/extrude param schemas plus read helpers tied directly to that seam.
+- Reduced [`src/app/spaghetti/features/sketchProfileVirtualPorts.ts`](./src/app/spaghetti/features/sketchProfileVirtualPorts.ts), [`src/app/spaghetti/features/extrudeProfileConnections.ts`](./src/app/spaghetti/features/extrudeProfileConnections.ts), [`src/app/spaghetti/features/extrudeProfileEntryPorts.ts`](./src/app/spaghetti/features/extrudeProfileEntryPorts.ts), and [`src/app/spaghetti/features/extrudeBodyVirtualPorts.ts`](./src/app/spaghetti/features/extrudeBodyVirtualPorts.ts) to explicit compatibility re-export shims so the first family-local contract move could land without a repo-wide import migration in the same change set.
+- Repointed [`src/app/spaghetti/registry/nodeRegistry.ts`](./src/app/spaghetti/registry/nodeRegistry.ts) so the `Geometry/Sketch` and `Geometry/Extrude` params/helper band now reads from the new family-local seam while still re-exporting the established extrude reader surface for broader shared consumers.
+- Repointed [`src/app/spaghetti/selectors/selectNodeVm.ts`](./src/app/spaghetti/selectors/selectNodeVm.ts) to the new Geometry family contract seam so selector-owned extrude profile and body-member reads now consume the same family-local meaning as the registry instead of reaching through the older flat helper paths.
+#### Files Changed
+- [`src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts`](./src/app/spaghetti/families/Geometry/contracts/sketchExtrudeProfileContract.ts)
+- [`src/app/spaghetti/features/sketchProfileVirtualPorts.ts`](./src/app/spaghetti/features/sketchProfileVirtualPorts.ts)
+- [`src/app/spaghetti/features/extrudeProfileConnections.ts`](./src/app/spaghetti/features/extrudeProfileConnections.ts)
+- [`src/app/spaghetti/features/extrudeProfileEntryPorts.ts`](./src/app/spaghetti/features/extrudeProfileEntryPorts.ts)
+- [`src/app/spaghetti/features/extrudeBodyVirtualPorts.ts`](./src/app/spaghetti/features/extrudeBodyVirtualPorts.ts)
+- [`src/app/spaghetti/registry/nodeRegistry.ts`](./src/app/spaghetti/registry/nodeRegistry.ts)
+- [`src/app/spaghetti/selectors/selectNodeVm.ts`](./src/app/spaghetti/selectors/selectNodeVm.ts)
+- [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-8A - Feature-Stack And Graph-Native CAD Contract Convergence.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-8A%20-%20Feature-Stack%20And%20Graph-Native%20CAD%20Contract%20Convergence.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- No intended user-facing behavior change; the sketch-to-extrude contract meaning is now owned by the new Geometry family seam while the older flat helper paths remain as compatibility re-exports.
+- `Geometry/Extrude` registry and selector reads now share one family-local contract source for profile-target semantics and `NewObjects` body-member identity.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/spaghetti/registry/nodeRegistry.test.ts`
+- Passed `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectNodeVm.test.ts`
+- Passed `cmd /c npm.cmd test -- src/app/spaghetti/features/compileFeatureStack.test.ts src/app/spaghetti/features/effectivePorts.test.ts`
+- Passed `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1267 -->
 ### [1267] - 2026-04-13 10:04 - `Cleanup 8 - Phase 5 - OutputPreview Family Seed And Sketch Command Library Extraction`
 <!-- ENTRY 1267 -->

@@ -5,16 +5,23 @@ import {
 } from '../features/effectivePorts'
 import {
   buildExtrudeBodyMemberPortId,
-} from '../features/extrudeBodyVirtualPorts'
-import {
   classifyExtrudeProfileContributorEdge,
+  buildExtrudeProfileEntryPortId,
   isProfileOutputLike,
   isSketchProfilesValue,
   isWholeExtrusionProfileTargetEndpoint,
+  listSketchProfileMemberOutputPorts,
+  mapWholeNumberToGeometryExtrudeDirection,
+  mapWholeNumberToGeometryExtrudeType,
+  readGeometryExtrudeBodyGenerationModeFromParams,
+  readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeTaperAngleDegFromParams,
+  readGeometryExtrudeTypeFromParams,
+  type GeometryExtrudeBodyGenerationMode,
+  type GeometryExtrudeDirection,
+  type GeometryExtrudeType,
   type ExtrudeProfileContributor,
-} from '../features/extrudeProfileConnections'
-import { listSketchProfileMemberOutputPorts } from '../features/sketchProfileVirtualPorts'
-import { buildExtrudeProfileEntryPortId } from '../features/extrudeProfileEntryPorts'
+} from '../families/Geometry/contracts/sketchExtrudeProfileContract'
 import { readFeatureStack } from '../features/featureSchema'
 import {
   analyzeFeatureDependencyGraph,
@@ -23,17 +30,6 @@ import {
 } from '../features/featureDependencies'
 import { isFeatureVirtualInputPortId } from '../features/featureVirtualPorts'
 import { getNodeDef, type NodeUiSection } from '../registry/nodeRegistry'
-import {
-  readGeometryExtrudeBodyGenerationModeFromParams,
-  mapWholeNumberToGeometryExtrudeDirection,
-  mapWholeNumberToGeometryExtrudeType,
-  readGeometryExtrudeDirectionFromParams,
-  readGeometryExtrudeTaperAngleDegFromParams,
-  readGeometryExtrudeTypeFromParams,
-  type GeometryExtrudeBodyGenerationMode,
-  type GeometryExtrudeDirection,
-  type GeometryExtrudeType,
-} from '../registry/nodeRegistry'
 import type { PortSpec, SpaghettiGraph, SpaghettiNode } from '../schema/spaghettiTypes'
 import {
   normalizeOutputPreviewParams,

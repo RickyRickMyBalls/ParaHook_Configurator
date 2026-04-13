@@ -1,17 +1,50 @@
 import { z } from 'zod'
 import {
   featureStackSchema,
-  sketchFeatureSchema,
 } from '../features/featureSchema'
 import { deriveProfilesWithDiagnostics } from '../features/profileDerivation'
 import {
   cloneOutputPreviewDefaultParams,
   OUTPUT_PREVIEW_NODE_TYPE,
 } from '../families/OutputPreview/system/outputPreviewNode'
-import { isSketchProfilesValue } from '../features/extrudeProfileConnections'
+import {
+  countExtrusionProfileTargets,
+  createManagedSketchFeature,
+  defaultGeometryExtrudeDepthMm,
+  geometryExtrudeParamsSchema,
+  geometrySketchParamsSchema,
+  isExtrusionProfileInputLike,
+  mapWholeNumberToGeometryExtrudeDirection,
+  mapWholeNumberToGeometryExtrudeType,
+  readGeometryExtrudeBodyGenerationModeFromParams,
+  readGeometryExtrudeDepthMmFromParams,
+  readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeEndDepthMmFromParams,
+  readGeometryExtrudeStartDepthMmFromParams,
+  readGeometryExtrudeTypeFromParams,
+  readManagedSketchFeatureFromParams,
+} from '../families/Geometry/contracts/sketchExtrudeProfileContract'
 import { buildExtrudeBodyId } from '../features/extrudeBodyIdentity'
 import type { PortSpec, Unit } from '../schema/spaghettiTypes'
-import type { SketchFeature } from '../features/featureTypes'
+
+export {
+  GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_OPTIONS,
+  GEOMETRY_EXTRUDE_DIRECTION_OPTIONS,
+  GEOMETRY_EXTRUDE_TYPE_OPTIONS,
+  getGeometryExtrudeTypeIndex,
+  mapWholeNumberToGeometryExtrudeDirection,
+  mapWholeNumberToGeometryExtrudeType,
+  normalizeGeometryExtrudeBodyGenerationMode,
+  normalizeGeometryExtrudeDirection,
+  normalizeGeometryExtrudeType,
+  readGeometryExtrudeBodyGenerationModeFromParams,
+  readGeometryExtrudeDirectionFromParams,
+  readGeometryExtrudeTaperAngleDegFromParams,
+  readGeometryExtrudeTypeFromParams,
+  type GeometryExtrudeBodyGenerationMode,
+  type GeometryExtrudeDirection,
+  type GeometryExtrudeType,
+} from '../families/Geometry/contracts/sketchExtrudeProfileContract'
 
 export type NodeTypeId =
   | 'Geometry/Extrude'
@@ -241,25 +274,6 @@ const paramVec2ParamsSchema = z
     value: vec2Schema,
   })
   .strict()
-const geometrySketchParamsSchema = z
-  .object({
-    sketch: sketchFeatureSchema,
-  })
-  .strict()
-const geometryExtrudeStoredTypeSchema = z.enum(['Basic', 'Twist', 'Body', 'Walls'])
-const geometryExtrudeStoredDirectionSchema = z.enum(['OneSide', 'TwoSides', 'Symmetric'])
-const geometryExtrudeStoredBodyGenerationModeSchema = z.enum(['Combine', 'NewObjects'])
-const geometryExtrudeParamsSchema = z
-  .object({
-    extrudeType: geometryExtrudeStoredTypeSchema.optional(),
-    extrudeDirection: geometryExtrudeStoredDirectionSchema.optional(),
-    bodyGenerationMode: geometryExtrudeStoredBodyGenerationModeSchema.optional(),
-    depthMm: z.number().finite().optional(),
-    startDepthMm: z.number().finite().optional(),
-    endDepthMm: z.number().finite().optional(),
-    taperAngleDeg: z.number().finite().optional(),
-  })
-  .strict()
 const defaultBaseplateWidth = 30
 const defaultBaseplateLength = 200
 const defaultCubeLength = 20
@@ -268,7 +282,6 @@ const defaultCubeHeight = 20
 const defaultCubeProofLength = 20
 const defaultCubeProofWidth = 10
 const defaultCubeProofHeight = 12
-const defaultGeometryExtrudeDepthMm = 20
 const unboundedIncomingConnections = Number.MAX_SAFE_INTEGER
 const defaultToeHookWidth = 24
 const defaultToeHookThickness = 4
@@ -288,73 +301,6 @@ const defaultHeelKickProfileABaseCtrl = { x: 6, y: 4 }
 const defaultHeelKickProfileBEnd = { x: 34, y: -24 }
 const defaultHeelKickProfileBEndCtrl = { x: 26, y: -20 }
 const defaultHeelKickProfileBBaseCtrl = { x: 7, y: -8 }
-export const GEOMETRY_EXTRUDE_TYPE_OPTIONS = ['Body', 'Walls'] as const
-export type GeometryExtrudeType = (typeof GEOMETRY_EXTRUDE_TYPE_OPTIONS)[number]
-const clampExtrudeTypeIndex = (value: number): number =>
-  Math.min(GEOMETRY_EXTRUDE_TYPE_OPTIONS.length - 1, Math.max(0, Math.round(value)))
-export const mapWholeNumberToGeometryExtrudeType = (
-  value: number,
-): GeometryExtrudeType => GEOMETRY_EXTRUDE_TYPE_OPTIONS[clampExtrudeTypeIndex(value)] ?? 'Body'
-export const getGeometryExtrudeTypeIndex = (value: GeometryExtrudeType): number =>
-  GEOMETRY_EXTRUDE_TYPE_OPTIONS.indexOf(value)
-
-export const normalizeGeometryExtrudeType = (value: unknown): GeometryExtrudeType => {
-  if (value === 'Basic') {
-    return 'Body'
-  }
-  if (value === 'Twist') {
-    return 'Walls'
-  }
-  return value === 'Walls' ? 'Walls' : 'Body'
-}
-
-const isExtrusionProfileInputLike = (value: unknown): boolean =>
-  isSketchProfilesValue(value) && value.length > 0
-
-const countExtrusionProfileTargets = (value: unknown): number =>
-  isSketchProfilesValue(value) ? value.length : 0
-
-export const GEOMETRY_EXTRUDE_DIRECTION_OPTIONS = [
-  'OneSide',
-  'TwoSides',
-  'Symmetric',
-] as const
-export type GeometryExtrudeDirection = (typeof GEOMETRY_EXTRUDE_DIRECTION_OPTIONS)[number]
-const clampExtrudeDirectionIndex = (value: number): number =>
-  Math.min(
-    GEOMETRY_EXTRUDE_DIRECTION_OPTIONS.length - 1,
-    Math.max(0, Math.round(value)),
-  )
-export const mapWholeNumberToGeometryExtrudeDirection = (
-  value: number,
-): GeometryExtrudeDirection =>
-  GEOMETRY_EXTRUDE_DIRECTION_OPTIONS[clampExtrudeDirectionIndex(value)] ?? 'OneSide'
-
-export const normalizeGeometryExtrudeDirection = (
-  value: unknown,
-): GeometryExtrudeDirection => {
-  if (value === 'TwoSides') {
-    return 'TwoSides'
-  }
-  if (value === 'Symmetric') {
-    return 'Symmetric'
-  }
-  return 'OneSide'
-}
-
-export const GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_OPTIONS = [
-  'Combine',
-  'NewObjects',
-] as const
-export type GeometryExtrudeBodyGenerationMode =
-  (typeof GEOMETRY_EXTRUDE_BODY_GENERATION_MODE_OPTIONS)[number]
-
-export const normalizeGeometryExtrudeBodyGenerationMode = (
-  value: unknown,
-): GeometryExtrudeBodyGenerationMode => {
-  return value === 'Combine' ? 'Combine' : 'NewObjects'
-}
-
 const toFiniteNumberOr = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback
 
@@ -365,75 +311,6 @@ const isVec2Like = (value: unknown): value is { x: number; y: number } =>
   Number.isFinite((value as { x: number }).x) &&
   typeof (value as { y?: unknown }).y === 'number' &&
   Number.isFinite((value as { y: number }).y)
-
-const createManagedSketchFeature = (): SketchFeature => ({
-  type: 'sketch' as const,
-  featureId: 'sketch-1',
-  plane: 'XY' as const,
-  planeTransform: {
-    offsetMm: 0,
-    translation: { x: 0, y: 0, z: 0 },
-    rotationDeg: { x: 0, y: 0, z: 0 },
-    inPlaneRotationDeg: 0,
-  },
-  components: [],
-  outputs: {
-    profiles: [],
-    diagnostics: [],
-  },
-  uiState: {
-    collapsed: false,
-  },
-})
-
-const readManagedSketchFeatureFromParams = (params: Record<string, unknown>): SketchFeature => {
-  const parsed = geometrySketchParamsSchema.safeParse(params)
-  return parsed.success ? parsed.data.sketch : createManagedSketchFeature()
-}
-
-export const readGeometryExtrudeTypeFromParams = (
-  params: Record<string, unknown>,
-): GeometryExtrudeType => {
-  return normalizeGeometryExtrudeType(params.extrudeType)
-}
-
-export const readGeometryExtrudeDirectionFromParams = (
-  params: Record<string, unknown>,
-): GeometryExtrudeDirection => {
-  return normalizeGeometryExtrudeDirection(params.extrudeDirection)
-}
-
-export const readGeometryExtrudeBodyGenerationModeFromParams = (
-  params: Record<string, unknown>,
-): GeometryExtrudeBodyGenerationMode => {
-  return normalizeGeometryExtrudeBodyGenerationMode(params.bodyGenerationMode)
-}
-
-export const readGeometryExtrudeTaperAngleDegFromParams = (
-  params: Record<string, unknown>,
-): number => {
-  return typeof params.taperAngleDeg === 'number' && Number.isFinite(params.taperAngleDeg)
-    ? params.taperAngleDeg
-    : 0
-}
-
-const readGeometryExtrudeDepthMmFromParams = (params: Record<string, unknown>): number => {
-  return typeof params.depthMm === 'number' && Number.isFinite(params.depthMm)
-    ? params.depthMm
-    : defaultGeometryExtrudeDepthMm
-}
-
-const readGeometryExtrudeStartDepthMmFromParams = (params: Record<string, unknown>): number => {
-  return typeof params.startDepthMm === 'number' && Number.isFinite(params.startDepthMm)
-    ? params.startDepthMm
-    : readGeometryExtrudeDepthMmFromParams(params)
-}
-
-const readGeometryExtrudeEndDepthMmFromParams = (params: Record<string, unknown>): number => {
-  return typeof params.endDepthMm === 'number' && Number.isFinite(params.endDepthMm)
-    ? params.endDepthMm
-    : readGeometryExtrudeDepthMmFromParams(params)
-}
 
 const buildRectangleExtrudeFeatureStack = (config: {
   prefix: string

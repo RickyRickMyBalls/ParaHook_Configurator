@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-04-13 12:40:33: Closed out `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence` as a shipped cleanup lane after its convergence-boundary baseline, hybrid-contract inventory, shared-core rule, family-local boundary lock, narrow Geometry seam proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the authored-contract lane now reads as completed history before later Browser/Console and naming follow-ons
+17. 2026-04-13 10:32:51: Added the standalone future phase doc for `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence`, grounding the authored-contract follow-on lane in the shipped `Cleanup 7` owner baseline plus the shipped `Cleanup 8` packaging proof and linking the family ladder to the new implementation-ready planning surface under `Cleanup/Future/`
 16. 2026-04-13 10:15:35: Closed out `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction` as a shipped cleanup lane after the packaging-boundary baseline, mixed-placement inventory, family-folder contract, sketch-command-library contract, narrow `OutputPreview` plus draw-command extraction, and final proof/handoff phases all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the CAD packaging lane now reads as completed history before `Cleanup 8A`
 15. 2026-04-13 08:45:27: Added the standalone future phase doc for `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction`, aligning the next cleanup lane to the shipped `Cleanup 7` ownership baseline plus the broader cleanup and repo vision docs while turning the index's CAD packaging step into a real implementation-ready planning surface under `Cleanup/Future/`
 14. 2026-04-13 08:38:44: Closed out `Cleanup 7 - Node-Owned CAD Authoring And Command Adapter Unification` as a shipped cleanup lane after the owner-baseline, command-drift inventory, command-start narrowing, cross-surface sketch-intent unification, and final proof phases all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the node-owned CAD authoring lane now reads as completed history before the later CAD packaging cleanup
@@ -377,7 +379,7 @@ Target result:
 Standalone phase doc:
 - `Shipped/Cleanup_Phase Cleanup-8 - CAD Node Family Packaging And Command Library Extraction.md`
 
-## [ ] Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence
+## [x] Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence
 
 This is the CAD authored-contract convergence phase.
 
@@ -395,6 +397,9 @@ Initial focus:
 Target result:
 - one clearer answer for when a CAD operation is feature-stack owned, graph-node owned, or intentionally shared through one contract
 - less family-by-family reinvention as the CAD operation set expands
+
+Standalone phase doc:
+- `Shipped/Cleanup_Phase Cleanup-8A - Feature-Stack And Graph-Native CAD Contract Convergence.md`
 
 ## [ ] Cleanup 9 - Browser And Console Complexity Reduction
 
