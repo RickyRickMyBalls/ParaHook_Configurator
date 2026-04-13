@@ -7,7 +7,7 @@ import { deriveProfilesWithDiagnostics } from '../features/profileDerivation'
 import {
   cloneOutputPreviewDefaultParams,
   OUTPUT_PREVIEW_NODE_TYPE,
-} from '../system/outputPreviewNode'
+} from '../families/OutputPreview/system/outputPreviewNode'
 import { isSketchProfilesValue } from '../features/extrudeProfileConnections'
 import { buildExtrudeBodyId } from '../features/extrudeBodyIdentity'
 import type { PortSpec, Unit } from '../schema/spaghettiTypes'

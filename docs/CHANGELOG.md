@@ -65,6 +65,276 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1267 -->
+### [1267] - 2026-04-13 10:04 - `Cleanup 8 - Phase 5 - OutputPreview Family Seed And Sketch Command Library Extraction`
+<!-- ENTRY 1267 -->
+HUMAN SUMMARY: `Implemented the first Cleanup 8 extraction slice by moving the OutputPreview helper cluster into a new family-root system home, extracting the first sketch draw-command band into a shared command-library seam, repointing the bounded store/console/viewport and registry/preview/output consumers, and verifying the focused proof band plus a full build.`
+#### Scope / Constraints Honored
+- Kept this pass narrow to the locked `Cleanup 8 / Phase 5` seed slices instead of widening into `Sketch` or `Extrude` family migration, staged-navigation redesign, or `Cleanup 8A` authored-contract convergence.
+- Preserved `useSpaghettiStore.ts` as the final sketch-session mutation owner and kept console and viewport surfaces as adapters over that same store-owned truth.
+- Used thin compatibility re-export shims for the older flat `system/` OutputPreview paths so the first family extraction could land without forcing a broad repo-wide import rewrite in the same pass.
+#### Summary of Implementation
+- Added [`src/app/spaghetti/families/OutputPreview/system/outputPreviewNode.ts`](./src/app/spaghetti/families/OutputPreview/system/outputPreviewNode.ts), [`src/app/spaghetti/families/OutputPreview/system/ensureOutputPreviewSingleton.ts`](./src/app/spaghetti/families/OutputPreview/system/ensureOutputPreviewSingleton.ts), and [`src/app/spaghetti/families/OutputPreview/system/ensureOutputPreviewSlots.ts`](./src/app/spaghetti/families/OutputPreview/system/ensureOutputPreviewSlots.ts) as the first family-root `OutputPreview` seed, then reduced the old [`src/app/spaghetti/system/outputPreviewNode.ts`](./src/app/spaghetti/system/outputPreviewNode.ts), [`src/app/spaghetti/system/ensureOutputPreviewSingleton.ts`](./src/app/spaghetti/system/ensureOutputPreviewSingleton.ts), and [`src/app/spaghetti/system/ensureOutputPreviewSlots.ts`](./src/app/spaghetti/system/ensureOutputPreviewSlots.ts) files to explicit compatibility re-exports.
+- Repointed the bounded `OutputPreview` consumer band in [`src/app/spaghetti/registry/nodeRegistry.ts`](./src/app/spaghetti/registry/nodeRegistry.ts), [`src/app/spaghetti/previewPreparation.ts`](./src/app/spaghetti/previewPreparation.ts), [`src/app/spaghetti/outputSurface.ts`](./src/app/spaghetti/outputSurface.ts), and [`src/app/spaghetti/store/useSpaghettiStore.ts`](./src/app/spaghetti/store/useSpaghettiStore.ts) to the new family-root seam.
+- Added [`src/app/spaghetti/sketchCommands/drawCommands.ts`](./src/app/spaghetti/sketchCommands/drawCommands.ts) as the first shared sketch command-library seed for draw-tool ids, companion commands, alias normalization, staged action mapping, and first-band labels/help text.
+- Repointed [`src/app/spaghetti/store/useSpaghettiStore.ts`](./src/app/spaghetti/store/useSpaghettiStore.ts), [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts), and [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so the first draw-command band now reads through the shared command-library seam instead of duplicating the same first-band command meaning in each surface.
+- Added focused proof in [`src/app/spaghetti/sketchCommands/drawCommands.test.ts`](./src/app/spaghetti/sketchCommands/drawCommands.test.ts) and [`src/app/spaghetti/families/OutputPreview/system/outputPreviewFamily.test.ts`](./src/app/spaghetti/families/OutputPreview/system/outputPreviewFamily.test.ts), and completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-8 - CAD Node Family Packaging And Command Library Extraction.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-8%20-%20CAD%20Node%20Family%20Packaging%20And%20Command%20Library%20Extraction.md).
+#### Files Changed
+- `src/app/spaghetti/families/OutputPreview/system/outputPreviewNode.ts`
+- `src/app/spaghetti/families/OutputPreview/system/ensureOutputPreviewSingleton.ts`
+- `src/app/spaghetti/families/OutputPreview/system/ensureOutputPreviewSlots.ts`
+- `src/app/spaghetti/system/outputPreviewNode.ts`
+- `src/app/spaghetti/system/ensureOutputPreviewSingleton.ts`
+- `src/app/spaghetti/system/ensureOutputPreviewSlots.ts`
+- `src/app/spaghetti/sketchCommands/drawCommands.ts`
+- `src/app/spaghetti/sketchCommands/drawCommands.test.ts`
+- `src/app/spaghetti/families/OutputPreview/system/outputPreviewFamily.test.ts`
+- `src/app/spaghetti/registry/nodeRegistry.ts`
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/outputSurface.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-8 - CAD Node Family Packaging And Command Library Extraction.md`
+#### Behavior Changes
+- The first sketch draw-command band now shares one canonical alias-normalization and staged-action mapping seam across store, console, and viewport consumers instead of each surface carrying its own first-band command meaning.
+- The bounded `OutputPreview` runtime consumers now read from the new family-root system seam while the older flat `system/` imports remain temporarily compatible through explicit forwarding shims.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/sketchCommands/drawCommands.test.ts src/app/spaghetti/families/OutputPreview/system/outputPreviewFamily.test.ts`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "accepts l as a sketch-local alias for line on submit"`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "executes sketch draw from staged navigation and clears the staged session"`
+- `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1266 -->
+### [1266] - 2026-04-13 08:37 - `Console Sketch Draw Local Scope Preservation`
+<!-- ENTRY 1266 -->
+HUMAN SUMMARY: `Preserved the local console sketch-draw scope during the staged \`G\` -> \`S\` -> \`SD\` launch so the generic workspace selected-sketch handoff no longer kicks the console back out of Sketch Draw, then verified both the staged-entry proof and a real sketch-local line command plus a full build.`
+#### Scope / Constraints Honored
+- Kept this fix narrowly focused on the console regression where staged sketch draw launch opened the toolbar but lost the local draw-command scope.
+- Preserved the existing workspace handoff system and sketch-draw runtime command set instead of widening into a broader console-navigation refactor.
+- Left unrelated existing worktree changes untouched.
+#### Summary of Implementation
+- Added a local sketch-draw staged-scope guard in [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx) so active draw-mode console sessions keep their `Sketch Draw` branch when a generic selected-sketch workspace sync arrives.
+- Kept the existing staged `SD` launch path and sketch-local command handling intact; the fix only prevents the non-local graph/sketch handoff from overwriting the active sketch-draw console scope.
+#### Files Changed
+- `src/app/console/ConsoleDock.tsx`
+- `docs/CHANGELOG.md`
+#### Behavior Changes
+- Entering `G`, then `S`, then `SD` now leaves the console inside the local `Sketch Draw` scope so draw commands like `L`, `PLine`, `Rectangle`, and `Circle` remain available immediately after launch.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "executes sketch draw from staged navigation and clears the staged session"`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "accepts l as a sketch-local alias for line on submit"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1265 -->
+### [1265] - 2026-04-13 08:26 - `Cleanup 7 - Phase 5 - Node-Owned CAD Rehydration And Preview Proof`
+<!-- ENTRY 1265 -->
+HUMAN SUMMARY: `Closed the final Cleanup 7 proof pass by tightening the node-surface and viewport-overlay tests so they now prove shared sketch-session truth survives reopen and rehydration, while reusing the existing store-owned create/select and shared intent-band proof seams, then verified the focused proof set and full build without runtime code changes.`
+#### Scope / Constraints Honored
+- Kept this pass proof-only, as locked in `Cleanup 7 / Phase 5`, and did not reopen runtime cleanup, packaging work, or broad store decomposition.
+- Reused the already-landed `Phase 3` and `Phase 4` owner seams instead of adding new helper layers or runtime behavior.
+- Avoided the broader unrelated suite noise outside this cleanup lane by verifying the targeted proof surfaces directly.
+#### Summary of Implementation
+- Tightened [`src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`](./src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx) with a focused case that proves the node surface rehydrates `Resume Draw` from the canonical `geometrySketchSession`.
+- Tightened [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx) so the shared review/draw path now also proves review mode survives close-and-reopen read-through without recreating a preview-owned truth surface.
+- Reused the existing store-owned create/select proof in [`src/app/spaghetti/store/useSpaghettiStore.test.ts`](./src/app/spaghetti/store/useSpaghettiStore.test.ts), the shared intent-band proof in [`src/app/store/workspaceIntents.test.ts`](./src/app/store/workspaceIntents.test.ts), the targeted console continuity proof in [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx), and the dedicated sketch-template proof in [`src/app/spaghetti/canvas/NodeView.test.tsx`](./src/app/spaghetti/canvas/NodeView.test.tsx) to close the lane without runtime edits.
+- Completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-7%20-%20Node-Owned%20CAD%20Authoring%20And%20Command%20Adapter%20Unification.md).
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`
+#### Behavior Changes
+- No runtime behavior changes. This pass tightened proof only.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "createGraphNodeInDocumentAndSelect"`
+- `cmd /c npm.cmd test -- src/app/store/workspaceIntents.test.ts`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "creates a sketch node when graph sketch scope is empty and continues into that sketch"`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "creates an extrude node when graph extrude scope is empty and continues into that node"`
+- `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npm.cmd test -- src/app/spaghetti/canvas/NodeView.test.tsx -t "renders the dedicated sketch template with plane-pick control and draw/review actions"`
+- `cmd /c npm.cmd test -- src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1264 -->
+### [1264] - 2026-04-13 08:12 - `Cleanup 7 - Phase 4 - Cross-Surface Sketch Intent Band Unification`
+<!-- ENTRY 1264 -->
+HUMAN SUMMARY: `Expanded the shared \`workspaceIntents.ts\` sketch-entry band with a reusable current-store deps builder plus \`startSketchReviewIntent(...)\`, repointed \`NodeView.tsx\` and \`ViewportOverlay.tsx\` to that same intent path, and verified the narrowed cross-surface adapter seam with focused tests plus a full build.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the locked `Cleanup 7 / Phase 4` adapter-fan-out seam instead of widening into full command-library extraction, broad surface redesign, or store ownership changes.
+- Preserved `useSpaghettiStore.ts` as the owner of sketch-plane and geometry-sketch sessions while keeping `workspaceIntents.ts` as an adapter band rather than a second truth store.
+- Left `useConsoleInteraction.ts` as the existing staged command grammar surface and kept the console/store command-start cleanup from `Phase 3` intact.
+#### Summary of Implementation
+- Expanded [`src/app/store/workspaceIntents.ts`](./src/app/store/workspaceIntents.ts) with `buildWorkspaceIntentDepsFromCurrentStoreState()` so non-console surfaces can build the same workspace-intent dependency bag honestly from current app and spaghetti store state.
+- Added `startSketchReviewIntent(...)` beside the existing shared `startSketchPlaneIntent(...)` and `startSketchDrawIntent(...)` helpers so review-mode re-entry now has the same adapter home as draw and plane entry.
+- Repointed [`src/app/spaghetti/canvas/NodeView.tsx`](./src/app/spaghetti/canvas/NodeView.tsx) so sketch-plane and sketch-draw entry now flows through the shared intent band instead of direct store session-start verbs.
+- Repointed [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so sketch review and draw re-entry use the same shared intent helpers.
+- Repointed [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx) to source its `WorkspaceIntentDeps` through the same shared builder while preserving the existing `useConsoleInteraction(...)` command-routing contract.
+- Added focused proof in [`src/app/store/workspaceIntents.test.ts`](./src/app/store/workspaceIntents.test.ts), tightened the sketch-surface proof in [`src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`](./src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx), and completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-7%20-%20Node-Owned%20CAD%20Authoring%20And%20Command%20Adapter%20Unification.md).
+#### Files Changed
+- `src/app/store/workspaceIntents.ts`
+- `src/app/store/workspaceIntents.test.ts`
+- `src/app/spaghetti/canvas/NodeView.tsx`
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `src/app/console/ConsoleDock.tsx`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`
+#### Behavior Changes
+- Sketch-plane, sketch-draw, and sketch-review entry now flow through one shared workspace-intent adapter band across console, node, and viewport surfaces instead of mixing direct per-surface session-entry shaping.
+- Graph and session truth remains store-owned; the shared intent band only prepares targeting, selection, and active-surface handoff consistently.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/store/workspaceIntents.test.ts src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx src/app/components/ViewportOverlay.test.tsx`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "creates a sketch node when graph sketch scope is empty and continues into that sketch"`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "creates an extrude node when graph extrude scope is empty and continues into that node"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1263 -->
+### [1263] - 2026-04-13 07:41 - `Cleanup 7 - Phase 3 - Console Command Start Ownership Narrowing`
+<!-- ENTRY 1263 -->
+HUMAN SUMMARY: `Moved the console create-or-enter graph-node flow behind a new store-owned \`createGraphNodeInDocumentAndSelect(...)\` seam so graph-document targeting, default placement, graph mutation, and active-node selection are no longer reconstructed inline in \`ConsoleDock.tsx\`, then added focused store proof and confirmed the build still passes.`
+#### Scope / Constraints Honored
+- Kept this pass narrow to the locked `Cleanup 7 / Phase 3` command-start seam instead of widening into `NodeView`, viewport command fan-out, or broader command-library extraction.
+- Preserved `useSpaghettiStore.ts` plus `graphCommands/addNode.ts` as the graph-truth mutation boundary.
+- Left the unrelated existing worktree changes and unrelated failing tests outside this phase untouched.
+#### Summary of Implementation
+- Added `createGraphNodeInDocumentAndSelect(...)` in [`src/app/spaghetti/store/useSpaghettiStore.ts`](./src/app/spaghetti/store/useSpaghettiStore.ts) so the store now owns graph-document opening, unique created-node id generation, default node placement, `addNode(...)` command application, and active-node selection for the console-started create path.
+- Repointed [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx) so its empty sketch/extrude/output-preview flow now composes over that store seam and keeps only the staged-navigation continuation plus workspace-intent activation needed for the console UX.
+- Added focused proof in [`src/app/spaghetti/store/useSpaghettiStore.test.ts`](./src/app/spaghetti/store/useSpaghettiStore.test.ts) covering created-node labeling, placement, graph targeting, and active selection handoff.
+- Marked the paired phase record complete in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-7%20-%20Node-Owned%20CAD%20Authoring%20And%20Command%20Adapter%20Unification.md).
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`
+#### Behavior Changes
+- Console-driven empty sketch/extrude/output-preview entry now reaches graph/node creation through one store-owned command-start seam instead of rebuilding that owner-like flow inline in the console surface.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts -t "createGraphNodeInDocumentAndSelect"`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "creates a sketch node when graph sketch scope is empty and continues into that sketch"`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx -t "creates an extrude node when graph extrude scope is empty and continues into that node"`
+- `cmd /c npm.cmd run build`
+- `cmd /c npm.cmd test -- src/app/console/ConsoleDock.test.tsx src/app/spaghetti/store/useSpaghettiStore.test.ts src/app/spaghetti/graphCommands/graphCommands.test.ts` still reports unrelated existing failures in object-local zoom expectations and Output Preview normalization expectations outside this phase.
+
+<!-- ENTRY 1262 -->
+### [1262] - 2026-04-13 07:03 - `Cleanup 6 - Phase 5 - Accepted Result Ownership Proof Tightening`
+<!-- ENTRY 1262 -->
+HUMAN SUMMARY: `Closed the final Cleanup 6 proof pass by tightening the shared \`buildViewportResultSelectorOptions.test.ts\` seam to prove browser policy can suppress viewer-facing preview without re-owning graph-runtime accepted draft truth, then verified the selector contract, ViewerHost viewport layers, runtime-inspector dock read-through, and full build all still hold.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the locked `Cleanup 6 / Phase 5` proof surfaces instead of reopening runtime ownership or viewer refactors.
+- Avoided broad store-suite changes; the added proof stayed in the narrow shared-helper band while existing selector, host, and dock suites provided the remaining coverage.
+- Made no runtime behavior changes in this phase.
+#### Summary of Implementation
+- Tightened [`src/app/components/buildViewportResultSelectorOptions.test.ts`](./src/app/components/buildViewportResultSelectorOptions.test.ts) with a focused case that composes the shared helper with `selectViewportResultState(...)` and proves browser execution policy suppression does not replace graph-runtime-owned accepted draft truth.
+- Reused the existing contract proof in [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts), the host-visible rendering proof in [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx), and the runtime-inspector derived-read proof in [`src/app/workspace/PrimaryViewportLeftDock.test.tsx`](./src/app/workspace/PrimaryViewportLeftDock.test.tsx) to close the ownership lane without adding broader scaffolding.
+- Completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-6%20-%20Graph%20Runtime%20And%20Accepted%20Result%20Ownership.md).
+#### Files Changed
+- `src/app/components/buildViewportResultSelectorOptions.test.ts`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`
+#### Behavior Changes
+- No runtime behavior changes. This pass tightened proof only.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/buildViewportResultSelectorOptions.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/components/ViewerHost.test.tsx src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1261 -->
+### [1261] - 2026-04-13 00:14 - `Cleanup 6 - Phase 4 - Viewport Result Input Preparation Unification`
+<!-- ENTRY 1261 -->
+HUMAN SUMMARY: `Extracted the duplicated host-side \`selectViewportResultState(...)\` option assembly into the new shared \`src/app/components/buildViewportResultSelectorOptions.ts\` seam, repointed both viewport hosts to it, and verified the narrowed viewport-result path with focused tests plus a full build.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the locked `Cleanup 6 / Phase 4` viewport fan-out seam instead of widening into graph-runtime ownership, viewer-engine cleanup, or a broad selector rewrite.
+- Preserved `selectViewportResultState.ts` as the central accepted-result interpretation contract.
+- Kept viewport mode, browser execution policy, artifact-preview suppression, interaction state, and delayed-placeholder state explicit as policy inputs rather than moving them into a new owner.
+#### Summary of Implementation
+- Added [`src/app/components/buildViewportResultSelectorOptions.ts`](./src/app/components/buildViewportResultSelectorOptions.ts) as a shared pure preparation seam that builds the host-side `selectViewportResultState(...)` input bag, including active draft viewer-part projection, browser policy lookup, artifact-preview suppression, project-draft-preview enablement, and delayed placeholder flags.
+- Repointed [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so its viewport-result memo now composes over `buildViewportResultSelectorOptions(...)` instead of reconstructing that accepted-result option bag inline.
+- Repointed [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) to the same shared preparation seam so the two hosts no longer maintain parallel viewport-result input assembly paths.
+- Added focused proof in [`src/app/components/buildViewportResultSelectorOptions.test.ts`](./src/app/components/buildViewportResultSelectorOptions.test.ts) for the shared preparation seam while keeping the existing selector coverage in [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) as the central accepted-result contract proof.
+- Completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-6%20-%20Graph%20Runtime%20And%20Accepted%20Result%20Ownership.md).
+#### Files Changed
+- `src/app/components/buildViewportResultSelectorOptions.ts`
+- `src/app/components/buildViewportResultSelectorOptions.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.tsx`
+- `docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`
+#### Behavior Changes
+- Viewport-result interpretation still flows through `selectViewportResultState(...)`, but the host-side input preparation now comes from one shared seam instead of two duplicated inline assembly paths.
+- Browser policy, artifact-preview suppression, and delayed-placeholder inputs now stay aligned between `ViewerHost.tsx` and `ViewportOverlay.tsx` through the shared preparation helper.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/buildViewportResultSelectorOptions.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1260 -->
+### [1260] - 2026-04-13 00:04 - `Cleanup 6 - Phase 3 - App Project Accepted Publication Handoff Narrowing`
+<!-- ENTRY 1260 -->
+HUMAN SUMMARY: `Pulled accepted-publication preparation into an explicit pre-derivation step in \`src/app/store/useAppStore.ts\` so project-content rebuilding now consumes a narrower accepted-publication input plus carry-forward placement state instead of recomputing graph-runtime publication and suppression policy inline, then verified the full build still passes.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the locked `Cleanup 6 / Phase 3` app/project derivation seam instead of widening into viewport-result fan-out cleanup.
+- Preserved `buildGraphPublishedContentSurface(...)` as the honest accepted-publication helper rather than moving accepted-result ownership into app state.
+- Left `selectRenderedProjectPartSet(...)` functionally unchanged as the adjacent downstream consumer seam for a later cleanup pass.
+#### Summary of Implementation
+- Added a small accepted-publication preparation layer in [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) through `buildProjectAcceptedPublicationRecords(...)`, which now prepares the full and policy-filtered graph-runtime publication surfaces before the app/project rebuild path runs.
+- Repointed `buildProjectContentDerivation(...)` in [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so it now consumes explicit accepted-publication records plus a narrower carry-forward placement state instead of directly recomputing graph publication and browser suppression policy inside the broad derivation pass.
+- Repointed the initial-content and sync paths in [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so both `createInitialProjectContentState()` and `syncCurrentProjectFromSpaghetti(...)` feed the narrower accepted-publication handoff into the shared derivation path.
+- Completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-6%20-%20Graph%20Runtime%20And%20Accepted%20Result%20Ownership.md).
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`](./docs/Human-Plans/Architecture/Cleanup/Shipped/Cleanup_Phase%20Cleanup-6%20-%20Graph%20Runtime%20And%20Accepted%20Result%20Ownership.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Verification
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1259 -->
+### [1259] - 2026-04-12 23:32 - `Cleanup 5 - Phase 4 - Browser Honest Hierarchy Proof`
+<!-- ENTRY 1259 -->
+HUMAN SUMMARY: `Tightened the Browser proof band so the main selector hierarchy cases and the key Browser panel selection and drag/drop cases now exercise the post-\`Phase 3\` unified content-row path directly, then verified that proof band and the full build both pass.`
+#### Scope / Constraints Honored
+- Kept this pass focused on `Cleanup 5 / Phase 4` proof coverage instead of reopening the Browser runtime cleanup.
+- Preferred targeted test tightening over broad Browser test-file churn.
+- Left the runtime `Phase 3` hierarchy narrowing intact and only touched proof surfaces unless the verification exposed a real regression.
+#### Summary of Implementation
+- Updated [`src/app/panels/selectBrowserTreeRows.test.ts`](./src/app/panels/selectBrowserTreeRows.test.ts) so the main reference hierarchy, imported-reference landing, manifest landing, part-row, progress, and content-order proof cases now use explicit post-`Phase 3` `contentRows` fixtures instead of assuming the retired Browser-side hierarchy fallback.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the shared reference-selection and reference-category drag/drop proof cases now exercise unified `projectContentRows` directly while still keeping the existing presentation-side reference tree inputs the harness needs.
+- Completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-5 - Project Content And Browser Derivation Cleanup.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-5%20-%20Project%20Content%20And%20Browser%20Derivation%20Cleanup.md).
+#### Files Changed
+- [`src/app/panels/selectBrowserTreeRows.test.ts`](./src/app/panels/selectBrowserTreeRows.test.ts)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-5 - Project Content And Browser Derivation Cleanup.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-5%20-%20Project%20Content%20And%20Browser%20Derivation%20Cleanup.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- No intended end-user behavior change.
+- The repo now has direct proof that Browser hierarchy rendering, selection reflection, collapse behavior, and reference-aware drag/drop still read the app-owned content hierarchy after the `Phase 3` projection narrowing.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1258 -->
+### [1258] - 2026-04-12 23:19 - `Cleanup 5 - Phase 3 - Browser Content Projection Narrowing`
+<!-- ENTRY 1258 -->
+HUMAN SUMMARY: `Removed the Browser tree selector's duplicate reference-hierarchy synthesis path so Browser content structure now comes from the app-owned \`projectContentRows\` projection, while \`useBrowserPanelController.ts\` keeps \`referenceWorkspaceTree\` only for presentation-side expansion coordination.`
+#### Scope / Constraints Honored
+- Kept this pass narrow on the `Cleanup 5 / Phase 3` hierarchy-synthesis seam instead of widening into a broader Browser controller or drag/drop redesign.
+- Left `useAppStore.ts` as the canonical project-content owner and did not move ownership out of the app layer.
+- Kept the remaining `referenceWorkspaceTree` expansion-state synchronization in place as presentation-only coordination.
+- Kept the selector's `referenceWorkspaceTree` option shape as compatibility-only so this phase did not balloon into a large test-fixture rewrite.
+#### Summary of Implementation
+- Updated [`src/app/panels/selectBrowserTreeRows.ts`](./src/app/panels/selectBrowserTreeRows.ts) so Browser content hierarchy now composes directly from the provided `contentRows` instead of rebuilding reference root/category/object rows from `referenceWorkspaceTree`.
+- Removed the now-dead duplicate normalization helpers that only existed to support that fallback synthesis path.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so Browser tree derivation no longer passes `referenceWorkspaceTree` as a structural content input.
+- Completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-5 - Project Content And Browser Derivation Cleanup.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-5%20-%20Project%20Content%20And%20Browser%20Derivation%20Cleanup.md).
+#### Files Changed
+- [`src/app/panels/selectBrowserTreeRows.ts`](./src/app/panels/selectBrowserTreeRows.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-5 - Project Content And Browser Derivation Cleanup.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-5%20-%20Project%20Content%20And%20Browser%20Derivation%20Cleanup.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- No intended end-user behavior change.
+- Browser content hierarchy now has one structural source in the app-owned content-row projection path instead of a second Browser-side fallback reconstruction path.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1257 -->
 ### [1257] - 2026-04-12 22:49 - `Cleanup 4A - Phase 4 - Workspace Surface Catalog Source And Initial Repoint`
 <!-- ENTRY 1257 -->

@@ -56,6 +56,12 @@ import {
   ROOT_PROMPT_TEXT,
 } from './consolePromptText'
 import {
+  resolveGeometrySketchDrawCommandFromActionId,
+  resolveGeometrySketchDrawCommandFromInput,
+  SKETCH_DRAW_HELP_TEXT,
+  type CanonicalGeometrySketchDrawCommand,
+} from '../spaghetti/sketchCommands/drawCommands'
+import {
   applyReferenceTransformSpaceShortcut as applyReferenceTransformSpaceShortcutCommand,
   commitActiveReferenceTransformFromConsole as commitActiveReferenceTransformFromConsoleCommand,
   createActiveContentObjectTransformRootSession as createActiveContentObjectTransformRootSessionCommand,
@@ -2807,22 +2813,13 @@ export function useConsoleInteraction(
               return
             }
             setStagedNavigationSession(null)
-            const sketchDrawCommand =
-              stagedResult.actionId === 'sketchdraw.tool.line'
-                ? 'line'
-                : stagedResult.actionId === 'sketchdraw.tool.pline'
-                  ? 'pline'
-                  : stagedResult.actionId === 'sketchdraw.tool.rectangle'
-                    ? 'rectangle'
-                    : stagedResult.actionId === 'sketchdraw.tool.circle'
-                      ? 'circle'
-                      : stagedResult.actionId === 'sketchdraw.previous'
-                        ? 'previous'
-                        : stagedResult.actionId === 'sketchdraw.delete'
-                          ? 'delete'
-                          : stagedResult.actionId === 'sketchdraw.back'
-                            ? 'back'
-                            : 'x'
+            const sketchDrawCommand = resolveGeometrySketchDrawCommandFromActionId(
+              stagedResult.actionId,
+            )
+            if (sketchDrawCommand === null) {
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
             useSpaghettiStore.getState().runGeometrySketchDrawCommand(sketchDrawCommand)
             requestRadioBurst(commandIdentity, 'enter')
             return
@@ -3791,25 +3788,7 @@ export function useConsoleInteraction(
       if (geometrySketchSession?.mode === 'draw') {
         const submitDrawCommand = (
           rawCommand: string,
-          command:
-            | 'line'
-            | 'l'
-            | 'pline'
-            | 'pl'
-            | 'rectangle'
-            | 'rec'
-            | 'circle'
-            | 'cc'
-            | 'previous'
-            | 'p'
-          | 'undo'
-          | 'enter'
-          | 'delete'
-          | 'del'
-          | 'esc'
-          | 'back'
-          | 'b'
-            | 'x',
+          command: CanonicalGeometrySketchDrawCommand,
         ) => {
           if (rawCommand !== 'esc') {
             appendConsoleEntry({
@@ -3824,7 +3803,6 @@ export function useConsoleInteraction(
           if (
             command === 'esc' ||
             command === 'back' ||
-            command === 'b' ||
             command === 'x'
           ) {
             const nextDescriptor = getActiveFeatureAssistDescriptor({
@@ -3852,13 +3830,6 @@ export function useConsoleInteraction(
           })
           pushCommandHistory('enter')
           spaghettiState.runGeometrySketchDrawCommand('enter')
-          return
-        }
-        if (
-          trimmedInput === 'delete' ||
-          trimmedInput === 'del'
-        ) {
-          submitDrawCommand(trimmedInput, trimmedInput)
           return
         }
         if (trimmedInput === 'radio' || trimmedInput === 'r') {
@@ -3969,23 +3940,14 @@ export function useConsoleInteraction(
                 severity: 'info',
               })
               setStagedNavigationSession(null)
-              spaghettiState.runGeometrySketchDrawCommand(
-                stagedResult.actionId === 'sketchdraw.tool.line'
-                  ? 'line'
-                  : stagedResult.actionId === 'sketchdraw.tool.pline'
-                    ? 'pline'
-                    : stagedResult.actionId === 'sketchdraw.tool.rectangle'
-                      ? 'rectangle'
-                      : stagedResult.actionId === 'sketchdraw.tool.circle'
-                        ? 'circle'
-                        : stagedResult.actionId === 'sketchdraw.previous'
-                          ? 'previous'
-                          : stagedResult.actionId === 'sketchdraw.delete'
-                            ? 'delete'
-                            : stagedResult.actionId === 'sketchdraw.back'
-                              ? 'back'
-                              : 'x',
+              const sketchDrawCommand = resolveGeometrySketchDrawCommandFromActionId(
+                stagedResult.actionId,
               )
+              if (sketchDrawCommand === null) {
+                requestRadioBurst(commandIdentity, 'enter')
+                return
+              }
+              spaghettiState.runGeometrySketchDrawCommand(sketchDrawCommand)
               requestRadioBurst(commandIdentity, 'enter')
               return
             }
@@ -4238,40 +4200,9 @@ export function useConsoleInteraction(
             }
           }
         }
-        if (trimmedInput === 'line' || trimmedInput === 'l') {
-          submitDrawCommand(trimmedInput, trimmedInput as 'line' | 'l')
-          return
-        }
-        if (trimmedInput === 'pline' || trimmedInput === 'pl') {
-          submitDrawCommand(trimmedInput, trimmedInput as 'pline' | 'pl')
-          return
-        }
-        if (trimmedInput === 'rectangle' || trimmedInput === 'rec') {
-          submitDrawCommand(trimmedInput, trimmedInput as 'rectangle' | 'rec')
-          return
-        }
-        if (trimmedInput === 'circle' || trimmedInput === 'cc') {
-          submitDrawCommand(trimmedInput, trimmedInput as 'circle' | 'cc')
-          return
-        }
-        if (trimmedInput === 'previous' || trimmedInput === 'p') {
-          submitDrawCommand(trimmedInput, trimmedInput as 'previous' | 'p')
-          return
-        }
-        if (trimmedInput === 'undo') {
-          submitDrawCommand('undo', 'undo')
-          return
-        }
-        if (trimmedInput === 'enter') {
-          submitDrawCommand('enter', 'enter')
-          return
-        }
-        if (trimmedInput === 'esc' || trimmedInput === 'back' || trimmedInput === 'b') {
-          submitDrawCommand(trimmedInput, trimmedInput as 'esc' | 'back' | 'b')
-          return
-        }
-        if (trimmedInput === 'x') {
-          submitDrawCommand('x', 'x')
+        const sketchDrawCommand = resolveGeometrySketchDrawCommandFromInput(trimmedInput)
+        if (sketchDrawCommand !== null) {
+          submitDrawCommand(trimmedInput, sketchDrawCommand)
           return
         }
         if (trimmedInput === 'status') {
@@ -4320,8 +4251,7 @@ export function useConsoleInteraction(
           pushCommandHistory('help')
           appendConsoleEntry({
             layer: 'Commands',
-            text:
-              'Draw Sketch commands: line (l), pline (pl), rectangle (rec), circle (cc), previous (p), undo, enter, esc, back (b), x, status, help',
+            text: SKETCH_DRAW_HELP_TEXT,
             severity: 'info',
           })
           return

@@ -364,11 +364,6 @@ const formatGraphNodeLabel = (nodeType: string): string => {
 
 const buildGraphNodeMeta = (nodeType: string, nodeId: string): string => `${nodeType} | ${nodeId}`
 
-const countLabel = (count: number, singular: string, plural: string): string =>
-  count === 1 ? `1 ${singular}` : `${count} ${plural}`
-
-const formatReferenceItemMeta = (fileType: string): string => fileType.toUpperCase()
-
 const formatReferenceStateLabel = (state: BrowserReferenceRowState): string => {
   switch (state) {
     case 'highlighted':
@@ -418,7 +413,6 @@ export const selectBrowserTreeRows = (options: {
   sharedViewerCompositionActive: boolean
 }): BrowserTreeRowsVm => {
   const {
-    referenceWorkspaceTree = null,
     referenceLoadBatch = null,
     activeTransformReferenceId = null,
     browserContentBuildPolicyByRowId = {},
@@ -470,169 +464,7 @@ export const selectBrowserTreeRows = (options: {
     return normalized
   }
 
-  const normalizedContentRows: ProjectContentBrowserRowVm[] = []
-  const hasReferenceHierarchyInContentRows = contentRows.some(
-    (row) =>
-      (row.kind === 'assembly' && row.referenceContainerKind === 'root') ||
-      (row.kind === 'component' && row.referenceContainerKind === 'category') ||
-      (row.kind === 'object' &&
-        (row.contentOriginKind === 'source-reference' ||
-          row.contentOriginKind === 'imported-reference')),
-  )
-  if (!hasReferenceHierarchyInContentRows && referenceWorkspaceTree !== null) {
-    normalizedContentRows.push({
-      rowId: referenceWorkspaceTree.rowId,
-      kind: 'assembly',
-      label: referenceWorkspaceTree.label,
-      meta: countLabel(
-        referenceWorkspaceTree.categories.reduce((sum, category) => sum + category.itemCount, 0),
-        'item',
-        'items',
-      ),
-      parentAssemblyId: null,
-      isVisible: referenceWorkspaceTree.categories.some((category) =>
-        category.items.some((item) => item.isVisible && item.loadState === 'loaded'),
-      ),
-      visibilityPartKeys: [],
-      buildState: 'done',
-      buildStateLabel: '',
-      rebuildGraphDocumentIds: [],
-      statusLabel: '',
-      statusTone: 'quiet',
-      referenceContainerKind: 'root',
-      referenceCategoryId: null,
-      referenceContainerItemCount: referenceWorkspaceTree.categories.reduce(
-        (sum, category) => sum + category.itemCount,
-        0,
-      ),
-      referenceContainerEmptyLabel: null,
-    })
-    referenceWorkspaceTree.categories.forEach((category) => {
-      const shelfItems = category.items.filter(
-        (item) => item.parentAssemblyId == null && item.parentComponentId == null,
-      )
-      const renderCategoryRow = category.categoryId !== 'user-references'
-      if (renderCategoryRow) {
-        normalizedContentRows.push({
-          rowId: category.rowId,
-          kind: 'component',
-          label: category.label,
-          meta: countLabel(category.itemCount, 'item', 'items'),
-          parentAssemblyId: referenceWorkspaceTree.rowId,
-          isVisible: shelfItems.some((item) => item.isVisible && item.loadState === 'loaded'),
-          visibilityPartKeys: [],
-          buildState: 'done',
-          buildStateLabel: '',
-          rebuildGraphDocumentIds: [],
-          statusLabel: '',
-          statusTone: 'quiet',
-          ownerGraphDocumentId: null,
-          sourceGraphDocumentId: null,
-          sourceOutputEntryId: null,
-          componentSourceKind: 'receive-link',
-          resolutionState: 'resolved',
-          receiveId: null,
-          childObjectCount: category.itemCount,
-          slotId: null,
-          sourceNodeId: null,
-          highlightViewerKey: null,
-          authoringGraphDocumentId: null,
-          authoringNodeId: null,
-          referenceContainerKind: 'category',
-          referenceCategoryId: category.categoryId,
-          referenceContainerItemCount: category.itemCount,
-          referenceContainerEmptyLabel: category.emptyLabel,
-        })
-      }
-      shelfItems.forEach((item) => {
-        normalizedContentRows.push({
-          rowId: item.rowId,
-          kind: 'object',
-          label: item.label,
-          meta: formatReferenceItemMeta(item.fileType),
-          parentAssemblyId:
-            item.parentAssemblyId ??
-            (item.parentComponentId == null ? referenceWorkspaceTree.rowId : null),
-          parentComponentId:
-            item.parentComponentId ??
-            (item.parentAssemblyId == null && renderCategoryRow ? category.rowId : null),
-          isVisible: item.isVisible,
-          visibilityPartKeys: [],
-          buildState: 'done',
-          buildStateLabel:
-            item.parentAssemblyId != null || item.parentComponentId != null
-              ? 'Imported'
-              : item.sourceKind === 'manifest'
-                ? 'Library'
-                : 'Imported',
-          rebuildGraphDocumentIds: [],
-          statusLabel: '',
-          statusTone: 'quiet',
-          ownerGraphDocumentId: null,
-          objectSourceKind: null,
-          sourceGraphDocumentId: null,
-          sourceOutputEntryId: null,
-          slotId: null,
-          sourceNodeId: null,
-          resolutionState: null,
-          highlightViewerKey: null,
-          authoringGraphDocumentId: null,
-          authoringNodeId: null,
-          contentOriginKind:
-            item.parentAssemblyId != null || item.parentComponentId != null
-              ? 'imported-reference'
-              : 'source-reference',
-          referenceId: item.referenceId,
-          referenceSourceKind: item.sourceKind,
-          referenceCategoryId: category.categoryId,
-          referenceLoadState: item.loadState,
-          fileType: item.fileType,
-          assetPath: item.assetPath,
-          errorMessage: item.errorMessage,
-          partRows: item.parts ?? [],
-        })
-      })
-      category.items
-        .filter((item) => item.parentAssemblyId != null || item.parentComponentId != null)
-        .forEach((item) => {
-          normalizedContentRows.push({
-            rowId: item.rowId,
-            kind: 'object',
-            label: item.label,
-            meta: formatReferenceItemMeta(item.fileType),
-            parentAssemblyId: item.parentAssemblyId ?? null,
-            parentComponentId: item.parentComponentId ?? null,
-            isVisible: item.isVisible,
-            visibilityPartKeys: [],
-            buildState: 'done',
-            buildStateLabel: 'Imported',
-            rebuildGraphDocumentIds: [],
-            statusLabel: '',
-            statusTone: 'quiet',
-            ownerGraphDocumentId: null,
-            objectSourceKind: null,
-            sourceGraphDocumentId: null,
-            sourceOutputEntryId: null,
-            slotId: null,
-            sourceNodeId: null,
-            resolutionState: null,
-            highlightViewerKey: null,
-            authoringGraphDocumentId: null,
-            authoringNodeId: null,
-            contentOriginKind: 'imported-reference',
-            referenceId: item.referenceId,
-            referenceSourceKind: item.sourceKind,
-            referenceCategoryId: category.categoryId,
-            referenceLoadState: item.loadState,
-            fileType: item.fileType,
-            assetPath: item.assetPath,
-            errorMessage: item.errorMessage,
-            partRows: item.parts ?? [],
-          })
-        })
-    })
-  }
-  normalizedContentRows.push(...contentRows)
+  const normalizedContentRows = contentRows
 
   const topLevelAssemblyRows = normalizedContentRows.filter(
     (row): row is Extract<ProjectContentBrowserRowVm, { kind: 'assembly' }> =>

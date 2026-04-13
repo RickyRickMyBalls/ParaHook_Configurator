@@ -5,8 +5,9 @@ import type {
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from './useAppStore'
-import { buildImportedReferenceRowId } from './useAppStore'
+import { buildImportedReferenceRowId, useAppStore } from './useAppStore'
 import { commitWorkspaceTargetSelection } from './workspaceSelectionCommands'
+import { useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 
 type ViewportPosition = {
   x: number
@@ -49,6 +50,38 @@ type WorkspaceIntentSpaghettiDeps = {
 export type WorkspaceIntentDeps = {
   app: WorkspaceIntentAppDeps
   spaghetti: WorkspaceIntentSpaghettiDeps
+}
+
+export const buildWorkspaceIntentDepsFromCurrentStoreState = (): WorkspaceIntentDeps => {
+  const appState = useAppStore.getState()
+  const spaghettiState = useSpaghettiStore.getState()
+  return {
+    app: {
+      setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+      setActiveSurface: appState.setActiveSurface,
+      requestConsoleContextSync: appState.requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff: appState.requestConsoleWorkspaceContextHandoff,
+      requestFloatingShellActivation: appState.requestFloatingShellActivation,
+      setReferenceItemVisibility: appState.setReferenceItemVisibility,
+      beginReferenceTransform: appState.beginReferenceTransformShell,
+      beginReferenceTransformShell: appState.beginReferenceTransformShell,
+      selectPart: appState.selectPart,
+    },
+    spaghetti: {
+      activeEditorViewportId: spaghettiState.activeEditorViewportId,
+      editorViewportsById: spaghettiState.editorViewportsById,
+      openGraphDocumentInViewport: spaghettiState.openGraphDocumentInViewport,
+      openGraphDocumentInNewViewport: spaghettiState.openGraphDocumentInNewViewport,
+      swapFocusedEditorViewportToGraphDocument:
+        spaghettiState.swapFocusedEditorViewportToGraphDocument,
+      setActiveEditorViewportId: spaghettiState.setActiveEditorViewportId,
+      setEditorViewportPosition: spaghettiState.setEditorViewportPosition,
+      setSelectedNodeId: spaghettiState.setSelectedNodeId,
+      requestEditorViewportNodeFit: spaghettiState.requestEditorViewportNodeFit,
+      startSketchPlanePick: spaghettiState.startSketchPlanePick,
+      startGeometrySketchSession: spaghettiState.startGeometrySketchSession,
+    },
+  }
 }
 
 export type OpenGraphDocumentIntentStrategy =
@@ -219,6 +252,16 @@ export const startSketchDrawIntent = (
 ): OpenGraphDocumentIntentResult & { nodeId: string } => {
   const result = activateGraphNodeIntent(deps, graphDocumentId, nodeId)
   deps.spaghetti.startGeometrySketchSession?.(nodeId, 'draw')
+  return result
+}
+
+export const startSketchReviewIntent = (
+  deps: WorkspaceIntentDeps,
+  graphDocumentId: string,
+  nodeId: string,
+): OpenGraphDocumentIntentResult & { nodeId: string } => {
+  const result = activateGraphNodeIntent(deps, graphDocumentId, nodeId)
+  deps.spaghetti.startGeometrySketchSession?.(nodeId, 'review')
   return result
 }
 

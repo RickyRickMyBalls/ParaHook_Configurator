@@ -43,24 +43,24 @@ Do not use it for:
 
 <div class="calendar-week-strip">
   <div class="calendar-week-card phase-workspace-foundation">
-    <strong>Apr 4</strong>
-    <p>Dashboard and notepad surfaces landed with sticky notes, lanes, and persistence.</p>
-  </div>
-  <div class="calendar-week-card phase-transform">
-    <strong>Apr 5</strong>
-    <p>Extrude node buildout day with structured wire rows, preview cleanup, and contract work.</p>
-  </div>
-  <div class="calendar-week-card phase-build-fix">
-    <strong>Apr 6</strong>
-    <p>B-rep reality-check day that reset docs and planning around the actual runtime path.</p>
+    <strong>Apr 9</strong>
+    <p>Viewport runtime inspector and the first three Worker Vision lanes landed together.</p>
   </div>
   <div class="calendar-week-card phase-parity">
-    <strong>Apr 7</strong>
-    <p>Authoritative model viewport path landed alongside sketch lowering and export prep.</p>
+    <strong>Apr 10</strong>
+    <p>Worker Vision 3 expanded across draft/final gating, presentation controls, and extrude collection rows.</p>
+  </div>
+  <div class="calendar-week-card phase-transform">
+    <strong>Apr 11</strong>
+    <p>OutputPreview-1 and the extrude canvas row stack converged into managed shells and row cleanup.</p>
   </div>
   <div class="calendar-week-card phase-build-fix">
-    <strong>Apr 8</strong>
-    <p>Working tree is tightening the closed-profile extrude handoff and compile/runtime routing.</p>
+    <strong>Apr 12</strong>
+    <p>Output Preview proofs, Bug 18 repair, and Cleanup 1 through 5 all landed in one consolidation sprint.</p>
+  </div>
+  <div class="calendar-week-card phase-build-fix">
+    <strong>Apr 13</strong>
+    <p>Cleanup 6 and Cleanup 7 narrowed accepted-result and console command ownership seams.</p>
   </div>
 </div>
 
@@ -73,7 +73,7 @@ Do not use it for:
   <div class="month-header">
     <div>
       <h3>April 2026</h3>
-      <p>From Workspace 7.5 parity closeout into dashboard, extrude, and the first honest authoritative B-rep path.</p>
+      <p>From Workspace 7.5 parity closeout into dashboard, worker vision, output preview, and the first big cleanup hardening sprint.</p>
     </div>
   </div>
 
@@ -170,21 +170,56 @@ Do not use it for:
       <div class="day-diff"><span class="day-diff-plus">+1426</span> <span class="day-diff-minus">-322</span></div>
       <div class="day-tag">Working tree handoff</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">9</div>
+    <div class="day phase-workspace-foundation" data-target="april-9">
+      <div class="day-head"><div class="day-number">9</div><div class="day-title">Inspector</div></div>
+      <ul class="day-bullets">
+        <li>Runtime inspector</li>
+        <li>Worker vision 1-3</li>
+        <li>Extrude closeout</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+12197</span> <span class="day-diff-minus">-487</span></div>
+      <div class="day-tag">Worker and runtime inspector</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">10</div>
+    <div class="day phase-parity" data-target="april-10">
+      <div class="day-head"><div class="day-number">10</div><div class="day-title">Worker Vision</div></div>
+      <ul class="day-bullets">
+        <li>Worker vision 3</li>
+        <li>Extrude collection rows</li>
+        <li>Build and policy cleanup</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+26428</span> <span class="day-diff-minus">-699</span></div>
+      <div class="day-tag">Worker preview and node parity</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">11</div>
+    <div class="day phase-transform" data-target="april-11">
+      <div class="day-head"><div class="day-number">11</div><div class="day-title">Output Preview</div></div>
+      <ul class="day-bullets">
+        <li>OutputPreview 1</li>
+        <li>Managed IO shells</li>
+        <li>Extrude row convergence</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
+      <div class="day-tag">Output preview surface buildout</div>
     </div>
 
-    <div class="day empty">
-      <div class="day-number">12</div>
+    <div class="day phase-build-fix" data-target="april-12">
+      <div class="day-head"><div class="day-number">12</div><div class="day-title">Cleanup Sprint</div></div>
+      <ul class="day-bullets">
+        <li>OutputPreview 6.2-6c</li>
+        <li>Bug 18 repair</li>
+        <li>Cleanup 1-5 passes</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+26593</span> <span class="day-diff-minus">-2720</span></div>
+      <div class="day-tag">Cleanup and proof sprint</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">13</div>
+    <div class="day phase-build-fix" data-target="april-13">
+      <div class="day-head"><div class="day-number">13</div><div class="day-title">Cleanup Closeout</div></div>
+      <ul class="day-bullets">
+        <li>Cleanup 6-7</li>
+        <li>Accepted-result narrowing</li>
+        <li>Console command seam</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
+      <div class="day-tag">Cleanup closeout</div>
     </div>
     <div class="day empty">
       <div class="day-number">14</div>
@@ -669,6 +704,241 @@ Do not use it for:
     <summary>Landed phases from CHANGELOG.md (1)</summary>
     <ul class="calendar-commit-list">
       <li>`SP - Phase Extrude-4.2A - Explicit Aggregate Selection Payload Contract`</li>
+    </ul>
+  </details>
+  </details>
+
+  </details>
+
+  <details class="calendar-week-details">
+  <summary>April 9-13 Catch-Up</summary>
+
+  <details class="calendar-day-details" id="april-9">
+  <summary>April 9 - Thursday</summary>
+  <ul>
+    <li>Built the viewport runtime inspector from panel shell through task cards, queue and archive reads, accepted impact summaries, and hardening</li>
+    <li>Landed Worker Vision 1 through 3 so supersession, draft delay, authoritative waiting, settle flow, and promotion rules became explicit runtime truth</li>
+    <li>Closed the extrude follow-on lane with contributor hardening, preview invalidation, and a testing clamp</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 2 commits, +12197 / -487.</div>
+  <ul class="calendar-commit-list">
+    <li>`bd04444` VRI 2</li>
+    <li>`ae3baac` Extude clean up, runtime inspector start</li>
+  </ul>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (31)</summary>
+    <ul class="calendar-commit-list">
+      <li>`WK - Phase Worker-Vision-3 Phase 4 - Accepted Draft Versus Authoritative Promotion Rules`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 3 - Release, Settle, And Explicit Authoritative Trigger Flow`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 2 - Authoritative Waiting State And Latest-Intent Replacement`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 1 - Authoritative Policy Contract And Request-Time Ownership`</li>
+      <li>`WK - Phase Worker-Vision-2 Phase 5 - Draft Scheduling Hardening And Family Handoff`</li>
+      <li>`WK - Phase Worker-Vision-2 Phase 4 - Draft Delay And Suppression Runtime Truth`</li>
+      <li>`WK - Phase Worker-Vision-2 Phase 3 - Release And Settle Trigger Flow`</li>
+      <li>`WK - Phase Worker-Vision-2 Phase 2 - Delayed Latest-Intent Placeholder State`</li>
+      <li>`WK - Phase Worker-Vision-2 Phase 1 - Draft Policy Contract And Request-Time Ownership`</li>
+      <li>`WK - Phase Worker-Vision-1 Phase 3 - Superseded Runtime Truth And Hardening`</li>
+      <li>`WK - Phase Worker-Vision-1 Phase 2 - Worker Cooperative Abort Checkpoints`</li>
+      <li>`WK - Phase Worker-Vision-1 Phase 1 - Supersession Identity And Dispatcher Contract`</li>
+      <li>`SP - Phase Extrude Node Depth Clamp For Testing`</li>
+      <li>`WK - Phase VRI-3.5 - Untouched Truth Hardening And Family Handoff`</li>
+      <li>`WK - Phase VRI-3.4 - Impact Row Surface`</li>
+      <li>`WK - Phase VRI-3.3 - Impact Entry VM And Grouping Contract`</li>
+      <li>`WK - Phase VRI-3.2 - Compact Change Impact Summary Surface`</li>
+      <li>`WK - Phase VRI-3.1 - Accepted Impact Read Contract And Store Widening`</li>
+      <li>`WK - Phase VRI-2.4 - Queue Lifecycle Hardening And Handoff`</li>
+      <li>`WK - Phase VRI-2.3 - Archive Truth Surface`</li>
+      <li>`WK - Phase VRI-2.2 - Active Queue Surface`</li>
+      <li>`WK - Phase VRI-2.1 - Queue Read Contract And Store Widening`</li>
+      <li>`WK - Phase VRI-1.4 - Combined Inspector Read Model And Hardening`</li>
+      <li>`WK - Phase VRI-1.3 - Active Runtime Task Card`</li>
+      <li>`WK - Phase VRI-1.2 - Viewport Stats Foundation`</li>
+      <li>`WK - Phase VRI-1.1 - Remove Secondary Inspect Pill`</li>
+      <li>`WK - Phase VRI-1.1 - Whole-Card Toggle Interaction`</li>
+      <li>`WK - Phase VRI-1.1 - Panel Shell And Expand Collapse Contract`</li>
+      <li>`SP - Phase Extrude-7.4 - Preview Invalidation And Family Closeout`</li>
+      <li>`SP - Phase Extrude-7.4 - Contributor Runtime Hardening`</li>
+      <li>`SP - Phase Extrude-7.3 - Selector And Surface Multi-Wire Parity`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-10">
+  <summary>April 10 - Friday</summary>
+  <ul>
+    <li>Extended Worker Vision 3 across split draft and final workers, relevance gating, presentation controls, preview timing, and retained-geometry hardening</li>
+    <li>Built the Output Preview-aware extrude node surface with collection rows, grouped-versus-split publication, per-body expansion, and live payload capture</li>
+    <li>Landed supporting cleanup around root content build policy, feature-stack release interaction, build proof, and floating spaghetti resize behavior</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 3 commits, +26428 / -699.</div>
+  <ul class="calendar-commit-list">
+    <li>`dce81c9` nodes stuff</li>
+    <li>`44b9adf` Worker previews</li>
+    <li>`e9fccc8` dual thread worker i think</li>
+  </ul>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (36)</summary>
+    <ul class="calendar-commit-list">
+      <li>`WS - Phase Nodes-5.5c - Extrude Live Payload Capture Surface`</li>
+      <li>`WS - Phase Nodes-5.5c - Extrude Target Endpoint Canonicalization`</li>
+      <li>`WS - Phase Nodes-5.5c - Build Contract Cleanup`</li>
+      <li>`WS - Phase Nodes-5.5c - SketchProfiles Aggregate Extrude Readiness Fix`</li>
+      <li>`WS - Phase Nodes-5.5b - Placeholder Body Member Rows Before Resolution`</li>
+      <li>`WS - Phase Nodes-5.5a - Output Preview Collection Surface Polish`</li>
+      <li>`WS - Phase Nodes-5.5 - Per-Body Expansion And Wiring Surface`</li>
+      <li>`WS - Phase Nodes-5.4a - Move Extrude Output Mode Row Into Outputs Rail`</li>
+      <li>`WS - Phase Nodes-5.4a - Extrude Combine Versus New Objects Authored Contract`</li>
+      <li>`WS - Phase Nodes-5.4 - Grouped Versus Split Publication Contract`</li>
+      <li>`WS - Phase Nodes-5.3 - Output Preview Collection Input Acceptance`</li>
+      <li>`WS - Phase Nodes-5.2 - Extrude Collection Output Contract`</li>
+      <li>`WS - Phase Nodes-5.1 - Solid Body Collection Type And Evaluator Contract`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 10.1 - UI-Only Graph Edits Stop Triggering Geometry Build Churn`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 10 - Output Preview-Gated Extrude Worker Relevance`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9 - Final Mode Retained Geometry Relevance Fix`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9 - Presentation Default Color And Opacity Cleanup`</li>
+      <li>`WK - Floating Spaghetti Window Eight-Way Resize Fix`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9.2 - Presentation Controls UI Surface`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9.5b - Distinct Authoritative Preview Lane And Auto Layered Promotion`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9.5 - Preview Timing And 75 Percent Promotion`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9.4 - Viewer Application Of Presentation Controls`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9.3 - Viewport Presentation State Contract`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 9.1 - Presentation Settings Schema And Ownership`</li>
+      <li>`WK - Phase Worker Release Interaction Fix For Feature Stack Editors`</li>
+      <li>`BR - Phase Root Content Build Policy Header Control`</li>
+      <li>`OO - Phase Build - Production Build Pass Cleanup`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 8.4 - Strict Draft Final Hardening And Viewer Proof`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 8.3 - Auto Layered Presentation`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 8.2 - Viewport Result Contract And Relevance Gating`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 8.1 - Draft Worker Versus Authoritative Worker Split`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 6 - Stale Final Geometry Disconnect Fix`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 6 - Display Preference Versus Build Policy Cleanup`</li>
+      <li>`WK - Phase Worker-Vision-3 Phase 5 - Hardening And Family Handoff`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-11">
+  <summary>April 11 - Saturday</summary>
+  <ul>
+    <li>Carried OutputPreview-1 from accepted source rows through managed input and output shell extraction, migration, solid-body row convergence, and follow-on polish</li>
+    <li>Kept the extrude canvas surface moving with exact payload proof, aggregate member narration, selector and evaluator contracts, refresh invalidation, and row cleanup</li>
+    <li>Recorded the completed phase stack in the changelog even though this checkout does not have a matching repo commit for that day</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: no repo commit found for this day in this checkout.</div>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (31)</summary>
+    <ul class="calendar-commit-list">
+      <li>`WS - Phase OutputPreview-1 Phase 6.1 - Default Contract Audit And Compat Lock`</li>
+      <li>`WS - Phase OutputPreview-1 Follow-On - Full-Width Managed Input Lane`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5c.5 - OutputPreview Migration`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5c.4 - Sketch And Extrude Migration`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5c.3 - Shared Managed Output Shell Extraction`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5c.2 - Shared Managed Input Shell Extraction`</li>
+      <li>`WS - Phase OutputPreview-1 Follow-On - Lavender SolidBody Family Retune`</li>
+      <li>`WS - Phase OutputPreview-1 Follow-On - SolidBodies Row Tone Fix`</li>
+      <li>`WS - Phase OutputPreview-1 Follow-On - Managed Input Surface Polish`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5a - SolidBody Family Color Contract Cleanup`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5a - OutputPreview Collection Row CSS Convergence`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 5 - SolidBodies Row Template Convergence`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 4 - Hardening And Family Handoff`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 3 - Label And Editor Ownership Cleanup`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 2 - Published Object Child Rows And Provenance`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 1 - Accepted Source Row Contract`</li>
+      <li>`WS - Phase Nodes-5.5p - Extrude SolidBodies Essentials Surface Cleanup`</li>
+      <li>`WS - Phase Nodes-5.5o - Extrude Profile Row Surface Cleanup`</li>
+      <li>`WS - Phase Nodes-5.5n - Preserve Canvas Node Instance During Live Numeric Edits`</li>
+      <li>`WS - Phase Nodes-5.5m - Real Canvas Extrude Row Regression`</li>
+      <li>`WS - Phase Nodes-5.5l - Canvas Extrude Vm Handoff`</li>
+      <li>`WS - Phase Nodes-5.5k - Extrude Canvas Row Refresh Invalidation`</li>
+      <li>`WS - Phase Nodes-5.5j - Extrude Connected Row Note Fallback`</li>
+      <li>`WS - Phase Nodes-5.5i - Extrude Parent Row Surface And Wire Tone Honesty`</li>
+      <li>`WS - Phase Nodes-5.5h - Extrude Evaluator And Selector Collection Contract`</li>
+      <li>`WS - Phase Nodes-5.5g - Extrude Mixed-Contributor Validation Contract`</li>
+      <li>`WS - Phase Nodes-5.5g - Extrude Parent Input Contract Type Repair`</li>
+      <li>`WS - Phase Nodes-5.5f - Canvas Revision-Keyed Extrude Refresh`</li>
+      <li>`WS - Phase Nodes-5.5f - Legacy SketchProfiles Target Read Alignment`</li>
+      <li>`WS - Phase Nodes-5.5e - Extrude Aggregate Member Surface And Collection-Ready Narration`</li>
+      <li>`WS - Phase Nodes-5.5d - Extrude Exact-Payload Regression Lock`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-12">
+  <summary>April 12 - Sunday</summary>
+  <ul>
+    <li>Finished OutputPreview-1 6.2 through 6c with backend owner flips, selector and publication alignment, singular member filtering, row-owned collection materialization, mixed-row proof, and final flatten and build-fixture repairs</li>
+    <li>Repaired Bug 18 across selector visibility, waiting-state geometry retention, auto-draft freshness, and the real interaction path</li>
+    <li>Rolled straight into Cleanup 1, 3, 4, 4A, and 5 with startup-path, worker-contract, workspace persistence, compatibility bridge, workspace surface catalog, and browser hierarchy narrowing</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 5 commits, +26593 / -2720.</div>
+  <ul class="calendar-commit-list">
+    <li>`d0ff830` Cleanup 4a</li>
+    <li>`8a2407c` Cleanup 4 finish</li>
+    <li>`c944888` Cleanup 4</li>
+    <li>`2bd7ca3` Output Preview 1 - Phase 6c.1-5 ugh</li>
+    <li>`d176002` Bugs on bugs</li>
+  </ul>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (37)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Cleanup 5 - Phase 4 - Browser Honest Hierarchy Proof`</li>
+      <li>`Cleanup 5 - Phase 3 - Browser Content Projection Narrowing`</li>
+      <li>`Cleanup 4A - Phase 4 - Workspace Surface Catalog Source And Initial Repoint`</li>
+      <li>`Cleanup 4 - Phase 4 - Workspace Compatibility Bridge Isolation`</li>
+      <li>`Cleanup 4 - Phase 3 - AppShell Workspace Persistence Extraction`</li>
+      <li>`Cleanup 3 - Phase 4 - Worker Import Repoint`</li>
+      <li>`Cleanup 3 - Phase 3 - Shared Contract Truth Move`</li>
+      <li>`Cleanup 1 - Startup Path Canonicalization`</li>
+      <li>`OP - OutputPreview 1 Phase 6c.5 - Build Fixture Compatibility Fix`</li>
+      <li>`OP - OutputPreview 1 Phase 6c.5 - Partial Flatten Repair And Final Proof`</li>
+      <li>`OP - OutputPreview 1 Phase 6c - Effective SolidBodies Port Detection Fix`</li>
+      <li>`OP - OutputPreview 1 Phase 6c.4 - Browser Projection And Mixed-Row Proof`</li>
+      <li>`Workspace 7.5-13 - Spaghetti Floating Open Defaults For Header And Canvas Chrome`</li>
+      <li>`OP - OutputPreview 1 Phase 6c.3 - Project Content Sync And Runtime Placement`</li>
+      <li>`OP - OutputPreview 1 Phase 6c.2 - Output Surface Row-Owned Collection Materialization`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.5 - Proof Matrix And Family Handoff`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3f - Same-Row Singular Aggregation Resolution`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3e - Subset Collection Final Re-Proof`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3d - Retained Geometry Subset Guard`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3c - Draft Geometry Mesh Subset Guard`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3b - Explicit Contributor Fallback Guard`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3a - Same-Slot Explicit Contributor Resolution`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3 Follow-Up - Final Singular Member Lane`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.3 - Singular SolidBody Membership Filtering`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.2 Follow-Up - Browser Child Highlight Rebind`</li>
+      <li>`OP - OutputPreview 1 Phase 6b.2 - Published Object Identity Contract Lock`</li>
+      <li>`WS - Bug 18 Phase 4 - Real Interaction Regression On The Actual Parameter Path`</li>
+      <li>`WS - Bug 18 Phase 3c - Retained Geometry Persistence During Waiting`</li>
+      <li>`WS - Bug 18 Phase 3b - Auto Draft Freshness Alignment`</li>
+      <li>`WS - Bug 18 Phase 3a - Live Auto Draft Lane Staging Repair`</li>
+      <li>`WS - Bug 18 Phase 3 - Viewer Layer And Presentation Re-Proof`</li>
+      <li>`WS - Bug 18 Phase 2 - Selector Draft Visibility Repair`</li>
+      <li>`WS - Bug 18 Phase 1 - Runtime Timeline Trace`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 6.5 - Proof Matrix And Family Handoff`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 6.4 - Selector And Publication Surface Alignment`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 6.3 - Legacy Graph Compat And Migration Handling`</li>
+      <li>`WS - Phase OutputPreview-1 Phase 6.2 - Backend Default Owner Flip`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-13">
+  <summary>April 13 - Monday</summary>
+  <ul>
+    <li>Continued the cleanup lane with Cleanup 6 accepted-result narrowing across app publication handoff, shared viewport-result input prep, and proof tightening</li>
+    <li>Added Cleanup 7 Phase 3 to move console command-start ownership behind a store seam instead of rebuilding that flow inline</li>
+    <li>Recorded the phase closeout in the changelog even though this checkout does not have a matching repo commit for that day yet</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: no repo commit found for this day in this checkout.</div>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (4)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Cleanup 7 - Phase 3 - Console Command Start Ownership Narrowing`</li>
+      <li>`Cleanup 6 - Phase 5 - Accepted Result Ownership Proof Tightening`</li>
+      <li>`Cleanup 6 - Phase 4 - Viewport Result Input Preparation Unification`</li>
+      <li>`Cleanup 6 - Phase 3 - App Project Accepted Publication Handoff Narrowing`</li>
     </ul>
   </details>
   </details>

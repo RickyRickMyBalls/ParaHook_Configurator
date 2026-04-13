@@ -34,6 +34,7 @@ import { isFeatureEnabled as isFeatureEnabledInStack } from '../features/feature
 import type { FeatureStackIR } from '../features/compileFeatureStack'
 import { parseDriverVirtualInputPortId } from '../features/driverVirtualPorts'
 import {
+  addNode as addNodeCommand,
   addEdge as addEdgeCommand,
   removeEdge as removeEdgeCommand,
   type GraphCommand,
@@ -50,10 +51,18 @@ import {
   type GraphOutputSurface,
 } from '../outputSurface'
 import { prepareGraphPreviewPreparation, type GraphPreviewPreparation } from '../previewPreparation'
-import { getNodeDef } from '../registry/nodeRegistry'
-import { ensureOutputPreviewSingletonPatch } from '../system/ensureOutputPreviewSingleton'
-import { ensureOutputPreviewSlotsPatch } from '../system/ensureOutputPreviewSlots'
+import { getDefaultNodeParams, getNodeDef } from '../registry/nodeRegistry'
+import { ensureOutputPreviewSingletonPatch } from '../families/OutputPreview/system/ensureOutputPreviewSingleton'
+import { ensureOutputPreviewSlotsPatch } from '../families/OutputPreview/system/ensureOutputPreviewSlots'
 import { getNextViewMode, type ViewMode } from '../canvas/rowViewMode'
+import {
+  buildSketchDrawSessionIdlePrompt,
+  getPrimarySketchDrawConsoleToolLabel,
+  isPrimarySketchDrawTool,
+  normalizeGeometrySketchDrawCommand,
+  type GeometrySketchDrawCommand,
+  type PrimarySketchDrawTool,
+} from '../sketchCommands/drawCommands'
 import type {
   EdgeEndpoint,
   EditorViewport,
@@ -218,7 +227,54 @@ export type SharedViewerCompositionState = {
   graphDocumentIds: string[]
 }
 
+type CreateGraphNodeInDocumentOptions = {
+  graphDocumentId: string
+  nodeType: 'Geometry/Sketch' | 'Geometry/Extrude' | 'System/OutputPreview'
+  labelPrefix: 'sketch' | 'extrude' | 'outputPreview'
+}
+
+export type CreateGraphNodeInDocumentResult = {
+  nodeId: string
+  nodeLabel: string
+}
+
 const EMPTY_BUILD_RESULT_ENTRIES: BuildResultEntry[] = []
+
+let fallbackCreatedGraphNodeIdCounter = 0
+
+const buildTentativeCreatedGraphNodeId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `node-${crypto.randomUUID()}`
+  }
+  fallbackCreatedGraphNodeIdCounter += 1
+  return `node-created-fallback-${fallbackCreatedGraphNodeIdCounter}`
+}
+
+const generateUniqueCreatedGraphNodeId = (graph: SpaghettiGraph): string => {
+  const existing = new Set(graph.nodes.map((node) => node.nodeId))
+  let candidate = buildTentativeCreatedGraphNodeId()
+  let suffix = 2
+  while (existing.has(candidate)) {
+    candidate = `${buildTentativeCreatedGraphNodeId()}-${suffix}`
+    suffix += 1
+  }
+  return candidate
+}
+
+const buildDefaultCreatedGraphNodePosition = (graph: SpaghettiGraph): GraphNodePos => {
+  const positions = graph.nodes
+    .map((node) => graph.ui?.nodes?.[node.nodeId] ?? node.ui ?? null)
+    .filter((position): position is GraphNodePos => position !== null)
+  if (positions.length === 0) {
+    return { x: 160, y: 140 }
+  }
+  const maxX = Math.max(...positions.map((position) => position.x))
+  const minY = Math.min(...positions.map((position) => position.y))
+  return {
+    x: Math.round(maxX + 240),
+    y: Math.round(minY),
+  }
+}
 
 const releaseAuthoritativeHandleIds = (handleIds: readonly (string | null | undefined)[]): void => {
   const normalizedHandleIds = [
@@ -585,26 +641,6 @@ export type SketchPlaneCommand =
   | 'rotate-x'
   | 'rotate-y'
   | 'rotate-z'
-export type GeometrySketchDrawCommand =
-  | 'line'
-  | 'l'
-  | 'pline'
-  | 'pl'
-  | 'rectangle'
-  | 'rec'
-  | 'circle'
-  | 'cc'
-  | 'previous'
-  | 'p'
-  | 'undo'
-  | 'enter'
-  | 'delete'
-  | 'del'
-  | 'back'
-  | 'b'
-  | 'esc'
-  | 'x'
-
 type GeometrySketchConsolePrompt = {
   tool: GeometrySketchTool | null
   draft: GeometrySketchDrawDraft | null
@@ -838,6 +874,9 @@ export type SpaghettiStoreState = {
       env?: NonNullable<Parameters<typeof loadGraphDocumentFromFileCommand>[1]>
     },
   ) => Promise<string>
+  createGraphNodeInDocumentAndSelect: (
+    options: CreateGraphNodeInDocumentOptions,
+  ) => CreateGraphNodeInDocumentResult | null
   openGraphDocumentInViewport: (graphDocumentId: string) => string | null
   openGraphDocumentInNewViewport: (graphDocumentId: string) => string | null
   bindEditorViewportToGraphDocument: (editorViewportId: string, graphDocumentId: string) => void
@@ -1680,17 +1719,13 @@ const createDefaultComponent = (
 
 const isGeometrySketchDrawTool = (
   tool: GeometrySketchTool | null,
-): tool is 'line' | 'pline' | 'rectangle' | 'circle' =>
-  tool === 'line' || tool === 'pline' || tool === 'rectangle' || tool === 'circle'
+): tool is PrimarySketchDrawTool =>
+  isPrimarySketchDrawTool(tool)
 
 const getGeometrySketchConsoleToolLabel = (tool: GeometrySketchTool): string =>
-  tool === 'pline'
-    ? 'PLINE'
-    : tool === 'rectangle'
-      ? 'REC'
-      : tool === 'circle'
-        ? 'CC'
-        : tool.toUpperCase()
+  isGeometrySketchDrawTool(tool)
+    ? getPrimarySketchDrawConsoleToolLabel(tool)
+    : tool.toUpperCase()
 
 const roundGeometrySketchDraftCoordinate = (value: number): number =>
   Math.round(value * 1_000) / 1_000
@@ -1741,9 +1776,9 @@ const buildGeometrySketchConsolePrompt = (
   lastUsedTool: GeometrySketchTool | null,
 ): string | null => {
   if (tool === null) {
-    return lastUsedTool !== null
-      ? 'Sketch Draw > [Line, PLine, Rectangle, Circle, Previous, X]'
-      : 'Sketch Draw > [Line, PLine, Rectangle, Circle, X]'
+    return buildSketchDrawSessionIdlePrompt(
+      isGeometrySketchDrawTool(lastUsedTool) ? lastUsedTool : null,
+    )
   }
   if (!isGeometrySketchDrawTool(tool)) {
     return null
@@ -5164,25 +5199,21 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
   },
   runGeometrySketchDrawCommand: (command) => {
     const state = get()
-    switch (command) {
+    const normalizedCommand = normalizeGeometrySketchDrawCommand(command)
+    switch (normalizedCommand) {
       case 'line':
-      case 'l':
         state.setGeometrySketchSessionTool('line')
         return
       case 'pline':
-      case 'pl':
         state.setGeometrySketchSessionTool('pline')
         return
       case 'rectangle':
-      case 'rec':
         state.setGeometrySketchSessionTool('rectangle')
         return
       case 'circle':
-      case 'cc':
         state.setGeometrySketchSessionTool('circle')
         return
       case 'previous':
-      case 'p':
         if (
           state.geometrySketchSession?.mode === 'draw' &&
           isGeometrySketchDrawTool(state.geometrySketchSession.lastUsedTool)
@@ -5205,11 +5236,9 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
         state.finishGeometrySketchDrawDraft()
         return
       case 'delete':
-      case 'del':
         state.deleteGeometrySketchSelectedComponents()
         return
       case 'back':
-      case 'b':
         state.cancelGeometrySketchDrawDraft()
         return
       case 'esc':
@@ -6581,6 +6610,41 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     releaseAuthoritativeHandleIds([previousAuthoritativeHandleId])
 
     return graphDocumentId
+  },
+  createGraphNodeInDocumentAndSelect: ({ graphDocumentId, nodeType, labelPrefix }) => {
+    const initialState = get()
+    if (initialState.graphDocumentsById[graphDocumentId] === undefined) {
+      return null
+    }
+
+    initialState.openGraphDocumentInViewport(graphDocumentId)
+    const targetState = get()
+    if (targetState.activeGraphDocumentId !== graphDocumentId) {
+      return null
+    }
+
+    const targetDocument = selectGraphDocumentById(targetState, graphDocumentId)
+    if (targetDocument === null) {
+      return null
+    }
+
+    const existingNodeCount = targetDocument.graph.nodes.filter((node) => node.type === nodeType).length
+    const nodeId = generateUniqueCreatedGraphNodeId(targetDocument.graph)
+    targetState.applyGraphCommand(
+      addNodeCommand({
+        node: {
+          nodeId,
+          type: nodeType,
+          params: getDefaultNodeParams(nodeType),
+        },
+        position: buildDefaultCreatedGraphNodePosition(targetDocument.graph),
+      }),
+    )
+    get().setSelectedNodeId(nodeId)
+    return {
+      nodeId,
+      nodeLabel: `${labelPrefix}_[${existingNodeCount + 1}]`,
+    }
   },
   openGraphDocumentInViewport: (graphDocumentId) => {
     const state = get()

@@ -11,7 +11,10 @@ import {
 } from './previewPreparation'
 import { resolveEffectiveOutputPort } from './features/effectivePorts'
 import type { SpaghettiGraph } from './schema/spaghettiTypes'
-import { readNormalizedOutputPreviewParams, OUTPUT_PREVIEW_NODE_TYPE } from './system/outputPreviewNode'
+import {
+  readNormalizedOutputPreviewParams,
+  OUTPUT_PREVIEW_NODE_TYPE,
+} from './families/OutputPreview/system/outputPreviewNode'
 
 export type GraphPublishedOutputState = 'empty' | 'unresolved' | 'resolved'
 export type GraphPublishedOutputDiagnosticsState = 'none' | 'hasDiagnostics' | 'unknown'

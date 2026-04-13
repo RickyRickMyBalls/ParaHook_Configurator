@@ -28,15 +28,10 @@ import {
 import {
   activateGraphDocumentIntent,
   activateGraphNodeIntent,
-  type WorkspaceIntentDeps,
+  buildWorkspaceIntentDepsFromCurrentStoreState,
 } from '../store/workspaceIntents'
-import { addNode as addNodeCommand } from '../spaghetti/graphCommands'
-import { getDefaultNodeParams, getNodeDef } from '../spaghetti/registry/nodeRegistry'
-import type {
-  EditorViewportWindowMode,
-  GraphNodePos,
-  SpaghettiGraph,
-} from '../spaghetti/schema/spaghettiTypes'
+import { getNodeDef } from '../spaghetti/registry/nodeRegistry'
+import type { EditorViewportWindowMode } from '../spaghetti/schema/spaghettiTypes'
 import {
   type GeometrySketchDrawStage,
   selectActiveEditorViewport,
@@ -91,6 +86,14 @@ type ConsoleDockProps = {
     event: ReactMouseEvent<HTMLDivElement>,
   ) => void
 }
+
+const isSketchDrawLocalStagedScope = (
+  session: ConsoleStagedNavigationSession | null,
+): boolean =>
+  session?.scopeId === 'sketchDrawRoot' ||
+  session?.scopeId === 'sketchDrawCameraRoot' ||
+  session?.scopeId === 'sketchDrawCameraProjectionRoot' ||
+  session?.scopeId === 'sketchDrawZoomRoot'
 
 const getGeometrySketchDrawStageLabel = (drawStage: GeometrySketchDrawStage | null): string =>
   drawStage === 'sessionIdle'
@@ -857,71 +860,6 @@ const buildStagedNavigationContextFromStoreState = (
   )
 }
 
-const buildWorkspaceIntentDepsFromStoreState = (): WorkspaceIntentDeps => {
-  const appState = useAppStore.getState()
-  const spaghettiState = useSpaghettiStore.getState()
-  return {
-    app: {
-      setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
-      setActiveSurface: appState.setActiveSurface,
-      requestFloatingShellActivation: appState.requestFloatingShellActivation,
-      setReferenceItemVisibility: appState.setReferenceItemVisibility,
-      beginReferenceTransform: appState.beginReferenceTransformShell,
-      selectPart: appState.selectPart,
-    },
-    spaghetti: {
-      activeEditorViewportId: spaghettiState.activeEditorViewportId,
-      editorViewportsById: spaghettiState.editorViewportsById,
-      openGraphDocumentInViewport: spaghettiState.openGraphDocumentInViewport,
-      openGraphDocumentInNewViewport: spaghettiState.openGraphDocumentInNewViewport,
-      swapFocusedEditorViewportToGraphDocument:
-        spaghettiState.swapFocusedEditorViewportToGraphDocument,
-      setActiveEditorViewportId: spaghettiState.setActiveEditorViewportId,
-      setEditorViewportPosition: spaghettiState.setEditorViewportPosition,
-      setSelectedNodeId: spaghettiState.setSelectedNodeId,
-      requestEditorViewportNodeFit: spaghettiState.requestEditorViewportNodeFit,
-      startSketchPlanePick: spaghettiState.startSketchPlanePick,
-      startGeometrySketchSession: spaghettiState.startGeometrySketchSession,
-    },
-  }
-}
-
-let fallbackConsoleSketchNodeIdCounter = 0
-
-const buildTentativeConsoleSketchNodeId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `node-${crypto.randomUUID()}`
-  }
-  fallbackConsoleSketchNodeIdCounter += 1
-  return `node-console-fallback-${fallbackConsoleSketchNodeIdCounter}`
-}
-
-const generateUniqueConsoleSketchNodeId = (graph: SpaghettiGraph): string => {
-  const existing = new Set(graph.nodes.map((node) => node.nodeId))
-  let candidate = buildTentativeConsoleSketchNodeId()
-  let suffix = 2
-  while (existing.has(candidate)) {
-    candidate = `${buildTentativeConsoleSketchNodeId()}-${suffix}`
-    suffix += 1
-  }
-  return candidate
-}
-
-const buildDefaultCreatedSketchPosition = (graph: SpaghettiGraph): GraphNodePos => {
-  const positions = graph.nodes
-    .map((node) => graph.ui?.nodes?.[node.nodeId] ?? node.ui ?? null)
-    .filter((position): position is GraphNodePos => position !== null)
-  if (positions.length === 0) {
-    return { x: 160, y: 140 }
-  }
-  const maxX = Math.max(...positions.map((position) => position.x))
-  const minY = Math.min(...positions.map((position) => position.y))
-  return {
-    x: Math.round(maxX + 240),
-    y: Math.round(minY),
-  }
-}
-
 export function ConsoleDock({
   listLeftOffset = 0,
   suppressDockedSurface = false,
@@ -1272,34 +1210,27 @@ export function ConsoleDock({
     labelPrefix: 'sketch' | 'extrude' | 'outputPreview',
   ) => {
     const initialState = useSpaghettiStore.getState()
-    if (initialState.activeGraphDocumentId !== graphDocumentId) {
-      initialState.openGraphDocumentInViewport(graphDocumentId)
-    }
-    const mutationState = useSpaghettiStore.getState()
-    const targetDocument = selectGraphDocumentById(mutationState, graphDocumentId)
-    if (targetDocument === null) {
+    const createdNode = initialState.createGraphNodeInDocumentAndSelect({
+      graphDocumentId,
+      nodeType,
+      labelPrefix,
+    })
+    if (createdNode === null) {
       return null
     }
-    const existingNodeCount = targetDocument.graph.nodes.filter((node) => node.type === nodeType).length
-    const nodeId = generateUniqueConsoleSketchNodeId(targetDocument.graph)
-    mutationState.applyGraphCommand(
-      addNodeCommand({
-        node: {
-          nodeId,
-          type: nodeType,
-          params: getDefaultNodeParams(nodeType),
-        },
-        position: buildDefaultCreatedSketchPosition(targetDocument.graph),
-      }),
-    )
     const updatedState = useSpaghettiStore.getState()
-    activateGraphNodeIntent(buildWorkspaceIntentDepsFromStoreState(), graphDocumentId, nodeId, {
+    activateGraphNodeIntent(
+      buildWorkspaceIntentDepsFromCurrentStoreState(),
+      graphDocumentId,
+      createdNode.nodeId,
+      {
       strategy: 'open-or-focus',
       fitNodeInViewport: true,
-    })
+      },
+    )
     return {
-      nodeId,
-      nodeLabel: `${labelPrefix}_[${existingNodeCount + 1}]`,
+      nodeId: createdNode.nodeId,
+      nodeLabel: createdNode.nodeLabel,
       stagedContext: buildStagedNavigationContextFromStoreState(updatedState),
     }
   }, [])
@@ -1459,7 +1390,7 @@ export function ConsoleDock({
     buildSketchDrawCameraProjectionAssistDescriptor,
     buildSketchDrawFeatureAssistDescriptor,
     buildStagedNavigationContextFromStoreState,
-    buildWorkspaceIntentDepsFromStoreState,
+    buildWorkspaceIntentDepsFromStoreState: buildWorkspaceIntentDepsFromCurrentStoreState,
     closeEditorViewport,
     createMissingGraphNodeInGraphDocument,
     createDetachedViewportSurfaceCopy,
@@ -1697,7 +1628,7 @@ export function ConsoleDock({
       spaghettiState.activeGraphDocumentId !== resolvedGraphDocumentId
     ) {
       activateGraphDocumentIntent(
-        buildWorkspaceIntentDepsFromStoreState(),
+        buildWorkspaceIntentDepsFromCurrentStoreState(),
         resolvedGraphDocumentId,
         {
           strategy: 'open-or-focus',
@@ -1706,6 +1637,14 @@ export function ConsoleDock({
     }
 
     const currentSession = useConsoleStore.getState().stagedNavigationSession
+    if (
+      spaghettiState.geometrySketchSession?.mode === 'draw' &&
+      isSketchDrawLocalStagedScope(currentSession) &&
+      resolvedHandoff.session !== null &&
+      !isSketchDrawLocalStagedScope(resolvedHandoff.session)
+    ) {
+      return
+    }
     const isForcedRootAvailabilitySync =
       isForcedRootSync && currentSession === null && resolvedHandoff.session === null
 

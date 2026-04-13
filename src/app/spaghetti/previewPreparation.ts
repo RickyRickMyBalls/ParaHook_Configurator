@@ -9,7 +9,7 @@ import {
   normalizeOutputPreviewParams,
   OUTPUT_PREVIEW_DEFAULT_PUBLICATION_MODE,
   OUTPUT_PREVIEW_NODE_TYPE,
-} from './system/outputPreviewNode'
+} from './families/OutputPreview/system/outputPreviewNode'
 import { selectDiagnosticsVm } from './selectors/selectDiagnosticsVm'
 
 export type PreviewPreparationEntry = {

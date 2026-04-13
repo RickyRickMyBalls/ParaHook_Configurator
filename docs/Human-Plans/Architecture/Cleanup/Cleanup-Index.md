@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+16. 2026-04-13 10:15:35: Closed out `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction` as a shipped cleanup lane after the packaging-boundary baseline, mixed-placement inventory, family-folder contract, sketch-command-library contract, narrow `OutputPreview` plus draw-command extraction, and final proof/handoff phases all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the CAD packaging lane now reads as completed history before `Cleanup 8A`
+15. 2026-04-13 08:45:27: Added the standalone future phase doc for `Cleanup 8 - CAD Node Family Packaging And Command Library Extraction`, aligning the next cleanup lane to the shipped `Cleanup 7` ownership baseline plus the broader cleanup and repo vision docs while turning the index's CAD packaging step into a real implementation-ready planning surface under `Cleanup/Future/`
+14. 2026-04-13 08:38:44: Closed out `Cleanup 7 - Node-Owned CAD Authoring And Command Adapter Unification` as a shipped cleanup lane after the owner-baseline, command-drift inventory, command-start narrowing, cross-surface sketch-intent unification, and final proof phases all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the node-owned CAD authoring lane now reads as completed history before the later CAD packaging cleanup
+13. 2026-04-13 07:07:53: Closed out `Cleanup 6 - Graph Runtime And Accepted Result Ownership` as a shipped cleanup lane after the owner-baseline, drift-inventory, app/project narrowing, viewport fan-out narrowing, and final proof phases all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the accepted-result ownership lane now reads as completed history before the later CAD authoring and Browser/Console cleanup phases
 12. 2026-04-12 22:53:27: Closed out `Cleanup 4A - Workspace Surface Catalog And Capability Registry` as a shipped cleanup lane after the taxonomy baseline, capability-drift inventory, canonical catalog contract, and initial source-catalog repoint all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the workspace-surface catalog cleanup now reads as finished history before the later optional-surface scope decisions
 11. 2026-04-12 22:30:43: Refined the family ladder handoff between `Cleanup 4A` and `Cleanup 10` so `Radio` is now called out explicitly as the main current example of an optional workspace surface versus background-runtime taxonomy mismatch in `Cleanup 4A`, while `Cleanup 10` keeps the final product-scope decision for dashboard, notepad, and radio
 10. 2026-04-12 21:44:03: Shipped `Cleanup 3 - Shared Boundary And Worker Contract Repair`, moved its standalone phase record from `Cleanup/Future/` to `Cleanup/Shipped/`, and refreshed the family ladder so the boundary-repair lane now reads as completed before the workspace-truth cleanup phase
@@ -284,7 +288,7 @@ Target result:
 Standalone phase doc:
 - `Shipped/Cleanup_Phase Cleanup-4A - Workspace Surface Catalog And Capability Registry.md`
 
-## [ ] Cleanup 5 - Project Content And Browser Derivation Cleanup
+## [x] Cleanup 5 - Project Content And Browser Derivation Cleanup
 
 This is the app-content versus Browser cleanup phase.
 
@@ -302,9 +306,9 @@ Target result:
 - Browser rows are honest projections instead of shadow ownership surfaces
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-5 - Project Content And Browser Derivation Cleanup.md`
+- `Shipped/Cleanup_Phase Cleanup-5 - Project Content And Browser Derivation Cleanup.md`
 
-## [ ] Cleanup 6 - Graph Runtime And Accepted Result Ownership
+## [x] Cleanup 6 - Graph Runtime And Accepted Result Ownership
 
 This is the graph/runtime cleanup phase.
 
@@ -322,9 +326,9 @@ Target result:
 - project and Browser presentation derive from graph runtime instead of competing with it
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`
+- `Shipped/Cleanup_Phase Cleanup-6 - Graph Runtime And Accepted Result Ownership.md`
 
-## [ ] Cleanup 7 - Node-Owned CAD Authoring And Command Adapter Unification
+## [x] Cleanup 7 - Node-Owned CAD Authoring And Command Adapter Unification
 
 This is the cross-surface CAD authoring ownership phase.
 
@@ -348,9 +352,9 @@ Target result:
 - fewer toolbar-local state machines and fewer hidden command-side graph mutations
 
 Standalone phase doc:
-- `Future/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`
+- `Shipped/Cleanup_Phase Cleanup-7 - Node-Owned CAD Authoring And Command Adapter Unification.md`
 
-## [ ] Cleanup 8 - CAD Node Family Packaging And Command Library Extraction
+## [x] Cleanup 8 - CAD Node Family Packaging And Command Library Extraction
 
 This is the CAD repo-shape and family-packaging phase.
 
@@ -369,6 +373,9 @@ Target result:
 - CAD node families have one obvious place to live
 - 2D sketch commands have one obvious place to live
 - future node growth does not force every family to touch the same giant files
+
+Standalone phase doc:
+- `Shipped/Cleanup_Phase Cleanup-8 - CAD Node Family Packaging And Command Library Extraction.md`
 
 ## [ ] Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence
 

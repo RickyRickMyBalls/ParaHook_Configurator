@@ -21,6 +21,8 @@ import { buildRequestFromBuildInputs } from '../spaghetti/integration/buildInput
 import {
   buildGraphPublishedContentSurface,
   buildQualifiedGraphOutputEntryId,
+  type GraphOutputSurface,
+  type GraphPublishedContentSurface,
 } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
 import {
@@ -3482,33 +3484,80 @@ const createInitialProjectFile = (): ProjectFile => ({
   rootAssemblyId: buildRootAssemblyId(INITIAL_PROJECT_FILE_ID),
 })
 
+type ProjectAcceptedPublicationPolicyState = Pick<
+  AppState,
+  | 'currentProject'
+  | 'projectContent'
+  | 'browserGraphBuildPolicyByGraphDocumentId'
+  | 'browserContentBuildPolicyByRowId'
+>
+
+type ProjectDerivationCarryForwardState = Pick<
+  AppState,
+  'projectContent' | 'runtimeContentPlacementByRowId'
+>
+
+type ProjectGraphAcceptedPublicationRecord = {
+  graphDocumentId: string
+  fullOutputSurface: GraphOutputSurface | null
+  fullPublishedContentSurface: GraphPublishedContentSurface | null
+  outputSurface: GraphOutputSurface | null
+  publishedContentSurface: GraphPublishedContentSurface | null
+}
+
+const buildProjectAcceptedPublicationRecords = (
+  project: ProjectFile,
+  spaghettiState: Pick<SpaghettiStoreState, 'graphDocumentsById' | 'graphRuntimeByDocumentId'>,
+  browserPolicyState?: ProjectAcceptedPublicationPolicyState,
+): ProjectGraphAcceptedPublicationRecord[] =>
+  project.graphDocuments.map((documentEntry) => {
+    const graphDocumentId = documentEntry.graphDocumentId
+    const fullOutputSurface =
+      selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)?.outputSurface ?? null
+    const graphDocument = spaghettiState.graphDocumentsById[graphDocumentId]
+    const fullPublishedContentSurface =
+      graphDocument === undefined
+        ? null
+        : buildGraphPublishedContentSurface({
+            graphDocumentId,
+            graph: graphDocument.graph,
+            outputSurface: fullOutputSurface,
+          })
+    const suppressRuntimeOutput =
+      browserPolicyState === undefined
+        ? false
+        : selectShouldSuppressBrowserGraphRuntimeOutput(browserPolicyState, graphDocumentId)
+
+    return {
+      graphDocumentId,
+      fullOutputSurface,
+      fullPublishedContentSurface,
+      outputSurface: suppressRuntimeOutput ? null : fullOutputSurface,
+      publishedContentSurface: suppressRuntimeOutput ? null : fullPublishedContentSurface,
+    }
+  })
+
 const buildProjectContentDerivation = (
   project: ProjectFile,
   spaghettiState: Pick<
     SpaghettiStoreState,
     'graphDocumentsById' | 'graphDocumentOrder' | 'graphRuntimeByDocumentId'
   >,
-  browserPolicyState?: Pick<
-    AppState,
-    | 'currentProject'
-    | 'projectContent'
-    | 'runtimeContentPlacementByRowId'
-    | 'browserGraphBuildPolicyByGraphDocumentId'
-    | 'browserContentBuildPolicyByRowId'
-  >,
+  acceptedPublicationRecords: readonly ProjectGraphAcceptedPublicationRecord[],
+  carryForwardState?: ProjectDerivationCarryForwardState,
 ): {
   projectContent: ProjectContentState
   runtimeContentPlacementByRowId: Record<string, RuntimeContentPlacementRecord>
 } => {
   const rootAssemblyId = project.rootAssemblyId ?? buildRootAssemblyId(project.projectFileId)
-  const previousAssemblies = browserPolicyState?.projectContent.assembliesById ?? {}
-  const previousComponents = browserPolicyState?.projectContent.componentsById ?? {}
-  const previousObjects = browserPolicyState?.projectContent.objectsById ?? {}
+  const previousAssemblies = carryForwardState?.projectContent.assembliesById ?? {}
+  const previousComponents = carryForwardState?.projectContent.componentsById ?? {}
+  const previousObjects = carryForwardState?.projectContent.objectsById ?? {}
   const previousPlacementOverlay = {
-    ...(browserPolicyState?.projectContent === undefined
+    ...(carryForwardState?.projectContent === undefined
       ? {}
-      : deriveRuntimeContentPlacementOverlay(browserPolicyState.projectContent)),
-    ...(browserPolicyState?.runtimeContentPlacementByRowId ?? {}),
+      : deriveRuntimeContentPlacementOverlay(carryForwardState.projectContent)),
+    ...(carryForwardState?.runtimeContentPlacementByRowId ?? {}),
   }
   const componentsById: Record<string, ProjectComponentRecord> = {}
   const objectsById: Record<string, ProjectObjectRecord> = {}
@@ -3587,60 +3636,45 @@ const buildProjectContentDerivation = (
     return ordered
   }
 
-  for (const documentEntry of project.graphDocuments) {
-    const graphDocument = spaghettiState.graphDocumentsById[documentEntry.graphDocumentId]
-    const fullOutputSurface =
-      selectGraphRuntimeByDocumentId(spaghettiState, documentEntry.graphDocumentId)?.outputSurface ?? null
-    const fullPublishedContentSurface =
-      graphDocument === undefined
-        ? null
-        : buildGraphPublishedContentSurface({
-            graphDocumentId: documentEntry.graphDocumentId,
-            graph: graphDocument.graph,
-            outputSurface: fullOutputSurface,
-          })
+  for (const publicationRecord of acceptedPublicationRecords) {
+    const graphDocumentId = publicationRecord.graphDocumentId
+    const {
+      fullOutputSurface,
+      fullPublishedContentSurface,
+      outputSurface,
+      publishedContentSurface,
+    } = publicationRecord
     if (fullPublishedContentSurface !== null && fullOutputSurface !== null) {
       for (const publishedRow of fullPublishedContentSurface.rows) {
         if (publishedRow.kind === 'object') {
           validRuntimeRowIds.add(
             buildProjectObjectId(
               project.projectFileId,
-              documentEntry.graphDocumentId,
+              graphDocumentId,
               publishedRow.object.objectId,
             ),
           )
           continue
         }
         validRuntimeRowIds.add(
-          buildProjectPublishedComponentId(project.projectFileId, documentEntry.graphDocumentId),
+          buildProjectPublishedComponentId(project.projectFileId, graphDocumentId),
         )
         publishedRow.subcomponents?.forEach((subcomponent) => {
           validRuntimeRowIds.add(
             buildProjectPublishedSubcomponentId(
               project.projectFileId,
-              documentEntry.graphDocumentId,
+              graphDocumentId,
               subcomponent.slotId,
             ),
           )
         })
         publishedRow.objects.forEach((objectRow) => {
           validRuntimeRowIds.add(
-            buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+            buildProjectObjectId(project.projectFileId, graphDocumentId, objectRow.objectId),
           )
         })
       }
     }
-    const suppressRuntimeOutput =
-      browserPolicyState === undefined
-        ? false
-        : selectShouldSuppressBrowserGraphRuntimeOutput(
-            browserPolicyState,
-            documentEntry.graphDocumentId,
-          )
-    const outputSurface = suppressRuntimeOutput
-      ? null
-      : fullOutputSurface
-    const publishedContentSurface = suppressRuntimeOutput ? null : fullPublishedContentSurface
 
     if (
       publishedContentSurface !== null &&
@@ -3652,18 +3686,18 @@ const buildProjectContentDerivation = (
           const objectRow = publishedRow.object
           const objectId = buildProjectObjectId(
             project.projectFileId,
-            documentEntry.graphDocumentId,
+            graphDocumentId,
             objectRow.objectId,
           )
           const placement = resolveRuntimePlacement(objectId, rootAssemblyId, null)
           nextRuntimePlacementByRowId[objectId] = placement
           objectsById[objectId] = {
             objectId,
-            ownerGraphDocumentId: documentEntry.graphDocumentId,
+            ownerGraphDocumentId: graphDocumentId,
             parentAssemblyId: placement.parentAssemblyId,
             parentComponentId: placement.parentComponentId,
             objectSourceKind: 'published-object',
-            sourceGraphDocumentId: documentEntry.graphDocumentId,
+            sourceGraphDocumentId: graphDocumentId,
             sourceOutputEntryId: objectRow.outputEntryId,
             sourceNodeId: objectRow.sourceNodeId,
             slotId: objectRow.slotId,
@@ -3676,10 +3710,10 @@ const buildProjectContentDerivation = (
         publishedComponentOrdinal += 1
         const componentId = buildProjectPublishedComponentId(
           project.projectFileId,
-          documentEntry.graphDocumentId,
+          graphDocumentId,
         )
         const childObjectIds = publishedRow.objects.map((objectRow) =>
-          buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+          buildProjectObjectId(project.projectFileId, graphDocumentId, objectRow.objectId),
         )
         const componentPlacement = resolveRuntimePlacement(componentId, rootAssemblyId, null)
         nextRuntimePlacementByRowId[componentId] = componentPlacement
@@ -3696,7 +3730,7 @@ const buildProjectContentDerivation = (
           if (matchingSubcomponent !== undefined) {
             const subcomponentId = buildProjectPublishedSubcomponentId(
               project.projectFileId,
-              documentEntry.graphDocumentId,
+              graphDocumentId,
               matchingSubcomponent.slotId,
             )
             if (!includedTopLevelRowIds.has(subcomponentId)) {
@@ -3707,7 +3741,7 @@ const buildProjectContentDerivation = (
           }
           const directObjectId = buildProjectObjectId(
             project.projectFileId,
-            documentEntry.graphDocumentId,
+            graphDocumentId,
             objectRow.objectId,
           )
           if (!includedTopLevelRowIds.has(directObjectId)) {
@@ -3719,8 +3753,8 @@ const buildProjectContentDerivation = (
           componentId,
           parentAssemblyId: componentPlacement.parentAssemblyId,
           parentComponentId: componentPlacement.parentComponentId,
-          ownerGraphDocumentId: documentEntry.graphDocumentId,
-          sourceGraphDocumentId: documentEntry.graphDocumentId,
+          ownerGraphDocumentId: graphDocumentId,
+          sourceGraphDocumentId: graphDocumentId,
           sourceOutputEntryId: null,
           sourceNodeId: null,
           label:
@@ -3736,11 +3770,11 @@ const buildProjectContentDerivation = (
         publishedSubcomponents.forEach((subcomponent) => {
           const subcomponentId = buildProjectPublishedSubcomponentId(
             project.projectFileId,
-            documentEntry.graphDocumentId,
+            graphDocumentId,
             subcomponent.slotId,
           )
           const subcomponentChildObjectIds = subcomponent.objects.map((objectRow) =>
-            buildProjectObjectId(project.projectFileId, documentEntry.graphDocumentId, objectRow.objectId),
+            buildProjectObjectId(project.projectFileId, graphDocumentId, objectRow.objectId),
           )
           const subcomponentPlacement = resolveRuntimePlacement(
             subcomponentId,
@@ -3752,8 +3786,8 @@ const buildProjectContentDerivation = (
             componentId: subcomponentId,
             parentAssemblyId: subcomponentPlacement.parentAssemblyId,
             parentComponentId: subcomponentPlacement.parentComponentId,
-            ownerGraphDocumentId: documentEntry.graphDocumentId,
-            sourceGraphDocumentId: documentEntry.graphDocumentId,
+            ownerGraphDocumentId: graphDocumentId,
+            sourceGraphDocumentId: graphDocumentId,
             sourceOutputEntryId: null,
             sourceNodeId: null,
             label: subcomponent.label,
@@ -3781,18 +3815,18 @@ const buildProjectContentDerivation = (
               ? componentId
               : buildProjectPublishedSubcomponentId(
                   project.projectFileId,
-                  documentEntry.graphDocumentId,
+                  graphDocumentId,
                   parentSubcomponent.slotId,
                 ),
           )
           nextRuntimePlacementByRowId[objectId] = objectPlacement
           objectsById[objectId] = {
             objectId,
-            ownerGraphDocumentId: documentEntry.graphDocumentId,
+            ownerGraphDocumentId: graphDocumentId,
             parentAssemblyId: objectPlacement.parentAssemblyId,
             parentComponentId: objectPlacement.parentComponentId,
             objectSourceKind: 'published-object',
-            sourceGraphDocumentId: documentEntry.graphDocumentId,
+            sourceGraphDocumentId: graphDocumentId,
             sourceOutputEntryId: objectRow.outputEntryId,
             sourceNodeId: objectRow.sourceNodeId,
             slotId: objectRow.slotId,
@@ -3805,11 +3839,11 @@ const buildProjectContentDerivation = (
 
     for (const receiveReference of selectResolvedGraphReceiveReferencesByDocumentId(
       spaghettiState,
-      documentEntry.graphDocumentId,
+      graphDocumentId,
     )) {
       const objectId = buildProjectReceiveObjectId(
         project.projectFileId,
-        documentEntry.graphDocumentId,
+        graphDocumentId,
         receiveReference.receiveId,
       )
       validRuntimeRowIds.add(objectId)
@@ -3818,7 +3852,7 @@ const buildProjectContentDerivation = (
       const label = receiveReference.sourceEntry?.label ?? receiveReference.sourceOutputEntryId
       objectsById[objectId] = {
         objectId,
-        ownerGraphDocumentId: documentEntry.graphDocumentId,
+        ownerGraphDocumentId: graphDocumentId,
         parentAssemblyId: placement.parentAssemblyId,
         parentComponentId: placement.parentComponentId,
         objectSourceKind: 'receive-link',
@@ -4004,7 +4038,16 @@ const buildProjectContentDerivation = (
 
 const createInitialProjectContentState = (): ProjectContentState => {
   const initialProject = createInitialProjectFile()
-  return buildProjectContentDerivation(initialProject, useSpaghettiStore.getState()).projectContent
+  const spaghettiState = useSpaghettiStore.getState()
+  const acceptedPublicationRecords = buildProjectAcceptedPublicationRecords(
+    initialProject,
+    spaghettiState,
+  )
+  return buildProjectContentDerivation(
+    initialProject,
+    spaghettiState,
+    acceptedPublicationRecords,
+  ).projectContent
 }
 
 const areProjectGraphDocumentsEqual = (
@@ -9614,14 +9657,26 @@ const syncCurrentProjectFromSpaghetti = (
           rootAssemblyId: nextRootAssemblyId,
         }
       : state.currentProject
-    const nextDerivation = buildProjectContentDerivation(nextCurrentProject, spaghettiState, {
-      currentProject: nextCurrentProject,
-      projectContent: state.projectContent,
-      runtimeContentPlacementByRowId: state.runtimeContentPlacementByRowId,
-      browserGraphBuildPolicyByGraphDocumentId:
-        state.browserGraphBuildPolicyByGraphDocumentId,
-      browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId,
-    })
+    const acceptedPublicationRecords = buildProjectAcceptedPublicationRecords(
+      nextCurrentProject,
+      spaghettiState,
+      {
+        currentProject: nextCurrentProject,
+        projectContent: state.projectContent,
+        browserGraphBuildPolicyByGraphDocumentId:
+          state.browserGraphBuildPolicyByGraphDocumentId,
+        browserContentBuildPolicyByRowId: state.browserContentBuildPolicyByRowId,
+      },
+    )
+    const nextDerivation = buildProjectContentDerivation(
+      nextCurrentProject,
+      spaghettiState,
+      acceptedPublicationRecords,
+      {
+        projectContent: state.projectContent,
+        runtimeContentPlacementByRowId: state.runtimeContentPlacementByRowId,
+      },
+    )
     const nextProjectContent = nextDerivation.projectContent
 
     if (

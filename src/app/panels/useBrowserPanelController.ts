@@ -415,7 +415,6 @@ export function useBrowserPanelController(
   const browserTreeRows = useMemo(
     () =>
       selectBrowserTreeRows({
-        referenceWorkspaceTree,
         referenceLoadBatch: referenceWorkspace.referenceLoadBatch,
         activeTransformReferenceId,
         contentRows: projectContentRows,
@@ -452,7 +451,6 @@ export function useBrowserPanelController(
       partsVisibility,
       projectContentRows,
       referenceWorkspace,
-      referenceWorkspaceTree,
       selectedBrowserRowId,
       selectedBrowserRowIds,
       sharedViewerComposition,

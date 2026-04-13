@@ -252,6 +252,72 @@ describe('ViewportOverlay sketch session window', () => {
     expect(container.textContent).toContain('entities staged on this sketch')
   })
 
+  it('routes Review Profiles and Back To Draw through the shared sketch entry intent band', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    await seedSketchSession()
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const reviewButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Review Profiles',
+    ) as HTMLButtonElement | undefined
+    expect(reviewButton).toBeDefined()
+
+    await act(async () => {
+      reviewButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'review',
+    })
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-sketch-1',
+    })
+
+    await act(async () => {
+      root?.unmount()
+    })
+
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'review',
+    })
+    expect(container.querySelector('.ViewportOverlaySketchPreviewCard')).toBeNull()
+
+    const backToDrawButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Back To Draw',
+    ) as HTMLButtonElement | undefined
+    expect(backToDrawButton).toBeDefined()
+
+    await act(async () => {
+      backToDrawButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
+  })
+
   it('groups pline-authored segments into one expandable entities row', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')

@@ -9,11 +9,14 @@ import {
 import { routeKeyboardInput } from '../inputRouting'
 import { revealFinishedSketch } from '../sketch/finishSketchVisibility'
 import {
-  selectEffectiveBrowserExecutionPolicy,
   selectRenderedProjectPartSet,
-  selectShouldSuppressBrowserGraphRuntimeOutput,
   useAppStore,
 } from '../store/useAppStore'
+import {
+  buildWorkspaceIntentDepsFromCurrentStoreState,
+  startSketchDrawIntent,
+  startSketchReviewIntent,
+} from '../store/workspaceIntents'
 import { getViewer, subscribeViewer, type ViewerApi } from '../viewerBridge'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
@@ -51,6 +54,11 @@ import type {
   ConsoleToolsPreset,
 } from '../console/consoleTypes'
 import type { GeometrySketchTool } from '../spaghetti/store/useSpaghettiStore'
+import {
+  getPrimarySketchDrawToolLabel,
+  PRIMARY_SKETCH_DRAW_TOOLS,
+  type PrimarySketchDrawTool,
+} from '../spaghetti/sketchCommands/drawCommands'
 import type {
   Line2Component,
   RectangleComponent,
@@ -62,7 +70,7 @@ import {
   labelProfilesForPreview,
   renderProfilePreview,
 } from '../spaghetti/ui/features/profilePreview'
-import { applyActiveDraftExtrudePreviewOverride } from './activeDraftExtrudePreview'
+import { buildViewportResultSelectorOptions } from './buildViewportResultSelectorOptions'
 import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
 import { selectViewportResultStatus } from '../spaghetti/selectors/selectViewportResultStatus'
 import {
@@ -342,14 +350,19 @@ const isSketchEntityRowHovered = (
   hoveredComponentId !== null &&
   getSketchEntityRowSelectionIds(row).includes(hoveredComponentId)
 
+const isPrimarySketchDrawToolLabelCandidate = (
+  tool: GeometrySketchTool,
+): tool is PrimarySketchDrawTool =>
+  tool === 'line' || tool === 'pline' || tool === 'rectangle' || tool === 'circle'
+
 const getGeometrySketchToolLabel = (tool: GeometrySketchTool): string =>
-  tool === 'pline'
-    ? 'PLine'
-    : tool === 'arc3pt'
+  tool === 'arc3pt'
     ? 'Arc3Point'
     : tool === 'spline'
       ? 'BezierSpline'
-      : tool.charAt(0).toUpperCase() + tool.slice(1)
+      : isPrimarySketchDrawToolLabelCandidate(tool)
+        ? getPrimarySketchDrawToolLabel(tool)
+        : String(tool)
 
 const renderGeometrySketchToolIcon = (tool: GeometrySketchTool) => {
   if (tool === 'line') {
@@ -551,9 +564,6 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   )
   const deleteGeometrySketchSelectedComponents = useSpaghettiStore(
     (state) => state.deleteGeometrySketchSelectedComponents,
-  )
-  const startGeometrySketchSession = useSpaghettiStore(
-    (state) => state.startGeometrySketchSession,
   )
   const closeGeometrySketchSession = useSpaghettiStore((state) => state.closeGeometrySketchSession)
   const runGeometrySketchDrawCommand = useSpaghettiStore(
@@ -778,102 +788,54 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       sharedViewerComposition,
     ],
   )
-  const activeDraftProjectViewerParts = useMemo(
-    () =>
-      applyActiveDraftExtrudePreviewOverride({
-        graphDocumentsById,
-        preferredGraphDocumentId: viewerTargetGraphDocumentId,
-        renderedParts: renderedProjectPartSet.parts,
-        viewerParts: renderedProjectPartSet.viewerParts,
-        sketchPlanePickSession,
-      }),
-    [
-      graphDocumentsById,
-      renderedProjectPartSet.parts,
-      renderedProjectPartSet.viewerParts,
-      sketchPlanePickSession,
-      viewerTargetGraphDocumentId,
-    ],
-  )
-  const currentProjectGraphDocumentIds = useMemo(
-    () =>
-      currentProject.graphDocuments
-        .map((document) => document.graphDocumentId)
-        .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined),
-    [currentProject.graphDocuments, graphDocumentsById],
-  )
   const viewportResultState = useMemo(
     () =>
-      selectViewportResultState({
-        requestedMode: viewportResultMode,
-        modeBehavior: viewportResultModeBehavior,
-        acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
-        previewReadyAuthoritativeGeometryResult:
-          viewerTargetPreviewReadyAuthoritativeGeometryResult,
-        acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
-        committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
-        committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
-        acceptedPreviewBuildBundle: viewerTargetBuildBundle,
-        acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
-        previewPreparation: viewerTargetPreviewPreparation,
-        viewerTargetGraphDocumentId,
-        suppressViewerTargetArtifactPreview:
-          viewerTargetGraphDocumentId !== null &&
-          selectShouldSuppressBrowserGraphRuntimeOutput(
-            {
-              currentProject,
-              projectContent,
-              browserGraphBuildPolicyByGraphDocumentId,
-              browserContentBuildPolicyByRowId,
-            },
-            viewerTargetGraphDocumentId,
-          ),
-        useProjectDraftPreview:
-          sharedViewerComposition !== null || currentProjectGraphDocumentIds.length > 0,
-        activeDraftProjectViewerParts,
-        browserExecutionPolicy:
-          viewerTargetGraphDocumentId !== null
-            ? selectEffectiveBrowserExecutionPolicy(
-                {
-                  currentProject,
-                  projectContent,
-                  browserGraphBuildPolicyByGraphDocumentId,
-                  browserContentBuildPolicyByRowId,
-                },
-                {
-                  kind: 'graph-document',
-                  graphDocumentId: viewerTargetGraphDocumentId,
-                },
-              )
-            : 'live',
-        isInteractionActive:
-          viewerTargetGraphDocumentId !== null &&
-          browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true,
-        hasDelayedDraftPlaceholder:
-          viewerTargetGraphDocumentId !== null &&
-          delayedDraftBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
-        hasDelayedAuthoritativePlaceholder:
-          viewerTargetGraphDocumentId !== null &&
-          delayedAuthoritativeBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
-      }),
+      selectViewportResultState(
+        buildViewportResultSelectorOptions({
+          currentProject,
+          projectContent,
+          browserGraphBuildPolicyByGraphDocumentId,
+          browserContentBuildPolicyByRowId,
+          browserInteractionGraphDocumentIds,
+          delayedDraftBuildByGraphDocumentId,
+          delayedAuthoritativeBuildByGraphDocumentId,
+          requestedMode: viewportResultMode,
+          modeBehavior: viewportResultModeBehavior,
+          renderedProjectPartSet,
+          graphDocumentsById,
+          viewerTargetGraphDocumentId,
+          sharedViewerComposition,
+          sketchPlanePickSession,
+          acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
+          previewReadyAuthoritativeGeometryResult:
+            viewerTargetPreviewReadyAuthoritativeGeometryResult,
+          acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
+          committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
+          committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
+          acceptedPreviewBuildBundle: viewerTargetBuildBundle,
+          acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
+          previewPreparation: viewerTargetPreviewPreparation,
+        }),
+      ),
     [
-      activeDraftProjectViewerParts,
       browserInteractionGraphDocumentIds,
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
-      currentProjectGraphDocumentIds.length,
       delayedAuthoritativeBuildByGraphDocumentId,
       delayedDraftBuildByGraphDocumentId,
+      graphDocumentsById,
       projectContent,
+      renderedProjectPartSet,
       sharedViewerComposition,
+      sketchPlanePickSession,
       viewerTargetBuildOutputs,
       viewerTargetCommittedGeometryResult,
-        viewerTargetCommittedPreviewGeometryResult,
-        viewerTargetGeometryResult,
-        viewerTargetGraphDocumentId,
-        viewerTargetBuildBundle,
-        viewerTargetPreviewReadyAuthoritativeGeometryResult,
+      viewerTargetCommittedPreviewGeometryResult,
+      viewerTargetGeometryResult,
+      viewerTargetGraphDocumentId,
+      viewerTargetBuildBundle,
+      viewerTargetPreviewReadyAuthoritativeGeometryResult,
       viewerTargetPreviewGeometryResult,
       viewerTargetPreviewPreparation,
       viewportResultMode,
@@ -3932,7 +3894,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
                 {sketchSessionToolSelectionExpanded ? (
                   <div className="ViewportOverlayToolPanelCustomizationRows">
                     <div className="ViewportOverlaySketchToolbar">
-                    {(['line', 'pline', 'rectangle', 'circle'] as const).map((tool) => (
+                    {PRIMARY_SKETCH_DRAW_TOOLS.map((tool) => (
                       <button
                         key={tool}
                         type="button"
@@ -4072,7 +4034,14 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
                               type="button"
                               className="isGhost"
                               onClick={() => {
-                                startGeometrySketchSession(activeGeometrySketchNode.nodeId, 'review')
+                                if (activeGraphDocumentId.length === 0) {
+                                  return
+                                }
+                                startSketchReviewIntent(
+                                  buildWorkspaceIntentDepsFromCurrentStoreState(),
+                                  activeGraphDocumentId,
+                                  activeGeometrySketchNode.nodeId,
+                                )
                               }}
                             >
                               Review Profiles
@@ -4418,7 +4387,14 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
                         type="button"
                         className="isGhost"
                         onClick={() => {
-                          startGeometrySketchSession(activeGeometrySketchNode.nodeId, 'draw')
+                          if (activeGraphDocumentId.length === 0) {
+                            return
+                          }
+                          startSketchDrawIntent(
+                            buildWorkspaceIntentDepsFromCurrentStoreState(),
+                            activeGraphDocumentId,
+                            activeGeometrySketchNode.nodeId,
+                          )
                         }}
                       >
                         Back To Draw

@@ -43,6 +43,11 @@ import { getTypeColor, STRUCTURED_WIRE_ENUM_INPUT_COLOR } from './typeColors'
 import { ParaSelect } from '../../components/ParaSelect'
 import { ParaSlider } from '../../components/ParaSlider'
 import { useAppStore } from '../../store/useAppStore'
+import {
+  buildWorkspaceIntentDepsFromCurrentStoreState,
+  startSketchDrawIntent,
+  startSketchPlaneIntent,
+} from '../../store/workspaceIntents'
 import type {
   DriverControlRowVm,
   DriverEndpointRowVm,
@@ -488,7 +493,6 @@ function NodeViewComponent({
     (state) => state.sketchPlanePickSession?.nodeId ?? null,
   )
   const activeGeometrySketchSession = useSpaghettiStore((state) => state.geometrySketchSession)
-  const startSketchPlanePick = useSpaghettiStore((state) => state.startSketchPlanePick)
   const cancelSketchPlanePick = useSpaghettiStore((state) => state.cancelSketchPlanePick)
   const setSketchPlanePickDraftPlane = useSpaghettiStore(
     (state) => state.setSketchPlanePickDraftPlane,
@@ -512,9 +516,6 @@ function NodeViewComponent({
   const setGeometrySketchPlaneInPlaneRotation = useSpaghettiStore(
     (state) => state.setGeometrySketchPlaneInPlaneRotation,
   )
-  const startGeometrySketchSession = useSpaghettiStore(
-    (state) => state.startGeometrySketchSession,
-  )
   const moveGeometrySketchComponentUp = useSpaghettiStore(
     (state) => state.moveGeometrySketchComponentUp,
   )
@@ -530,14 +531,14 @@ function NodeViewComponent({
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
 
   const beginGraphParameterInteraction = () => {
-    if (activeGraphDocumentId === null) {
+    if (activeGraphDocumentId.length === 0) {
       return
     }
     beginBrowserBuildInteraction(activeGraphDocumentId)
   }
 
   const endGraphParameterInteraction = () => {
-    if (activeGraphDocumentId === null) {
+    if (activeGraphDocumentId.length === 0) {
       return
     }
     endBrowserBuildInteraction(activeGraphDocumentId)
@@ -2518,7 +2519,14 @@ function NodeViewComponent({
                     cancelSketchPlanePick()
                     return
                   }
-                  startSketchPlanePick(node.nodeId)
+                  if (activeGraphDocumentId.length === 0) {
+                    return
+                  }
+                  startSketchPlaneIntent(
+                    buildWorkspaceIntentDepsFromCurrentStoreState(),
+                    activeGraphDocumentId,
+                    node.nodeId,
+                  )
                 }}
               >
                 {planePickActive ? 'Cancel Viewer Pick' : 'Pick In Viewport'}
@@ -2675,7 +2683,14 @@ function NodeViewComponent({
             {...SP_INTERACTIVE_PROPS}
             onClick={(event) => {
               event.stopPropagation()
-              startGeometrySketchSession(node.nodeId, 'draw')
+              if (activeGraphDocumentId.length === 0) {
+                return
+              }
+              startSketchDrawIntent(
+                buildWorkspaceIntentDepsFromCurrentStoreState(),
+                activeGraphDocumentId,
+                node.nodeId,
+              )
             }}
           >
             {activeSketchSession?.mode === 'draw' ? 'Resume Draw' : 'Draw'}

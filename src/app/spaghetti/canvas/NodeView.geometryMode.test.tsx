@@ -44,6 +44,7 @@ let NodeView!: typeof import('./NodeView').NodeView
 let useSpaghettiUiStore!: typeof import('./state/spaghettiUiStore').useSpaghettiUiStore
 let selectNodeMode!: typeof import('../store/useSpaghettiStore').selectNodeMode
 let useSpaghettiStore!: typeof import('../store/useSpaghettiStore').useSpaghettiStore
+let useAppStore!: typeof import('../../store/useAppStore').useAppStore
 const originalWorker = globalThis.Worker
 
 const emptyCompositeState = {
@@ -146,6 +147,10 @@ const sketchInputPortDetails = {
     { text: 'type: plane' },
     { text: 'connections in: 0/1' },
   ],
+  SketchEntities: [
+    { text: 'type: sketchEntities' },
+    { text: 'connections in: 0/1' },
+  ],
 }
 
 const allInputs: PortSpec[] = [
@@ -153,6 +158,13 @@ const allInputs: PortSpec[] = [
     portId: 'SketchPlane',
     label: 'SketchPlane',
     type: { kind: 'plane' },
+    optional: true,
+    maxConnectionsIn: 1,
+  },
+  {
+    portId: 'SketchEntities',
+    label: 'SketchDraw',
+    type: { kind: 'sketchEntities' },
     optional: true,
     maxConnectionsIn: 1,
   },
@@ -646,6 +658,8 @@ describe('NodeView geometry mode behavior', () => {
     ;({ NodeView } = await import('./NodeView'))
     ;({ useSpaghettiUiStore } = await import('./state/spaghettiUiStore'))
     ;({ selectNodeMode, useSpaghettiStore } = await import('../store/useSpaghettiStore'))
+    ;({ useAppStore } = await import('../../store/useAppStore'))
+    useAppStore.setState(useAppStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useSpaghettiUiStore.setState({
       collapsed: {},
@@ -2164,5 +2178,61 @@ describe('NodeView geometry mode behavior', () => {
         planeTransform?: { offsetMm?: number }
       }) ?? null
     expect(sketch?.planeTransform?.offsetMm).toBe(0.1)
+  })
+
+  it('routes Draw through the shared sketch entry intent band', async () => {
+    await act(async () => {
+      root?.render(<SketchNodeHarness />)
+    })
+
+    const entitiesRow = findSketchInputRow(container, 'SketchDraw')
+    const entitiesLabel = entitiesRow?.querySelector('.SpaghettiPortName')
+    expect(entitiesLabel).not.toBeNull()
+
+    await act(async () => {
+      entitiesLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const drawButton = Array.from(entitiesRow?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent?.trim() === 'Draw',
+    ) as HTMLButtonElement | undefined
+    expect(drawButton).toBeDefined()
+
+    await act(async () => {
+      drawButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'draw',
+    })
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-sketch-1',
+    })
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
+  })
+
+  it('rehydrates Resume Draw from the canonical geometry sketch session', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().startGeometrySketchSession('node-sketch-1', 'draw')
+      root?.render(<SketchNodeHarness />)
+    })
+
+    const entitiesRow = findSketchInputRow(container, 'SketchDraw')
+    const entitiesLabel = entitiesRow?.querySelector('.SpaghettiPortName')
+    expect(entitiesLabel).not.toBeNull()
+
+    await act(async () => {
+      entitiesLabel?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      Array.from(entitiesRow?.querySelectorAll('button') ?? []).some(
+        (button) => button.textContent?.trim() === 'Resume Draw',
+      ),
+    ).toBe(true)
   })
 })

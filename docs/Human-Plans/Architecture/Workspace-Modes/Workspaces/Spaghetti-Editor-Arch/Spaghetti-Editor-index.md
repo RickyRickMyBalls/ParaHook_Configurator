@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-04-13: Reframed the new `Spaghetti-Editor 4` family from a generic node-toolbar-host lane into `Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface`, so the umbrella index now matches the intended compact hideable left toolbar for browsing, organizing, and dragging node types onto the canvas
+9. 2026-04-13: Added the open umbrella phase `Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract` plus the dedicated future doc `Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` so generic canvas-owned node-toolbar hosting, launcher behavior, and family handoff now have one clean planning home instead of living only as scattered node-family toolbar notes
 8. 2026-04-06: Added the open umbrella phase `Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation` plus the dedicated future doc `Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md` so the proposed new `O` titlebar mode, the cleanup of the current overlay-on-model-viewport experiment, and the restoration of `e` to real essential float-window meaning now have one clean planning home
 7. 2026-04-06: Marked `Spaghetti-Editor 2 - New Node Spawn Mode And Toolbar Cycle Control` shipped after the editor gained the global spawn-mode cycle control and creation-time node-mode stamping, and refreshed the umbrella phase summary so the new-node compact-default cleanup now reads as landed workspace behavior
 6. 2026-04-06: Prepared `Spaghetti-Editor 2` for implementation by adding the dedicated future doc `Future/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`, narrowing the umbrella index entry so the spawn-default and toolbar-cycle work now points at one implementation-ready source of truth
@@ -124,6 +126,7 @@ Primary docs:
 Current read:
 - this family is still mainly an umbrella architecture map
 - it now has one first proving-slice phase for cross-node smart-wiring behavior
+- it now also has a small editor-shell and canvas-chrome ladder for shared spawn-mode, overlay, and a left-side node palette
 - it still does not have a deep standalone ladder like `Sketch`
 - deeper feature planning should keep moving into subfamilies instead of bloating the umbrella doc
 
@@ -390,3 +393,30 @@ Short read:
 Initial phase breakdown:
 - `Spaghetti-Editor 3 - Phase 1 - Window Density Truth And O Mode Entry`
 - `Spaghetti-Editor 3 - Phase 2 - Overlay Titlebar Controls And Surface Cleanup`
+
+### [ ] Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface
+
+Standalone phase doc:
+- `Future/Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`
+
+#### Purpose
+
+Add one honest left-side node palette for the Spaghetti canvas so the user can browse, search, and organize addable node types without relying only on the temporary canvas add menu.
+
+This phase should separate:
+- generic canvas-owned node palette behavior
+- family-specific node definitions and organization labels
+
+Implementation-ready phase details now live in the standalone doc above.
+
+Short read:
+- add one compact hideable toolbar on the left side of the canvas
+- reuse the existing addable node list instead of inventing a second node-source truth
+- organize nodes so the user can browse and search them more easily
+- support dragging node types from the palette onto the canvas
+- keep the current temporary add menu only as compatibility residue until the palette is good enough to replace or narrow it
+
+Initial phase breakdown:
+- `Spaghetti-Editor 4 - Phase 1 - Left Palette Host And Visibility`
+- `Spaghetti-Editor 4 - Phase 2 - Organized Node List And Search Surface`
+- `Spaghetti-Editor 4 - Phase 3 - Drag-And-Drop Node Spawn And Add-Menu Handoff`

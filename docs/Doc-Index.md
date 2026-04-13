@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+237. 2026-04-13 09:13:40: Reframed the new `Spaghetti-Editor 4` workspace-family execution surface around the clarified left-side node palette idea by replacing `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` with `.../Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`, refreshing `Spaghetti-Editor-index.md` so the umbrella lane now matches the compact hideable left-palette-and-drag-drop direction, and updating the `Spaghetti-Editor-Arch` subtree listing so the new future doc stays discoverable beside the family index
+236. 2026-04-13 08:43:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` to the docs map as the next dedicated `Spaghetti-Editor-Arch` future execution surface, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md` so the umbrella family now points at the new `Spaghetti-Editor 4` canvas-toolbar-host lane, and extended the `Spaghetti-Editor-Arch` subtree listing so the current future and shipped workspace-level phase docs stay discoverable beside the family index
 235. 2026-04-12 10:09:21: Added `docs/Agents/Implementation-Behavior.md` as the new repo-wide implementation behavior guide for file ownership, hook/effect boundaries, migration retirement, and cleanup bias, then refreshed the `Agents` section of this docs map so the new guidance is discoverable beside the existing planning-agent docs
 234. 2026-04-09 12:10: Moved `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md` into `Shipped/` after the full ladder landed, added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-2 - Draft Preview Scheduling And Settle Rules.md` as the next dedicated future execution surface under `Worker-Vision.md`, and refreshed the Worker subtree listing so the family docs map now matches the shipped `Vision-1` plus future `Vision-2` handoff
 233. 2026-04-09 11:25: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-1 - Request Supersession And Cooperative Early Abort.md` to the docs map as the first dedicated future execution surface under `Worker-Vision.md`, then refreshed the Worker subtree listing so the new runtime-supersession lane is discoverable beside the Worker family umbrella docs
@@ -703,6 +705,12 @@ Rule notes:
             - `Workspaces/Radio/Radio.md`
 ###### -------------Spaghetti-Editor-Arch
             - `Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md`
+####### --------------Future
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 3 - Overlay O Mode And Window Density Separation.md`
+            - `Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`
+####### --------------Shipped
+            - `Workspaces/Spaghetti-Editor-Arch/Shipped/Master_Spaghetti_Phase Spaghetti-Editor-2 - New Node Spawn Mode And Toolbar Cycle Control.md`
 ##### ------------Future
             - `Future/Workspace_Phase Workspace-5.3 - Open Editors Multi-Graph Workspace UX And Session Truth.md`
             - `Future/Workspace_Phase Workspace-7 - Viewport Slot Architecture And Surface Swapping.md`

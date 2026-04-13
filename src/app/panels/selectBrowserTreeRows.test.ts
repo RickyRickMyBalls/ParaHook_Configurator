@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { EditorViewport, GraphDocument } from '../spaghetti/schema/spaghettiTypes'
+import type { ReferenceFileType } from '../references/referenceManifest'
 import type { BrowserGraphRowVm } from './selectBrowserGraphRows'
 import { selectBrowserTreeRows } from './selectBrowserTreeRows'
-import type { BrowserBuildPolicy, ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
+import type {
+  BrowserBuildPolicy,
+  ReferenceItemLoadState,
+  ReferenceWorkspaceBrowserTreeVm,
+} from '../store/useAppStore'
 
 const graphDocument = (
   graphDocumentId: string,
@@ -137,6 +142,135 @@ const emptyReferenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
   ],
 }
 
+const referenceRootContentRow = (options?: {
+  rowId?: string
+  label?: string
+  isVisible?: boolean
+  itemCount?: number
+}) => ({
+  rowId: options?.rowId ?? 'reference-root',
+  kind: 'assembly' as const,
+  label: options?.label ?? 'References',
+  meta: `${options?.itemCount ?? 0} items`,
+  parentAssemblyId: null,
+  isVisible: options?.isVisible ?? false,
+  visibilityPartKeys: [],
+  buildState: 'done' as const,
+  buildStateLabel: '',
+  rebuildGraphDocumentIds: [],
+  statusLabel: '',
+  statusTone: 'quiet' as const,
+  referenceContainerKind: 'root' as const,
+  referenceCategoryId: null,
+  referenceContainerItemCount: options?.itemCount ?? 0,
+  referenceContainerEmptyLabel: null,
+})
+
+const referenceCategoryContentRow = (options: {
+  rowId: string
+  label: string
+  categoryId: 'footpads' | 'shoes' | 'premade-foothooks' | 'user-references'
+  itemCount: number
+  isVisible?: boolean
+  parentAssemblyId?: string
+  emptyLabel?: string
+}) => ({
+  rowId: options.rowId,
+  kind: 'component' as const,
+  label: options.label,
+  meta: options.itemCount === 1 ? '1 item' : `${options.itemCount} items`,
+  parentAssemblyId: options.parentAssemblyId ?? 'reference-root',
+  isVisible: options.isVisible ?? false,
+  visibilityPartKeys: [],
+  buildState: 'done' as const,
+  buildStateLabel: '',
+  rebuildGraphDocumentIds: [],
+  statusLabel: '',
+  statusTone: 'quiet' as const,
+  ownerGraphDocumentId: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  componentSourceKind: 'receive-link' as const,
+  resolutionState: 'resolved' as const,
+  receiveId: null,
+  childObjectCount: options.itemCount,
+  slotId: null,
+  sourceNodeId: null,
+  highlightViewerKey: null,
+  authoringGraphDocumentId: null,
+  authoringNodeId: null,
+  referenceContainerKind: 'category' as const,
+  referenceCategoryId: options.categoryId,
+  referenceContainerItemCount: options.itemCount,
+  referenceContainerEmptyLabel: options.emptyLabel ?? null,
+})
+
+const referenceObjectContentRow = (options: {
+  rowId: string
+  label: string
+  referenceId: string
+  sourceKind: 'manifest' | 'imported'
+  categoryId: 'footpads' | 'shoes' | 'premade-foothooks' | 'user-references'
+  fileType: ReferenceFileType
+  assetPath: string
+  loadState: ReferenceItemLoadState
+  isVisible: boolean
+  parentAssemblyId?: string | null
+  parentComponentId?: string | null
+  errorMessage?: string | null
+  contentOriginKind?: 'source-reference' | 'imported-reference'
+  buildStateLabel?: string
+}) => ({
+  ...(options.contentOriginKind === undefined
+    ? {}
+    : { contentOriginKind: options.contentOriginKind }),
+  rowId: options.rowId,
+  kind: 'object' as const,
+  label: options.label,
+  meta: options.fileType.toUpperCase(),
+  parentAssemblyId: options.parentAssemblyId ?? 'reference-root',
+  parentComponentId: options.parentComponentId ?? null,
+  isVisible: options.isVisible,
+  visibilityPartKeys: [],
+  buildState: 'done' as const,
+  buildStateLabel:
+    options.buildStateLabel ??
+    ((options.contentOriginKind ??
+      (options.parentAssemblyId != null || options.parentComponentId != null
+        ? 'imported-reference'
+        : 'source-reference')) === 'imported-reference'
+      ? 'Imported'
+      : options.sourceKind === 'manifest'
+        ? 'Library'
+        : 'Imported'),
+  rebuildGraphDocumentIds: [],
+  statusLabel: '',
+  statusTone: 'quiet' as const,
+  ownerGraphDocumentId: null,
+  objectSourceKind: null,
+  sourceGraphDocumentId: null,
+  sourceOutputEntryId: null,
+  slotId: null,
+  sourceNodeId: null,
+  resolutionState: null,
+  highlightViewerKey: null,
+  authoringGraphDocumentId: null,
+  authoringNodeId: null,
+  contentOriginKind:
+    options.contentOriginKind ??
+    (options.parentAssemblyId != null || options.parentComponentId != null
+      ? ('imported-reference' as const)
+      : ('source-reference' as const)),
+  referenceId: options.referenceId,
+  referenceSourceKind: options.sourceKind,
+  referenceCategoryId: options.categoryId,
+  referenceLoadState: options.loadState,
+  fileType: options.fileType,
+  assetPath: options.assetPath,
+  errorMessage: options.errorMessage ?? null,
+  partRows: [],
+})
+
 describe('selectBrowserTreeRows', () => {
   it('builds graph rows with child sections instead of published-output rows', () => {
     const rows = selectBrowserTreeRows({
@@ -246,34 +380,7 @@ describe('selectBrowserTreeRows', () => {
         ],
       },
     ])
-    expect(rows.contentRows).toEqual(
-      expect.arrayContaining([
-      expect.objectContaining({
-        rowId: 'reference-root',
-        rowKind: 'assembly',
-        referenceContainerKind: 'root',
-        label: 'References',
-      }),
-      expect.objectContaining({
-        rowId: 'reference-category-row:footpads',
-        rowKind: 'component',
-        referenceContainerKind: 'category',
-        label: 'Footpads',
-      }),
-      expect.objectContaining({
-        rowId: 'reference-category-row:shoes',
-        rowKind: 'component',
-        referenceContainerKind: 'category',
-        label: 'Shoes',
-      }),
-      expect.objectContaining({
-        rowId: 'reference-category-row:premade-foothooks',
-        rowKind: 'component',
-        referenceContainerKind: 'category',
-        label: 'Premade Foothooks',
-      }),
-      ]),
-    )
+    expect(rows.contentRows).toEqual([])
   })
 
   it('keeps Browser selection local and separates it from viewport focus state', () => {
@@ -944,10 +1051,6 @@ describe('selectBrowserTreeRows', () => {
     })
 
     expect(rows.contentRows.map((row) => row.rowId)).toEqual([
-      'reference-root',
-      'reference-category-row:footpads',
-      'reference-category-row:shoes',
-      'reference-category-row:premade-foothooks',
       'assembly-root:project-file-1',
       'project-component:project-file-1:graph-document-1:published',
     ])
@@ -1216,53 +1319,46 @@ describe('selectBrowserTreeRows', () => {
 
   it('renders STEP reference rows as normal items and prefers loading over error in aggregate category state', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        rowId: 'reference-root',
-        label: 'References',
-        isExpanded: true,
-        categories: [
-          {
-            rowId: 'reference-category-row:premade-foothooks',
-            categoryId: 'premade-foothooks',
-            label: 'Premade Foothooks',
-            isExpanded: true,
-            itemCount: 2,
-            visibleItemCount: 1,
-            hasLoadingItem: true,
-            hasErrorItem: true,
-            emptyLabel: 'No loadable references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:hook:large',
-                referenceId: 'hook:large',
-                sourceKind: 'manifest',
-                label: 'Large',
-                categoryId: 'premade-foothooks',
-                fileType: 'step',
-                assetPath: '/ReferenceModels/hooks/large.step',
-                isVisible: true,
-                loadState: 'loading',
-                errorMessage: null,
-                parts: [],
-              },
-              {
-                rowId: 'reference-item-row:hook:medium',
-                referenceId: 'hook:medium',
-                sourceKind: 'manifest',
-                label: 'Medium',
-                categoryId: 'premade-foothooks',
-                fileType: 'step',
-                assetPath: '/ReferenceModels/hooks/medium.step',
-                isVisible: false,
-                loadState: 'error',
-                errorMessage: 'STEP import failed',
-                parts: [],
-              },
-            ],
-          },
-        ],
-      },
-      contentRows: [],
+      contentRows: [
+        referenceRootContentRow({ itemCount: 2, isVisible: true }),
+        referenceCategoryContentRow({
+          rowId: 'reference-category-row:premade-foothooks',
+          categoryId: 'premade-foothooks',
+          label: 'Premade Foothooks',
+          itemCount: 2,
+          isVisible: true,
+          emptyLabel: 'No loadable references yet.',
+        }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:hook:large',
+          referenceId: 'hook:large',
+          sourceKind: 'manifest',
+          label: 'Large',
+          categoryId: 'premade-foothooks',
+          fileType: 'step',
+          assetPath: '/ReferenceModels/hooks/large.step',
+          isVisible: true,
+          loadState: 'loading',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Library',
+          parentComponentId: 'reference-category-row:premade-foothooks',
+        }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:hook:medium',
+          referenceId: 'hook:medium',
+          sourceKind: 'manifest',
+          label: 'Medium',
+          categoryId: 'premade-foothooks',
+          fileType: 'step',
+          assetPath: '/ReferenceModels/hooks/medium.step',
+          isVisible: false,
+          loadState: 'error',
+          errorMessage: 'STEP import failed',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Library',
+          parentComponentId: 'reference-category-row:premade-foothooks',
+        }),
+      ],
       graphRows: [],
       editorViewports: [],
       graphDocumentsById: {},
@@ -1329,48 +1425,28 @@ describe('selectBrowserTreeRows', () => {
 
   it('renders imported references inside the content hierarchy when they have a landing parent', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        rowId: 'reference-root',
-        label: 'References',
-        isExpanded: true,
-        categories: [
-          {
-            rowId: 'reference-category-row:user-references',
-            categoryId: 'user-references',
-            label: 'User References',
-            isExpanded: true,
-            itemCount: 1,
-            visibleItemCount: 1,
-            hasLoadingItem: false,
-            hasErrorItem: false,
-            emptyLabel: 'No imported references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:reference-import:1',
-                referenceId: 'reference-import:1',
-                sourceKind: 'imported',
-                label: 'shoe.glb',
-                categoryId: 'user-references',
-                fileType: 'glb',
-                assetPath: 'blob:shoe-1',
-                isVisible: true,
-                loadState: 'loaded',
-                errorMessage: null,
-                parentAssemblyId: 'assembly-1',
-                parentComponentId: null,
-                parts: [],
-              },
-            ],
-          },
-        ],
-      },
       contentRows: [
+        referenceRootContentRow({ itemCount: 0, isVisible: false }),
         {
           rowId: 'assembly-1',
           kind: 'assembly',
           label: 'Assembly 1',
           meta: '',
         },
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:reference-import:1',
+          referenceId: 'reference-import:1',
+          sourceKind: 'imported',
+          label: 'shoe.glb',
+          categoryId: 'user-references',
+          fileType: 'glb',
+          assetPath: 'blob:shoe-1',
+          isVisible: true,
+          loadState: 'loaded',
+          contentOriginKind: 'imported-reference',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+        }),
       ],
       graphRows: [],
       editorViewports: [],
@@ -1413,42 +1489,24 @@ describe('selectBrowserTreeRows', () => {
 
   it('flattens imported user references directly under References when no grouping parent survives', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        rowId: 'reference-root',
-        label: 'References',
-        isExpanded: true,
-        categories: [
-          {
-            rowId: 'reference-category-row:user-references',
-            categoryId: 'user-references',
-            label: 'User References',
-            isExpanded: true,
-            itemCount: 1,
-            visibleItemCount: 1,
-            hasLoadingItem: false,
-            hasErrorItem: false,
-            emptyLabel: 'No imported references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:reference-import:1',
-                referenceId: 'reference-import:1',
-                sourceKind: 'imported',
-                label: 'shoe.glb',
-                categoryId: 'user-references',
-                fileType: 'glb',
-                assetPath: 'blob:shoe-1',
-                isVisible: true,
-                loadState: 'loaded',
-                errorMessage: null,
-                parentAssemblyId: null,
-                parentComponentId: null,
-                parts: [],
-              },
-            ],
-          },
-        ],
-      },
-      contentRows: [],
+      contentRows: [
+        referenceRootContentRow({ itemCount: 1, isVisible: true }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:reference-import:1',
+          referenceId: 'reference-import:1',
+          sourceKind: 'imported',
+          label: 'shoe.glb',
+          categoryId: 'user-references',
+          fileType: 'glb',
+          assetPath: 'blob:shoe-1',
+          isVisible: true,
+          loadState: 'loaded',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Imported',
+          parentAssemblyId: 'reference-root',
+          parentComponentId: null,
+        }),
+      ],
       graphRows: [],
       editorViewports: [],
       graphDocumentsById: {},
@@ -1485,63 +1543,51 @@ describe('selectBrowserTreeRows', () => {
 
   it('moves manifest library objects into the content hierarchy when they gain a landing parent', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        rowId: 'reference-root',
-        label: 'References',
-        isExpanded: true,
-        categories: [
-          {
-            rowId: 'reference-category-row:shoes',
-            categoryId: 'shoes',
-            label: 'Shoes',
-            isExpanded: true,
-            itemCount: 1,
-            visibleItemCount: 1,
-            hasLoadingItem: false,
-            hasErrorItem: false,
-            emptyLabel: 'No loadable references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:shoe:shoe-1',
-                referenceId: 'shoe:shoe-1',
-                sourceKind: 'manifest',
-                label: 'Shoe 1',
-                categoryId: 'shoes',
-                fileType: 'glb',
-                assetPath: '/ReferenceModels/shoes/shoe-1.glb',
-                isVisible: true,
-                loadState: 'loaded',
-                errorMessage: null,
-                parentAssemblyId: 'assembly-1',
-                parentComponentId: null,
-                parts: [],
-              },
-              {
-                rowId: 'reference-item-row:shoe:shoe-2',
-                referenceId: 'shoe:shoe-2',
-                sourceKind: 'manifest',
-                label: 'Shoe 2',
-                categoryId: 'shoes',
-                fileType: 'glb',
-                assetPath: '/ReferenceModels/shoes/shoe-2.glb',
-                isVisible: true,
-                loadState: 'loaded',
-                errorMessage: null,
-                parentAssemblyId: null,
-                parentComponentId: null,
-                parts: [],
-              },
-            ],
-          },
-        ],
-      },
       contentRows: [
+        referenceRootContentRow({ itemCount: 1, isVisible: true }),
+        referenceCategoryContentRow({
+          rowId: 'reference-category-row:shoes',
+          categoryId: 'shoes',
+          label: 'Shoes',
+          itemCount: 1,
+          isVisible: true,
+          emptyLabel: 'No loadable references yet.',
+        }),
         {
           rowId: 'assembly-1',
           kind: 'assembly',
           label: 'Assembly 1',
           meta: '',
         },
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:shoe:shoe-2',
+          referenceId: 'shoe:shoe-2',
+          sourceKind: 'manifest',
+          label: 'Shoe 2',
+          categoryId: 'shoes',
+          fileType: 'glb',
+          assetPath: '/ReferenceModels/shoes/shoe-2.glb',
+          isVisible: true,
+          loadState: 'loaded',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Library',
+          parentAssemblyId: 'reference-root',
+          parentComponentId: 'reference-category-row:shoes',
+        }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:shoe:shoe-1',
+          referenceId: 'shoe:shoe-1',
+          sourceKind: 'manifest',
+          label: 'Shoe 1',
+          categoryId: 'shoes',
+          fileType: 'glb',
+          assetPath: '/ReferenceModels/shoes/shoe-1.glb',
+          isVisible: true,
+          loadState: 'loaded',
+          contentOriginKind: 'imported-reference',
+          parentAssemblyId: 'assembly-1',
+          parentComponentId: null,
+        }),
       ],
       graphRows: [],
       editorViewports: [],
@@ -1590,58 +1636,40 @@ describe('selectBrowserTreeRows', () => {
 
   it('renders part rows under landed reference-backed objects when real part structure is available', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        rowId: 'reference-root',
-        label: 'References',
-        isExpanded: true,
-        categories: [
-          {
-            rowId: 'reference-category-row:user-references',
-            categoryId: 'user-references',
-            label: 'User References',
-            isExpanded: true,
-            itemCount: 1,
-            visibleItemCount: 1,
-            hasLoadingItem: false,
-            hasErrorItem: false,
-            emptyLabel: 'No imported references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:reference-import:1',
-                referenceId: 'reference-import:1',
-                sourceKind: 'imported',
-                label: 'shoe.glb',
-                categoryId: 'user-references',
-                fileType: 'glb',
-                assetPath: 'blob:shoe-1',
-                isVisible: true,
-                loadState: 'loaded',
-                errorMessage: null,
-                parentAssemblyId: 'assembly-1',
-                parentComponentId: null,
-                parts: [
-                  {
-                    rowId: 'reference-part-row:reference-part:reference-import:1:0',
-                    partKey: 'reference-part:reference-import:1:0',
-                    label: 'Upper',
-                  },
-                  {
-                    rowId: 'reference-part-row:reference-part:reference-import:1:1',
-                    partKey: 'reference-part:reference-import:1:1',
-                    label: 'Sole',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
       contentRows: [
         {
           rowId: 'assembly-1',
           kind: 'assembly',
           label: 'Assembly 1',
           meta: '',
+        },
+        {
+          ...referenceObjectContentRow({
+            rowId: 'reference-item-row:reference-import:1',
+            referenceId: 'reference-import:1',
+            sourceKind: 'imported',
+            label: 'shoe.glb',
+            categoryId: 'user-references',
+            fileType: 'glb',
+            assetPath: 'blob:shoe-1',
+            isVisible: true,
+            loadState: 'loaded',
+            contentOriginKind: 'imported-reference',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+          }),
+          partRows: [
+            {
+              rowId: 'reference-part-row:reference-part:reference-import:1:0',
+              partKey: 'reference-part:reference-import:1:0',
+              label: 'Upper',
+            },
+            {
+              rowId: 'reference-part-row:reference-part:reference-import:1:1',
+              partKey: 'reference-part:reference-import:1:1',
+              label: 'Sole',
+            },
+          ],
         },
       ],
       graphRows: [],
@@ -1688,78 +1716,6 @@ describe('selectBrowserTreeRows', () => {
 
   it('derives aggregate root and category progress from the active reference batch without changing item bars', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        rowId: 'reference-root',
-        label: 'References',
-        isExpanded: true,
-        categories: [
-          {
-            rowId: 'reference-category-row:footpads',
-            categoryId: 'footpads',
-            label: 'Footpads',
-            isExpanded: true,
-            itemCount: 1,
-            visibleItemCount: 1,
-            hasLoadingItem: false,
-            hasErrorItem: false,
-            emptyLabel: 'No loadable references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:footpad:pubpad-full-assembly',
-                referenceId: 'footpad:pubpad-full-assembly',
-                sourceKind: 'manifest',
-                label: 'PubPad Full Assembly',
-                categoryId: 'footpads',
-                fileType: 'obj',
-                assetPath: 'ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
-                isVisible: true,
-                loadState: 'loaded',
-                errorMessage: null,
-                parts: [],
-              },
-            ],
-          },
-          {
-            rowId: 'reference-category-row:shoes',
-            categoryId: 'shoes',
-            label: 'Shoes',
-            isExpanded: true,
-            itemCount: 2,
-            visibleItemCount: 2,
-            hasLoadingItem: true,
-            hasErrorItem: false,
-            emptyLabel: 'No loadable references yet.',
-            items: [
-              {
-                rowId: 'reference-item-row:shoe:shoe-1',
-                referenceId: 'shoe:shoe-1',
-                sourceKind: 'manifest',
-                label: 'Shoe 1',
-                categoryId: 'shoes',
-                fileType: 'glb',
-                assetPath: 'shoe-1.glb',
-                isVisible: true,
-                loadState: 'loading',
-                errorMessage: null,
-                parts: [],
-              },
-              {
-                rowId: 'reference-item-row:shoe:shoe-2',
-                referenceId: 'shoe:shoe-2',
-                sourceKind: 'manifest',
-                label: 'Shoe 2',
-                categoryId: 'shoes',
-                fileType: 'glb',
-                assetPath: 'shoe-2.glb',
-                isVisible: true,
-                loadState: 'unloaded',
-                errorMessage: null,
-                parts: [],
-              },
-            ],
-          },
-        ],
-      },
       referenceLoadBatch: {
         requestId: 'reference-load-batch:1',
         source: 'root-load-all',
@@ -1771,7 +1727,67 @@ describe('selectBrowserTreeRows', () => {
         failedIds: ['shoe:shoe-1'],
         startedAt: 1,
       },
-      contentRows: [],
+      contentRows: [
+        referenceRootContentRow({ itemCount: 3, isVisible: true }),
+        referenceCategoryContentRow({
+          rowId: 'reference-category-row:footpads',
+          categoryId: 'footpads',
+          label: 'Footpads',
+          itemCount: 1,
+          isVisible: true,
+          emptyLabel: 'No loadable references yet.',
+        }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:footpad:pubpad-full-assembly',
+          referenceId: 'footpad:pubpad-full-assembly',
+          sourceKind: 'manifest',
+          label: 'PubPad Full Assembly',
+          categoryId: 'footpads',
+          fileType: 'obj',
+          assetPath: 'ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+          isVisible: true,
+          loadState: 'loaded',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Library',
+          parentComponentId: 'reference-category-row:footpads',
+        }),
+        referenceCategoryContentRow({
+          rowId: 'reference-category-row:shoes',
+          categoryId: 'shoes',
+          label: 'Shoes',
+          itemCount: 2,
+          isVisible: true,
+          emptyLabel: 'No loadable references yet.',
+        }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:shoe:shoe-1',
+          referenceId: 'shoe:shoe-1',
+          sourceKind: 'manifest',
+          label: 'Shoe 1',
+          categoryId: 'shoes',
+          fileType: 'glb',
+          assetPath: 'shoe-1.glb',
+          isVisible: true,
+          loadState: 'loading',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Library',
+          parentComponentId: 'reference-category-row:shoes',
+        }),
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:shoe:shoe-2',
+          referenceId: 'shoe:shoe-2',
+          sourceKind: 'manifest',
+          label: 'Shoe 2',
+          categoryId: 'shoes',
+          fileType: 'glb',
+          assetPath: 'shoe-2.glb',
+          isVisible: true,
+          loadState: 'unloaded',
+          contentOriginKind: 'source-reference',
+          buildStateLabel: 'Library',
+          parentComponentId: 'reference-category-row:shoes',
+        }),
+      ],
       graphRows: [],
       editorViewports: [],
       graphDocumentsById: {},
@@ -1903,42 +1919,28 @@ describe('selectBrowserTreeRows', () => {
 
   it('interleaves imported reference rows with authored content children using parent content order', () => {
     const rows = selectBrowserTreeRows({
-      referenceWorkspaceTree: {
-        ...emptyReferenceWorkspaceTree,
-        categories: emptyReferenceWorkspaceTree.categories.map((category) =>
-          category.categoryId !== 'user-references'
-            ? category
-            : {
-                ...category,
-                itemCount: 1,
-                visibleItemCount: 1,
-                items: [
-                  {
-                    rowId: 'reference-item-row:shoe-import-1',
-                    referenceId: 'shoe-import-1',
-                    sourceKind: 'imported',
-                    label: 'Imported Shoe',
-                    categoryId: 'user-references',
-                    fileType: 'glb',
-                    assetPath: 'references/imported/shoe.glb',
-                    isVisible: true,
-                    loadState: 'loaded',
-                    errorMessage: null,
-                    parentAssemblyId: 'assembly-root:project-file-1',
-                    parentComponentId: null,
-                    parts: [],
-                  },
-                ],
-              },
-        ),
-      },
       contentRows: [
+        referenceRootContentRow({ itemCount: 0, isVisible: false }),
         {
           rowId: 'assembly-root:project-file-1',
           kind: 'assembly',
           label: 'Assembly 1',
           meta: '',
         },
+        referenceObjectContentRow({
+          rowId: 'reference-item-row:shoe-import-1',
+          referenceId: 'shoe-import-1',
+          sourceKind: 'imported',
+          label: 'Imported Shoe',
+          categoryId: 'user-references',
+          fileType: 'glb',
+          assetPath: 'references/imported/shoe.glb',
+          isVisible: true,
+          loadState: 'loaded',
+          contentOriginKind: 'imported-reference',
+          parentAssemblyId: 'assembly-root:project-file-1',
+          parentComponentId: null,
+        }),
         {
           rowId: 'project-object:project-file-1:graph-document-1:object-a',
           kind: 'object',
@@ -1984,9 +1986,6 @@ describe('selectBrowserTreeRows', () => {
 
     expect(rows.contentRows.map((row) => row.rowId)).toEqual([
       'reference-root',
-      'reference-category-row:footpads',
-      'reference-category-row:shoes',
-      'reference-category-row:premade-foothooks',
       'assembly-root:project-file-1',
       'reference-item-row:shoe-import-1',
       'project-object:project-file-1:graph-document-1:object-a',

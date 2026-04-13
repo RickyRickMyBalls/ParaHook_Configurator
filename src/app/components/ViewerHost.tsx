@@ -26,9 +26,7 @@ import {
   selectActiveViewerTransformSession,
   selectActiveViewerTransformTarget,
   selectCurrentProjectContentBrowserRows,
-  selectEffectiveBrowserExecutionPolicy,
   type ReferenceTransformHistoryEntry,
-  selectShouldSuppressBrowserGraphRuntimeOutput,
   selectReferenceWorkspaceItems,
   useAppStore,
   type ViewportPresentationStateId,
@@ -46,7 +44,6 @@ import {
 } from '../workspace/useWorkspaceStore'
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 import { resolveWorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
-import { applyActiveDraftExtrudePreviewOverride } from './activeDraftExtrudePreview'
 import { buildQualifiedGraphOutputEntryId } from '../spaghetti/outputSurface'
 import {
   selectSharedViewerComposition,
@@ -63,6 +60,7 @@ import {
 import type { SketchFeature } from '../spaghetti/features/featureTypes'
 import { type PreviewRenderVm } from '../spaghetti/selectors/selectPreviewRenderVm'
 import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
+import { buildViewportResultSelectorOptions } from './buildViewportResultSelectorOptions'
 import {
   evaluateReferenceTimelineChannelValue,
   evaluateReferenceTransformOverrideWithTimelines,
@@ -342,99 +340,49 @@ export function ViewerHost(props: ViewerHostProps) {
     ],
   )
 
-  const activeDraftProjectViewerParts = useMemo(
-    () =>
-      applyActiveDraftExtrudePreviewOverride({
-        graphDocumentsById,
-        preferredGraphDocumentId: viewerTargetGraphDocumentId,
-        renderedParts: renderedProjectPartSet.parts,
-        viewerParts: renderedProjectPartSet.viewerParts,
-        sketchPlanePickSession,
-      }),
-    [
-      graphDocumentsById,
-      renderedProjectPartSet.parts,
-      renderedProjectPartSet.viewerParts,
-      sketchPlanePickSession,
-      viewerTargetGraphDocumentId,
-    ],
-  )
-
-  const currentProjectGraphDocumentIds = useMemo(
-    () =>
-      currentProject.graphDocuments
-        .map((document) => document.graphDocumentId)
-        .filter((graphDocumentId) => graphDocumentsById[graphDocumentId] !== undefined),
-    [currentProject.graphDocuments, graphDocumentsById],
-  )
-
   const viewportResultState = useMemo(
     () =>
-      selectViewportResultState({
-        requestedMode: viewportResultMode,
-        modeBehavior: viewportResultModeBehavior,
-        acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
-        previewReadyAuthoritativeGeometryResult:
-          viewerTargetPreviewReadyAuthoritativeGeometryResult,
-        acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
-        committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
-        committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
-        acceptedPreviewBuildBundle: viewerTargetBuildBundle,
-        acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
-        previewPreparation: viewerTargetPreviewPreparation,
-        viewerTargetGraphDocumentId,
-        suppressViewerTargetArtifactPreview:
-          viewerTargetGraphDocumentId !== null &&
-          selectShouldSuppressBrowserGraphRuntimeOutput(
-            {
-              currentProject,
-              projectContent,
-              browserGraphBuildPolicyByGraphDocumentId,
-              browserContentBuildPolicyByRowId,
-            },
-            viewerTargetGraphDocumentId,
-          ),
-        useProjectDraftPreview:
-          sharedViewerComposition !== null || currentProjectGraphDocumentIds.length > 0,
-        activeDraftProjectViewerParts,
-        browserExecutionPolicy:
-          viewerTargetGraphDocumentId !== null
-            ? selectEffectiveBrowserExecutionPolicy(
-                {
-                  currentProject,
-                  projectContent,
-                  browserGraphBuildPolicyByGraphDocumentId,
-                  browserContentBuildPolicyByRowId,
-                },
-                {
-                  kind: 'graph-document',
-                  graphDocumentId: viewerTargetGraphDocumentId,
-                },
-              )
-            : 'live',
-        isInteractionActive:
-          viewerTargetGraphDocumentId !== null &&
-          browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true,
-        hasDelayedDraftPlaceholder:
-          viewerTargetGraphDocumentId !== null &&
-          delayedDraftBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
-        hasDelayedAuthoritativePlaceholder:
-          viewerTargetGraphDocumentId !== null &&
-          delayedAuthoritativeBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,
-      }),
+      selectViewportResultState(
+        buildViewportResultSelectorOptions({
+          currentProject,
+          projectContent,
+          browserGraphBuildPolicyByGraphDocumentId,
+          browserContentBuildPolicyByRowId,
+          browserInteractionGraphDocumentIds,
+          delayedDraftBuildByGraphDocumentId,
+          delayedAuthoritativeBuildByGraphDocumentId,
+          requestedMode: viewportResultMode,
+          modeBehavior: viewportResultModeBehavior,
+          renderedProjectPartSet,
+          graphDocumentsById,
+          viewerTargetGraphDocumentId,
+          sharedViewerComposition,
+          sketchPlanePickSession,
+          acceptedAuthoritativeGeometryResult: viewerTargetGeometryResult,
+          previewReadyAuthoritativeGeometryResult:
+            viewerTargetPreviewReadyAuthoritativeGeometryResult,
+          acceptedDraftGeometryResult: viewerTargetPreviewGeometryResult,
+          committedAuthoritativeGeometryResult: viewerTargetCommittedGeometryResult,
+          committedDraftGeometryResult: viewerTargetCommittedPreviewGeometryResult,
+          acceptedPreviewBuildBundle: viewerTargetBuildBundle,
+          acceptedPreviewBuildOutputs: viewerTargetBuildOutputs,
+          previewPreparation: viewerTargetPreviewPreparation,
+        }),
+      ),
     [
-      activeDraftProjectViewerParts,
       browserInteractionGraphDocumentIds,
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
-      currentProjectGraphDocumentIds.length,
       delayedAuthoritativeBuildByGraphDocumentId,
       delayedDraftBuildByGraphDocumentId,
-        projectContent,
-        sharedViewerComposition,
-        viewerTargetBuildBundle,
-        viewerTargetBuildOutputs,
+      graphDocumentsById,
+      projectContent,
+      renderedProjectPartSet,
+      sharedViewerComposition,
+      sketchPlanePickSession,
+      viewerTargetBuildBundle,
+      viewerTargetBuildOutputs,
       viewerTargetCommittedGeometryResult,
       viewerTargetCommittedPreviewGeometryResult,
       viewerTargetGeometryResult,

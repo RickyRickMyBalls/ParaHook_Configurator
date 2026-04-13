@@ -8,6 +8,7 @@ import {
   serializeGraphDocument,
 } from '../../io/graphDocumentPersistence'
 import type { SpaghettiGraph } from '../schema/spaghettiTypes'
+import { getDefaultNodeParams } from '../registry/nodeRegistry'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../system/outputPreviewNode'
 import {
   defaultViewportPosition,
@@ -374,6 +375,66 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(state.activeGraphDocumentId).toBe('graph-document-1')
     expect(state.editorViewportHeaderCollapsedById[firstViewportId ?? '']).toBe(false)
     expect(state.editorViewportCanvasToolbarVisibleById[firstViewportId ?? '']).toBe(true)
+  })
+
+  it('createGraphNodeInDocumentAndSelect opens the target graph, creates the node, and selects it', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(emptyGraph, 'Graph 2')
+
+    const created = useSpaghettiStore.getState().createGraphNodeInDocumentAndSelect({
+      graphDocumentId: secondGraphId,
+      nodeType: 'Geometry/Sketch',
+      labelPrefix: 'sketch',
+    })
+    const state = useSpaghettiStore.getState()
+    const createdNode =
+      created === null
+        ? null
+        : selectGraphByDocumentId(state, secondGraphId)?.nodes.find(
+            (node) => node.nodeId === created.nodeId,
+          ) ?? null
+
+    expect(created).not.toBeNull()
+    expect(created?.nodeLabel).toBe('sketch_[1]')
+    expect(state.activeGraphDocumentId).toBe(secondGraphId)
+    expect(state.selectedNodeId).toBe(created?.nodeId ?? null)
+    expect(createdNode).toEqual({
+      nodeId: created?.nodeId,
+      type: 'Geometry/Sketch',
+      params: getDefaultNodeParams('Geometry/Sketch'),
+    })
+    expect(
+      state.graphDocumentsById[secondGraphId]?.graph.ui?.nodes?.[created?.nodeId ?? 'missing'],
+    ).toEqual({ x: 280, y: 40 })
+  })
+
+  it('createGraphNodeInDocumentAndSelect derives the next label and placement from the target graph', () => {
+    const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
+      {
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-sketch-1',
+            type: 'Geometry/Sketch',
+            params: getDefaultNodeParams('Geometry/Sketch'),
+            ui: { x: 80, y: 50 },
+          },
+        ],
+        edges: [],
+      },
+      'Graph 2',
+    )
+
+    const created = useSpaghettiStore.getState().createGraphNodeInDocumentAndSelect({
+      graphDocumentId: secondGraphId,
+      nodeType: 'Geometry/Sketch',
+      labelPrefix: 'sketch',
+    })
+    const state = useSpaghettiStore.getState()
+
+    expect(created?.nodeLabel).toBe('sketch_[2]')
+    expect(
+      state.graphDocumentsById[secondGraphId]?.graph.ui?.nodes?.[created?.nodeId ?? 'missing'],
+    ).toEqual({ x: 320, y: 40 })
   })
 
   it('openGraphDocumentInNewViewport creates a second viewport on the same graph document', () => {

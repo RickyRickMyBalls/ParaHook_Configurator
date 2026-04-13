@@ -167,6 +167,48 @@ describe('workspaceIntents', () => {
     expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
   })
 
+  it('starts sketch review through the shared workspace intent band built from current store state', async () => {
+    const { buildWorkspaceIntentDepsFromCurrentStoreState, startSketchReviewIntent } =
+      await import('./workspaceIntents')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    useSpaghettiStore.getState().setGraph({
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: getDefaultNodeParams('Geometry/Sketch'),
+        },
+      ],
+      edges: [],
+    })
+
+    const result = startSketchReviewIntent(
+      buildWorkspaceIntentDepsFromCurrentStoreState(),
+      'graph-document-1',
+      'node-sketch-1',
+    )
+
+    expect(result.graphDocumentId).toBe('graph-document-1')
+    expect(result.nodeId).toBe('node-sketch-1')
+    expect(useSpaghettiStore.getState().selectedNodeId).toBe('node-sketch-1')
+    expect(useSpaghettiStore.getState().geometrySketchSession).toMatchObject({
+      nodeId: 'node-sketch-1',
+      mode: 'review',
+    })
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toMatchObject({
+      kind: 'graph-node',
+      graphDocumentId: 'graph-document-1',
+      nodeId: 'node-sketch-1',
+    })
+    expect(useAppStore.getState().workspaceSelection.activeSurface).toBe('spaghetti')
+  })
+
   it('activates a reference item through the canonical workspace intent seam', async () => {
     const { activateReferenceItemIntent } = await import('./workspaceIntents')
     const { buildImportedReferenceRowId, useAppStore } = await import('./useAppStore')
