@@ -58,6 +58,7 @@ import {
   type WorkspaceDetachedSlotSurfaceState,
 } from './workspace/workspaceShellTypes'
 import { useWorkspacePersistenceBridge } from './workspace/useWorkspacePersistenceBridge'
+import { useWorkspaceDetachedRestoreCompatibilityBridge } from './workspace/useWorkspaceDetachedRestoreCompatibilityBridge'
 const floatingDockLockGap = 25
 const modelViewportPopoutBackground = 'rgb(7, 11, 18)'
 const detachedViewerFloatingMinWidth = 320
@@ -640,58 +641,20 @@ export function AppShell() {
     [],
   )
 
-  useEffect(() => {
-    if (!isBrowserViewportSplit || browserSlotCount > 0) {
-      return
-    }
-    if (activeDetachedBrowserSurface !== null) {
-      restoreDetachedSurfaceByKind('browser', {
-        splitDockSide: browserViewportSplitDockSide,
-      })
-      setIsBrowserViewportSplit(false)
-      return
-    }
-    splitViewportSlot(defaultPrimaryViewportSlotId, browserViewportSplitDockSide, {
-      surfaceKind: 'browser',
-      preferredRatio: browserViewportSplitRatio,
-    })
-  }, [
+  useWorkspaceDetachedRestoreCompatibilityBridge({
     activeDetachedBrowserSurface,
+    activeDetachedConsoleSurface,
     browserSlotCount,
     browserViewportSplitDockSide,
     browserViewportSplitRatio,
-    isBrowserViewportSplit,
-    restoreDetachedSurfaceByKind,
-    setIsBrowserViewportSplit,
-    splitViewportSlot,
-  ])
-
-  useEffect(() => {
-    if (
-      activeDetachedBrowserSurface === null ||
-      isBrowserFloating ||
-      isBrowserPoppedOut ||
-      isBrowserViewportSplit ||
-      browserSlotCount > 0
-    ) {
-      return
-    }
-    restoreDetachedSurfaceByKind('browser')
-  }, [
-    activeDetachedBrowserSurface,
-    browserSlotCount,
+    consoleSlotCount,
+    consoleWindowMode,
     isBrowserFloating,
     isBrowserPoppedOut,
     isBrowserViewportSplit,
-    restoreDetachedSurfaceByKind,
-  ])
-
-  useEffect(() => {
-    if (activeDetachedConsoleSurface === null || consoleWindowMode !== 'docked' || consoleSlotCount > 0) {
-      return
-    }
-    restoreDetachedSurfaceByKind('console')
-  }, [activeDetachedConsoleSurface, consoleSlotCount, consoleWindowMode, restoreDetachedSurfaceByKind])
+    setIsBrowserViewportSplit,
+    splitViewportSlot,
+  })
 
   const {
     consoleTransitionSplitDockGhostStyle,

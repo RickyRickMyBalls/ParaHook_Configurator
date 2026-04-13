@@ -65,6 +65,35 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1256 -->
+### [1256] - 2026-04-12 22:18 - `Cleanup 4 - Phase 4 - Workspace Compatibility Bridge Isolation`
+<!-- ENTRY 1256 -->
+HUMAN SUMMARY: `Isolated the remaining workspace migration-era owner leakage into explicit compatibility bridge hooks under \`src/app/workspace/\`, so \`AppShell\` and \`useWorkspacePersistenceBridge\` no longer carry the legacy split replay and detached restore plumbing inline while behavior stays stable.`
+#### Scope / Constraints Honored
+- Kept this pass narrow on the `Cleanup 4 / Phase 4` compatibility seam instead of widening into split-menu policy cleanup or broader workspace redesign.
+- Preserved the canonical workspace owner in `src/app/workspace/useWorkspaceStore.ts`.
+- Isolated retained compatibility behavior instead of deleting migration paths without proof.
+#### Summary of Implementation
+- Added [`src/app/workspace/useWorkspaceLegacyCompatibilityBridge.ts`](./src/app/workspace/useWorkspaceLegacyCompatibilityBridge.ts) to hold:
+  - legacy editor surface placement replay into the spaghetti runtime
+  - legacy `'split view'` migration into the newer workspace slot model
+- Added [`src/app/workspace/useWorkspaceDetachedRestoreCompatibilityBridge.ts`](./src/app/workspace/useWorkspaceDetachedRestoreCompatibilityBridge.ts) to hold the retained detached browser/console restore effects that had still been inline in `AppShell`.
+- Updated [`src/app/workspace/useWorkspacePersistenceBridge.ts`](./src/app/workspace/useWorkspacePersistenceBridge.ts) so it now focuses on persisted workspace hydration and write-back while delegating the retained legacy split replay to the new compatibility bridge.
+- Updated [`src/app/AppShell.tsx`](./src/app/AppShell.tsx) so it mounts the detached restore compatibility bridge instead of carrying the inline restore effects directly.
+#### Files Changed
+- [`src/app/workspace/useWorkspaceLegacyCompatibilityBridge.ts`](./src/app/workspace/useWorkspaceLegacyCompatibilityBridge.ts)
+- [`src/app/workspace/useWorkspaceDetachedRestoreCompatibilityBridge.ts`](./src/app/workspace/useWorkspaceDetachedRestoreCompatibilityBridge.ts)
+- [`src/app/workspace/useWorkspacePersistenceBridge.ts`](./src/app/workspace/useWorkspacePersistenceBridge.ts)
+- [`src/app/AppShell.tsx`](./src/app/AppShell.tsx)
+- [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-4 - Workspace Truth And AppShell Simplification.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-4%20-%20Workspace%20Truth%20And%20AppShell%20Simplification.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- No intended end-user behavior change.
+- The remaining compatibility paths now live in explicit workspace-side bridge seams instead of reading like permanent owner logic in `AppShell` or the general workspace persistence hook.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1255 -->
 ### [1255] - 2026-04-12 22:08 - `Cleanup 4 - Phase 3 - AppShell Workspace Persistence Extraction`
 <!-- ENTRY 1255 -->

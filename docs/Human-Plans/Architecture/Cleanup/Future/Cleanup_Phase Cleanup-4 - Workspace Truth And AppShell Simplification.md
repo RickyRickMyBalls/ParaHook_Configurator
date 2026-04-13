@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-04-12 22:18:15: Completed `Phase 4 - Retire Migration-Era Ownership Leakage` as a focused code-and-verification pass by isolating the retained legacy editor split replay and detached browser/console restore plumbing into explicit workspace-side compatibility bridges, shrinking `AppShell.tsx` and `useWorkspacePersistenceBridge.ts` away from transitional owner-like behavior without changing the canonical workspace owner
 6. 2026-04-12 22:08:46: Completed `Phase 3 - Reduce AppShell To Composition Over Workspace Truth` as a focused code-and-verification pass by moving the workspace persistence hydration, persisted-layout write-back, and legacy split replay band out of `src/app/AppShell.tsx` into the new `src/app/workspace/useWorkspacePersistenceBridge.ts` hook, reducing the shell back toward composition while intentionally leaving split-menu policy and the broader migration-retirement seam for later cleanup phases
 5. 2026-04-12 22:01:34: Completed `Phase 2 - Trace Host Re-Ownership Hotspots` as a docs-and-verification pass by adding one explicit host re-ownership inventory across `AppShell.tsx`, `workspaceSurfaceActions.ts`, `PopupWorkspaceShell.tsx`, `workspacePersistence.ts`, and the AppShell host hooks, separating supporting read-model seams from acceptable coordination, owner-like split and placement orchestration that should shrink in `Phase 3`, and legacy split/persisted-layout migration residue that belongs to `Phase 4`
 4. 2026-04-12 21:59:15: Tightened `Phase 2 - Trace Host Re-Ownership Hotspots` into an implementation-ready docs-and-verification pass grounded in the live seam where `AppShell.tsx` still carries workspace persistence hydration, legacy split migration, detached viewer floating coordination, and split-menu glue while `workspaceSurfaceActions.ts`, `PopupWorkspaceShell.tsx`, and the AppShell host hooks still expose policy-shaped mutation helpers that need to be classified before any code cleanup starts
@@ -526,7 +527,7 @@ This phase landed as a narrow owner-band reduction instead of a broad shell rewr
   - not yet removed in this phase
   - only isolated away from the shell body so `Phase 4` can attack the retained compatibility seam more directly
 
-## [ ] Phase 4 - Retire Migration-Era Ownership Leakage
+## [x] Phase 4 - Retire Migration-Era Ownership Leakage
 
 ### Header
 
@@ -566,6 +567,32 @@ This phase landed as a narrow owner-band reduction instead of a broad shell rewr
 - migration logic has a visibly shrinking footprint
 - retained compatibility paths read as explicit bridges instead of workspace owners
 - `Cleanup 4` can hand off to later workspace and surface-catalog work from a cleaner ownership base
+
+#### Implementation result
+
+This phase landed as an isolation pass, not a broad migration deletion pass.
+
+##### Compatibility seams isolated near the workspace layer
+
+- `src/app/workspace/useWorkspaceLegacyCompatibilityBridge.ts`
+  - now owns the retained legacy editor split replay and live `'split view'` migration bridge that had still been mixed into the general workspace persistence hook
+- `src/app/workspace/useWorkspaceDetachedRestoreCompatibilityBridge.ts`
+  - now owns the retained detached browser/console restore effects that had still been mixed into `src/app/AppShell.tsx`
+
+##### Resulting owner read after this pass
+
+- `src/app/workspace/useWorkspacePersistenceBridge.ts`
+  - now reads as a narrower persisted-layout hydration and write-back bridge instead of also carrying the legacy split migration policy directly
+- `src/app/AppShell.tsx`
+  - no longer hosts the inline detached browser/console restore compatibility effects
+  - stays focused on composition, host orchestration, and presentation coordination instead of transitional restore ownership
+
+##### What intentionally remains true
+
+- compatibility behavior is still supported
+  - this pass isolated it rather than deleting it unsafely
+- the canonical workspace owner is still `src/app/workspace/useWorkspaceStore.ts`
+- split-menu policy/orchestration and broader workspace capability planning remain outside this phase
 
 ### Acceptance Checks
 
