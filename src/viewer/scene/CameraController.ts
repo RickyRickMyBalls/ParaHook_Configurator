@@ -7,6 +7,7 @@ import {
   OrthographicCamera,
   Plane,
   PerspectiveCamera,
+  Quaternion,
   Vector3,
 } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -40,6 +41,10 @@ export class CameraController {
   private readonly tmpPanHorizontal = new Vector3()
   private readonly tmpRight = new Vector3()
   private readonly tmpUp = new Vector3()
+  private readonly tmpForward = new Vector3()
+  private readonly tmpFlyOffset = new Vector3()
+  private readonly tmpYawQuaternion = new Quaternion()
+  private readonly tmpPitchQuaternion = new Quaternion()
   private readonly tmpCorner = new Vector3()
   private readonly tmpWindowCornerA = new Vector3()
   private readonly tmpWindowCornerB = new Vector3()
@@ -236,6 +241,100 @@ export class CameraController {
 
   public endTemporaryPanDrag(): void {
     this.temporaryPanDrag = null
+  }
+
+  public applyFlyLookDelta(deltaX: number, deltaY: number): void {
+    if (this.projectionMode !== 'perspective' || (deltaX === 0 && deltaY === 0)) {
+      return
+    }
+
+    this.cameraTransition = null
+    const activeCamera = this.perspectiveCamera
+    const targetDistance = Math.max(
+      activeCamera.position.distanceTo(this.controls.target),
+      MIN_CAMERA_DISTANCE,
+    )
+    this.tmpForward.copy(this.controls.target).sub(activeCamera.position)
+    if (!Number.isFinite(this.tmpForward.lengthSq()) || this.tmpForward.lengthSq() < 1e-8) {
+      this.tmpForward.set(0, 0, -1)
+    } else {
+      this.tmpForward.normalize()
+    }
+
+    this.tmpUp.copy(activeCamera.up)
+    if (!Number.isFinite(this.tmpUp.lengthSq()) || this.tmpUp.lengthSq() < 1e-8) {
+      this.tmpUp.set(0, 1, 0)
+    } else {
+      this.tmpUp.normalize()
+    }
+
+    const elementHeight = Math.max(this.controls.domElement?.clientHeight ?? 1, 1)
+    const twoPi = Math.PI * 2
+    const yaw = (-twoPi * deltaX) / elementHeight
+    const pitch = (-twoPi * deltaY) / elementHeight
+
+    this.tmpYawQuaternion.setFromAxisAngle(this.tmpUp, yaw)
+    this.tmpForward.applyQuaternion(this.tmpYawQuaternion).normalize()
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      activeCamera.lookAt(this.controls.target)
+      activeCamera.updateProjectionMatrix()
+      this.controls.update()
+      return
+    }
+
+    this.tmpPitchQuaternion.setFromAxisAngle(this.tmpRight, pitch)
+    const yawedForward = this.tmpForward.clone()
+    this.tmpForward.applyQuaternion(this.tmpPitchQuaternion).normalize()
+    if (Math.abs(this.tmpForward.dot(this.tmpUp)) > 0.995) {
+      this.tmpForward.copy(yawedForward)
+    }
+
+    this.controls.target.copy(activeCamera.position).addScaledVector(this.tmpForward, targetDistance)
+    activeCamera.lookAt(this.controls.target)
+    activeCamera.updateProjectionMatrix()
+    this.controls.update()
+  }
+
+  public translateFly(forwardDistance: number, rightDistance: number, upDistance: number): void {
+    if (
+      this.projectionMode !== 'perspective' ||
+      (forwardDistance === 0 && rightDistance === 0 && upDistance === 0)
+    ) {
+      return
+    }
+
+    this.cameraTransition = null
+    const activeCamera = this.perspectiveCamera
+    this.tmpForward.copy(this.controls.target).sub(activeCamera.position)
+    if (!Number.isFinite(this.tmpForward.lengthSq()) || this.tmpForward.lengthSq() < 1e-8) {
+      this.tmpForward.set(0, 0, -1)
+    } else {
+      this.tmpForward.normalize()
+    }
+
+    this.tmpUp.copy(activeCamera.up)
+    if (!Number.isFinite(this.tmpUp.lengthSq()) || this.tmpUp.lengthSq() < 1e-8) {
+      this.tmpUp.set(0, 1, 0)
+    } else {
+      this.tmpUp.normalize()
+    }
+
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      this.tmpRight.set(1, 0, 0)
+    }
+
+    this.tmpFlyOffset.set(0, 0, 0)
+    this.tmpFlyOffset.addScaledVector(this.tmpForward, forwardDistance)
+    this.tmpFlyOffset.addScaledVector(this.tmpRight, rightDistance)
+    this.tmpFlyOffset.addScaledVector(this.tmpUp, upDistance)
+
+    activeCamera.position.add(this.tmpFlyOffset)
+    this.controls.target.add(this.tmpFlyOffset)
+    activeCamera.lookAt(this.controls.target)
+    activeCamera.updateProjectionMatrix()
+    this.controls.update()
   }
 
   public zoomByWheelDelta(deltaY: number): void {

@@ -34,6 +34,50 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('gives active fly mode keyboard ownership before console capture for unmodified keys', () => {
+    expect(
+      routeKeyboardInput({
+        event: createEvent('w'),
+        viewerFlyActive: true,
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+      }),
+    ).toEqual({
+      owner: 'viewer-fly',
+      decision: 'handle',
+    })
+
+    expect(
+      routeKeyboardInput({
+        event: createEvent(' '),
+        viewerFlyActive: true,
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+      }),
+    ).toEqual({
+      owner: 'viewer-fly',
+      decision: 'handle',
+    })
+  })
+
+  it('does not claim modified shortcuts for fly mode through the shared routing seam', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'w',
+        ctrlKey: true,
+        target: null,
+      },
+      viewerFlyActive: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+  })
+
   it('routes Enter to staged console while a guided session is active', () => {
     const result = routeKeyboardInput({
       event: createEvent('Enter'),

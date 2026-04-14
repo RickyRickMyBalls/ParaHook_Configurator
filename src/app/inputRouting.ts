@@ -1,5 +1,6 @@
 export type InputRoutingOwner =
   | 'text-field'
+  | 'viewer-fly'
   | 'sketch-plane'
   | 'sketch-draw'
   | 'reference-transform'
@@ -19,6 +20,7 @@ type KeyboardLikeEvent = {
 
 export type InputRoutingRequest = {
   event: KeyboardLikeEvent
+  viewerFlyActive?: boolean
   sketchPlanePickStage?: 'pick' | 'adjust' | null
   geometrySketchMode?: 'draw' | 'review' | null
   referenceTransformActive?: boolean
@@ -52,6 +54,7 @@ const isConsoleCapturePrintableKey = (event: KeyboardLikeEvent): boolean =>
 
 export const routeKeyboardInput = ({
   event,
+  viewerFlyActive = false,
   sketchPlanePickStage = null,
   geometrySketchMode = null,
   referenceTransformActive = false,
@@ -63,6 +66,13 @@ export const routeKeyboardInput = ({
     return {
       owner: 'text-field',
       decision: 'defer-native',
+    }
+  }
+
+  if (viewerFlyActive && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    return {
+      owner: 'viewer-fly',
+      decision: 'handle',
     }
   }
 

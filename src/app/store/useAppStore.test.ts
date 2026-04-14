@@ -5169,6 +5169,85 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('clears target comparison state before dispatching an explicit build', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentId = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Explicit Settle Graph')
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(112)
+
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentId)
+    useAppStore.getState().beginInteraction()
+    useAppStore.setState((state) => ({
+      pendingBrowserBuildGraphDocumentIds: {
+        ...state.pendingBrowserBuildGraphDocumentIds,
+        [graphDocumentId]: true,
+      },
+    }))
+
+    const compileResult = useAppStore.getState().requestGraphDocumentBuild(graphDocumentId, {
+      explicit: true,
+      geometryTargetOverride: 'authoritative',
+      delayedAuthoritativeDispatchTrigger: 'explicit',
+    })
+
+    expect(compileResult.ok).toBe(true)
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(useAppStore.getState().pendingBrowserBuildGraphDocumentIds[graphDocumentId]).toBe(
+      undefined,
+    )
+    expect(useAppStore.getState().isInteracting).toBe(false)
+  })
+
+  it('does not clear unrelated graph interaction when another graph requests an explicit build', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const graphDocumentIdA = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Explicit Build Graph A')
+    const graphDocumentIdB = useSpaghettiStore
+      .getState()
+      .createGraphDocument(createPublishedCubeGraph(), 'Explicit Build Graph B')
+    const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(113)
+
+    useAppStore.getState().beginBrowserBuildInteraction(graphDocumentIdB)
+    useAppStore.getState().beginInteraction()
+
+    const compileResult = useAppStore.getState().requestGraphDocumentBuild(graphDocumentIdA, {
+      explicit: true,
+      geometryTargetOverride: 'authoritative',
+      delayedAuthoritativeDispatchTrigger: 'explicit',
+    })
+
+    expect(compileResult.ok).toBe(true)
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentIdA]).toBe(
+      undefined,
+    )
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentIdB]).toBe(true)
+    expect(useAppStore.getState().isInteracting).toBe(true)
+  })
+
   it('releasing one graph does not dispatch other graphs delayed placeholders', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')

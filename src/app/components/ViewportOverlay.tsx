@@ -482,12 +482,15 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const browserInteractionGraphDocumentIds = useAppStore(
     (state) => state.browserInteractionGraphDocumentIds,
   )
+  const isInteracting = useAppStore((state) => state.isInteracting)
   const delayedDraftBuildByGraphDocumentId = useAppStore(
     (state) => state.delayedDraftBuildByGraphDocumentId,
   )
   const delayedAuthoritativeBuildByGraphDocumentId = useAppStore(
     (state) => state.delayedAuthoritativeBuildByGraphDocumentId,
   )
+  const beginInteraction = useAppStore((state) => state.beginInteraction)
+  const endInteraction = useAppStore((state) => state.endInteraction)
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
@@ -576,12 +579,14 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     if (activeGraphDocumentId === null) {
       return
     }
+    beginInteraction()
     beginBrowserBuildInteraction(activeGraphDocumentId)
   }
   const endGraphParameterInteraction = () => {
     if (activeGraphDocumentId === null) {
       return
     }
+    endInteraction()
     endBrowserBuildInteraction(activeGraphDocumentId)
   }
   const localViewState = useWorkspaceStore(
@@ -797,6 +802,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
           browserGraphBuildPolicyByGraphDocumentId,
           browserContentBuildPolicyByRowId,
           browserInteractionGraphDocumentIds,
+          isInteracting,
           delayedDraftBuildByGraphDocumentId,
           delayedAuthoritativeBuildByGraphDocumentId,
           requestedMode: viewportResultMode,
@@ -822,6 +828,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       currentProject,
+      isInteracting,
       delayedAuthoritativeBuildByGraphDocumentId,
       delayedDraftBuildByGraphDocumentId,
       graphDocumentsById,

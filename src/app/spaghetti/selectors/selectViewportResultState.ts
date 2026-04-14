@@ -75,6 +75,23 @@ export type ViewportAcceptedState = {
   isVisible: boolean
 }
 
+export type ViewportLayerRecipeKind =
+  | 'base-only'
+  | 'retained-plus-overlay'
+  | 'branch-local-retained-baseline'
+
+export type ViewportLayerRecipe = {
+  kind: ViewportLayerRecipeKind
+  baseParts: ViewerRenderablePart[]
+  basePresentationStateId: ViewportPresentationStateId | null
+  baselineParts: ViewerRenderablePart[]
+  baselinePresentationStateId: ViewportPresentationStateId | null
+  baselineUsesDimmedBaseStyle: boolean
+  overlayParts: ViewerRenderablePart[]
+  overlayPresentationStateId: ViewportPresentationStateId | null
+  overlayOpacity: number
+}
+
 export type ViewportResultState = {
   requestedMode: WorkspaceViewportResultMode
   browserExecutionPolicy: ViewportBrowserExecutionPolicy
@@ -106,6 +123,7 @@ export type ViewportResultState = {
   overlaySourceKind: ViewportLayerSourceKind
   overlayGeometryResult: GeometryResultBundle | null
   overlayRenderVm: PreviewRenderVm
+  layerRecipe: ViewportLayerRecipe
   isPendingFinal: boolean
   isUsingFallback: boolean
   fallbackReason: ViewportFallbackReason | null
@@ -130,6 +148,11 @@ type SelectViewportResultStateOptions = {
   isInteractionActive?: boolean
   hasDelayedDraftPlaceholder?: boolean
   hasDelayedAuthoritativePlaceholder?: boolean
+  interactionAcceptedOutputPreviewRenderVm?: PreviewRenderVm
+  interactionAcceptedRebuiltPreviewRenderVm?: PreviewRenderVm
+  committedInteractionBaseParts?: readonly ViewerRenderablePart[]
+  committedInteractionBranchStableParts?: readonly ViewerRenderablePart[]
+  committedInteractionBasePresentationStateId?: ViewportPresentationStateId | null
 }
 
 type ViewportLayerCandidate = {
@@ -194,6 +217,18 @@ const EMPTY_ACCEPTED_STATE: ViewportAcceptedState = {
   geometryResult: null,
   renderVm: EMPTY_PREVIEW_RENDER_VM,
   isVisible: false,
+}
+
+const EMPTY_VIEWPORT_LAYER_RECIPE: ViewportLayerRecipe = {
+  kind: 'base-only',
+  baseParts: [],
+  basePresentationStateId: null,
+  baselineParts: [],
+  baselinePresentationStateId: null,
+  baselineUsesDimmedBaseStyle: false,
+  overlayParts: [],
+  overlayPresentationStateId: null,
+  overlayOpacity: 0.5,
 }
 
 const qualifyViewerKey = (graphDocumentId: string, viewerKey: string): string =>
@@ -404,7 +439,11 @@ const resolveRetainedBaseCandidate = (options: {
 } => {
   if (options.requestedMode === 'draft') {
     const hasRenderableCurrentDraft = options.currentDraftRenderVm.viewerParts.length > 0
-    if (options.currentDraftGeometryResult !== null && hasRenderableCurrentDraft) {
+    if (
+      options.currentDraftGeometryResult !== null &&
+      hasRenderableCurrentDraft &&
+      options.hasCurrentOutputContinuation
+    ) {
       return {
         retainedBaseState: 'current',
         baseCandidate: {
@@ -442,7 +481,8 @@ const resolveRetainedBaseCandidate = (options: {
   const hasRenderableAuthoritative = options.committedAuthoritativeRenderVm.viewerParts.length > 0
   if (
     options.currentAuthoritativeGeometryResult !== null &&
-    options.currentAuthoritativeRenderVm.viewerParts.length > 0
+    options.currentAuthoritativeRenderVm.viewerParts.length > 0 &&
+    options.hasCurrentOutputContinuation
   ) {
     return {
       retainedBaseState: 'current',
@@ -581,6 +621,8 @@ const resolvePreviewState = (options: {
     return EMPTY_PREVIEW_STATE
   }
 
+  const allowsLivePreviewBrep =
+    options.browserExecutionPolicy === 'live' && options.isInteractionActive
   const isChurnContext =
     options.isInteractionActive ||
     options.retainedBaseState === 'retained' ||
@@ -600,7 +642,7 @@ const resolvePreviewState = (options: {
     options.currentAuthoritativeDiffersFromCommitted
   const hasDraftPreview = options.draftPreviewCandidate.resultClass !== null
 
-  if (options.browserExecutionPolicy === 'live' && options.isInteractionActive) {
+  if (allowsLivePreviewBrep) {
     if (prefersAuthoritativePreview && hasAuthoritativePreview) {
       return {
         kind: 'preview-ready',
@@ -626,17 +668,6 @@ const resolvePreviewState = (options: {
 
   if (options.isInteractionActive) {
     return EMPTY_PREVIEW_STATE
-  }
-
-  if (prefersAuthoritativePreview && hasAuthoritativePreview) {
-    return {
-      kind: 'preview-ready',
-      presentationStateId: 'previewBrep',
-      resultClass: options.authoritativePreviewCandidate.resultClass,
-      sourceKind: options.authoritativePreviewCandidate.sourceKind,
-      geometryResult: options.authoritativePreviewCandidate.geometryResult,
-      renderVm: options.authoritativePreviewCandidate.renderVm,
-    }
   }
 
   if (
@@ -744,6 +775,211 @@ const resolveAcceptedState = (options: {
   }
 }
 
+const buildBaseOnlyRecipe = (
+  baseParts: readonly ViewerRenderablePart[],
+  basePresentationStateId: ViewportPresentationStateId | null,
+): ViewportLayerRecipe => ({
+  kind: 'base-only',
+  baseParts: [...baseParts],
+  basePresentationStateId,
+  baselineParts: [],
+  baselinePresentationStateId: null,
+  baselineUsesDimmedBaseStyle: false,
+  overlayParts: [],
+  overlayPresentationStateId: null,
+  overlayOpacity: 0.5,
+})
+
+const buildRetainedOverlayRecipe = (options: {
+  baseParts: readonly ViewerRenderablePart[]
+  basePresentationStateId: ViewportPresentationStateId | null
+  overlayParts: readonly ViewerRenderablePart[]
+  overlayPresentationStateId: ViewportPresentationStateId | null
+  overlayOpacity: number
+}): ViewportLayerRecipe => ({
+  kind: 'retained-plus-overlay',
+  baseParts: [...options.baseParts],
+  basePresentationStateId: options.basePresentationStateId,
+  baselineParts: [],
+  baselinePresentationStateId: null,
+  baselineUsesDimmedBaseStyle: false,
+  overlayParts: [...options.overlayParts],
+  overlayPresentationStateId: options.overlayPresentationStateId,
+  overlayOpacity: options.overlayOpacity,
+})
+
+const buildBranchLocalRetainedBaselineRecipe = (options: {
+  committedBaseParts: readonly ViewerRenderablePart[]
+  committedBranchStableParts: readonly ViewerRenderablePart[]
+  overlayParts: readonly ViewerRenderablePart[]
+  committedBasePresentationStateId: ViewportPresentationStateId | null
+  overlayPresentationStateId: ViewportPresentationStateId | null
+  overlayOpacity: number
+}): ViewportLayerRecipe | null => {
+  const sourceBaseParts =
+    options.committedBranchStableParts.length > 0
+      ? options.committedBranchStableParts
+      : options.committedBaseParts
+  if (sourceBaseParts.length === 0 || options.overlayParts.length === 0) {
+    return null
+  }
+
+  const overlayViewerKeySet = new Set(options.overlayParts.map((part) => part.viewerKey))
+  const baseParts = sourceBaseParts.filter((part) => !overlayViewerKeySet.has(part.viewerKey))
+  const baselineParts = sourceBaseParts.filter((part) => overlayViewerKeySet.has(part.viewerKey))
+  if (baselineParts.length === 0) {
+    return null
+  }
+
+  return {
+    kind: 'branch-local-retained-baseline',
+    baseParts,
+    basePresentationStateId: options.committedBasePresentationStateId,
+    baselineParts,
+    baselinePresentationStateId: options.committedBasePresentationStateId,
+    baselineUsesDimmedBaseStyle: true,
+    overlayParts: [...options.overlayParts],
+    overlayPresentationStateId: options.overlayPresentationStateId,
+    overlayOpacity: options.overlayOpacity,
+  }
+}
+
+const resolveViewportLayerRecipe = (options: {
+  requestedMode: WorkspaceViewportResultMode
+  isInteractionActive: boolean
+  visibleResultClass: ViewportVisibleResultClass
+  visiblePresentationStateId: ViewportPresentationStateId | null
+  retainedBaseState: ViewportRetainedBaseState
+  retainedBaseResultClass: ViewportVisibleResultClass
+  retainedBaseRenderVm: PreviewRenderVm
+  retainedBasePresentationStateId: ViewportPresentationStateId | null
+  overlayResultClass: ViewportVisibleResultClass
+  overlaySourceKind: ViewportLayerSourceKind
+  overlayRenderVm: PreviewRenderVm
+  overlayPresentationStateId: ViewportPresentationStateId | null
+  renderVm: PreviewRenderVm
+  interactionAcceptedOutputPreviewRenderVm: PreviewRenderVm
+  interactionAcceptedRebuiltPreviewRenderVm: PreviewRenderVm
+  committedInteractionBaseParts: readonly ViewerRenderablePart[]
+  committedInteractionBranchStableParts: readonly ViewerRenderablePart[]
+  committedInteractionBasePresentationStateId: ViewportPresentationStateId | null
+}): ViewportLayerRecipe => {
+  const showsSettledAutoDraftBase =
+    options.requestedMode === 'auto' &&
+    options.retainedBaseState === 'retained' &&
+    options.retainedBaseResultClass === 'final' &&
+    options.overlayResultClass === null &&
+    options.visibleResultClass === 'draft' &&
+    options.visiblePresentationStateId === 'lastLoaded'
+
+  const branchLocalOverlayParts =
+    options.overlayPresentationStateId === null
+      ? []
+      : options.interactionAcceptedRebuiltPreviewRenderVm.viewerParts.length > 0
+        ? options.interactionAcceptedRebuiltPreviewRenderVm.viewerParts
+        : options.overlayRenderVm.viewerParts
+  const branchLocalStableParts =
+    options.committedInteractionBranchStableParts.length > 0
+      ? options.committedInteractionBranchStableParts
+      : options.interactionAcceptedOutputPreviewRenderVm.viewerParts
+  const showsBranchLocalRetainedBaseline =
+    options.isInteractionActive &&
+    options.overlayPresentationStateId !== null &&
+    branchLocalOverlayParts.length > 0 &&
+    (branchLocalStableParts.length > 0 || options.committedInteractionBaseParts.length > 0)
+
+  if (showsBranchLocalRetainedBaseline) {
+    const branchLocalRecipe = buildBranchLocalRetainedBaselineRecipe({
+      committedBaseParts: options.committedInteractionBaseParts,
+      committedBranchStableParts: branchLocalStableParts,
+      overlayParts: branchLocalOverlayParts,
+      committedBasePresentationStateId: options.committedInteractionBasePresentationStateId,
+      overlayPresentationStateId: options.overlayPresentationStateId,
+      overlayOpacity: options.overlayPresentationStateId === 'previewBrep' ? 0.75 : 0.5,
+    })
+    if (branchLocalRecipe !== null) {
+      return branchLocalRecipe
+    }
+  }
+
+  if (options.retainedBaseState === 'retained') {
+    if (
+      options.requestedMode === 'auto' &&
+      options.retainedBaseResultClass === 'final' &&
+      (options.overlayResultClass === 'draft' || options.overlayResultClass === 'final')
+    ) {
+      const shouldShowOverlay =
+        options.overlaySourceKind !== 'retained-draft' || options.overlayResultClass === 'final'
+      const overlayParts = shouldShowOverlay ? options.overlayRenderVm.viewerParts : []
+      return overlayParts.length === 0
+        ? buildBaseOnlyRecipe(
+            options.retainedBaseRenderVm.viewerParts,
+            options.retainedBasePresentationStateId,
+          )
+        : buildRetainedOverlayRecipe({
+            baseParts: options.retainedBaseRenderVm.viewerParts,
+            basePresentationStateId: options.retainedBasePresentationStateId,
+            overlayParts,
+            overlayPresentationStateId: options.overlayPresentationStateId,
+            overlayOpacity: options.overlayResultClass === 'final' ? 0.75 : 0.5,
+          })
+    }
+
+    if (
+      options.requestedMode === 'auto' &&
+      options.retainedBaseResultClass === 'final' &&
+      !showsSettledAutoDraftBase
+    ) {
+      return buildBaseOnlyRecipe(
+        options.retainedBaseRenderVm.viewerParts,
+        options.retainedBasePresentationStateId,
+      )
+    }
+
+    if (options.requestedMode === 'draft' && options.retainedBaseResultClass === 'draft') {
+      const overlayParts =
+        options.overlayResultClass === 'draft' ? options.overlayRenderVm.viewerParts : []
+      return overlayParts.length === 0
+        ? buildBaseOnlyRecipe(
+            options.retainedBaseRenderVm.viewerParts,
+            options.retainedBasePresentationStateId,
+          )
+        : buildRetainedOverlayRecipe({
+            baseParts: options.retainedBaseRenderVm.viewerParts,
+            basePresentationStateId: options.retainedBasePresentationStateId,
+            overlayParts,
+            overlayPresentationStateId:
+              options.overlayResultClass === 'draft' ? options.overlayPresentationStateId : null,
+            overlayOpacity: 0.5,
+          })
+    }
+
+    if (options.requestedMode === 'final' && options.retainedBaseResultClass === 'final') {
+      const overlayParts =
+        options.overlayResultClass === 'final' ? options.overlayRenderVm.viewerParts : []
+      return overlayParts.length === 0
+        ? buildBaseOnlyRecipe(
+            options.retainedBaseRenderVm.viewerParts,
+            options.retainedBasePresentationStateId,
+          )
+        : buildRetainedOverlayRecipe({
+            baseParts: options.retainedBaseRenderVm.viewerParts,
+            basePresentationStateId: options.retainedBasePresentationStateId,
+            overlayParts,
+            overlayPresentationStateId:
+              options.overlayResultClass === 'final' ? options.overlayPresentationStateId : null,
+            overlayOpacity: 0.5,
+          })
+    }
+  }
+
+  if (options.renderVm.viewerParts.length === 0 && options.visiblePresentationStateId === null) {
+    return EMPTY_VIEWPORT_LAYER_RECIPE
+  }
+
+  return buildBaseOnlyRecipe(options.renderVm.viewerParts, options.visiblePresentationStateId)
+}
+
 const buildViewportResultState = ({
   options,
   artifactBuildOutputs,
@@ -812,6 +1048,31 @@ const buildViewportResultState = ({
     visibleResultClass,
     visiblePresentationStateId,
   })
+  const layerRecipe = resolveViewportLayerRecipe({
+    requestedMode: options.requestedMode,
+    isInteractionActive,
+    visibleResultClass,
+    visiblePresentationStateId,
+    retainedBaseState,
+    retainedBaseResultClass: baseCandidate.resultClass,
+    retainedBaseRenderVm: baseCandidate.renderVm,
+    retainedBasePresentationStateId: lastLoadedState.presentationStateId,
+    overlayResultClass: previewState.presentationStateId === null ? null : previewState.resultClass,
+    overlaySourceKind:
+      previewState.presentationStateId === null ? 'none' : previewState.sourceKind,
+    overlayRenderVm:
+      previewState.presentationStateId === null ? EMPTY_PREVIEW_RENDER_VM : previewState.renderVm,
+    overlayPresentationStateId: previewState.presentationStateId,
+    renderVm,
+    interactionAcceptedOutputPreviewRenderVm:
+      options.interactionAcceptedOutputPreviewRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
+    interactionAcceptedRebuiltPreviewRenderVm:
+      options.interactionAcceptedRebuiltPreviewRenderVm ?? EMPTY_PREVIEW_RENDER_VM,
+    committedInteractionBaseParts: options.committedInteractionBaseParts ?? [],
+    committedInteractionBranchStableParts: options.committedInteractionBranchStableParts ?? [],
+    committedInteractionBasePresentationStateId:
+      options.committedInteractionBasePresentationStateId ?? null,
+  })
 
   return {
     requestedMode: options.requestedMode,
@@ -850,6 +1111,7 @@ const buildViewportResultState = ({
       previewState.presentationStateId === null
         ? EMPTY_PREVIEW_RENDER_VM
         : previewState.renderVm,
+    layerRecipe,
     isPendingFinal,
     isUsingFallback,
     fallbackReason,
@@ -921,6 +1183,7 @@ export const selectViewportResultState = (
         viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
       })
   const hasOutputContinuation = hasCurrentOutputContinuation(options.previewPreparation)
+  const shouldEnforceCurrentOutputResolution = options.previewPreparation !== null
   const currentOutputMatchesCommittedAuthoritative = doesCurrentOutputMatchGeometryResultPartKeys(
     options.previewPreparation,
     options.committedAuthoritativeGeometryResult,
@@ -929,6 +1192,11 @@ export const selectViewportResultState = (
     options.previewPreparation,
     options.committedDraftGeometryResult,
   )
+  const allowsCurrentAuthoritativeVisibility =
+    !shouldEnforceCurrentOutputResolution || hasOutputContinuation
+  const allowsCurrentDraftVisibility = !shouldEnforceCurrentOutputResolution || hasOutputContinuation
+  const allowsPreviewReadyAuthoritativeVisibility =
+    !shouldEnforceCurrentOutputResolution || hasOutputContinuation
   const { retainedBaseState, baseCandidate } = resolveRetainedBaseCandidate({
     requestedMode: options.requestedMode,
     currentAuthoritativeGeometryResult: finalGeometryResult,
@@ -945,14 +1213,22 @@ export const selectViewportResultState = (
   })
   const overlayCandidate = resolveOverlayCandidate({
     requestedMode: options.requestedMode,
-    previewReadyAuthoritativeGeometryResult,
-    previewReadyAuthoritativeRenderVm,
-    currentDraftRenderVm: currentDraftGeometryRenderVm,
-    currentDraftGeometryResult: draftGeometryResult,
+    previewReadyAuthoritativeGeometryResult: allowsPreviewReadyAuthoritativeVisibility
+      ? previewReadyAuthoritativeGeometryResult
+      : null,
+    previewReadyAuthoritativeRenderVm: allowsPreviewReadyAuthoritativeVisibility
+      ? previewReadyAuthoritativeRenderVm
+      : EMPTY_PREVIEW_RENDER_VM,
+    currentDraftRenderVm: allowsCurrentDraftVisibility
+      ? currentDraftGeometryRenderVm
+      : EMPTY_PREVIEW_RENDER_VM,
+    currentDraftGeometryResult: allowsCurrentDraftVisibility ? draftGeometryResult : null,
     previewRenderVm,
   })
-  const hasRenderableFinal = authoritativeRenderVm.viewerParts.length > 0
+  const hasRenderableFinal =
+    allowsCurrentAuthoritativeVisibility && authoritativeRenderVm.viewerParts.length > 0
   const hasRenderablePreviewReadyAuthoritative =
+    allowsPreviewReadyAuthoritativeVisibility &&
     previewReadyAuthoritativeRenderVm.viewerParts.length > 0
   const waitingDraftFallbackCandidate =
     overlayCandidate.resultClass === null &&
@@ -974,6 +1250,7 @@ export const selectViewportResultState = (
     overlayCandidate.resultClass === 'draft' ? overlayCandidate : waitingDraftFallbackCandidate
   const settledDraftSceneCandidate =
     !isInteractionActive &&
+    allowsCurrentDraftVisibility &&
     options.acceptedPreviewBuildBundle?.resultClass === 'draft' &&
     publishedAuthoritativeRenderVm.viewerParts.length > 0 &&
     draftPreviewCandidate.resultClass === 'draft'

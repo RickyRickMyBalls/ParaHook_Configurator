@@ -261,6 +261,130 @@ describe('prepareGraphPreviewPreparation', () => {
     ])
   })
 
+  it('keeps both Output Preview surfaces in preview preparation for a parallel graph with separate preview nodes', () => {
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'rect-a',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 40, y: 20 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'rect-b',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 60, y: 0 },
+                  b: { kind: 'lit', x: 100, y: 20 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 25,
+          },
+        },
+        {
+          nodeId: 'node-extrude-2',
+          type: 'Geometry/Extrude',
+          params: {
+            bodyGenerationMode: 'NewObjects',
+            depthMm: 12,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 'slot-extrude-1', publicationMode: 'grouped' }],
+            objects: [
+              {
+                objectId: 'output-object:slot-extrude-1',
+                slotId: 'slot-extrude-1',
+                label: 'Extrude 1',
+                orderIndex: 0,
+              },
+            ],
+            nextSlotIndex: 2,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-2',
+          type: OUTPUT_PREVIEW_NODE_TYPE,
+          params: {
+            slots: [{ slotId: 'slot-extrude-2', publicationMode: 'grouped' }],
+            objects: [
+              {
+                objectId: 'output-object:slot-extrude-2',
+                slotId: 'slot-extrude-2',
+                label: 'Extrude 2',
+                orderIndex: 0,
+              },
+            ],
+            nextSlotIndex: 2,
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-to-extrude-1',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-sketch-to-extrude-2',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-2', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-extrude-1-to-output-1',
+          from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-1' },
+        },
+        {
+          edgeId: 'edge-extrude-2-to-output-2',
+          from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-2', portId: 'in:solid:slot-extrude-2' },
+        },
+      ],
+    }
+
+    const previewPreparation = prepareGraphPreviewPreparation(graph)
+
+    expect(previewPreparation.outputSlotIds).toEqual(['slot-extrude-1', 'slot-extrude-2'])
+    expect(previewPreparation.previewCandidateSlotIds).toEqual([
+      'slot-extrude-1',
+      'slot-extrude-2',
+    ])
+    expect(previewPreparation.sourceNodeIdBySlotId).toEqual({
+      'slot-extrude-1': 'node-extrude-1',
+      'slot-extrude-2': 'node-extrude-2',
+    })
+  })
+
   it('detects explicit SolidBody member publication', () => {
     const previewPreparation = prepareGraphPreviewPreparation(
       createPreviewPreparationGraph({

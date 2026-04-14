@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+27. 2026-04-14 11:18:12: Added the standalone future phase doc for `Worker 13`, linking the new shared-output-composition preview-locality lane into this family index so the next worker-family slot now targets output-entry-level branch-local truth inside one composed `Output Preview` surface where one local edit must not dim, yellow, or drop untouched sibling outputs
+26. 2026-04-14 10:17:51: Added the standalone future phase doc for `Worker 12`, linked the new unresolved-output-continuation dispatch-honesty lane into this family index, and recorded that the next worker-family slot now targets the `Sketch -> Extrude -> Output Preview` disconnect case where unresolved downstream preview continuation should stop request translation and app dispatch before fake worker work is sent
 25. 2026-04-10 00:00: Added the standalone future phase doc for `Worker 9`, linking the new affected-subgraph invalidation lane to its implementation-ready planning surface under `Worker/Future/` so the index no longer carries the whole lane only as an end-of-file summary
 24. 2026-04-10 00:00: Refreshed `Worker 9` so it no longer reads as only an extrude-specific changed-param cleanup, broadening the slot into affected-subgraph invalidation and retained-sibling recomposition for graph-native parallel branches while keeping the concrete `Extrude 2 should not rebuild Object 1` symptom as the first motivating case
 23. 2026-04-10 00:00: Filled in the new `Worker 9` placeholder at the end of the index, turning it into a focused next worker-family slot for graph-native partial invalidation precision so sibling `Geometry/Extrude` outputs can stay retained when an unrelated extrude depth edit changes only one targeted build unit
@@ -118,6 +120,10 @@ Reserved roadmap slots:
   - intentionally blank for later
 - `Worker 9`
   - next open standalone worker-family slot
+- `Worker 12`
+  - unresolved output continuation dispatch honesty for broken upstream geometry continuation that still leaves downstream `Output Preview` wiring in place
+- `Worker 13`
+  - output-entry-level preview locality inside one shared composed `Output Preview` surface
 
 ### Scope
 
@@ -1037,3 +1043,104 @@ Success bar:
   - editing one extrude depth no longer causes unrelated sibling extrudes to rebuild just because they share the same upstream sketch node
 - worker progress and accepted bundle truth show the changed branch output as rebuilt and the unaffected sibling output as retained
 - Browser and runtime inspector surfaces become more honest automatically because the underlying affected-part routing is narrower and correct
+
+## [ ] Worker 12
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 12 - Skip Worker Dispatch For Unresolved Output Continuation.md`
+
+Focus:
+- unresolved output continuation dispatch honesty
+- request-target suppression for graph-native `Output Preview` slots that are still wired but no longer buildable
+- prevent fake worker work when upstream geometry input disappears
+- keep the worker/build lane honest before viewport presentation ever gets involved
+
+Current observed gap:
+- a simple graph-native chain such as:
+  - `Geometry/Sketch -> Geometry/Extrude -> Output Preview`
+- can still try to dispatch a worker build after the user disconnects:
+  - `Sketch -> Extrude`
+- while keeping:
+  - `Extrude -> Output Preview`
+- the current strongest read is:
+  - graph-native `Geometry/Extrude` with missing selected profile input still evaluates to `SolidBody = null`
+  - `previewPreparation` already marks the downstream preview slot as `unresolved`
+  - unresolved extrudes are already removed from the worker-required part-key list
+  - but request translation can still leave non-empty `targetBuildUnitIds`, so app dispatch still sees a targetable build and can call the worker anyway
+
+Desired behavior:
+- if the current output continuation is unresolved, the app should not dispatch worker build work for that lane
+- downstream slot presence should not outrank unresolved output truth
+- request translation should return no dispatchable target build units for the targeted unresolved preview continuation
+- app build dispatch should therefore skip `requestGraphBuild` for that graph
+
+Likely ownership seam:
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/store/useAppStore.ts`
+- the targeted request-translation and app-dispatch proof files for unresolved upstream disconnects
+
+Questions this slot should answer:
+- where should unresolved output continuation stop dispatch truth:
+  - preview preparation
+  - request translation
+  - or final app dispatch gating?
+- should unresolved slots be removed from `targetBuildUnitIds` using the same ownership rule already used for required worker part keys?
+- does the app need any extra dispatch guard beyond empty `targetBuildUnitIds`, or is honest target generation enough?
+- how can the first fix stay narrowly about unresolved output continuation without widening into compile-invalid graph semantics or viewport cleanup?
+
+Success bar:
+- the first exact proof remains:
+  - `Sketch -> Extrude -> Output Preview`, then disconnect `Sketch -> Extrude` while keeping `Extrude -> Output Preview`
+- unresolved upstream disconnect no longer produces dispatchable build targets
+- app build dispatch does not call the worker for that graph
+- surrounding local worker-targeting proofs remain green without widening the phase into viewport or invalidation redesign work
+
+## [ ] Worker 13
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 13 - Output Entry Locality Inside Shared Output Composition.md`
+
+Focus:
+- output-entry-level preview locality inside one shared composed `Output Preview` surface
+- keep untouched sibling outputs fully loaded/base during branch-local edit
+- preserve untouched sibling visibility after settle instead of collapsing the loaded scene to only the changed branch
+- stop whole-surface preview classification from leaking onto unrelated output entries
+
+Current observed gap:
+- one shared `Output Preview` surface can show several visible outputs at once
+- when the user edits one local branch inside that composed surface, the current viewport path can still classify the whole surface too broadly
+- that can look like:
+  - untouched siblings dimming to the retained-baseline treatment
+  - untouched siblings inheriting yellow preview treatment
+  - untouched siblings disappearing after the changed branch commits
+- the big-picture issue is:
+  - branch-local preview truth inside one shared output composition surface is still too coarse
+  - the system does not yet always scope retained baseline, preview overlay, and settled loaded-scene membership at the output-entry level
+
+Desired behavior:
+- inside one shared composed surface:
+  - only changed output entries receive branch-local preview treatment
+  - untouched sibling output entries stay `lastLoaded` during drag
+  - untouched sibling output entries remain visible after settle
+- "same output surface" should not be enough reason for several output entries to look "in edit"
+
+Likely ownership seam:
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/components/ViewerHost.tsx` only if selector truth is already correct and render-layer assembly is still too broad
+- the focused selector and viewer-host proof files for shared output composition locality
+
+Questions this slot should answer:
+- where should branch-local preview membership become output-entry-aware inside one shared composed surface?
+- how should retained-baseline membership distinguish changed output entries from untouched siblings?
+- how should the settled loaded scene preserve untouched siblings after the changed branch commits?
+- which seam is truly primary:
+  - preview render membership
+  - selector layer construction
+  - or final viewer read-through?
+
+Success bar:
+- editing one local branch inside one shared composed `Output Preview` surface no longer dims or yellows untouched sibling outputs
+- after commit, untouched sibling outputs remain visible in the settled loaded scene
+- the earlier simpler branch-local Worker 10 proofs stay green while the shared-surface locality contract becomes honest

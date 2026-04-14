@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-04-14 11:36:43: Converted the `Generation 2` ladder into an explicit `Worker - N` roadmap index with checklist-style `## [ ]` phase sections, placing `Worker 9` through `Worker 13` into their proper Gen 2 slots and turning the still-missing identity, dependency, widening, and capstone work into forward-numbered `Worker 14` through `Worker 19` slots so this file now reads like a real family index instead of a generic numbered essay
+4. 2026-04-14 11:33:23: Reorganized this `Generation 2` umbrella so it no longer reads like the current viewport honesty lanes are the whole generation, explicitly separating the Gen 2 story into foundation work, supporting retained-truth honesty lanes, the still-missing shared-reference architecture core, and the final proof/generalization ladder while keeping `Worker 13` aligned as support work rather than a narrowing of the full Gen 2 vision
+3. 2026-04-14 11:18:12: Added `Worker 13` to the `Generation 2` umbrella as the shared-output-composition locality lane, recording that retained-truth presentation is not honestly complete until branch-local preview behavior inside one composed `Output Preview` surface is scoped at the output-entry level instead of leaking across untouched siblings
+2. 2026-04-14 10:17:51: Added `Worker 12` to the `Generation 2` umbrella as a supporting request-dispatch honesty lane, recording that unresolved output continuation must stop fake worker dispatch before later affected-subgraph and retained-truth phases can be judged cleanly
 1. 2026-04-13 18:45: Created this `Generation 2` umbrella planning doc so the worker family now has one explicit place to map the Gen 2 values in `Worker-Vision.md` to a concrete phase ladder across local branch narrowing, retained-result presentation, shared-reference identity, dependency mapping, safe widening, and the first reusable proof of reference-level downstream invalidation
 
 ### Purpose
@@ -13,6 +17,7 @@ Use it to answer:
 - what `Generation 2` is trying to accomplish
 - which values are non-negotiable for the generation
 - which already-written worker docs belong to `Generation 2`
+- how foundation work, support lanes, and still-missing architecture core fit together
 - what phases still need to land before `Generation 2` is honestly complete
 - how to sequence local branch narrowing, retained truth, shared-reference identity, and reference-level invalidation without smuggling `Generation 3` behavior in too early
 
@@ -25,6 +30,8 @@ That gives the right north star, but the actual planning surfaces are currently 
 - `Worker_Phase Worker 9 - Affected Subgraph Invalidation And Retained Sibling Recomposition.md`
 - `Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
 - `Worker_Phase Worker 11 - Viewport Result Presentation Contract.md`
+- `Worker_Phase Worker 12 - Skip Worker Dispatch For Unresolved Output Continuation.md`
+- `Worker_Phase Worker 13 - Output Entry Locality Inside Shared Output Composition.md`
 
 Those docs are useful, but they do not yet give one generation-level phase ladder that answers:
 - what is foundation work versus supporting presentation work
@@ -33,6 +40,11 @@ Those docs are useful, but they do not yet give one generation-level phase ladde
 - where safe widening and topology-change rules fit
 
 This doc exists to provide that ladder.
+
+Important reading rule:
+- this file must not let the currently painful viewport or preview bugs redefine the whole generation
+- `Generation 2` is broader than the active support fixes
+- the support fixes matter because presentation must stay honest, but they do not replace the deeper identity, dependency, and widening work that actually completes the generation
 
 Important planning rule:
 - `Worker 9`, `Worker 10`, and `Worker 11` remain the concrete implementation-ready docs
@@ -114,41 +126,110 @@ The current worker-family docs fit into `Generation 2` like this:
   - viewport truth hardening so retained-versus-rebuilt runtime truth stays visible and honest during interaction
 - `Worker 11`
   - locked presentation contract so Gen 2 retained truth has one stable user-facing story
+- `Worker 12`
+  - request-dispatch honesty guardrail so unresolved output continuation does not send fake worker work while the generation is trying to narrow and present retained truth honestly
+- `Worker 13`
+  - output-entry-level locality hardening so one local edit inside a shared composed output surface does not visually classify untouched siblings as part of the active preview
 
 Important sequencing clarification:
 - `Worker 10` and `Worker 11` are supporting Gen 2 honesty phases
 - they help make retained truth visible
 - they do not replace the still-missing shared-reference identity and dependency-mapping phases that finish the generation
+- `Worker 12` is also supporting rather than foundational
+- it keeps unresolved upstream disconnects from looking like valid local worker work
+- it should stay narrow and should not replace the core affected-subgraph, identity, or dependency-mapping phases
+- `Worker 13` is another supporting retained-truth honesty lane
+- it hardens locality inside one shared composed surface after the simpler branch-local proofs, but it still does not replace the later identity and dependency-mapping phases
+
+### Generation 2 Organization
+
+Read `Generation 2` as four layers of work:
+
+#### 1. Foundation
+
+- `Worker 9`
+  - affected-subgraph narrowing
+  - retained sibling recomposition
+  - first proof that one local branch edit should not force unrelated branch churn
+
+This is the first hard requirement for saying Gen 2 is real at all.
+
+#### 2. Supporting Retained-Truth Honesty Lanes
+
+- `Worker 10`
+  - drag/release/settle viewport honesty for retained-versus-rebuilt truth
+- `Worker 11`
+  - stable viewport presentation contract so the user-visible story stops drifting
+- `Worker 12`
+  - unresolved-output dispatch honesty so fake worker work does not contaminate later Gen 2 reads
+- `Worker 13`
+  - output-entry locality inside one shared composed output surface so untouched siblings do not get visually reclassified as part of the active preview
+
+These lanes are important, but they are support work.
+
+They help ParaHook tell the truth about Gen 2 behavior.
+
+They are not the whole architecture of Gen 2.
+
+#### 3. Still-Missing Architecture Core
+
+- stable shared-reference identity
+- reference-level dependency mapping
+- parameter-preserving versus topology-changing classification
+- honest widening when narrow proof is unavailable
+
+This is the biggest remaining center of gravity for the generation.
+
+If these phases do not land, Gen 2 remains a partly hardened presentation story sitting on top of incomplete shared-reference invalidation truth.
+
+#### 4. Capstone Proof And Generalization
+
+- first end-to-end shared-reference downstream narrowing proof
+- reuse of the same model outside the first proof family
+
+This is where Gen 2 stops being:
+- one local branch proof
+- plus several honesty patches
+
+and becomes:
+- a reusable worker/runtime rule set
+
+### Big-Picture Rule
+
+Do not narrow `Generation 2` down to:
+- only viewport styling honesty
+- only one `Extrude` proof family
+- only the currently active bug queue
+
+The full Gen 2 vision remains:
+- narrower true downstream rebuild scope
+- retained sibling preservation
+- honest retained-versus-rebuilt presentation
+- shared-reference identity
+- dependency-aware downstream invalidation
+- explicit widening when certainty is missing
 
 ### Phase Ladder
 
-## [ ] Worker Generation 2 - Retained Truth And Affected-Subgraph Worker
+The `Generation 2` roadmap should be read through explicit `Worker - N` slots.
 
-### Header
+The slots below are not all the same kind of work:
+- `Worker 9` is the first foundation proof
+- `Worker 10` through `Worker 13` are supporting honesty lanes
+- `Worker 14` through `Worker 17` are the still-missing architecture core
+- `Worker 18` and `Worker 19` are the capstone proof and generalization passes
 
-Purpose:
+## [ ] Worker - 9 - Affected Subgraph Invalidation And Retained Sibling Recomposition
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 9 - Affected Subgraph Invalidation And Retained Sibling Recomposition.md`
+
+Role in `Generation 2`:
 - turn the graph-native worker into a selective worker that rebuilds only the true affected downstream scope while keeping retained truth honest
 
 Owns:
 - affected-subgraph invalidation
-- retained sibling preservation and recomposition
-- shared-reference downstream narrowing
-- stable reference identity and dependency mapping needed to make narrow rebuilds trustworthy
-- honest widening rules when proof is incomplete
-
-Does not own:
-- interruption-and-restart scheduling
-- export product policy
-- full build-history playback UX
-- viewer-owned geometry truth
-
-### Phase 1 - Local Branch Narrowing And Retained Recomposition Foundation
-
-Goal:
-- prove that one changed authored branch rebuilds without dragging unrelated parallel siblings through the worker
-
-Primary existing planning surface:
-- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 9 - Affected Subgraph Invalidation And Retained Sibling Recomposition.md`
+- retained sibling preservation and recomposition for local branch edits
 
 What this phase must make true:
 - branch-local parameter edits stay local to the changed authored branch and its real downstream cone
@@ -163,14 +244,16 @@ Done when:
 - retained sibling bundle truth remains explicit and accepted-result-owned
 - unrelated sibling rebuild churn stops for the targeted proof graph
 
-### Phase 2 - Retained Truth Presentation Hardening
+## [ ] Worker - 10 - Last-Committed Viewport Baseline During Live Preview
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
+
+Role in `Generation 2`:
+- supporting retained-truth honesty lane
 
 Goal:
 - make the viewport tell the truth about retained versus rebuilt work during drag, release, and settle behavior
-
-Primary existing planning surfaces:
-- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
-- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 11 - Viewport Result Presentation Contract.md`
 
 What this phase must make true:
 - the pre-edit committed baseline remains visible while the changed branch previews above it
@@ -184,15 +267,73 @@ Why this phase is still Gen 2:
 
 Done when:
 - branch-local edits no longer visually look like broad whole-scene preview churn
+- the viewport now has a stable retained-baseline live-preview story to hand forward into later Gen 2 work
+
+## [ ] Worker - 11 - Viewport Result Presentation Contract
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 11 - Viewport Result Presentation Contract.md`
+
+Role in `Generation 2`:
+- supporting retained-truth honesty lane
+
+Goal:
+- freeze one stable user-visible contract for retained versus rebuilt viewport presentation
+
+What this phase must make true:
+- viewport result classes and presentation states have one stable story
 - unchanged siblings do not flicker, dim, disappear, or inherit preview styling during local edits
 - the viewport presentation contract is stable enough that later Gen 2 runtime phases can be judged against one fixed user-visible story
 
-### Phase 3 - Stable Shared-Reference Identity
+Done when:
+- later Gen 2 runtime and selector work can be reviewed against one fixed viewport contract instead of moving UI semantics
+
+## [ ] Worker - 12 - Skip Worker Dispatch For Unresolved Output Continuation
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 12 - Skip Worker Dispatch For Unresolved Output Continuation.md`
+
+Role in `Generation 2`:
+- supporting request-honesty guardrail
+
+Goal:
+- stop fake worker work from being dispatched when downstream output continuation is unresolved
+
+What this phase must make true:
+- unresolved upstream disconnects do not produce dispatchable build targets
+- request translation and app dispatch stay honest before later Gen 2 narrowing and presentation behavior are judged
+
+Done when:
+- broken output continuation no longer looks like valid local worker work
+
+## [ ] Worker - 13 - Output Entry Locality Inside Shared Output Composition
+
+Standalone future doc:
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 13 - Output Entry Locality Inside Shared Output Composition.md`
+
+Role in `Generation 2`:
+- supporting retained-truth honesty lane for shared composed surfaces
+
+Goal:
+- keep one local edit inside one shared `Output Preview` surface from visually reclassifying untouched sibling outputs
+
+What this phase must make true:
+- changed output entries alone receive branch-local preview treatment
+- untouched sibling output entries stay ordinary loaded/base during drag
+- untouched sibling output entries remain visible after settle
+
+Done when:
+- shared composed output surfaces no longer make untouched siblings dim, yellow, or disappear merely because one sibling changed
+
+## [ ] Worker - 14 - Stable Shared-Reference Identity
 
 Goal:
 - create the first durable identity rules for shared upstream references so downstream narrowing can survive edits that preserve logical identity
 
-This phase should answer:
+Planning home for now:
+- this `Worker-Index-Gen2.md` umbrella
+
+This worker should answer:
 - what makes one upstream reference the same logical reference before and after an edit
 - which edits preserve identity
 - which edits destroy identity
@@ -211,12 +352,15 @@ Done when:
 - one shared-reference family has an explicit identity rule that survives ordinary parameter edits
 - that identity rule is available to later dependency mapping without relying on viewer or Browser heuristics
 
-### Phase 4 - Reference-Level Dependency Mapping
+## [ ] Worker - 15 - Reference-Level Dependency Mapping
 
 Goal:
 - move from node-level dependency knowledge to reference-level dependency knowledge
 
-This phase should answer:
+Planning home for now:
+- this `Worker-Index-Gen2.md` umbrella
+
+This worker should answer:
 - which downstream node depends on which upstream reference or sub-entity
 - where that mapping is stored
 - how it is derived during compile/build preparation
@@ -236,12 +380,15 @@ Done when:
 - at least one shared-reference family has real dependency metadata from upstream entity to downstream consumer
 - the mapping is precise enough to drive the next narrowing phase
 
-### Phase 5 - Parameter-Preserving Versus Topology-Changing Classification
+## [ ] Worker - 16 - Parameter-Preserving Versus Topology-Changing Classification
 
 Goal:
 - classify edits so the runtime knows when narrow invalidation is safe and when honest widening is required
 
-This phase should answer:
+Planning home for now:
+- this `Worker-Index-Gen2.md` umbrella
+
+This worker should answer:
 - which edit kinds preserve stable reference identity
 - which edit kinds can change, split, merge, or destroy reference identity
 - how that classification reaches invalidation and routing code
@@ -257,12 +404,15 @@ Done when:
   - parameter-preserving edit
   - topology-changing edit
 
-### Phase 6 - Honest Widening Policy And Explainable Invalidations
+## [ ] Worker - 17 - Honest Widening Policy And Explainable Invalidations
 
 Goal:
 - freeze the rules for when ParaHook must widen because narrow proof is missing, stale, or invalidated
 
-This phase should answer:
+Planning home for now:
+- this `Worker-Index-Gen2.md` umbrella
+
+This worker should answer:
 - what uncertainty conditions trigger widening
 - whether widening happens at request translation, compile-time dependency derivation, or worker routing
 - how the runtime explains a widened rebuild in logs, stats, or debug surfaces
@@ -279,7 +429,7 @@ Done when:
 - the active proof family has explicit widening triggers
 - debug/runtime narration can explain why a rebuild stayed narrow or widened
 
-### Phase 7 - Shared-Reference Downstream Narrowing First Proof
+## [ ] Worker - 18 - Shared-Reference Downstream Narrowing First Proof
 
 Goal:
 - land the first full end-to-end proof that one shared upstream edit rebuilds only the downstream consumers that truly depend on the changed reference
@@ -301,7 +451,7 @@ Done when:
 - `Profile 1` edits no longer force `Object 2` through `Object N` to rebuild when they do not depend on `Profile 1`
 - the worker, runtime acceptance, and viewport all tell the same story about what changed and what stayed retained
 
-### Phase 8 - Generalization And Hardening
+## [ ] Worker - 19 - Generalization And Hardening
 
 Goal:
 - turn the first shared-reference proof into a reusable rule instead of a one-off sketch/extrude special case
@@ -344,10 +494,15 @@ The phases above should be read with these locked ordering rules:
 
 The likely next doc sequence from this umbrella should be:
 
-1. finish the remaining active `Worker 9` retained recomposition work if any local branch gaps remain
-2. finish the supporting `Worker 10` and `Worker 11` viewport honesty work so retained truth stays visible
-3. create the first new post-`Worker 11` implementation-ready phase doc for `Stable Shared-Reference Identity`
-4. follow it with a dedicated `Reference-Level Dependency Mapping` phase doc for the first shared-reference family
+1. finish the remaining active `Worker - 9` retained recomposition work if any local branch gaps remain
+2. finish the active supporting honesty lanes only as needed to keep retained truth readable and trustworthy:
+   - `Worker - 10`
+   - `Worker - 11`
+   - `Worker - 12`
+   - `Worker - 13`
+3. spin out the first dedicated implementation-ready doc for `Worker - 14`
+4. follow it with a dedicated implementation-ready doc for `Worker - 15`
+5. then continue into `Worker - 16`, `Worker - 17`, and the first full shared-reference downstream narrowing proof under `Worker - 18`
 
 ### Guardrail Summary
 

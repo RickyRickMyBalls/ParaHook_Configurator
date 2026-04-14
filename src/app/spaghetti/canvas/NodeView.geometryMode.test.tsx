@@ -952,6 +952,121 @@ describe('NodeView geometry mode behavior', () => {
     expect(updatedDepthInput?.value).toBe('30.1')
   })
 
+  it('drives both UI interaction and browser build interaction during canvas extrude numeric edits', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const graphDocumentId = useSpaghettiStore.getState().activeGraphDocumentId
+    const depthRow = findExtrudeInputRow(container, 'Depth')
+    const depthInput = depthRow?.querySelector(
+      '.SpaghettiPortPrimitiveValueInput',
+    ) as HTMLInputElement | null
+
+    expect(depthInput).not.toBeNull()
+    expect(graphDocumentId.length).toBeGreaterThan(0)
+    expect(useAppStore.getState().isInteracting).toBe(false)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBeUndefined()
+
+    await act(async () => {
+      depthInput?.focus()
+    })
+
+    expect(useAppStore.getState().isInteracting).toBe(true)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBe(true)
+
+    await act(async () => {
+      depthInput?.blur()
+    })
+
+    expect(useAppStore.getState().isInteracting).toBe(false)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBeUndefined()
+  })
+
+  it('clears both canvas interaction channels when a primitive drag releases', async () => {
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [extrudeNode],
+        edges: [],
+        ui: {
+          nodeModesByNodeId: {
+            'node-extrude-1': 'collapsed',
+          },
+        },
+      })
+      root?.render(<ExtrudeNodeHarness />)
+    })
+
+    const graphDocumentId = useSpaghettiStore.getState().activeGraphDocumentId
+    const depthRow = findExtrudeInputRow(container, 'Depth')
+    const dragLane = depthRow?.querySelector('.SpaghettiPortPrimitiveLane') as HTMLDivElement | null
+
+    expect(dragLane).not.toBeNull()
+    expect(graphDocumentId.length).toBeGreaterThan(0)
+    expect(useAppStore.getState().isInteracting).toBe(false)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBeUndefined()
+
+    if (dragLane !== null) {
+      dragLane.getBoundingClientRect = () =>
+        ({
+          left: 0,
+          right: 100,
+          top: 0,
+          bottom: 18,
+          width: 100,
+          height: 18,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }) as DOMRect
+    }
+
+    await act(async () => {
+      dragLane?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 25,
+        }),
+      )
+    })
+
+    expect(useAppStore.getState().isInteracting).toBe(true)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBe(true)
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 75,
+        }),
+      )
+    })
+
+    expect(useAppStore.getState().isInteracting).toBe(false)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds[graphDocumentId]).toBeUndefined()
+  })
+
   it('updates the extrude Depth row from the center primitive drag lane', async () => {
     await act(async () => {
       useSpaghettiStore.getState().setGraph({

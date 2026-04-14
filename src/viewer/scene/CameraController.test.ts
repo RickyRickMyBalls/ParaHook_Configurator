@@ -221,6 +221,34 @@ describe('CameraController', () => {
     expect(orthographicPoseAfter.orthoViewHeight).toBeLessThan(orthographicPoseBefore.orthoViewHeight)
   })
 
+  it('applies fly-look deltas by rotating the camera target around the current position', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+    controls.update.mockClear()
+    const targetBefore = controls.target.clone()
+
+    controller.applyFlyLookDelta(40, 0)
+
+    expect(controls.target.toArray()).not.toEqual(targetBefore.toArray())
+    expect(perspectiveCamera.position.toArray()).toEqual([0, 0, 10])
+    expect(controls.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('translates fly movement by moving both the camera position and orbit target together', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+    controls.update.mockClear()
+    const positionBefore = perspectiveCamera.position.clone()
+    const targetBefore = controls.target.clone()
+
+    controller.translateFly(1, 0.5, 0.25)
+
+    expect(perspectiveCamera.position.toArray()).not.toEqual(positionBefore.toArray())
+    expect(controls.target.toArray()).not.toEqual(targetBefore.toArray())
+    expect(
+      perspectiveCamera.position.clone().sub(positionBefore).toArray(),
+    ).toEqual(controls.target.clone().sub(targetBefore).toArray())
+    expect(controls.update).toHaveBeenCalledTimes(1)
+  })
+
   it('frames a client drag window on the target plane in both projection modes', () => {
     const { controller, controls, perspectiveCamera } = createController()
 

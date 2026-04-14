@@ -964,6 +964,7 @@ export type AppState = {
     graphDocumentId: string,
     options?: GraphDocumentBuildRequestOptions,
   ) => CompileSpaghettiGraphResult | null
+  settleGraphViewportComparison: (graphDocumentId: string) => void
   beginInteraction: () => void
   endInteraction: () => void
   requestManualBuild: () => void
@@ -4628,6 +4629,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     return compileResult
   },
   requestGraphDocumentBuild: (graphDocumentId, options) => {
+    if (options?.explicit === true) {
+      get().settleGraphViewportComparison(graphDocumentId)
+    }
     const state = get()
     const spaghettiState = useSpaghettiStore.getState()
     const existingDelayedPlaceholder =
@@ -5242,6 +5246,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       authoritativePolicyOverride: options?.authoritativePolicyOverride,
       geometryTargetOverride: options?.geometryTargetOverride,
     })
+  },
+  settleGraphViewportComparison: (graphDocumentId) => {
+    if (graphDocumentId.length === 0) {
+      return
+    }
+    const ownedInteraction = get().browserInteractionGraphDocumentIds[graphDocumentId] === true
+    set((state) => ({
+      browserInteractionGraphDocumentIds: deleteRecordKey(
+        state.browserInteractionGraphDocumentIds,
+        graphDocumentId,
+      ),
+      pendingBrowserBuildGraphDocumentIds: deleteRecordKey(
+        state.pendingBrowserBuildGraphDocumentIds,
+        graphDocumentId,
+      ),
+    }))
+    if (!ownedInteraction) {
+      return
+    }
+    if (Object.keys(get().browserInteractionGraphDocumentIds).length > 0) {
+      return
+    }
+    get().endInteraction()
   },
   beginInteraction: () => {
     set((state) => (state.isInteracting ? state : { isInteracting: true }))

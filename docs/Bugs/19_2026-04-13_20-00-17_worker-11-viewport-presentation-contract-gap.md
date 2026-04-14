@@ -1,6 +1,7 @@
 # 19 - Worker 11 Viewport Presentation Contract Gap
 
 ## Doc History
+8. 2026-04-13 21:38: Recorded the `AutoDraftFinal Phase 0` closure read after the final code-only seam audit, locking that the remaining risk is now mostly `Phase C` layer assembly in `ViewerHost.tsx` rather than missing overlay-source availability, while also documenting `frozenInteractionBaseRef` as a secondary integrity risk because it caches the last rendered base instead of an explicit committed-source contract
 7. 2026-04-13 20:49:42: Updated this bug note to record the shipped `Phase B` result after `ViewerHost.tsx` gained an active-interaction fallback to raw runtime accepted preview bundle/output state, capturing that the earlier `Phase A` gate failure was a wrong-source gap rather than a fundamentally unreachable branch-local path because the new end-to-end two-extrude proof now reaches a real three-layer call with stable unchanged sibling base, changed-branch dimmed baseline, and rebuilt-only overlay even while the selector-visible accepted preview bundle remains intentionally empty
 6. 2026-04-13 20:41:18: Recorded the first `Phase A` seam-inspection result after a targeted `ViewerHost` proof attempt, capturing that the end-to-end two-extrude active-drag path still never reaches the branch-local retained-baseline layer call and instead stays on retained authoritative-only rendering with no overlay, so the next viewport debugging pass now has one concrete gating failure instead of only the broader live symptom list
 5. 2026-04-13 20:25:09: Added a seam-by-seam viewport investigation order to `Bug 19`, breaking the `ViewerHost.tsx` debugging work into explicit phases around the branch-local gating condition, rebuilt-only overlay source, layer assembly, frozen interaction base, helper split logic, and selector handoff so the next viewport-path fixes can be inspected one seam at a time instead of patched as one blended problem
@@ -217,6 +218,51 @@ And the active `Bug 19` scope does not include:
 ### Seam Inspection Order
 
 The next viewport-path debugging pass should inspect `ViewerHost.tsx` in this order so we can isolate which seam is still dropping the `Worker 11` contract.
+
+### Investigation Summary So Far
+
+- `Phase A` proved the first end-to-end active-drag read-through still missed the branch-local path entirely.
+  - in that pre-fix proof, `ViewerHost` stayed on retained authoritative-only rendering with:
+    - `baseParts = [graph-document-1:authoritative-preview]`
+    - `baselineParts = []`
+    - `overlayParts = []`
+- `Phase B` proved that miss was a wrong-source gap, not a fundamentally unreachable branch-local branch.
+  - during active interaction, the selector-visible accepted preview lane could still be empty because `acceptedPreviewGraphRevision` had not yet caught up to the current graph revision
+  - once `ViewerHost` fell back to raw runtime `acceptedPreviewBuildBundle` and `acceptedPreviewBuildOutputs` during interaction, rebuilt-only overlay data became available early enough to drive branch-local layering
+  - the new two-extrude end-to-end proof now reaches a real branch-local three-layer call with:
+    - unchanged sibling in `baseParts`
+    - changed branch in `baselineParts`
+    - changed rebuilt overlay in `overlayParts`
+- Current read after `Phase A` and `Phase B`:
+  - the remaining viewport symptoms are no longer best explained by missing rebuilt-only overlay source availability
+  - the next most likely seams are `Phase C` layer assembly read-through and `Phase D` frozen interaction-base integrity
+
+### Phase 0 Closure Read
+
+- `Bug 19` is no longer a broad “viewport is complicated” bug
+- the remaining root issue is mostly `Phase C - layer assembly read-through`
+  - `selectViewportResultState.ts` already owns most visible-result truth:
+    - mode preference
+    - policy timing suppression
+    - retained-base classification
+    - `previewMesh` versus `previewBrep`
+    - visible result priority
+  - `ViewerHost.tsx` still re-decides too much of that truth through:
+    - `showsBranchLocalRetainedBaseline`
+    - mode-specific retained-final and retained-draft fallback branches
+    - direct layer assembly choices after selector output already exists
+- `Phase D - frozen interaction-base integrity` is still real, but secondary
+  - `frozenInteractionBaseRef` stores the last rendered `baseParts` and branch-stable preview parts only while interaction is inactive
+  - that means it is caching a derived visible base, not an explicit committed-source baseline
+  - this can still create later mismatch risk, especially once settled draft or other non-final bases have already been shown
+- current closure attribution:
+  - primary seam: `layer assembly`
+  - secondary seam: `frozen interaction-base integrity`
+
+- supporting proof from the current code and tests:
+  - the interaction-time raw-runtime accepted-preview fallback solved the wrong-source gap from `Phase B`
+  - `ViewerHost.test.tsx` now passes the branch-local fallback proofs
+  - `selectViewportResultState.test.ts` still has two failing expectations from the older churn contract, which reinforces that the selector and host are mid-transition rather than already aligned around one frozen matrix
 
 #### [x] Phase A - Branch-Local Gate Reachability
 

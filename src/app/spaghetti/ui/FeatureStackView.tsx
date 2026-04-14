@@ -142,6 +142,8 @@ export function FeatureStackView({
   const setFeatureEnabled = useSpaghettiStore((state) => state.setFeatureEnabled)
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const featureStackIr = useSpaghettiStore((state) => state.getPartFeatureStackIrForNode(node.nodeId))
+  const beginInteraction = useAppStore((state) => state.beginInteraction)
+  const endInteraction = useAppStore((state) => state.endInteraction)
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
 
@@ -149,6 +151,7 @@ export function FeatureStackView({
     if (activeGraphDocumentId === null) {
       return
     }
+    beginInteraction()
     beginBrowserBuildInteraction(activeGraphDocumentId)
   }
 
@@ -156,6 +159,7 @@ export function FeatureStackView({
     if (activeGraphDocumentId === null) {
       return
     }
+    endInteraction()
     endBrowserBuildInteraction(activeGraphDocumentId)
   }
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { toViewerRenderablePart, type PartArtifact } from '../../shared/buildTypes'
-import { createDraftGeometryResultBundle } from '../../shared/geometryResult'
+import {
+  createAuthoritativeGeometryResultBundle,
+  createDraftGeometryResultBundle,
+} from '../../shared/geometryResult'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 import type { GraphDocument } from '../spaghetti/schema/spaghettiTypes'
 import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
@@ -85,6 +88,7 @@ describe('buildViewportResultSelectorOptions', () => {
       browserGraphBuildPolicyByGraphDocumentId: {},
       browserContentBuildPolicyByRowId: {},
       browserInteractionGraphDocumentIds: {},
+      isInteracting: false,
       delayedDraftBuildByGraphDocumentId: {},
       delayedAuthoritativeBuildByGraphDocumentId: {},
       requestedMode: 'auto',
@@ -127,6 +131,7 @@ describe('buildViewportResultSelectorOptions', () => {
       browserInteractionGraphDocumentIds: {
         [graphDocumentId]: true,
       },
+      isInteracting: true,
       delayedDraftBuildByGraphDocumentId: {
         [graphDocumentId]: {} as AppState['delayedDraftBuildByGraphDocumentId'][string],
       },
@@ -204,6 +209,7 @@ describe('buildViewportResultSelectorOptions', () => {
       browserInteractionGraphDocumentIds: {
         [graphDocumentId]: true,
       },
+      isInteracting: true,
       delayedDraftBuildByGraphDocumentId: {},
       delayedAuthoritativeBuildByGraphDocumentId: {},
       requestedMode: 'draft',
@@ -238,5 +244,211 @@ describe('buildViewportResultSelectorOptions', () => {
       }),
     )
     expect(state.previewRenderVm.viewerParts).toEqual([])
+  })
+
+  it('treats lingering browser build interaction as settled once UI interaction has ended', () => {
+    const graphDocumentId = 'graph-document-1'
+
+    const options = buildViewportResultSelectorOptions({
+      currentProject: createCurrentProject([graphDocumentId]),
+      projectContent: createProjectContent(),
+      browserGraphBuildPolicyByGraphDocumentId: {
+        [graphDocumentId]: 'live',
+      },
+      browserContentBuildPolicyByRowId: {},
+      browserInteractionGraphDocumentIds: {
+        [graphDocumentId]: true,
+      },
+      isInteracting: false,
+      delayedDraftBuildByGraphDocumentId: {},
+      delayedAuthoritativeBuildByGraphDocumentId: {},
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      renderedProjectPartSet: createRenderedProjectPartSet(),
+      graphDocumentsById: createGraphDocumentsById([graphDocumentId]),
+      viewerTargetGraphDocumentId: graphDocumentId,
+      sharedViewerComposition: null,
+      sketchPlanePickSession: null,
+      acceptedAuthoritativeGeometryResult: null,
+      previewReadyAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: null,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation: null,
+    })
+
+    expect(options.isInteractionActive).toBe(false)
+  })
+
+  it('collapses auto live branch-local comparison to a base-only winner once UI interaction settles even if the graph flag lingers', () => {
+    const graphDocumentId = 'graph-document-1'
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId,
+        buildRequestId: 'build-request-final-before-explicit-settle',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-before-explicit-settle',
+      },
+    })
+    const acceptedDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId,
+        buildRequestId: 'build-request-draft-after-explicit-settle',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const extrude1 = toViewerRenderablePart(
+      createArtifact('extrude-1'),
+      'output-entry:slot-extrude-1:node-extrude-1',
+    )
+    const extrude2 = toViewerRenderablePart(
+      createArtifact('extrude-2'),
+      'output-entry:slot-extrude-2:node-extrude-2',
+    )
+
+    const activeOptions = buildViewportResultSelectorOptions({
+      currentProject: createCurrentProject([graphDocumentId]),
+      projectContent: createProjectContent(),
+      browserGraphBuildPolicyByGraphDocumentId: {
+        [graphDocumentId]: 'live',
+      },
+      browserContentBuildPolicyByRowId: {},
+      browserInteractionGraphDocumentIds: {
+        [graphDocumentId]: true,
+      },
+      isInteracting: true,
+      delayedDraftBuildByGraphDocumentId: {},
+      delayedAuthoritativeBuildByGraphDocumentId: {},
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      renderedProjectPartSet: createRenderedProjectPartSet(),
+      graphDocumentsById: createGraphDocumentsById([graphDocumentId]),
+      viewerTargetGraphDocumentId: graphDocumentId,
+      sharedViewerComposition: null,
+      sketchPlanePickSession: null,
+      acceptedAuthoritativeGeometryResult: null,
+      previewReadyAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      interactionAcceptedOutputPreviewRenderVm: {
+        items: [],
+        viewerParts: [extrude1, extrude2],
+      },
+      interactionAcceptedRebuiltPreviewRenderVm: {
+        items: [],
+        viewerParts: [extrude2],
+      },
+      committedInteractionBaseParts: [extrude1, extrude2],
+      committedInteractionBranchStableParts: [extrude1, extrude2],
+      committedInteractionBasePresentationStateId: 'lastLoaded',
+    })
+
+    const activeState = selectViewportResultState(activeOptions)
+
+    expect(activeOptions.isInteractionActive).toBe(true)
+    expect(activeState.layerRecipe).toEqual(
+      expect.objectContaining({
+        kind: 'branch-local-retained-baseline',
+        basePresentationStateId: 'lastLoaded',
+        baselinePresentationStateId: 'lastLoaded',
+        overlayPresentationStateId: 'previewMesh',
+      }),
+    )
+
+    const settledOptions = buildViewportResultSelectorOptions({
+      currentProject: createCurrentProject([graphDocumentId]),
+      projectContent: createProjectContent(),
+      browserGraphBuildPolicyByGraphDocumentId: {
+        [graphDocumentId]: 'live',
+      },
+      browserContentBuildPolicyByRowId: {},
+      browserInteractionGraphDocumentIds: {
+        [graphDocumentId]: true,
+      },
+      isInteracting: false,
+      delayedDraftBuildByGraphDocumentId: {},
+      delayedAuthoritativeBuildByGraphDocumentId: {},
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      renderedProjectPartSet: createRenderedProjectPartSet(),
+      graphDocumentsById: createGraphDocumentsById([graphDocumentId]),
+      viewerTargetGraphDocumentId: graphDocumentId,
+      sharedViewerComposition: null,
+      sketchPlanePickSession: null,
+      acceptedAuthoritativeGeometryResult: null,
+      previewReadyAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      interactionAcceptedOutputPreviewRenderVm: {
+        items: [],
+        viewerParts: [extrude1, extrude2],
+      },
+      interactionAcceptedRebuiltPreviewRenderVm: {
+        items: [],
+        viewerParts: [extrude2],
+      },
+      committedInteractionBaseParts: [extrude1, extrude2],
+      committedInteractionBranchStableParts: [extrude1, extrude2],
+      committedInteractionBasePresentationStateId: 'lastLoaded',
+    })
+
+    const settledState = selectViewportResultState(settledOptions)
+
+    expect(settledOptions.isInteractionActive).toBe(false)
+    expect(settledState.layerRecipe).toEqual(
+      expect.objectContaining({
+        kind: 'base-only',
+        basePresentationStateId: 'lastLoaded',
+        baselineParts: [],
+        overlayParts: [],
+      }),
+    )
   })
 })

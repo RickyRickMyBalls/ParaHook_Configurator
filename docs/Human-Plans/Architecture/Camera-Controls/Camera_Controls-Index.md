@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-04-14: Added the standalone future phase doc for `[Camera-6.3] Fly Camera Polish Backlog`, turning the first post-`6.2` fly polish follow-on into an implementation-ready plan focused on `speed boost`, a `speed control slider`, and the `Ctrl`/`Shift` remap needed to free boost cleanly
+27. 2026-04-14: Cleaned up `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership` after implementation and marked the first fly runtime cut complete in the family index so the shipped state matches the current docs and code
+26. 2026-04-14: Added the first fly-camera polish backlog to `[Camera-6] Hold-To-Fly First-Person Camera Navigation`, prioritizing `speed boost` and a `speed control slider` first and recording the recommended control remap of `Ctrl` = descend so `Shift` can become boost cleanly
+25. 2026-04-14: Re-did `[Camera-6.1] Fly Navigation Research And Seam Audit` against the current workspace/viewer architecture, replacing the older single-viewport read with an active-viewer-viewport seam audit and tightening the follow-on expectations around console capture, per-viewport ownership, and missing release seams like `keyup`, `blur`, and viewport-local `contextmenu`
 24. 2026-04-06 21:02: Added the new standalone future phase doc for `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership`, and tightened the fly-navigation family so the next runtime cut now has its own implementation-ready planning surface grounded in the finished `Camera-6.1` seam audit
 23. 2026-04-06 20:52: Marked `[Camera-6.1] Fly Navigation Research And Seam Audit` complete after locking the live viewer pointer seam, shared keyboard-routing seam, console auto-capture dependency, camera-controller helper direction, and viewport-local `contextmenu` suppression seam, and advanced the fly-navigation family so `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership` is now the next open runtime cut
 22. 2026-04-06 20:33: Broke the new fly-navigation work into a small `Camera-6.*` ladder, added the standalone future phase doc for `[Camera-6.1] Fly Navigation Research And Seam Audit`, and recast `Camera-6` as the umbrella fly-navigation family phase so implementation can start from one concrete seam read before keyboard, camera-motion, and context-menu changes land
@@ -56,6 +60,7 @@ Use this folder like this:
   - `Camera_Controls_Phase Camera-6 - Hold-To-Fly First-Person Camera Navigation.md`
   - `Camera_Controls_Phase Camera-6.1 - Fly Navigation Research And Seam Audit.md`
   - `Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
+  - `Camera_Controls_Phase Camera-6.3 - Fly Camera Polish Backlog.md`
 - `Shipped/`
   - later shipped records for completed camera-controls cuts if the family grows enough to justify them
   - `Camera_Controls_Phase Camera-1 - Sketch Draw Camera Blocking.md`
@@ -73,6 +78,7 @@ Current phase ladder:
 - `[Camera-6] Hold-To-Fly First-Person Camera Navigation`
 - `[Camera-6.1] Fly Navigation Research And Seam Audit`
 - `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership`
+- `[Camera-6.3] Fly Camera Polish Backlog`
 
 ### Why This Doc Exists
 
@@ -544,22 +550,43 @@ CheckList:
 CheckList:
 - [x] add one standalone future phase doc for the fly-navigation seam audit:
   - [x] `Future/Camera_Controls_Phase Camera-6.1 - Fly Navigation Research And Seam Audit.md`
-- [x] audit the current viewer pointer, keyboard, and camera-controller seams that would own fly mode
+- [x] re-audit the current active-viewer-viewport, pointer, keyboard, and camera-controller seams that would own fly mode
 - [x] identify how fly mode should suppress console typing without weakening the broader input-routing model
 - [x] identify how viewport-local `contextmenu` suppression should attach to the same `RMB` fly interaction
+- [x] identify which release seams still need to be added explicitly for fly teardown:
+  - [x] `keyup`
+  - [x] `blur`
+  - [x] viewport-local `contextmenu`
 - [x] decide whether the first implementation cut should remain non-pointer-lock and perspective-only
 - [x] record the recommended narrow follow-on implementation slice after the seam audit
 
-### [ ] `[Camera-6.2]` - `Hold-To-Fly Runtime And Input Ownership`
+### [x] `[Camera-6.2]` - `Hold-To-Fly Runtime And Input Ownership`
 
 CheckList:
-- [ ] add one standalone future phase doc for the first fly runtime cut:
-  - [ ] `Future/Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
-- [ ] let held `RMB` arm a temporary fly session in the model viewport when no higher-priority viewer owner already claims the interaction
-- [ ] route mouse look plus:
-  - [ ] `W` / `A` / `S` / `D` for planar movement
-  - [ ] `Space` and `Shift` for vertical movement
-- [ ] add one explicit keyboard-routing owner so console auto-capture stands down while fly mode is active
-- [ ] keep existing viewer shortcuts like gizmo `W` / `E` / `R` / `Q` dormant while fly mode owns the keyboard
-- [ ] add viewport-local `contextmenu` suppression for the same fly interaction
-- [ ] stop fly movement immediately on `RMB` release and restore the normal camera/input ownership path cleanly
+- [x] add one standalone future phase doc for the first fly runtime cut:
+  - [x] `Future/Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
+- [x] let held `RMB` arm a temporary fly session in the active viewer viewport when no higher-priority viewer owner already claims the interaction
+- [x] route mouse look plus:
+  - [x] `W` / `A` / `S` / `D` for planar movement
+  - [x] `Space` and `Shift` for vertical movement
+- [x] add one explicit keyboard-routing owner so console auto-capture stands down while fly mode is active
+- [x] keep existing viewer shortcuts like gizmo `W` / `E` / `R` / `Q` dormant while fly mode owns the keyboard
+- [x] add viewport-local `contextmenu` suppression for the same fly interaction
+- [x] stop fly movement immediately on `RMB` release and restore the normal camera/input ownership path cleanly
+
+### [ ] `[Camera-6.3]` - `Fly Camera Polish Backlog`
+
+CheckList:
+- [x] add one standalone future phase doc for fly-camera polish:
+  - [x] `Future/Camera_Controls_Phase Camera-6.3 - Fly Camera Polish Backlog.md`
+- [ ] add `speed boost` while fly mode is active
+- [ ] add a `speed control slider` for base fly speed
+- [ ] remap fly descend from `Shift` to `Ctrl` so `Shift` can become boost
+- [ ] decide the first boost multiplier behavior:
+  - [ ] fixed multiplier
+  - [ ] or slider/tunable multiplier later
+- [ ] verify the updated fly key map still exits cleanly and does not regress browser or app shortcut behavior
+- [ ] leave deeper polish for later:
+  - [ ] mouse-look sensitivity slider
+  - [ ] optional pointer lock
+  - [ ] saved fly settings

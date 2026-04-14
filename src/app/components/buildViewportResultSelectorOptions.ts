@@ -3,6 +3,10 @@ import type { GeometryResultBundle } from '../../shared/geometryResult'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 import type { SpaghettiStoreState } from '../spaghetti/store/useSpaghettiStore'
 import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
+import type {
+  ViewportPresentationStateId,
+} from '../spaghetti/selectors/selectViewportResultState'
+import type { PreviewRenderVm } from '../spaghetti/selectors/selectPreviewRenderVm'
 import type { GraphDocument } from '../spaghetti/schema/spaghettiTypes'
 import type {
   AppState,
@@ -30,6 +34,7 @@ type BuildViewportResultSelectorOptionsArgs = ViewportResultPolicyState &
   Pick<
     AppState,
     | 'browserInteractionGraphDocumentIds'
+    | 'isInteracting'
     | 'delayedDraftBuildByGraphDocumentId'
     | 'delayedAuthoritativeBuildByGraphDocumentId'
   > & {
@@ -48,6 +53,11 @@ type BuildViewportResultSelectorOptionsArgs = ViewportResultPolicyState &
     acceptedPreviewBuildBundle?: BuildResultBundle | null
     acceptedPreviewBuildOutputs: readonly PartArtifact[]
     previewPreparation: GraphPreviewPreparation | null
+    interactionAcceptedOutputPreviewRenderVm?: PreviewRenderVm
+    interactionAcceptedRebuiltPreviewRenderVm?: PreviewRenderVm
+    committedInteractionBaseParts?: RenderedProjectPartSetVm['viewerParts']
+    committedInteractionBranchStableParts?: RenderedProjectPartSetVm['viewerParts']
+    committedInteractionBasePresentationStateId?: ViewportPresentationStateId | null
   }
 
 export const buildViewportResultSelectorOptions = (
@@ -59,6 +69,7 @@ export const buildViewportResultSelectorOptions = (
     browserGraphBuildPolicyByGraphDocumentId,
     browserContentBuildPolicyByRowId,
     browserInteractionGraphDocumentIds,
+    isInteracting,
     delayedDraftBuildByGraphDocumentId,
     delayedAuthoritativeBuildByGraphDocumentId,
     renderedProjectPartSet,
@@ -98,6 +109,13 @@ export const buildViewportResultSelectorOptions = (
     acceptedPreviewBuildBundle: options.acceptedPreviewBuildBundle,
     acceptedPreviewBuildOutputs: options.acceptedPreviewBuildOutputs,
     previewPreparation: options.previewPreparation,
+    interactionAcceptedOutputPreviewRenderVm: options.interactionAcceptedOutputPreviewRenderVm,
+    interactionAcceptedRebuiltPreviewRenderVm:
+      options.interactionAcceptedRebuiltPreviewRenderVm,
+    committedInteractionBaseParts: options.committedInteractionBaseParts,
+    committedInteractionBranchStableParts: options.committedInteractionBranchStableParts,
+    committedInteractionBasePresentationStateId:
+      options.committedInteractionBasePresentationStateId,
     viewerTargetGraphDocumentId,
     suppressViewerTargetArtifactPreview:
       viewerTargetGraphDocumentId !== null &&
@@ -117,7 +135,8 @@ export const buildViewportResultSelectorOptions = (
         : 'live',
     isInteractionActive:
       viewerTargetGraphDocumentId !== null &&
-      browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true,
+      browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true &&
+      isInteracting === true,
     hasDelayedDraftPlaceholder:
       viewerTargetGraphDocumentId !== null &&
       delayedDraftBuildByGraphDocumentId[viewerTargetGraphDocumentId] !== undefined,

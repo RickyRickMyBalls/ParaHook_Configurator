@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-04-14 10:50: Marked `Phase 5 - Repair Complex Parallel Preview Locality And Settled Sibling Completeness` complete after the narrow preview-preparation repair landed, recording that graphs with several `Output Preview` surfaces now aggregate those surfaces during preparation so the richer branch-local preview proof keeps the unaffected sibling fully loaded while the earlier simpler branch-local selector and viewer-host proofs stay green
+14. 2026-04-14 10:41: Marked `Phase 4 - Prove Complex Parallel Preview Locality` complete as a proof-first pass, recording that the new richer-graph expected-failure coverage now attributes the remaining miss to the preview-preparation ownership seam because graphs with separate `Output Preview` surfaces still prepare only the first surface before the later selector and viewer layers ever get a chance to preserve unaffected siblings honestly
+13. 2026-04-14 10:30: Added post-`Phase 3` follow-up phases for the newly observed complex parallel-preview failure, so `Worker 10` now explicitly reserves proof-first follow-through for graphs where one edited branch can still dim or hide an unaffected sibling across richer multi-profile and multi-output-preview shapes that were not covered by the earlier simpler two-extrude proofs
 12. 2026-04-13 18:16:40: Reworked the old mixed `Worker 10 Phase 2b` into an explicit umbrella with four smaller implementation subphases so Codex can now land post-release `auto / live` normalization, idle `draft` normalization, settled loaded-scene completeness, and branch-local visual stability one at a time instead of forcing one large selector-plus-viewer patch
 11. 2026-04-13 18:12:11: Tightened `Worker 10 Phase 2b` against the updated `Worker 11` draft contract by making the settled draft/base proof explicitly require the whole loaded scene to remain visible, including retained siblings such as untouched parallel extrudes, so the next implementation pass does not accidentally trade yellow-preview cleanup for missing loaded objects
 10. 2026-04-13 18:10:39: Updated the remaining Worker 10 phase language to align with the now-explicit `Worker 11` `final` contract, so `Phase 3` and the final behavior bar now treat final mode as authoritative-settled by default with only optional explicit `previewBrep` comparison instead of leaving final-mode overlay behavior implicit
@@ -597,9 +600,153 @@ Stop rule:
 - stop once the end-to-end visual story is honest in the viewer
 - do not widen into broader viewport theming or compare tooling
 
+#### [x] Phase 4 - Prove Complex Parallel Preview Locality
+
+Goal:
+- lock the newly reported richer parallel-graph failure in focused proofs before more viewport code changes land
+
+Owns:
+- proof coverage for complex parallel preview locality beyond the already-shipped simpler two-extrude one-output-surface case
+- seam attribution for whether the remaining miss lives in preview preparation, rebuilt-only preview membership, selector layer construction, or final viewer read-through
+
+Does not own:
+- broad worker invalidation redesign
+- color-system redesign
+- generic multi-output graph architecture cleanup beyond what the exact proof requires
+
+Expected file targets:
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- only the smallest supporting preview-preparation proof file if several `Output Preview` surfaces truly matter for the failing graph
+
+Current live read for this subphase:
+- the shipped branch-local proofs currently cover the simpler case:
+  - one visible output entry per branch
+  - one `Output Preview` surface carrying both branches
+- the newly reported real graph is richer:
+  - one sketch can publish several profiles
+  - `Extrude 1` and `Extrude 2` can each own several visible outputs
+  - the outputs may be organized across separate rows or possibly separate `Output Preview` surfaces
+- `src/app/spaghetti/previewPreparation.ts`
+  - currently starts from `graph.nodes.find(isOutputPreviewNode)`, so if the real failing graph uses several `Output Preview` nodes that seam must be proven or ruled out explicitly
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+  - currently applies branch-local dimmed-baseline treatment by matching overlay `viewerKey` membership, so that split is only as honest as the upstream rebuilt-only preview membership it receives
+
+Proof target:
+- a complex parallel graph where:
+  - `Sketch` profiles `1-2` feed `Extrude 1`
+  - `Sketch` profiles `3-4` feed `Extrude 2`
+  - each branch remains visible through its own output row or surface
+- while editing `Extrude 1`:
+  - only `Extrude 1` gets the dimmed retained baseline plus `previewMesh`
+  - unaffected `Extrude 2` stays fully `lastLoaded`
+  - `Extrude 2` does not dim, turn yellow, or disappear
+- after release:
+  - the changed `Extrude 1` settles back to ordinary loaded/base presentation
+  - unaffected `Extrude 2` remains visible and stable
+
+Verification bar:
+- a failing selector or preview-preparation proof for the exact richer graph shape
+- a failing viewer-host proof for the same graph showing:
+  - wrong collateral dimming during drag
+  - or missing unaffected sibling visibility after settle
+- the failing proof must name the owner precisely enough that the next code phase can stay narrow
+
+Implementation order:
+1. Add the exact richer parallel-graph proof in `src/app/components/ViewerHost.test.tsx`
+2. Add the smallest selector or preview-preparation proof needed to explain the same miss upstream
+3. Stop once the remaining owner is attributable to one named seam
+
+Important rule:
+- do not patch runtime code in this subphase unless a tiny proof harness requires it
+- do not assume the failure is only styling until the richer graph proves whether the miss is:
+  - rebuilt-only overlay membership
+  - settled loaded-scene completeness
+  - or single-`Output Preview` preparation ownership
+
+Stop rule:
+- stop once the exact richer graph is reproducible in focused proofs and the remaining owner is named
+- do not widen into speculative redesign while the graph shape is still only partly inferred
+
+Implementation status:
+- landed as proof-only expected-failure coverage in:
+  - `src/app/spaghetti/previewPreparation.test.ts`
+  - `src/app/components/ViewerHost.test.tsx`
+- the new richer-graph proof now locks a parallel branch shape where separate `Output Preview` surfaces should keep the unaffected sibling fully loaded during branch-local edit
+- the preparation-level proof attributes the miss to:
+  - `src/app/spaghetti/previewPreparation.ts`
+  - specifically the current `graph.nodes.find(isOutputPreviewNode)` ownership that prepares only the first `Output Preview` surface
+- the viewer-host proof confirms that this earlier preparation miss propagates downstream into the visible branch-local layering story
+- no runtime patch landed in this phase
+- `Phase 5` is now the narrow repair step against the proven preparation owner
+
+#### [x] Phase 5 - Repair Complex Parallel Preview Locality And Settled Sibling Completeness
+
+Goal:
+- land the smallest honest fix for the richer parallel-preview graph once `Phase 4` proves the exact owner
+
+Owns:
+- the narrow runtime or viewer fix for collateral sibling dimming and post-release sibling disappearance in the richer branch-local graph
+- preserving `Worker 11` branch-local visual-stability and loaded-scene-completeness rules for the newly proven graph shape
+
+Does not own:
+- broader worker scope narrowing
+- generic compare tooling
+- unrelated viewer theming cleanup
+
+Expected file targets:
+- only the smallest proven owner band from `Phase 4`, likely one of:
+  - `src/app/spaghetti/previewPreparation.ts`
+  - `src/app/spaghetti/selectors/selectPreviewRenderVm.ts`
+  - `src/app/spaghetti/selectors/selectViewportResultState.ts`
+  - `src/app/components/ViewerHost.tsx`
+- the corresponding focused proof files
+
+Implementation target:
+- in the richer parallel graph:
+  - the edited branch alone receives dimmed retained-baseline plus preview overlay treatment
+  - unaffected sibling branches remain fully loaded/base during drag
+  - after release, unaffected siblings remain visible in the settled loaded scene instead of disappearing
+- if several `Output Preview` surfaces are genuinely involved:
+  - preview preparation and downstream viewer-key membership stay honest for all relevant visible surfaces instead of silently flattening to the first one
+
+Verification bar:
+- the exact `Phase 4` richer-graph regression passes
+- the earlier simpler two-extrude branch-local proofs stay green
+- settled draft/base completeness and branch-local visual-stability proofs stay green
+
+Implementation order:
+1. Patch only the owner seam named by `Phase 4`
+2. Re-run the richer-graph proof first
+3. Re-run the earlier branch-local selector and viewer-host proof band to ensure the fix does not reopen the already-shipped simpler case
+
+Important rule:
+- prefer the smallest owner-local fix over widening the whole viewport stack
+- if the proof shows several `Output Preview` nodes are unsupported, fix that ownership explicitly instead of burying it inside viewer-only styling code
+
+Stop rule:
+- stop once the richer graph obeys the same branch-local contract as the simpler shipped proofs
+- do not widen into later optional viewport redesign once locality and settled sibling completeness are honest again
+
+Implementation status:
+- landed as a narrow preparation-owner repair in:
+  - `src/app/spaghetti/previewPreparation.ts`
+- `prepareGraphPreviewPreparation(...)` now aggregates all `Output Preview` nodes in the graph instead of stopping at the first one, while preserving the existing downstream contract shape for the rest of the viewport stack
+- the richer-graph regressions in:
+  - `src/app/spaghetti/previewPreparation.test.ts`
+  - `src/app/components/ViewerHost.test.tsx`
+  now pass as ordinary proofs instead of expected-failure placeholders
+- the earlier simpler Worker 10 proof band stayed green, including:
+  - rebuilt-only live overlay locality
+  - settled retained-sibling visibility
+  - branch-local viewer layering during drag and settle
+- no wider selector, viewer, or invalidation redesign was needed for this phase
+
 ### Final Behavior Bar
 
-`Worker 10` is complete only when all three phases together prove:
+`Worker 10` is complete only when all phases together prove:
 1. a parallel-branch graph has two visible extrude outputs
 2. the user drags one extrude depth smaller in `auto` mode with `live` execution
 3. the pre-drag committed shape of that branch remains visible as the retained base
@@ -608,6 +755,9 @@ Stop rule:
 6. final mode keeps showing authoritative/base truth during live drag and waiting states instead of draft-visible preview
 7. if a green preview-ready authoritative result appears before promotion and final-mode comparison is explicitly allowed, it overlays the same committed/base story honestly
 8. after promotion and acceptance, the promoted committed result becomes the new ordinary loaded/base result
+9. the richer real-world parallel graph shape with several visible outputs per branch still keeps preview locality honest instead of dimming or yellowing unaffected siblings
+10. after release in that richer graph, unaffected sibling outputs remain visible in the settled loaded scene instead of disappearing
+11. if the richer graph uses several `Output Preview` rows or surfaces, preview-preparation and downstream viewer layering remain honest for the relevant visible outputs instead of flattening the behavior back to one simpler proof shape
 
 ### Global Stop Rule
 

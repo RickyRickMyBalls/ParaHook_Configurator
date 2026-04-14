@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-04-14: Added the standalone future phase doc for `Camera-6.3 - Fly Camera Polish Backlog`, so the first post-`6.2` fly polish pass now has its own implementation-ready planning surface focused on `speed boost`, a `speed control slider`, and the `Ctrl`/`Shift` remap direction
+6. 2026-04-14: Cleaned up `Camera-6.2 - Hold-To-Fly Runtime And Input Ownership` after implementation and advanced the umbrella family read so the first runtime cut now reads as shipped instead of as a stale implementation-plan draft
+5. 2026-04-14: Added a first fly-camera polish backlog after the shipped runtime cut, prioritizing `speed boost` and a `speed control slider` first, and recorded the recommended input remap of `Ctrl` = descend so `Shift` can become boost cleanly
 4. 2026-04-06 21:02: Added the standalone future phase doc for `Camera-6.2 - Hold-To-Fly Runtime And Input Ownership`, so the next fly-navigation runtime cut now has its own implementation-ready planning surface instead of living only inside the umbrella family doc
 3. 2026-04-06 20:52: Marked `Camera-6.1 - Fly Navigation Research And Seam Audit` complete after locking the live viewer pointer seam, the shared keyboard-routing seam, the console capture dependency on `routeKeyboardInput(...)`, the camera-controller helper seam, and the viewport-local `contextmenu` suppression direction, so `Camera-6.2 - Hold-To-Fly Runtime And Input Ownership` is now the next honest runtime follow-on
 2. 2026-04-06 20:33: Recast `Camera-6` from a single implementation-ready phase into the umbrella fly-navigation family phase, added the `[Camera-6.1]` seam-audit follow-on as the first concrete cut, and kept the later held-`RMB` implementation work under this umbrella so the actual runtime change can start from a stronger current-code read
@@ -17,6 +20,7 @@ Use it to answer:
 - how the fly-navigation work should be broken into safer subphases
 - what the first seam-audit phase should answer before runtime implementation starts
 - what the later hold-to-fly implementation phase still needs to deliver
+- which fly-camera polish items should land after the first runtime pass
 
 ### Why This Phase Exists
 
@@ -86,6 +90,9 @@ Locked recommendation:
     - seam audit and implementation read
   - `Camera-6.2`
     - first hold-to-fly runtime pass
+- keep the first polish follow-on focused on:
+  - `speed boost`
+  - `speed control slider`
 - keep pointer lock, tuning UI, and rebinds out of the first implementation cut
 
 ### Phase Breakdown
@@ -97,6 +104,40 @@ Reason:
 2. `Camera-6.2 - Hold-To-Fly Runtime And Input Ownership`
 Reason:
 - once the seam read is concrete, the actual `RMB`-held fly mode can land as one narrow runtime slice without reopening discovery
+
+3. `Camera-6.3 - Fly Camera Polish Backlog`
+Reason:
+- once the first hold-to-fly runtime cut is stable, the next honest slice is fly-camera feel and convenience polish rather than reopening the core ownership seams immediately
+
+### Fly Camera Polish Backlog
+
+Priority-first items:
+- `speed boost`
+- `speed control slider`
+
+Suggested near-follow-ons:
+- mouse-look sensitivity slider
+- pointer lock as an optional upgrade
+- persist fly settings between sessions
+- reset-to-default fly settings action
+- optional fly HUD or status hint while active
+
+Suggested control direction for the first polish pass:
+- keep:
+  - `W` / `A` / `S` / `D`
+    - planar movement
+  - `Space`
+    - ascend
+- remap:
+  - `Ctrl`
+    - descend
+  - `Shift`
+    - speed boost
+
+Recommendation:
+- use `Ctrl` for descend so `Shift` can cleanly become boost without overloading one key with two opposite meanings
+- treat the slider as the base fly speed
+- treat boost as a multiplier on top of that base speed
 
 ### Questions / Decisions
 
@@ -211,34 +252,34 @@ Definition of done:
 - `Camera-6.1` records one concrete seam read
 - the later runtime phase no longer needs to reopen discovery
 
-## [ ] `Camera-6.2` - `Hold-To-Fly Runtime And Input Ownership`
+## [x] `Camera-6.2` - `Hold-To-Fly Runtime And Input Ownership`
 
 ### Summary
 
 #### Purpose:
-- land the first temporary `RMB`-held fly-navigation runtime behavior from the locked seam read in `Camera-6.1`
+- land the first temporary held-`RMB` fly-navigation runtime behavior from the locked seam read in `Camera-6.1`
 
-#### Current read:
-- this later runtime slice should stay narrow:
+#### Shipped result:
+- the first hold-to-fly runtime pass is now in place:
   - hold `RMB` to fly
   - mouse look while flying
   - `W` / `A` / `S` / `D` plus `Space` / `Shift`
   - console typing suppression while flying
   - viewport-local browser-menu suppression
-  - immediate exit on `RMB` release
-- pointer lock, tuning UI, and custom rebinds still belong later
+  - explicit exit on `RMB` release, `pointercancel`, and blur
+- pointer lock, tuning UI, boost/remap polish, and custom rebinds still belong later
 
 ### Questions / Decisions
 
-#### [ ] Question 1 - What is the first honest runtime scope?
+#### [x] Question 1 - What was the first honest runtime scope?
 
-##### Must lockhere is what the sp
+##### Locked answer
 - hold-based only:
   - `RMB down` enters
   - `RMB up` exits
 - no sticky toggle in the first pass
 
-#### [ ] Question 2 - What movement keys belong in the first pass?
+#### [x] Question 2 - What movement keys shipped in the first pass?
 
 ##### Must lock
 - `W` = forward
@@ -248,7 +289,7 @@ Definition of done:
 - `Space` = up
 - `Shift` = down
 
-#### [ ] Question 3 - What must the first pass preserve?
+#### [x] Question 3 - What did the first pass preserve?
 
 ##### Must lock
 - outside fly mode, keep the shipped model-viewport baseline unchanged:
@@ -263,7 +304,6 @@ Required behavior-preservation rules:
 - do not widen into pointer lock, tuning UI, or custom keybinding work
 - do not weaken the existing authoring-first ownership rules
 
-Verification:
 ### Implementation Spec
 
 Likely files:
@@ -274,17 +314,17 @@ Likely files:
   - `src/viewer/scene/CameraController.test.ts`
   - `src/app/components/ViewerHost.test.tsx`
 
-Locked first-cut direction:
+Shipped first-cut direction:
 1. add one viewer-local fly-mode session state tied to held `RMB`
 2. gate fly-mode start through the ownership rules locked in `Camera-6.1`
 3. add narrow camera-controller helpers for look and translation
 4. route `W` / `A` / `S` / `D` / `Space` / `Shift` into fly movement while active
 5. suppress console typing while the viewer owns fly-mode keyboard input
 6. suppress viewport-local `contextmenu` for the same interaction
-7. stop movement and exit immediately on `RMB` release
+7. stop movement and exit immediately on `RMB` release, `pointercancel`, or blur
 
 Definition of done:
-- the model viewport supports temporary hold-to-fly navigation
+- the active viewer viewport supports temporary hold-to-fly navigation
 - fly mode owns mouse look and movement keys only while `RMB` is held
 - console typing does not compete with fly-mode movement input
 - releasing fly mode does not open the browser context menu on the viewport

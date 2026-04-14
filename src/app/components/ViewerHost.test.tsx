@@ -13,7 +13,11 @@ import {
   createAuthoritativeGeometryResultBundle,
   createDraftGeometryResultBundle,
 } from '../../shared/geometryResult'
-import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
+import {
+  prepareGraphPreviewPreparation,
+  type GraphPreviewPreparation,
+} from '../spaghetti/previewPreparation'
+import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 
 let viewerEnsureReferenceLoaded: ReturnType<typeof vi.fn>
 let viewerSetReferenceVisible: ReturnType<typeof vi.fn>
@@ -4356,6 +4360,154 @@ describe('ViewerHost reference loading', () => {
     container?.remove()
   })
 
+  it('renders empty viewport layers when output preview is disconnected even if accepted final geometry still exists', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const previewPreparation = {
+      ...createPreviewPreparation([
+        {
+          slotId: 'slot-extrude',
+          sourceNodeId: 'node-extrude-1',
+          sourcePartKey: 'extrude-body',
+          status: 'empty' as const,
+        },
+      ]),
+      previewCandidateSlotIds: [],
+      previewCandidatePartKeys: [],
+      sourceNodeIdBySlotId: {},
+      sourcePartKeyBySlotId: {},
+      sourcePortIdBySlotId: {},
+      sourcePartKeyByNodeId: {},
+    }
+    const acceptedFinalGeometry = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-disconnected-host',
+        partKeys: ['extrude-body'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-disconnected-host',
+      },
+    })
+
+    let container: HTMLDivElement | null = null
+    let root: Root | null = null
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [{ slotId: 'slot-extrude' }],
+              objects: [
+                {
+                  objectId: 'output-object:slot-extrude',
+                  label: 'Object 1',
+                  slotId: 'slot-extrude',
+                },
+              ],
+            },
+          },
+          {
+            nodeId: 'node-extrude-1',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 50,
+            },
+          },
+        ],
+        edges: [],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 2,
+            },
+            previewPreparation,
+            acceptedPreviewGraphRevision: 1,
+            acceptedAuthoritativeGraphRevision: 1,
+            acceptedDraftGraphRevision: 1,
+            acceptedAuthoritativeGeometryResult: acceptedFinalGeometry,
+            acceptedDraftGeometryResult: null,
+            acceptedPreviewBuildOutputs: [createArtifact('extrude-body')],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [],
+        },
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          'graph-document-1': 'live',
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    const emptyLayerCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            baselineParts?: Array<{ viewerKey: string }>
+            overlayParts?: Array<{ viewerKey: string }>
+          },
+      )
+      .find(
+        (layers) =>
+          (layers.baseParts?.length ?? 0) === 0 &&
+          (layers.baselineParts?.length ?? 0) === 0 &&
+          (layers.overlayParts?.length ?? 0) === 0,
+      )
+
+    expect(emptyLayerCall).toEqual(
+      expect.objectContaining({
+        baseParts: [],
+        baselineParts: [],
+        overlayParts: [],
+      }),
+    )
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container?.remove()
+  })
+
   it('keeps retained final visible without a whole-scene committed draft overlay in auto mode while waiting for newer live draft work', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
@@ -4485,6 +4637,7 @@ describe('ViewerHost reference loading', () => {
           ...state.browserInteractionGraphDocumentIds,
           'graph-document-1': true,
         },
+        isInteracting: true,
         viewportPresentationSettings: {
           ...state.viewportPresentationSettings,
           previewMesh: {
@@ -5003,6 +5156,7 @@ describe('ViewerHost reference loading', () => {
           ...state.browserInteractionGraphDocumentIds,
           'graph-document-1': true,
         },
+        isInteracting: true,
         viewportPresentationSettings: {
           ...state.viewportPresentationSettings,
           previewMesh: {
@@ -5183,6 +5337,7 @@ describe('ViewerHost reference loading', () => {
           ...state.browserInteractionGraphDocumentIds,
           'graph-document-1': true,
         },
+        isInteracting: true,
         viewportPresentationSettings: {
           ...state.viewportPresentationSettings,
           previewMesh: {
@@ -5753,6 +5908,7 @@ describe('ViewerHost reference loading', () => {
             color: '#00aa88',
           },
         },
+        isInteracting: true,
       }))
       useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
     })
@@ -5974,8 +6130,8 @@ describe('ViewerHost reference loading', () => {
     container?.remove()
   })
 
-  it('builds branch-local retained baseline layers so unchanged siblings stay fully loaded while only the edited branch is dimmed under previewMesh', async () => {
-    const { buildBranchLocalRetainedBaselineLayers } = await import('./ViewerHost')
+  it('maps selector-owned branch-local recipe layers into viewer render layers with dimmed baseline styling', async () => {
+    const { buildViewerViewportRenderLayers } = await import('./ViewerHost')
 
     const extrude1 = toViewerRenderablePart(
       createArtifact('extrude-1'),
@@ -5986,17 +6142,31 @@ describe('ViewerHost reference loading', () => {
       'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
     )
 
-    const layers = buildBranchLocalRetainedBaselineLayers({
-      frozenBaseParts: [],
-      frozenBranchStableParts: [extrude1, extrude2],
-      overlayParts: [extrude2],
-      baseStyle: {
-        opacity: 1,
-        color: '#224466',
+    const layers = buildViewerViewportRenderLayers({
+      viewportPresentationSettings: {
+        lastLoaded: {
+          opacity: 1,
+          color: '#224466',
+        },
+        previewMesh: {
+          opacity: 1,
+          color: '#d4a100',
+        },
+        previewBrep: {
+          opacity: 0.75,
+          color: '#00aa88',
+        },
       },
-      previewMeshStyle: {
-        opacity: 1,
-        color: '#d4a100',
+      layerRecipe: {
+        kind: 'branch-local-retained-baseline',
+        baseParts: [extrude1],
+        basePresentationStateId: 'lastLoaded',
+        baselineParts: [extrude2],
+        baselinePresentationStateId: 'lastLoaded',
+        baselineUsesDimmedBaseStyle: true,
+        overlayParts: [extrude2],
+        overlayPresentationStateId: 'previewMesh',
+        overlayOpacity: 0.5,
       },
     })
 
@@ -6020,6 +6190,253 @@ describe('ViewerHost reference loading', () => {
     })
   })
 
+  describe('Phase 5 host layer matrix', () => {
+    const phase5PresentationSettings = {
+      lastLoaded: {
+        opacity: 0.92,
+        color: '#224466',
+      },
+      previewMesh: {
+        opacity: 0.33,
+        color: '#aa5500',
+      },
+      previewBrep: {
+        opacity: 0.75,
+        color: '#00aa88',
+      },
+    } as const
+
+    const phase5FinalPart = toViewerRenderablePart(
+      createArtifact('baseplate-final'),
+      'graph-document-1:authoritative-preview',
+    )
+    const phase5DraftPart = toViewerRenderablePart(
+      createArtifact('baseplate-draft'),
+      'graph-document-1:draft-preview',
+    )
+
+    const cases = [
+      {
+        label: 'Auto / Live - Settled Draft',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5DraftPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:draft-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Auto / On Release - Active Drag',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5FinalPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:authoritative-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Auto / Manual - Before Build',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5FinalPart],
+          basePresentationStateId: null,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:authoritative-preview'],
+          baseStyle: undefined,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Draft / Live - Active Drag',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5DraftPart],
+          basePresentationStateId: 'previewMesh' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:draft-preview'],
+          baseStyle: phase5PresentationSettings.previewMesh,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Draft / On Release - Settled Draft',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5DraftPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:draft-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Draft / Manual - Before Build',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5DraftPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:draft-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Final / Live - Preview Ready',
+        layerRecipe: {
+          kind: 'retained-plus-overlay' as const,
+          baseParts: [phase5FinalPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [phase5FinalPart],
+          overlayPresentationStateId: 'previewBrep' as const,
+          overlayOpacity: 0.75,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:authoritative-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: ['graph-document-1:authoritative-preview'],
+          overlayStyle: phase5PresentationSettings.previewBrep,
+          overlayOpacity: 0.75,
+        },
+      },
+      {
+        label: 'Final / On Release - Post Release',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5FinalPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:authoritative-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+      {
+        label: 'Final / Manual - After Build',
+        layerRecipe: {
+          kind: 'base-only' as const,
+          baseParts: [phase5FinalPart],
+          basePresentationStateId: 'lastLoaded' as const,
+          baselineParts: [],
+          baselinePresentationStateId: null,
+          baselineUsesDimmedBaseStyle: false,
+          overlayParts: [],
+          overlayPresentationStateId: null,
+          overlayOpacity: 0.5,
+        },
+        expected: {
+          baseViewerKeys: ['graph-document-1:authoritative-preview'],
+          baseStyle: phase5PresentationSettings.lastLoaded,
+          baselineViewerKeys: [],
+          overlayViewerKeys: [],
+          overlayStyle: undefined,
+          overlayOpacity: 0.5,
+        },
+      },
+    ]
+
+    it.each(cases)('maps viewer layers for $label', async ({ layerRecipe, expected }) => {
+      const { buildViewerViewportRenderLayers } = await import('./ViewerHost')
+
+      const layers = buildViewerViewportRenderLayers({
+        viewportPresentationSettings: phase5PresentationSettings,
+        layerRecipe,
+      })
+
+      expect(layers.baseParts.map((part) => part.viewerKey)).toEqual(expected.baseViewerKeys)
+      expect((layers.baselineParts ?? []).map((part) => part.viewerKey)).toEqual(
+        expected.baselineViewerKeys,
+      )
+      expect((layers.overlayParts ?? []).map((part) => part.viewerKey)).toEqual(
+        expected.overlayViewerKeys,
+      )
+      expect(layers.baseStyle).toEqual(expected.baseStyle)
+      expect(layers.overlayStyle).toEqual(expected.overlayStyle)
+      expect(layers.overlayOpacity).toBe(expected.overlayOpacity)
+    })
+  })
+
   it('uses interaction-time accepted preview bundle fallback so rebuilt-only overlay is available for branch-local layers during drag', async () => {
     const { ViewerHost } = await import('./ViewerHost')
     const { useAppStore } = await import('../store/useAppStore')
@@ -6039,7 +6456,28 @@ describe('ViewerHost reference loading', () => {
       },
     ])
     const retainedExtrude1 = createArtifact('extrude-1')
+    const retainedExtrude2 = createArtifact('extrude-2')
     const rebuiltExtrude2 = createArtifact('extrude-2')
+    const acceptedFinalPreviewBundle = createAcceptedPreviewBundle({
+      seq: 26,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-final-branch-local-idle',
+      resultClass: 'final',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: retainedExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'retained',
+        },
+      ],
+    })
     const acceptedPreviewBundle = createAcceptedPreviewBundle({
       seq: 27,
       graphDocumentId: 'graph-document-1',
@@ -6081,6 +6519,24 @@ describe('ViewerHost reference loading', () => {
         resourceType: 'shape_set',
         handleId: 'shape-set-branch-local-before-drag',
       },
+    })
+    const currentDraftGeometry = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-draft-branch-local',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
     })
 
     let container: HTMLDivElement | null = null
@@ -6147,7 +6603,7 @@ describe('ViewerHost reference loading', () => {
             ...state.graphRuntimeByDocumentId['graph-document-1'],
             compileBuild: {
               ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
-              currentGraphRevision: 2,
+              currentGraphRevision: 1,
               latestAcceptedGraphRevision: 1,
               inFlightGraphRevision: null,
               inFlightBuildRequestId: null,
@@ -6157,8 +6613,8 @@ describe('ViewerHost reference loading', () => {
             acceptedAuthoritativeGraphRevision: 1,
             acceptedAuthoritativeGeometryResult: committedFinalGeometry,
             acceptedPreviewGraphRevision: 1,
-            acceptedPreviewBuildBundle: null,
-            acceptedPreviewBuildOutputs: [],
+            acceptedPreviewBuildBundle: acceptedFinalPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, retainedExtrude2],
           },
         },
       }))
@@ -6200,6 +6656,8 @@ describe('ViewerHost reference loading', () => {
           ...state.graphRuntimeByDocumentId,
           'graph-document-1': {
             ...state.graphRuntimeByDocumentId['graph-document-1'],
+            acceptedDraftGraphRevision: 2,
+            acceptedDraftGeometryResult: currentDraftGeometry,
             acceptedPreviewGraphRevision: 1,
             acceptedPreviewBuildBundle: acceptedPreviewBundle,
             acceptedPreviewBuildOutputs: [retainedExtrude1, rebuiltExtrude2],
@@ -6211,6 +6669,7 @@ describe('ViewerHost reference loading', () => {
           ...state.browserInteractionGraphDocumentIds,
           'graph-document-1': true,
         },
+        isInteracting: true,
       }))
     })
 
@@ -6264,6 +6723,1255 @@ describe('ViewerHost reference loading', () => {
           opacity: 1,
           color: '#d4a100',
         },
+      }),
+    )
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container?.remove()
+  })
+
+  it('keeps the unaffected sibling fully loaded when parallel branches publish through separate Output Preview surfaces', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const graph: SpaghettiGraph = {
+      schemaVersion: 1,
+      nodes: [
+        {
+          nodeId: 'node-sketch-1',
+          type: 'Geometry/Sketch',
+          params: {
+            sketch: {
+              type: 'sketch',
+              featureId: 'sketch-1',
+              plane: 'XY',
+              components: [
+                {
+                  rowId: 'row-1',
+                  componentId: 'rect-a',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 0, y: 0 },
+                  b: { kind: 'lit', x: 40, y: 20 },
+                },
+                {
+                  rowId: 'row-2',
+                  componentId: 'rect-b',
+                  type: 'rectangle',
+                  a: { kind: 'lit', x: 60, y: 0 },
+                  b: { kind: 'lit', x: 100, y: 20 },
+                },
+              ],
+              outputs: {
+                profiles: [],
+                diagnostics: [],
+              },
+              uiState: {
+                collapsed: false,
+              },
+            },
+          },
+        },
+        {
+          nodeId: 'node-extrude-1',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 50,
+          },
+        },
+        {
+          nodeId: 'node-extrude-2',
+          type: 'Geometry/Extrude',
+          params: {
+            extrudeType: 'Basic',
+            depthMm: 25,
+          },
+        },
+        {
+          nodeId: 'node-output-preview-1',
+          type: 'System/OutputPreview',
+          params: {
+            slots: [{ slotId: 'slot-extrude-1' }],
+            objects: [
+              {
+                objectId: 'output-object:slot-extrude-1',
+                label: 'Extrude 1',
+                slotId: 'slot-extrude-1',
+              },
+            ],
+          },
+        },
+        {
+          nodeId: 'node-output-preview-2',
+          type: 'System/OutputPreview',
+          params: {
+            slots: [{ slotId: 'slot-extrude-2' }],
+            objects: [
+              {
+                objectId: 'output-object:slot-extrude-2',
+                label: 'Extrude 2',
+                slotId: 'slot-extrude-2',
+              },
+            ],
+          },
+        },
+      ],
+      edges: [
+        {
+          edgeId: 'edge-sketch-to-extrude-1-separate-preview',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-1', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-sketch-to-extrude-2-separate-preview',
+          from: { nodeId: 'node-sketch-1', portId: 'SketchProfiles' },
+          to: { nodeId: 'node-extrude-2', portId: 'ExtrusionProfile' },
+        },
+        {
+          edgeId: 'edge-extrude-1-output-separate-preview',
+          from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-1' },
+        },
+        {
+          edgeId: 'edge-extrude-2-output-separate-preview',
+          from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+          to: { nodeId: 'node-output-preview-2', portId: 'in:solid:slot-extrude-2' },
+        },
+      ],
+    }
+    const previewPreparation = prepareGraphPreviewPreparation(graph)
+    const rebuiltExtrude1 = createArtifact('extrude-1')
+    const retainedExtrude2 = createArtifact('extrude-2')
+    const acceptedFinalPreviewBundle = createAcceptedPreviewBundle({
+      seq: 511,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-final-separate-preview-idle',
+      resultClass: 'final',
+      entries: [
+        {
+          artifact: createArtifact('extrude-1'),
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: retainedExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'retained',
+        },
+      ],
+    })
+    const acceptedPreviewBundle = createAcceptedPreviewBundle({
+      seq: 512,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-draft-separate-preview-live',
+      entries: [
+        {
+          artifact: rebuiltExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt',
+        },
+        {
+          artifact: retainedExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'retained',
+        },
+      ],
+    })
+    const committedFinalGeometry = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-separate-preview-committed',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-separate-preview-committed',
+      },
+    })
+    const currentDraftGeometry = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-draft-separate-preview-live',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          5, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+
+    let container: HTMLDivElement | null = null
+    let root: Root | null = null
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph(graph)
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 1,
+              latestAcceptedGraphRevision: 1,
+              inFlightGraphRevision: null,
+              inFlightBuildRequestId: null,
+              inFlightBuildSeq: null,
+            },
+            previewPreparation,
+            acceptedAuthoritativeGraphRevision: 1,
+            acceptedAuthoritativeGeometryResult: committedFinalGeometry,
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedFinalPreviewBundle,
+            acceptedPreviewBuildOutputs: [createArtifact('extrude-1'), retainedExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [],
+        },
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          'graph-document-1': 'live',
+        },
+        viewportPresentationSettings: {
+          ...state.viewportPresentationSettings,
+          lastLoaded: {
+            opacity: 1,
+            color: '#224466',
+          },
+          previewMesh: {
+            opacity: 1,
+            color: '#d4a100',
+          },
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.setState((state) => ({
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            acceptedDraftGraphRevision: 2,
+            acceptedDraftGeometryResult: currentDraftGeometry,
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedPreviewBundle,
+            acceptedPreviewBuildOutputs: [rebuiltExtrude1, retainedExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        browserInteractionGraphDocumentIds: {
+          ...state.browserInteractionGraphDocumentIds,
+          'graph-document-1': true,
+        },
+        isInteracting: true,
+      }))
+    })
+
+    const branchLocalCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            baselineParts?: Array<{ viewerKey: string }>
+            overlayParts?: Array<{ viewerKey: string }>
+          },
+      )
+      .reverse()
+      .find(
+        (layers) =>
+          layers.baseParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true &&
+          layers.baselineParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-1:node-extrude-1',
+          ) === true &&
+          layers.overlayParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-1:node-extrude-1',
+          ) === true,
+      )
+
+    expect(branchLocalCall).toEqual(
+      expect.objectContaining({
+        baseParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-2:node-extrude-2',
+          }),
+        ],
+        baselineParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-1:node-extrude-1',
+          }),
+        ],
+        overlayParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-1:node-extrude-1',
+          }),
+        ],
+      }),
+    )
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container?.remove()
+  })
+
+  it('drops the old branch-local baseline after settle while keeping the changed winner visible for the same two-branch graph', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const retainedExtrude1 = createArtifact('extrude-1')
+    const retainedExtrude2 = createArtifact('extrude-2')
+    const rebuiltExtrude2 = createArtifact('extrude-2')
+    const committedFinalGeometry = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-before-branch-local-settle-host',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-before-branch-local-settle-host',
+      },
+    })
+    const currentDraftGeometry = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-draft-after-branch-local-settle-host',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const acceptedFinalPreviewBundle = createAcceptedPreviewBundle({
+      seq: 301,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-final-before-branch-local-settle-host',
+      resultClass: 'final',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: retainedExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'retained',
+        },
+      ],
+    })
+    const acceptedPreviewBundle = createAcceptedPreviewBundle({
+      seq: 302,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-draft-after-branch-local-settle-host',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: rebuiltExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+        },
+      ],
+    })
+
+    let container: HTMLDivElement | null = null
+    let root: Root | null = null
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [
+                { slotId: 'slot-extrude-1' },
+                { slotId: 'slot-extrude-2' },
+              ],
+              objects: [
+                {
+                  objectId: 'output-object:slot-extrude-1',
+                  label: 'Object 1',
+                  slotId: 'slot-extrude-1',
+                },
+                {
+                  objectId: 'output-object:slot-extrude-2',
+                  label: 'Object 2',
+                  slotId: 'slot-extrude-2',
+                },
+              ],
+            },
+          },
+          {
+            nodeId: 'node-extrude-1',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 50,
+            },
+          },
+          {
+            nodeId: 'node-extrude-2',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 25,
+            },
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-extrude-1-output-settle',
+            from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-1' },
+          },
+          {
+            edgeId: 'edge-extrude-2-output-settle',
+            from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-2' },
+          },
+        ],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 1,
+              latestAcceptedGraphRevision: 1,
+              inFlightGraphRevision: null,
+              inFlightBuildRequestId: null,
+              inFlightBuildSeq: null,
+            },
+            previewPreparation,
+            acceptedAuthoritativeGraphRevision: 1,
+            acceptedAuthoritativeGeometryResult: committedFinalGeometry,
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedFinalPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, retainedExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [],
+        },
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          'graph-document-1': 'live',
+        },
+        viewportPresentationSettings: {
+          ...state.viewportPresentationSettings,
+          lastLoaded: {
+            opacity: 1,
+            color: '#224466',
+          },
+          previewMesh: {
+            opacity: 1,
+            color: '#d4a100',
+          },
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.setState((state) => ({
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            acceptedDraftGraphRevision: 2,
+            acceptedDraftGeometryResult: currentDraftGeometry,
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, rebuiltExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        browserInteractionGraphDocumentIds: {
+          ...state.browserInteractionGraphDocumentIds,
+          'graph-document-1': true,
+        },
+        isInteracting: true,
+      }))
+    })
+
+    const activeBranchLocalCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            baselineParts?: Array<{ viewerKey: string }>
+            overlayParts?: Array<{ viewerKey: string }>
+          },
+      )
+      .reverse()
+      .find(
+        (layers) =>
+          layers.baseParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-1:node-extrude-1',
+          ) === true &&
+          layers.baselineParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true &&
+          layers.overlayParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true,
+      )
+
+    expect(activeBranchLocalCall).toEqual(
+      expect.objectContaining({
+        baseParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-1:node-extrude-1',
+          }),
+        ],
+        baselineParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-2:node-extrude-2',
+          }),
+        ],
+        overlayParts: [
+          expect.objectContaining({
+            viewerKey: 'output-entry:slot-extrude-2:node-extrude-2',
+          }),
+        ],
+      }),
+    )
+
+    await act(async () => {
+      useSpaghettiStore.setState((state) => ({
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 2,
+              latestAcceptedGraphRevision: 2,
+            },
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        browserInteractionGraphDocumentIds: {
+          ...state.browserInteractionGraphDocumentIds,
+          'graph-document-1': true,
+        },
+        isInteracting: false,
+      }))
+    })
+
+    const settledCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            baseStyle?: { opacity: number; color: string }
+            baselineParts?: Array<{ viewerKey: string }>
+            overlayParts?: Array<{ viewerKey: string }>
+          },
+      )
+      .reverse()
+      .find(
+        (layers) =>
+          layers.baseParts?.some((part) => part.viewerKey === 'graph-document-1:draft-preview') ===
+            true &&
+          (layers.baselineParts?.length ?? 0) === 0 &&
+          (layers.overlayParts?.length ?? 0) === 0,
+      )
+
+    expect(settledCall).toEqual(
+      expect.objectContaining({
+        baseParts: [
+          expect.objectContaining({
+            viewerKey: 'graph-document-1:draft-preview',
+          }),
+        ],
+        baseStyle: {
+          opacity: 1,
+          color: '#224466',
+        },
+        baselineParts: [],
+        overlayParts: [],
+      }),
+    )
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container?.remove()
+  })
+
+  it('does not render branch-local yellow draft overlay in final live mode when the selector has no visible overlay state', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const retainedExtrude1 = createArtifact('extrude-1')
+    const retainedExtrude2 = createArtifact('extrude-2')
+    const rebuiltExtrude2 = createArtifact('extrude-2')
+    const acceptedFinalPreviewBundle = createAcceptedPreviewBundle({
+      seq: 26,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-final-branch-local-idle',
+      resultClass: 'final',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: retainedExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'retained',
+        },
+      ],
+    })
+    const acceptedDraftPreviewBundle = createAcceptedPreviewBundle({
+      seq: 27,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-draft-branch-local-should-not-show',
+      resultClass: 'draft',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: rebuiltExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+        },
+      ],
+    })
+    const committedFinalGeometry = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-before-final-live-protection',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-before-final-live-protection',
+      },
+    })
+
+    let container: HTMLDivElement | null = null
+    let root: Root | null = null
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [{ slotId: 'slot-extrude-1' }, { slotId: 'slot-extrude-2' }],
+              objects: [
+                {
+                  objectId: 'output-object:slot-extrude-1',
+                  label: 'Extrude 1',
+                  slotId: 'slot-extrude-1',
+                },
+                {
+                  objectId: 'output-object:slot-extrude-2',
+                  label: 'Extrude 2',
+                  slotId: 'slot-extrude-2',
+                },
+              ],
+            },
+          },
+          {
+            nodeId: 'node-extrude-1',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 50,
+            },
+          },
+          {
+            nodeId: 'node-extrude-2',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 25,
+            },
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-final-live-protection-1',
+            from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-1' },
+          },
+          {
+            edgeId: 'edge-final-live-protection-2',
+            from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-2' },
+          },
+        ],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 1,
+              latestAcceptedGraphRevision: 1,
+            },
+            previewPreparation,
+            acceptedAuthoritativeGraphRevision: 1,
+            acceptedAuthoritativeGeometryResult: committedFinalGeometry,
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedFinalPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, retainedExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [],
+        },
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          'graph-document-1': 'live',
+        },
+        viewportPresentationSettings: {
+          ...state.viewportPresentationSettings,
+          lastLoaded: {
+            opacity: 1,
+            color: '#224466',
+          },
+          previewMesh: {
+            opacity: 1,
+            color: '#d4a100',
+          },
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.setState((state) => ({
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 2,
+              latestAcceptedGraphRevision: 1,
+            },
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedDraftPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, rebuiltExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        browserInteractionGraphDocumentIds: {
+          ...state.browserInteractionGraphDocumentIds,
+          'graph-document-1': true,
+        },
+        isInteracting: true,
+      }))
+    })
+
+    const branchLocalCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            baselineParts?: Array<{ viewerKey: string }>
+            overlayParts?: Array<{ viewerKey: string }>
+          },
+      )
+      .reverse()
+      .find(
+        (layers) =>
+          layers.baseParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-1:node-extrude-1',
+          ) === true &&
+          layers.baselineParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true &&
+          layers.overlayParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true,
+      )
+
+    expect(branchLocalCall).toBeUndefined()
+
+    const finalVisibleCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            overlayParts?: Array<{ viewerKey: string }>
+          },
+      )
+      .reverse()
+      .find(
+        (layers) =>
+          layers.baseParts?.some(
+            (part) => part.viewerKey === 'graph-document-1:authoritative-preview',
+          ) === true,
+      )
+
+    expect(finalVisibleCall?.overlayParts).toEqual([])
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container?.remove()
+  })
+
+  it('renders branch-local previewBrep overlay with green styling during live authoritative preview-ready interaction', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const retainedExtrude1 = createArtifact('extrude-1')
+    const retainedExtrude2 = createArtifact('extrude-2')
+    const rebuiltExtrude2 = createArtifact('extrude-2')
+    const acceptedFinalPreviewBundle = createAcceptedPreviewBundle({
+      seq: 28,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-final-branch-local-brep-idle',
+      resultClass: 'final',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: retainedExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'retained',
+        },
+      ],
+    })
+    const previewReadyFinalPreviewBundle = createAcceptedPreviewBundle({
+      seq: 29,
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-final-branch-local-brep-live',
+      resultClass: 'final',
+      entries: [
+        {
+          artifact: retainedExtrude1,
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+        },
+        {
+          artifact: rebuiltExtrude2,
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+        },
+      ],
+    })
+    const committedFinalGeometry = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-before-branch-local-brep-host',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-before-branch-local-brep-host',
+      },
+    })
+    const previewReadyGeometry = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-final-preview-ready-branch-local-brep-host',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          7, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-final-preview-ready-branch-local-brep-host',
+      },
+    })
+
+    let container: HTMLDivElement | null = null
+    let root: Root | null = null
+
+    await act(async () => {
+      useSpaghettiStore.getState().setGraph({
+        schemaVersion: 1,
+        nodes: [
+          {
+            nodeId: 'node-output-preview-1',
+            type: 'System/OutputPreview',
+            params: {
+              slots: [{ slotId: 'slot-extrude-1' }, { slotId: 'slot-extrude-2' }],
+              objects: [
+                {
+                  objectId: 'output-object:slot-extrude-1',
+                  label: 'Extrude 1',
+                  slotId: 'slot-extrude-1',
+                },
+                {
+                  objectId: 'output-object:slot-extrude-2',
+                  label: 'Extrude 2',
+                  slotId: 'slot-extrude-2',
+                },
+              ],
+            },
+          },
+          {
+            nodeId: 'node-extrude-1',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 50,
+            },
+          },
+          {
+            nodeId: 'node-extrude-2',
+            type: 'Geometry/Extrude',
+            params: {
+              extrudeType: 'Basic',
+              depthMm: 25,
+            },
+          },
+        ],
+        edges: [
+          {
+            edgeId: 'edge-branch-local-brep-host-1',
+            from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-1' },
+          },
+          {
+            edgeId: 'edge-branch-local-brep-host-2',
+            from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+            to: { nodeId: 'node-output-preview-1', portId: 'in:solid:slot-extrude-2' },
+          },
+        ],
+      })
+      useSpaghettiStore.setState((state) => ({
+        viewerTargetGraphDocumentId: 'graph-document-1',
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 1,
+              latestAcceptedGraphRevision: 1,
+            },
+            previewPreparation,
+            acceptedAuthoritativeGraphRevision: 1,
+            acceptedAuthoritativeGeometryResult: committedFinalGeometry,
+            acceptedPreviewGraphRevision: 1,
+            acceptedPreviewBuildBundle: acceptedFinalPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, retainedExtrude2],
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        currentProject: {
+          ...state.currentProject,
+          graphDocuments: [],
+        },
+        browserGraphBuildPolicyByGraphDocumentId: {
+          ...state.browserGraphBuildPolicyByGraphDocumentId,
+          'graph-document-1': 'live',
+        },
+        viewportPresentationSettings: {
+          ...state.viewportPresentationSettings,
+          lastLoaded: {
+            opacity: 1,
+            color: '#224466',
+          },
+          previewBrep: {
+            opacity: 0.75,
+            color: '#00aa88',
+          },
+        },
+      }))
+      useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      useSpaghettiStore.setState((state) => ({
+        graphRuntimeByDocumentId: {
+          ...state.graphRuntimeByDocumentId,
+          'graph-document-1': {
+            ...state.graphRuntimeByDocumentId['graph-document-1'],
+            compileBuild: {
+              ...state.graphRuntimeByDocumentId['graph-document-1']!.compileBuild,
+              currentGraphRevision: 2,
+              latestAcceptedGraphRevision: 1,
+            },
+            acceptedPreviewGraphRevision: 2,
+            acceptedPreviewBuildBundle: previewReadyFinalPreviewBundle,
+            acceptedPreviewBuildOutputs: [retainedExtrude1, rebuiltExtrude2],
+            stagedAuthoritativePreviewResult: {
+              buildSeq: 412,
+              buildRequestId: 'build-request-final-branch-local-brep-live',
+              graphRevision: 2,
+              targetBuildUnitIds: [],
+              acceptedBuildImpact: {
+                seq: 412,
+                graphDocumentId: 'graph-document-1',
+                buildRequestId: 'build-request-final-branch-local-brep-live',
+                changedParamIds: ['sp_depth'],
+                affectedBuildUnitIds: [],
+                targetBuildUnitIds: [],
+                summary: {
+                  rebuiltCount: 1,
+                  retainedCount: 1,
+                  evictedCount: 0,
+                },
+                entries: [],
+              },
+              acceptedBuildBundle: previewReadyFinalPreviewBundle,
+              acceptedPreviewBuildBundle: previewReadyFinalPreviewBundle,
+              acceptedBuildOutputs: [retainedExtrude1, rebuiltExtrude2],
+              acceptedPreviewBuildOutputs: [retainedExtrude1, rebuiltExtrude2],
+              authoritativeGeometryResult: previewReadyGeometry,
+            },
+          },
+        },
+      }))
+      useAppStore.setState((state) => ({
+        browserInteractionGraphDocumentIds: {
+          ...state.browserInteractionGraphDocumentIds,
+          'graph-document-1': true,
+        },
+        isInteracting: true,
+      }))
+    })
+
+    const branchLocalCall = [...viewerSetViewportRenderLayers.mock.calls]
+      .map(
+        (call) =>
+          call[0] as {
+            baseParts?: Array<{ viewerKey: string }>
+            baselineParts?: Array<{ viewerKey: string }>
+            baselineStyle?: { opacity: number; color: string }
+            overlayParts?: Array<{ viewerKey: string }>
+            overlayStyle?: { opacity: number; color: string }
+            overlayOpacity?: number
+          },
+      )
+      .reverse()
+      .find(
+        (layers) =>
+          layers.baseParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-1:node-extrude-1',
+          ) === true &&
+          layers.baselineParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true &&
+          layers.overlayParts?.some(
+            (part) => part.viewerKey === 'output-entry:slot-extrude-2:node-extrude-2',
+          ) === true,
+      )
+
+    expect(branchLocalCall).toEqual(
+      expect.objectContaining({
+        baselineStyle: {
+          opacity: 0.5,
+          color: '#224466',
+        },
+        overlayStyle: {
+          opacity: 0.75,
+          color: '#00aa88',
+        },
+        overlayOpacity: 0.75,
       }),
     )
 

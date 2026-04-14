@@ -65,6 +65,176 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1291 -->
+### [1291] - 2026-04-14 10:50 - `WK - Phase Worker 10 Phase 5 - Repair Complex Parallel Preview Locality And Settled Sibling Completeness`
+<!-- ENTRY 1291 -->
+HUMAN SUMMARY: `Implemented Worker 10 Phase 5 by fixing the proven preview-preparation owner seam so graphs with several Output Preview surfaces no longer flatten preview membership to the first surface, which keeps unaffected sibling branches fully loaded in the richer parallel-preview graph while preserving the earlier simpler branch-local behavior.`
+#### Scope / Constraints Honored
+- Kept the fix inside the owner named by Phase 4 instead of widening back into ViewerHost styling or selector redesign.
+- Preserved the existing downstream preview-preparation contract shape so the repair could stay local to preparation ownership.
+- Re-ran the richer multi-surface proof and the earlier Worker 10 selector/viewer-host band to confirm the narrow fix did not reopen the simpler shipped case.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/previewPreparation.ts`](./src/app/spaghetti/previewPreparation.ts) so `prepareGraphPreviewPreparation(...)` iterates every `Output Preview` node in the graph and aggregates their slots, publication metadata, source-entry mapping, and preview candidates instead of stopping at the first matching node.
+- Kept `outputPreviewNodeId` backward compatible by continuing to expose the first preview node id while allowing the preparation data used by preview membership and viewport layering to include all relevant surfaces.
+- Converted the richer multi-surface Phase 4 regressions in [`src/app/spaghetti/previewPreparation.test.ts`](./src/app/spaghetti/previewPreparation.test.ts) and [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) from expected-failure placeholders into ordinary passing proofs.
+#### Files Changed
+- [`src/app/spaghetti/previewPreparation.ts`](./src/app/spaghetti/previewPreparation.ts)
+- [`src/app/spaghetti/previewPreparation.test.ts`](./src/app/spaghetti/previewPreparation.test.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+#### Behavior Changes (if any)
+- Preview preparation now includes all relevant `Output Preview` surfaces in a graph instead of only the first one.
+- In the richer parallel-preview graph, the unaffected sibling branch stays fully loaded during branch-local editing instead of disappearing or inheriting the edited branch’s preview treatment due to missing preparation membership.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/spaghetti/previewPreparation.test.ts --testNamePattern "keeps both Output Preview surfaces in preview preparation for a parallel graph with separate preview nodes"`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "keeps the unaffected sibling fully loaded when parallel branches publish through separate Output Preview surfaces"`
+- Ran `cmd /c npm.cmd test -- src/app/spaghetti/previewPreparation.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "uses interaction-time accepted preview bundle fallback so rebuilt-only overlay is available for branch-local layers during drag|drops the old branch-local baseline after settle while keeping the changed winner visible for the same two-branch graph|keeps the unaffected sibling fully loaded when parallel branches publish through separate Output Preview surfaces"`
+- Ran `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts --testNamePattern "keeps retained siblings out of the live preview overlay when only one branch rebuilt|keeps retained siblings visible in settled draft truth when one branch rebuilt"`
+
+<!-- ENTRY 1290 -->
+### [1290] - 2026-04-14 10:41 - `WK - Phase Worker 10 Phase 4 - Prove Complex Parallel Preview Locality`
+<!-- ENTRY 1290 -->
+HUMAN SUMMARY: `Implemented Worker 10 Phase 4 as a proof-first pass by adding expected-failure regressions for the richer parallel-preview graph, locking that the remaining miss is upstream of viewer styling because separate Output Preview surfaces are still prepared through a first-node-only seam before branch-local layering ever runs.`
+#### Scope / Constraints Honored
+- Kept this phase proof-only as the Worker 10 plan required, with no runtime patch while the richer graph shape was still being attributed.
+- Added the smallest upstream and read-through proofs needed to name the owner precisely enough for the next narrow repair phase.
+- Preserved the earlier simpler two-extrude branch-local proof band by using expected-failure coverage for the newly observed richer graph.
+#### Summary of Implementation
+- Added an expected-failure `prepareGraphPreviewPreparation(...)` regression in [`src/app/spaghetti/previewPreparation.test.ts`](./src/app/spaghetti/previewPreparation.test.ts) for a parallel graph that publishes through separate `Output Preview` nodes, proving the current preparation still only includes the first preview surface.
+- Added an expected-failure `ViewerHost` regression in [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) that reads the same richer graph through the viewer layer story and expects the unaffected sibling branch to remain fully loaded while only the edited branch gets branch-local baseline plus overlay treatment.
+- Used those two proofs together to attribute the remaining owner to the preview-preparation seam rather than widening immediately into another viewer-only styling patch.
+#### Files Changed
+- [`src/app/spaghetti/previewPreparation.test.ts`](./src/app/spaghetti/previewPreparation.test.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+#### Behavior Changes (if any)
+- No runtime behavior changed in this phase.
+- The codebase now carries explicit expected-failure coverage for the richer parallel-preview graph so the next fix can target the proven single-`Output Preview` preparation seam directly.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/spaghetti/previewPreparation.test.ts --testNamePattern "keeps both Output Preview surfaces in preview preparation for a parallel graph with separate preview nodes"`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "keeps the unaffected sibling fully loaded when parallel branches publish through separate Output Preview surfaces"`
+
+<!-- ENTRY 1289 -->
+### [1289] - 2026-04-14 09:41 - `WK - AutoDraftFinal Phase 9.3 - Clear Stale Baseline Meshes On Layer Replacement`
+<!-- ENTRY 1289 -->
+HUMAN SUMMARY: `Implemented AutoDraftFinal Phase 9.3 by giving baseline-layer meshes in \`src/viewer/Viewer.ts\` the same explicit cleanup ownership as base and overlay meshes, so repeated render-layer replacement now removes stale transparent \`:baseline\` geometry instead of stacking old committed shapes in the scene.`
+#### Scope / Constraints Honored
+- Kept the runtime fix narrowly inside the proven viewer cleanup seam from Phase 9.1 and Phase 9.2.
+- Reused the existing render-layer lifecycle pattern instead of redesigning viewer-layer meaning or selector behavior.
+- Verified the direct viewer leak proof and the surrounding settled host read-through behavior after the patch.
+#### Summary of Implementation
+- Added a dedicated `baselinePartMeshes` map in [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so baseline-layer meshes are tracked after creation.
+- Stored each baseline mesh in that map during `setViewportRenderLayers(...)`.
+- Updated `clearPartMeshes()` to remove and dispose baseline meshes alongside the existing base and overlay mesh collections.
+- Updated `applyShadowFlags()` so baseline meshes stay on the same non-shadowing presentation path as overlay meshes.
+#### Files Changed
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+#### Behavior Changes (if any)
+- Repeated render-layer replacement no longer leaves stale baseline meshes alive in the viewer scene.
+- Repeated explicit commits on one object no longer stack old transparent committed shapes just because baseline cleanup was skipped.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "drops the old branch-local baseline after settle while keeping the changed winner visible for the same two-branch graph|renders settled auto live accepted draft as the visible lastLoaded base after interaction ends"`
+
+<!-- ENTRY 1288 -->
+### [1288] - 2026-04-14 09:36 - `WK - AutoDraftFinal Phase 9.2 - Repeated-Commit Viewer Regression`
+<!-- ENTRY 1288 -->
+HUMAN SUMMARY: `Implemented AutoDraftFinal Phase 9.2 as a proof-first slice by adding a direct \`src/viewer/Viewer.test.ts\` regression that instantiates the real viewer and reproduces the repeated-commit transparent-shape stack, proving the current cleanup seam leaves three stale \`:baseline\` meshes alive where only one should remain without changing runtime behavior yet.`
+#### Scope / Constraints Honored
+- Kept this slice strictly on the new Phase 9.2 proof target instead of starting the viewer cleanup patch early.
+- Added a direct viewer-facing regression rather than another selector-only or host-mocked assertion so the leak is pinned at the real scene-management seam.
+- Left runtime behavior unchanged on purpose so `Phase 9.3` can own the first cleanup fix cleanly.
+#### Summary of Implementation
+- Added [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) with a real `Viewer` instantiation under lightweight Three.js and helper mocks.
+- The new regression applies three successive `baselineParts`-only `setViewportRenderLayers(...)` updates for the same output key.
+- The proof then traverses the live viewer root group and counts objects whose names end with `:baseline`.
+- Current result:
+  - the regression fails because three baseline meshes remain alive after the third replacement where only one should exist.
+#### Files Changed
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+#### Behavior Changes (if any)
+- No runtime behavior changed in this slice.
+- The repo now has an explicit failing proof for the repeated-commit baseline-mesh accumulation bug.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Current expected failure:
+  - `expected [ …(3) ] to have a length of 1 but got 3`
+
+<!-- ENTRY 1287 -->
+### [1287] - 2026-04-14 09:08 - `WK - Viewport Slider Release Interaction Contract Fix`
+<!-- ENTRY 1287 -->
+HUMAN SUMMARY: `Fixed the remaining slider-release viewport comparison leak by making `ViewportOverlay` graph-parameter sliders participate in both shared interaction channels and by aligning `ViewerHost`'s interaction-time preview fallback gate with the selector contract, so the dimmed committed geometry can collapse once the user releases the slider.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the live slider-release bug the real app still showed after the proof-only `AutoDraftFinal Phase 8` slices.
+- Reused the existing shared interaction contract instead of inventing a new release path.
+- Added a direct UI-surface regression so the runtime fix is anchored to a real overlay slider drag rather than another selector-only proof.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so shared graph-parameter slider interactions now call both:
+  - `beginInteraction()` / `endInteraction()`
+  - `beginBrowserBuildInteraction(graphDocumentId)` / `endBrowserBuildInteraction(graphDocumentId)`
+- Tightened [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so interaction-time accepted preview bundle/output fallback stays active only while both the graph-scoped browser flag and `isInteracting` are true, matching the selector-owned interaction contract.
+- Added a focused regression in [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx) that drives a real sketch-plane slider through `pointerdown` and `pointerup` and proves both interaction channels turn on during drag and clear on release.
+#### Files Changed
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+#### Behavior Changes
+- Viewport overlay graph-parameter slider drags now participate in the same explicit-commit interaction lifecycle already used by the canvas and feature-stack parameter editors.
+- Interaction-time preview fallback in `ViewerHost` no longer lingers after UI interaction has settled if only the graph-scoped browser flag remains.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx --testNamePattern "wraps sketch-plane slider drags in both shared interaction channels|shows detailed sketch plane session controls while adjusting the plane"`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "drops the old branch-local baseline after settle while keeping the changed winner visible for the same two-branch graph|uses interaction-time accepted preview bundle fallback so rebuilt-only overlay is available for branch-local layers during drag|renders settled auto live accepted draft as the visible lastLoaded base after interaction ends"`
+
+<!-- ENTRY 1286 -->
+### [1286] - 2026-04-14 08:58 - `WK - AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification`
+<!-- ENTRY 1286 -->
+HUMAN SUMMARY: `Closed AutoDraftFinal Phase 8.5 as a proof-only finish by extending the existing two-branch \`Auto / Live\` handoff coverage: \`ViewerHost.test.tsx\` now explicitly proves the same graph renders branch-local retained-baseline comparison while active and winner-only \`lastLoaded\` base after settle, and \`buildViewportResultSelectorOptions.test.ts\` now proves the lingering graph flag no longer keeps selector interaction active once UI interaction ends.`
+#### Scope / Constraints Honored
+- Kept this pass inside `AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification`.
+- Preserved the landed typed-commit, pointer-release, explicit-build, selector, and host runtime seams instead of reopening producer behavior or selector recipe logic without proof.
+- Treated the slice as proof-first and only allowed runtime widening if the joined handoff proof failed.
+#### Summary of Implementation
+- Added a joined selector-input projection proof in [`src/app/components/buildViewportResultSelectorOptions.test.ts`](./src/app/components/buildViewportResultSelectorOptions.test.ts) for the same two-branch `Auto / Live` graph used by the branch-local viewport proofs, showing:
+  - active comparison projects as `isInteractionActive === true`
+  - once UI interaction settles, the lingering graph interaction flag no longer keeps comparison alive
+  - the selector collapses back to a `base-only` settled winner
+- Extended the existing two-branch host transition proof in [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) so it now explicitly asserts both halves of the handoff for the same graph:
+  - active state renders branch-local retained-baseline comparison
+  - settled state removes `baselineParts` and `overlayParts` while keeping the changed winner visible as `lastLoaded` base
+- Kept the existing selector settle proofs green, confirming the final explicit-commit cleanup path closes without a production code patch.
+#### Files Changed
+- `src/app/components/buildViewportResultSelectorOptions.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+#### Behavior Changes
+- No runtime behavior changed in this slice.
+- The repo now explicitly proves the full producer-to-selector-to-host `Auto / Live` settle handoff for the old-baseline cleanup path.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/buildViewportResultSelectorOptions.test.ts`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "drops the old branch-local baseline after settle while keeping the changed winner visible for the same two-branch graph|uses interaction-time accepted preview bundle fallback so rebuilt-only overlay is available for branch-local layers during drag|renders settled auto live accepted draft as the visible lastLoaded base after interaction ends"`
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts --testNamePattern "drops the old branch-local baseline after settle while keeping the changed winner visible for the same two-branch graph|returns auto live to lastLoaded once interaction settles and accepted draft becomes the visible truth"`
+
+<!-- ENTRY 1285 -->
+### [1285] - 2026-04-14 08:49 - `WK - AutoDraftFinal Phase 8.4 - End Comparison On Pointer Release`
+<!-- ENTRY 1285 -->
+HUMAN SUMMARY: `Closed AutoDraftFinal Phase 8.4 as the intended proof-first canvas settle slice by adding the missing \`NodeView.geometryMode.test.tsx\` read-through for primitive drag release, proving canvas pointer editing clears both \`isInteracting\` and the graph-scoped browser interaction flag on pointer up without needing a runtime patch.`
+#### Scope / Constraints Honored
+- Kept this pass inside `AutoDraftFinal Phase 8.4 - End Comparison On Pointer Release`.
+- Preserved the existing `PortView.tsx`, `NodeView.tsx`, and `ParaSlider.tsx` interaction seams instead of redesigning slider behavior or reopening typed-input semantics.
+- Treated the slice as proof-first exactly as the phase doc required and only widened if the new read-through failed.
+#### Summary of Implementation
+- Added a focused `NodeView.geometryMode.test.tsx` regression that drives the extrude primitive drag lane through real `pointerdown`, `pointermove`, and `pointerup` events.
+- Locked the `NodeView` read-through to prove both interaction channels become active during the canvas drag and both clear on release:
+  - `isInteracting`
+  - `browserInteractionGraphDocumentIds[graphDocumentId]`
+- Kept the existing `PortView.test.tsx` primitive-row control proof as the control-level release-edge verification, so no production code change was needed after the new read-through passed.
+#### Files Changed
+- `src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+#### Behavior Changes
+- No runtime behavior changed in this slice.
+- The repo now explicitly proves that canvas primitive pointer release is the settle edge that ends viewport comparison for the shared graph-parameter interaction path.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/canvas/PortView.test.tsx`
+- `cmd /c npm.cmd test -- src/app/spaghetti/canvas/NodeView.geometryMode.test.tsx`
+
 <!-- ENTRY 1284 -->
 ### [1284] - 2026-04-13 20:49 - `WK - Bug 19 Phase B - Interaction-Time Preview Bundle Fallback For Branch-Local Layers`
 <!-- ENTRY 1284 -->

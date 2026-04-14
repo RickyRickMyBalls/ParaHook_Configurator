@@ -123,6 +123,13 @@ type ContentObjectTransformSession = {
   space: GizmoSpace
   entryOrigin: ReferenceTransformOverride | null
 }
+type FlyMovementKey = 'forward' | 'backward' | 'left' | 'right' | 'up' | 'down'
+type FlySession = {
+  pointerId: number
+  lastClientX: number
+  lastClientY: number
+  heldKeys: Set<FlyMovementKey>
+}
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
@@ -130,6 +137,7 @@ const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
 const GRID_MAJOR_STEP = 10
 const GRID_DOUBLE_MAJOR_STEP = 50
+const FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 4
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
@@ -301,6 +309,7 @@ export class Viewer {
   private readonly pointer = new Vector2()
   private frameId: number | null = null
   private readonly partMeshes = new Map<string, Mesh>()
+  private readonly baselinePartMeshes = new Map<string, Mesh>()
   private readonly overlayPartMeshes = new Map<string, Mesh>()
   private readonly partSelectionOutlines = new Map<string, LineSegments>()
   private readonly contentObjectPivots = new Map<string, Group>()
@@ -442,6 +451,8 @@ export class Viewer {
         anchorClientY: number
       }
     | null = null
+  private flySession: FlySession | null = null
+  private suppressFlyContextMenu = false
   private readonly zoomWindowOverlayRoot: HTMLDivElement
   private readonly zoomWindowOverlayBox: HTMLDivElement
   private readonly workspaceSelectionOverlayRoot: HTMLDivElement
@@ -655,6 +666,8 @@ export class Viewer {
 
     window.addEventListener('resize', this.handleResize)
     window.addEventListener('keydown', this.handleKeyDown)
+    window.addEventListener('keyup', this.handleKeyUp)
+    window.addEventListener('blur', this.handleWindowBlur)
     this.renderer.domElement.addEventListener(
       'pointerdown',
       this.handleSketchPlanePickPointerDown,
@@ -670,6 +683,12 @@ export class Viewer {
       this.handleSketchPlanePickPointerUp,
       true,
     )
+    this.renderer.domElement.addEventListener(
+      'pointercancel',
+      this.handleViewerPointerCancel,
+      true,
+    )
+    this.renderer.domElement.addEventListener('contextmenu', this.handleViewerContextMenu)
 
     this.applyViewSettings(this.currentViewSettings)
     this.handleResize()
@@ -878,6 +897,7 @@ export class Viewer {
       } else {
         this.rootGroup.add(mesh)
       }
+      this.baselinePartMeshes.set(partKeyStr, mesh)
     }
 
     for (const [objectId, pivot] of this.contentObjectPivots.entries()) {
@@ -1323,6 +1343,10 @@ export class Viewer {
 
   public endTemporaryPanDrag(): void {
     this.cameraController.endTemporaryPanDrag()
+  }
+
+  public isFlyModeActive(): boolean {
+    return this.flySession !== null
   }
 
   public frameAll(): void {
@@ -1823,6 +1847,134 @@ export class Viewer {
     )
   }
 
+  private isPerspectiveFlyAvailable(): boolean {
+    return this.cameraController.getActiveCamera() === this.perspectiveCamera
+  }
+
+  private resolveFlyMovementKey(key: string): FlyMovementKey | null {
+    const normalizedKey = key.toLowerCase()
+    if (normalizedKey === 'w') {
+      return 'forward'
+    }
+    if (normalizedKey === 's') {
+      return 'backward'
+    }
+    if (normalizedKey === 'a') {
+      return 'left'
+    }
+    if (normalizedKey === 'd') {
+      return 'right'
+    }
+    if (key === ' ' || normalizedKey === 'spacebar') {
+      return 'up'
+    }
+    if (normalizedKey === 'shift') {
+      return 'down'
+    }
+    return null
+  }
+
+  private canStartFlySession(event: PointerEvent): boolean {
+    return (
+      this.currentViewSettings.orbitEnabled &&
+      this.isPerspectiveFlyAvailable() &&
+      this.flySession === null &&
+      this.sketchPlanePickOverlay === null &&
+      this.geometrySketchOverlay === null &&
+      this.geometrySketchSelectionDrag === null &&
+      this.consoleCameraMode === null &&
+      this.consoleCameraModeDrag === null &&
+      this.consoleZoomWindowDrag === null &&
+      this.workspaceSelectionClickTracker === null &&
+      this.cameraOrbitModifierDrag === null &&
+      this.middleClickTracker === null &&
+      this.activeReferenceTransformReferenceId === null &&
+      this.activeContentObjectTransformObjectId === null &&
+      !this.transformGizmo.isDragging() &&
+      !this.isWorkspaceSelectionViewportGizmoHit(event.clientX, event.clientY)
+    )
+  }
+
+  private startFlySession(event: PointerEvent): void {
+    this.rememberCameraPose()
+    this.flySession = {
+      pointerId: event.pointerId,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      heldKeys: new Set<FlyMovementKey>(),
+    }
+    this.suppressFlyContextMenu = false
+    this.renderer.domElement.setPointerCapture(event.pointerId)
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  private endFlySession(options?: { pointerId?: number; suppressContextMenu?: boolean }): void {
+    if (this.flySession === null) {
+      return
+    }
+    const pointerId = options?.pointerId ?? this.flySession.pointerId
+    if (this.renderer.domElement.hasPointerCapture(pointerId)) {
+      this.renderer.domElement.releasePointerCapture(pointerId)
+    }
+    this.flySession.heldKeys.clear()
+    this.flySession = null
+    if (options?.suppressContextMenu === true) {
+      this.suppressFlyContextMenu = true
+    }
+  }
+
+  private updateFlySessionPointer(event: PointerEvent): void {
+    if (this.flySession === null || event.pointerId !== this.flySession.pointerId) {
+      return
+    }
+    const deltaX = event.clientX - this.flySession.lastClientX
+    const deltaY = event.clientY - this.flySession.lastClientY
+    this.flySession.lastClientX = event.clientX
+    this.flySession.lastClientY = event.clientY
+    event.preventDefault()
+    event.stopPropagation()
+    this.cameraController.applyFlyLookDelta(deltaX, deltaY)
+  }
+
+  private handleFlyKeyDown(event: KeyboardEvent): void {
+    if (this.flySession === null) {
+      return
+    }
+    const flyMovementKey = this.resolveFlyMovementKey(event.key)
+    if (flyMovementKey !== null) {
+      this.flySession.heldKeys.add(flyMovementKey)
+    }
+  }
+
+  private updateFlyMovement(dt: number): void {
+    if (this.flySession === null) {
+      return
+    }
+    if (!this.isPerspectiveFlyAvailable()) {
+      this.endFlySession()
+      return
+    }
+
+    const forward =
+      (this.flySession.heldKeys.has('forward') ? 1 : 0) -
+      (this.flySession.heldKeys.has('backward') ? 1 : 0)
+    const right =
+      (this.flySession.heldKeys.has('right') ? 1 : 0) -
+      (this.flySession.heldKeys.has('left') ? 1 : 0)
+    const up =
+      (this.flySession.heldKeys.has('up') ? 1 : 0) -
+      (this.flySession.heldKeys.has('down') ? 1 : 0)
+
+    const movementVector = new Vector3(right, up, forward)
+    if (movementVector.lengthSq() < 1e-8) {
+      return
+    }
+
+    movementVector.normalize().multiplyScalar(FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC * dt)
+    this.cameraController.translateFly(movementVector.z, movementVector.x, movementVector.y)
+  }
+
   private rememberCameraPose(): void {
     const nextPose = this.cameraController.getPose()
     const lastPose = this.cameraPoseHistory[this.cameraPoseHistory.length - 1] ?? null
@@ -1904,6 +2056,7 @@ export class Viewer {
   }
 
   private clearCameraGestureDrafts(): void {
+    this.endFlySession()
     if (
       this.cameraOrbitModifierDrag !== null &&
       this.renderer.domElement.hasPointerCapture(this.cameraOrbitModifierDrag.pointerId)
@@ -2047,6 +2200,8 @@ export class Viewer {
     this.resizeObserver.disconnect()
     window.removeEventListener('resize', this.handleResize)
     window.removeEventListener('keydown', this.handleKeyDown)
+    window.removeEventListener('keyup', this.handleKeyUp)
+    window.removeEventListener('blur', this.handleWindowBlur)
     this.renderer.domElement.removeEventListener(
       'pointerdown',
       this.handleSketchPlanePickPointerDown,
@@ -2062,6 +2217,13 @@ export class Viewer {
       this.handleSketchPlanePickPointerUp,
       true,
     )
+    this.renderer.domElement.removeEventListener(
+      'pointercancel',
+      this.handleViewerPointerCancel,
+      true,
+    )
+    this.renderer.domElement.removeEventListener('contextmenu', this.handleViewerContextMenu)
+    this.endFlySession()
 
     this.clearPartMeshes()
     this.clearReferenceObjects()
@@ -2357,6 +2519,11 @@ export class Viewer {
       mesh.receiveShadow = this.currentViewSettings.shadowsEnabled
     }
 
+    for (const mesh of this.baselinePartMeshes.values()) {
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+    }
+
     for (const mesh of this.overlayPartMeshes.values()) {
       mesh.castShadow = false
       mesh.receiveShadow = false
@@ -2398,7 +2565,11 @@ export class Viewer {
   }
 
   private clearPartMeshes(): void {
-    for (const mesh of [...this.partMeshes.values(), ...this.overlayPartMeshes.values()]) {
+    for (const mesh of [
+      ...this.partMeshes.values(),
+      ...this.baselinePartMeshes.values(),
+      ...this.overlayPartMeshes.values(),
+    ]) {
       if (mesh.parent !== null) {
         mesh.parent.remove(mesh)
       }
@@ -2422,6 +2593,7 @@ export class Viewer {
       mesh.geometry.dispose()
     }
     this.partMeshes.clear()
+    this.baselinePartMeshes.clear()
     this.overlayPartMeshes.clear()
     this.partSelectionOutlines.clear()
     for (const pivot of this.contentObjectPivots.values()) {
@@ -3640,6 +3812,12 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerDown = (event: PointerEvent): void => {
+    if (event.button === 2) {
+      if (this.canStartFlySession(event)) {
+        this.startFlySession(event)
+      }
+      return
+    }
     if (
       event.button === 1 &&
       this.currentViewSettings.orbitEnabled
@@ -3793,6 +3971,10 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerMove = (event: PointerEvent): void => {
+    if (this.flySession !== null && event.pointerId === this.flySession.pointerId) {
+      this.updateFlySessionPointer(event)
+      return
+    }
     if (
       this.workspaceSelectionClickTracker !== null &&
       event.pointerId === this.workspaceSelectionClickTracker.pointerId
@@ -3927,6 +4109,15 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerUp = (event: PointerEvent): void => {
+    if (this.flySession !== null && event.pointerId === this.flySession.pointerId) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.endFlySession({
+        pointerId: event.pointerId,
+        suppressContextMenu: true,
+      })
+      return
+    }
     if (
       this.consoleZoomWindowDrag !== null &&
       event.pointerId === this.consoleZoomWindowDrag.pointerId
@@ -4134,9 +4325,16 @@ export class Viewer {
     }
     const routing = routeKeyboardInput({
       event,
+      viewerFlyActive: this.flySession !== null,
       geometrySketchMode: this.geometrySketchOverlay?.mode ?? null,
       referenceTransformActive: this.activeReferenceTransformReferenceId !== null,
     })
+
+    if (routing.owner === 'viewer-fly' && this.flySession !== null) {
+      event.preventDefault()
+      this.handleFlyKeyDown(event)
+      return
+    }
 
     if (routing.owner === 'sketch-draw' && this.geometrySketchOverlay?.mode === 'draw') {
       if (
@@ -4234,9 +4432,47 @@ export class Viewer {
     }
   }
 
+  private readonly handleKeyUp = (event: KeyboardEvent): void => {
+    if (this.flySession === null) {
+      return
+    }
+    const flyMovementKey = this.resolveFlyMovementKey(event.key)
+    if (flyMovementKey === null) {
+      return
+    }
+    event.preventDefault()
+    this.flySession.heldKeys.delete(flyMovementKey)
+  }
+
+  private readonly handleWindowBlur = (): void => {
+    this.endFlySession()
+  }
+
+  private readonly handleViewerPointerCancel = (event: PointerEvent): void => {
+    if (this.flySession === null || event.pointerId !== this.flySession.pointerId) {
+      return
+    }
+    this.endFlySession({ pointerId: event.pointerId })
+  }
+
+  private readonly handleViewerContextMenu = (event: MouseEvent): void => {
+    if (this.flySession !== null) {
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+    if (!this.suppressFlyContextMenu) {
+      return
+    }
+    this.suppressFlyContextMenu = false
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   private readonly renderLoop = (): void => {
     this.frameId = window.requestAnimationFrame(this.renderLoop)
     const dt = this.clock.getDelta()
+    this.updateFlyMovement(dt)
     this.cameraController.update(dt)
     if (this.onCameraPoseChange !== null) {
       const pose = this.cameraController.getPose()

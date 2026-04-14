@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+
 type FeatureValueBarProps = {
   label: string
   value: number
@@ -58,6 +60,7 @@ export function FeatureValueBar({
   const fillPercent = getFillPercent(value, min, max)
   const fillColor =
     tone === 'white' ? 'rgba(233, 239, 252, 0.95)' : 'rgba(74, 124, 212, 0.95)'
+  const skipBlurEndInteractionRef = useRef(false)
 
   const beginInteraction = () => {
     if (disabled) {
@@ -121,7 +124,10 @@ export function FeatureValueBar({
             disabled={disabled}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
-            onFocus={() => beginInteraction()}
+            onFocus={() => {
+              skipBlurEndInteractionRef.current = false
+              beginInteraction()
+            }}
             onChange={(event) => {
               if (disabled) {
                 return
@@ -132,10 +138,18 @@ export function FeatureValueBar({
               }
               onChange(clampNumber(Number(nextValue.toFixed(precision)), min, max))
             }}
-            onBlur={() => endInteraction()}
+            onBlur={() => {
+              if (skipBlurEndInteractionRef.current) {
+                skipBlurEndInteractionRef.current = false
+                return
+              }
+              endInteraction()
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === 'Escape') {
                 event.stopPropagation()
+                skipBlurEndInteractionRef.current = true
+                endInteraction()
                 event.currentTarget.blur()
               }
             }}

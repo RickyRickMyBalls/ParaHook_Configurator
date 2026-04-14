@@ -65,7 +65,7 @@ describe('FeatureValueBar', () => {
     expect(handleChange.mock.invocationCallOrder[0]).toBeLessThan(handleEnd.mock.invocationCallOrder[0])
   })
 
-  it('starts on focus and ends on blur for typed edits', async () => {
+  it('keeps typed edits active until explicit commit', async () => {
     const handleStart = vi.fn()
     const handleChange = vi.fn()
     const handleEnd = vi.fn()
@@ -113,8 +113,11 @@ describe('FeatureValueBar', () => {
       }
     })
 
+    expect(handleStart).toHaveBeenCalledTimes(1)
+    expect(handleEnd).toHaveBeenCalledTimes(0)
+
     await act(async () => {
-      input?.blur()
+      input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     })
 
     expect(handleStart).toHaveBeenCalledTimes(1)

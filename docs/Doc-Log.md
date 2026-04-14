@@ -3,6 +3,24 @@
 ## Doc Header
 
 ### Doc History
+1663. 2026-04-14 11:36:43: Updated `docs/Human-Plans/Architecture/Worker/Worker-Index-Gen2.md` and this `docs/Doc-Log.md` to turn the `Generation 2` ladder into an explicit `Worker - N` roadmap index, placing `Worker 9` through `Worker 13` into their proper Gen 2 slots and adding forward `Worker 14` through `Worker 19` placeholders for the still-missing identity, dependency, widening, and capstone proof work so the umbrella now reads like a real family index with checklist-style phase sections
+1662. 2026-04-14 11:33:23: Updated `docs/Human-Plans/Architecture/Worker/Worker-Index-Gen2.md` and this `docs/Doc-Log.md` to reorganize the `Generation 2` umbrella around the full worker vision instead of the currently active viewport honesty bugs, explicitly separating Gen 2 foundation work, supporting retained-truth honesty lanes, the still-missing shared-reference architecture core, and the capstone proof/generalization ladder so the generation reads as one coherent program again
+1661. 2026-04-14 11:26:27: Updated `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 13 - Output Entry Locality Inside Shared Output Composition.md` and this `docs/Doc-Log.md` to mark `Worker 13 Phase 1 - Confirm Shared-Surface Locality Seam` complete as a read-only attribution pass, recording that the remaining shared-surface preview bug is primarily an upstream rebuilt-versus-retained output-entry membership problem in the preview-render-VM path rather than a new downstream `ViewerHost` assembly seam
+1660. 2026-04-14 11:18:12: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 13 - Output Entry Locality Inside Shared Output Composition.md`, updated `docs/Human-Plans/Architecture/Worker/Worker-Index.md`, updated `docs/Human-Plans/Architecture/Worker/Worker-Index-Gen2.md`, and updated this `docs/Doc-Log.md` so the Worker family now has a dedicated future planning lane for output-entry-level preview locality inside one shared composed `Output Preview` surface, broken into four small Codex-sized subphases and linked into both the family and Generation 2 indexes
+1659. 2026-04-14 10:50:49: Updated `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to mark `Worker 10 Phase 5 - Repair Complex Parallel Preview Locality And Settled Sibling Completeness` complete, recording that the narrow `src/app/spaghetti/previewPreparation.ts` repair now aggregates all `Output Preview` surfaces during preparation so the richer branch-local parallel-preview graph keeps unaffected siblings visible without reopening the earlier simpler Worker 10 proofs
+1658. 2026-04-14 10:41:12: Updated `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to mark `Worker 10 Phase 4 - Prove Complex Parallel Preview Locality` complete as a proof-first pass, recording that the new richer-graph expected-failure regressions now attribute the remaining bug to the single-`Output Preview` preparation seam in `src/app/spaghetti/previewPreparation.ts` instead of widening back into speculative viewer-only styling changes
+1657. 2026-04-14 10:30:46: Updated `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md` and this `docs/Doc-Log.md` to add post-`Phase 3` follow-up phases for the newly reported richer parallel-preview failure, breaking the next Worker 10 work into one proof-first phase for complex multi-profile and possible multi-output-preview locality plus one narrow repair phase so the unaffected-sibling dimming and post-release disappearance case can be handled without widening the earlier simpler branch-local proofs
+1656. 2026-04-14 10:17:51: Added `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 12 - Skip Worker Dispatch For Unresolved Output Continuation.md`, updated `docs/Human-Plans/Architecture/Worker/Worker-Index.md`, updated `docs/Human-Plans/Architecture/Worker/Worker-Index-Gen2.md`, and updated this `docs/Doc-Log.md` so the Worker family now has a dedicated future planning lane for unresolved output-continuation dispatch honesty, broken into four small Codex-sized subphases and linked into both the family and Generation 2 indexes
+1655. 2026-04-14 09:45:05: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`, `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, and this `docs/Doc-Log.md` to mark `Phase 9.4 - Verify And Stop` complete and close `Phase 9`, recording that the direct repeated-commit viewer regression plus the relevant settled `ViewerHost` and selector proof band all stayed green after the `Viewer.ts` cleanup fix so this symptom family can stop as a viewer cleanup issue
+1654. 2026-04-14 09:41:10: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`, `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to mark `Phase 9.3 - Clear Stale Baseline Meshes On Layer Replacement` complete, recording that the narrow `Viewer.ts` cleanup patch now tracks and clears baseline-layer meshes alongside base and overlay meshes so the direct repeated-commit viewer regression passes without reopening selector or interaction-lifecycle behavior
+1653. 2026-04-14 09:36:59: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`, `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to mark `Phase 9.2 - Add A Repeated-Commit Viewer Regression` complete, recording that the new direct `src/viewer/Viewer.test.ts` proof now reproduces the repeated-commit transparent-shape stack by leaving three stale `:baseline` meshes alive where only one should remain, while intentionally deferring the first runtime cleanup patch to `Phase 9.3`
+1652. 2026-04-14 09:31: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`, `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, and this `docs/Doc-Log.md` to mark `Phase 9.1 - Confirm The Accumulation Seam` complete, recording the code-read attribution that `Viewer.ts` creates `baselineParts` meshes without tracking them in the cleanup maps that `clearPartMeshes()` uses, so repeated commits can stack stale transparent `last committed` geometry even after selector truth has already settled
+1651. 2026-04-14 09:27:16: Added `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`, updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, and updated this `docs/Doc-Log.md` so the AutoDraftFinal family now has one dedicated Phase 9 planning surface for the repeated-commit transparent-shape stack bug, narrowing the next likely seam to viewer-side baseline-mesh cleanup in `Viewer.ts` instead of more selector or lifecycle widening
+1650. 2026-04-14 09:08:24: Updated `src/app/components/ViewportOverlay.tsx`, `src/app/components/ViewerHost.tsx`, `src/app/components/ViewportOverlay.test.tsx`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to record the shipped viewport slider-release interaction contract fix, adding the direct overlay-slider regression and documenting that overlay graph-parameter drags now participate in both shared interaction channels while `ViewerHost` no longer keeps interaction-time preview fallback active after UI interaction settles
+1649. 2026-04-14 08:58:47: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md`, `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to mark `AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification` complete as a proof-only closeout, recording that the new selector-input projection proof plus the extended two-branch `ViewerHost` handoff proof now lock the final explicit-commit cleanup path without a runtime patch
+1648. 2026-04-14 08:53:35: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md`, `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`, and this `docs/Doc-Log.md` to prep `AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification` for implementation, tightening the remaining risk to the producer-to-selector-to-host collapse path after the 8.3 and 8.4 producer proofs landed and grounding the next slice in one focused `Auto / Live` branch-local read-through plus the smallest selector-input projection proof only if that handoff still leaks comparison state
+1647. 2026-04-14 08:49:26: Updated `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md`, `docs/CHANGELOG.md`, and this `docs/Doc-Log.md` to mark `AutoDraftFinal Phase 8.4 - End Comparison On Pointer Release` shipped as a proof-first canvas settle slice, recording that the new `NodeView.geometryMode.test.tsx` read-through proved pointer release clears both interaction channels without requiring a runtime patch
+1646. 2026-04-13 20:49:42: Updated `docs/Bugs/19_2026-04-13_20-00-17_worker-11-viewport-presentation-contract-gap.md` and this `docs/Doc-Log.md` to add a compact `Phase A` plus `Phase B` investigation summary, so the bug note now shows the pre-fix branch-local gate miss, the later wrong-source-gap diagnosis, and the current read-through handoff into `Phase C` / `Phase D` without requiring the full seam ladder to be read top to bottom
 1645. 2026-04-13 20:49:42: Updated `docs/Bugs/19_2026-04-13_20-00-17_worker-11-viewport-presentation-contract-gap.md` and this `docs/Doc-Log.md` to record the shipped `Phase B` result, capturing that the earlier branch-local gate failure was a wrong-source gap in `ViewerHost.tsx` because the new end-to-end two-extrude proof now reaches a real three-layer call once active interaction falls back to raw runtime accepted preview bundle/output state
 1644. 2026-04-13 20:41:18: Updated `docs/Bugs/19_2026-04-13_20-00-17_worker-11-viewport-presentation-contract-gap.md` and this `docs/Doc-Log.md` to record the first `Phase A` seam-inspection result, capturing that the targeted end-to-end `ViewerHost` proof still never reached the branch-local retained-baseline layer call and instead stayed on retained authoritative-only rendering with no overlay so the next viewport debugging pass now has one concrete gating failure to chase
 1643. 2026-04-13 20:25:09: Updated `docs/Bugs/19_2026-04-13_20-00-17_worker-11-viewport-presentation-contract-gap.md` and this `docs/Doc-Log.md` to add a seam-by-seam viewport investigation order, breaking the next `ViewerHost.tsx` debugging pass into explicit phases around the branch-local gate, rebuilt-only overlay source, layer assembly, frozen interaction base, helper split logic, and selector handoff so the viewport-path bug can now be inspected one seam at a time
@@ -2758,6 +2776,63 @@ Do not use it for:
 - keep numbering sequential unless the user explicitly asks for a renumber pass
 
 ## Doc Body
+
+### [304] - 2026-04-14 09:31 - `DOC - Close AutoDraftFinal Phase 9.1 Seam Attribution`
+
+Updated the `AutoDraftFinal` Phase 9 planning doc and family index to mark `Phase 9.1 - Confirm The Accumulation Seam` complete after tracing the real `Viewer.ts` render-layer replacement path and confirming the likely owner: `baselineParts` meshes are created but not tracked in the cleanup maps that `clearPartMeshes()` uses, so repeated commits can leave stale transparent `last committed` geometry stacked in the scene even after selector truth has already collapsed correctly.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`
+- `docs/Doc-Log.md`
+
+### [303] - 2026-04-14 09:27 - `DOC - Add AutoDraftFinal Phase 9 Viewer Accumulation Plan`
+
+Added `AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md` as the next narrow family planning surface after live repro and screenshot review showed the real app can still stack multiple old transparent `last committed` shapes from one-extrude repeated commits, and updated the family index so the next open phase now explicitly targets viewer-side baseline-mesh replacement in `Viewer.ts` before any more selector or lifecycle widening.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 9 - Clear Viewer Baseline Mesh Accumulation.md`
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`
+- `docs/Doc-Log.md`
+
+### [302] - 2026-04-14 09:08 - `DOC - Record Viewport Slider Release Interaction Contract Fix`
+
+Updated `docs/CHANGELOG.md` and this `docs/Doc-Log.md` after shipping the runtime viewport slider-release fix, recording that `ViewportOverlay.tsx` now wraps graph-parameter slider drags in both shared interaction channels, `ViewerHost.tsx` now keeps interaction-time preview fallback gated to the same combined contract, and the new `ViewportOverlay.test.tsx` regression proves those channels clear on release.
+
+Files changed:
+- `src/app/components/ViewportOverlay.tsx`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewportOverlay.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+### [301] - 2026-04-14 08:58 - `DOC - Close AutoDraftFinal Phase 8.5 After Joined Auto Live Handoff Proof`
+
+Marked `AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification` complete inside the active `Phase 8` doc and family index after the new `buildViewportResultSelectorOptions.test.ts` projection proof plus the extended two-branch `ViewerHost.test.tsx` transition proof locked the final explicit-commit producer-to-selector-to-host handoff, closing `Phase 8` as a proof-only finish with no runtime patch required.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md`
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+### [300] - 2026-04-14 08:53 - `DOC - Prep AutoDraftFinal Phase 8.5 For Implementation`
+
+Tightened `AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification` inside the active `Phase 8` doc after the 8.3 typed-commit and 8.4 pointer-release producer proofs landed, explicitly naming the remaining risk as the producer-to-selector-to-host collapse path and grounding the next slice in one focused `Auto / Live` branch-local read-through plus the smallest selector-input projection proof only if the settled flags still fail to reach the viewport recipe cleanly.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md`
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal-Index.md`
+- `docs/Doc-Log.md`
+
+### [299] - 2026-04-14 08:49 - `DOC - Close AutoDraftFinal Phase 8.4 After Pointer-Release Proof`
+
+Marked `AutoDraftFinal Phase 8.4 - End Comparison On Pointer Release` shipped inside `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md` after the new `NodeView.geometryMode.test.tsx` canvas-drag read-through proved pointer release clears both `isInteracting` and `browserInteractionGraphDocumentIds[graphDocumentId]`, confirming the phase landed as the intended proof-only slice and leaving `Phase 8.5` as the next open verification pass.
+
+Files changed:
+- `docs/Human-Plans/Architecture/Worker/AutoDraftFinal/AutoDraftFinal_Phase 8 - End Comparison On Explicit Commit.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
 
 ### [298] - 2026-04-07 08:43 - `DOC - Tighten Model-Viewport 1.3 Phase 7 Into An Implementation Slice`
 

@@ -527,6 +527,8 @@ function NodeViewComponent({
   )
   const activeGraphDocumentId = useSpaghettiStore((state) => state.activeGraphDocumentId)
   const applyGraphCommand = useSpaghettiStore((state) => state.applyGraphCommand)
+  const beginInteraction = useAppStore((state) => state.beginInteraction)
+  const endInteraction = useAppStore((state) => state.endInteraction)
   const beginBrowserBuildInteraction = useAppStore((state) => state.beginBrowserBuildInteraction)
   const endBrowserBuildInteraction = useAppStore((state) => state.endBrowserBuildInteraction)
 
@@ -534,6 +536,7 @@ function NodeViewComponent({
     if (activeGraphDocumentId.length === 0) {
       return
     }
+    beginInteraction()
     beginBrowserBuildInteraction(activeGraphDocumentId)
   }
 
@@ -541,6 +544,7 @@ function NodeViewComponent({
     if (activeGraphDocumentId.length === 0) {
       return
     }
+    endInteraction()
     endBrowserBuildInteraction(activeGraphDocumentId)
   }
 

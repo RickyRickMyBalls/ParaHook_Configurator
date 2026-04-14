@@ -819,6 +819,7 @@ export function useConsoleInteraction(
     const appState = useAppStore.getState()
     return routeKeyboardInput({
       event,
+      viewerFlyActive: getViewer()?.isFlyModeActive?.() === true,
       sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
       geometrySketchMode:
         useConsoleStore.getState().featureAssistDescriptor !== null
@@ -4581,6 +4582,9 @@ export function useConsoleInteraction(
       if (event.defaultPrevented || isEditableTarget(event.target)) {
         return
       }
+      if (getViewer()?.isFlyModeActive?.() === true) {
+        return
+      }
       if (event.key === '/' && !event.ctrlKey && !event.altKey && !event.metaKey) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -4614,6 +4618,9 @@ export function useConsoleInteraction(
         return
       }
       const routing = routeConsoleGlobalKey(event)
+      if (routing.owner === 'viewer-fly') {
+        return
+      }
       const keyTarget = event.target instanceof HTMLElement ? event.target : null
       const shouldSubmitFlatConsoleDraft =
         event.key === 'Enter' &&

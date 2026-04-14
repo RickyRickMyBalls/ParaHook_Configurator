@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+10. 2026-04-14 09:00: Expanded `Generation 2` to make B-Rep-owned final truth explicit: draft mesh preview may remain the cheap interactive lane, but authoritative/final visibility should evolve toward retained authoritative shape truth with display tessellation derived from that truth so future face/edge/vertex inspection and selection can rest on stable sub-entity identity instead of anonymous preview triangles
 9. 2026-04-13 17:09: Added explicit `Generation 4` architectural goals covering user-directed cost control, separate runtime lanes, parallel lane capability, lane-specific relevance rules, hold/reuse/defer behavior, per-target cost policy, presentation alignment, predictable policy, export/final isolation, and explainable multi-lane runtime truth so the later user-directed worker generation now has a concrete value set instead of only a broad theme
 8. 2026-04-13 17:03: Added explicit `Generation 3` architectural goals covering latest-intent supersession, cooperative interruption, restart from newest parameters, one active story per target, latest-result-wins acceptance, in-flight obsolete detection, and safe stop rules so the later interrupt-and-restart generation now has a concrete value set beyond the initial drag-churn example
 7. 2026-04-13 16:57: Added five explicit `Generation 2` architectural goals covering stable reference identity, reference-level dependency mapping, safe widening when uncertain, topology-change versus parameter-change distinction, and retained sibling recomposition so the retained-truth generation now has clearer reusable guardrails beyond the first `Worker 9` and `Worker 10` proof cases
@@ -204,6 +205,33 @@ Additional `Generation 2` goals:
   The worker should distinguish between a local parameter edit that preserves reference identity and a topology-changing edit that may invalidate or reshape downstream references. Parameter-preserving edits should stay narrow when they can; topology-changing edits may widen when reference identity can no longer be proven stable.
 - `Retained Sibling Recomposition`
   When one branch rebuilds, unaffected sibling results should remain visible through explicit retained-plus-rebuilt recomposition instead of being dropped or silently replaced by a partial worker snapshot.
+
+#### Generation 2 And B-Rep-Owned Final Truth
+
+`Generation 2` should also be the first generation where authoritative geometry stops reading as `mesh preview with a better name` and starts reading as exact retained runtime truth.
+
+For ParaHook this means:
+- draft preview may still use a mesh-oriented display path for cheap live feedback
+- authoritative results should become B-Rep-owned truth with stable face, edge, and vertex identity wherever the kernel can prove that identity honestly
+- final viewport presentation should come from display tessellation derived from authoritative geometry instead of reusing draft-style merged preview meshes as the definition of final
+- retained-plus-rebuilt recomposition should eventually work for authoritative geometry truth, not only coarse whole-object mesh outputs
+- downstream operations that target a face or edge should depend on authoritative entity identity instead of transient display triangles
+
+This generation does not require ParaHook to draw raw kernel topology directly with no tessellation.
+
+It does require the displayed final surface to be a tessellated view of authoritative B-Rep truth rather than a separate mesh-owned truth lane.
+
+Why this belongs in `Generation 2`:
+- `Stable Reference Identity` eventually needs sub-entity identity, not only node identity
+- `Reference-Level Dependency Mapping` eventually has to answer which face, edge, profile, or body actually changed
+- `Topology Change Versus Parameter Change` cannot stay honest if final authoritative results are flattened into anonymous preview meshes
+- retained sibling recomposition becomes much more meaningful once unaffected authoritative bodies and sub-entities can stay stable while only the affected branch retessellates
+
+Practical direction for ParaHook:
+- keep the existing draft mesh preview system for cheap interaction
+- add an authoritative display-tessellation lane sourced from retained B-Rep shape truth
+- treat face, edge, and vertex inspection or selection as authoritative-lane behavior even if the viewer still rasterizes triangles
+- keep `Output Preview` and other publication/composition surfaces downstream from authoritative truth instead of letting them define final geometry semantics
 
 #### Generation 3 - Latest-Intent Superseding Worker
 

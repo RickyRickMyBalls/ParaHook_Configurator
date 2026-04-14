@@ -1473,6 +1473,75 @@ describe('ViewportOverlay sketch session window', () => {
     requestAnimationFrameSpy.mockRestore()
   })
 
+  it('wraps sketch-plane slider drags in both shared interaction channels', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useAppStore } = await import('../store/useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    await seedSketchPlanePickSession()
+    act(() => {
+      useSpaghettiStore.getState().runSketchPlaneCommand('xy')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay />)
+    })
+
+    const moveXTrack = container.querySelector(
+      '.ParaSliderTrack[aria-label="Move X"]',
+    ) as HTMLDivElement | null
+
+    expect(moveXTrack).not.toBeNull()
+    expect(useAppStore.getState().isInteracting).toBe(false)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds['graph-document-1']).toBe(
+      undefined,
+    )
+
+    Object.defineProperty(moveXTrack, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 400,
+        height: 30,
+        right: 400,
+        bottom: 30,
+        x: 0,
+        y: 0,
+        toJSON: () => '',
+      }),
+    })
+
+    await act(async () => {
+      moveXTrack?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 200,
+        }),
+      )
+    })
+
+    expect(useAppStore.getState().isInteracting).toBe(true)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds['graph-document-1']).toBe(
+      true,
+    )
+
+    await act(async () => {
+      window.dispatchEvent(new PointerEvent('pointerup', {}))
+    })
+
+    expect(useAppStore.getState().isInteracting).toBe(false)
+    expect(useAppStore.getState().browserInteractionGraphDocumentIds['graph-document-1']).toBe(
+      undefined,
+    )
+  })
+
   it('re-arms whole move from the same move scope after a gizmo release when move-again runs', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
