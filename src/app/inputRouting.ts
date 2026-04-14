@@ -52,6 +52,26 @@ const isPrintableKey = (event: KeyboardLikeEvent): boolean =>
 const isConsoleCapturePrintableKey = (event: KeyboardLikeEvent): boolean =>
   isPrintableKey(event) && event.key !== ' '
 
+const isViewerFlyMovementKey = (event: KeyboardLikeEvent): boolean => {
+  const { key } = event
+  const normalizedKey = key.toLowerCase()
+  if ((normalizedKey === 'q' || normalizedKey === 'e') && event.ctrlKey) {
+    return false
+  }
+  return (
+    normalizedKey === 'w' ||
+    normalizedKey === 'a' ||
+    normalizedKey === 's' ||
+    normalizedKey === 'd' ||
+    normalizedKey === 'q' ||
+    normalizedKey === 'e' ||
+    normalizedKey === 'shift' ||
+    normalizedKey === 'control' ||
+    key === ' ' ||
+    normalizedKey === 'spacebar'
+  )
+}
+
 export const routeKeyboardInput = ({
   event,
   viewerFlyActive = false,
@@ -69,7 +89,7 @@ export const routeKeyboardInput = ({
     }
   }
 
-  if (viewerFlyActive && !event.ctrlKey && !event.altKey && !event.metaKey) {
+  if (viewerFlyActive && !event.altKey && !event.metaKey && isViewerFlyMovementKey(event)) {
     return {
       owner: 'viewer-fly',
       decision: 'handle',

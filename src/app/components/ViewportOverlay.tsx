@@ -469,6 +469,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const overlayRootRef = useRef<HTMLDivElement | null>(null)
   const sketchPlaneToolPanelRef = useRef<HTMLDivElement | null>(null)
   const sketchSessionWindowRef = useRef<HTMLDivElement | null>(null)
+  const [flyMoveSpeed, setFlyMoveSpeed] = useState<number | null>(null)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const partsVisibility = useAppStore((state) => state.partsVisibility)
   const currentProject = useAppStore((state) => state.currentProject)
@@ -1255,6 +1256,40 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   }, [axisOverlayEnabled, viewportId])
 
   useEffect(() => {
+    const syncFlyMoveSpeed = (viewer: ViewerApi | null): void => {
+      if (
+        viewer === null ||
+        typeof viewer.getFlyMoveSpeed !== 'function' ||
+        typeof viewer.setFlyMoveSpeed !== 'function'
+      ) {
+        setFlyMoveSpeed(null)
+        return
+      }
+      setFlyMoveSpeed(viewer.getFlyMoveSpeed())
+    }
+
+    let attachedViewer: ViewerApi | null = null
+    const attach = (viewer: ViewerApi | null): void => {
+      attachedViewer?.setOnFlyMoveSpeedChange?.(null)
+      attachedViewer = viewer
+      syncFlyMoveSpeed(viewer)
+      viewer?.setOnFlyMoveSpeedChange?.((speed) => {
+        setFlyMoveSpeed(speed)
+      })
+    }
+
+    attach(getViewer(viewportId))
+    const unsubscribe = subscribeViewer((viewer) => {
+      attach(viewer)
+    }, viewportId)
+
+    return () => {
+      attachedViewer?.setOnFlyMoveSpeedChange?.(null)
+      unsubscribe()
+    }
+  }, [viewportId])
+
+  useEffect(() => {
     setAxisWidgetSize(resolvedAxisWidgetSize)
   }, [resolvedAxisWidgetSize])
 
@@ -1993,6 +2028,18 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     }),
     [axisWidgetSize],
   )
+  const handleFlyMoveSpeedChange = (nextSpeed: number): void => {
+    const viewer = getViewer(viewportId)
+    if (
+      viewer === null ||
+      typeof viewer.getFlyMoveSpeed !== 'function' ||
+      typeof viewer.setFlyMoveSpeed !== 'function'
+    ) {
+      return
+    }
+    viewer.setFlyMoveSpeed(nextSpeed)
+    setFlyMoveSpeed(viewer.getFlyMoveSpeed())
+  }
   const overlayModeLabel =
     sketchPlanePickSession !== null
       ? 'sketch plane pick'
@@ -4456,6 +4503,20 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         <span className="HudLine">
           Selected: {selectedPartKey === null ? 'none' : selectedPartKey}
         </span>
+        {flyMoveSpeed === null ? null : (
+          <div className="ViewportHudFlySpeed">
+            <ParaSlider
+              label="Fly Speed"
+              value={flyMoveSpeed}
+              min={0.1}
+              max={250}
+              step={0.1}
+              onChange={handleFlyMoveSpeedChange}
+              formatValue={(value) => `${value.toFixed(1)} u/s`}
+              displayValue={`${flyMoveSpeed.toFixed(1)} u/s`}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

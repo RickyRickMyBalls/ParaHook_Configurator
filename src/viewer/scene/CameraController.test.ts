@@ -249,6 +249,35 @@ describe('CameraController', () => {
     expect(controls.update).toHaveBeenCalledTimes(1)
   })
 
+  it('rolls the fly camera around the current forward axis and can remain upside down', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+    controls.update.mockClear()
+
+    controller.applyFlyRollDelta(Math.PI)
+
+    expect(perspectiveCamera.up.x).toBeCloseTo(0, 6)
+    expect(perspectiveCamera.up.y).toBeCloseTo(-1, 6)
+    expect(controls.target.toArray()).toEqual([0, 0, 0])
+    expect(controls.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('moves along the rolled local up axis after fly roll is applied', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+    controls.update.mockClear()
+
+    controller.applyFlyRollDelta(Math.PI / 2)
+
+    const positionBefore = perspectiveCamera.position.clone()
+    const targetBefore = controls.target.clone()
+
+    controller.translateFly(0, 0, 1)
+
+    expect(perspectiveCamera.position.x).toBeGreaterThan(positionBefore.x)
+    expect(controls.target.x).toBeGreaterThan(targetBefore.x)
+    expect(perspectiveCamera.position.y).toBeCloseTo(positionBefore.y, 6)
+    expect(controls.target.y).toBeCloseTo(targetBefore.y, 6)
+  })
+
   it('frames a client drag window on the target plane in both projection modes', () => {
     const { controller, controls, perspectiveCamera } = createController()
 

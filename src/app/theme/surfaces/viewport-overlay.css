@@ -1,5 +1,6 @@
 .V15Panel button.ParaSliderClampHandle,
 .ReferenceTransformToolbar button.ParaSliderClampHandle,
+.ViewportHud button.ParaSliderClampHandle,
 .ViewportOverlaySketchSessionWindow button.ParaSliderClampHandle,
 .ViewportOverlayToolPanel button.ParaSliderClampHandle {
   position: absolute;
@@ -25,6 +26,7 @@
 
 .V15Panel button.ParaSliderClampHandle:hover,
 .ReferenceTransformToolbar button.ParaSliderClampHandle:hover,
+.ViewportHud button.ParaSliderClampHandle:hover,
 .ViewportOverlaySketchSessionWindow button.ParaSliderClampHandle:hover,
 .ViewportOverlayToolPanel button.ParaSliderClampHandle:hover {
   background: linear-gradient(
@@ -1608,6 +1610,151 @@
   padding: 8px 10px;
   font-size: 12px;
   color: var(--v15-text-dim);
+}
+
+.ViewportHudFlySpeed {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ViewportHud .ParaSlider {
+  width: 100%;
+}
+
+.ViewportHud button.ParaSliderCap,
+.ViewportHud button.ParaSliderClampHandle {
+  font-family: var(--sp-window-font-family);
+}
+
+.ViewportHud button.ParaSliderCap {
+  flex: 0 0 30px;
+  width: 30px;
+  min-width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(26, 31, 48, 0.96) 0%, rgba(18, 22, 36, 0.96) 100%);
+  color: rgba(244, 247, 255, 0.96);
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  line-height: 1;
+  border-radius: 0;
+}
+
+.ViewportHud button.ParaSliderCap--left {
+  border-radius: 8px 0 0 8px;
+}
+
+.ViewportHud button.ParaSliderCap--right {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+.ViewportHud .ParaSliderTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: none;
+  background: linear-gradient(180deg, rgba(47, 57, 89, 0.84) 0%, rgba(34, 41, 68, 0.84) 100%);
+  cursor: ew-resize;
+  overflow: hidden;
+  outline: none;
+}
+
+.ViewportHud .ParaSliderTrack:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(176, 198, 255, 0.45);
+}
+
+.ViewportHud .ParaSliderFill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: linear-gradient(90deg, rgba(124, 160, 255, 0.34) 0%, rgba(124, 160, 255, 0.14) 100%);
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.ViewportHud .ParaSliderValueMarker {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(244, 247, 255, 0.92);
+  box-shadow: 0 0 0 1px rgba(11, 11, 15, 0.42);
+  pointer-events: none;
+}
+
+.ViewportHud .ParaSliderContent {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+.ViewportHud .ParaSliderLabel,
+.ViewportHud .ParaSliderValue {
+  font-size: 11px;
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ViewportHud .ParaSliderLabel {
+  color: rgba(236, 241, 255, 0.92);
+}
+
+.ViewportHud .ParaSliderValue {
+  color: rgba(244, 247, 255, 0.9);
+  text-align: right;
+}
+
+.ViewportHud button.ParaSliderValueButton,
+.ViewportHud .ParaSliderValueInput {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  min-width: 74px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.ViewportHud button.ParaSliderValueButton {
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(245, 247, 255, 0.96);
+}
+
+.ViewportHud button.ParaSliderValueButton:hover,
+.ViewportHud button.ParaSliderValueButton:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(250, 251, 255, 1);
+}
+
+.ViewportHud .ParaSliderValueInput {
+  border: 1px solid rgba(124, 160, 255, 0.45);
+  background: rgba(12, 16, 28, 0.94);
+  color: rgba(245, 247, 255, 0.98);
+  outline: none;
+}
+
+.ViewportHud .ParaSliderValueInput:focus {
+  border-color: rgba(124, 160, 255, 0.76);
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.22);
 }
 
 .ReferenceTransformToolbar {

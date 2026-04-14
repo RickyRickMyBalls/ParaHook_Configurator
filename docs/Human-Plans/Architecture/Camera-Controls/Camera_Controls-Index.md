@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+35. 2026-04-14: Implemented `Camera-6.3.5`, so held-`RMB` fly mode now temporarily remaps the wheel from zoom to fly-speed control, the HUD speed control stays synced with internal viewer-owned speed changes, and normal wheel zoom returns on fly exit
+34. 2026-04-14: Implemented `Camera-6.3.4`, so the fly-camera polish ladder now includes held `Q` / `E` roll, persistent rolled orientation across fly-session exit and re-entry, and upside-down flight while preserving the existing `viewer-fly` input ownership model
+33. 2026-04-14: Implemented `Camera-6.3.3`, so the viewport HUD/status box now exposes a viewport-scoped fly-speed `ParaSlider`, and the first `Camera-6.3.*` fly polish ladder is now complete end to end
+32. 2026-04-14: Implemented `Camera-6.3.2`, so the fly runtime now owns an explicit non-persistent base speed and exposes a narrow `ViewerApi` get/set seam for the later viewport HUD `ParaSlider`, leaving only `Camera-6.3.3` open in this first polish ladder
+31. 2026-04-14: Updated the planned `Camera-6.3.3` control surface so the future fly-speed slider lands in the existing viewport HUD/status box via `ParaSlider` instead of in the separate `View` toolbar panel
+30. 2026-04-14: Implemented the first `Camera-6.3.1` fly polish slice, so the active viewer fly runtime now uses `Ctrl` = descend, `Shift` = boost, and a fixed boost multiplier while the family keeps `Camera-6.3.2` and `Camera-6.3.3` open for base-speed state plumbing and the later toolbar slider
+29. 2026-04-14: Recast `[Camera-6.3] Fly Camera Polish Backlog` into a small internal `Camera-6.3.*` ladder so the next fly polish work can land one Codex-sized slice at a time across remap/boost runtime, fly-speed state plumbing, and toolbar slider UI
 28. 2026-04-14: Added the standalone future phase doc for `[Camera-6.3] Fly Camera Polish Backlog`, turning the first post-`6.2` fly polish follow-on into an implementation-ready plan focused on `speed boost`, a `speed control slider`, and the `Ctrl`/`Shift` remap needed to free boost cleanly
 27. 2026-04-14: Cleaned up `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership` after implementation and marked the first fly runtime cut complete in the family index so the shipped state matches the current docs and code
 26. 2026-04-14: Added the first fly-camera polish backlog to `[Camera-6] Hold-To-Fly First-Person Camera Navigation`, prioritizing `speed boost` and a `speed control slider` first and recording the recommended control remap of `Ctrl` = descend so `Shift` can become boost cleanly
@@ -574,18 +581,18 @@ CheckList:
 - [x] add viewport-local `contextmenu` suppression for the same fly interaction
 - [x] stop fly movement immediately on `RMB` release and restore the normal camera/input ownership path cleanly
 
-### [ ] `[Camera-6.3]` - `Fly Camera Polish Backlog`
+### [x] `[Camera-6.3]` - `Fly Camera Polish Backlog`
 
 CheckList:
 - [x] add one standalone future phase doc for fly-camera polish:
   - [x] `Future/Camera_Controls_Phase Camera-6.3 - Fly Camera Polish Backlog.md`
-- [ ] add `speed boost` while fly mode is active
-- [ ] add a `speed control slider` for base fly speed
-- [ ] remap fly descend from `Shift` to `Ctrl` so `Shift` can become boost
-- [ ] decide the first boost multiplier behavior:
-  - [ ] fixed multiplier
-  - [ ] or slider/tunable multiplier later
-- [ ] verify the updated fly key map still exits cleanly and does not regress browser or app shortcut behavior
+- [x] split the first fly-camera polish pass into small `Camera-6.3.*` slices that Codex can land one at a time
+- [x] use `[Camera-6.3.1]` for the first runtime-only remap/boost cut
+- [x] use `[Camera-6.3.2]` for base fly-speed state and viewer-seam plumbing
+- [x] use `[Camera-6.3.3]` for the visible viewport HUD/status-box `ParaSlider`
+- [x] use `[Camera-6.3.4]` for plane-style roll controls and persistent rolled orientation
+- [x] use `[Camera-6.3.5]` for temporary fly-mode wheel remapping from zoom to speed control
+- [ ] use `[Camera-6.3.6]` for free-flight pitch through vertical and loop support
 - [ ] leave deeper polish for later:
   - [ ] mouse-look sensitivity slider
   - [ ] optional pointer lock

@@ -7,7 +7,9 @@ const cameraControllerMocks = vi.hoisted(() => ({
   instances: [] as Array<{
     activeCamera: { position: { x: number; y: number; z: number }; up: { x: number; y: number; z: number } }
     applyFlyLookDelta: ReturnType<typeof vi.fn>
+    applyFlyRollDelta: ReturnType<typeof vi.fn>
     translateFly: ReturnType<typeof vi.fn>
+    zoomByWheelDelta: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
   }>,
 }))
@@ -55,7 +57,9 @@ vi.mock('./scene/CameraController', async () => {
     }
 
     public readonly applyFlyLookDelta = vi.fn()
+    public readonly applyFlyRollDelta = vi.fn()
     public readonly translateFly = vi.fn()
+    public readonly zoomByWheelDelta = vi.fn()
     public readonly update = vi.fn()
 
     public constructor(
@@ -81,7 +85,6 @@ vi.mock('./scene/CameraController', async () => {
     public beginTemporaryOrbitDrag(): void {}
     public updateTemporaryOrbitDrag(): void {}
     public endTemporaryOrbitDrag(): void {}
-    public zoomByWheelDelta(): void {}
     public beginTemporaryPanDrag(): void {}
     public updateTemporaryPanDrag(): void {}
     public endTemporaryPanDrag(): void {}
@@ -441,6 +444,7 @@ describe('Viewer baseline replacement', () => {
     canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
 
     const controller = cameraControllerMocks.instances[0]!
+    ;(viewer as unknown as { clock: { getDelta: () => number } }).clock.getDelta = () => 1
 
     canvas.dispatchEvent(
       new PointerEvent('pointerdown', {
@@ -473,11 +477,42 @@ describe('Viewer baseline replacement', () => {
     ;(viewer as unknown as { renderLoop: () => void }).renderLoop()
 
     expect(controller.translateFly).toHaveBeenCalledTimes(1)
-    expect(controller.translateFly.mock.calls[0]?.[0]).toBeGreaterThan(0)
+    const baseForwardDistance = controller.translateFly.mock.calls[0]?.[0] ?? 0
+    expect(baseForwardDistance).toBeGreaterThan(0)
     expect(controller.translateFly.mock.calls[0]?.[1]).toBe(0)
     expect(controller.translateFly.mock.calls[0]?.[2]).toBe(0)
 
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Control',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    ;(viewer as unknown as { renderLoop: () => void }).renderLoop()
+
+    expect(controller.translateFly).toHaveBeenCalledTimes(2)
+    expect(controller.translateFly.mock.calls[1]?.[0]).toBeGreaterThan(0)
+    expect(controller.translateFly.mock.calls[1]?.[2]).toBeLessThan(0)
+
+    window.dispatchEvent(
+      new KeyboardEvent('keyup', {
+        key: 'Control',
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true, cancelable: true }))
+    ;(viewer as unknown as { renderLoop: () => void }).renderLoop()
+
+    expect(controller.translateFly).toHaveBeenCalledTimes(3)
+    expect((controller.translateFly.mock.calls[2]?.[0] ?? 0)).toBeGreaterThan(baseForwardDistance)
+    expect(controller.translateFly.mock.calls[2]?.[2]).toBe(0)
+
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w', bubbles: true, cancelable: true }))
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true, cancelable: true }))
     canvas.dispatchEvent(
       new PointerEvent('pointerup', {
         button: 2,
@@ -500,5 +535,252 @@ describe('Viewer baseline replacement', () => {
     canvas.dispatchEvent(contextMenuEvent)
 
     expect(contextMenuEvent.defaultPrevented).toBe(true)
+  })
+
+  it('uses an explicit base fly speed value and keeps boost multiplicative on top of it', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    const capturedPointerIds = new Set<number>()
+    canvas.setPointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.add(pointerId)
+    })
+    canvas.releasePointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.delete(pointerId)
+    })
+    canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
+
+    const controller = cameraControllerMocks.instances[0]!
+    ;(viewer as unknown as { clock: { getDelta: () => number } }).clock.getDelta = () => 1
+
+    const flySpeedViewer = viewer as unknown as {
+      getFlyMoveSpeed: () => number
+      setFlyMoveSpeed: (speed: number) => void
+      renderLoop: () => void
+    }
+
+    expect(flySpeedViewer.getFlyMoveSpeed()).toBe(4)
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        button: 2,
+        buttons: 2,
+        pointerId: 11,
+        clientX: 100,
+        clientY: 100,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true, cancelable: true }))
+    flySpeedViewer.renderLoop()
+
+    const defaultForwardDistance = controller.translateFly.mock.calls[0]?.[0] ?? 0
+    expect(defaultForwardDistance).toBeGreaterThan(0)
+
+    flySpeedViewer.setFlyMoveSpeed(8)
+    expect(flySpeedViewer.getFlyMoveSpeed()).toBe(8)
+
+    flySpeedViewer.renderLoop()
+    const customForwardDistance = controller.translateFly.mock.calls[1]?.[0] ?? 0
+    expect(customForwardDistance).toBeGreaterThan(defaultForwardDistance)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true, cancelable: true }))
+    flySpeedViewer.renderLoop()
+
+    const boostedForwardDistance = controller.translateFly.mock.calls[2]?.[0] ?? 0
+    expect(boostedForwardDistance).toBeGreaterThan(customForwardDistance)
+
+    flySpeedViewer.setFlyMoveSpeed(-5)
+    expect(flySpeedViewer.getFlyMoveSpeed()).toBe(0.1)
+
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true, cancelable: true }))
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w', bubbles: true, cancelable: true }))
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        button: 2,
+        buttons: 0,
+        pointerId: 11,
+        clientX: 100,
+        clientY: 100,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+  })
+
+  it('remaps real canvas wheel events to fly-speed control only while fly mode is active', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    const capturedPointerIds = new Set<number>()
+    canvas.setPointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.add(pointerId)
+    })
+    canvas.releasePointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.delete(pointerId)
+    })
+    canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
+
+    const controller = cameraControllerMocks.instances[0]!
+    const flySpeedViewer = viewer as unknown as {
+      getFlyMoveSpeed: () => number
+      zoomCameraByWheelDelta: (deltaY: number) => void
+    }
+
+    flySpeedViewer.zoomCameraByWheelDelta(-120)
+    expect(controller.zoomByWheelDelta).toHaveBeenCalledWith(-120)
+    expect(flySpeedViewer.getFlyMoveSpeed()).toBe(4)
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        button: 2,
+        buttons: 2,
+        pointerId: 23,
+        clientX: 100,
+        clientY: 120,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    const flyWheelUp = new WheelEvent('wheel', {
+      deltaY: -120,
+      bubbles: true,
+      cancelable: true,
+    })
+    canvas.dispatchEvent(flyWheelUp)
+    expect(controller.zoomByWheelDelta).toHaveBeenCalledTimes(1)
+    expect(flySpeedViewer.getFlyMoveSpeed()).toBeCloseTo(4.4, 6)
+    expect(flyWheelUp.defaultPrevented).toBe(true)
+
+    const flyWheelDown = new WheelEvent('wheel', {
+      deltaY: 120,
+      bubbles: true,
+      cancelable: true,
+    })
+    canvas.dispatchEvent(flyWheelDown)
+    expect(controller.zoomByWheelDelta).toHaveBeenCalledTimes(1)
+    expect(flySpeedViewer.getFlyMoveSpeed()).toBeCloseTo(4, 6)
+    expect(flyWheelDown.defaultPrevented).toBe(true)
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        button: 2,
+        buttons: 0,
+        pointerId: 23,
+        clientX: 100,
+        clientY: 120,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    flySpeedViewer.zoomCameraByWheelDelta(120)
+    expect(controller.zoomByWheelDelta).toHaveBeenCalledTimes(2)
+    expect(controller.zoomByWheelDelta).toHaveBeenLastCalledWith(120)
+  })
+
+  it('applies fly roll while stationary and keeps translation separate from Q/E roll input', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    const capturedPointerIds = new Set<number>()
+    canvas.setPointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.add(pointerId)
+    })
+    canvas.releasePointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.delete(pointerId)
+    })
+    canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
+
+    const controller = cameraControllerMocks.instances[0]!
+    ;(viewer as unknown as { clock: { getDelta: () => number } }).clock.getDelta = () => 1
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        button: 2,
+        buttons: 2,
+        pointerId: 17,
+        clientX: 100,
+        clientY: 120,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true, cancelable: true }))
+    ;(viewer as unknown as { renderLoop: () => void }).renderLoop()
+
+    expect(controller.applyFlyRollDelta).toHaveBeenCalledTimes(1)
+    expect(controller.applyFlyRollDelta.mock.calls[0]?.[0]).toBeLessThan(0)
+    expect(controller.translateFly).not.toHaveBeenCalled()
+
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true, cancelable: true }))
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true, cancelable: true }))
+    ;(viewer as unknown as { renderLoop: () => void }).renderLoop()
+
+    expect(controller.applyFlyRollDelta).toHaveBeenCalledTimes(2)
+    expect(controller.applyFlyRollDelta.mock.calls[1]?.[0]).toBeGreaterThan(0)
+    expect(controller.translateFly).not.toHaveBeenCalled()
+
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e', bubbles: true, cancelable: true }))
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        button: 2,
+        buttons: 0,
+        pointerId: 17,
+        clientX: 100,
+        clientY: 120,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
   })
 })

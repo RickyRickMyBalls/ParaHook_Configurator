@@ -58,10 +58,38 @@ describe('routeKeyboardInput', () => {
       owner: 'viewer-fly',
       decision: 'handle',
     })
+
+    expect(
+      routeKeyboardInput({
+        event: createEvent('q'),
+        viewerFlyActive: true,
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+      }),
+    ).toEqual({
+      owner: 'viewer-fly',
+      decision: 'handle',
+    })
   })
 
-  it('does not claim modified shortcuts for fly mode through the shared routing seam', () => {
-    const result = routeKeyboardInput({
+  it('keeps fly movement keys owned by the viewer even when Ctrl is held for descend', () => {
+    const descendResult = routeKeyboardInput({
+      event: {
+        key: 'Control',
+        ctrlKey: true,
+        target: null,
+      },
+      viewerFlyActive: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(descendResult).toEqual({
+      owner: 'viewer-fly',
+      decision: 'handle',
+    })
+
+    const forwardWhileDescendingResult = routeKeyboardInput({
       event: {
         key: 'w',
         ctrlKey: true,
@@ -72,7 +100,41 @@ describe('routeKeyboardInput', () => {
       allowFlatConsoleCapture: true,
     })
 
+    expect(forwardWhileDescendingResult).toEqual({
+      owner: 'viewer-fly',
+      decision: 'handle',
+    })
+  })
+
+  it('does not claim unrelated modified shortcuts for fly mode through the shared routing seam', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'r',
+        ctrlKey: true,
+        target: null,
+      },
+      viewerFlyActive: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
     expect(result).toEqual({
+      owner: 'none',
+      decision: 'ignore',
+    })
+
+    expect(
+      routeKeyboardInput({
+        event: {
+          key: 'q',
+          ctrlKey: true,
+          target: null,
+        },
+        viewerFlyActive: true,
+        stagedConsoleActive: true,
+        allowFlatConsoleCapture: true,
+      }),
+    ).toEqual({
       owner: 'none',
       decision: 'ignore',
     })

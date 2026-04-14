@@ -138,6 +138,9 @@ export type ViewerRuntimeStats = {
 
 export interface ViewerApi {
   isFlyModeActive?: () => boolean
+  getFlyMoveSpeed?: () => number
+  setFlyMoveSpeed?: (speed: number) => void
+  setOnFlyMoveSpeedChange?: (handler: ((speed: number) => void) | null) => void
   getCameraPose?: () => CameraPose
   applyCameraPose?: (pose: CameraPose) => void
   setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void

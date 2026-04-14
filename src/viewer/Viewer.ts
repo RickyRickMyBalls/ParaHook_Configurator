@@ -123,7 +123,16 @@ type ContentObjectTransformSession = {
   space: GizmoSpace
   entryOrigin: ReferenceTransformOverride | null
 }
-type FlyMovementKey = 'forward' | 'backward' | 'left' | 'right' | 'up' | 'down'
+type FlyMovementKey =
+  | 'forward'
+  | 'backward'
+  | 'left'
+  | 'right'
+  | 'up'
+  | 'down'
+  | 'boost'
+  | 'roll-left'
+  | 'roll-right'
 type FlySession = {
   pointerId: number
   lastClientX: number
@@ -137,10 +146,21 @@ const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
 const GRID_MAJOR_STEP = 10
 const GRID_DOUBLE_MAJOR_STEP = 50
-const FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 4
+const DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 4
+const FLY_CAMERA_BOOST_MULTIPLIER = 3
+const FLY_CAMERA_ROLL_RADIANS_PER_SEC = Math.PI * 0.75
+const FLY_CAMERA_WHEEL_SPEED_SCALE = 1.1
+const MIN_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 0.1
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
+
+const normalizeFlyMoveSpeedUnitsPerSec = (speed: number): number => {
+  if (!Number.isFinite(speed)) {
+    return DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC
+  }
+  return Math.max(speed, MIN_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC)
+}
 
 const isMultipleOf = (value: number, step: number): boolean => Math.abs(value % step) < 1e-6
 
@@ -380,6 +400,7 @@ export class Viewer {
   private onSketchPlanePickPlaneSelect: ((plane: SketchPlane) => void) | null = null
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
   private onSketchPlanePickTransformCommit: (() => void) | null = null
+  private onFlyMoveSpeedChange: ((speed: number) => void) | null = null
   private onCameraPoseChange: ((pose: CameraPose) => void) | null = null
   private lastEmittedCameraPose: CameraPose | null = null
   private onRuntimeStatsChange: ((stats: ViewerRuntimeStats) => void) | null = null
@@ -452,6 +473,7 @@ export class Viewer {
       }
     | null = null
   private flySession: FlySession | null = null
+  private flyMoveSpeedUnitsPerSec = DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC
   private suppressFlyContextMenu = false
   private readonly zoomWindowOverlayRoot: HTMLDivElement
   private readonly zoomWindowOverlayBox: HTMLDivElement
@@ -688,6 +710,10 @@ export class Viewer {
       this.handleViewerPointerCancel,
       true,
     )
+    this.renderer.domElement.addEventListener('wheel', this.handleViewerWheel, {
+      capture: true,
+      passive: false,
+    })
     this.renderer.domElement.addEventListener('contextmenu', this.handleViewerContextMenu)
 
     this.applyViewSettings(this.currentViewSettings)
@@ -1322,6 +1348,18 @@ export class Viewer {
     if (!this.currentViewSettings.orbitEnabled) {
       return
     }
+    if (this.flySession !== null) {
+      if (!Number.isFinite(deltaY) || deltaY === 0) {
+        return
+      }
+      const currentSpeed = this.getFlyMoveSpeed()
+      const nextSpeed =
+        deltaY < 0
+          ? currentSpeed * FLY_CAMERA_WHEEL_SPEED_SCALE
+          : currentSpeed / FLY_CAMERA_WHEEL_SPEED_SCALE
+      this.setFlyMoveSpeed(nextSpeed)
+      return
+    }
     this.rememberCameraPose()
     this.cameraController.zoomByWheelDelta(deltaY)
   }
@@ -1347,6 +1385,19 @@ export class Viewer {
 
   public isFlyModeActive(): boolean {
     return this.flySession !== null
+  }
+
+  public getFlyMoveSpeed(): number {
+    return this.flyMoveSpeedUnitsPerSec
+  }
+
+  public setFlyMoveSpeed(speed: number): void {
+    this.flyMoveSpeedUnitsPerSec = normalizeFlyMoveSpeedUnitsPerSec(speed)
+    this.onFlyMoveSpeedChange?.(this.flyMoveSpeedUnitsPerSec)
+  }
+
+  public setOnFlyMoveSpeedChange(handler: ((speed: number) => void) | null): void {
+    this.onFlyMoveSpeedChange = handler
   }
 
   public frameAll(): void {
@@ -1868,8 +1919,17 @@ export class Viewer {
     if (key === ' ' || normalizedKey === 'spacebar') {
       return 'up'
     }
-    if (normalizedKey === 'shift') {
+    if (normalizedKey === 'control') {
       return 'down'
+    }
+    if (normalizedKey === 'shift') {
+      return 'boost'
+    }
+    if (normalizedKey === 'q') {
+      return 'roll-left'
+    }
+    if (normalizedKey === 'e') {
+      return 'roll-right'
     }
     return null
   }
@@ -1971,8 +2031,29 @@ export class Viewer {
       return
     }
 
-    movementVector.normalize().multiplyScalar(FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC * dt)
+    const moveSpeed =
+      this.flyMoveSpeedUnitsPerSec * (this.flySession.heldKeys.has('boost') ? FLY_CAMERA_BOOST_MULTIPLIER : 1)
+    movementVector.normalize().multiplyScalar(moveSpeed * dt)
     this.cameraController.translateFly(movementVector.z, movementVector.x, movementVector.y)
+  }
+
+  private updateFlyRoll(dt: number): void {
+    if (this.flySession === null) {
+      return
+    }
+    if (!this.isPerspectiveFlyAvailable()) {
+      this.endFlySession()
+      return
+    }
+
+    const rollDirection =
+      (this.flySession.heldKeys.has('roll-right') ? 1 : 0) -
+      (this.flySession.heldKeys.has('roll-left') ? 1 : 0)
+    if (rollDirection === 0) {
+      return
+    }
+
+    this.cameraController.applyFlyRollDelta(rollDirection * FLY_CAMERA_ROLL_RADIANS_PER_SEC * dt)
   }
 
   private rememberCameraPose(): void {
@@ -2222,6 +2303,7 @@ export class Viewer {
       this.handleViewerPointerCancel,
       true,
     )
+    this.renderer.domElement.removeEventListener('wheel', this.handleViewerWheel, true)
     this.renderer.domElement.removeEventListener('contextmenu', this.handleViewerContextMenu)
     this.endFlySession()
 
@@ -4469,9 +4551,20 @@ export class Viewer {
     event.stopPropagation()
   }
 
+  private readonly handleViewerWheel = (event: WheelEvent): void => {
+    if (this.flySession === null) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation?.()
+    this.zoomCameraByWheelDelta(event.deltaY)
+  }
+
   private readonly renderLoop = (): void => {
     this.frameId = window.requestAnimationFrame(this.renderLoop)
     const dt = this.clock.getDelta()
+    this.updateFlyRoll(dt)
     this.updateFlyMovement(dt)
     this.cameraController.update(dt)
     if (this.onCameraPoseChange !== null) {

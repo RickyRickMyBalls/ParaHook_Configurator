@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ViewerApi } from '../viewerBridge'
 import type { SketchFeature } from '../spaghetti/features/featureTypes'
 
 vi.mock('./ReferenceTransformToolbar', () => ({
@@ -226,6 +227,165 @@ describe('ViewportOverlay sketch session window', () => {
     ) as HTMLSpanElement | null
     expect(statusLine?.textContent).toBe('Geometry: Final Unavailable')
     expect(statusLine?.getAttribute('data-viewport-result-status-kind')).toBe('final-unavailable')
+  })
+
+  it('renders a fly speed slider in the HUD when the attached viewer exposes fly speed controls', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { getViewer } = await import('../viewerBridge')
+
+    const mockViewer = {
+      getFlyMoveSpeed: vi.fn(() => 4),
+      setFlyMoveSpeed: vi.fn(),
+      setAxisOverlayCanvas: vi.fn(),
+    }
+
+    vi.mocked(getViewer).mockImplementation((nextViewportId?: string | null) =>
+      nextViewportId === 'model-viewer-primary' ? (mockViewer as unknown as ViewerApi) : null,
+    )
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    expect(container.querySelector('.ViewportHudFlySpeed')).not.toBeNull()
+    expect(
+      container.querySelector('.ViewportHudFlySpeed .ParaSliderTrack[aria-label="Fly Speed"]'),
+    ).not.toBeNull()
+    expect(
+      (container.querySelector(
+        '.ViewportHudFlySpeed .ParaSliderValueButton',
+      ) as HTMLButtonElement | null)?.textContent,
+    ).toBe('4.0 u/s')
+  })
+
+  it('keeps the HUD fly speed slider in sync when the viewer changes speed internally', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { getViewer } = await import('../viewerBridge')
+
+    let flySpeed = 4
+    let onFlyMoveSpeedChange: ((speed: number) => void) | null = null
+    const mockViewer = {
+      getFlyMoveSpeed: vi.fn(() => flySpeed),
+      setFlyMoveSpeed: vi.fn((nextSpeed: number) => {
+        flySpeed = nextSpeed
+        onFlyMoveSpeedChange?.(flySpeed)
+      }),
+      setOnFlyMoveSpeedChange: vi.fn((handler: ((speed: number) => void) | null) => {
+        onFlyMoveSpeedChange = handler
+      }),
+      setAxisOverlayCanvas: vi.fn(),
+    }
+
+    vi.mocked(getViewer).mockImplementation((nextViewportId?: string | null) =>
+      nextViewportId === 'model-viewer-primary' ? (mockViewer as unknown as ViewerApi) : null,
+    )
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    expect(
+      (container.querySelector(
+        '.ViewportHudFlySpeed .ParaSliderValueButton',
+      ) as HTMLButtonElement | null)?.textContent,
+    ).toBe('4.0 u/s')
+
+    await act(async () => {
+      onFlyMoveSpeedChange?.(6.6)
+    })
+
+    expect(
+      (container.querySelector(
+        '.ViewportHudFlySpeed .ParaSliderValueButton',
+      ) as HTMLButtonElement | null)?.textContent,
+    ).toBe('6.6 u/s')
+  })
+
+  it('routes fly speed HUD changes to the viewer for the matching viewport only', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { getViewer } = await import('../viewerBridge')
+
+    let primaryFlySpeed = 4
+    let secondaryFlySpeed = 7
+    const primaryViewer = {
+      getFlyMoveSpeed: vi.fn(() => primaryFlySpeed),
+      setFlyMoveSpeed: vi.fn((nextSpeed: number) => {
+        primaryFlySpeed = nextSpeed
+      }),
+      setAxisOverlayCanvas: vi.fn(),
+    }
+    const secondaryViewer = {
+      getFlyMoveSpeed: vi.fn(() => secondaryFlySpeed),
+      setFlyMoveSpeed: vi.fn((nextSpeed: number) => {
+        secondaryFlySpeed = nextSpeed
+      }),
+      setAxisOverlayCanvas: vi.fn(),
+    }
+
+    vi.mocked(getViewer).mockImplementation((nextViewportId?: string | null) => {
+      if (nextViewportId === 'model-viewer-primary') {
+        return primaryViewer as unknown as ViewerApi
+      }
+      if (nextViewportId === 'model-viewer-secondary') {
+        return secondaryViewer as unknown as ViewerApi
+      }
+      return null
+    })
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewportOverlay viewportId="model-viewer-primary" />
+          <ViewportOverlay viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const increaseButtons = Array.from(
+      container.querySelectorAll('button[aria-label="Increase Fly Speed"]'),
+    ) as HTMLButtonElement[]
+    expect(increaseButtons).toHaveLength(2)
+
+    await act(async () => {
+      increaseButtons[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(primaryViewer.setFlyMoveSpeed).toHaveBeenCalledWith(4.1)
+    expect(secondaryViewer.setFlyMoveSpeed).not.toHaveBeenCalled()
+
+    const valueButtons = Array.from(
+      container.querySelectorAll('.ViewportHudFlySpeed .ParaSliderValueButton'),
+    ) as HTMLButtonElement[]
+    expect(valueButtons[0]?.textContent).toBe('4.1 u/s')
+    expect(valueButtons[1]?.textContent).toBe('7.0 u/s')
   })
 
   it('keeps the floating sketch window controls-only without the old embedded preview card', async () => {

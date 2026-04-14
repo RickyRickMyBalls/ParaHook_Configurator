@@ -45,6 +45,7 @@ export class CameraController {
   private readonly tmpFlyOffset = new Vector3()
   private readonly tmpYawQuaternion = new Quaternion()
   private readonly tmpPitchQuaternion = new Quaternion()
+  private readonly tmpRollQuaternion = new Quaternion()
   private readonly tmpCorner = new Vector3()
   private readonly tmpWindowCornerA = new Vector3()
   private readonly tmpWindowCornerB = new Vector3()
@@ -290,6 +291,49 @@ export class CameraController {
       this.tmpForward.copy(yawedForward)
     }
 
+    this.controls.target.copy(activeCamera.position).addScaledVector(this.tmpForward, targetDistance)
+    activeCamera.lookAt(this.controls.target)
+    activeCamera.updateProjectionMatrix()
+    this.controls.update()
+  }
+
+  public applyFlyRollDelta(deltaRadians: number): void {
+    if (this.projectionMode !== 'perspective' || deltaRadians === 0) {
+      return
+    }
+
+    this.cameraTransition = null
+    const activeCamera = this.perspectiveCamera
+    const targetDistance = Math.max(
+      activeCamera.position.distanceTo(this.controls.target),
+      MIN_CAMERA_DISTANCE,
+    )
+    this.tmpForward.copy(this.controls.target).sub(activeCamera.position)
+    if (!Number.isFinite(this.tmpForward.lengthSq()) || this.tmpForward.lengthSq() < 1e-8) {
+      this.tmpForward.set(0, 0, -1)
+    } else {
+      this.tmpForward.normalize()
+    }
+
+    this.tmpUp.copy(activeCamera.up)
+    if (!Number.isFinite(this.tmpUp.lengthSq()) || this.tmpUp.lengthSq() < 1e-8) {
+      this.tmpUp.set(0, 1, 0)
+    } else {
+      this.tmpUp.normalize()
+    }
+
+    this.tmpRollQuaternion.setFromAxisAngle(this.tmpForward, deltaRadians)
+    this.tmpUp.applyQuaternion(this.tmpRollQuaternion).normalize()
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      activeCamera.lookAt(this.controls.target)
+      activeCamera.updateProjectionMatrix()
+      this.controls.update()
+      return
+    }
+
+    this.tmpUp.crossVectors(this.tmpRight, this.tmpForward).normalize()
+    activeCamera.up.copy(this.tmpUp)
     this.controls.target.copy(activeCamera.position).addScaledVector(this.tmpForward, targetDistance)
     activeCamera.lookAt(this.controls.target)
     activeCamera.updateProjectionMatrix()

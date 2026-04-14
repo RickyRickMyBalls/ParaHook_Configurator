@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-04-14: Added planned `Camera-6.3.6 - Free-Flight Pitch And Loop Support`, so the fly-camera polish ladder now captures removing the current pitch clamp and allowing full loop-the-loops in the existing perspective fly camera without a camera-type swap
+12. 2026-04-14: Implemented `Camera-6.3.5 - Fly Mode Scroll Wheel Speed Control`, so held-`RMB` fly mode now temporarily steals the wheel from zoom to adjust fly speed in-place, and normal wheel zoom returns immediately once fly mode ends
+11. 2026-04-14: Added planned `Camera-6.3.5 - Fly Mode Scroll Wheel Speed Control`, so the fly-camera polish ladder now captures temporary wheel remapping during held-`RMB` fly mode where wheel input adjusts fly speed instead of zoom and normal zoom returns on fly exit
+10. 2026-04-14: Implemented `Camera-6.3.4 - Fly Camera Roll Controls`, so the fly-camera polish ladder now also supports held `Q` / `E` roll, persistent rolled orientation, and upside-down flight in addition to the earlier boost and speed-slider work
+9. 2026-04-14: Updated the planned `Camera-6.3.3` fly-speed control surface so the later slider lands in the existing viewport HUD/status box via `ParaSlider` instead of in the separate `View` toolbar panel
+8. 2026-04-14: Recast `Camera-6.3 - Fly Camera Polish Backlog` into a small `Camera-6.3.*` ladder so the first post-`6.2` polish work can land as separate Codex-sized slices for remap/boost runtime, fly-speed state plumbing, and toolbar slider UI
 7. 2026-04-14: Added the standalone future phase doc for `Camera-6.3 - Fly Camera Polish Backlog`, so the first post-`6.2` fly polish pass now has its own implementation-ready planning surface focused on `speed boost`, a `speed control slider`, and the `Ctrl`/`Shift` remap direction
 6. 2026-04-14: Cleaned up `Camera-6.2 - Hold-To-Fly Runtime And Input Ownership` after implementation and advanced the umbrella family read so the first runtime cut now reads as shipped instead of as a stale implementation-plan draft
 5. 2026-04-14: Added a first fly-camera polish backlog after the shipped runtime cut, prioritizing `speed boost` and a `speed control slider` first, and recorded the recommended input remap of `Ctrl` = descend so `Shift` can become boost cleanly
@@ -108,12 +114,41 @@ Reason:
 3. `Camera-6.3 - Fly Camera Polish Backlog`
 Reason:
 - once the first hold-to-fly runtime cut is stable, the next honest slice is fly-camera feel and convenience polish rather than reopening the core ownership seams immediately
+- `Camera-6.3` should then split internally into:
+  - `Camera-6.3.1`
+    - boost and descend remap
+  - `Camera-6.3.2`
+    - base-speed state and viewer seam
+  - `Camera-6.3.3`
+    - toolbar speed slider
+  - `Camera-6.3.4`
+    - plane-style roll controls with persistent rolled orientation
+  - `Camera-6.3.5`
+    - temporary wheel remap from zoom to fly-speed adjustment during fly mode
+  - `Camera-6.3.6`
+    - free-flight pitch through vertical and loop support
 
 ### Fly Camera Polish Backlog
 
 Priority-first items:
 - `speed boost`
 - `speed control slider`
+
+Codex-sized order:
+- `Camera-6.3.1`
+  - remap `Ctrl` = descend
+  - remap `Shift` = boost
+  - fixed boost multiplier only
+- `Camera-6.3.2`
+  - add explicit base fly-speed state and viewer-facing seam
+- `Camera-6.3.3`
+  - add the viewport HUD/status-box `ParaSlider` that drives that base speed
+- `Camera-6.3.4`
+  - add held `Q` / `E` roll so the camera can bank and remain upside down like an aircraft
+- `Camera-6.3.5`
+  - remap wheel to increase/decrease fly speed only while held-`RMB` fly mode is active, then restore normal zoom on exit
+- `Camera-6.3.6`
+  - remove the current fly-look pitch clamp so the camera can loop over the top like an aircraft
 
 Suggested near-follow-ons:
 - mouse-look sensitivity slider
