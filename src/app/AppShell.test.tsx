@@ -9,7 +9,11 @@ import { useDashboardStore } from './dashboard/useDashboardStore'
 import { notepadStorageKey } from './notepad/notepadPersistence'
 import { useNotepadStore } from './notepad/useNotepadStore'
 import { useConsoleStore } from './console/useConsoleStore'
-import { resetAudioSamplerStore, useAudioSamplerStore } from './store/audioSamplerStore'
+import {
+  RADIO_SUPPORT_PROFILE,
+  resetAudioSamplerStore,
+  useAudioSamplerStore,
+} from './store/audioSamplerStore'
 import { consumeQueuedViewerCameraPose, setViewer } from './viewerBridge'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { workspaceLayoutStorageKey } from './workspace/workspacePersistence'
@@ -9572,6 +9576,26 @@ describe('AppShell', () => {
     })
 
     expect(container?.querySelector('.RadioPanel')).toBeNull()
+  })
+
+  it('marks radio as an optional background-runtime family without onboarding it into workspace surfaces', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    await act(async () => {
+      useAudioSamplerStore.getState().openRadioToolbar()
+    })
+
+    const radioFamily = container?.querySelector('.AppShellRadioRuntimeFamily')
+    expect(radioFamily).not.toBeNull()
+    expect(radioFamily?.getAttribute('data-radio-support-classification')).toBe(
+      RADIO_SUPPORT_PROFILE.classification,
+    )
+    expect(radioFamily?.getAttribute('data-radio-requires-workspace-surface')).toBe('false')
+    expect(container?.textContent).toContain(RADIO_SUPPORT_PROFILE.label)
+    expect(
+      container?.querySelector('.ViewportFrame[data-workspace-surface-kind="radio"]'),
+    ).toBeNull()
   })
 
   it('renders only the merged radio toolbar surface when the toolbar is opened', async () => {

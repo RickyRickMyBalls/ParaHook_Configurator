@@ -3,7 +3,6 @@
 ## Doc Header
 
 ### Doc History
-6. 2026-04-09 12:10: Marked `Worker-Vision-1` fully shipped after `Phase 3 - Superseded Runtime Truth And Hardening` landed through the explicit `build_superseded` runtime event, runtime-inspector `superseded` archive truth, and focused worker plus dispatcher plus bootstrap plus runtime-inspector proof, so this standalone phase record now moves from `Future/` to `Shipped/`
 5. 2026-04-09 11:45: Tightened `Worker-Vision-1 Phase 3 - Superseded Runtime Truth And Hardening` around the newly shipped worker-local supersession path, the live `bootstrapBuildWiring.ts` plus `runtimeInspectorTaskStore.ts` queue/archive seam, the current accepted-build-impact runtime surface, and the focused worker-plus-bootstrap-plus-runtime proof bar needed before implementation starts
 4. 2026-04-09 11:41: Marked `Worker-Vision-1 Phase 2 - Worker Cooperative Abort Checkpoints` shipped in this planning surface after the worker-local latest-request ledger plus checkpointed `buildPipeline(...)` supersession exit landed in code with focused worker and pipeline proof, so the family handoff now moves forward to `Phase 3 - Superseded Runtime Truth And Hardening`
 3. 2026-04-09 11:35: Marked `Worker-Vision-1 Phase 1 - Supersession Identity And Dispatcher Contract` shipped in this planning surface after the matching `docs/CHANGELOG.md` entry landed, then tightened `Worker-Vision-1 Phase 2 - Worker Cooperative Abort Checkpoints` around the live `worker.ts` plus `buildPipeline.ts` seams, the first realistic supersession-check boundaries, the narrow worker-local latest-request ledger direction, and the focused dispatcher/pipeline/bootstrap proof bar needed before implementation starts
@@ -61,7 +60,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [x] Worker-Vision-1 - Request Supersession And Cooperative Early Abort
+## [ ] Worker-Vision-1 - Request Supersession And Cooperative Early Abort
 
 ### Header
 
@@ -483,7 +482,7 @@ Current landed truth:
 - superseded same-graph requests now exit quietly instead of publishing normal success or normal failure
 - focused worker and pipeline tests now prove same-graph supersession and cross-graph isolation while dispatcher/bootstrap regressions stay green
 
-## [ ] Worker-Vision-1 Phase 3 - Superseded Runtime Truth And Hardening
+## [x] Worker-Vision-1 Phase 3 - Superseded Runtime Truth And Hardening
 
 ### Purpose
 
@@ -736,17 +735,3 @@ Definition of done:
 - obsolete work can stop early at meaningful worker checkpoints
 - correctness still remains guarded by the existing acceptance boundary
 - the runtime can explain superseded work honestly enough that later Browser and `Viewport Runtime Inspector` reads have one real shared fact to build on
-
-### Shipped Read
-
-This full standalone phase is now shipped through:
-- `docs/CHANGELOG.md`
-  - `[1144] - WK - Phase Worker-Vision-1 Phase 1 - Supersession Identity And Dispatcher Contract`
-  - `[1145] - WK - Phase Worker-Vision-1 Phase 2 - Worker Cooperative Abort Checkpoints`
-  - `[1146] - WK - Phase Worker-Vision-1 Phase 3 - Superseded Runtime Truth And Hardening`
-
-Current landed truth:
-- `src/app/buildDispatcher.ts` now carries the explicit latest-request snapshot plus dedicated superseded-runtime hook needed for same-graph latest-intent narration
-- `src/worker/worker.ts` and `src/worker/pipeline/buildPipeline.ts` now provide worker-local cooperative supersession checkpoints and publish explicit `build_superseded` exit truth instead of swallowing obsolete work silently
-- `src/app/bootstrapBuildWiring.ts` plus `src/app/store/runtimeInspectorTaskStore.ts` now archive superseded work explicitly while preserving accepted result ownership in `src/app/spaghetti/store/useSpaghettiStore.ts`
-- focused worker, dispatcher, bootstrap, and runtime-inspector tests now prove same-graph supersession, cross-graph isolation, explicit superseded archive truth, and accepted-state preservation

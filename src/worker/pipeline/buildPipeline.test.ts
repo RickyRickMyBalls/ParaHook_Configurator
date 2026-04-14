@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_BUILD_EXECUTION_INTENT, type CompiledBuildData } from '../../shared/buildTypes'
+import {
+  DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildChangedInputHint,
+  type CompiledBuildData,
+} from '../../shared/buildTypes'
 import { createAuthoritativeGeometryResultBundle } from '../../shared/geometryResult'
 
 const bundleArtifacts = (
@@ -113,11 +117,100 @@ const multiCubeCompiledBuildData = (): CompiledBuildData => ({
   outputEntries: [],
 })
 
+const parallelExtrudeCompiledBuildData = (options?: {
+  extrudeOneDepthResolved?: number
+  extrudeTwoDepthResolved?: number
+  sketchWidth?: number
+}): CompiledBuildData => ({
+  orderedPartKeys: ['extrude#1', 'extrude#2'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        'extrude#1': [
+          {
+            op: 'sketch',
+            featureId: 'node-sketch-1',
+            plane: 'XY',
+            profilesResolved: [
+              {
+                ...resolvedProfile('extrude-1-profile-1', 400),
+                verticesProxy: [
+                  { x: 0, y: 0 },
+                  { x: options?.sketchWidth ?? 20, y: 0 },
+                  { x: options?.sketchWidth ?? 20, y: 20 },
+                  { x: 0, y: 20 },
+                ],
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'node-extrude-1',
+            profileRef: resolvedProfileRef('node-sketch-1', 'extrude-1-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: options?.extrudeOneDepthResolved ?? 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'extrude-body-1',
+          },
+        ],
+        'extrude#2': [
+          {
+            op: 'sketch',
+            featureId: 'node-sketch-1',
+            plane: 'XY',
+            profilesResolved: [
+              {
+                ...resolvedProfile('extrude-2-profile-1', 400),
+                verticesProxy: [
+                  { x: 0, y: 0 },
+                  { x: options?.sketchWidth ?? 20, y: 0 },
+                  { x: options?.sketchWidth ?? 20, y: 20 },
+                  { x: 0, y: 20 },
+                ],
+              },
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'node-extrude-2',
+            profileRef: resolvedProfileRef('node-sketch-1', 'extrude-2-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: options?.extrudeTwoDepthResolved ?? 30,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'extrude-body-2',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [
+    {
+      buildUnitId: 'output-entry:s001:node-extrude-1',
+      outputEntryId: 'output-entry:s001:node-extrude-1',
+      sourceNodeId: 'node-extrude-1',
+      partKey: 'extrude#1',
+      bodyId: null,
+    },
+    {
+      buildUnitId: 'output-entry:s002:node-extrude-2',
+      outputEntryId: 'output-entry:s002:node-extrude-2',
+      sourceNodeId: 'node-extrude-2',
+      partKey: 'extrude#2',
+      bodyId: null,
+    },
+  ],
+})
+
 const buildRequest = (options: {
   seq: number
   buildRequestId: string
   compiledBuildData: CompiledBuildData
   changedParamIds: string[]
+  changedInputHint?: BuildChangedInputHint
   executionIntent?: typeof DEFAULT_BUILD_EXECUTION_INTENT
 }) => ({
   type: 'build' as const,
@@ -144,6 +237,9 @@ const buildRequest = (options: {
   },
   compiledBuildData: options.compiledBuildData,
   changedParamIds: options.changedParamIds,
+  ...(options.changedInputHint === undefined
+    ? {}
+    : { changedInputHint: options.changedInputHint }),
 })
 
 afterEach(() => {
@@ -374,6 +470,97 @@ describe('buildPipeline spaghetti stats integration', () => {
         partKeys: ['cube'],
       },
     })
+  })
+
+  it('narrows worker execution to the changed local extrude branch when a Worker 9 Phase 2 hint is present', async () => {
+    vi.resetModules()
+    const { buildPipeline } = await import('./buildPipeline')
+
+    await buildPipeline(
+      buildRequest({
+        seq: 30,
+        buildRequestId: 'build-request-30',
+        compiledBuildData: parallelExtrudeCompiledBuildData(),
+        changedParamIds: ['sp_full'],
+      }),
+      () => {},
+    )
+
+    const progress: Array<{ partKey: string; state: string }> = []
+    const narrowedResult = await buildPipeline(
+      buildRequest({
+        seq: 31,
+        buildRequestId: 'build-request-31',
+        compiledBuildData: parallelExtrudeCompiledBuildData({
+          extrudeTwoDepthResolved: 45,
+        }),
+        changedParamIds: ['sp_featureStackIR'],
+        changedInputHint: {
+          kind: 'graph_local_extrude_params',
+          changedNodeId: 'node-extrude-2',
+          changedPartKey: 'extrude#2',
+          changedFields: ['depthResolved'],
+        },
+      }),
+      (message) => {
+        progress.push({ partKey: message.partKey, state: message.state })
+      },
+    )
+
+    expect(
+      progress.filter((message) => message.state === 'queued').map((message) => message.partKey),
+    ).toEqual(['extrude#2'])
+    expect(narrowedResult.bundle.entries.map((entry) => entry.outputEntryId)).toEqual([
+      'output-entry:s002:node-extrude-2',
+    ])
+    expect(bundleArtifacts(narrowedResult).map((artifact) => artifact.partKeyStr)).toEqual([
+      'extrude#2',
+    ])
+    expect(narrowedResult.draftGeometryResult).toBeUndefined()
+    expect(narrowedResult.authoritativeGeometryResult).toBeUndefined()
+  })
+
+  it('keeps shared-upstream Worker 9 Phase 2 hints widening to all changed downstream branches', async () => {
+    vi.resetModules()
+    const { buildPipeline } = await import('./buildPipeline')
+    const progress: Array<{ partKey: string; state: string }> = []
+
+    const widenedResult = await buildPipeline(
+      buildRequest({
+        seq: 32,
+        buildRequestId: 'build-request-32',
+        compiledBuildData: parallelExtrudeCompiledBuildData({
+          sketchWidth: 35,
+        }),
+        changedParamIds: ['sp_featureStackIR'],
+        changedInputHint: {
+          kind: 'graph_shared_upstream',
+          changedPartKeys: ['extrude#1', 'extrude#2'],
+          upstreamNodeIds: ['node-sketch-1'],
+          reason: 'sketch_change',
+        },
+      }),
+      (message) => {
+        progress.push({ partKey: message.partKey, state: message.state })
+      },
+    )
+
+    expect(
+      progress.filter((message) => message.state === 'queued').map((message) => message.partKey),
+    ).toEqual(['extrude#1', 'extrude#2'])
+    expect(widenedResult.bundle.entries.map((entry) => entry.outputEntryId)).toEqual([
+      'output-entry:s001:node-extrude-1',
+      'output-entry:s002:node-extrude-2',
+    ])
+    expect(widenedResult.draftGeometryResult).toEqual(
+      expect.objectContaining({
+        request: {
+          graphDocumentId: 'graph-document-1',
+          buildRequestId: 'build-request-32',
+          partKeys: ['extrude#1', 'extrude#2'],
+        },
+      }),
+    )
   })
 
   it('exits before buildModelResult when the request is already superseded at the first checkpoint', async () => {

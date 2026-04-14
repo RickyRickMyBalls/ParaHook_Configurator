@@ -236,20 +236,30 @@ const buildArtifactPreviewRenderVm = (options: {
   acceptedPreviewBuildBundle: BuildResultBundle | null
   viewerTargetGraphDocumentId: string | null
 }): PreviewRenderVm => {
-  if (options.useProjectDraftPreview && options.activeDraftProjectViewerParts.length > 0) {
-    return {
-      items: [],
-      viewerParts: [...options.activeDraftProjectViewerParts],
-    }
-  }
   if (options.previewPreparation === null) {
+    if (options.useProjectDraftPreview && options.activeDraftProjectViewerParts.length > 0) {
+      return {
+        items: [],
+        viewerParts: [...options.activeDraftProjectViewerParts],
+      }
+    }
     return EMPTY_PREVIEW_RENDER_VM
   }
   const previewVm = selectPreviewRenderVmFromPreparation(
     options.previewPreparation,
     [...options.artifactBuildOutputs],
     options.acceptedPreviewBuildBundle,
+    'rebuiltOnly',
   )
+  if (previewVm.viewerParts.length > 0) {
+    return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
+  }
+  if (options.useProjectDraftPreview && options.activeDraftProjectViewerParts.length > 0) {
+    return {
+      items: [],
+      viewerParts: [...options.activeDraftProjectViewerParts],
+    }
+  }
   return qualifyPreviewRenderVm(previewVm, options.viewerTargetGraphDocumentId)
 }
 
@@ -629,6 +639,18 @@ const resolvePreviewState = (options: {
     }
   }
 
+  if (
+    options.requestedMode === 'auto' &&
+    options.browserExecutionPolicy === 'live' &&
+    !options.isInteractionActive
+  ) {
+    return EMPTY_PREVIEW_STATE
+  }
+
+  if (options.requestedMode === 'draft' && !options.isInteractionActive) {
+    return EMPTY_PREVIEW_STATE
+  }
+
   if (allowsDraftPreview && hasDraftPreview) {
     return {
       kind: 'preview-ready',
@@ -644,6 +666,9 @@ const resolvePreviewState = (options: {
 }
 
 const resolveVisiblePresentationStateId = (options: {
+  requestedMode: WorkspaceViewportResultMode
+  browserExecutionPolicy: ViewportBrowserExecutionPolicy
+  isInteractionActive: boolean
   visibleResultClass: ViewportVisibleResultClass
   visibleSourceKind: ViewportVisibleSourceKind
   previewState: ViewportPreviewState
@@ -654,6 +679,21 @@ const resolveVisiblePresentationStateId = (options: {
   }
   if (options.previewState.presentationStateId !== null) {
     return options.previewState.presentationStateId
+  }
+  if (
+    options.requestedMode === 'auto' &&
+    options.browserExecutionPolicy === 'live' &&
+    !options.isInteractionActive &&
+    options.visibleResultClass === 'draft'
+  ) {
+    return 'lastLoaded'
+  }
+  if (
+    options.requestedMode === 'draft' &&
+    !options.isInteractionActive &&
+    options.visibleResultClass === 'draft'
+  ) {
+    return 'lastLoaded'
   }
   if (
     options.lastLoadedState.isAvailable &&
@@ -755,6 +795,9 @@ const buildViewportResultState = ({
     ),
   })
   const visiblePresentationStateId = resolveVisiblePresentationStateId({
+    requestedMode: options.requestedMode,
+    browserExecutionPolicy,
+    isInteractionActive,
     visibleResultClass,
     visibleSourceKind,
     previewState,
@@ -856,10 +899,12 @@ export const selectViewportResultState = (
     viewerTargetGraphDocumentId: options.viewerTargetGraphDocumentId,
   })
   const committedAuthoritativeRenderVm =
-    options.committedAuthoritativeGeometryResult !== null &&
-    publishedAuthoritativeRenderVm.viewerParts.length > 0
-      ? publishedAuthoritativeRenderVm
-      : committedAuthoritativeGeometryRenderVm
+    committedAuthoritativeGeometryRenderVm.viewerParts.length > 0
+      ? committedAuthoritativeGeometryRenderVm
+      : options.committedAuthoritativeGeometryResult !== null &&
+          publishedAuthoritativeRenderVm.viewerParts.length > 0
+        ? publishedAuthoritativeRenderVm
+        : committedAuthoritativeGeometryRenderVm
   const suppressWholeNodeDraftMeshPreview = hasExplicitSolidBodyMemberPublication(
     options.previewPreparation,
   )
@@ -927,7 +972,19 @@ export const selectViewportResultState = (
       : EMPTY_LAYER_CANDIDATE
   const draftPreviewCandidate =
     overlayCandidate.resultClass === 'draft' ? overlayCandidate : waitingDraftFallbackCandidate
-  const hasUsableDraftPreview = draftPreviewCandidate.resultClass !== null
+  const settledDraftSceneCandidate =
+    !isInteractionActive &&
+    options.acceptedPreviewBuildBundle?.resultClass === 'draft' &&
+    publishedAuthoritativeRenderVm.viewerParts.length > 0 &&
+    draftPreviewCandidate.resultClass === 'draft'
+      ? buildCandidate(
+          'draft',
+          'artifact-preview',
+          draftGeometryResult,
+          publishedAuthoritativeRenderVm,
+        )
+      : draftPreviewCandidate
+  const hasUsableDraftPreview = settledDraftSceneCandidate.resultClass !== null
   const hasUsableGeometry = hasUsableDraftPreview || hasRenderableFinal
   const suppressVisiblePreviewDuringRelease =
     browserExecutionPolicy === 'release' && isInteractionActive
@@ -1052,13 +1109,13 @@ export const selectViewportResultState = (
       baseCandidate,
       draftPreviewCandidate,
       visibleResultClass: 'draft',
-      visibleSourceKind: draftPreviewCandidate.sourceKind,
-      geometryResult: draftPreviewCandidate.geometryResult,
-      renderVm: draftPreviewCandidate.renderVm,
+      visibleSourceKind: settledDraftSceneCandidate.sourceKind,
+      geometryResult: settledDraftSceneCandidate.geometryResult,
+      renderVm: settledDraftSceneCandidate.renderVm,
       isPendingFinal: options.modeBehavior.allowsFinalReplacement && !hasRenderableFinal,
-      isUsingFallback: draftPreviewCandidate.sourceKind === 'artifact-preview',
+      isUsingFallback: settledDraftSceneCandidate.sourceKind === 'artifact-preview',
       fallbackReason:
-        draftPreviewCandidate.sourceKind === 'artifact-preview'
+        settledDraftSceneCandidate.sourceKind === 'artifact-preview'
           ? 'artifact-preview-bridge'
           : null,
     })

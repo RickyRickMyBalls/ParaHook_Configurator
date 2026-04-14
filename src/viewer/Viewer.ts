@@ -220,6 +220,11 @@ export type ViewerViewportRenderLayers = {
     opacity: number
     color: string
   }
+  baselineParts: ViewerRenderablePart[]
+  baselineStyle?: {
+    opacity: number
+    color: string
+  }
   overlayParts: ViewerRenderablePart[]
   overlayStyle?: {
     opacity: number
@@ -683,6 +688,7 @@ export class Viewer {
           opacity: 1,
           color: '#5f83d6',
         },
+        baselineParts: [],
         overlayParts: [],
         overlayStyle: {
           opacity: 0.5,
@@ -823,6 +829,55 @@ export class Viewer {
         this.rootGroup.add(mesh)
       }
       this.overlayPartMeshes.set(partKeyStr, mesh)
+    }
+
+    for (const part of layers.baselineParts) {
+      const partKeyStr = part.viewerKey
+      const artifact = part.artifact
+      const material = this.createLayerMaterial(
+        this.resolveMaterialForPart(partKeyStr),
+        layers.baselineStyle,
+      )
+      const geometry =
+        artifact.kind === 'box'
+          ? new BoxGeometry(
+              artifact.params.length,
+              artifact.params.height,
+              artifact.params.width,
+            )
+          : createViewerGeometryFromArtifactMesh(artifact.mesh)
+      if (geometry === null) {
+        material.dispose()
+        continue
+      }
+      const mesh = new Mesh(geometry, material)
+      mesh.name = `${partKeyStr}:baseline`
+      const placement = resolveViewerPartPlacement(artifact, geometry, xCursor)
+      mesh.position.set(placement.position.x, placement.position.y, placement.position.z)
+      mesh.visible = visibility[partKeyStr] ?? true
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+      mesh.renderOrder = 20
+      mesh.userData.partKey = partKeyStr
+      mesh.userData.disposeMaterial = true
+      const contentObjectId = this.partKeyToContentObjectId.get(partKeyStr) ?? null
+      if (contentObjectId !== null) {
+        let pivot = this.contentObjectPivots.get(contentObjectId)
+        if (pivot === undefined) {
+          pivot = new Group()
+          pivot.name = `${contentObjectId}:pivot`
+          pivot.userData.referenceTransformBase = {
+            position: { x: 0, y: 0, z: 0 },
+            rotationDeg: { x: 0, y: 0, z: 0 },
+            scale: { x: 1, y: 1, z: 1 },
+          } satisfies ReferenceTransformBase
+          this.contentObjectPivots.set(contentObjectId, pivot)
+          this.rootGroup.add(pivot)
+        }
+        pivot.add(mesh)
+      } else {
+        this.rootGroup.add(mesh)
+      }
     }
 
     for (const [objectId, pivot] of this.contentObjectPivots.entries()) {

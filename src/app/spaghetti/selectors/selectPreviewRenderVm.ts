@@ -25,16 +25,18 @@ export type PreviewRenderVm = {
   viewerParts: ViewerRenderablePart[]
 }
 
+export type PreviewRenderVmRenderableEntryMode = 'allAccepted' | 'rebuiltOnly'
+
 const buildPreviewRenderVmFromPreparation = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: PartArtifact[],
   buildBundle: BuildResultBundle | null = null,
+  renderableEntryMode: PreviewRenderVmRenderableEntryMode = 'allAccepted',
 ): PreviewRenderVm => {
   const renderableEntryByOutputEntryId = new Map(
-    buildPreviewPreparationEntries(previewPreparation, buildOutputs, buildBundle).map((entry) => [
-      entry.outputEntryId,
-      entry,
-    ] as const),
+    buildPreviewPreparationEntries(previewPreparation, buildOutputs, buildBundle, {
+      renderableEntryMode,
+    }).map((entry) => [entry.outputEntryId, entry] as const),
   )
 
   const items = [...renderableEntryByOutputEntryId.values()].map((entry) => ({
@@ -57,26 +59,35 @@ let lastBuildOutputs: PartArtifact[] | undefined
 let lastBuildBundle: BuildResultBundle | null | undefined
 let lastPreviewRenderVm: PreviewRenderVm | undefined
 let lastPreviewPreparation: GraphPreviewPreparation | undefined
+let lastRenderableEntryMode: PreviewRenderVmRenderableEntryMode | undefined
 
 export const selectPreviewRenderVm = (
   graph: SpaghettiGraph,
   buildOutputs: PartArtifact[],
   buildBundle: BuildResultBundle | null = null,
+  renderableEntryMode: PreviewRenderVmRenderableEntryMode = 'allAccepted',
 ): PreviewRenderVm => {
   if (
     lastPreviewRenderVm !== undefined &&
     lastGraph === graph &&
     lastBuildOutputs === buildOutputs &&
-    lastBuildBundle === buildBundle
+    lastBuildBundle === buildBundle &&
+    lastRenderableEntryMode === renderableEntryMode
   ) {
     return lastPreviewRenderVm
   }
   const previewPreparation = prepareGraphPreviewPreparation(graph)
-  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs, buildBundle)
+  const next = buildPreviewRenderVmFromPreparation(
+    previewPreparation,
+    buildOutputs,
+    buildBundle,
+    renderableEntryMode,
+  )
   lastGraph = graph
   lastBuildOutputs = buildOutputs
   lastBuildBundle = buildBundle
   lastPreviewPreparation = previewPreparation
+  lastRenderableEntryMode = renderableEntryMode
   lastPreviewRenderVm = next
   return next
 }
@@ -85,20 +96,28 @@ export const selectPreviewRenderVmFromPreparation = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: PartArtifact[],
   buildBundle: BuildResultBundle | null = null,
+  renderableEntryMode: PreviewRenderVmRenderableEntryMode = 'allAccepted',
 ): PreviewRenderVm => {
   if (
     lastPreviewRenderVm !== undefined &&
     lastPreviewPreparation === previewPreparation &&
     lastBuildOutputs === buildOutputs &&
-    lastBuildBundle === buildBundle
+    lastBuildBundle === buildBundle &&
+    lastRenderableEntryMode === renderableEntryMode
   ) {
     return lastPreviewRenderVm
   }
-  const next = buildPreviewRenderVmFromPreparation(previewPreparation, buildOutputs, buildBundle)
+  const next = buildPreviewRenderVmFromPreparation(
+    previewPreparation,
+    buildOutputs,
+    buildBundle,
+    renderableEntryMode,
+  )
   lastGraph = undefined
   lastBuildOutputs = buildOutputs
   lastBuildBundle = buildBundle
   lastPreviewPreparation = previewPreparation
+  lastRenderableEntryMode = renderableEntryMode
   lastPreviewRenderVm = next
   return next
 }

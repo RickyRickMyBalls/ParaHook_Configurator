@@ -9,6 +9,7 @@ import {
   LEGACY_RUNTIME_PROJECT_FILE_ID,
 } from '../shared/buildTypes'
 import type {
+  BuildChangedInputHint,
   BuildIdentity,
   BuildInvalidation,
   BuildProgress,
@@ -32,6 +33,7 @@ type GraphBuildRequestOptions = {
   routingIdentity?: BuildRoutingIdentity
   executionIntent?: BuildExecutionIntent
   changedParamIds?: string[]
+  changedInputHint?: BuildChangedInputHint
   buildStatsPartKeys?: string[]
   compiledBuildData: CompiledBuildData
   buildIdentity: BuildIdentity
@@ -310,6 +312,9 @@ export class BuildDispatcher {
       buildIdentity: options.buildIdentity,
       invalidation: options.invalidation,
       ...(changedParamIds.length > 0 ? { changedParamIds } : {}),
+      ...(options.changedInputHint === undefined
+        ? {}
+        : { changedInputHint: options.changedInputHint }),
     }
     this.runtimeHooks.onBuildRequestStarted?.({
       seq,

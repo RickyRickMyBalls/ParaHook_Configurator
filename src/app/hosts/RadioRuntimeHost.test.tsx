@@ -4,7 +4,11 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RadioRuntimeHost } from './RadioRuntimeHost'
-import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
+import {
+  RADIO_SUPPORT_PROFILE,
+  resetAudioSamplerStore,
+  useAudioSamplerStore,
+} from '../store/audioSamplerStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -124,10 +128,15 @@ describe('RadioRuntimeHost', () => {
     vi.useRealTimers()
   })
 
-  it('renders the hidden SoundCloud bridge iframe', async () => {
+  it('renders the hidden SoundCloud bridge iframe as the optional background-runtime seam', async () => {
     await renderHost()
 
-    expect(container?.querySelector('iframe[title="Radio SoundCloud Bridge"]')).not.toBeNull()
+    const iframe = container?.querySelector('iframe[title="Radio SoundCloud Bridge"]')
+    expect(iframe).not.toBeNull()
+    expect(iframe?.getAttribute('data-radio-support-classification')).toBe(
+      RADIO_SUPPORT_PROFILE.classification,
+    )
+    expect(iframe?.getAttribute('data-radio-requires-workspace-surface')).toBe('false')
   })
 
   it('consumes a supported SoundCloud radio burst request through the mounted runtime host', async () => {

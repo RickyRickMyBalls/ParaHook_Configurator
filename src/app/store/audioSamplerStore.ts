@@ -13,6 +13,20 @@ export const DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT = 512
 
 const SAMPLE_SLOT_COUNT = 2048
 
+export type RadioSupportClassification = 'optional-background-runtime'
+
+export type RadioSupportProfile = {
+  classification: RadioSupportClassification
+  label: 'Optional Background Runtime'
+  requiresWorkspaceSurface: false
+}
+
+export const RADIO_SUPPORT_PROFILE: RadioSupportProfile = {
+  classification: 'optional-background-runtime',
+  label: 'Optional Background Runtime',
+  requiresWorkspaceSurface: false,
+}
+
 export type RadioBurstTriggerKind = 'enter' | 'arrowUp' | 'arrowDown'
 
 export type RadioBurstRequest = {

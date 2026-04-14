@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_BUILD_EXECUTION_INTENT,
+  isBuildChangedInputHint,
   isPartArtifact,
   parsePartKeyString,
   partKeyToString,
@@ -108,5 +109,34 @@ describe('buildTypes PartArtifact contract', () => {
       outputIntent: 'accepted_final',
       geometryTarget: 'authoritative',
     })
+  })
+
+  it('validates Worker 9 Phase 1 changed-input hints', () => {
+    expect(
+      isBuildChangedInputHint({
+        kind: 'graph_local_extrude_params',
+        changedNodeId: 'node-extrude-2',
+        changedPartKey: 'extrude#2',
+        changedFields: ['depthResolved', 'taperResolved'],
+      }),
+    ).toBe(true)
+
+    expect(
+      isBuildChangedInputHint({
+        kind: 'graph_shared_upstream',
+        changedPartKeys: ['extrude#1', 'extrude#2'],
+        upstreamNodeIds: ['node-sketch-1'],
+        reason: 'sketch_change',
+      }),
+    ).toBe(true)
+
+    expect(
+      isBuildChangedInputHint({
+        kind: 'graph_local_extrude_params',
+        changedNodeId: 'node-extrude-2',
+        changedPartKey: 'extrude#2',
+        changedFields: ['sp_featureStackIR'],
+      }),
+    ).toBe(false)
   })
 })

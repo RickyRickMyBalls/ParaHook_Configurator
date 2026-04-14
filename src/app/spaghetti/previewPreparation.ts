@@ -272,12 +272,16 @@ export const buildPreviewPreparationEntries = (
   previewPreparation: GraphPreviewPreparation,
   buildOutputs: readonly PartArtifact[],
   buildBundle?: BuildResultBundle | null,
+  options?: {
+    renderableEntryMode?: 'allAccepted' | 'rebuiltOnly'
+  },
 ): Array<
   PreviewPreparationEntry & {
     outputEntryId: string
     renderable: PartArtifact | null
   }
 > => {
+  const renderableEntryMode = options?.renderableEntryMode ?? 'allAccepted'
   const artifactByPartKey = new Map<string, PartArtifact>()
   for (const artifact of buildOutputs) {
     const partKey = artifactToPartKeyStr(artifact)
@@ -285,9 +289,14 @@ export const buildPreviewPreparationEntries = (
       artifactByPartKey.set(partKey, artifact)
     }
   }
+  const bundleEntryByOutputEntryId = new Map<string, BuildResultBundle['entries'][number]>()
   const artifactByOutputEntryId = new Map<string, PartArtifact>()
   for (const entry of buildBundle?.entries ?? []) {
+    bundleEntryByOutputEntryId.set(entry.outputEntryId, entry)
     if (entry.status === 'evicted') {
+      continue
+    }
+    if (renderableEntryMode === 'rebuiltOnly' && entry.status !== 'rebuilt') {
       continue
     }
     const artifact = entry.artifacts[0] ?? null
@@ -306,12 +315,18 @@ export const buildPreviewPreparationEntries = (
       const outputEntryIds = buildGraphOutputEntryIdsForSlot(slotId, slotEntries)
       return slotEntries.map((entry, entryIndex) => {
         const outputEntryId = outputEntryIds[entryIndex] ?? slotId
+        const bundleEntry = bundleEntryByOutputEntryId.get(outputEntryId) ?? null
+        const allowsCoarseFallback =
+          shouldAllowCoarseParentFallback(entry) &&
+          (buildBundle == null ||
+            renderableEntryMode !== 'rebuiltOnly' ||
+            bundleEntry?.status === 'rebuilt')
         return {
           ...entry,
           outputEntryId,
           renderable:
             artifactByOutputEntryId.get(outputEntryId) ??
-            (shouldAllowCoarseParentFallback(entry)
+            (allowsCoarseFallback
               ? (artifactByPartKey.get(entry.sourcePartKeyStr) ?? null)
               : null) ??
             null,

@@ -1594,6 +1594,93 @@ describe('selectViewportResultState', () => {
     ])
   })
 
+  it('returns idle draft to lastLoaded once accepted draft becomes the settled visible truth', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft-idle',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'draft',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('draft'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: false,
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'retained-draft',
+        visiblePresentationStateId: 'lastLoaded',
+        retainedBaseState: 'current',
+        retainedBaseResultClass: 'draft',
+        retainedBaseSourceKind: 'retained-draft',
+        retainedBaseGeometryResult: currentDraftGeometryResult,
+        overlayResultClass: null,
+        overlaySourceKind: 'none',
+        overlayGeometryResult: null,
+        hasLivePreview: false,
+        hasPreviewReadyResult: false,
+        fallbackReason: null,
+      }),
+    )
+    expect(state.acceptedState).toEqual(
+      expect.objectContaining({
+        kind: 'accepted',
+        resultClass: 'draft',
+        sourceKind: 'retained-draft',
+        geometryResult: currentDraftGeometryResult,
+        isVisible: false,
+      }),
+    )
+    expect(state.previewState).toEqual(
+      expect.objectContaining({
+        kind: 'none',
+        presentationStateId: null,
+        resultClass: null,
+        sourceKind: 'none',
+        geometryResult: null,
+      }),
+    )
+    expect(state.previewState.renderVm.viewerParts).toEqual([])
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:draft-preview',
+      }),
+    ])
+  })
+
   it('keeps retained final underneath current draft preview in auto mode while output is temporarily unresolved', () => {
     const previewPreparation = createPreviewPreparation([
       {
@@ -1701,6 +1788,543 @@ describe('selectViewportResultState', () => {
     ])
   })
 
+  it('keeps the drag-time retained final base on committed authoritative geometry instead of current preview publication', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-committed-final-two-extrude',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-committed-final-two-extrude',
+      },
+    })
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft-two-extrude',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          4, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const acceptedPreviewBuildBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-current-preview-two-extrude',
+      graphDocumentId: 'graph-document-1',
+      seq: 17,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 2,
+        retainedCount: 0,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:slot-extrude-1:node-extrude-1',
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-1')],
+        },
+        {
+          buildUnitId: 'output-entry:slot-extrude-2:node-extrude-2',
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-2')],
+        },
+      ],
+    }
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle,
+      acceptedPreviewBuildOutputs: [createArtifact('extrude-1'), createArtifact('extrude-2')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'artifact-preview',
+        visiblePresentationStateId: 'previewMesh',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'final',
+        retainedBaseSourceKind: 'retained-final',
+        retainedBaseGeometryResult: committedAuthoritativeGeometryResult,
+        hasLivePreview: true,
+        hasPreviewReadyResult: false,
+        fallbackReason: 'artifact-preview-bridge',
+      }),
+    )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:authoritative-preview',
+      }),
+    ])
+    expect(state.retainedBaseRenderVm.viewerParts).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+        }),
+      ]),
+    )
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-1:node-extrude-1',
+      }),
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+  })
+
+  it('keeps retained siblings out of the live preview overlay when only one branch rebuilt', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-committed-final-two-extrude-retained',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-committed-final-two-extrude-retained',
+      },
+    })
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft-two-extrude-retained',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          4, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const acceptedPreviewBuildBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-current-preview-two-extrude-retained',
+      graphDocumentId: 'graph-document-1',
+      seq: 18,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 1,
+        retainedCount: 1,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:slot-extrude-1:node-extrude-1',
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-1')],
+        },
+        {
+          buildUnitId: 'output-entry:slot-extrude-2:node-extrude-2',
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-2')],
+        },
+      ],
+    }
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle,
+      acceptedPreviewBuildOutputs: [createArtifact('extrude-1'), createArtifact('extrude-2')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'artifact-preview',
+        visiblePresentationStateId: 'previewMesh',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'final',
+        retainedBaseSourceKind: 'retained-final',
+        retainedBaseGeometryResult: committedAuthoritativeGeometryResult,
+        overlayResultClass: 'draft',
+        overlaySourceKind: 'artifact-preview',
+        overlayGeometryResult: currentDraftGeometryResult,
+        hasLivePreview: true,
+        fallbackReason: 'artifact-preview-bridge',
+      }),
+    )
+    expect(state.previewRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+    expect(state.previewRenderVm.viewerParts).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:output-entry:slot-extrude-1:node-extrude-1',
+        }),
+      ]),
+    )
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+  })
+
+  it('keeps retained siblings visible in settled draft truth when one branch rebuilt', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft-two-extrude-settled',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          4, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const acceptedPreviewBuildBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-current-preview-two-extrude-settled',
+      graphDocumentId: 'graph-document-1',
+      seq: 20,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 1,
+        retainedCount: 1,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:slot-extrude-1:node-extrude-1',
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-1')],
+        },
+        {
+          buildUnitId: 'output-entry:slot-extrude-2:node-extrude-2',
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-2')],
+        },
+      ],
+    }
+
+    const state = selectViewportResultState({
+      requestedMode: 'draft',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('draft'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult: null,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle,
+      acceptedPreviewBuildOutputs: [createArtifact('extrude-1'), createArtifact('extrude-2')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: false,
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'artifact-preview',
+        visiblePresentationStateId: 'lastLoaded',
+        overlayResultClass: null,
+        overlaySourceKind: 'none',
+        overlayGeometryResult: null,
+        hasLivePreview: false,
+        hasPreviewReadyResult: false,
+        fallbackReason: 'artifact-preview-bridge',
+      }),
+    )
+    expect(state.previewRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-1:node-extrude-1',
+      }),
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+  })
+
+  it('prefers rebuilt-only viewer-target bundle preview over broad project draft preview when both are available', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-extrude-1',
+        sourceNodeId: 'node-extrude-1',
+        sourcePartKey: 'extrude-1',
+      },
+      {
+        slotId: 'slot-extrude-2',
+        sourceNodeId: 'node-extrude-2',
+        sourcePartKey: 'extrude-2',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-committed-final-two-extrude-project-preview',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          6, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-committed-final-two-extrude-project-preview',
+      },
+    })
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft-two-extrude-project-preview',
+        partKeys: ['extrude-1', 'extrude-2'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          4, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+    const acceptedPreviewBuildBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-current-preview-two-extrude-project-preview',
+      graphDocumentId: 'graph-document-1',
+      seq: 19,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 1,
+        retainedCount: 1,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:slot-extrude-1:node-extrude-1',
+          outputEntryId: 'output-entry:slot-extrude-1:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-1')],
+        },
+        {
+          buildUnitId: 'output-entry:slot-extrude-2:node-extrude-2',
+          outputEntryId: 'output-entry:slot-extrude-2:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [createArtifact('extrude-2')],
+        },
+      ],
+    }
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildBundle,
+      acceptedPreviewBuildOutputs: [createArtifact('extrude-1'), createArtifact('extrude-2')],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: true,
+      activeDraftProjectViewerParts: [
+        toViewerRenderablePart(createArtifact('extrude-1'), 'graph-document-1:slot-extrude-1'),
+        toViewerRenderablePart(createArtifact('extrude-2'), 'graph-document-1:slot-extrude-2'),
+      ],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: true,
+    })
+
+    expect(state.previewRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:output-entry:slot-extrude-2:node-extrude-2',
+      }),
+    ])
+    expect(state.previewRenderVm.viewerParts).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:slot-extrude-1',
+        }),
+        expect.objectContaining({
+          viewerKey: 'graph-document-1:slot-extrude-2',
+        }),
+      ]),
+    )
+  })
+
   it('keeps retained final underneath committed draft preview in auto mode while waiting for a newer draft result', () => {
     const previewPreparation = createPreviewPreparation([
       {
@@ -1793,6 +2417,111 @@ describe('selectViewportResultState', () => {
         geometryResult: committedDraftGeometryResult,
       }),
     )
+    expect(state.retainedBaseRenderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:authoritative-preview',
+      }),
+    ])
+    expect(state.renderVm.viewerParts).toEqual([
+      expect.objectContaining({
+        viewerKey: 'graph-document-1:draft-preview',
+      }),
+    ])
+  })
+
+  it('returns auto live to lastLoaded once interaction settles and accepted draft becomes the visible truth', () => {
+    const previewPreparation = createPreviewPreparation([
+      {
+        slotId: 'slot-baseplate',
+        sourceNodeId: 'node-baseplate-1',
+        sourcePartKey: 'baseplate',
+      },
+    ])
+    const committedAuthoritativeGeometryResult = createAuthoritativeGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-retained-final-after-release',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          3, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+      authoritativeHandle: {
+        resourceType: 'shape_set',
+        handleId: 'shape-set-retained-final-after-release',
+      },
+    })
+    const currentDraftGeometryResult = createDraftGeometryResultBundle({
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-current-draft-after-release',
+        partKeys: ['baseplate'],
+      },
+      bodies: {},
+      meshPreview: {
+        vertices: [
+          0, 0, 0,
+          2, 0, 0,
+          0, 1, 0,
+        ],
+        indices: [0, 1, 2],
+      },
+      diagnostics: [],
+      trace: [],
+    })
+
+    const state = selectViewportResultState({
+      requestedMode: 'auto',
+      modeBehavior: resolveWorkspaceViewportResultModeBehavior('auto'),
+      acceptedAuthoritativeGeometryResult: null,
+      acceptedDraftGeometryResult: currentDraftGeometryResult,
+      committedAuthoritativeGeometryResult,
+      committedDraftGeometryResult: null,
+      acceptedPreviewBuildOutputs: [],
+      previewPreparation,
+      viewerTargetGraphDocumentId: 'graph-document-1',
+      suppressViewerTargetArtifactPreview: false,
+      useProjectDraftPreview: false,
+      activeDraftProjectViewerParts: [],
+      browserExecutionPolicy: 'live',
+      isInteractionActive: false,
+    })
+
+    expect(state).toEqual(
+      expect.objectContaining({
+        visibleResultClass: 'draft',
+        visibleSourceKind: 'retained-draft',
+        visiblePresentationStateId: 'lastLoaded',
+        retainedBaseState: 'retained',
+        retainedBaseResultClass: 'final',
+        retainedBaseSourceKind: 'retained-final',
+        retainedBaseGeometryResult: committedAuthoritativeGeometryResult,
+        overlayResultClass: null,
+        overlaySourceKind: 'none',
+        overlayGeometryResult: null,
+        hasLivePreview: false,
+        hasPreviewReadyResult: false,
+        fallbackReason: null,
+      }),
+    )
+    expect(state.previewState).toEqual(
+      expect.objectContaining({
+        kind: 'none',
+        presentationStateId: null,
+        resultClass: null,
+        sourceKind: 'none',
+        geometryResult: null,
+      }),
+    )
+    expect(state.previewState.renderVm.viewerParts).toEqual([])
     expect(state.retainedBaseRenderVm.viewerParts).toEqual([
       expect.objectContaining({
         viewerKey: 'graph-document-1:authoritative-preview',

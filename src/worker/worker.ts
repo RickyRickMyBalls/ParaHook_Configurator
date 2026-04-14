@@ -7,6 +7,7 @@ import type {
   WorkerError,
 } from '../shared/buildTypes'
 import {
+  isBuildChangedInputHint,
   isBuildIdentity,
   isBuildInvalidation,
   isCompiledBuildData,
@@ -95,6 +96,9 @@ const isBuildRequest = (value: unknown): value is BuildRequest => {
     return false
   }
   if (value.changedParamIds !== undefined && !isStringArray(value.changedParamIds)) {
+    return false
+  }
+  if (value.changedInputHint !== undefined && !isBuildChangedInputHint(value.changedInputHint)) {
     return false
   }
   if (!isBuildIdentity(value.buildIdentity)) {

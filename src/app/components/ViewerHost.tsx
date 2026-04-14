@@ -15,6 +15,7 @@ import {
 } from '../viewerBridge'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { Viewer, type ViewerViewportRenderLayers } from '../../viewer/Viewer'
+import type { ViewerRenderablePart } from '../../shared/buildTypes'
 import {
   buildImportedReferenceRowId,
   DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
@@ -58,7 +59,10 @@ import {
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import type { SketchFeature } from '../spaghetti/features/featureTypes'
-import { type PreviewRenderVm } from '../spaghetti/selectors/selectPreviewRenderVm'
+import {
+  selectPreviewRenderVmFromPreparation,
+  type PreviewRenderVm,
+} from '../spaghetti/selectors/selectPreviewRenderVm'
 import { selectViewportResultState } from '../spaghetti/selectors/selectViewportResultState'
 import { buildViewportResultSelectorOptions } from './buildViewportResultSelectorOptions'
 import {
@@ -177,6 +181,49 @@ const resolveViewportLayerStyle = (
   stateId: ViewportPresentationStateId | null,
 ): { opacity: number; color: string } | undefined =>
   stateId === null ? undefined : viewportPresentationSettings[stateId]
+
+const dimViewportLayerStyle = (
+  style: { opacity: number; color: string } | undefined,
+): { opacity: number; color: string } | undefined =>
+  style === undefined
+    ? undefined
+    : {
+        color: style.color,
+        opacity: Math.max(0, Math.min(1, style.opacity * 0.5)),
+      }
+
+export const buildBranchLocalRetainedBaselineLayers = (options: {
+  frozenBaseParts: ViewerRenderablePart[]
+  frozenBranchStableParts: ViewerRenderablePart[]
+  overlayParts: ViewerRenderablePart[]
+  baseStyle?: { opacity: number; color: string }
+  previewMeshStyle?: { opacity: number; color: string }
+}): ViewerViewportRenderLayers | null => {
+  const sourceBaseParts =
+    options.frozenBranchStableParts.length > 0
+      ? options.frozenBranchStableParts
+      : options.frozenBaseParts
+  if (sourceBaseParts.length === 0 || options.overlayParts.length === 0) {
+    return null
+  }
+
+  const overlayViewerKeySet = new Set(options.overlayParts.map((part) => part.viewerKey))
+  const baseParts = sourceBaseParts.filter((part) => !overlayViewerKeySet.has(part.viewerKey))
+  const baselineParts = sourceBaseParts.filter((part) => overlayViewerKeySet.has(part.viewerKey))
+  if (baselineParts.length === 0) {
+    return null
+  }
+
+  return {
+    baseParts,
+    baseStyle: options.baseStyle,
+    baselineParts,
+    baselineStyle: dimViewportLayerStyle(options.baseStyle),
+    overlayParts: options.overlayParts,
+    overlayStyle: options.previewMeshStyle,
+    overlayOpacity: 0.5,
+  }
+}
 
 type ViewerHostProps = {
   viewportId: WorkspaceViewportId
@@ -396,7 +443,105 @@ export function ViewerHost(props: ViewerHostProps) {
   )
 
   const renderList: PreviewRenderVm = viewportResultState.renderVm
+  const viewerTargetGraphRuntime =
+    viewerTargetGraphDocumentId === null
+      ? null
+      : graphRuntimeByDocumentId[viewerTargetGraphDocumentId] ?? null
+  const isViewerTargetInteractionActive =
+    viewerTargetGraphDocumentId !== null &&
+    browserInteractionGraphDocumentIds[viewerTargetGraphDocumentId] === true
+  const interactionPreviewPreparation =
+    viewerTargetPreviewPreparation ?? viewerTargetGraphRuntime?.previewPreparation ?? null
+  const interactionAcceptedPreviewBuildBundle =
+    viewerTargetBuildBundle ??
+    (isViewerTargetInteractionActive ? viewerTargetGraphRuntime?.acceptedPreviewBuildBundle ?? null : null)
+  const interactionAcceptedPreviewBuildOutputs =
+    viewerTargetBuildOutputs.length > 0
+      ? viewerTargetBuildOutputs
+      : isViewerTargetInteractionActive
+        ? viewerTargetGraphRuntime?.acceptedPreviewBuildOutputs ?? []
+        : []
+  const frozenInteractionBaseRef = useRef<{
+    baseParts: ViewerRenderablePart[]
+    branchStableParts: ViewerRenderablePart[]
+    baseStyle?: { opacity: number; color: string }
+  } | null>(null)
+  const currentAcceptedOutputPreviewRenderVm = useMemo<PreviewRenderVm>(() => {
+    if (
+      interactionPreviewPreparation === null ||
+      interactionAcceptedPreviewBuildOutputs.length === 0 ||
+      interactionAcceptedPreviewBuildBundle === null
+    ) {
+      return { items: [], viewerParts: [] }
+    }
+    return selectPreviewRenderVmFromPreparation(
+      interactionPreviewPreparation,
+      [...interactionAcceptedPreviewBuildOutputs],
+      interactionAcceptedPreviewBuildBundle,
+      'allAccepted',
+    )
+  }, [
+    interactionAcceptedPreviewBuildBundle,
+    interactionAcceptedPreviewBuildOutputs,
+    interactionPreviewPreparation,
+  ])
+  const currentAcceptedRebuiltPreviewRenderVm = useMemo<PreviewRenderVm>(() => {
+    if (
+      interactionPreviewPreparation === null ||
+      interactionAcceptedPreviewBuildOutputs.length === 0 ||
+      interactionAcceptedPreviewBuildBundle === null ||
+      interactionAcceptedPreviewBuildBundle.resultClass !== 'draft'
+    ) {
+      return { items: [], viewerParts: [] }
+    }
+    return selectPreviewRenderVmFromPreparation(
+      interactionPreviewPreparation,
+      [...interactionAcceptedPreviewBuildOutputs],
+      interactionAcceptedPreviewBuildBundle,
+      'rebuiltOnly',
+    )
+  }, [
+    interactionAcceptedPreviewBuildBundle,
+    interactionAcceptedPreviewBuildOutputs,
+    interactionPreviewPreparation,
+  ])
   const viewportRenderLayers = useMemo<ViewerViewportRenderLayers>(() => {
+    const frozenInteractionBase = frozenInteractionBaseRef.current
+    const showsSettledAutoDraftBase =
+      viewportResultMode === 'auto' &&
+      viewportResultState.retainedBaseState === 'retained' &&
+      viewportResultState.retainedBaseResultClass === 'final' &&
+      viewportResultState.overlayResultClass === null &&
+      viewportResultState.visibleResultClass === 'draft' &&
+      viewportResultState.visiblePresentationStateId === 'lastLoaded'
+
+    const branchLocalOverlayParts =
+      currentAcceptedRebuiltPreviewRenderVm.viewerParts.length > 0
+        ? currentAcceptedRebuiltPreviewRenderVm.viewerParts
+        : viewportResultState.overlayRenderVm.viewerParts
+    const branchLocalStableParts =
+      frozenInteractionBase === null || frozenInteractionBase.branchStableParts.length > 0
+        ? frozenInteractionBase?.branchStableParts ?? []
+        : currentAcceptedOutputPreviewRenderVm.viewerParts
+    const showsBranchLocalRetainedBaseline =
+      viewportResultState.isInteractionActive &&
+      branchLocalOverlayParts.length > 0 &&
+      frozenInteractionBase !== null &&
+      (branchLocalStableParts.length > 0 || frozenInteractionBase.baseParts.length > 0)
+
+    if (showsBranchLocalRetainedBaseline) {
+      const branchLocalLayers = buildBranchLocalRetainedBaselineLayers({
+        frozenBaseParts: frozenInteractionBase.baseParts,
+        frozenBranchStableParts: branchLocalStableParts,
+        overlayParts: branchLocalOverlayParts,
+        baseStyle: frozenInteractionBase.baseStyle,
+        previewMeshStyle: resolveViewportLayerStyle(viewportPresentationSettings, 'previewMesh'),
+      })
+      if (branchLocalLayers !== null) {
+        return branchLocalLayers
+      }
+    }
+
     if (viewportResultState.retainedBaseState === 'retained') {
       if (
         viewportResultMode === 'auto' &&
@@ -404,29 +549,38 @@ export function ViewerHost(props: ViewerHostProps) {
         (viewportResultState.overlayResultClass === 'draft' ||
           viewportResultState.overlayResultClass === 'final')
       ) {
+        const shouldShowOverlay =
+          viewportResultState.overlaySourceKind !== 'retained-draft' ||
+          viewportResultState.overlayResultClass === 'final'
         return {
           baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
           baseStyle: resolveViewportLayerStyle(
             viewportPresentationSettings,
             viewportResultState.retainedBasePresentationStateId,
           ),
-          overlayParts: viewportResultState.overlayRenderVm.viewerParts,
+          baselineParts: [],
+          overlayParts: shouldShowOverlay ? viewportResultState.overlayRenderVm.viewerParts : [],
           overlayStyle: resolveViewportLayerStyle(
             viewportPresentationSettings,
-            viewportResultState.overlayPresentationStateId,
+            shouldShowOverlay ? viewportResultState.overlayPresentationStateId : null,
           ),
           overlayOpacity:
             viewportResultState.overlayResultClass === 'final' ? 0.75 : 0.5,
         }
       }
 
-      if (viewportResultMode === 'auto' && viewportResultState.retainedBaseResultClass === 'final') {
+      if (
+        viewportResultMode === 'auto' &&
+        viewportResultState.retainedBaseResultClass === 'final' &&
+        !showsSettledAutoDraftBase
+      ) {
         return {
           baseParts: viewportResultState.retainedBaseRenderVm.viewerParts,
           baseStyle: resolveViewportLayerStyle(
             viewportPresentationSettings,
             viewportResultState.retainedBasePresentationStateId,
           ),
+          baselineParts: [],
           overlayParts: [],
           overlayStyle: resolveViewportLayerStyle(viewportPresentationSettings, null),
           overlayOpacity: 0.5,
@@ -440,6 +594,7 @@ export function ViewerHost(props: ViewerHostProps) {
             viewportPresentationSettings,
             viewportResultState.retainedBasePresentationStateId,
           ),
+          baselineParts: [],
           overlayParts:
             viewportResultState.overlayResultClass === 'draft'
               ? viewportResultState.overlayRenderVm.viewerParts
@@ -461,6 +616,7 @@ export function ViewerHost(props: ViewerHostProps) {
             viewportPresentationSettings,
             viewportResultState.retainedBasePresentationStateId,
           ),
+          baselineParts: [],
           overlayParts:
             viewportResultState.overlayResultClass === 'final'
               ? viewportResultState.overlayRenderVm.viewerParts
@@ -482,11 +638,35 @@ export function ViewerHost(props: ViewerHostProps) {
         viewportPresentationSettings,
         viewportResultState.visiblePresentationStateId,
       ),
+      baselineParts: [],
       overlayParts: [],
       overlayStyle: resolveViewportLayerStyle(viewportPresentationSettings, null),
       overlayOpacity: 0.5,
     }
-  }, [renderList.viewerParts, viewportPresentationSettings, viewportResultMode, viewportResultState])
+  }, [
+    currentAcceptedOutputPreviewRenderVm.viewerParts,
+    currentAcceptedRebuiltPreviewRenderVm.viewerParts,
+    renderList.viewerParts,
+    viewportPresentationSettings,
+    viewportResultMode,
+    viewportResultState,
+  ])
+
+  useEffect(() => {
+    if (viewportResultState.isInteractionActive) {
+      return
+    }
+    frozenInteractionBaseRef.current = {
+      baseParts: viewportRenderLayers.baseParts,
+      branchStableParts: currentAcceptedOutputPreviewRenderVm.viewerParts,
+      baseStyle: viewportRenderLayers.baseStyle,
+    }
+  }, [
+    currentAcceptedOutputPreviewRenderVm.viewerParts,
+    viewportRenderLayers.baseParts,
+    viewportRenderLayers.baseStyle,
+    viewportResultState.isInteractionActive,
+  ])
 
   const projectContentRows = useMemo(
     () =>

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+28. 2026-04-13 15:00: Refreshed this roadmap against the live `Cleanup`, `Build Path`, and `Viewport Runtime Inspector` family indexes, adding the previously missing `Cleanup` and `Viewport Runtime Inspector` families, marking the now-shipped `Cleanup 1` through `Cleanup 10` ladder plus shipped `VRI-1` through `VRI-3.5` slices, and tightening the `Build Path` source-doc read around the new dedicated vision doc and the real lowercase `build-path-index.md` entrypoint
 27. 2026-04-10 09:25: Refreshed this roadmap against the live changelog plus the current Browser, Workspace, Worker, Model-Viewport, Sketch, and Extrude family docs, marking the newly shipped `Browser-12`, `Sketch-1`, `Extrude-4` through `Extrude-7`, `Worker Vision Phase 1` and `Phase 2`, and the latest `Worker-Vision-3` internal phases while replacing the stale `Workspace 7.5-7` through `7.5-11` ladder with the real open `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, and `Workspace 7.5-17` follow-ons
 26. 2026-04-01 18:03: Promoted `Build Path` out of the catch-all open-family list into the main `### Suggested Working Order`, placing it after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork while also tightening the family read so it now describes a scrub-friendly derived CAD-command diff surface rather than a second undo/history system
 25. 2026-04-01 17:59: Reordered the roadmap `### Suggested Working Order` so the live `Workspace 7.5-7` through `Workspace 7.5-11` cleanup ladder now sits explicitly ahead of `Workspace 5.3`, removed the already-shipped `App Shell` ladder from the active queue, and added one deferred later `AppShell` cleanup follow-on after the current workspace cleanup stack instead of leaving that future pass implicit
@@ -51,6 +52,7 @@ This file covers:
 - `Export`
 - `Layers`
 - `Build Path`
+- `Cleanup`
 - `Radio`
 - `Camera Controls`
 - `View Toolbar`
@@ -60,6 +62,7 @@ This file covers:
 - `Nodes`
 - `Worker`
 - `Worker Vision`
+- `Viewport Runtime Inspector`
 - `AppShell`
 
 This file does not replace:
@@ -84,6 +87,10 @@ The `Edit History` family now belongs in that tracker too because it has a real 
 
 The `Workspace Modes` family now belongs in that tracker too because it has a real shipped-and-future phase ladder instead of living only as old task-doc residue.
 
+The `Cleanup` family now belongs in that tracker too because it has become a real cross-cutting shipped-and-future architecture ladder rather than only one broad vision note.
+
+The `Viewport Runtime Inspector` family now belongs in that tracker too because it already has a shipped `VRI-1` through `VRI-3` ladder and one real open `VRI-4` follow-on instead of living only as a viewport wish-list note.
+
 ### Source Docs
 
 - `Browser`
@@ -97,7 +104,10 @@ The `Workspace Modes` family now belongs in that tracker too because it has a re
 - `Layers`
   - `docs/Human-Plans/Architecture/Layers/Layers-index.md`
 - `Build Path`
-  - `docs/Human-Plans/Architecture/Build-Path/Build-Path-Index.md`
+  - `docs/Human-Plans/Architecture/Build-Path/build-path-index.md`
+  - `docs/Human-Plans/Architecture/Build-Path/Build-Path_Vision.md`
+- `Cleanup`
+  - `docs/Human-Plans/Architecture/Cleanup/Cleanup-Index.md`
 - `Radio`
   - `docs/Human-Plans/Architecture/Radio/Radio.md`
 - `Camera Controls`
@@ -119,6 +129,8 @@ The `Workspace Modes` family now belongs in that tracker too because it has a re
   - `docs/Human-Plans/Architecture/Worker/Worker.md`
 - `Worker Vision`
   - `docs/Human-Plans/Architecture/Worker/Worker-Vision.md`
+- `Viewport Runtime Inspector`
+  - `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
 - `AppShell`
   - `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md`
 
@@ -316,18 +328,22 @@ Current read:
 ## [~] Build Path
 ### Info
 
-Source doc:
-- `docs/Human-Plans/Architecture/Build-Path/Build-Path-Index.md`
+Source docs:
+- `docs/Human-Plans/Architecture/Build-Path/build-path-index.md`
+- `docs/Human-Plans/Architecture/Build-Path/Build-Path_Vision.md`
 
 Current read:
-- `Build Path` has a clear umbrella architecture direction, but not a real standalone phase ladder yet
-- the current family doc is still mainly:
-  - concept
-  - placement recommendation
-  - first constraints
-  - open `q1` through `q6`
+- `Build Path` now has both:
+  - one stable north-star vision doc
+  - one umbrella index for sequencing and ownership split
+- the family still does not have a real standalone implementation ladder yet
+- the current family read is:
+  - authored graph diffs plus accepted checkpoints
+  - non-destructive historical scrubbing by default
+  - worker/runtime history truth first
+  - workspace-mode UX second
 - the concept should be read as:
-  - a derived scrub-friendly CAD-command / transform-diff surface
+  - a git-like authored graph history surface backed by accepted checkpoints
   - not a replacement for `Spaghetti`
   - not the same thing as `Edit History`
 - the likely dependency order is:
@@ -336,6 +352,45 @@ Current read:
 - the next cleanup for this family is still probably to branch the first real standalone phase doc into `Future/` once the first honest read-only scrub slice is tightened around that narrower role
 
 ### [~] Build Path - Umbrella Concept And First Questions
+
+## [~] Cleanup
+### Info
+
+Source doc:
+- `docs/Human-Plans/Architecture/Cleanup/Cleanup-Index.md`
+
+Current read:
+- `Cleanup` is no longer just a broad vision lane
+- it is now a real cross-cutting family with a long shipped ladder plus one remaining follow-on:
+  - `Cleanup 1` through `Cleanup 10`
+    - shipped
+  - `Cleanup 11`
+    - open
+- the completed cleanup work now covers:
+  - startup truth
+  - canonical owner locking
+  - shared worker boundary repair
+  - workspace and Browser derivation cleanup
+  - graph accepted-result ownership
+  - CAD authoring and packaging cleanup
+  - Browser/Console sink reduction
+  - optional workspace-family scope decisions
+- the main remaining family follow-on is:
+  - `Cleanup 11 - Naming, Docs, And Honest Label Hardening`
+
+### [x] Cleanup 1 - Startup Path Canonicalization
+### [x] Cleanup 2 - Canonical Owner Decision Lock
+### [x] Cleanup 3 - Shared Boundary And Worker Contract Repair
+### [x] Cleanup 4 - Workspace Truth And AppShell Simplification
+### [x] Cleanup 4A - Workspace Surface Catalog And Capability Registry
+### [x] Cleanup 5 - Project Content And Browser Derivation Cleanup
+### [x] Cleanup 6 - Graph Runtime And Accepted Result Ownership
+### [x] Cleanup 7 - Node-Owned CAD Authoring And Command Adapter Unification
+### [x] Cleanup 8 - CAD Node Family Packaging And Command Library Extraction
+### [x] Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence
+### [x] Cleanup 9 - Browser And Console Complexity Reduction
+### [x] Cleanup 10 - Optional Workspace Family Scope Decisions
+### [ ] Cleanup 11 - Naming, Docs, And Honest Label Hardening
 
 ## [~] Radio
 ### Info
@@ -658,6 +713,50 @@ Current read:
 ### [ ] Worker Vision Phase 4 - Shared Runtime Publication For Browser, Console, And Viewport Runtime Inspector
 ### [ ] Worker Vision Phase 5 - Export And Long-Lived Runtime Reuse Over Accepted Authoritative Truth
 
+## [~] Viewport Runtime Inspector
+### Info
+
+Source doc:
+- `docs/Human-Plans/Architecture/Worker/Viewport-Runtime-Inspector/Viewport-Runtime-Inspector-Index.md`
+
+Current read:
+- `Viewport Runtime Inspector` is now a real worker-adjacent family, not only a vision note
+- the live family already has three shipped ladders:
+  - `VRI-1`
+    - shipped
+  - `VRI-2`
+    - shipped
+  - `VRI-3`
+    - shipped
+- the current open follow-on is:
+  - `VRI-4`
+    - open
+- the shipped runtime-inspector work already covers:
+  - shell and combined read-model foundation
+  - viewport stats
+  - current task
+  - queue and archive truth
+  - accepted change-impact summary and grouped rows
+  - untouched-result hardening before later multi-lane widening
+
+### [x] VRI-1 - Foundation Runtime Surface
+### [x] VRI-1.1 - Panel Shell And Expand Collapse Contract
+### [x] VRI-1.2 - Viewport Stats Foundation
+### [x] VRI-1.3 - Active Runtime Task Card
+### [x] VRI-1.4 - Combined Inspector Read Model And Hardening
+### [x] VRI-2 - Queue Visibility And Archive Truth
+### [x] VRI-2.1 - Queue Read Contract And Store Widening
+### [x] VRI-2.2 - Active Queue Surface
+### [x] VRI-2.3 - Archive Truth Surface
+### [x] VRI-2.4 - Queue Lifecycle Hardening And Handoff
+### [x] VRI-3 - Change Impact And Dependency Visibility
+### [x] VRI-3.1 - Accepted Impact Read Contract And Store Widening
+### [x] VRI-3.2 - Compact Change Impact Summary Surface
+### [x] VRI-3.3 - Impact Entry VM And Grouping Contract
+### [x] VRI-3.4 - Impact Row Surface
+### [x] VRI-3.5 - Untouched Truth Hardening And Family Handoff
+### [ ] VRI-4 - Multi-Lane Runtime Cards And Parallel Graph Execution
+
 ## [x] AppShell
 ### Info
 
@@ -705,20 +804,35 @@ Keep shipped items visible when they are part of a family that was previously st
 - [~] `Workspace 7.5-17`
 - [ ] `Workspace 5.3`
 
-#### [ ] - 2 - Later AppShell Cleanup
+#### [~] - 2 - Cleanup
+- [x] `Cleanup 1`
+- [x] `Cleanup 2`
+- [x] `Cleanup 3`
+- [x] `Cleanup 4`
+- [x] `Cleanup 4A`
+- [x] `Cleanup 5`
+- [x] `Cleanup 6`
+- [x] `Cleanup 7`
+- [x] `Cleanup 8`
+- [x] `Cleanup 8A`
+- [x] `Cleanup 9`
+- [x] `Cleanup 10`
+- [ ] `Cleanup 11`
+
+#### [ ] - 3 - Later AppShell Cleanup
 - [ ] `AppShell - Later Workspace Cleanup Follow-On`
 
-#### [ ] - 3 - Model Viewport
+#### [ ] - 4 - Model Viewport
 - [ ] `Model-Viewport 1`
 - [x] `Model-Viewport 1.1`
 
-#### [ ] - 4 - View Toolbar
+#### [ ] - 5 - View Toolbar
 - [ ] `View Toolbar 1` (`[5.0I-1]`)
 - [ ] `View Toolbar 2` (`[5.0I-2]`)
 - [ ] `View Toolbar 3` (`[5.0I-3]`)
 - [ ] `View Toolbar 4` (`[5.0I-4]`)
 
-#### [ ] - 5 - Sketch
+#### [ ] - 6 - Sketch
 - [x] `Sketch-1`
 - [~] `Sketch-2`
 - [ ] `Sketch 1` (`[3.2A-1]`)
@@ -737,7 +851,7 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Sketch 5` (`[3.2B-5]`)
 - [~] `Sketch 6` (`[3.2B-6]`)
 
-#### [~] - 6 - Extrude
+#### [~] - 7 - Extrude
 - [~] `Extrude 1`
 - [x] `Extrude 1A`
 - [ ] `Extrude 1B`
@@ -753,23 +867,23 @@ Keep shipped items visible when they are part of a family that was previously st
 - [x] `Extrude 6`
 - [x] `Extrude 7`
 
-#### [ ] - 7 - Layers
+#### [ ] - 8 - Layers
 - [ ] `Layers 1`
 - [ ] `Layers 2`
 - [ ] `Layers 3`
 - [ ] `Layers 4`
 
-#### [ ] - 8 - Edit History
+#### [ ] - 9 - Edit History
 - [ ] `Edit History 1`
 - [ ] `Edit History 2`
 - [ ] `Edit History 3`
 - [ ] `Edit History 4`
 - [ ] `Edit History 5`
 
-#### [~] - 9 - Build Path
+#### [~] - 10 - Build Path
 - [~] `Build Path - Umbrella Concept And First Questions`
 
-#### [ ] - 10 - Worker Vision
+#### [ ] - 11 - Worker Vision
 - [x] `Worker Vision 1`
 - [x] `Worker Vision 2`
 - [ ] `Worker Vision 3`
@@ -782,7 +896,26 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Worker Vision 4`
 - [ ] `Worker Vision 5`
 
-#### [ ] - 11 - Export
+#### [~] - 12 - Viewport Runtime Inspector
+- [x] `VRI 1`
+- [x] `VRI 1.1`
+- [x] `VRI 1.2`
+- [x] `VRI 1.3`
+- [x] `VRI 1.4`
+- [x] `VRI 2`
+- [x] `VRI 2.1`
+- [x] `VRI 2.2`
+- [x] `VRI 2.3`
+- [x] `VRI 2.4`
+- [x] `VRI 3`
+- [x] `VRI 3.1`
+- [x] `VRI 3.2`
+- [x] `VRI 3.3`
+- [x] `VRI 3.4`
+- [x] `VRI 3.5`
+- [ ] `VRI 4`
+
+#### [ ] - 13 - Export
 - [ ] `Export 1`
 - [ ] `Export 2`
 - [ ] `Export 3`
@@ -804,83 +937,111 @@ Keep shipped items visible when they are part of a family that was previously st
 
 ### Shipped Reference
 
-- [x] `Browser 1`
-- [x] `Browser 2`
-- [x] `Browser 3`
-- [x] `Browser 4`
-- [x] `Browser 5`
-- [x] `Browser 5.1`
-- [x] `Browser 5.2`
-- [x] `Browser 5.3`
-- [x] `Browser 5.4`
-- [x] `Browser 5.5`
-- [x] `Browser 6`
-- [x] `App Shell 1` (`[5.0F]`)
-- [x] `App Shell 2` (`[5.0F-1]`)
-- [x] `App Shell 3` (`[5.0F-2]`)
-- [x] `Worker 1` (`[5.3A-1]`)
-- [x] `Worker 2` (`[5.3A-2]`)
-- [x] `Worker 3` (`[5.3A-3]`)
-- [x] `Worker 4` (`[5.3A-4]`)
-- [x] `Worker 5` (`[5.3A-5]`)
-- [x] `Worker 6` (`[5.3A-6]`)
-- [x] `Worker 7` (`[5.3A-7]`)
-- [x] `Browser 7.1`
-- [x] `Browser 8.1`
-- [x] `Browser 8.2`
-- [x] `Browser 8.3`
-- [x] `Browser 8.4`
-- [x] `Browser 8.5`
-- [x] `Browser 8.7`
-- [x] `Browser 8.8.1`
-- [x] `Browser 8.8.2`
-- [x] `Browser 8.8.3`
-- [x] `Browser 9.1`
-- [x] `Browser 9.2`
-- [x] `Browser 9.3`
-- [x] `Browser 9.4`
-- [x] `Browser 9.5`
-- [x] `Browser 9.6`
-- [x] `Browser 9.7`
-- [x] `Browser 10.1`
-- [x] `Browser 10.2`
-- [x] `Browser 10.3`
-- [x] `Browser 10.4`
-- [x] `Browser 10.5`
-- [x] `Browser 11.1`
-- [x] `Browser 11.2`
-- [x] `Browser 11.3`
-- [x] `Browser 11.4`
-- [x] `Browser 11.5`
-- [x] `Browser 12`
-- [x] `Workspace 7.1`
-- [x] `Workspace 7.2`
-- [x] `Workspace 7.2c`
-- [x] `Workspace 7.2d`
-- [x] `Workspace 7.2e`
-- [x] `Workspace 7.2f`
-- [x] `Workspace 7.3`
-- [x] `Workspace 7.5-1`
-- [x] `Workspace 7.5-2`
-- [x] `Workspace 7.5-3`
-- [x] `Model-Viewport 1.1`
-- [x] `Extrude 1A`
-- [x] `Extrude 2.1`
-- [x] `Extrude 3.1`
-- [x] `Extrude 3.2`
-- [x] `Extrude 3.3`
-- [x] `Sketch-1`
-- [x] `Extrude 4`
-- [x] `Extrude 5`
-- [x] `Extrude 6`
-- [x] `Extrude 7`
-- [x] `Worker Vision 1`
-- [x] `Worker Vision 2`
-- [x] `Worker-Vision-3 Phase 1`
-- [x] `Worker-Vision-3 Phase 2`
-- [x] `Worker-Vision-3 Phase 3`
-- [x] `Worker-Vision-3 Phase 4`
-- [x] `Worker-Vision-3 Phase 5`
+1. [x] `App Shell 1` (`[5.0F]`)
+2. [x] `App Shell 2` (`[5.0F-1]`)
+3. [x] `App Shell 3` (`[5.0F-2]`)
+4. [x] `Worker 1` (`[5.3A-1]`)
+5. [x] `Worker 3` (`[5.3A-3]`)
+6. [x] `Worker 2` (`[5.3A-2]`)
+7. [x] `Browser 1`
+8. [x] `Browser 2`
+9. [x] `Browser 3`
+10. [x] `Browser 4`
+11. [x] `Browser 5`
+12. [x] `Browser 5.1`
+13. [x] `Browser 5.2`
+14. [x] `Browser 5.3`
+15. [x] `Browser 5.5`
+16. [x] `Browser 5.4`
+17. [x] `Worker 4` (`[5.3A-4]`)
+18. [x] `Worker 5` (`[5.3A-5]`)
+19. [x] `Worker 6` (`[5.3A-6]`)
+20. [x] `Worker 7` (`[5.3A-7]`)
+21. [x] `Browser 6`
+22. [x] `Browser 7.1`
+23. [x] `Browser 8.3`
+24. [x] `Browser 8.4`
+25. [x] `Browser 8.8.1`
+26. [x] `Browser 8.8.2`
+27. [x] `Browser 8.1`
+28. [x] `Browser 8.8.3`
+29. [x] `Browser 8.2`
+30. [x] `Browser 9.1`
+31. [x] `Browser 9.2`
+32. [x] `Browser 9.3`
+33. [x] `Browser 9.4`
+34. [x] `Browser 9.5`
+35. [x] `Browser 8.5`
+36. [x] `Browser 9.6`
+37. [x] `Browser 9.7`
+38. [x] `Browser 8.7`
+39. [x] `Browser 10.1`
+40. [x] `Browser 10.2`
+41. [x] `Browser 10.3`
+42. [x] `Browser 10.4`
+43. [x] `Browser 10.5`
+44. [x] `Browser 11.1`
+45. [x] `Browser 11.2`
+46. [x] `Browser 11.3`
+47. [x] `Browser 11.4`
+48. [x] `Browser 11.5`
+49. [x] `Browser 12`
+50. [x] `Workspace 7.1`
+51. [x] `Workspace 7.2`
+52. [x] `Workspace 7.2c`
+53. [x] `Workspace 7.2d`
+54. [x] `Workspace 7.2e`
+55. [x] `Workspace 7.2f`
+56. [x] `Workspace 7.3`
+57. [x] `Workspace 7.5-1`
+58. [x] `Workspace 7.5-2`
+59. [x] `Workspace 7.5-3`
+60. [x] `Extrude 1A`
+61. [x] `Extrude 2.1`
+62. [x] `Extrude 3.1`
+63. [x] `Extrude 3.2`
+64. [x] `Extrude 3.3`
+65. [x] `Model-Viewport 1.1`
+66. [x] `Sketch-1`
+67. [x] `Extrude 4`
+68. [x] `Extrude 5`
+69. [x] `Extrude 6`
+70. [x] `Extrude 7`
+71. [x] `VRI 1`
+72. [x] `VRI 1.1`
+73. [x] `VRI 1.2`
+74. [x] `VRI 1.3`
+75. [x] `VRI 1.4`
+76. [x] `VRI 2`
+77. [x] `VRI 2.1`
+78. [x] `VRI 2.2`
+79. [x] `VRI 2.3`
+80. [x] `VRI 2.4`
+81. [x] `VRI 3`
+82. [x] `VRI 3.1`
+83. [x] `VRI 3.2`
+84. [x] `VRI 3.3`
+85. [x] `VRI 3.4`
+86. [x] `VRI 3.5`
+87. [x] `Worker Vision 1`
+88. [x] `Worker Vision 2`
+89. [x] `Worker-Vision-3 Phase 1`
+90. [x] `Worker-Vision-3 Phase 2`
+91. [x] `Worker-Vision-3 Phase 3`
+92. [x] `Worker-Vision-3 Phase 4`
+93. [x] `Worker-Vision-3 Phase 5`
+94. [x] `Cleanup 1`
+95. [x] `Cleanup 2`
+96. [x] `Cleanup 3`
+97. [x] `Cleanup 4`
+98. [x] `Cleanup 4A`
+99. [x] `Cleanup 5`
+100. [x] `Cleanup 6`
+101. [x] `Cleanup 7`
+102. [x] `Cleanup 8`
+103. [x] `Cleanup 8A`
+104. [x] `Cleanup 9`
+105. [x] `Cleanup 10`
 
 ## Next Cleanup
 
@@ -888,6 +1049,7 @@ The likely next maintenance pass for this file is:
 - add more family notes only when a source architecture doc gains a real new phase
 - avoid inventing roadmap-only phase ids that do not exist in the family source docs
 - keep the newer `Worker Vision`, `Model Viewport`, `Sketch-1/2`, and `Extrude-6/7` ladders synced from their native family docs instead of leaving them changelog-only
+- keep the newer `Cleanup` and `Viewport Runtime Inspector` ladders synced from their native family indexes now that both families have real shipped/open phase trees
 - keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own
-- let `Build Path` stay marked as an umbrella concept family until its first standalone execution phase exists
+- let `Build Path` stay marked as an umbrella concept family until its first standalone execution phase exists, while keeping the new vision doc and the umbrella index read aligned
 - keep the workspace checklist synced to the native `Workspace-Modes` family docs instead of reviving the older `Workspace 7.5-7` through `7.5-11` shorthand after the live family has moved on

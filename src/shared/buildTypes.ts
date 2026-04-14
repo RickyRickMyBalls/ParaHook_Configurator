@@ -210,6 +210,29 @@ export type BuildInvalidation = {
   affectedBuildUnitIds: BuildUnitId[]
 }
 
+export type BuildChangedInputExtrudeField =
+  | 'extrudeType'
+  | 'extrudeDirection'
+  | 'depthResolved'
+  | 'startDepthResolved'
+  | 'endDepthResolved'
+  | 'taperResolved'
+  | 'offsetResolved'
+
+export type BuildChangedInputHint =
+  | {
+      kind: 'graph_local_extrude_params'
+      changedNodeId: string
+      changedPartKey: string
+      changedFields: BuildChangedInputExtrudeField[]
+    }
+  | {
+      kind: 'graph_shared_upstream'
+      changedPartKeys: string[]
+      upstreamNodeIds: string[]
+      reason: 'sketch_change' | 'feature_stack_change'
+    }
+
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
@@ -247,6 +270,32 @@ export const isBuildIdentity = (value: unknown): value is BuildIdentity =>
 export const isBuildInvalidation = (value: unknown): value is BuildInvalidation =>
   isRecord(value) && isStringArray(value.affectedBuildUnitIds)
 
+const isBuildChangedInputExtrudeField = (
+  value: unknown,
+): value is BuildChangedInputExtrudeField =>
+  value === 'extrudeType' ||
+  value === 'extrudeDirection' ||
+  value === 'depthResolved' ||
+  value === 'startDepthResolved' ||
+  value === 'endDepthResolved' ||
+  value === 'taperResolved' ||
+  value === 'offsetResolved'
+
+export const isBuildChangedInputHint = (value: unknown): value is BuildChangedInputHint =>
+  isRecord(value) &&
+  ((value.kind === 'graph_local_extrude_params' &&
+    typeof value.changedNodeId === 'string' &&
+    value.changedNodeId.length > 0 &&
+    typeof value.changedPartKey === 'string' &&
+    value.changedPartKey.length > 0 &&
+    Array.isArray(value.changedFields) &&
+    value.changedFields.length > 0 &&
+    value.changedFields.every(isBuildChangedInputExtrudeField)) ||
+    (value.kind === 'graph_shared_upstream' &&
+      isStringArray(value.changedPartKeys) &&
+      isStringArray(value.upstreamNodeIds) &&
+      (value.reason === 'sketch_change' || value.reason === 'feature_stack_change')))
+
 type BuildRequestBase = {
   type: 'build'
   lane: 'build'
@@ -259,6 +308,7 @@ type BuildRequestBase = {
   buildIdentity: BuildIdentity
   invalidation: BuildInvalidation
   changedParamIds?: string[]
+  changedInputHint?: BuildChangedInputHint
 }
 
 export type BuildRequest = BuildRequestBase

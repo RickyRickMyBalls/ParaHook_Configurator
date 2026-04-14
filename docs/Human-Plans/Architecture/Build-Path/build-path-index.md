@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-13 14:49: Updated this `Build Path` family index to point at the new `Build-Path_Vision.md` north-star doc so the umbrella entrypoint now distinguishes the stable core concept from the phase-ordering and ownership-planning material
 1. 2026-04-10 00:00: Created this `Build Path` family index to organize the first architecture and phase planning for timeline-style CAD command history, cached scrubbing, worker-owned diff/checkpoint foundations, and workspace-mode UX phases
 
 ### Purpose
@@ -22,6 +23,9 @@ Use it to answer:
 
 Use this folder like this:
 
+- `Build-Path_Vision.md`
+  - core concept and north-star behavior
+  - plain-language explanation of diffs, checkpoints, and non-destructive scrubbing
 - `build-path-index.md`
   - umbrella architecture direction
   - phase-family summary
@@ -34,6 +38,12 @@ Use this folder like this:
 ### Why This Doc Exists
 
 `Build Path` is not only a new workspace mode.
+
+Use the companion vision doc for the stable concept:
+- `Build-Path_Vision.md`
+  - what `Build Path` should feel like
+  - why the family is built around authored diffs plus accepted checkpoints
+  - the hard rules future phases should preserve
 
 It also needs worker and runtime support so the user can move quickly across accepted CAD-command history without forcing slow full rebuilds for every scrub step.
 

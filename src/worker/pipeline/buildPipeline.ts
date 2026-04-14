@@ -2,6 +2,7 @@ import type {
   BuildRequest,
   BuildProgress,
   BuildResult,
+  CompiledBuildData,
   PartArtifact,
 } from '../../shared/buildTypes'
 import { getPartArtifactKey } from '../../shared/buildTypes'
@@ -57,6 +58,48 @@ const toBuildSignatureInput = (request: BuildRequest) => ({
   compiledBuildData: request.compiledBuildData,
 })
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const filterCompiledBuildDataToPartKeys = (
+  compiledBuildData: CompiledBuildData,
+  partKeys: readonly string[],
+): CompiledBuildData => {
+  const allowedPartKeys = new Set(partKeys)
+  const resolvedShared =
+    compiledBuildData.resolvedShared === undefined
+      ? undefined
+      : { ...compiledBuildData.resolvedShared }
+
+  const featureStackIR = resolvedShared?.sp_featureStackIR
+  if (
+    isRecord(featureStackIR) &&
+    featureStackIR.schemaVersion === 1 &&
+    isRecord(featureStackIR.parts)
+  ) {
+    resolvedShared!.sp_featureStackIR = {
+      schemaVersion: 1 as const,
+      parts: Object.fromEntries(
+        Object.entries(featureStackIR.parts).filter(([partKey]) => allowedPartKeys.has(partKey)),
+      ),
+    }
+  }
+
+  return {
+    orderedPartKeys: compiledBuildData.orderedPartKeys.filter((partKey) =>
+      allowedPartKeys.has(partKey),
+    ),
+    resolvedParts: Object.fromEntries(
+      Object.entries(compiledBuildData.resolvedParts).filter(([partKey]) =>
+        allowedPartKeys.has(partKey),
+      ),
+    ),
+    outputEntries:
+      compiledBuildData.outputEntries?.filter((entry) => allowedPartKeys.has(entry.partKey)) ?? [],
+    ...(resolvedShared === undefined ? {} : { resolvedShared }),
+  }
+}
+
 const emit = (
   emitProgress: ProgressEmitter,
   message: Omit<BuildProgress, 'type'>,
@@ -93,11 +136,28 @@ export const buildPipeline = async (
   options: BuildPipelineOptions = {},
 ): Promise<BuildResult> => {
   const { seq, projectFileId, graphDocumentId, buildRequestId, compiledBuildData } = request
-  const signatureInput = toBuildSignatureInput(request)
+  const orderedPartKeys = [...compiledBuildData.orderedPartKeys]
+  const affectedPartKeys = computeAffectedPartKeys(
+    request.changedParamIds,
+    orderedPartKeys,
+    request.changedInputHint,
+  )
+  const shouldScopeExecution =
+    request.changedInputHint !== undefined &&
+    affectedPartKeys.length > 0 &&
+    affectedPartKeys.length < orderedPartKeys.length
+  const executionPartKeys = shouldScopeExecution ? affectedPartKeys : orderedPartKeys
+  const executionCompiledBuildData = shouldScopeExecution
+    ? filterCompiledBuildDataToPartKeys(compiledBuildData, executionPartKeys)
+    : compiledBuildData
+  const signatureInput = toBuildSignatureInput({
+    ...request,
+    compiledBuildData: executionCompiledBuildData,
+  })
   const buildSignature = makeBuildSignature(signatureInput, ENGINE_MODE, CONTROL_MODE)
   throwIfSuperseded(request, options.isSuperseded)
   const { parts, draftGeometryResult, authoritativeGeometryResult } = await buildModelResult({
-    compiledBuildData,
+    compiledBuildData: executionCompiledBuildData,
     executionIntent: request.executionIntent,
     requestIdentity: {
       graphDocumentId,
@@ -105,10 +165,9 @@ export const buildPipeline = async (
     },
   })
   throwIfSuperseded(request, options.isSuperseded)
-  const orderedPartKeys = [...compiledBuildData.orderedPartKeys]
-  const affectedSet = new Set(computeAffectedPartKeys(request.changedParamIds, orderedPartKeys))
+  const affectedSet = new Set(affectedPartKeys)
 
-  for (const partKey of orderedPartKeys) {
+  for (const partKey of executionPartKeys) {
     throwIfSuperseded(request, options.isSuperseded)
     emit(emitProgress, {
       seq,
@@ -121,7 +180,14 @@ export const buildPipeline = async (
       state: 'queued',
     })
 
-    const partSignature = makePartSignature(partKey, signatureInput, ENGINE_MODE, CONTROL_MODE)
+    const partSignature = makePartSignature(
+      partKey,
+      {
+        compiledBuildData: filterCompiledBuildDataToPartKeys(compiledBuildData, [partKey]),
+      },
+      ENGINE_MODE,
+      CONTROL_MODE,
+    )
     const isAffected = affectedSet.has(partKey)
 
     if (!isAffected && partCache.has(partSignature)) {
@@ -254,9 +320,8 @@ export const buildPipeline = async (
       graphDocumentId,
       buildRequestId,
       executionIntent: request.executionIntent,
-      compiledBuildData,
-      draftGeometryResult,
-      authoritativeGeometryResult,
+      compiledBuildData: executionCompiledBuildData,
+      ...(shouldScopeExecution ? {} : { draftGeometryResult, authoritativeGeometryResult }),
     },
     parts,
     request.changedParamIds,

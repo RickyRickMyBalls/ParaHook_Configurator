@@ -217,6 +217,103 @@ const createMixedSameRowOutputPreviewGraph = (): SpaghettiGraph => ({
   ],
 })
 
+const createParallelExtrudeOutputPreviewGraph = (options?: {
+  extrudeOneDepthMm?: number
+  extrudeTwoDepthMm?: number
+  sketchWidth?: number
+}): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: createSketchFeature([
+          rectangleComponent(
+            'row-1',
+            'rect-a',
+            { x: 0, y: 0 },
+            { x: options?.sketchWidth ?? 40, y: 20 },
+          ),
+        ]),
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        depthMm: options?.extrudeOneDepthMm ?? 20,
+      },
+    },
+    {
+      nodeId: 'node-extrude-2',
+      type: 'Geometry/Extrude',
+      params: {
+        depthMm: options?.extrudeTwoDepthMm ?? 30,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        slots: [
+          { slotId: 's001', publicationMode: 'grouped' },
+          { slotId: 's002', publicationMode: 'grouped' },
+        ],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Object 1',
+            orderIndex: 0,
+          },
+          {
+            objectId: 'output-object:s002',
+            slotId: 's002',
+            label: 'Object 2',
+            orderIndex: 1,
+          },
+        ],
+        nextSlotIndex: 3,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude-1',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+      },
+      to: {
+        nodeId: 'node-extrude-1',
+        portId: 'ExtrusionProfile',
+      },
+    },
+    {
+      edgeId: 'edge-sketch-to-extrude-2',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+      },
+      to: {
+        nodeId: 'node-extrude-2',
+        portId: 'ExtrusionProfile',
+      },
+    },
+    {
+      edgeId: 'edge-extrude-1-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+    {
+      edgeId: 'edge-extrude-2-to-output-preview',
+      from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s002' },
+    },
+  ],
+})
+
 describe('buildRequestFromBuildInputs', () => {
   it('builds graph-native compiled build data plus output-entry build units', () => {
     expect(buildRequestFromBuildInputs(cubeBuildInputs(), previewPreparation())).toEqual({
@@ -587,6 +684,70 @@ describe('buildRequestFromBuildInputs', () => {
     expect(translated.targetBuildUnitIds).toEqual([
       'output-entry:s001:node-extrude-1:port-SolidBody%3A001',
       'output-entry:s001:node-extrude-1',
+    ])
+  })
+
+  it('classifies branch-local extrude depth edits with a Worker 9 Phase 1 local extrude hint', () => {
+    const previousGraph = createParallelExtrudeOutputPreviewGraph()
+    const currentGraph = createParallelExtrudeOutputPreviewGraph({
+      extrudeTwoDepthMm: 45,
+    })
+    const previousCompileResult = compileSpaghettiGraph(previousGraph)
+    const currentCompileResult = compileSpaghettiGraph(currentGraph)
+
+    expect(previousCompileResult.ok).toBe(true)
+    expect(currentCompileResult.ok).toBe(true)
+
+    const currentPreviewPreparation = prepareGraphPreviewPreparation(currentGraph)
+    const translated = buildRequestFromBuildInputs(
+      currentCompileResult.buildInputs!,
+      currentPreviewPreparation,
+      previousCompileResult.buildInputs!,
+    )
+
+    expect(translated.changedParamIds).toEqual(['sp_featureStackIR'])
+    expect(translated.changedInputHint).toEqual({
+      kind: 'graph_local_extrude_params',
+      changedNodeId: 'node-extrude-2',
+      changedPartKey: 'extrude#2',
+      changedFields: ['depthResolved'],
+    })
+    expect(translated.targetBuildUnitIds).toEqual([
+      'output-entry:s002:node-extrude-2',
+    ])
+    expect(translated.affectedBuildUnitIds).toEqual([
+      'output-entry:s002:node-extrude-2',
+    ])
+  })
+
+  it('classifies shared sketch edits as widening-allowed upstream hints for Worker 9 Phase 1', () => {
+    const previousGraph = createParallelExtrudeOutputPreviewGraph()
+    const currentGraph = createParallelExtrudeOutputPreviewGraph({
+      sketchWidth: 55,
+    })
+    const previousCompileResult = compileSpaghettiGraph(previousGraph)
+    const currentCompileResult = compileSpaghettiGraph(currentGraph)
+
+    expect(previousCompileResult.ok).toBe(true)
+    expect(currentCompileResult.ok).toBe(true)
+
+    const currentPreviewPreparation = prepareGraphPreviewPreparation(currentGraph)
+    const translated = buildRequestFromBuildInputs(
+      currentCompileResult.buildInputs!,
+      currentPreviewPreparation,
+      previousCompileResult.buildInputs!,
+    )
+
+    expect(translated.changedParamIds).toEqual(['sp_featureStackIR'])
+    expect(translated.changedInputHint).toEqual({
+      kind: 'graph_shared_upstream',
+      changedPartKeys: ['extrude#1', 'extrude#2'],
+      upstreamNodeIds: ['node-sketch-1'],
+      reason: 'sketch_change',
+    })
+    expect(translated.targetBuildUnitIds).toEqual([
+      'output-entry:s001:node-extrude-1',
+      'output-entry:s002:node-extrude-2',
     ])
   })
 })

@@ -1311,7 +1311,7 @@ Recommended implementation-grade scenarios:
 - `src/app/spaghetti/store/useSpaghettiStore.ts` now prevents stale accepted authoritative geometry from staying viewer-readable once the current graph revision moves past the accepted revision, so disconnected-current final geometry clears honestly instead of lingering on screen
 - `src/app/store/useAppStore.test.ts` and `src/app/components/ViewerHost.test.tsx` now prove the Phase 6 timing-ownership cleanup and the stale-final disconnect regression path
 
-## [ ] Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup
+## [x] Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup
 
 ### Purpose
 
@@ -1532,7 +1532,7 @@ Recommended implementation-grade scenarios:
 - `Auto does not let a retained authoritative result for depth 20 block the newer authoritative follow-through after draft acceptance has already moved the current graph revision to depth 10`
 - `Auto does not show the retained depth 20 B-rep result as current final truth after the depth 10 draft path has already accepted`
 
-## [ ] Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation
+## [x] Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation
 
 Detailed split execution now lives in:
 - `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation.md`
@@ -1739,7 +1739,7 @@ Recommended implementation-grade scenarios:
 - `Browser Manual plus Auto may still show retained older final plus draft overlay as presentation, but does not imply automatic final catch-up`
 - `Browser Off plus Auto may still retain previously accepted final as presentation, but does not wake worker processing for suppressed targets`
 
-## [ ] Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation
+## [x] Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation
 
 Detailed execution now lives in:
 - `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation.md`

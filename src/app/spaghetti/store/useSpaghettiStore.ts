@@ -82,6 +82,7 @@ import type {
 import { newId } from '../utils/id'
 import { makeComponentId, makeRowId } from '../utils/id'
 import type {
+  BuildChangedInputHint,
   BuildExecutionIntent,
   BuildResultBundle,
   BuildResultEntry,
@@ -153,7 +154,9 @@ type EdgeWaypoint = {
 export type GraphCompileBuildState = {
   lastCompileResult: ReturnType<typeof compileSpaghettiGraph> | null
   previousBuildInputs: ReturnType<typeof compileSpaghettiGraph>['buildInputs'] | null
+  comparisonBuildInputs: ReturnType<typeof compileSpaghettiGraph>['buildInputs'] | null
   pendingChangedParamIds: string[]
+  pendingChangedInputHint: BuildChangedInputHint | null
   pendingStatsPartKeys: string[]
   pendingTargetBuildUnitIds: BuildUnitId[]
   pendingAffectedBuildUnitIds: BuildUnitId[]
@@ -207,6 +210,7 @@ export type GraphRuntimeState = {
   acceptedBuildBundle: BuildResultBundle | null
   acceptedPreviewBuildBundle: BuildResultBundle | null
   acceptedAuthoritativeGraphRevision: number | null
+  acceptedPreviewGraphRevision: number | null
   acceptedDraftGraphRevision: number | null
   acceptedAuthoritativeGeometryResult: GeometryResultBundle | null
   acceptedDraftGeometryResult: GeometryResultBundle | null
@@ -239,6 +243,25 @@ export type CreateGraphNodeInDocumentResult = {
 }
 
 const EMPTY_BUILD_RESULT_ENTRIES: BuildResultEntry[] = []
+
+const cloneBuildChangedInputHint = (
+  hint: BuildChangedInputHint | null | undefined,
+): BuildChangedInputHint | null => {
+  if (hint === undefined || hint === null) {
+    return null
+  }
+  if (hint.kind === 'graph_local_extrude_params') {
+    return {
+      ...hint,
+      changedFields: [...hint.changedFields],
+    }
+  }
+  return {
+    ...hint,
+    changedPartKeys: [...hint.changedPartKeys],
+    upstreamNodeIds: [...hint.upstreamNodeIds],
+  }
+}
 
 let fallbackCreatedGraphNodeIdCounter = 0
 
@@ -833,6 +856,7 @@ export type SpaghettiStoreState = {
       compileResult: ReturnType<typeof compileSpaghettiGraph>
       previousBuildInputs: ReturnType<typeof compileSpaghettiGraph>['buildInputs'] | null
       pendingChangedParamIds: string[]
+      pendingChangedInputHint?: BuildChangedInputHint
       pendingStatsPartKeys: string[]
       pendingTargetBuildUnitIds?: BuildUnitId[]
       pendingAffectedBuildUnitIds?: BuildUnitId[]
@@ -2663,7 +2687,9 @@ const removeGraphDocumentIdFromSharedViewerComposition = (
 const createEmptyGraphCompileBuildState = (): GraphCompileBuildState => ({
   lastCompileResult: null,
   previousBuildInputs: null,
+  comparisonBuildInputs: null,
   pendingChangedParamIds: [],
+  pendingChangedInputHint: null,
   pendingStatsPartKeys: [],
   pendingTargetBuildUnitIds: [],
   pendingAffectedBuildUnitIds: [],
@@ -2691,6 +2717,7 @@ const createGraphRuntimeState = (
   const acceptedBuildBundle = null
   const acceptedPreviewBuildBundle = null
   const acceptedAuthoritativeGraphRevision = null
+  const acceptedPreviewGraphRevision = null
   const acceptedDraftGraphRevision = null
   const acceptedAuthoritativeGeometryResult = null
   const acceptedDraftGeometryResult = null
@@ -2704,6 +2731,7 @@ const createGraphRuntimeState = (
     acceptedBuildBundle,
     acceptedPreviewBuildBundle,
     acceptedAuthoritativeGraphRevision,
+    acceptedPreviewGraphRevision,
     acceptedDraftGraphRevision,
     acceptedAuthoritativeGeometryResult,
     acceptedDraftGeometryResult,
@@ -2765,6 +2793,7 @@ const withUpdatedGraphRuntimeGraph = (
   const acceptedBuildBundle = runtime?.acceptedBuildBundle ?? null
   const acceptedPreviewBuildBundle = runtime?.acceptedPreviewBuildBundle ?? null
   const acceptedAuthoritativeGraphRevision = runtime?.acceptedAuthoritativeGraphRevision ?? null
+  const acceptedPreviewGraphRevision = runtime?.acceptedPreviewGraphRevision ?? null
   const acceptedDraftGraphRevision = runtime?.acceptedDraftGraphRevision ?? null
   const acceptedAuthoritativeGeometryResult =
     runtime?.acceptedAuthoritativeGeometryResult ?? null
@@ -2780,6 +2809,7 @@ const withUpdatedGraphRuntimeGraph = (
     acceptedBuildBundle,
     acceptedPreviewBuildBundle,
     acceptedAuthoritativeGraphRevision,
+    acceptedPreviewGraphRevision,
     acceptedDraftGraphRevision,
     acceptedAuthoritativeGeometryResult,
     acceptedDraftGeometryResult,
@@ -3353,6 +3383,13 @@ const doesRuntimeAcceptedDraftRevisionMatchCurrentGraphRevision = (
   runtime.acceptedDraftGraphRevision !== null &&
   runtime.acceptedDraftGraphRevision === runtime.compileBuild.currentGraphRevision
 
+const doesRuntimeAcceptedPreviewRevisionMatchCurrentGraphRevision = (
+  runtime: GraphRuntimeState | null,
+): runtime is GraphRuntimeState =>
+  runtime !== null &&
+  runtime.acceptedPreviewGraphRevision !== null &&
+  runtime.acceptedPreviewGraphRevision === runtime.compileBuild.currentGraphRevision
+
 export const selectGraphCompileResultByDocumentId = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId'>,
   graphDocumentId: string,
@@ -3462,14 +3499,14 @@ export const selectViewerTargetGraphAcceptedAuthoritativeGeometryResult = (
 export const selectViewerTargetGraphAcceptedPreviewBuildOutputs = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
 ): PartArtifact[] =>
-  doesRuntimeAcceptedDraftRevisionMatchCurrentGraphRevision(selectViewerTargetGraphRuntime(state))
+  doesRuntimeAcceptedPreviewRevisionMatchCurrentGraphRevision(selectViewerTargetGraphRuntime(state))
     ? selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildOutputs ?? EMPTY_PART_ARTIFACTS
     : EMPTY_PART_ARTIFACTS
 
 export const selectViewerTargetGraphAcceptedPreviewBuildBundle = (
   state: Pick<SpaghettiStoreState, 'graphRuntimeByDocumentId' | 'viewerTargetGraphDocumentId'>,
 ): BuildResultBundle | null =>
-  doesRuntimeAcceptedDraftRevisionMatchCurrentGraphRevision(selectViewerTargetGraphRuntime(state))
+  doesRuntimeAcceptedPreviewRevisionMatchCurrentGraphRevision(selectViewerTargetGraphRuntime(state))
     ? selectViewerTargetGraphRuntime(state)?.acceptedPreviewBuildBundle ?? null
     : null
 
@@ -6163,7 +6200,11 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
             compileBuild: {
               lastCompileResult: options.compileResult,
               previousBuildInputs: options.compileResult.buildInputs ?? options.previousBuildInputs,
+              comparisonBuildInputs: options.previousBuildInputs,
               pendingChangedParamIds: [...options.pendingChangedParamIds],
+              pendingChangedInputHint: cloneBuildChangedInputHint(
+                options.pendingChangedInputHint,
+              ),
               pendingStatsPartKeys: [...options.pendingStatsPartKeys],
               pendingTargetBuildUnitIds: [...(options.pendingTargetBuildUnitIds ?? [])],
               pendingAffectedBuildUnitIds: [...(options.pendingAffectedBuildUnitIds ?? [])],
@@ -6283,6 +6324,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               routingIdentity.authoritativeGeometryResult === undefined
                 ? runtime.acceptedAuthoritativeGraphRevision
                 : compileBuild.inFlightGraphRevision,
+            acceptedPreviewGraphRevision: compileBuild.inFlightGraphRevision,
             acceptedDraftGraphRevision:
               routingIdentity.draftGeometryResult === undefined
                 ? runtime.acceptedDraftGraphRevision
@@ -6468,6 +6510,7 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
               stagedPreviewResult.acceptedPreviewBuildBundle,
             ),
             acceptedAuthoritativeGraphRevision: stagedPreviewResult.graphRevision,
+            acceptedPreviewGraphRevision: stagedPreviewResult.graphRevision,
             acceptedAuthoritativeGeometryResult:
               acceptedGeometryPromotion.acceptedAuthoritativeGeometryResult,
             stagedAuthoritativePreviewResult: null,

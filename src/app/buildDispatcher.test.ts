@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_BUILD_EXECUTION_INTENT,
+  type BuildChangedInputHint,
   type BuildExecutionIntent,
 } from '../shared/buildTypes'
 import type { GeometryResultBundle } from '../shared/geometryResult'
@@ -118,6 +119,7 @@ const requestGraphBuild = (
     graphDocumentId?: string
     buildRequestId?: string
     buildStatsPartKeys?: string[]
+    changedInputHint?: BuildChangedInputHint
     executionIntent?: BuildExecutionIntent
   },
 ): number =>
@@ -136,6 +138,9 @@ const requestGraphBuild = (
       affectedBuildUnitIds: ['output-entry:s001:node-cube'],
     },
     changedParamIds: ['sp_full'],
+    ...(options?.changedInputHint === undefined
+      ? {}
+      : { changedInputHint: options.changedInputHint }),
     buildStatsPartKeys: options?.buildStatsPartKeys ?? ['cube'],
     executionIntent: options?.executionIntent,
   })
@@ -225,6 +230,33 @@ describe('BuildDispatcher runtime hooks and routing', () => {
         },
         invalidation: {
           affectedBuildUnitIds: ['output-entry:s001:node-cube'],
+        },
+      }),
+    )
+    dispatcher.dispose()
+  })
+
+  it('forwards Worker 9 Phase 1 changed-input hints into the worker build request', async () => {
+    const module = await import('./buildDispatcher')
+    module.buildDispatcher.dispose()
+    const dispatcher = new module.BuildDispatcher()
+
+    requestGraphBuild(dispatcher, {
+      changedInputHint: {
+        kind: 'graph_local_extrude_params',
+        changedNodeId: 'node-extrude-2',
+        changedPartKey: 'extrude#2',
+        changedFields: ['depthResolved'],
+      },
+    })
+
+    expect(getAuthoritativeWorker(dispatcher).postedMessages[0]).toEqual(
+      expect.objectContaining({
+        changedInputHint: {
+          kind: 'graph_local_extrude_params',
+          changedNodeId: 'node-extrude-2',
+          changedPartKey: 'extrude#2',
+          changedFields: ['depthResolved'],
         },
       }),
     )

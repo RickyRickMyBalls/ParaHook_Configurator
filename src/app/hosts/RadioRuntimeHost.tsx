@@ -21,6 +21,7 @@ import { registerRadioRuntimeWarmupHandler } from '../../runtime/audio/radioRunt
 import { createBrowserSoundCloudWidgetClient } from '../../runtime/audio/SoundCloudWidgetClient'
 import {
   DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
+  RADIO_SUPPORT_PROFILE,
   useAudioSamplerStore,
   type RadioRuntimeSourceKind,
 } from '../store/audioSamplerStore'
@@ -700,6 +701,8 @@ export function RadioRuntimeHost() {
     <iframe
       ref={radioSoundCloudIframeRef}
       title="Radio SoundCloud Bridge"
+      data-radio-support-classification={RADIO_SUPPORT_PROFILE.classification}
+      data-radio-requires-workspace-surface={`${RADIO_SUPPORT_PROFILE.requiresWorkspaceSurface}`}
       src={buildSoundCloudPlayerUrl(DEFAULT_GUSANO_URL)}
       allow="autoplay"
       aria-hidden="true"

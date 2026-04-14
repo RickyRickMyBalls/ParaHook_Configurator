@@ -291,4 +291,48 @@ describe('worker cooperative supersession', () => {
       ]),
     )
   })
+
+  it('rejects invalid changed-input hints before the worker pipeline starts', async () => {
+    const workerScope = new MockWorkerScope()
+    globalThis.self = workerScope as unknown as typeof globalThis.self
+    const buildPipeline = vi.fn()
+
+    vi.doMock('./pipeline/buildPipeline', () => {
+      class BuildSupersededError extends Error {
+        public constructor() {
+          super('superseded')
+          this.name = 'BuildSupersededError'
+        }
+      }
+
+      return {
+        BuildSupersededError,
+        isBuildSupersededError: (error: unknown): error is Error =>
+          error instanceof BuildSupersededError,
+        buildPipeline,
+      }
+    })
+    vi.doMock('./authoritativeGeometryStore', () => ({
+      releaseAuthoritativeShapeSets: vi.fn(),
+    }))
+
+    await import('./worker')
+
+    await workerScope.dispatchMessage({
+      ...buildRequest({
+        seq: 1,
+        graphDocumentId: 'graph-a',
+        buildRequestId: 'request-a-1',
+      }),
+      changedInputHint: {
+        kind: 'graph_local_extrude_params',
+        changedNodeId: 'node-extrude-2',
+        changedPartKey: 'extrude#2',
+        changedFields: ['sp_featureStackIR'],
+      },
+    })
+
+    expect(buildPipeline).not.toHaveBeenCalled()
+    expect(workerScope.postedMessages).toEqual([])
+  })
 })

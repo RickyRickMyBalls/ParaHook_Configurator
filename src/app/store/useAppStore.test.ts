@@ -15,6 +15,7 @@ import {
   type GraphOutputSurface,
 } from '../spaghetti/outputSurface'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
+import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../spaghetti/system/outputPreviewNode'
 
 type WorkerMessageHandler = (event: MessageEvent<unknown>) => void
@@ -175,6 +176,144 @@ const createOutputPreviewGraph = (options: {
       portId: `in:solid:${options.slots[index]!.slotId}`,
     },
   })),
+})
+
+const createSketchFeature = (
+  components: Array<Record<string, unknown>>,
+): Record<string, unknown> => ({
+  type: 'sketch',
+  featureId: 'sketch-1',
+  plane: 'XY',
+  components,
+  outputs: {
+    profiles: [],
+    diagnostics: [],
+  },
+  uiState: {
+    collapsed: false,
+  },
+})
+
+const rectangleComponent = (
+  rowId: string,
+  componentId: string,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): Record<string, unknown> => ({
+  rowId,
+  componentId,
+  type: 'rectangle',
+  a: { kind: 'lit', x: a.x, y: a.y },
+  b: { kind: 'lit', x: b.x, y: b.y },
+})
+
+const createParallelExtrudeOutputPreviewGraph = (options?: {
+  extrudeOneDepthMm?: number
+  extrudeTwoDepthMm?: number
+  sketchWidth?: number
+}): SpaghettiGraph => ({
+  schemaVersion: 1,
+  nodes: [
+    {
+      nodeId: 'node-sketch-1',
+      type: 'Geometry/Sketch',
+      params: {
+        sketch: createSketchFeature([
+          rectangleComponent(
+            'row-1',
+            'rect-a',
+            { x: 0, y: 0 },
+            { x: options?.sketchWidth ?? 40, y: 20 },
+          ),
+        ]),
+      },
+    },
+    {
+      nodeId: 'node-extrude-1',
+      type: 'Geometry/Extrude',
+      params: {
+        depthMm: options?.extrudeOneDepthMm ?? 20,
+      },
+    },
+    {
+      nodeId: 'node-extrude-2',
+      type: 'Geometry/Extrude',
+      params: {
+        depthMm: options?.extrudeTwoDepthMm ?? 30,
+      },
+    },
+    {
+      nodeId: 'node-output-preview-1',
+      type: OUTPUT_PREVIEW_NODE_TYPE,
+      params: {
+        slots: [
+          { slotId: 's001', publicationMode: 'grouped' },
+          { slotId: 's002', publicationMode: 'grouped' },
+        ],
+        objects: [
+          {
+            objectId: 'output-object:s001',
+            slotId: 's001',
+            label: 'Object 1',
+            orderIndex: 0,
+          },
+          {
+            objectId: 'output-object:s002',
+            slotId: 's002',
+            label: 'Object 2',
+            orderIndex: 1,
+          },
+        ],
+        nextSlotIndex: 3,
+      },
+    },
+  ],
+  edges: [
+    {
+      edgeId: 'edge-sketch-to-extrude-1',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+      },
+      to: {
+        nodeId: 'node-extrude-1',
+        portId: 'ExtrusionProfile',
+      },
+    },
+    {
+      edgeId: 'edge-sketch-to-extrude-2',
+      from: {
+        nodeId: 'node-sketch-1',
+        portId: 'SketchProfiles',
+      },
+      to: {
+        nodeId: 'node-extrude-2',
+        portId: 'ExtrusionProfile',
+      },
+    },
+    {
+      edgeId: 'edge-extrude-1-to-output-preview',
+      from: { nodeId: 'node-extrude-1', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s001' },
+    },
+    {
+      edgeId: 'edge-extrude-2-to-output-preview',
+      from: { nodeId: 'node-extrude-2', portId: 'SolidBody' },
+      to: { nodeId: 'node-output-preview-1', portId: 'in:solid:s002' },
+    },
+  ],
+})
+
+const createExtrudeArtifact = (partKeyStr: 'extrude#1' | 'extrude#2'): PartArtifact => ({
+  id: partKeyStr,
+  label: partKeyStr,
+  kind: 'box',
+  params: { width: 1, length: 1, height: 1 },
+  partKeyStr,
+  partKey: {
+    id: 'extrude',
+    instance: Number(partKeyStr.split('#')[1]),
+  },
 })
 
 describe('useAppStore spaghetti compatibility wrappers', () => {
@@ -3498,6 +3637,97 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('keeps final-mode authoritative edits scoped to the changed extrude branch after an accepted baseline build', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const requestBuildSpy = vi
+      .spyOn(buildDispatcher, 'requestGraphBuild')
+      .mockReturnValueOnce(701)
+      .mockReturnValueOnce(702)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
+    useSpaghettiStore.getState().setGraph(createParallelExtrudeOutputPreviewGraph())
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    const baselineRequest = requestBuildSpy.mock.calls[0]?.[0]
+    expect(baselineRequest).toEqual(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        }),
+      }),
+    )
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 701,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: baselineRequest!.routingIdentity!.buildRequestId,
+        artifacts: [
+          createExtrudeArtifact('extrude#1'),
+          createExtrudeArtifact('extrude#2'),
+        ],
+        executionIntent: baselineRequest!.executionIntent,
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: baselineRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['extrude#1', 'extrude#2'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-baseline-parallel-extrudes',
+          },
+        }),
+      }),
+    )
+
+    requestBuildSpy.mockClear()
+
+    useSpaghettiStore.getState().setGraph(
+      createParallelExtrudeOutputPreviewGraph({
+        extrudeTwoDepthMm: 45,
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    expect(requestBuildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        }),
+        changedParamIds: ['sp_featureStackIR'],
+        changedInputHint: {
+          kind: 'graph_local_extrude_params',
+          changedNodeId: 'node-extrude-2',
+          changedPartKey: 'extrude#2',
+          changedFields: ['depthResolved'],
+        },
+        buildIdentity: {
+          graphRevision: 2,
+          targetBuildUnitIds: ['output-entry:s002:node-extrude-2'],
+        },
+        invalidation: {
+          affectedBuildUnitIds: ['output-entry:s002:node-extrude-2'],
+        },
+      }),
+    )
+  })
+
   it('queues release graph revisions until the interaction ends and then dispatches authoritative work once', async () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useAppStore } = await import('./useAppStore')
@@ -3662,6 +3892,175 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           geometryTarget: 'authoritative',
           authoritativePolicy: 'live',
         }),
+      }),
+    )
+  })
+
+  it('keeps auto authoritative follow-through scoped to the same changed extrude branch as the accepted draft build', async () => {
+    const { buildDispatcher } = await import('../buildDispatcher')
+    const { selectCurrentProjectId, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+    useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+
+    const requestBuildSpy = vi
+      .spyOn(buildDispatcher, 'requestGraphBuild')
+      .mockReturnValueOnce(801)
+      .mockReturnValueOnce(802)
+      .mockReturnValueOnce(803)
+      .mockReturnValueOnce(804)
+
+    useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'auto')
+    useSpaghettiStore.getState().setGraph(createParallelExtrudeOutputPreviewGraph())
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    const initialDraftRequest = requestBuildSpy.mock.calls[0]?.[0]
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 801,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: initialDraftRequest!.routingIdentity!.buildRequestId,
+        artifacts: [
+          createExtrudeArtifact('extrude#1'),
+          createExtrudeArtifact('extrude#2'),
+        ],
+        executionIntent: initialDraftRequest!.executionIntent,
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: initialDraftRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['extrude#1', 'extrude#2'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(2)
+    const initialAuthoritativeRequest = requestBuildSpy.mock.calls[1]?.[0]
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 802,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: initialAuthoritativeRequest!.routingIdentity!.buildRequestId,
+        artifacts: [
+          createExtrudeArtifact('extrude#1'),
+          createExtrudeArtifact('extrude#2'),
+        ],
+        executionIntent: initialAuthoritativeRequest!.executionIntent,
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: initialAuthoritativeRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['extrude#1', 'extrude#2'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+        authoritativeGeometryResult: createAuthoritativeGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: initialAuthoritativeRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['extrude#1', 'extrude#2'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+          authoritativeHandle: {
+            resourceType: 'shape_set',
+            handleId: 'shape-set-initial-auto-authoritative',
+          },
+        }),
+      }),
+    )
+
+    requestBuildSpy.mockClear()
+
+    useSpaghettiStore.getState().setGraph(
+      createParallelExtrudeOutputPreviewGraph({
+        extrudeTwoDepthMm: 45,
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(1)
+    const narrowedDraftRequest = requestBuildSpy.mock.calls[0]?.[0]
+    expect(narrowedDraftRequest).toEqual(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'draft_preview',
+          draftPolicy: 'live',
+        }),
+        changedParamIds: ['sp_featureStackIR'],
+        changedInputHint: {
+          kind: 'graph_local_extrude_params',
+          changedNodeId: 'node-extrude-2',
+          changedPartKey: 'extrude#2',
+          changedFields: ['depthResolved'],
+        },
+        buildIdentity: {
+          graphRevision: 2,
+          targetBuildUnitIds: ['output-entry:s002:node-extrude-2'],
+        },
+        invalidation: {
+          affectedBuildUnitIds: ['output-entry:s002:node-extrude-2'],
+        },
+      }),
+    )
+
+    useAppStore.getState().acceptBuildResult(
+      createBuildResult({
+        seq: 803,
+        projectFileId: selectCurrentProjectId(useAppStore.getState()),
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: narrowedDraftRequest!.routingIdentity!.buildRequestId,
+        artifacts: [createExtrudeArtifact('extrude#2')],
+        executionIntent: narrowedDraftRequest!.executionIntent,
+        draftGeometryResult: createDraftGeometryResultBundle({
+          request: {
+            graphDocumentId: 'graph-document-1',
+            buildRequestId: narrowedDraftRequest!.routingIdentity!.buildRequestId,
+            partKeys: ['extrude#2'],
+          },
+          bodies: {},
+          meshPreview: null,
+          diagnostics: [],
+          trace: [],
+        }),
+      }),
+    )
+
+    expect(requestBuildSpy).toHaveBeenCalledTimes(2)
+    expect(requestBuildSpy.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        executionIntent: expect.objectContaining({
+          geometryTarget: 'authoritative',
+          authoritativePolicy: 'live',
+        }),
+        changedParamIds: ['sp_featureStackIR'],
+        changedInputHint: {
+          kind: 'graph_local_extrude_params',
+          changedNodeId: 'node-extrude-2',
+          changedPartKey: 'extrude#2',
+          changedFields: ['depthResolved'],
+        },
+        buildIdentity: {
+          graphRevision: 2,
+          targetBuildUnitIds: ['output-entry:s002:node-extrude-2'],
+        },
+        invalidation: {
+          affectedBuildUnitIds: ['output-entry:s002:node-extrude-2'],
+        },
       }),
     )
   })

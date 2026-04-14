@@ -36,6 +36,8 @@ import {
   selectSharedViewerCompositionGraphDocumentIds,
   selectViewerTargetGraphAcceptedAuthoritativeGeometryResult,
   selectViewerTargetGraphAcceptedBuildOutputs,
+  selectViewerTargetGraphAcceptedDraftGeometryResult,
+  selectViewerTargetGraphAcceptedPreviewBuildBundle,
   selectViewerTargetGraphAcceptedPreviewBuildOutputs,
   selectViewerTargetGraphCommittedAuthoritativeGeometryResult,
   selectViewerTargetGraphCommittedDraftGeometryResult,
@@ -1117,6 +1119,227 @@ describe('useSpaghettiStore graph normalization', () => {
     })
   })
 
+  it('acceptGraphBuildResult retains untouched sibling build units when a later request narrows target build units', () => {
+    const updatedCubeArtifact: PartArtifact = {
+      ...cubeArtifact,
+      label: 'Cube Updated',
+      params: { width: 7, length: 8, height: 9 },
+    }
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate', 'cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_full'],
+      pendingStatsPartKeys: ['baseplate', 'cube'],
+      pendingTargetBuildUnitIds: [
+        'output-entry:s001:node-baseplate-1',
+        'output-entry:s002:node-cube-1',
+      ],
+      pendingAffectedBuildUnitIds: [
+        'output-entry:s001:node-baseplate-1',
+        'output-entry:s002:node-cube-1',
+      ],
+      buildRequestId: 'build-request-retained-first',
+      buildSeq: 25,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-retained-first',
+      buildSeq: 25,
+      bundle: createAcceptedBundle({
+        seq: 25,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-retained-first',
+        entries: [
+          {
+            artifact: baseplateArtifact,
+            outputEntryId: 'output-entry:s001:node-baseplate-1',
+            sourceNodeId: 'node-baseplate-1',
+          },
+          {
+            artifact: cubeArtifact,
+            outputEntryId: 'output-entry:s002:node-cube-1',
+            sourceNodeId: 'node-cube-1',
+          },
+        ],
+      }),
+    })
+
+    useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate', 'cube'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_featureStackIR'],
+      pendingStatsPartKeys: ['baseplate', 'cube'],
+      pendingTargetBuildUnitIds: ['output-entry:s002:node-cube-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s002:node-cube-1'],
+      buildRequestId: 'build-request-retained-second',
+      buildSeq: 26,
+    })
+    useSpaghettiStore.getState().acceptGraphBuildResult({
+      projectFileId: 'legacy-runtime-project',
+      graphDocumentId: 'graph-document-1',
+      buildRequestId: 'build-request-retained-second',
+      buildSeq: 26,
+      bundle: createAcceptedBundle({
+        seq: 26,
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-retained-second',
+        entries: [
+          {
+            artifact: updatedCubeArtifact,
+            outputEntryId: 'output-entry:s002:node-cube-1',
+            sourceNodeId: 'node-cube-1',
+          },
+        ],
+      }),
+    })
+
+    expect(
+      useSpaghettiStore.getState().graphRuntimeByDocumentId['graph-document-1']?.acceptedBuildBundle,
+    ).toEqual(
+      expect.objectContaining({
+        summary: {
+          rebuiltCount: 1,
+          retainedCount: 1,
+          evictedCount: 0,
+        },
+        entries: [
+          expect.objectContaining({
+            buildUnitId: 'output-entry:s001:node-baseplate-1',
+            status: 'retained',
+            artifacts: [baseplateArtifact],
+          }),
+          expect.objectContaining({
+            buildUnitId: 'output-entry:s002:node-cube-1',
+            status: 'rebuilt',
+            artifacts: [updatedCubeArtifact],
+          }),
+        ],
+      }),
+    )
+  })
+
+  it('acceptGraphBuildResult promotes current preview outputs without promoting stale draft geometry', () => {
+    const graphDocumentId = 'graph-document-1'
+    const previousPreviewBundle = createAcceptedBundle({
+      seq: 26,
+      graphDocumentId,
+      buildRequestId: 'build-request-preview-previous',
+      entries: [
+        {
+          artifact: baseplateArtifact,
+          outputEntryId: 'output-entry:s001:node-baseplate-1',
+          sourceNodeId: 'node-baseplate-1',
+        },
+      ],
+    })
+    const previousDraftGeometryResult = createAcceptedGeometryResult({
+      graphDocumentId,
+      buildRequestId: 'build-request-preview-previous',
+      partKeys: ['baseplate'],
+    })
+    const updatedBaseplateArtifact: PartArtifact = {
+      ...baseplateArtifact,
+      label: 'Baseplate Updated',
+      params: { width: 11, length: 12, height: 13 },
+    }
+
+    useSpaghettiStore.setState((state) => ({
+      viewerTargetGraphDocumentId: graphDocumentId,
+      graphRuntimeByDocumentId: {
+        ...state.graphRuntimeByDocumentId,
+        [graphDocumentId]: {
+          ...state.graphRuntimeByDocumentId[graphDocumentId]!,
+          compileBuild: {
+            ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
+            currentGraphRevision: 2,
+          },
+          acceptedPreviewGraphRevision: 1,
+          acceptedDraftGraphRevision: 1,
+          acceptedPreviewBuildBundle: previousPreviewBundle,
+          acceptedPreviewBuildOutputs: [baseplateArtifact],
+          acceptedDraftGeometryResult: previousDraftGeometryResult,
+        },
+      },
+    }))
+
+    useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
+      compileResult: {
+        ok: true,
+        diagnostics: { errors: [], warnings: [] },
+        buildInputs: {
+          orderedPartKeys: ['baseplate'],
+          resolvedParts: {},
+        },
+      },
+      previousBuildInputs: null,
+      pendingChangedParamIds: ['sp_featureStackIR'],
+      pendingStatsPartKeys: ['baseplate'],
+      pendingTargetBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      pendingAffectedBuildUnitIds: ['output-entry:s001:node-baseplate-1'],
+      buildRequestId: 'build-request-preview-current',
+      buildSeq: 27,
+    })
+
+    expect(
+      useSpaghettiStore.getState().acceptGraphBuildResult({
+        projectFileId: 'legacy-runtime-project',
+        graphDocumentId,
+        buildRequestId: 'build-request-preview-current',
+        buildSeq: 27,
+        bundle: createAcceptedBundle({
+          seq: 27,
+          graphDocumentId,
+          buildRequestId: 'build-request-preview-current',
+          entries: [
+            {
+              artifact: updatedBaseplateArtifact,
+              outputEntryId: 'output-entry:s001:node-baseplate-1',
+              sourceNodeId: 'node-baseplate-1',
+            },
+          ],
+        }),
+      }),
+    ).toBe(true)
+
+    const state = useSpaghettiStore.getState()
+    const runtime = state.graphRuntimeByDocumentId[graphDocumentId]
+    expect(runtime?.acceptedPreviewGraphRevision).toBe(2)
+    expect(runtime?.acceptedDraftGraphRevision).toBe(1)
+    expect(selectViewerTargetGraphAcceptedPreviewBuildOutputs(state)).toEqual([
+      updatedBaseplateArtifact,
+    ])
+    expect(selectViewerTargetGraphAcceptedPreviewBuildBundle(state)).toEqual(
+      expect.objectContaining({
+        entries: [
+          expect.objectContaining({
+            buildUnitId: 'output-entry:s001:node-baseplate-1',
+            artifacts: [updatedBaseplateArtifact],
+          }),
+        ],
+      }),
+    )
+    expect(selectViewerTargetGraphAcceptedDraftGeometryResult(state)).toBeNull()
+    expect(selectViewerTargetGraphCommittedDraftGeometryResult(state)).toEqual(
+      previousDraftGeometryResult,
+    )
+  })
+
   it('saving to disk clears save state without changing accepted build freshness', async () => {
     useSpaghettiStore.getState().stageGraphBuildRequest('graph-document-1', {
       compileResult: {
@@ -1501,8 +1724,20 @@ describe('useSpaghettiStore graph normalization', () => {
     ])
   })
 
-  it('gates viewer-target accepted preview build outputs by the current accepted draft revision while preserving stored artifacts', () => {
+  it('gates viewer-target accepted preview build outputs by the current accepted preview revision while preserving stored artifacts', () => {
     const graphDocumentId = 'graph-document-1'
+    const previewBundle = createAcceptedBundle({
+      seq: 61,
+      graphDocumentId,
+      buildRequestId: 'build-request-preview-gate',
+      entries: [
+        {
+          artifact: baseplateArtifact,
+          outputEntryId: 'output-entry:s001:node-baseplate-1',
+          sourceNodeId: 'node-baseplate-1',
+        },
+      ],
+    })
 
     useSpaghettiStore.setState((state) => ({
       viewerTargetGraphDocumentId: graphDocumentId,
@@ -1514,7 +1749,9 @@ describe('useSpaghettiStore graph normalization', () => {
             ...state.graphRuntimeByDocumentId[graphDocumentId]!.compileBuild,
             currentGraphRevision: 2,
           },
+          acceptedPreviewGraphRevision: 1,
           acceptedDraftGraphRevision: 1,
+          acceptedPreviewBuildBundle: previewBundle,
           acceptedPreviewBuildOutputs: [baseplateArtifact],
         },
       },
@@ -1527,13 +1764,14 @@ describe('useSpaghettiStore graph normalization', () => {
     expect(selectViewerTargetGraphAcceptedPreviewBuildOutputs(useSpaghettiStore.getState())).toEqual(
       [],
     )
+    expect(selectViewerTargetGraphAcceptedPreviewBuildBundle(useSpaghettiStore.getState())).toBeNull()
 
     useSpaghettiStore.setState((state) => ({
       graphRuntimeByDocumentId: {
         ...state.graphRuntimeByDocumentId,
         [graphDocumentId]: {
           ...state.graphRuntimeByDocumentId[graphDocumentId]!,
-          acceptedDraftGraphRevision: 2,
+          acceptedPreviewGraphRevision: 2,
         },
       },
     }))
@@ -1544,6 +1782,9 @@ describe('useSpaghettiStore graph normalization', () => {
     ).toEqual([baseplateArtifact])
     expect(selectViewerTargetGraphAcceptedPreviewBuildOutputs(useSpaghettiStore.getState())).toEqual(
       [baseplateArtifact],
+    )
+    expect(selectViewerTargetGraphAcceptedPreviewBuildBundle(useSpaghettiStore.getState())).toEqual(
+      previewBundle,
     )
   })
 

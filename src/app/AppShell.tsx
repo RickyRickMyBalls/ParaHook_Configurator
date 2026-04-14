@@ -40,7 +40,10 @@ import {
   selectActiveEditorViewport,
   useSpaghettiStore,
 } from './spaghetti/store/useSpaghettiStore'
-import { useAudioSamplerStore } from './store/audioSamplerStore'
+import {
+  RADIO_SUPPORT_PROFILE,
+  useAudioSamplerStore,
+} from './store/audioSamplerStore'
 import { useAppStore } from './store/useAppStore'
 import { useWorkspaceChildWindow } from './workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
@@ -1095,8 +1098,15 @@ export function AppShell() {
       />
       {leftDockResizeMenuSurface}
       {workspaceSplitMenuSurface}
-      {isRadioToolbarOpen ? <RadioPanel /> : null}
-      <RadioRuntimeHost />
+      <div
+        className="AppShellRadioRuntimeFamily"
+        data-radio-support-classification={RADIO_SUPPORT_PROFILE.classification}
+        data-radio-requires-workspace-surface={`${RADIO_SUPPORT_PROFILE.requiresWorkspaceSurface}`}
+        style={{ display: 'contents' }}
+      >
+        {isRadioToolbarOpen ? <RadioPanel /> : null}
+        <RadioRuntimeHost />
+      </div>
     </div>
   )
 }

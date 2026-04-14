@@ -12,7 +12,10 @@ import {
   ViewportOverlayToolSection,
   type ViewportOverlayToolPanelResizeDirection,
 } from '../components/ViewportOverlayToolPanel'
-import { useAudioSamplerStore } from '../store/audioSamplerStore'
+import {
+  RADIO_SUPPORT_PROFILE,
+  useAudioSamplerStore,
+} from '../store/audioSamplerStore'
 import {
   SAMPLER_NOTE_REPEAT_OPTIONS,
   SAMPLER_STEP_COUNT_OPTIONS,
@@ -416,7 +419,11 @@ export function RadioPanel() {
       }
 
   return (
-    <div className="ViewportOverlayWidget RadioPanelHost">
+    <div
+      className="ViewportOverlayWidget RadioPanelHost"
+      data-radio-support-classification={RADIO_SUPPORT_PROFILE.classification}
+      data-radio-requires-workspace-surface={`${RADIO_SUPPORT_PROFILE.requiresWorkspaceSurface}`}
+    >
       <ViewportOverlayToolPanel
         className="RadioPanel RadioPanel--merged"
         style={{
@@ -427,7 +434,7 @@ export function RadioPanel() {
           height: `${size.height}px`,
         }}
         title="Radio"
-        titleMeta={`${formatRuntimeStatus(radioRuntimeStatus)} | ${radioRuntimeSourceKind}`}
+        titleMeta={`${RADIO_SUPPORT_PROFILE.label} | ${formatRuntimeStatus(radioRuntimeStatus)} | ${radioRuntimeSourceKind}`}
         onTitleBarPointerDown={handleTitleBarPointerDown}
         onResizeHandlePointerDown={handleResizePointerDown}
         titleActions={

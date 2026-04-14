@@ -3,6 +3,7 @@ import {
   DEFAULT_RADIO_WAVEFORM_SAMPLE_COUNT,
   DEFAULT_RADIO_SAMPLE_BURST_TIME,
   DEFAULT_RADIO_URL,
+  RADIO_SUPPORT_PROFILE,
   resetAudioSamplerStore,
   useAudioSamplerStore,
 } from './audioSamplerStore'
@@ -69,6 +70,14 @@ describe('audioSamplerStore', () => {
     const state = useAudioSamplerStore.getState()
     expect(state.isRadioEnabled).toBe(true)
     expect(state.sourceUrl).toBe('https://soundcloud.com/example/track')
+  })
+
+  it('keeps radio classified as an optional background-runtime seam outside workspace surfaces', () => {
+    expect(RADIO_SUPPORT_PROFILE).toEqual({
+      classification: 'optional-background-runtime',
+      label: 'Optional Background Runtime',
+      requiresWorkspaceSurface: false,
+    })
   })
 
   it('keeps sample positions stable until randomize is called', () => {

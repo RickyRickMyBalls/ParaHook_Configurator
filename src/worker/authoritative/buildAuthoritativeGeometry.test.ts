@@ -420,6 +420,135 @@ const multiSketchContributorCompiledBuildData = (): CompiledBuildData => ({
   outputEntries: [],
 })
 
+const sharedSketchSingleSelectionCompiledBuildData = (): CompiledBuildData => ({
+  orderedPartKeys: ['extrude#1', 'extrude#2'],
+  resolvedParts: {},
+  resolvedShared: {
+    sp_featureStackIR: {
+      schemaVersion: 1,
+      parts: {
+        'extrude#1': [
+          {
+            op: 'sketch',
+            featureId: 'shared-sketch-1',
+            profilesResolved: [
+              resolvedProfile('shared-profile-1'),
+              resolvedProfile('shared-profile-2', {
+                verticesProxy: [
+                  { x: 30, y: 0 },
+                  { x: 40, y: 0 },
+                  { x: 40, y: 10 },
+                  { x: 30, y: 10 },
+                ],
+                loop: {
+                  segments: [
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 0 },
+                      b: { x: 40, y: 0 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 0 },
+                      b: { x: 40, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 10 },
+                      b: { x: 30, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 10 },
+                      b: { x: 30, y: 0 },
+                    },
+                  ],
+                  winding: 'CCW' as const,
+                },
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'shared-extrude-1',
+            profileSelection: {
+              mode: 'single' as const,
+              sketchFeatureId: 'shared-sketch-1',
+              profileId: 'shared-profile-1',
+              profileIndex: 0,
+            },
+            profileRef: resolvedProfileRef('shared-sketch-1', 'shared-profile-1'),
+            extrudeType: 'Body',
+            depthResolved: 20,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'shared-body-1',
+          },
+        ],
+        'extrude#2': [
+          {
+            op: 'sketch',
+            featureId: 'shared-sketch-1',
+            profilesResolved: [
+              resolvedProfile('shared-profile-1'),
+              resolvedProfile('shared-profile-2', {
+                verticesProxy: [
+                  { x: 30, y: 0 },
+                  { x: 40, y: 0 },
+                  { x: 40, y: 10 },
+                  { x: 30, y: 10 },
+                ],
+                loop: {
+                  segments: [
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 0 },
+                      b: { x: 40, y: 0 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 0 },
+                      b: { x: 40, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 40, y: 10 },
+                      b: { x: 30, y: 10 },
+                    },
+                    {
+                      kind: 'line2' as const,
+                      a: { x: 30, y: 10 },
+                      b: { x: 30, y: 0 },
+                    },
+                  ],
+                  winding: 'CCW' as const,
+                },
+              }),
+            ],
+          },
+          {
+            op: 'extrude',
+            featureId: 'shared-extrude-2',
+            profileSelection: {
+              mode: 'single' as const,
+              sketchFeatureId: 'shared-sketch-1',
+              profileId: 'shared-profile-2',
+              profileIndex: 1,
+            },
+            profileRef: resolvedProfileRef('shared-sketch-1', 'shared-profile-2'),
+            extrudeType: 'Body',
+            depthResolved: 30,
+            taperResolved: 0,
+            offsetResolved: 0,
+            bodyId: 'shared-body-2',
+          },
+        ],
+      },
+    },
+  },
+  outputEntries: [],
+})
+
 const staleAggregateCompiledBuildData = (): CompiledBuildData => ({
   orderedPartKeys: ['aggregate'],
   resolvedParts: {},
@@ -959,6 +1088,62 @@ describe('buildAuthoritativeGeometry', () => {
     expect(prismVectors).toEqual([
       { x: 0, y: 0, z: 20 },
       { x: 0, y: 0, z: 20 },
+    ])
+    const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId
+    expect(handleId).toBe('shape-set-1')
+    expect(releaseAuthoritativeShapeSets(handleId === undefined ? [] : [handleId])).toBe(1)
+    expect(shapeDelete).toHaveBeenCalledTimes(2)
+    expect(edgeDelete).toHaveBeenCalledTimes(8)
+    expect(wireDelete).toHaveBeenCalledTimes(2)
+    expect(faceDelete).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps single-profile authoritative extrusion stable when parallel branches reuse one sketch feature id', async () => {
+    const shapeDelete = vi.fn()
+    const edgeDelete = vi.fn()
+    const wireDelete = vi.fn()
+    const faceDelete = vi.fn()
+    const wireEdgeCounts: number[] = []
+    const prismVectors: Array<{ x: number; y: number; z: number }> = []
+    getOcMock.mockResolvedValue(
+      createFakeOc({
+        shapeDelete,
+        edgeDelete,
+        wireDelete,
+        faceDelete,
+        recordWireEdgeCount: (count) => wireEdgeCounts.push(count),
+        recordPrismVector: (vector) => prismVectors.push(vector),
+      }),
+    )
+
+    const result = await buildAuthoritativeGeometry({
+      compiledBuildData: sharedSketchSingleSelectionCompiledBuildData(),
+      request: {
+        graphDocumentId: 'graph-document-1',
+        buildRequestId: 'build-request-shared-sketch-single',
+        partKeys: ['extrude#1', 'extrude#2'],
+      },
+    })
+
+    expect(result.authoritativeGeometryResult).toEqual(
+      expect.objectContaining({
+        resultClass: 'authoritative',
+        authoritativeHandle: {
+          resourceType: 'shape_set',
+          handleId: 'shape-set-1',
+        },
+      }),
+    )
+    expect(Object.keys(result.authoritativeGeometryResult?.bodies ?? {})).toEqual([
+      'extrude#1:shared-body-1',
+      'extrude#2:shared-body-2',
+    ])
+    expect(result.authoritativeGeometryResult?.meshPreview).not.toBeNull()
+    expect(getOcMock).toHaveBeenCalledTimes(1)
+    expect(wireEdgeCounts).toEqual([4, 4])
+    expect(prismVectors).toEqual([
+      { x: 0, y: 0, z: 20 },
+      { x: 0, y: 0, z: 30 },
     ])
     const handleId = result.authoritativeGeometryResult?.authoritativeHandle?.handleId
     expect(handleId).toBe('shape-set-1')

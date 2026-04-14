@@ -26,6 +26,7 @@ import {
 } from '../spaghetti/outputSurface'
 import { OUTPUT_PREVIEW_DEFAULT_COMPONENT_LABEL } from '../spaghetti/system/outputPreviewNode'
 import {
+  type BuildChangedInputHint,
   DEFAULT_BUILD_EXECUTION_INTENT,
   type BuildIdentity,
   type BuildInvalidation,
@@ -83,6 +84,7 @@ export type BrowserBuildExecutionTarget = {
 export type GraphDocumentBuildRequestOptions = {
   browserExecutionPolicy?: BrowserBuildPolicy
   explicit?: boolean
+  reuseCurrentAcceptedPreviewComparison?: boolean
   delayedDraftDispatchTrigger?: BuildExecutionIntent['draftPolicy']
   delayedAuthoritativeDispatchTrigger?: BuildExecutionIntent['authoritativePolicy']
   draftPolicyOverride?: BuildExecutionIntent['draftPolicy']
@@ -100,6 +102,7 @@ export type DelayedDraftBuildPlaceholder = {
   buildIdentity: BuildIdentity
   invalidation: BuildInvalidation
   changedParamIds: string[]
+  changedInputHint?: BuildChangedInputHint
   buildStatsPartKeys: string[]
 }
 export type DelayedAuthoritativeBuildPlaceholder = {
@@ -113,6 +116,7 @@ export type DelayedAuthoritativeBuildPlaceholder = {
   buildIdentity: BuildIdentity
   invalidation: BuildInvalidation
   changedParamIds: string[]
+  changedInputHint?: BuildChangedInputHint
   buildStatsPartKeys: string[]
 }
 export type DraftSchedulingRuntimeEventType =
@@ -4340,6 +4344,37 @@ const doesRuntimeHaveCurrentAcceptedResult = (
   )
 }
 
+const resolveRequestComparisonBuildInputs = (
+  runtime: GraphRuntimeState | null,
+  executionIntent: BuildExecutionIntent,
+  options?: GraphDocumentBuildRequestOptions,
+): CompileSpaghettiGraphResult['buildInputs'] | undefined => {
+  const compileBuild = runtime?.compileBuild ?? null
+  const previousBuildInputs = compileBuild?.previousBuildInputs ?? undefined
+  if (
+    options?.reuseCurrentAcceptedPreviewComparison !== true ||
+    executionIntent.geometryTarget !== 'authoritative'
+  ) {
+    return previousBuildInputs
+  }
+
+  const currentGraphRevision = compileBuild?.currentGraphRevision ?? null
+  const latestAcceptedGraphRevision = compileBuild?.latestAcceptedGraphRevision ?? null
+  const comparisonBuildInputs = compileBuild?.comparisonBuildInputs ?? null
+  if (
+    currentGraphRevision === null ||
+    latestAcceptedGraphRevision === null ||
+    latestAcceptedGraphRevision !== currentGraphRevision ||
+    runtime?.acceptedPreviewGraphRevision !== currentGraphRevision ||
+    runtime?.acceptedAuthoritativeGraphRevision === currentGraphRevision ||
+    comparisonBuildInputs === null
+  ) {
+    return previousBuildInputs
+  }
+
+  return comparisonBuildInputs
+}
+
 const requestAutoViewportDraftBuildIfAllowed = (graphDocumentId: string): void => {
   const appState = useAppStore.getState()
   const policy = selectEffectiveBrowserExecutionPolicy(appState, {
@@ -4409,6 +4444,7 @@ const maybeRequestAutoViewportAuthoritativeFollowThrough = (graphDocumentId: str
 
   appState.requestBrowserGraphDocumentBuild(graphDocumentId, {
     geometryTargetOverride: 'authoritative',
+    reuseCurrentAcceptedPreviewComparison: true,
   })
 }
 
@@ -4515,12 +4551,16 @@ const dispatchDelayedGraphBuildPlaceholder = (
     buildIdentity: placeholder.buildIdentity,
     invalidation: placeholder.invalidation,
     changedParamIds: placeholder.changedParamIds,
+    ...(placeholder.changedInputHint === undefined
+      ? {}
+      : { changedInputHint: placeholder.changedInputHint }),
     buildStatsPartKeys: placeholder.buildStatsPartKeys,
   })
   useSpaghettiStore.getState().stageGraphBuildRequest(graphDocumentId, {
     compileResult: placeholder.compileResult,
     previousBuildInputs: placeholder.previousBuildInputs,
     pendingChangedParamIds: placeholder.changedParamIds,
+    pendingChangedInputHint: placeholder.changedInputHint,
     pendingStatsPartKeys: placeholder.buildStatsPartKeys,
     pendingTargetBuildUnitIds: placeholder.buildIdentity.targetBuildUnitIds,
     pendingAffectedBuildUnitIds: placeholder.invalidation.affectedBuildUnitIds,
@@ -4597,22 +4637,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       return compileResult
     }
 
-    const pendingBuildState =
-      selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)?.compileBuild ?? null
-    const previewPreparation =
-      selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)?.previewPreparation ?? null
+    const runtime = selectGraphRuntimeByDocumentId(spaghettiState, graphDocumentId)
+    const pendingBuildState = runtime?.compileBuild ?? null
+    const previewPreparation = runtime?.previewPreparation ?? null
     if (previewPreparation === null) {
       return compileResult
     }
+    const executionIntent = resolveGraphBuildExecutionIntent(graphDocumentId, options)
+    const comparisonBuildInputs = resolveRequestComparisonBuildInputs(
+      runtime,
+      executionIntent,
+      options,
+    )
     const requestBuild = buildRequestFromBuildInputs(
       compileResult.buildInputs,
       previewPreparation,
-      pendingBuildState?.previousBuildInputs ?? undefined,
+      comparisonBuildInputs,
     )
     if (requestBuild.targetBuildUnitIds.length === 0) {
       return compileResult
     }
-    const executionIntent = resolveGraphBuildExecutionIntent(graphDocumentId, options)
     if (
       executionIntent.geometryTarget === 'authoritative' &&
       executionIntent.authoritativePolicy !== 'live' &&
@@ -4626,7 +4670,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             graphDocumentId,
             graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
             compileResult,
-            previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
+            previousBuildInputs: comparisonBuildInputs ?? null,
             executionIntent: { ...executionIntent },
             compiledBuildData: requestBuild.compiledBuildData,
             buildIdentity: {
@@ -4637,6 +4681,9 @@ export const useAppStore = create<AppState>((set, get) => ({
               affectedBuildUnitIds: [...requestBuild.affectedBuildUnitIds],
             },
             changedParamIds: [...requestBuild.changedParamIds],
+            ...(requestBuild.changedInputHint === undefined
+              ? {}
+              : { changedInputHint: requestBuild.changedInputHint }),
             buildStatsPartKeys: [...requestBuild.buildStatsPartKeys],
           },
         },
@@ -4669,7 +4716,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             graphDocumentId,
             graphRevision: pendingBuildState?.currentGraphRevision ?? 0,
             compileResult,
-            previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
+            previousBuildInputs: comparisonBuildInputs ?? null,
             executionIntent: { ...executionIntent },
             compiledBuildData: requestBuild.compiledBuildData,
             buildIdentity: {
@@ -4680,6 +4727,9 @@ export const useAppStore = create<AppState>((set, get) => ({
               affectedBuildUnitIds: [...requestBuild.affectedBuildUnitIds],
             },
             changedParamIds: [...requestBuild.changedParamIds],
+            ...(requestBuild.changedInputHint === undefined
+              ? {}
+              : { changedInputHint: requestBuild.changedInputHint }),
             buildStatsPartKeys: [...requestBuild.buildStatsPartKeys],
           },
         },
@@ -4736,12 +4786,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         affectedBuildUnitIds: requestBuild.affectedBuildUnitIds,
       },
       changedParamIds: requestBuild.changedParamIds,
+      ...(requestBuild.changedInputHint === undefined
+        ? {}
+        : { changedInputHint: requestBuild.changedInputHint }),
       buildStatsPartKeys: requestBuild.buildStatsPartKeys,
     })
     spaghettiState.stageGraphBuildRequest(graphDocumentId, {
       compileResult,
-      previousBuildInputs: pendingBuildState?.previousBuildInputs ?? null,
+      previousBuildInputs: comparisonBuildInputs ?? null,
       pendingChangedParamIds: requestBuild.changedParamIds,
+      pendingChangedInputHint: requestBuild.changedInputHint,
       pendingStatsPartKeys: requestBuild.buildStatsPartKeys,
       pendingTargetBuildUnitIds: requestBuild.targetBuildUnitIds,
       pendingAffectedBuildUnitIds: requestBuild.affectedBuildUnitIds,
@@ -5178,6 +5232,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return get().requestGraphDocumentBuild(graphDocumentId, {
       browserExecutionPolicy: policy,
       explicit: isExplicit,
+      reuseCurrentAcceptedPreviewComparison: options?.reuseCurrentAcceptedPreviewComparison,
       delayedDraftDispatchTrigger:
         options?.delayedDraftDispatchTrigger ?? (releaseAlreadyReached ? 'release' : undefined),
       delayedAuthoritativeDispatchTrigger:

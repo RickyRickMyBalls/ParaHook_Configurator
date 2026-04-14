@@ -65,6 +65,395 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1284 -->
+### [1284] - 2026-04-13 20:49 - `WK - Bug 19 Phase B - Interaction-Time Preview Bundle Fallback For Branch-Local Layers`
+<!-- ENTRY 1284 -->
+HUMAN SUMMARY: `Implemented the Bug 19 Phase B viewport-path fix by teaching \`ViewerHost.tsx\` to fall back to raw runtime accepted preview bundle/output state during active interaction, so rebuilt-only preview overlay data is available early enough to drive the branch-local retained-baseline layer split even when the selector-visible accepted preview bundle is still empty. Added a focused end-to-end two-extrude \`ViewerHost\` proof for that interaction-time fallback and kept the existing branch-local helper and retained-base suppression proofs green.`
+#### Scope / Constraints Honored
+- Kept this pass inside the `Bug 19` viewport-path investigation, specifically the `ViewerHost.tsx` `Phase B - Rebuilt-Only Overlay Source Availability` seam.
+- Preserved the earlier Worker 10 branch-local helper, retained-base freeze, and settled presentation behavior without reopening worker scheduling or selector-owned overlay membership rules.
+- Avoided widening into `previewBrep` throttling, worker/build-policy timing, or broader final-mode redesign work.
+#### Summary of Implementation
+- Added an active-interaction fallback in [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so accepted preview preparation, build bundle, and build outputs can come from raw runtime graph state while the selector-visible accepted preview lane is still gated off by preview-graph revision mismatch.
+- Reused that interaction-time fallback to build both the full-scene stable accepted preview VM and the rebuilt-only accepted preview VM, then allowed the branch-local retained-baseline split to use the full-scene accepted preview parts when the frozen interaction snapshot does not yet contain branch-stable output-entry parts.
+- Added an end-to-end proof in [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) showing a two-extrude active-drag case where the selector-visible accepted preview bundle stays empty but the raw runtime accepted preview state still produces:
+  - unchanged sibling in `baseParts`
+  - changed branch in `baselineParts`
+  - changed rebuilt overlay in `overlayParts`
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+#### Behavior Changes
+- During active interaction, `ViewerHost` can now build branch-local layers from raw runtime accepted preview state even before the selector-visible accepted preview lane becomes current.
+- The rebuilt-only overlay source is now available early enough for the branch-local viewer path in the proven two-extrude drag case, instead of falling back to retained authoritative-only rendering with no overlay.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "uses interaction-time accepted preview bundle fallback so rebuilt-only overlay is available for branch-local layers during drag"`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "uses interaction-time accepted preview bundle fallback so rebuilt-only overlay is available for branch-local layers during drag|builds branch-local retained baseline layers so unchanged siblings stay fully loaded while only the edited branch is dimmed under previewMesh|keeps retained final visible without a whole-scene committed draft overlay in auto mode while waiting for newer live draft work"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1283 -->
+### [1283] - 2026-04-13 19:53 - `WK - Phase Worker 10 Phase 2b.4 - Apply Branch-Local Visual Stability Styling`
+<!-- ENTRY 1283 -->
+HUMAN SUMMARY: `Implemented Worker 10 Phase 2b.4 by adding an explicit viewer-owned branch-local layer split so unchanged siblings can stay fully loaded/base while only the edited branch receives a dimmed retained baseline plus \`previewMesh\` treatment, and added focused viewer-host proof coverage for that layer builder without reopening the earlier preview-scope or settled-base fixes.`
+#### Scope / Constraints Honored
+- Kept this pass inside the `Worker 10 Phase 2b.4` viewer-owned seam for per-object visual stability styling.
+- Preserved the earlier `Phase 1`, `Phase 2`, and `Phase 2b.1` through `Phase 2b.3` selector/runtime behavior without reopening overlay membership or settled loaded-scene completeness.
+- Avoided widening into compare tooling, color-system redesign, worker invalidation changes, or a larger viewer/theming rewrite.
+#### Summary of Implementation
+- Added `baselineParts` support to the viewer layer model in [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so the viewport can render a separate dimmed retained-baseline layer under a live preview overlay.
+- Added a viewer-owned branch-local layering helper in [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) and wired the active interaction path to prefer rebuilt-only accepted preview entries when constructing the edited-branch overlay while keeping a frozen stable base for unchanged siblings.
+- Added focused proof coverage in [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) for the branch-local layer builder and kept the earlier `auto / live` and settled `draft` viewer proofs green.
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+#### Behavior Changes
+- The viewer now has an explicit branch-local retained-baseline layer path, so the edited branch can be dimmed independently from unchanged siblings during local preview churn.
+- Viewer-host layering can now prefer rebuilt-only accepted preview entries for active local edits instead of relying only on the broader selector-owned overlay shape.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "builds branch-local retained baseline layers so unchanged siblings stay fully loaded while only the edited branch is dimmed under previewMesh|renders settled draft artifact-preview truth with lastLoaded base styling in draft mode|keeps retained final visible without a whole-scene committed draft overlay in auto mode while waiting for newer live draft work"`
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts --testNamePattern "keeps retained siblings out of the live preview overlay when only one branch rebuilt|keeps retained siblings visible in settled draft truth when one branch rebuilt|returns auto live to lastLoaded once interaction settles and accepted draft becomes the visible truth"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1282 -->
+### [1282] - 2026-04-13 19:02 - `WK - Phase Worker 10 Phase 2b.3 - Preserve Settled Draft Loaded-Scene Completeness`
+<!-- ENTRY 1282 -->
+HUMAN SUMMARY: `Implemented Worker 10 Phase 2b.3 so settled \`draft\` no longer collapses to only the rebuilt branch when a local edit finishes; if a recomposed accepted preview bundle exists, the visible settled draft scene now keeps retained siblings in the loaded object set while the rebuilt-only preview bridge remains available for live overlay behavior.`
+#### Scope / Constraints Honored
+- Kept this pass inside the `Worker 10 Phase 2b.3` seam: settled loaded-scene completeness only.
+- Preserved rebuilt-only preview overlay behavior during live interaction and preserved the settled-base presentation work from `Phase 2b.1` and `Phase 2b.2`.
+- Avoided widening into per-object dimming, branch-local styling polish, compare-state redesign, or Worker 9 invalidation logic.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.ts`](./src/app/spaghetti/selectors/selectViewportResultState.ts) so settled draft-visible truth can promote the fully recomposed accepted preview bundle as the visible scene when that bundle exists, instead of reusing the rebuilt-only preview bridge as if it were the whole loaded scene.
+- Kept the separate rebuilt-only `previewRenderVm` path intact for live overlay/scoped-preview behavior, while narrowing only the settled visible draft path.
+- Added a focused selector proof in [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) for the two-extrude retained-sibling case after `Extrude 2` settles.
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/CHANGELOG.md`
+#### Behavior Changes
+- In settled `draft`, when one branch rebuilt and a sibling was retained, the visible loaded scene now keeps both objects instead of collapsing to only the rebuilt branch.
+- The rebuilt-only preview bridge still remains narrowed to rebuilt work, so live preview honesty is preserved.
+- Settled `draft` completeness now comes from the recomposed accepted preview bundle when it is available.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts --testNamePattern "keeps retained siblings out of the live preview overlay when only one branch rebuilt|keeps retained siblings visible in settled draft truth when one branch rebuilt|returns idle draft to lastLoaded once accepted draft becomes the settled visible truth"`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "renders settled draft artifact-preview truth with lastLoaded base styling in draft mode"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1281 -->
+### [1281] - 2026-04-13 18:52 - `WK - Phase Worker 10 Phase 2b.2 - Normalize Idle draft To Settled Base Presentation`
+<!-- ENTRY 1281 -->
+HUMAN SUMMARY: `Implemented Worker 10 Phase 2b.2 so idle \`draft\` no longer stays in perpetual yellow \`previewMesh\` styling; once interaction ends, settled accepted draft truth now reads as \`lastLoaded\` base while active \`draft\` interaction still keeps the live preview state.`
+#### Scope / Constraints Honored
+- Kept this pass inside the `Worker 10 Phase 2b.2` seam: idle `draft` presentation normalization only.
+- Preserved active `draft` interaction behavior so `previewMesh` still appears while the user is actively editing.
+- Avoided widening into settled loaded-scene completeness, retained sibling visibility, branch-local per-object styling, or Worker 9 invalidation work.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.ts`](./src/app/spaghetti/selectors/selectViewportResultState.ts) so idle `draft` no longer reports a preview state after interaction ends; instead, settled accepted draft truth now reads as `lastLoaded`.
+- Added the matching visible-presentation normalization in the same selector so idle `draft` uses `lastLoaded` styling for the visible draft base rather than perpetual `previewMesh`.
+- Updated [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) to prove the idle artifact-preview bridge path now renders with `lastLoaded` base styling in `draft`, while the active interaction draft proof still keeps `previewMesh`.
+- Added the focused selector proof in [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) for idle `draft` settling back to `lastLoaded`.
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+#### Behavior Changes
+- In `draft`, active interaction still shows `previewMesh`.
+- In idle `draft`, once interaction has ended, the accepted current draft result now reads as `lastLoaded` instead of staying yellow `previewMesh`.
+- Idle `draft` artifact-preview bridge rendering now uses settled base styling rather than preview styling.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts --testNamePattern "uses current draft geometry as visible preview in draft mode when the artifact preview bridge is empty|returns idle draft to lastLoaded once accepted draft becomes the settled visible truth"`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "renders settled draft artifact-preview truth with lastLoaded base styling in draft mode|renders current draft geometry as a single visible previewMesh layer in draft mode when artifact preview is empty"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1280 -->
+### [1280] - 2026-04-13 18:36 - `WK - Phase Worker 10 Phase 2b.1 - End previewMesh Once auto / live Interaction Settles`
+<!-- ENTRY 1280 -->
+HUMAN SUMMARY: `Implemented Worker 10 Phase 2b.1 so post-release \`auto / live\` no longer leaves accepted draft truth in yellow \`previewMesh\` state; once interaction ends, the viewport now treats the current draft result as the visible \`lastLoaded\` base until a newer authoritative preview is ready.`
+#### Scope / Constraints Honored
+- Kept this pass inside the `Worker 10 Phase 2b.1` seam: `auto / live` post-release presentation only.
+- Preserved active drag behavior so `previewMesh` still appears during live interaction and retained-base freeze behavior from earlier Worker 10 phases stays intact.
+- Avoided widening into idle `draft`, settled loaded-scene completeness, branch-local per-object styling, or Worker 9 invalidation changes.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.ts`](./src/app/spaghetti/selectors/selectViewportResultState.ts) so `auto / live` draft preview presentation ends when interaction ends; the selector now reports settled post-release draft truth as `lastLoaded` instead of persisting `previewMesh`.
+- Added the matching visible-presentation normalization in the same selector so settled `auto / live` draft-visible truth reads as a base presentation rather than an active preview overlay.
+- Updated [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) to honor that selector truth by letting the settled draft result render as the primary visible base in `auto` once there is no longer an active overlay, instead of continuing to pin the old retained final base on screen.
+- Added focused regression proofs in [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) and [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) for the new post-release `auto / live` behavior while preserving the drag-time preview checks.
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/CHANGELOG.md`
+#### Behavior Changes
+- In `auto / live`, active interaction still shows `previewMesh` for the changing draft result.
+- In `auto / live`, once interaction ends and no newer authoritative preview is ready yet, the accepted draft result now becomes the visible `lastLoaded` base instead of remaining yellow `previewMesh`.
+- The old retained final base no longer stays pinned as the visible scene after the interaction has already settled in this specific post-release path.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts --testNamePattern "auto mode while waiting for a newer draft result|returns auto live to lastLoaded once interaction settles and accepted draft becomes the visible truth|previewMesh as the live preview state in auto live interaction"`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx --testNamePattern "keeps retained final visible without a whole-scene committed draft overlay in auto mode while waiting for newer live draft work|renders settled auto live accepted draft as the visible lastLoaded base after interaction ends"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1279 -->
+### [1279] - 2026-04-13 17:36 - `WK - Phase Worker 10 Phase 2 - Auto Retained-Draft Overlay Suppression Follow-Up`
+<!-- ENTRY 1279 -->
+HUMAN SUMMARY: `Patched the remaining first-drag Worker 10 Phase 2 honesty gap by suppressing the broad whole-scene retained-draft overlay in auto mode when a retained final base is already present, so the viewport no longer paints every object yellow before the narrowed rebuilt-only overlay is ready.` 
+#### Scope / Constraints Honored
+- Kept this follow-up inside the shipped `Worker 10 / Phase 2` viewport-overlay seam instead of widening into draft-mode committed-blue presentation, release/promotion behavior, or new worker invalidation logic.
+- Preserved retained final base rendering and preserved narrowed rebuilt-only artifact overlays once they are available.
+- Limited the viewer-layer change to the `auto + retained final base + retained-draft overlay` path so authoritative preview-ready overlays and other rendering modes keep their existing layering behavior.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so the auto-mode retained-final layered viewport path no longer draws the whole-scene `retained-draft` overlay fallback on top of the committed base; it still renders narrowed rebuilt overlays and final overlays normally.
+- Updated [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) to prove the new honest auto-mode behavior, including suppressed broad draft fallback overlays and the draft-preview bridge expectations that still remain valid in draft mode.
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+#### Behavior Changes
+- During the first live drag in auto mode, the retained final base now remains visible by itself until a narrowed overlay is ready instead of showing the broad whole-scene retained-draft mesh as a yellow overlay.
+- Auto mode still layers rebuilt-only artifact overlays and preview-ready authoritative overlays above the retained final base once those narrower overlays are available.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/previewPreparation.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1278 -->
+### [1278] - 2026-04-13 17:17 - `WK - Phase Worker 10 Phase 2 - Project Draft Preview Overlay Narrowing Follow-Up`
+<!-- ENTRY 1278 -->
+HUMAN SUMMARY: `Patched the missed real-app Worker 10 Phase 2 path by making the viewport artifact overlay prefer graph-local rebuilt-only accepted preview bundle renderables over the broad project-draft preview shortcut when both are available, so the two-extrude live-preview case no longer paints both objects yellow just because project composition draft parts were present.` 
+#### Scope / Constraints Honored
+- Kept this follow-up inside the shipped `Worker 10 / Phase 2` overlay-membership seam instead of widening into draft-mode committed styling, viewer release/promotion behavior, or broader project-rendered-part ownership changes.
+- Preserved the project draft preview fallback for cases where no graph-local rebuilt preview bundle renderables are available.
+- Added behavior-focused proof for the exact bypass path where active project draft viewer parts previously overrode the rebuilt-only viewer-target bundle preview.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.ts`](./src/app/spaghetti/selectors/selectViewportResultState.ts) so `buildArtifactPreviewRenderVm(...)` now prefers rebuilt-only viewer-target accepted preview bundle renderables when `previewPreparation` exists and that narrowed overlay path is non-empty, falling back to broad project draft preview parts only when the graph-local rebuilt overlay path has no renderable entries.
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) with a new regression proving that project draft preview no longer overrides the narrowed rebuilt-only overlay for the one-retained-one-rebuilt two-extrude case.
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- When both broad project draft preview parts and a graph-local rebuilt-only accepted preview bundle overlay are available, the viewport now shows the narrowed rebuilt-only overlay instead of the whole project draft preview set.
+- The project draft preview shortcut still remains the fallback when there is no graph-local rebuilt overlay to show.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/previewPreparation.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1277 -->
+### [1277] - 2026-04-13 17:10 - `WK - Phase Worker 10 Phase 2 - Narrow Preview Overlay Membership To Rebuilt Work`
+<!-- ENTRY 1277 -->
+HUMAN SUMMARY: `Implemented the second Worker 10 viewport-honesty slice by adding a rebuilt-only preview-render mode for the viewport artifact overlay, so retained sibling bundle entries no longer become yellow preview geometry during a one-branch rebuild while accepted bundle recomposition truth stays intact for other readers.` 
+#### Scope / Constraints Honored
+- Kept this pass inside `Worker 10 / Phase 2` by narrowing preview overlay membership only, without changing the committed-base freeze from Phase 1, draft-mode committed styling rules, or viewer release/promotion behavior.
+- Preserved accepted bundle recomposition truth in runtime ownership rather than deleting or reclassifying retained bundle entries.
+- Added behavior-focused proof around the exact one-rebuilt-one-retained two-extrude case that was painting both branches as live preview.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/previewPreparation.ts`](./src/app/spaghetti/previewPreparation.ts) to support a rebuilt-only renderable-entry mode, so accepted preview bundle entries marked `retained` no longer automatically satisfy viewport preview renderability while `evicted` handling and the existing all-accepted mode remain intact.
+- Updated [`src/app/spaghetti/selectors/selectPreviewRenderVm.ts`](./src/app/spaghetti/selectors/selectPreviewRenderVm.ts) to thread that renderable-entry mode through the preview render-VM builder and cache contract.
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.ts`](./src/app/spaghetti/selectors/selectViewportResultState.ts) so the viewport artifact preview overlay now requests rebuilt-only renderables, leaving published/accepted preview consumers on the existing all-accepted path.
+- Added focused proof coverage in [`src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`](./src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts) and [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) for the rebuilt-versus-retained two-extrude case.
+#### Files Changed
+- `src/app/spaghetti/previewPreparation.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- In the viewport preview overlay path, a narrowed accepted preview bundle with one `retained` branch and one `rebuilt` branch now renders only the rebuilt branch as yellow live preview geometry.
+- Retained sibling entries remain present in accepted bundle recomposition truth, but they no longer overclaim membership in the viewport’s artifact-preview overlay.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectPreviewRenderVm.test.ts src/app/spaghetti/selectors/selectViewportResultState.test.ts src/app/spaghetti/previewPreparation.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1276 -->
+### [1276] - 2026-04-13 16:57 - `WK - Phase Worker 10 Phase 1 - Freeze The Drag-Time Committed Base`
+<!-- ENTRY 1276 -->
+HUMAN SUMMARY: `Implemented the first Worker 10 viewport-honesty slice by making the drag-time retained final base prefer the true committed authoritative geometry render VM over current preview publication when that committed geometry is renderable, and added a focused two-extrude live-drag selector regression so the old committed shape remains available underneath preview churn without prematurely tackling Phase 2 overlay filtering.`
+#### Scope / Constraints Honored
+- Kept this pass inside `Worker 10 / Phase 1` by fixing selector-side committed-base sourcing only, without widening into preview-overlay membership filtering, viewer-layer styling changes, or broader Worker 9 invalidation work.
+- Preserved the existing preview-state contract so `previewMesh` / `previewBrep` reporting remains intact while the retained base becomes honest again.
+- Added behavior-focused proof around the real live-drag case where current preview publication exists but the retained base still needs to come from the pre-drag committed authoritative lane.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.ts`](./src/app/spaghetti/selectors/selectViewportResultState.ts) so the committed authoritative retained-base render VM now prefers the true committed authoritative geometry render VM whenever it is renderable, falling back to published preview publication only when the committed geometry render VM itself is empty.
+- Updated [`src/app/spaghetti/selectors/selectViewportResultState.test.ts`](./src/app/spaghetti/selectors/selectViewportResultState.test.ts) with a new two-extrude auto-live regression proving that the retained final base stays on `graph-document-1:authoritative-preview` even when current accepted preview publication is available for both output slots.
+#### Files Changed
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- During `auto` + `live` parameter drag, the retained final base now stays sourced from the pre-drag committed authoritative geometry when that geometry is renderable, instead of silently switching to the current preview publication for the same graph.
+- The viewport selector can now preserve the old committed baseline under preview churn even when current preview publication exists for the changed graph, leaving the still-broad preview overlay problem to `Worker 10 / Phase 2`.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1275 -->
+### [1275] - 2026-04-13 16:17 - `WK - Phase Worker 9 - Scoped Auto Follow-Through Preservation`
+<!-- ENTRY 1275 -->
+HUMAN SUMMARY: `Fixed the Worker 9 Phase 2 miss in auto preview mode by preserving the accepted draft request's comparison baseline into the automatic authoritative follow-through path, so a local extrude drag no longer widens back to both output branches with empty changed-param metadata, and added focused app-level regressions for both final-mode and auto-follow-through branch scoping.`
+#### Scope / Constraints Honored
+- Kept this pass inside the Worker 9 request-dispatch seam instead of widening into worker execution, viewport rendering, or Browser/content ownership behavior.
+- Fixed the auto authoritative follow-through request shape directly rather than masking the issue in runtime inspector presentation.
+- Added behavior-focused coverage around the exact parallel-extrude graph shape that reproduced the broad follow-through request.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so auto authoritative follow-through requests can reuse the current accepted preview revision's comparison baseline when the authoritative lane is stale against the same graph revision.
+- Updated [`src/app/spaghetti/store/useSpaghettiStore.ts`](./src/app/spaghetti/store/useSpaghettiStore.ts) to retain the comparison baseline and pending changed-input hint metadata alongside staged build requests, giving the follow-through path an honest source for the same local invalidation scope.
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) with focused regressions proving both final-mode authoritative edits and auto authoritative follow-through stay scoped to `extrude#2` after a local depth edit.
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/store/useAppStore.test.ts`
+#### Behavior Changes
+- Auto preview mode now keeps the authoritative follow-through build narrowed to the same affected output branch as the accepted draft build when the graph revision has not changed.
+- Local extrude edits no longer degrade into `changedParamIds: []` plus all-output-entry targeting on the follow-through authoritative request for the same current preview revision.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/store/useAppStore.test.ts --testNamePattern "keeps auto authoritative follow-through scoped to the same changed extrude branch as the accepted draft build|keeps final-mode authoritative edits scoped to the changed extrude branch after an accepted baseline build|dispatches draft-visible auto work first and then follows with authoritative live work once current draft truth is accepted"`
+- `cmd /c npm.cmd test -- src/app/spaghetti/integration/buildInputsToRequest.test.ts src/worker/pipeline/paramRouting.test.ts src/worker/pipeline/buildPipeline.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1274 -->
+### [1274] - 2026-04-13 15:58 - `WK - Phase Worker 9 - Authoritative Shared-Sketch Single-Profile Fix`
+<!-- ENTRY 1274 -->
+HUMAN SUMMARY: `Patched the final-lane authoritative geometry bug for parallel extrudes that reuse one sketch feature with different single-profile selections by teaching \`buildAuthoritativeGeometry.ts\` to resolve those selections through the keyed sketch-profile lookup instead of the lossy per-sketch overwrite map, and added a focused regression for the exact shared-sketch graph shape.` 
+#### Scope / Constraints Honored
+- Kept this pass inside the authoritative worker seam without widening into broader `Worker 9` routing, preview recomposition, or graph-file migration work.
+- Fixed the shared-sketch single-profile resolution path directly instead of papering over the failure in app/runtime acceptance layers.
+- Added a behavior-focused regression around the real parallel shared-sketch shape that had stopped reaching `final`.
+#### Summary of Implementation
+- Updated [`src/worker/authoritative/buildAuthoritativeGeometry.ts`](./src/worker/authoritative/buildAuthoritativeGeometry.ts) so single-profile authoritative resolution now prefers the keyed `sketchFeatureId + profileId` lookup, which stays stable when multiple parts reuse the same sketch feature id.
+- Updated [`src/worker/authoritative/buildAuthoritativeGeometry.test.ts`](./src/worker/authoritative/buildAuthoritativeGeometry.test.ts) with a new shared-sketch parallel-extrude regression proving that two single-profile branches now both mint authoritative bodies instead of collapsing one branch out of the final lane.
+#### Files Changed
+- `src/worker/authoritative/buildAuthoritativeGeometry.ts`
+- `src/worker/authoritative/buildAuthoritativeGeometry.test.ts`
+#### Behavior Changes
+- Parallel extrudes that reuse one shared sketch feature and select different single profiles can now reach authoritative `final` geometry together instead of dropping one branch and returning no authoritative result.
+- The authoritative single-profile path now matches the more specific profile lookup behavior already used by the `profileRef` fallback.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/worker/authoritative/buildAuthoritativeGeometry.test.ts src/worker/buildModel.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1273 -->
+### [1273] - 2026-04-13 15:38 - `WK - Phase Worker 9 - Preview Acceptance Freshness Split For Partial Rebuilds`
+<!-- ENTRY 1273 -->
+HUMAN SUMMARY: `Patched the Phase 2 preview acceptance bug by splitting accepted preview bundle/output freshness from draft-geometry freshness in \`useSpaghettiStore.ts\`, so narrowed local rebuilds can surface current recomposed preview outputs without incorrectly blessing stale draft geometry as current.` 
+#### Scope / Constraints Honored
+- Kept this fix inside the accepted-preview runtime seam without widening into broader `Worker 9 / Phase 3` recomposition work or changing worker routing.
+- Preserved the existing draft-geometry freshness gate so partial local rebuilds still do not expose stale draft geometry as current.
+- Added behavior-focused regression coverage around the real `acceptGraphBuildResult` path instead of loosening selectors with a selector-only shortcut.
+#### Summary of Implementation
+- Updated [`src/app/spaghetti/store/useSpaghettiStore.ts`](./src/app/spaghetti/store/useSpaghettiStore.ts) to add a dedicated `acceptedPreviewGraphRevision` lane, gate accepted preview bundle/output selectors on that lane, and advance it when accepted preview bundles/outputs become current for the graph revision.
+- Updated [`src/app/spaghetti/store/useSpaghettiStore.test.ts`](./src/app/spaghetti/store/useSpaghettiStore.test.ts) to prove preview bundle/output gating now follows the preview revision lane and to cover the narrowed local rebuild acceptance case where preview outputs become current while draft geometry remains stale-gated.
+#### Files Changed
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+#### Behavior Changes
+- Viewer-target accepted preview bundles and preview build outputs now become current when a narrowed local rebuild accepts current preview artifacts, even if that build intentionally omits a new draft geometry lane.
+- Viewer-target accepted draft/preview geometry remains gated by the draft-geometry revision, so older draft geometry is not surfaced as current during partial rebuild acceptance.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "preview"`
+- `cmd /c npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "acceptGraphBuildResult promotes current preview outputs|accepted preview build outputs by the current accepted preview revision|stageAuthoritativePreviewGraphBuildResult"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1272 -->
+### [1272] - 2026-04-13 15:19 - `WK - Phase Worker 9 Phase 2 - Worker Downstream-Only Routing For Parallel Extrude Branches`
+<!-- ENTRY 1272 -->
+HUMAN SUMMARY: `Implemented the first real Worker 9 narrowing pass by teaching worker routing to consume the landed \`changedInputHint\` contract, scoping local extrude execution to the changed branch in \`buildPipeline.ts\` `, narrowing graph-native target build units in \`buildInputsToRequest.ts\` `so untouched siblings stay retained at acceptance time, and adding focused worker/runtime proof coverage around the first parallel-extrude branch case.`
+#### Scope / Constraints Honored
+- Kept this pass inside `Worker 9 / Phase 2` by narrowing the first local-versus-shared worker execution scope without widening into full `Output Preview` recomposition or broader non-extrude dependency analysis.
+- Preserved `changedParamIds` as the compatibility fallback while making the new `changedInputHint` contract the preferred graph-native narrowing signal.
+- Avoided replacing accepted geometry lanes with partial scoped geometry by omitting narrowed geometry results from the worker result when the execution scope is intentionally partial.
+#### Summary of Implementation
+- Updated [`src/worker/pipeline/paramRouting.ts`](./src/worker/pipeline/paramRouting.ts) so worker affected-part routing now prefers `changedInputHint`, narrowing local extrude edits to the changed part key and widening shared-upstream hints only to the changed downstream branches.
+- Updated [`src/worker/pipeline/buildPipeline.ts`](./src/worker/pipeline/buildPipeline.ts) so the first local branch proof now scopes actual worker execution to the affected part keys, uses part-local signatures for stable sibling cache identity, and emits narrowed partial bundles instead of treating every `sp_featureStackIR` edit as full-request work.
+- Updated [`src/app/spaghetti/integration/buildInputsToRequest.ts`](./src/app/spaghetti/integration/buildInputsToRequest.ts) so local branch hints now narrow `targetBuildUnitIds` and `affectedBuildUnitIds` to the changed branch build units, which keeps accepted bundle finalization from evicting untouched siblings.
+- Added focused proof coverage in [`src/worker/pipeline/paramRouting.test.ts`](./src/worker/pipeline/paramRouting.test.ts), [`src/worker/pipeline/buildPipeline.test.ts`](./src/worker/pipeline/buildPipeline.test.ts), [`src/app/spaghetti/integration/buildInputsToRequest.test.ts`](./src/app/spaghetti/integration/buildInputsToRequest.test.ts), and [`src/app/spaghetti/store/useSpaghettiStore.test.ts`](./src/app/spaghetti/store/useSpaghettiStore.test.ts) for the first local branch proof and retained-sibling acceptance outcome.
+#### Files Changed
+- `src/worker/pipeline/paramRouting.ts`
+- `src/worker/pipeline/paramRouting.test.ts`
+- `src/worker/pipeline/buildPipeline.ts`
+- `src/worker/pipeline/buildPipeline.test.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.test.ts`
+- `docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 9 - Affected Subgraph Invalidation And Retained Sibling Recomposition.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Branch-local extrude edits now narrow worker execution to the changed branch instead of forcing broad full-request worker work just because `changedParamIds` still carries `sp_featureStackIR`.
+- Shared-upstream sketch changes still widen worker execution to the downstream branches that actually depend on that shared source.
+- Accepted bundle finalization can now retain untouched sibling build units when a later local-branch build lands with narrowed target build units.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/worker/pipeline/paramRouting.test.ts src/worker/pipeline/buildPipeline.test.ts src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `cmd /c npm.cmd test -- src/app/spaghetti/store/useSpaghettiStore.test.ts --testNamePattern "retains untouched sibling build units"`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1271 -->
+### [1271] - 2026-04-13 15:03 - `WK - Phase Worker 9 Phase 1 - Changed-Input Classification And First Extrude-Local Hints`
+<!-- ENTRY 1271 -->
+HUMAN SUMMARY: `Implemented the first Worker 9 request-contract slice by adding a typed \`changedInputHint\` payload on graph-native build requests, deriving the first local-extrude versus shared-upstream classifications from worker-facing \`sp_featureStackIR\` diffs in \`buildInputsToRequest.ts\` `, and hardening the dispatcher/worker boundary plus focused proof coverage around that new hint without widening into Phase 2 routing yet.`
+#### Scope / Constraints Honored
+- Kept this pass inside `Worker 9 / Phase 1` request-contract preparation instead of changing `paramRouting.ts`, `buildModel.ts`, or downstream affected-build-unit execution behavior.
+- Preserved the existing `changedParamIds` path and `sp_featureStackIR` transport so later worker phases can adopt the new hint incrementally instead of forcing a wide contract replacement.
+- Left target and affected build-unit selection broad for now, matching the documented stop rule that Phase 1 should classify changes honestly before Phase 2 narrows worker routing.
+#### Summary of Implementation
+- Extended [`src/shared/buildTypes.ts`](./src/shared/buildTypes.ts) with the new `BuildChangedInputHint` union plus runtime validation so build requests can carry either `graph_local_extrude_params` or `graph_shared_upstream` hints.
+- Updated [`src/app/buildDispatcher.ts`](./src/app/buildDispatcher.ts), [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts), and [`src/worker/worker.ts`](./src/worker/worker.ts) so immediate and delayed graph-document build requests preserve the optional `changedInputHint` field end to end and the worker rejects invalid hint shapes at the boundary.
+- Updated [`src/app/spaghetti/integration/buildInputsToRequest.ts`](./src/app/spaghetti/integration/buildInputsToRequest.ts) so worker-facing feature-stack diffs now derive the first honest classification split: a single unchanged-structure extrude branch produces a local extrude hint, while sketch or broader feature-stack changes produce a shared-upstream hint with changed part keys and upstream sketch node ids.
+- Added focused proof coverage in [`src/shared/buildTypes.test.ts`](./src/shared/buildTypes.test.ts), [`src/app/spaghetti/integration/buildInputsToRequest.test.ts`](./src/app/spaghetti/integration/buildInputsToRequest.test.ts), [`src/app/buildDispatcher.test.ts`](./src/app/buildDispatcher.test.ts), and [`src/worker/worker.test.ts`](./src/worker/worker.test.ts), including the explicit parallel-extrude control graph and direct dispatcher/worker boundary assertions.
+#### Files Changed
+- `src/shared/buildTypes.ts`
+- `src/shared/buildTypes.test.ts`
+- `src/app/buildDispatcher.ts`
+- `src/app/buildDispatcher.test.ts`
+- `src/app/store/useAppStore.ts`
+- `src/worker/worker.ts`
+- `src/worker/worker.test.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.ts`
+- `src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+#### Behavior Changes
+- Graph-native build requests can now include `changedInputHint` when the app can classify the current `sp_featureStackIR` delta as either a local extrude-parameter change or a shared upstream graph change.
+- Parallel branches that only change one extrude node now keep the existing broad invalidation behavior but carry an honest local hint describing the changed node, part key, and extrude fields for later worker routing phases.
+- Invalid `changedInputHint` payloads are now rejected at the worker boundary instead of silently entering the build pipeline.
+#### Verification Steps
+- `cmd /c npm.cmd test -- src/shared/buildTypes.test.ts src/app/spaghetti/integration/buildInputsToRequest.test.ts`
+- `cmd /c npm.cmd test -- src/app/buildDispatcher.test.ts src/worker/worker.test.ts`
+- `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1270 -->
+### [1270] - 2026-04-13 14:40 - `Cleanup 10 - Phase 5 - Prove One Narrow Optional-Family Scope Decision`
+<!-- ENTRY 1270 -->
+HUMAN SUMMARY: `Implemented the first Cleanup 10 proof slice by adding an explicit \`RADIO_SUPPORT_PROFILE\` classification seam in \`src/app/store/audioSamplerStore.ts\` `, wiring that optional-background-runtime read through \`src/app/AppShell.tsx\` `and \`src/app/hosts/RadioRuntimeHost.tsx\` `, and surfacing one tiny consumer label in \`src/app/panels/RadioPanel.tsx\` `so radio now reads as a supported optional background runtime without being silently onboarded into \`WorkspaceSurfaceKind\`.` 
+#### Scope / Constraints Honored
+- Kept this pass inside the locked `Cleanup 10 / Phase 5` radio owner-and-decision band instead of widening into Dashboard or Notepad cleanup, workspace shell redesign, or broader optional-family packaging.
+- Left [`src/app/workspace/workspaceShellTypes.ts`](./src/app/workspace/workspaceShellTypes.ts) and [`src/app/workspace/workspaceSurfaceCatalog.ts`](./src/app/workspace/workspaceSurfaceCatalog.ts) unchanged so the optional-workspace baseline stayed intact.
+- Repointed only one tiny downstream consumer seam in [`src/app/panels/RadioPanel.tsx`](./src/app/panels/RadioPanel.tsx) rather than letting the panel become the owner of the support decision.
+#### Summary of Implementation
+- Added [`RADIO_SUPPORT_PROFILE`](./src/app/store/audioSamplerStore.ts) in [`src/app/store/audioSamplerStore.ts`](./src/app/store/audioSamplerStore.ts) as the explicit radio support-classification seam, making the optional-background-runtime decision and non-workspace-surface rule canonical in the owner band.
+- Updated [`src/app/AppShell.tsx`](./src/app/AppShell.tsx) so the shell now mounts the radio cluster through one explicit `AppShellRadioRuntimeFamily` seam carrying the support classification instead of leaving the radio pair as an unlabeled shell sidecar.
+- Updated [`src/app/hosts/RadioRuntimeHost.tsx`](./src/app/hosts/RadioRuntimeHost.tsx) so the hidden SoundCloud bridge carries the same explicit classification markers as the store-owned support seam.
+- Updated [`src/app/panels/RadioPanel.tsx`](./src/app/panels/RadioPanel.tsx) so the merged toolbar exposes one tiny visible `Optional Background Runtime` label while preserving the existing radio and sampler UI structure.
+- Added focused proof in [`src/app/store/audioSamplerStore.test.ts`](./src/app/store/audioSamplerStore.test.ts), [`src/app/hosts/RadioRuntimeHost.test.tsx`](./src/app/hosts/RadioRuntimeHost.test.tsx), [`src/app/panels/RadioPanel.test.tsx`](./src/app/panels/RadioPanel.test.tsx), and [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx), and completed the paired phase record in [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-10 - Optional Workspace Family Scope Decisions.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-10%20-%20Optional%20Workspace%20Family%20Scope%20Decisions.md).
+#### Files Changed
+- [`src/app/store/audioSamplerStore.ts`](./src/app/store/audioSamplerStore.ts)
+- [`src/app/AppShell.tsx`](./src/app/AppShell.tsx)
+- [`src/app/hosts/RadioRuntimeHost.tsx`](./src/app/hosts/RadioRuntimeHost.tsx)
+- [`src/app/panels/RadioPanel.tsx`](./src/app/panels/RadioPanel.tsx)
+- [`src/app/store/audioSamplerStore.test.ts`](./src/app/store/audioSamplerStore.test.ts)
+- [`src/app/hosts/RadioRuntimeHost.test.tsx`](./src/app/hosts/RadioRuntimeHost.test.tsx)
+- [`src/app/panels/RadioPanel.test.tsx`](./src/app/panels/RadioPanel.test.tsx)
+- [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx)
+- [`docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase Cleanup-10 - Optional Workspace Family Scope Decisions.md`](./docs/Human-Plans/Architecture/Cleanup/Future/Cleanup_Phase%20Cleanup-10%20-%20Optional%20Workspace%20Family%20Scope%20Decisions.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- The live radio seam now explicitly identifies itself as an optional background-runtime family that does not require workspace-surface onboarding.
+- The radio toolbar title metadata now shows `Optional Background Runtime` while radio remains outside `WorkspaceSurfaceKind`.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/store/audioSamplerStore.test.ts src/app/hosts/RadioRuntimeHost.test.tsx src/app/panels/RadioPanel.test.tsx`
+- Passed `cmd /c npm.cmd test -- src/app/AppShell.test.tsx -t "radio"`
+- Passed `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1269 -->
 ### [1269] - 2026-04-13 13:32 - `Cleanup 9 - Phase 5 - Browser And Console Graph-Target Intent Proof`
 <!-- ENTRY 1269 -->

@@ -1,6 +1,7 @@
 # 0 - Bug Report
 
 ## Doc History
+12. 2026-04-13 20:00:17: Added `Bug 19` for the remaining viewport behavior that may still diverge from the newly explicit `Worker 11` presentation contract, linking the new note into the master bug list as the current investigation surface for symptom-by-symptom checks across `auto / live`, `draft`, `final`, and branch-local visual stability after the recent Worker 10 viewport work
 11. 2026-04-04 21:31: Added `Bug 12` for the still-open post-`Extrude-1A` viewport mismatch where `Geometry/Sketch -> Geometry/Extrude -> OutputPreview` now honors plane placement better but the blue body can still drift from the live sketch coordinates or stay behind while sketch origin/plane draft moves, and linked the new note into the master bug list as the active follow-on to the older extrude preview bug family
 10. 2026-04-01 10:42: Added `Bug 11` for the new post-`Workspace 7.5-5` multi-floating `Spaghetti Editor` blank-screen regression, indexing the report that opening a second floating editor can still collapse the visible app into the same dark blank-screen family and linking the new note into the master bug list as the current follow-on to the earlier workspace blank-surface bugs
 9. 2026-03-30 14:42: Added `Bug 10` to capture the stronger Console-versus-Spaghetti popup comparison finding, indexing the fact that Console popout already works as a single-owner child-window surface while Spaghetti popup still mixes workspace placement truth with legacy viewport/runtime truth, and linked the new note into the master bug list as the concrete repair-planning companion to `Bug 9`
@@ -66,6 +67,7 @@ It is mainly:
 
 Current practical order:
 
+- `Bug 19` - Worker 11 viewport presentation contract gap still needs symptom-by-symptom classification
 - `Bug 11` - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
 - `Bug 12` - Geometry/Sketch extrude preview drifts from live sketch coordinates
 - `Bug 9` - Workspace 5.2 detached Spaghetti Editor popup opens blank
@@ -93,10 +95,49 @@ Current practical order:
 - `Bug 10` - `[planned]` - Workspace 5.2 detached Spaghetti popup still mixes workspace and legacy viewport ownership unlike Console
 - `Bug 11` - `[investigating]` - Workspace 7.5-5 opening a second floating Spaghetti editor can blank the app
 - `Bug 12` - `[investigating]` - Geometry/Sketch extrude preview can still drift from live sketch coordinates or lag behind sketch origin / plane draft edits
+- `Bug 19` - `[investigating]` - Live viewport behavior may still diverge from the explicit Worker 11 presentation contract across `auto / live`, `draft`, `final`, or branch-local visual stability
 
 
 
 ## Current Known Bugs
+
+### Bug 19 - Live viewport behavior may still diverge from the explicit Worker 11 presentation contract
+
+Status:
+- `[investigating]`
+
+Problem:
+- `Worker 11` now defines the intended viewport presentation contract explicitly across:
+  - `auto / live`
+  - `draft`
+  - `final`
+  - branch-local visual stability
+- but live viewport behavior may still disagree with that contract in one or more states
+- the current need is to compare each observed symptom directly against `Worker 11` before deciding whether the next fix belongs to already-shipped Worker 10 work, the still-open `Worker 10 Phase 3`, or a separate new bug
+
+Strongest current likely cause:
+- not yet one confirmed root cause
+- the current strongest need is symptom classification against contract truth rather than another mixed patch
+- likely remaining seams are still in the viewport presentation read-through band across:
+  - selector-owned result-state truth
+  - viewer-host layering
+  - viewer layer rendering
+
+Likely ownership:
+- `WK`
+- `VR`
+
+Likely files:
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `src/app/spaghetti/selectors/selectViewportResultState.ts`
+- `src/app/spaghetti/selectors/selectViewportResultState.test.ts`
+- `src/viewer/Viewer.ts`
+
+Related docs:
+- `/docs/Bugs/19_2026-04-13_20-00-17_worker-11-viewport-presentation-contract-gap.md`
+- `/docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 10 - Last-Committed Viewport Baseline During Live Preview.md`
+- `/docs/Human-Plans/Architecture/Worker/Future/Worker_Phase Worker 11 - Viewport Result Presentation Contract.md`
 
 ### Bug 12 - Geometry/Sketch extrude preview can still drift from live sketch coordinates
 

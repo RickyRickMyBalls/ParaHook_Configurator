@@ -4,7 +4,11 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { RadioPanel } from './RadioPanel'
-import { resetAudioSamplerStore, useAudioSamplerStore } from '../store/audioSamplerStore'
+import {
+  RADIO_SUPPORT_PROFILE,
+  resetAudioSamplerStore,
+  useAudioSamplerStore,
+} from '../store/audioSamplerStore'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -62,8 +66,14 @@ describe('RadioPanel', () => {
   it('renders the transport and sampler sections from canonical radio state', async () => {
     await renderPanel()
 
+    const host = container?.querySelector('.RadioPanelHost')
+    expect(host?.getAttribute('data-radio-support-classification')).toBe(
+      RADIO_SUPPORT_PROFILE.classification,
+    )
+    expect(host?.getAttribute('data-radio-requires-workspace-surface')).toBe('false')
     expect(container?.textContent).toContain('Radio')
     expect(container?.textContent).toContain('Sampler')
+    expect(container?.textContent).toContain(RADIO_SUPPORT_PROFILE.label)
     expect(container?.textContent).toContain('https://soundcloud.com/keota-us/gusano')
     expect(container?.textContent).toContain('Ready')
     expect(container?.textContent).toContain('0:30 / 2:00')

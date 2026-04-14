@@ -301,6 +301,10 @@ const resolveExtrudeSketchProfiles = (
     sketchFeatureId: string,
     profileId: string,
   ): SketchProfileRuntime[] | null => {
+    const keyedProfile = lookup.profilesByKey.get(`${sketchFeatureId}:${profileId}`)
+    if (keyedProfile !== undefined) {
+      return [keyedProfile]
+    }
     const sketch = lookup.sketches.get(sketchFeatureId)
     const profile = sketch?.profilesById.get(profileId)
     return profile === undefined ? null : [profile]

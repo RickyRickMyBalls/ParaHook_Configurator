@@ -1,4 +1,8 @@
-import { partKeyToString, type PartKey } from '../../shared/buildTypes'
+import {
+  partKeyToString,
+  type BuildChangedInputHint,
+  type PartKey,
+} from '../../shared/buildTypes'
 
 const parseTargetPartKey = (prefix: string): PartKey | null => {
   if (prefix === 'bp') {
@@ -18,10 +22,35 @@ const parseTargetPartKey = (prefix: string): PartKey | null => {
   return null
 }
 
+const getHintAffectedPartKeys = (
+  changedInputHint: BuildChangedInputHint | undefined,
+  orderedKeys: readonly string[],
+): string[] | null => {
+  if (changedInputHint === undefined) {
+    return null
+  }
+
+  if (changedInputHint.kind === 'graph_local_extrude_params') {
+    return orderedKeys.includes(changedInputHint.changedPartKey)
+      ? [changedInputHint.changedPartKey]
+      : null
+  }
+
+  const changedPartKeySet = new Set(changedInputHint.changedPartKeys)
+  const matchedKeys = orderedKeys.filter((partKey) => changedPartKeySet.has(partKey))
+  return matchedKeys.length > 0 ? matchedKeys : null
+}
+
 export const computeAffectedPartKeys = (
   changedParamIds: string[] | undefined,
   orderedKeys: readonly string[],
+  changedInputHint?: BuildChangedInputHint,
 ): string[] => {
+  const hintAffectedPartKeys = getHintAffectedPartKeys(changedInputHint, orderedKeys)
+  if (hintAffectedPartKeys !== null) {
+    return hintAffectedPartKeys
+  }
+
   if (changedParamIds === undefined || changedParamIds.length === 0) {
     return [...orderedKeys]
   }

@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+23. 2026-04-13 14:45:19: Closed out `Cleanup 10 - Optional Workspace Family Scope Decisions` as a shipped cleanup lane after its optional-family boundary baseline, scope-drift inventory, decision-rule lock, first proof-boundary lock, narrow `radio` optional-background-runtime proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the optional-family scope-decision lane now reads as completed history before the later naming/docs hardening follow-on
+22. 2026-04-13 13:58:45: Added the standalone future phase doc for `Cleanup 11 - Naming, Docs, And Honest Label Hardening`, grounding the final cleanup lane in the cleanup vision's naming/docs honesty rule, the shipped `Cleanup 10` optional-family scope baseline, and the live stale-label seams across build/runtime ids, workspace compatibility bridges, dashboard persistence keys, and terminology docs so the family ladder now points at a real implementation-ready planning surface under `Cleanup/Future/`
+21. 2026-04-13 13:49:59: Added the standalone future phase doc for `Cleanup 10 - Optional Workspace Family Scope Decisions`, grounding the next cleanup lane in the cleanup vision's explicit keep-isolate-retire rule for secondary surfaces, the shipped `Cleanup 4A` workspace-surface taxonomy baseline, and the live `dashboard`, `notepad`, and `radio` seams across the workspace catalog, AppShell hosts, stores, persistence, and runtime mounts so the family ladder now points at a real implementation-ready planning surface under `Cleanup/Future/`
 20. 2026-04-13 13:45:19: Closed out `Cleanup 9 - Browser And Console Complexity Reduction` as a shipped cleanup lane after its Browser/Console boundary baseline, owner-drift inventory, split-rule lock, first sink-reduction proof boundary, narrow shared graph-target proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the Browser/Console cleanup lane now reads as completed history before later optional-surface and naming follow-ons
 19. 2026-04-13 12:43:45: Added the standalone future phase doc for `Cleanup 9 - Browser And Console Complexity Reduction`, grounding the next cleanup lane in the cleanup vision's large-controller warning plus the live Browser and Console sink surfaces in `useBrowserPanelController.ts`, `stagedNavigation.ts`, `useConsoleInteraction.ts`, and `workspaceIntents.ts`, and turning the family-ladder placeholder into a real implementation-ready planning surface under `Cleanup/Future/`
 18. 2026-04-13 12:40:33: Closed out `Cleanup 8A - Feature-Stack And Graph-Native CAD Contract Convergence` as a shipped cleanup lane after its convergence-boundary baseline, hybrid-contract inventory, shared-core rule, family-local boundary lock, narrow Geometry seam proof, and final proof-plus-handoff closeout all landed, moved its standalone phase record into `Cleanup/Shipped/`, and refreshed the family ladder so the authored-contract lane now reads as completed history before later Browser/Console and naming follow-ons
@@ -422,7 +425,7 @@ Target result:
 Standalone phase doc:
 - `Shipped/Cleanup_Phase Cleanup-9 - Browser And Console Complexity Reduction.md`
 
-## [ ] Cleanup 10 - Optional Workspace Family Scope Decisions
+## [x] Cleanup 10 - Optional Workspace Family Scope Decisions
 
 This is the product-scope cleanup phase.
 
@@ -442,6 +445,9 @@ Target result:
 - optional surfaces stop distorting core architecture by accident
 - docs and folder weight better match true product scope
 
+Standalone phase doc:
+- `Shipped/Cleanup_Phase Cleanup-10 - Optional Workspace Family Scope Decisions.md`
+
 ## [ ] Cleanup 11 - Naming, Docs, And Honest Label Hardening
 
 This is the final cleanup-shape phase.
@@ -458,6 +464,9 @@ Initial focus:
 Target result:
 - names and docs describe the real system instead of preserving old architecture stories
 - the cleanup family can hand off with clearer terminology and less drift
+
+Standalone phase doc:
+- `Future/Cleanup_Phase Cleanup-11 - Naming, Docs, And Honest Label Hardening.md`
 
 ### Suggested Near-Term Family Order
 

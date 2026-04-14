@@ -562,4 +562,125 @@ describe('selectPreviewRenderVm', () => {
       'extrude:node-extrude-1:body:001',
     ])
   })
+
+  it('can narrow overlay membership to rebuilt bundle entries only while preserving retained bundle truth elsewhere', () => {
+    const preparation: GraphPreviewPreparation = {
+      outputPreviewNodeId: 'node-output-preview-1',
+      outputSlotIds: ['s001', 's002'],
+      previewCandidateSlotIds: ['s001', 's002'],
+      previewCandidatePartKeys: ['extrude-1', 'extrude-2'],
+      sourceNodeIdBySlotId: {
+        s001: 'node-extrude-1',
+        s002: 'node-extrude-2',
+      },
+      sourcePartKeyBySlotId: {
+        s001: 'extrude-1',
+        s002: 'extrude-2',
+      },
+      sourcePortIdBySlotId: {
+        s001: 'out:extrude-1',
+        s002: 'out:extrude-2',
+      },
+      sourcePartKeyByNodeId: {
+        'node-extrude-1': 'extrude-1',
+        'node-extrude-2': 'extrude-2',
+      },
+      slotStatusBySlotId: {
+        s001: 'ok',
+        s002: 'ok',
+      },
+      buildStatsReadyPartKeys: [],
+      previewIntent: 'outputPreview',
+    }
+    const retainedArtifact: PartArtifact = {
+      id: 'extrude-1',
+      label: 'Extrude 1',
+      kind: 'box',
+      params: { width: 20, length: 20, height: 20 },
+      partKeyStr: 'extrude-1',
+      partKey: { id: 'extrude-1', instance: null },
+    }
+    const rebuiltArtifact: PartArtifact = {
+      id: 'extrude-2',
+      label: 'Extrude 2',
+      kind: 'box',
+      params: { width: 10, length: 20, height: 20 },
+      partKeyStr: 'extrude-2',
+      partKey: { id: 'extrude-2', instance: null },
+    }
+    const acceptedBundle: BuildResultBundle = {
+      buildRequestId: 'build-request-rebuilt-only-overlay',
+      graphDocumentId: 'graph-document-1',
+      seq: 2,
+      resultClass: 'draft',
+      executionIntent: {
+        buildMode: 'preview',
+        quality: 'draft',
+        updatePolicy: 'auto',
+        draftPolicy: 'live',
+        authoritativePolicy: 'explicit',
+        outputIntent: 'transient_preview',
+        geometryTarget: 'draft_preview',
+      },
+      summary: {
+        rebuiltCount: 1,
+        retainedCount: 1,
+        evictedCount: 0,
+      },
+      entries: [
+        {
+          buildUnitId: 'output-entry:s001:node-extrude-1',
+          outputEntryId: 'output-entry:s001:node-extrude-1',
+          sourceNodeId: 'node-extrude-1',
+          status: 'retained',
+          resultClass: 'draft',
+          artifacts: [retainedArtifact],
+        },
+        {
+          buildUnitId: 'output-entry:s002:node-extrude-2',
+          outputEntryId: 'output-entry:s002:node-extrude-2',
+          sourceNodeId: 'node-extrude-2',
+          status: 'rebuilt',
+          resultClass: 'draft',
+          artifacts: [rebuiltArtifact],
+        },
+      ],
+    }
+
+    const allAcceptedVm = selectPreviewRenderVmFromPreparation(
+      preparation,
+      [retainedArtifact, rebuiltArtifact],
+      acceptedBundle,
+    )
+    const rebuiltOnlyVm = selectPreviewRenderVmFromPreparation(
+      preparation,
+      [retainedArtifact, rebuiltArtifact],
+      acceptedBundle,
+      'rebuiltOnly',
+    )
+
+    expect(allAcceptedVm.viewerParts.map((item) => item.artifact.partKeyStr)).toEqual([
+      'extrude-1',
+      'extrude-2',
+    ])
+    expect(rebuiltOnlyVm.items.map((item) => ({
+      outputEntryId: item.outputEntryId,
+      isReady: item.isReady,
+      renderable: item.renderable?.partKeyStr ?? null,
+    }))).toEqual([
+      {
+        outputEntryId: 'output-entry:s001:node-extrude-1',
+        isReady: false,
+        renderable: null,
+      },
+      {
+        outputEntryId: 'output-entry:s002:node-extrude-2',
+        isReady: true,
+        renderable: 'extrude-2',
+      },
+    ])
+    expect(rebuiltOnlyVm.viewerParts.map((item) => item.artifact.partKeyStr)).toEqual([
+      'extrude-2',
+    ])
+  })
 })
