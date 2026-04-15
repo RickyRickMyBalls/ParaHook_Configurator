@@ -326,6 +326,18 @@ describe('CameraController', () => {
     expect(perspectiveCamera.up.z).toBeCloseTo(0, 6)
   })
 
+  it('keeps upright free-cam yaw level even after prior fly roll', () => {
+    const { controller, perspectiveCamera } = createController()
+
+    controller.beginFlyMode()
+    controller.applyFlyRollDelta(Math.PI / 3)
+    controller.applyFlyLookDeltaUpright(40, 0)
+
+    expect(perspectiveCamera.up.x).toBeCloseTo(0, 6)
+    expect(perspectiveCamera.up.y).toBeCloseTo(1, 6)
+    expect(perspectiveCamera.up.z).toBeCloseTo(0, 6)
+  })
+
   it('restores exact y-up orbit after exiting fly mode from a pitched orientation', () => {
     const { controller, perspectiveCamera } = createController()
 

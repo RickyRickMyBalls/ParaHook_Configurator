@@ -365,6 +365,56 @@ export class CameraController {
     this.controls.update()
   }
 
+  public applyFlyLookDeltaUpright(deltaX: number, deltaY: number): void {
+    if (this.projectionMode !== 'perspective' || (deltaX === 0 && deltaY === 0)) {
+      return
+    }
+
+    if (this.flyMode === null) {
+      this.applyFlyLookDelta(deltaX, deltaY)
+      return
+    }
+
+    this.cameraTransition = null
+    const elementHeight = Math.max(this.controls.domElement?.clientHeight ?? 1, 1)
+    const twoPi = Math.PI * 2
+    const yaw = (-twoPi * deltaX) / elementHeight
+    const pitch = (-twoPi * deltaY) / elementHeight
+
+    this.tmpForward.set(0, 0, -1).applyQuaternion(this.flyMode.orientation).normalize()
+    this.tmpUp.set(0, 1, 0)
+    this.tmpYawQuaternion.setFromAxisAngle(this.tmpUp, yaw)
+    this.tmpForward.applyQuaternion(this.tmpYawQuaternion).normalize()
+
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      this.tmpRight.set(1, 0, 0).applyQuaternion(this.flyMode.orientation)
+      this.tmpRight.addScaledVector(this.tmpForward, -this.tmpRight.dot(this.tmpForward))
+      if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+        this.tmpRight.set(1, 0, 0)
+      } else {
+        this.tmpRight.normalize()
+      }
+    }
+
+    this.tmpPitchQuaternion.setFromAxisAngle(this.tmpRight, pitch)
+    this.tmpForward.applyQuaternion(this.tmpPitchQuaternion).normalize()
+
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      this.tmpRight.set(1, 0, 0)
+    }
+    this.tmpUp.crossVectors(this.tmpRight, this.tmpForward).normalize()
+
+    this.perspectiveCamera.up.copy(this.tmpUp)
+    this.controls.target
+      .copy(this.perspectiveCamera.position)
+      .addScaledVector(this.tmpForward, this.flyMode.targetDistance)
+    this.perspectiveCamera.lookAt(this.controls.target)
+    this.flyMode.orientation.copy(this.perspectiveCamera.quaternion).normalize()
+    this.syncPerspectiveCameraFromFlyMode()
+  }
+
   public applyFlyRollDelta(deltaRadians: number): void {
     if (this.projectionMode !== 'perspective' || deltaRadians === 0) {
       return

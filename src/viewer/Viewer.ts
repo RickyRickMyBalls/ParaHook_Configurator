@@ -143,7 +143,7 @@ type FlySession = {
   pointerLockActive: boolean
 }
 const DEFAULT_FLY_ACTIVATION_MODE: FlyActivationMode = 'right-click'
-const DEFAULT_FLY_MODE_TYPE: FlyModeType = 'drone'
+const DEFAULT_FLY_MODE_TYPE: FlyModeType = 'free-cam'
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
@@ -2157,8 +2157,11 @@ export class Viewer {
     this.flySession.lastClientY = event.clientY
     event.preventDefault()
     event.stopPropagation()
-    this.cameraController.applyFlyLookDelta(deltaX, deltaY)
-    this.syncFreeCamOrientationIfNeeded()
+    if (this.flyModeType === 'free-cam') {
+      this.cameraController.applyFlyLookDeltaUpright(deltaX, deltaY)
+    } else {
+      this.cameraController.applyFlyLookDelta(deltaX, deltaY)
+    }
   }
 
   private handleFlyKeyDown(event: KeyboardEvent): void {

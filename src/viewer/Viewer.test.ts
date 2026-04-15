@@ -12,6 +12,7 @@ const cameraControllerMocks = vi.hoisted(() => ({
     beginFlyMode: ReturnType<typeof vi.fn>
     endFlyMode: ReturnType<typeof vi.fn>
     applyFlyLookDelta: ReturnType<typeof vi.fn>
+    applyFlyLookDeltaUpright: ReturnType<typeof vi.fn>
     applyFlyRollDelta: ReturnType<typeof vi.fn>
     restoreFlyUpright: ReturnType<typeof vi.fn>
     animateToDirection: ReturnType<typeof vi.fn>
@@ -133,6 +134,7 @@ vi.mock('./scene/CameraController', async () => {
     }
 
     public readonly applyFlyLookDelta = vi.fn()
+    public readonly applyFlyLookDeltaUpright = vi.fn()
     public readonly applyFlyRollDelta = vi.fn()
     public readonly restoreFlyUpright = vi.fn()
     public readonly beginTemporaryOrbitDrag = vi.fn()
@@ -538,6 +540,7 @@ describe('Viewer baseline replacement', () => {
 
     const controller = cameraControllerMocks.instances[0]!
     ;(viewer as unknown as { clock: { getDelta: () => number } }).clock.getDelta = () => 1
+    ;(viewer as unknown as { setFlyModeType: (mode: 'drone' | 'free-cam') => void }).setFlyModeType('drone')
 
     canvas.dispatchEvent(
       new PointerEvent('pointerdown', {
@@ -666,6 +669,7 @@ describe('Viewer baseline replacement', () => {
     canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
 
     const controller = cameraControllerMocks.instances[0]!
+    ;(viewer as unknown as { setFlyModeType: (mode: 'drone' | 'free-cam') => void }).setFlyModeType('drone')
 
     canvas.dispatchEvent(
       new PointerEvent('pointerdown', {
@@ -1116,6 +1120,7 @@ describe('Viewer baseline replacement', () => {
 
     const controller = cameraControllerMocks.instances[0]!
     ;(viewer as unknown as { clock: { getDelta: () => number } }).clock.getDelta = () => 1
+    ;(viewer as unknown as { setFlyModeType: (mode: 'drone' | 'free-cam') => void }).setFlyModeType('drone')
 
     canvas.dispatchEvent(
       new PointerEvent('pointerdown', {
@@ -1193,10 +1198,12 @@ describe('Viewer baseline replacement', () => {
     const flyRollViewer = viewer as unknown as {
       getFlyRollSpeed: () => number
       setFlyRollSpeed: (speed: number) => void
+      setFlyModeType: (mode: 'drone' | 'free-cam') => void
       renderLoop: () => void
     }
 
     expect(flyRollViewer.getFlyRollSpeed()).toBeCloseTo(Math.PI * 0.75, 6)
+    flyRollViewer.setFlyModeType('drone')
 
     canvas.dispatchEvent(
       new PointerEvent('pointerdown', {
@@ -1279,6 +1286,9 @@ describe('Viewer baseline replacement', () => {
       renderLoop: () => void
     }
 
+    expect(flyModeTypeViewer.getFlyModeType()).toBe('free-cam')
+
+    flyModeTypeViewer.setFlyModeType('drone')
     expect(flyModeTypeViewer.getFlyModeType()).toBe('drone')
 
     canvas.dispatchEvent(
@@ -1316,8 +1326,9 @@ describe('Viewer baseline replacement', () => {
       }),
     )
 
-    expect(controller.applyFlyLookDelta).toHaveBeenCalledWith(18, 12)
-    expect(controller.restoreFlyUpright).toHaveBeenCalledTimes(2)
+    expect(controller.applyFlyLookDeltaUpright).toHaveBeenCalledWith(18, 12)
+    expect(controller.applyFlyLookDelta).not.toHaveBeenCalled()
+    expect(controller.restoreFlyUpright).toHaveBeenCalledTimes(1)
 
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'q', bubbles: true, cancelable: true }))
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true, cancelable: true }))

@@ -65,6 +65,57 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1344 -->
+### [1344] - 2026-04-15 00:19 - `VT - Free Cam Default Fly Mode Type`
+<!-- ENTRY 1344 -->
+HUMAN SUMMARY: `Changed the default fly-mode type from \`Drone\` to \`Free Cam\` so new fly sessions now start in the upright no-bank mode unless the user explicitly switches back.` 
+#### Scope / Constraints Honored
+- Kept the change narrow to the fly-mode-type default seam.
+- Preserved the existing `Drone` mode and the visible `Fly Mode Type` selector.
+#### Summary of Implementation
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so the viewer-owned default fly-mode type is now `free-cam`.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) so viewer behavior proof now expects `Free Cam` as the startup mode and explicitly opts into `Drone` only for tests that are proving drone-specific roll/look behavior.
+#### Files Changed
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- New viewers now start with `Free Cam` as the active fly-mode type by default.
+- `Drone` remains available as an explicit selectable mode.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1343 -->
+### [1343] - 2026-04-15 00:04 - `VT - Free Cam Upright Yaw Fix`
+<!-- ENTRY 1343 -->
+HUMAN SUMMARY: `Fixed \`Free Cam\` so left/right look no longer keeps the same drone-style banking feel by routing it through an upright yaw/look path directly instead of relying on post-look upright cleanup alone.`
+#### Scope / Constraints Honored
+- Kept the fix narrow to the shipped `Free Cam` behavior seam.
+- Left `Drone` behavior unchanged and preserved the existing toolbar/viewer fly-type split.
+#### Summary of Implementation
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) to add `applyFlyLookDeltaUpright()`, which yaws around world-up and reconstructs an upright fly orientation directly for `Free Cam`.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so `Free Cam` now uses the new upright look path instead of the standard drone-like look path plus post-look cleanup.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) so the viewer-level proof now checks that `Free Cam` routes look input through the upright look seam.
+- Added real camera-behavior proof in [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts) that yaw in upright free-cam stays level even after prior fly roll.
+#### Files Changed
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- In `Free Cam`, left/right look should now stay upright instead of retaining the same visible banking feel as `Drone`.
+- Manual roll input remains ignored in `Free Cam`.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1342 -->
 ### [1342] - 2026-04-14 23:57 - `VT - Fly-Mode 1 Phase 6 - Fly Mode Type Split: Drone And Free Cam`
 <!-- ENTRY 1342 -->
