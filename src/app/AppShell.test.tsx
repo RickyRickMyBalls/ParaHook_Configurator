@@ -123,10 +123,12 @@ vi.mock('./workspace/ViewportWorkspaceHost', () => ({
   ViewportWorkspaceHost: ({
     viewportId,
     onActivateViewerSurface,
+    reserveBottomConsoleBar = false,
     onViewportContextMenu,
   }: {
     viewportId: string
     onActivateViewerSurface: (viewportId: string) => void
+    reserveBottomConsoleBar?: boolean
     onViewportContextMenu?: (
       viewportId: string,
       event: ReactMouseEvent<HTMLDivElement>,
@@ -135,6 +137,7 @@ vi.mock('./workspace/ViewportWorkspaceHost', () => ({
     <div
       className="ViewportWorkspaceHost"
       data-workspace-viewport-id={viewportId}
+      data-bottom-console-bar-reserved={reserveBottomConsoleBar ? 'true' : 'false'}
       onPointerDownCapture={() => onActivateViewerSurface(viewportId)}
       onContextMenu={(event) => onViewportContextMenu?.(viewportId, event)}
     >
@@ -1006,6 +1009,60 @@ describe('AppShell', () => {
     expect(
       viewportHost?.querySelector('.RightDock[data-workspace-viewport-id="model-viewer-primary"]'),
     ).not.toBeNull()
+  })
+
+  it('reserves the bottom console bar only for the primary docked model viewport host', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const getPrimaryHost = () =>
+      container?.querySelector(
+        '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-primary"]',
+      ) as HTMLDivElement | null
+
+    expect(getPrimaryHost()?.dataset.bottomConsoleBarReserved).toBe('true')
+
+    await act(async () => {
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+        surfaceInstanceId: 'model-viewer-secondary',
+      })
+    })
+
+    const secondaryHost = container?.querySelector(
+      '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-secondary"]',
+    ) as HTMLDivElement | null
+    expect(secondaryHost?.dataset.bottomConsoleBarReserved).toBe('false')
+
+    await act(async () => {
+      useConsoleStore.setState((state) => ({
+        ...state,
+        windowMode: 'floating',
+      }))
+    })
+
+    expect(getPrimaryHost()?.dataset.bottomConsoleBarReserved).toBe('false')
+
+    await act(async () => {
+      useConsoleStore.setState((state) => ({
+        ...state,
+        windowMode: 'popout',
+      }))
+    })
+
+    expect(getPrimaryHost()?.dataset.bottomConsoleBarReserved).toBe('false')
+
+    await act(async () => {
+      useConsoleStore.setState((state) => ({
+        ...state,
+        windowMode: 'docked',
+      }))
+      useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'console',
+        surfaceInstanceId: 'console-surface-reserved-test',
+      })
+    })
+
+    expect(getPrimaryHost()?.dataset.bottomConsoleBarReserved).toBe('false')
   })
 
   it('mounts the generator title status bar inside the viewport area', async () => {

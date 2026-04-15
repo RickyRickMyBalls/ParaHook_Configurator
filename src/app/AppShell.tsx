@@ -419,6 +419,8 @@ export function AppShell() {
     viewportSlotsById,
     workspaceSplitMenu,
   })
+  const shouldReservePrimaryViewportBottomConsoleBar =
+    consoleWindowMode === 'docked' && !suppressLegacyDockedConsoleSurface
   const browserSlotCountRef = useRef(browserSlotCount)
   const getDefaultDetachedViewerFloatingRect = useCallback(
     (surface: WorkspaceDetachedSlotSurfaceState): DetachedViewerFloatingRect => {
@@ -905,6 +907,7 @@ export function AppShell() {
       onLeftDockSplitTogglePointerDown={handleLeftDockSplitTogglePointerDown}
       onLeftDockSplitToggleClick={handleLeftDockSplitToggleClick}
       resolvePrimaryLeftDockBottomInset={resolvePrimaryLeftDockBottomInset}
+      reservePrimaryViewportBottomConsoleBar={shouldReservePrimaryViewportBottomConsoleBar}
     />
   )
   const detachedViewerWindows = detachedViewerFloatingSurfaces.map((surface) => {

@@ -257,6 +257,36 @@
   gap: 5px;
 }
 
+.ViewToolbarRoot .ParaSliderContent {
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.ViewToolbarRoot .ParaSelectContent {
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.ViewToolbarRoot button.ParaSliderCap,
+.ViewToolbarRoot button.ParaSelectCap {
+  font-size: 10px;
+}
+
+.ViewToolbarRoot .ParaSliderLabel,
+.ViewToolbarRoot .ParaSliderValue,
+.ViewToolbarRoot .ParaSliderValueInput,
+.ViewToolbarRoot button.ParaSliderValueButton,
+.ViewToolbarRoot .ParaSelectLabel,
+.ViewToolbarRoot .ParaSelectValue,
+.ViewToolbarRoot button.ParaSelectMenuOption,
+.ViewToolbarRoot button.ParaSelectMenuAction {
+  font-size: 10px;
+}
+
+.ViewToolbarRoot .ParaSelectChevron {
+  font-size: 10px;
+}
+
 .CameraButton:hover {
   background: linear-gradient(180deg, #3a3f48 0%, #2f353f 100%);
   border-color: rgba(255, 255, 255, 0.28);

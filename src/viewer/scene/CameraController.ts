@@ -416,6 +416,39 @@ export class CameraController {
     this.controls.update()
   }
 
+  public restoreFlyUpright(): void {
+    if (this.projectionMode !== 'perspective' || this.flyMode === null) {
+      return
+    }
+
+    this.cameraTransition = null
+    this.tmpForward.set(0, 0, -1).applyQuaternion(this.flyMode.orientation).normalize()
+    if (!Number.isFinite(this.tmpForward.lengthSq()) || this.tmpForward.lengthSq() < 1e-8) {
+      this.tmpForward.set(0, 0, -1)
+    }
+
+    this.tmpUp.set(0, 1, 0)
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      this.tmpRight.set(1, 0, 0).applyQuaternion(this.flyMode.orientation)
+      this.tmpRight.addScaledVector(this.tmpForward, -this.tmpRight.dot(this.tmpForward))
+      if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+        this.tmpRight.set(1, 0, 0)
+      } else {
+        this.tmpRight.normalize()
+      }
+    }
+
+    this.tmpUp.crossVectors(this.tmpRight, this.tmpForward).normalize()
+    this.perspectiveCamera.up.copy(this.tmpUp)
+    this.controls.target
+      .copy(this.perspectiveCamera.position)
+      .addScaledVector(this.tmpForward, this.flyMode.targetDistance)
+    this.perspectiveCamera.lookAt(this.controls.target)
+    this.flyMode.orientation.copy(this.perspectiveCamera.quaternion).normalize()
+    this.syncPerspectiveCameraFromFlyMode()
+  }
+
   public translateFly(forwardDistance: number, rightDistance: number, upDistance: number): void {
     if (
       this.projectionMode !== 'perspective' ||

@@ -75,6 +75,7 @@ type WorkspaceViewportTreeProps = {
   onLeftDockSplitTogglePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void
   onLeftDockSplitToggleClick: (event: ReactMouseEvent<HTMLButtonElement>) => void
   resolvePrimaryLeftDockBottomInset: (slotLeafNodeId: WorkspaceLayoutNodeId) => string
+  reservePrimaryViewportBottomConsoleBar?: boolean
   splitDividerSize?: number
 }
 
@@ -110,6 +111,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onLeftDockSplitTogglePointerDown,
     onLeftDockSplitToggleClick,
     resolvePrimaryLeftDockBottomInset,
+    reservePrimaryViewportBottomConsoleBar = false,
     splitDividerSize = 10,
   } = props
   const viewportChromeById = useWorkspaceStore((state) => state.viewportChromeById)
@@ -236,6 +238,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
               viewportId={slot.surfaceInstanceId}
               onActivateViewerSurface={onActivateViewerSurface}
               onViewportContextMenu={onOpenViewportSpawnMenu}
+              reserveBottomConsoleBar={isPrimarySlot && reservePrimaryViewportBottomConsoleBar}
             />
           </>
         ) : (

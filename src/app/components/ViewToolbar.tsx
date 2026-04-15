@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type {
   LightSpec,
   LightType,
@@ -18,10 +18,14 @@ import {
   useSpaghettiStore,
 } from '../spaghetti/store/useSpaghettiStore'
 import {
+  type FlyActivationMode,
+  type FlyModeType,
   getViewer,
+  subscribeViewer,
   type CameraPreset,
   type GizmoMode,
   type GizmoSpace,
+  type ViewerApi,
 } from '../viewerBridge'
 import {
   frameAllCommand,
@@ -55,11 +59,25 @@ const axisLabelSizeOptions = [
   { value: 'medium', label: 'Medium' },
   { value: 'large', label: 'Large' },
 ]
+const flyActivationModeOptions = [
+  { value: 'right-click', label: 'Right Click' },
+  { value: 'always-on', label: 'Always On' },
+]
+const flyModeTypeOptions = [
+  { value: 'drone', label: 'Drone' },
+  { value: 'free-cam', label: 'Free Cam' },
+]
+const MIN_FLY_ROLL_SPEED_RADIANS_PER_SEC = 0
+const MAX_FLY_ROLL_SPEED_RADIANS_PER_SEC = Math.PI * 2
+const FLY_ROLL_SPEED_STEP_RADIANS_PER_SEC = 0.05
 
 const numericValue = (value: string, fallback: number): number => {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
 }
+
+const formatFlyRollSpeedDegreesPerSec = (speed: number): string =>
+  `${Math.round((speed * 180) / Math.PI)} deg/s`
 
 const getLightTypeDefaults = (type: LightType): Partial<LightSpec> => {
   if (type === 'directional') {
@@ -199,6 +217,9 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const [snapTranslate, setSnapTranslate] = useState('10')
   const [snapRotate, setSnapRotate] = useState('15')
   const [snapScale, setSnapScale] = useState('0.1')
+  const [flyActivationMode, setFlyActivationMode] = useState<FlyActivationMode | null>(null)
+  const [flyModeType, setFlyModeType] = useState<FlyModeType | null>(null)
+  const [flyRollSpeed, setFlyRollSpeed] = useState<number | null>(null)
   const [addLightType, setAddLightType] = useState<LightType>('point')
   const [addLightName, setAddLightName] = useState('')
   const [viewToolbarMaxHeight, setViewToolbarMaxHeight] = useState<number | null>(null)
@@ -236,10 +257,150 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     })
   }
 
+  useEffect(() => {
+    const syncFlyActivationMode = (viewer: ViewerApi | null): void => {
+      if (
+        viewer === null ||
+        typeof viewer.getFlyActivationMode !== 'function' ||
+        typeof viewer.setFlyActivationMode !== 'function'
+      ) {
+        setFlyActivationMode(null)
+        return
+      }
+      setFlyActivationMode(viewer.getFlyActivationMode())
+    }
+
+    let attachedViewer: ViewerApi | null = null
+    const attach = (viewer: ViewerApi | null): void => {
+      attachedViewer?.setOnFlyActivationModeChange?.(null)
+      attachedViewer = viewer
+      syncFlyActivationMode(viewer)
+      viewer?.setOnFlyActivationModeChange?.((mode) => {
+        setFlyActivationMode(mode)
+      })
+    }
+
+    attach(getViewer(viewportId))
+    const unsubscribe = subscribeViewer((viewer) => {
+      attach(viewer)
+    }, viewportId)
+
+    return () => {
+      attachedViewer?.setOnFlyActivationModeChange?.(null)
+      unsubscribe()
+    }
+  }, [viewportId])
+
+  useEffect(() => {
+    const syncFlyModeType = (viewer: ViewerApi | null): void => {
+      if (
+        viewer === null ||
+        typeof viewer.getFlyModeType !== 'function' ||
+        typeof viewer.setFlyModeType !== 'function'
+      ) {
+        setFlyModeType(null)
+        return
+      }
+      setFlyModeType(viewer.getFlyModeType())
+    }
+
+    let attachedViewer: ViewerApi | null = null
+    const attach = (viewer: ViewerApi | null): void => {
+      attachedViewer?.setOnFlyModeTypeChange?.(null)
+      attachedViewer = viewer
+      syncFlyModeType(viewer)
+      viewer?.setOnFlyModeTypeChange?.((mode) => {
+        setFlyModeType(mode)
+      })
+    }
+
+    attach(getViewer(viewportId))
+    const unsubscribe = subscribeViewer((viewer) => {
+      attach(viewer)
+    }, viewportId)
+
+    return () => {
+      attachedViewer?.setOnFlyModeTypeChange?.(null)
+      unsubscribe()
+    }
+  }, [viewportId])
+
+  useEffect(() => {
+    const syncFlyRollSpeed = (viewer: ViewerApi | null): void => {
+      if (
+        viewer === null ||
+        typeof viewer.getFlyRollSpeed !== 'function' ||
+        typeof viewer.setFlyRollSpeed !== 'function'
+      ) {
+        setFlyRollSpeed(null)
+        return
+      }
+      setFlyRollSpeed(viewer.getFlyRollSpeed())
+    }
+
+    let attachedViewer: ViewerApi | null = null
+    const attach = (viewer: ViewerApi | null): void => {
+      attachedViewer?.setOnFlyRollSpeedChange?.(null)
+      attachedViewer = viewer
+      syncFlyRollSpeed(viewer)
+      viewer?.setOnFlyRollSpeedChange?.((speed) => {
+        setFlyRollSpeed(speed)
+      })
+    }
+
+    attach(getViewer(viewportId))
+    const unsubscribe = subscribeViewer((viewer) => {
+      attach(viewer)
+    }, viewportId)
+
+    return () => {
+      attachedViewer?.setOnFlyRollSpeedChange?.(null)
+      unsubscribe()
+    }
+  }, [viewportId])
+
   const toggleGizmo = () => {
     const next = !gizmoEnabled
     setGizmoEnabled(next)
     withViewer((viewer) => viewer.setGizmoEnabled(next))
+  }
+
+  const handleFlyRollSpeedChange = (speed: number) => {
+    withViewer((viewer) => {
+      if (typeof viewer.setFlyRollSpeed !== 'function') {
+        return
+      }
+      viewer.setFlyRollSpeed(speed)
+      if (typeof viewer.getFlyRollSpeed === 'function') {
+        setFlyRollSpeed(viewer.getFlyRollSpeed())
+      }
+    })
+  }
+
+  const handleFlyActivationModeChange = (mode: string) => {
+    withViewer((viewer) => {
+      if (typeof viewer.setFlyActivationMode !== 'function') {
+        return
+      }
+      const nextMode = mode as FlyActivationMode
+      viewer.setFlyActivationMode(nextMode)
+      if (typeof viewer.getFlyActivationMode === 'function') {
+        setFlyActivationMode(viewer.getFlyActivationMode())
+      }
+    })
+  }
+
+  const handleFlyModeTypeChange = (mode: string) => {
+    withViewer((viewer) => {
+      if (typeof viewer.setFlyModeType !== 'function') {
+        return
+      }
+      const nextMode = mode as FlyModeType
+      viewer.setFlyModeType(nextMode)
+      if (typeof viewer.getFlyModeType === 'function') {
+        setFlyModeType(viewer.getFlyModeType())
+      }
+    })
   }
 
   const setGizmoModeValue = (mode: GizmoMode) => {
@@ -257,8 +418,14 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     ? viewToolbarExpandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
     : viewToolbarCompactAxisWidgetSize ?? COMPACT_AXIS_WIDGET_SIZE
   const rightDockWidth = resolveRightDockWidth(resolvedAxisWidgetSize)
+  const dockedConsoleCollapsedReserve = 45
+  const dockedConsoleExpandedGap = 20
   const dockedConsoleReserve =
-    consoleWindowMode !== 'docked' ? 0 : consoleIsExpanded ? consoleExpandedHeight + 12 : 30
+    consoleWindowMode !== 'docked'
+      ? 0
+      : consoleIsExpanded
+        ? consoleExpandedHeight + dockedConsoleExpandedGap
+        : dockedConsoleCollapsedReserve
   const viewToolbarBottomContentPadding = 12
 
   useLayoutEffect(() => {
@@ -268,8 +435,13 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     if (stackElement === null || toolbarElement === null || panelElement === null) {
       return
     }
+    let syncQueued = false
+    let disposed = false
 
     const syncViewToolbarHeights = () => {
+      if (disposed) {
+        return
+      }
       const viewportBodyElement = stackElement.closest('.ViewportFrameBody')
       const stackRect = stackElement.getBoundingClientRect()
       const viewportBodyRect =
@@ -281,7 +453,16 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       const toolbarTopOffset =
         viewportBodyRect === null ? 0 : Math.max(0, Math.round(stackRect.top - viewportBodyRect.top))
       const nextMaxHeight = Math.max(0, viewportHeight - toolbarTopOffset - dockedConsoleReserve)
-      const naturalContentHeight = Math.round(toolbarElement.scrollHeight)
+      const toolbarRect = toolbarElement.getBoundingClientRect()
+      const panelRect = panelElement.getBoundingClientRect()
+      const panelOffsetWithinToolbar = Math.max(0, Math.round(panelRect.top - toolbarRect.top))
+      const openNaturalContentHeight = Math.round(
+        panelOffsetWithinToolbar + panelElement.scrollHeight,
+      )
+      const naturalContentHeight =
+        toolbarElement.open && openNaturalContentHeight > 0
+          ? openNaturalContentHeight
+          : Math.round(toolbarElement.scrollHeight)
       const nextUsedHeight =
         nextMaxHeight <= 0 ? 0 : Math.min(naturalContentHeight, nextMaxHeight)
       const nextHasOverflow = naturalContentHeight > nextMaxHeight + 1
@@ -299,31 +480,54 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       )
     }
 
+    const scheduleViewToolbarHeightSync = () => {
+      if (syncQueued || disposed) {
+        return
+      }
+      syncQueued = true
+      const flush = () => {
+        syncQueued = false
+        syncViewToolbarHeights()
+      }
+      if (typeof queueMicrotask === 'function') {
+        queueMicrotask(flush)
+        return
+      }
+      Promise.resolve().then(flush)
+    }
+
     syncViewToolbarHeights()
+    window.addEventListener('resize', scheduleViewToolbarHeightSync)
+
     if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', syncViewToolbarHeights)
       return () => {
-        window.removeEventListener('resize', syncViewToolbarHeights)
+        disposed = true
+        window.removeEventListener('resize', scheduleViewToolbarHeightSync)
       }
     }
 
     const observer = new ResizeObserver(() => {
-      syncViewToolbarHeights()
+      scheduleViewToolbarHeightSync()
     })
     observer.observe(stackElement)
     observer.observe(panelElement)
-
+    const viewportBodyElement = stackElement.closest('.ViewportFrameBody')
+    if (viewportBodyElement instanceof HTMLElement) {
+      observer.observe(viewportBodyElement)
+    }
     const subsectionElements = Array.from(
       panelElement.querySelectorAll<HTMLDetailsElement>('.ViewSection'),
     )
     const handleSubsectionToggle = () => {
-      syncViewToolbarHeights()
+      scheduleViewToolbarHeightSync()
     }
     subsectionElements.forEach((element) => {
       element.addEventListener('toggle', handleSubsectionToggle)
     })
 
     return () => {
+      disposed = true
+      window.removeEventListener('resize', scheduleViewToolbarHeightSync)
       subsectionElements.forEach((element) => {
         element.removeEventListener('toggle', handleSubsectionToggle)
       })
@@ -424,6 +628,43 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 Frame All
               </button>
             </div>
+          </details>
+
+          <details className="ViewSection FlyModeSection ViewStyledSection">
+            <summary>Fly Mode</summary>
+            {flyModeType === null && flyActivationMode === null && flyRollSpeed === null ? (
+              <div className="V15Meta">Fly mode controls unavailable for this viewport.</div>
+            ) : (
+              <div className="V15Wrap">
+                {flyModeType === null ? null : (
+                  <ParaSelect
+                    label="Fly Mode Type"
+                    value={flyModeType}
+                    options={flyModeTypeOptions}
+                    onChange={handleFlyModeTypeChange}
+                  />
+                )}
+                {flyActivationMode === null ? null : (
+                  <ParaSelect
+                    label="Fly Mode Activate"
+                    value={flyActivationMode}
+                    options={flyActivationModeOptions}
+                    onChange={handleFlyActivationModeChange}
+                  />
+                )}
+                {flyRollSpeed === null ? null : (
+                  <ParaSlider
+                    label="Roll Speed"
+                    min={MIN_FLY_ROLL_SPEED_RADIANS_PER_SEC}
+                    max={MAX_FLY_ROLL_SPEED_RADIANS_PER_SEC}
+                    step={FLY_ROLL_SPEED_STEP_RADIANS_PER_SEC}
+                    value={flyRollSpeed}
+                    onChange={handleFlyRollSpeedChange}
+                    formatValue={formatFlyRollSpeedDegreesPerSec}
+                  />
+                )}
+              </div>
+            )}
           </details>
 
           <details className="ViewSection TransformSection ViewStyledSection">

@@ -16,6 +16,8 @@ export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
 export type GizmoSpace = 'local' | 'world'
 export type SnapDirection = '+X' | '-X' | '+Y' | '-Y' | '+Z' | '-Z'
+export type FlyActivationMode = 'right-click' | 'always-on'
+export type FlyModeType = 'drone' | 'free-cam'
 
 export type GeometrySketchOverlayProfileVm = {
   profileId: string
@@ -138,9 +140,18 @@ export type ViewerRuntimeStats = {
 
 export interface ViewerApi {
   isFlyModeActive?: () => boolean
+  getFlyActivationMode?: () => FlyActivationMode
+  setFlyActivationMode?: (mode: FlyActivationMode) => void
+  setOnFlyActivationModeChange?: (handler: ((mode: FlyActivationMode) => void) | null) => void
+  getFlyModeType?: () => FlyModeType
+  setFlyModeType?: (mode: FlyModeType) => void
+  setOnFlyModeTypeChange?: (handler: ((mode: FlyModeType) => void) | null) => void
   getFlyMoveSpeed?: () => number
   setFlyMoveSpeed?: (speed: number) => void
   setOnFlyMoveSpeedChange?: (handler: ((speed: number) => void) | null) => void
+  getFlyRollSpeed?: () => number
+  setFlyRollSpeed?: (speed: number) => void
+  setOnFlyRollSpeedChange?: (handler: ((speed: number) => void) | null) => void
   getCameraPose?: () => CameraPose
   applyCameraPose?: (pose: CameraPose) => void
   setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void

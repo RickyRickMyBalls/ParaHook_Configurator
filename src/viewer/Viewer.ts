@@ -55,6 +55,8 @@ import type { ActiveReferenceTransformHandle } from '../app/store/useAppStore'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
 import type {
+  FlyActivationMode,
+  FlyModeType,
   GeometrySketchOverlayVm,
   ViewerTransformHistoryOverlayVm,
   GeometrySketchSnapTarget,
@@ -140,6 +142,8 @@ type FlySession = {
   heldKeys: Set<FlyMovementKey>
   pointerLockActive: boolean
 }
+const DEFAULT_FLY_ACTIVATION_MODE: FlyActivationMode = 'right-click'
+const DEFAULT_FLY_MODE_TYPE: FlyModeType = 'drone'
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
@@ -149,9 +153,11 @@ const GRID_MAJOR_STEP = 10
 const GRID_DOUBLE_MAJOR_STEP = 50
 const DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 4
 const FLY_CAMERA_BOOST_MULTIPLIER = 3
-const FLY_CAMERA_ROLL_RADIANS_PER_SEC = Math.PI * 0.75
+const DEFAULT_FLY_CAMERA_ROLL_RADIANS_PER_SEC = Math.PI * 0.75
 const FLY_CAMERA_WHEEL_SPEED_SCALE = 1.1
 const MIN_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 0.1
+const MIN_FLY_CAMERA_ROLL_RADIANS_PER_SEC = 0
+const MAX_FLY_CAMERA_ROLL_RADIANS_PER_SEC = Math.PI * 2
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
@@ -161,6 +167,17 @@ const normalizeFlyMoveSpeedUnitsPerSec = (speed: number): number => {
     return DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC
   }
   return Math.max(speed, MIN_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC)
+}
+
+const normalizeFlyRollSpeedRadiansPerSec = (speed: number): number => {
+  if (!Number.isFinite(speed)) {
+    return DEFAULT_FLY_CAMERA_ROLL_RADIANS_PER_SEC
+  }
+  return clamp(
+    speed,
+    MIN_FLY_CAMERA_ROLL_RADIANS_PER_SEC,
+    MAX_FLY_CAMERA_ROLL_RADIANS_PER_SEC,
+  )
 }
 
 const isMultipleOf = (value: number, step: number): boolean => Math.abs(value % step) < 1e-6
@@ -405,6 +422,9 @@ export class Viewer {
   private onSketchPlanePickTransformChange: ((transform: SketchPlaneTransform) => void) | null = null
   private onSketchPlanePickTransformCommit: (() => void) | null = null
   private onFlyMoveSpeedChange: ((speed: number) => void) | null = null
+  private onFlyRollSpeedChange: ((speed: number) => void) | null = null
+  private onFlyActivationModeChange: ((mode: FlyActivationMode) => void) | null = null
+  private onFlyModeTypeChange: ((mode: FlyModeType) => void) | null = null
   private onCameraPoseChange: ((pose: CameraPose) => void) | null = null
   private lastEmittedCameraPose: CameraPose | null = null
   private onRuntimeStatsChange: ((stats: ViewerRuntimeStats) => void) | null = null
@@ -477,7 +497,10 @@ export class Viewer {
       }
     | null = null
   private flySession: FlySession | null = null
+  private flyActivationMode: FlyActivationMode = DEFAULT_FLY_ACTIVATION_MODE
+  private flyModeType: FlyModeType = DEFAULT_FLY_MODE_TYPE
   private flyMoveSpeedUnitsPerSec = DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC
+  private flyRollSpeedRadiansPerSec = DEFAULT_FLY_CAMERA_ROLL_RADIANS_PER_SEC
   private suppressFlyContextMenu = false
   private readonly zoomWindowOverlayRoot: HTMLDivElement
   private readonly zoomWindowOverlayBox: HTMLDivElement
@@ -1407,6 +1430,52 @@ export class Viewer {
     return this.flySession !== null
   }
 
+  public getFlyActivationMode(): FlyActivationMode {
+    return this.flyActivationMode
+  }
+
+  public setFlyActivationMode(mode: FlyActivationMode): void {
+    if (mode === this.flyActivationMode) {
+      return
+    }
+    const previousMode = this.flyActivationMode
+    this.flyActivationMode = mode
+    if (
+      previousMode === 'always-on' &&
+      mode !== 'always-on' &&
+      this.flySession !== null
+    ) {
+      this.endFlySession()
+    }
+    this.onFlyActivationModeChange?.(this.flyActivationMode)
+  }
+
+  public setOnFlyActivationModeChange(
+    handler: ((mode: FlyActivationMode) => void) | null,
+  ): void {
+    this.onFlyActivationModeChange = handler
+  }
+
+  public getFlyModeType(): FlyModeType {
+    return this.flyModeType
+  }
+
+  public setFlyModeType(mode: FlyModeType): void {
+    if (mode === this.flyModeType) {
+      return
+    }
+    this.flyModeType = mode
+    if (mode === 'free-cam') {
+      this.clearFreeCamRollInputs()
+      this.syncFreeCamOrientationIfNeeded()
+    }
+    this.onFlyModeTypeChange?.(this.flyModeType)
+  }
+
+  public setOnFlyModeTypeChange(handler: ((mode: FlyModeType) => void) | null): void {
+    this.onFlyModeTypeChange = handler
+  }
+
   public getFlyMoveSpeed(): number {
     return this.flyMoveSpeedUnitsPerSec
   }
@@ -1418,6 +1487,19 @@ export class Viewer {
 
   public setOnFlyMoveSpeedChange(handler: ((speed: number) => void) | null): void {
     this.onFlyMoveSpeedChange = handler
+  }
+
+  public getFlyRollSpeed(): number {
+    return this.flyRollSpeedRadiansPerSec
+  }
+
+  public setFlyRollSpeed(speed: number): void {
+    this.flyRollSpeedRadiansPerSec = normalizeFlyRollSpeedRadiansPerSec(speed)
+    this.onFlyRollSpeedChange?.(this.flyRollSpeedRadiansPerSec)
+  }
+
+  public setOnFlyRollSpeedChange(handler: ((speed: number) => void) | null): void {
+    this.onFlyRollSpeedChange = handler
   }
 
   public frameAll(): void {
@@ -1999,6 +2081,18 @@ export class Viewer {
     )
   }
 
+  private clearFreeCamRollInputs(): void {
+    this.flySession?.heldKeys.delete('roll-left')
+    this.flySession?.heldKeys.delete('roll-right')
+  }
+
+  private syncFreeCamOrientationIfNeeded(): void {
+    if (this.flySession === null || this.flyModeType !== 'free-cam') {
+      return
+    }
+    this.cameraController.restoreFlyUpright()
+  }
+
   private startFlySession(event: PointerEvent): void {
     this.rememberCameraPose()
     this.cameraController.beginFlyMode()
@@ -2012,6 +2106,7 @@ export class Viewer {
     this.suppressFlyContextMenu = false
     this.renderer.domElement.setPointerCapture(event.pointerId)
     this.requestFlyPointerLock()
+    this.syncFreeCamOrientationIfNeeded()
     event.preventDefault()
     event.stopPropagation()
   }
@@ -2063,6 +2158,7 @@ export class Viewer {
     event.preventDefault()
     event.stopPropagation()
     this.cameraController.applyFlyLookDelta(deltaX, deltaY)
+    this.syncFreeCamOrientationIfNeeded()
   }
 
   private handleFlyKeyDown(event: KeyboardEvent): void {
@@ -2071,6 +2167,12 @@ export class Viewer {
     }
     const flyMovementKey = this.resolveFlyMovementKey(event.key)
     if (flyMovementKey !== null) {
+      if (
+        this.flyModeType === 'free-cam' &&
+        (flyMovementKey === 'roll-left' || flyMovementKey === 'roll-right')
+      ) {
+        return
+      }
       this.flySession.heldKeys.add(flyMovementKey)
     }
   }
@@ -2113,6 +2215,9 @@ export class Viewer {
       this.endFlySession()
       return
     }
+    if (this.flyModeType === 'free-cam') {
+      return
+    }
 
     const rollDirection =
       (this.flySession.heldKeys.has('roll-right') ? 1 : 0) -
@@ -2121,7 +2226,7 @@ export class Viewer {
       return
     }
 
-    this.cameraController.applyFlyRollDelta(rollDirection * FLY_CAMERA_ROLL_RADIANS_PER_SEC * dt)
+    this.cameraController.applyFlyRollDelta(rollDirection * this.flyRollSpeedRadiansPerSec * dt)
   }
 
   private rememberCameraPose(): void {
@@ -3972,8 +4077,16 @@ export class Viewer {
   }
 
   private readonly handleSketchPlanePickPointerDown = (event: PointerEvent): void => {
+    if (this.flySession !== null && this.flyActivationMode === 'always-on') {
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
     if (event.button === 2) {
-      if (this.canStartFlySession(event)) {
+      if (
+        this.flyActivationMode === 'right-click' &&
+        this.canStartFlySession(event)
+      ) {
         this.startFlySession(event)
       }
       return
@@ -3998,6 +4111,14 @@ export class Viewer {
         anchorClientY: event.clientY,
         moved: false,
       }
+      return
+    }
+    if (
+      event.button === 0 &&
+      this.flyActivationMode === 'always-on' &&
+      this.canStartFlySession(event)
+    ) {
+      this.startFlySession(event)
       return
     }
     if (
@@ -4270,12 +4391,20 @@ export class Viewer {
 
   private readonly handleSketchPlanePickPointerUp = (event: PointerEvent): void => {
     if (this.flySession !== null && event.pointerId === this.flySession.pointerId) {
-      event.preventDefault()
-      event.stopPropagation()
-      this.endFlySession({
-        pointerId: event.pointerId,
-        suppressContextMenu: true,
-      })
+      if (this.flyActivationMode === 'always-on') {
+        if (this.renderer.domElement.hasPointerCapture(event.pointerId)) {
+          this.renderer.domElement.releasePointerCapture(event.pointerId)
+        }
+        event.preventDefault()
+        event.stopPropagation()
+      } else {
+        event.preventDefault()
+        event.stopPropagation()
+        this.endFlySession({
+          pointerId: event.pointerId,
+          suppressContextMenu: true,
+        })
+      }
       return
     }
     if (

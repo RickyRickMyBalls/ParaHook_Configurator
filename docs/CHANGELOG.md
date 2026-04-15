@@ -65,6 +65,358 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1342 -->
+### [1342] - 2026-04-14 23:57 - `VT - Fly-Mode 1 Phase 6 - Fly Mode Type Split: Drone And Free Cam`
+<!-- ENTRY 1342 -->
+HUMAN SUMMARY: `Added a viewer-backed \`Fly Mode Type\` select to the \`View\` toolbar, preserved the current fly behavior as \`Drone\`, and introduced \`Free Cam\` as an upright no-bank variant that ignores manual roll input while keeping the rest of the fly stack intact.`
+#### Scope / Constraints Honored
+- Kept the phase to a clean two-mode split: `Drone` and `Free Cam`.
+- Preserved the current shipped behavior under `Drone` instead of silently changing the existing fly feel.
+- Kept the runtime cut narrow to the fly-type seam and the roll/banking path without widening into gravity, controller work, or a new orbit architecture.
+#### Summary of Implementation
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) to expose the new shared `FlyModeType` contract through `getFlyModeType`, `setFlyModeType`, and `setOnFlyModeTypeChange`.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to add a `Fly Mode Type` `ParaSelect` inside the existing `Fly Mode` section and wire it through the same viewer-backed subscribe/read/write pattern as the other fly controls.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so the viewer owns the `Drone` / `Free Cam` mode truth, preserves the current roll path in `Drone`, and keeps `Free Cam` upright by suppressing roll input and re-aligning the fly camera after mode switches and mouse-look updates.
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) with a narrow `restoreFlyUpright()` helper so `Free Cam` can zero out visible banking without exiting fly mode.
+- Added focused proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) for the new toolbar select, the viewer fly-type contract, preserved `Drone` roll behavior, and upright no-bank `Free Cam` behavior.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase Fly-Mode 1 - Polish UI And Small Features.md`](./docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase%20Fly-Mode%201%20-%20Polish%20UI%20And%20Small%20Features.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar `Fly Mode` section now includes a `Fly Mode Type` select with `Drone` and `Free Cam`.
+- `Drone` preserves the current shipped fly behavior.
+- `Free Cam` now keeps the fly camera upright while looking around, suppresses visible banking, and ignores manual roll input.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1341 -->
+### [1341] - 2026-04-14 23:41 - `VT - View Toolbar Para Text And Arrows To 5px`
+<!-- ENTRY 1341 -->
+HUMAN SUMMARY: `Set the view-toolbar para-control text and the visible \`<\` / \`>\` cap arrows to an explicit \`5px\` local size so the toolbar rows render with the much smaller text treatment requested without changing the same controls elsewhere.`
+#### Scope / Constraints Honored
+- Kept the pass scoped to the `ViewToolbarRoot` local typography seam.
+- Left the same shared para controls outside the `View` toolbar unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the `View` toolbar now uses explicit `5px` local font sizing for:
+  - `ParaSlider` and `ParaSelect` labels and values
+  - para-control inputs and menu text
+  - the select chevron
+  - the visible `ParaSliderCap` and `ParaSelectCap` arrow buttons
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar para-control text and the left/right cap arrows now render at `5px`.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1340 -->
+### [1340] - 2026-04-14 23:39 - `VT - View Toolbar Para Text Middle Ground Size`
+<!-- ENTRY 1340 -->
+HUMAN SUMMARY: `Moved the view-toolbar para-control text to a middle-ground explicit size after the earlier passes proved either too subtle or too tiny, so the fly-mode and gizmo rows now read smaller than default without collapsing readability.`
+#### Scope / Constraints Honored
+- Kept the adjustment limited to the existing `ViewToolbarRoot` para-typography seam.
+- Left the same shared controls outside the `View` toolbar unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) to use explicit middle-ground toolbar-local sizes:
+  - `8px` for para labels, values, inputs, and menu text
+  - `7px` for the select chevron
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- `ParaSlider` and `ParaSelect` text in the `View` toolbar now renders smaller than the shared default, but larger than the earlier tiny `5.5px` experiment.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1339 -->
+### [1339] - 2026-04-14 23:36 - `VT - View Toolbar Para Text Rollback From 50 Percent`
+<!-- ENTRY 1339 -->
+HUMAN SUMMARY: `Backed out the too-small \`50%\` view-toolbar para-control text pass and restored the earlier milder size reduction so the fly-mode and gizmo rows stay compact without becoming unreadably tiny.`
+#### Scope / Constraints Honored
+- Kept the rollback limited to the same `ViewToolbarRoot` typography seam.
+- Left shared `ParaSlider` and `ParaSelect` surfaces outside the `View` toolbar unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) to remove the explicit `5.5px` toolbar-local override and restore the earlier milder sizing:
+  - `calc(var(--sp-window-font-size) - 2px)` for para-control text
+  - `calc(var(--sp-window-font-size) - 3px)` for the select chevron
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar no longer uses the ultra-small `50%` para-control text treatment.
+- The toolbar keeps the earlier slightly smaller para text instead.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1338 -->
+### [1338] - 2026-04-14 23:34 - `VT - View Toolbar Para Select Text Size Fix`
+<!-- ENTRY 1338 -->
+HUMAN SUMMARY: `Fixed the fly-mode para-select text sizing follow-up by replacing the unsupported toolbar-local \`calc(... * 0.5)\` font rule with an explicit \`5.5px\` override, so the visible select text now actually shrinks inside the \`View\` toolbar.`
+#### Scope / Constraints Honored
+- Kept the fix inside the same `ViewToolbarRoot` typography seam.
+- Left the shared `ParaSlider` and `ParaSelect` controls outside the `View` toolbar unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) to replace the non-applying toolbar-local multiplication `calc(...)` font-size declarations with explicit `5.5px` sizing for the `ParaSlider` / `ParaSelect` text and the select chevron.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The fly-mode `ParaSelect` text in the `View` toolbar now actually renders at the smaller size instead of falling back to the shared default.
+- Shared para controls outside the `View` toolbar keep their previous sizing.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1337 -->
+### [1337] - 2026-04-14 23:31 - `VT - View Toolbar Para Control Text To 50 Percent`
+<!-- ENTRY 1337 -->
+HUMAN SUMMARY: `Tightened the toolbar-only para-control typography again so \`ParaSlider\` and \`ParaSelect\` text now renders at roughly half the shared base size inside the \`View\` toolbar without changing the same controls elsewhere.`
+#### Scope / Constraints Honored
+- Kept the follow-up scoped to the existing `ViewToolbarRoot` typography override seam.
+- Left console, viewport HUD, graph panels, and other shared `ParaSlider` / `ParaSelect` surfaces unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the toolbar-local `ParaSlider` and `ParaSelect` labels, values, inputs, chevrons, and menu text now use `50%` of the shared toolbar font-size variable instead of the milder smaller-text override from the previous pass.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- `ParaSlider` and `ParaSelect` text now renders at approximately half size inside the `View` toolbar.
+- Shared para controls outside the `View` toolbar keep their previous sizing.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1336 -->
+### [1336] - 2026-04-14 23:30 - `VT - View Toolbar Smaller Para Control Text`
+<!-- ENTRY 1336 -->
+HUMAN SUMMARY: `Reduced the visible \`ParaSlider\` and \`ParaSelect\` text sizing inside the \`View\` toolbar only so long control labels and values read a little smaller without changing those shared controls elsewhere in the app.`
+#### Scope / Constraints Honored
+- Kept the change scoped to the `View` toolbar surface instead of shrinking `ParaSlider` and `ParaSelect` typography globally.
+- Left console, viewport HUD, graph panels, and other shared control surfaces on their existing text sizing.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) to add `ViewToolbarRoot`-scoped typography overrides for `ParaSlider` and `ParaSelect`.
+- Reduced the toolbar-local label, value, input, menu-action, and menu-option text sizing and tightened the local content gap/padding slightly so longer labels fit more comfortably in the narrow toolbar rows.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- `ParaSlider` and `ParaSelect` text now renders smaller inside the `View` toolbar.
+- The same shared controls outside the `View` toolbar keep their previous sizing.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1335 -->
+### [1335] - 2026-04-14 23:26 - `VT - Fly-Mode 1 Phase 5 - Fly Mode Activate Select And Always-On Option`
+<!-- ENTRY 1335 -->
+HUMAN SUMMARY: `Added a viewer-backed \`Fly Mode Activate\` select to the \`View\` toolbar, kept \`Right Click\` as the default fly-entry policy, and made the new opt-in \`Always On\` mode real runtime truth so fly can start from the next viewport click without ending on pointer release or \`Escape\`.`
+#### Scope / Constraints Honored
+- Kept the phase narrow to exactly two activation modes: `Right Click` and `Always On`.
+- Preserved viewer-owned fly-session truth in `Viewer.ts` instead of inventing toolbar-local activation state or widening into rebinding work.
+- Kept the existing pointer-lock request path and broader fly movement, wheel-speed, roll, and HUD ownership unchanged.
+#### Summary of Implementation
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) to expose the new shared `FlyActivationMode` contract through `getFlyActivationMode`, `setFlyActivationMode`, and `setOnFlyActivationModeChange`.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so fly activation policy is viewer-owned, `Right Click` remains the default, `Always On` starts from the next left-click entry seam, the entry click is consumed, pointer release no longer ends the always-on session, and switching back to `Right Click` ends an active always-on session immediately.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to render a `Fly Mode Activate` `ParaSelect` inside the existing `Fly Mode` section using the same subscribe/read/write pattern as the roll-speed control.
+- Added focused proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) for the new toolbar select, the viewer contract, always-on entry-click consumption, pointer-up persistence, `Escape` non-exit behavior, blur cleanup, and mode-switch shutdown.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase Fly-Mode 1 - Polish UI And Small Features.md`](./docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase%20Fly-Mode%201%20-%20Polish%20UI%20And%20Small%20Features.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar `Fly Mode` section now includes a `Fly Mode Activate` select with `Right Click` and `Always On`.
+- `Right Click` remains the shipped default fly-entry behavior.
+- In `Always On`, the next viewport click starts fly, that entry click is consumed, pointer release does not end the session, `Escape` does not end the session, and blur/cancel or switching the mode back to `Right Click` still ends fly cleanly.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1334 -->
+### [1334] - 2026-04-14 23:16 - `VR - Model Viewport Bottom Console Bar Reserve`
+<!-- ENTRY 1334 -->
+HUMAN SUMMARY: `Reserved the collapsed docked console bar footprint at the bottom of the primary model viewport viewer surface so the base canvas no longer lives under the bottom console bar, while leaving the expanded console panel in overlay mode.` 
+#### Scope / Constraints Honored
+- Kept the change narrow to the primary docked model viewport ownership seam.
+- Reserved only the collapsed console bar baseline (`34px`) and did not let expanded console height reflow the viewport.
+- Left `ViewToolbar`, HUD overlays, detached viewers, and non-primary model-viewer slots on their existing layout rules.
+#### Summary of Implementation
+- Updated [`src/app/AppShell.tsx`](./src/app/AppShell.tsx) to derive a primary-viewer reserve flag from the legacy docked console path and pass it into the workspace viewport tree only when the docked compatibility console is actually active.
+- Updated [`src/app/workspace/WorkspaceViewportTree.tsx`](./src/app/workspace/WorkspaceViewportTree.tsx) and [`src/app/workspace/ViewportWorkspaceHost.tsx`](./src/app/workspace/ViewportWorkspaceHost.tsx) to carry that flag only onto the primary `ViewportWorkspaceHost`.
+- Updated [`src/app/theme/foundation/base.css`](./src/app/theme/foundation/base.css) so only a flagged host's direct `.ViewportViewerSurface` gets `bottom: 34px`.
+- Added focused proof in [`src/app/workspace/ViewportWorkspaceHost.test.tsx`](./src/app/workspace/ViewportWorkspaceHost.test.tsx) and [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx) for the primary-only reserve, the floating-console off path, and the slot-hosted-console suppression path.
+#### Files Changed
+- [`src/app/AppShell.tsx`](./src/app/AppShell.tsx)
+- [`src/app/workspace/WorkspaceViewportTree.tsx`](./src/app/workspace/WorkspaceViewportTree.tsx)
+- [`src/app/workspace/ViewportWorkspaceHost.tsx`](./src/app/workspace/ViewportWorkspaceHost.tsx)
+- [`src/app/theme/foundation/base.css`](./src/app/theme/foundation/base.css)
+- [`src/app/workspace/ViewportWorkspaceHost.test.tsx`](./src/app/workspace/ViewportWorkspaceHost.test.tsx)
+- [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The primary docked model viewport canvas now stops `34px` above the bottom edge when the legacy docked console bar is present.
+- Floating or popout console modes do not reserve that space.
+- When a real console surface is hosted in the slot tree, the old docked reserve is removed along with the compatibility docked-console path.
+
+<!-- ENTRY 1333 -->
+### [1333] - 2026-04-14 23:00 - `VT - Fly-Mode 1 Phase 4 - View Toolbar Fly Mode Subsection And Roll Speed Control`
+<!-- ENTRY 1333 -->
+HUMAN SUMMARY: `Added the first \`Fly Mode\` section to the \`View\` toolbar, exposed a viewer-backed \`Roll Speed\` slider there, and replaced the old hard-coded fly-roll seam in \`Viewer.ts\` with a subscribable runtime value so the toolbar and runtime stay in sync.`
+#### Scope / Constraints Honored
+- Kept the phase narrow: one new `Fly Mode` toolbar subsection, one `Roll Speed` `ParaSlider`, and one viewer-owned roll-speed seam.
+- Preserved fly-runtime ownership in `Viewer.ts` and `Camera-Controls` instead of inventing toolbar-only state or migrating the existing HUD `Fly Speed` control.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to add a new top-level `Fly Mode` section, subscribe to the active viewport viewer, and render a `Roll Speed` `ParaSlider`.
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) to expose `getFlyRollSpeed`, `setFlyRollSpeed`, and `setOnFlyRollSpeedChange` alongside the existing fly-speed helpers.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so fly roll now uses a viewer-owned roll-speed value with clamped normalization and change notifications instead of the older hard-coded runtime constant.
+- Added focused proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) for the new toolbar section and the new viewer-owned roll-speed seam.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase Fly-Mode 1 - Polish UI And Small Features.md`](./docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase%20Fly-Mode%201%20-%20Polish%20UI%20And%20Small%20Features.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar now includes a dedicated `Fly Mode` section with a live `Roll Speed` control for the active viewport viewer.
+- Fly roll speed is now configurable at runtime through the shared viewer seam instead of being fixed to the older hard-coded default only.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1332 -->
+### [1332] - 2026-04-14 22:52 - `VR - View Toolbar Bottom Clearance Follow-Up 2`
+<!-- ENTRY 1332 -->
+HUMAN SUMMARY: `Nudged the collapsed docked-console reserve for the `View` toolbar up one more step from `42px` to `45px` so the scroll end stops just a little higher above the console.`
+#### Scope / Constraints Honored
+- Kept the follow-up to a one-number reserve tweak in the existing toolbar height seam plus focused proof.
+- Preserved the same viewport-owned clamp math and whole-toolbar scroll ownership.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the collapsed docked-console reserve now uses `45px`.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) to lock the new `435px` / `315px` viewport-height expectations that follow from the slightly higher reserve.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar should now stop a touch higher above the collapsed docked console bar.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1331 -->
+### [1331] - 2026-04-14 22:51 - `VR - View Toolbar Bottom Clearance Follow-Up`
+<!-- ENTRY 1331 -->
+HUMAN SUMMARY: `Raised the docked-console bottom reserve for the `View` toolbar a little more so the scroll end sits more clearly above the console instead of still tucking slightly underneath it when the toolbar is tall enough to scroll.`
+#### Scope / Constraints Honored
+- Kept the follow-up limited to the existing toolbar height-reserve seam in `ViewToolbar.tsx` plus the focused toolbar proof.
+- Preserved the same viewport-owned clamp formula and whole-toolbar scroll ownership.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the collapsed docked-console reserve now uses `42px` and the expanded docked-console gap now uses `20px`.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) to lock the slightly higher max-height stop above the console.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- When the `View` toolbar needs a scrollbar, its bottom stop should now clear the docked console a bit more comfortably.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1330 -->
+### [1330] - 2026-04-14 22:48 - `VR - Phase View-Toolbar 5 Phase 4 Follow-Up - Fix Internal Panel Offset Overcount`
+<!-- ENTRY 1330 -->
+HUMAN SUMMARY: `Corrected the next `View` toolbar height regression by measuring the panel offset inside the toolbar shell instead of using the raw panel `offsetTop`, which had been overcounting the toolbar's anchored viewport position and leaving dead space under fully collapsed section content.`
+#### Scope / Constraints Honored
+- Kept the fix local to the toolbar height-measurement seam in `ViewToolbar.tsx` plus focused toolbar proof.
+- Preserved the existing viewport-owned clamp formula, browser-resize wake-up path, and whole-toolbar scroll ownership.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so open-state natural height now uses the difference between `.ViewToolbarPanel` and `.ViewToolbarRoot` bounding-rect tops plus panel `scrollHeight`, instead of using raw `panelElement.offsetTop`.
+- This keeps the content-height read relative to the toolbar shell itself rather than accidentally including the toolbar's anchored position inside the viewport dock.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now mocks root-versus-panel bounding-rect offsets directly instead of relying on a synthetic `offsetTop`.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `View` toolbar should now shrink closer to its real content height when its subsections are collapsed instead of keeping extra dead space caused by an overcounted internal offset.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1329 -->
+### [1329] - 2026-04-14 22:45 - `VR - Phase View-Toolbar 5 Phase 4 Follow-Up - Restore Truthful Collapse Wake-Up`
+<!-- ENTRY 1329 -->
+HUMAN SUMMARY: `Took a second pass on the `View` toolbar height fix by restoring an explicit subsection-toggle wake-up and coalescing toolbar-local resize triggers into one queued sync, so the shell has a better shot at shrinking truthfully to content without walking through a long chain of intermediate height updates while still keeping the newer browser-resize wake-up path.`
+#### Scope / Constraints Honored
+- Kept the fix local to `ViewToolbar.tsx` plus focused toolbar proof without widening into dock ownership, console math, or new toolbar regrouping.
+- Preserved the existing model-viewport clamp formula and kept `.ViewToolbarRoot` as the only scroll owner.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so subsection `toggle`, `ResizeObserver`, and browser `resize` events now flow through one queued height-sync path instead of running overlapping immediate recomputes.
+- Restored explicit subsection `toggle` listeners after the first `Phase 4` attempt proved that observer-only panel wake-ups were not enough to preserve truthful content shrink on section close.
+- Kept the improved `.ViewportFrameBody` and browser-resize wake-up path from the first `Phase 4` attempt so app-window resize still recomputes the toolbar against the live model viewport height.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof again drives subsection collapse through the real section `toggle` seam while preserving the browser-resize recompute coverage.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Subsection open/close now has an immediate toolbar-local wake-up path again instead of depending only on observer churn.
+- Browser-window resize still recomputes the toolbar against the model viewport height.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1328 -->
+### [1328] - 2026-04-14 22:33 - `VR - Phase View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap`
+<!-- ENTRY 1328 -->
+HUMAN SUMMARY: `Finished the next `View` toolbar height follow-up by removing the redundant subsection-toggle resync path, switching open-state natural-height reads onto the inner panel seam, and adding reliable model-viewport/browser resize wake-ups so the toolbar now snaps to its correct height instead of shrinking progressively or staying stale after window resize.`
+#### Scope / Constraints Honored
+- Kept the fix local to `ViewToolbar.tsx` plus focused toolbar proof without widening into dock ownership, viewer behavior, or new toolbar regrouping.
+- Preserved the existing viewport-owned clamp formula and the whole-toolbar scroll-owner rule.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so open-state natural height now resolves from `.ViewToolbarPanel.offsetTop + .ViewToolbarPanel.scrollHeight`, while closed state still falls back to the collapsed root shell height.
+- Removed the explicit subsection `toggle` height-sync listeners so section open/close no longer cascades through a second redundant resync path on top of the observer path.
+- Extended the height-sync wake-up path so the toolbar now observes the nearest `.ViewportFrameBody` and also listens for browser `resize`, ensuring the toolbar recomputes when the model viewport changes size with the app window.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now locks the inner-panel natural-height seam, subsection-content shrink behavior, browser-resize recompute, and the preserved `48px` closed shell height.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Closing `Camera`, `Transform`, `Snap`, `Gizmo`, `View`, `Environment`, or `Materials` should now make the `View` toolbar settle directly to its final used height instead of shrinking progressively.
+- Resizing the browser window now recomputes the toolbar against the new model-viewport height without requiring a later section toggle to wake the height sync back up.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
 <!-- ENTRY 1327 -->
 ### [1327] - 2026-04-14 22:28 - `VT - Build And Strict Typing Cleanup Follow-Up`
 <!-- ENTRY 1327 -->

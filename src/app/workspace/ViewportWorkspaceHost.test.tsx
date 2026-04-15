@@ -90,4 +90,38 @@ describe('ViewportWorkspaceHost', () => {
     expect(hosts[0]?.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
     expect(hosts[1]?.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
   })
+
+  it('marks only opted-in hosts for bottom console-bar reserve', async () => {
+    const { ViewportWorkspaceHost } = await import('./ViewportWorkspaceHost')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewportWorkspaceHost
+            viewportId="model-viewer-primary"
+            onActivateViewerSurface={() => {}}
+            reserveBottomConsoleBar
+          />
+          <ViewportWorkspaceHost
+            viewportId="model-viewer-secondary"
+            onActivateViewerSurface={() => {}}
+          />
+        </>,
+      )
+    })
+
+    const primaryHost = container?.querySelector(
+      '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-primary"]',
+    ) as HTMLDivElement | null
+    const secondaryHost = container?.querySelector(
+      '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-secondary"]',
+    ) as HTMLDivElement | null
+
+    expect(primaryHost?.dataset.bottomConsoleBarReserved).toBe('true')
+    expect(secondaryHost?.dataset.bottomConsoleBarReserved).toBe('false')
+  })
 })

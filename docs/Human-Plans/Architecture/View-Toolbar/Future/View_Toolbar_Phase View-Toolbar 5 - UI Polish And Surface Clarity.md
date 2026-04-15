@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-04-14 22:45:18: Landed a second `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` runtime attempt that restores explicit subsection `toggle` wake-up, coalesces toolbar-local height triggers through one queued sync, and keeps the browser-resize plus `.ViewportFrameBody` wake-up path from the first attempt, while leaving the phase at partial `~` status until live viewport behavior confirms the regressions are actually gone
+20. 2026-04-14 22:41:44: Reopened `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` to partial `~` status after live code review showed the first implementation fixed the browser-resize wake-up seam but regressed truthful content shrink by removing the explicit subsection `toggle` height sync too aggressively, leaving the toolbar dependent on observer-only panel updates and still visually stepping through repeated height recomputes during collapse
+19. 2026-04-14 22:33:56: Marked `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` complete after the runtime pass removed the redundant subsection `toggle` resync path, moved the open-state natural-height read onto the inner panel seam, and added reliable viewport-body plus browser-resize wake-ups so the toolbar now snaps to its final height and recomputes when the model viewport changes size
 18. 2026-04-14 22:08:31: Prepped `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` for implementation by locking the live height-sync seam in `ViewToolbar.tsx`, making the browser-resize trigger gap explicit, and narrowing the next runtime cut to one toolbar-local trigger and natural-height cleanup pass with focused `ViewToolbar.test.tsx` proof
 17. 2026-04-14 22:02:44: Refined `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` after the live resize-chain review, locking in that browser-window resize should also recompute toolbar height because the toolbar derives its max-height math from `.ViewportFrameBody`, and recording the current trigger gap where `ViewToolbar.tsx` only keeps a `window.resize` listener when `ResizeObserver` is unavailable while otherwise observing only `.RightPanelStack` and `.ViewToolbarPanel`
 16. 2026-04-14 21:52:11: Added `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap`, grounding the next toolbar polish slice in the live read that the remaining slow shrink no longer comes from a CSS root-height transition, but from the toolbar's current remeasure loop where `ViewToolbar.tsx` still derives natural height from `.ViewToolbarRoot.scrollHeight` while a `ResizeObserver` watches the inner panel and subsection `toggle` listeners also force repeated height sync during open/close
@@ -681,7 +684,7 @@ No-widening rule:
 - do not move non-snap transform controls into `Snap`
 - do not treat this phase as permission to redesign the rest of the toolbar ordering beyond the requested snap split
 
-## [ ] Phase 4 - Immediate Section-Collapse Height Snap
+## [x] Phase 4 - Immediate Section-Collapse Height Snap
 
 Purpose:
 - remove the remaining slow visual shrink when the user opens and then closes `Camera`, `Transform`, `Snap`, `Gizmo`, `View`, `Environment`, or `Materials`, so the black `View` toolbar shell snaps directly to its correct used height instead of stepping downward over time
@@ -704,14 +707,17 @@ Why next:
 
 Current researched seam:
 - `src/app/components/ViewToolbar.tsx`
-  - still derives `naturalContentHeight` from `Math.round(toolbarElement.scrollHeight)`
+  - the current shipped attempt now derives open-state natural height from:
+    - `Math.round(panelElement.offsetTop + panelElement.scrollHeight)`
+  - closed state still falls back to `Math.round(toolbarElement.scrollHeight)`
   - still updates `viewToolbarUsedHeight` and `viewToolbarHasOverflow` inside one shared `syncViewToolbarHeights()` path
   - still computes `viewportHeight` from the nearest `.ViewportFrameBody`
   - still attaches a `ResizeObserver` to:
     - `.RightPanelStack`
     - `.ViewToolbarPanel`
-  - still attaches subsection `toggle` listeners to every `.ViewSection`
-  - only attaches `window.resize` when `ResizeObserver` is unavailable
+    - `.ViewportFrameBody`
+  - now keeps a browser `window.resize` wake-up even when `ResizeObserver` exists
+  - no longer attaches explicit subsection `toggle` listeners to every `.ViewSection`
 - `src/app/theme/surfaces/viewport-overlay.css`
   - no longer transitions `.ViewToolbarRoot` height directly
   - still uses the measured `--v15-view-toolbar-used-height` seam as the shell height
@@ -722,18 +728,21 @@ Locked diagnosis:
 - the remaining slow settle does not currently read as one leftover `.ViewToolbarRoot` CSS height transition
 - it reads more like a progressive remeasure loop:
   - subsection content changes
-  - `toggle` forces a height sync
-  - panel size changes also retrigger the observer
-  - the toolbar continues reading natural height from `.ViewToolbarRoot.scrollHeight`
-  - the used-height target can therefore step through multiple intermediate values instead of resolving once to the final collapsed content height
-- there is also a resize-trigger gap:
-  - browser-window resize should change `.ViewportFrameBody`
-  - but the toolbar is not guaranteed to resync from that change because it computes from `.ViewportFrameBody` while observing only toolbar-local descendants in the normal `ResizeObserver` path
+  - the toolbar now depends on observer-only panel resize wake-ups instead of one explicit section-toggle sync
+  - panel size changes can therefore arrive as repeated intermediate updates rather than one final settled subsection state
+  - the shell continues rewriting `viewToolbarUsedHeight` from those intermediate panel measurements
+  - the user therefore still sees a slow visual shrink even without a CSS root-height transition
+- there are two different `Phase 4` states now:
+  - browser-window resize wake-up is improved and should remain in scope as shipped progress
+  - truthful content shrink and immediate section-collapse settle are still not done
+- the first implementation was too aggressive in one place:
+  - removing explicit subsection `toggle` resync broke the honest “shrink to content immediately when a section closes” contract
 
 This phase should:
 - make subsection open/close height changes settle in one immediate toolbar snap
 - stop the toolbar shell from visually shrinking through repeated intermediate heights
 - make browser-window resize reliably recompute the toolbar height because the model viewport body height changes with the app window
+- restore truthful content-sized shrink when subsections close instead of leaving the toolbar dependent on observer-only panel updates
 - preserve the existing `Phase 1` and `Phase 1b` clamp rules:
   - full toolbar remains the only scroll owner
   - max usable height still equals `model viewport height - toolbar top offset - console reserve`
@@ -742,13 +751,13 @@ This phase should:
   - scrollbar only once the toolbar truly hits its viewport-owned cap
 
 Suggested implementation direction:
-1. audit which trigger should own subsection open/close height sync:
-   - explicit subsection `toggle`
-   - `ResizeObserver` on the panel
-   - but not both if they produce repeated toolbar-local recomputes for one user action
+1. restore one truthful subsection open/close wake-up path:
+   - likely explicit subsection `toggle`
+   - or an equivalent single-shot final-state wake-up
+   - but do not leave section collapse dependent only on observer churn
 2. add one reliable browser-window / viewport-body resize trigger so the toolbar resyncs when `.ViewportFrameBody` height changes, even in environments where the current observed toolbar descendants do not emit the needed resize
-3. stop deriving natural toolbar height from `.ViewToolbarRoot.scrollHeight` if that read still includes in-flight shell sizing behavior
-4. switch natural-height reads onto one stable content seam that reflects the final open/closed subsection state directly
+3. keep the improved browser-resize wake-up path unless live proof shows it causes a second regression
+4. re-check the natural-height read so it reflects the final subsection state directly without leaving the toolbar stuck tall or walking through repeated intermediate values
 5. keep the fix local to:
    - `src/app/components/ViewToolbar.tsx`
    - `src/app/components/ViewToolbar.test.tsx`
@@ -814,14 +823,16 @@ Locked keep rules:
 - do not reintroduce browser-viewport math like `100dvh`
 
 First implementation cut:
-1. Pick one honest trigger owner for subsection open/close height sync so one section toggle does not also cascade through redundant toolbar-local recomputes.
-2. Add one reliable resize wake-up for browser-window / viewport-body changes so the toolbar recomputes when `.ViewportFrameBody` height changes.
-3. Stop deriving natural height from a seam that can reflect in-flight shell sizing if that read is still producing progressive shrink behavior.
+1. Keep the new browser-window / viewport-body resize wake-up path that now exists in the shipped attempt.
+2. Restore one reliable subsection-close wake-up so the toolbar resyncs to the final collapsed content height immediately.
+3. Re-check the open-state natural-height seam against the restored subsection trigger instead of assuming observer-only panel reads are sufficient.
 4. Keep the used-height and overflow outputs driven by the same existing clamp formula once the final natural content height is known.
-5. Widen focused toolbar proof so the no-progressive-shrink seam and browser-resize seam are both explicit.
+5. Widen focused toolbar proof so both halves of the phase are explicit:
+   - browser-resize recompute stays correct
+   - subsection collapse again shrinks truthfully and immediately
 
 Likely proof shape:
-- opening or closing one subsection should produce one immediate used-height result rather than a sequence of shrinking intermediate values
+- opening or closing one subsection should again produce one immediate used-height result rather than a sequence of shrinking intermediate values
 - collapsing subsections should still return the toolbar to its correct compact height
 - browser-window resize should recompute the toolbar against the new model-viewport height without requiring a later subsection toggle
 - the scrollbar flag should remain `false` while the toolbar still fits and turn `true` only when the computed cap is hit
@@ -831,6 +842,30 @@ No-widening rule:
 - do not change the console reserve formula in this phase
 - do not move scroll ownership into subsection bodies
 - do not treat this phase as permission to restyle the scrollbar or toolbar shell beyond what the immediate height-settle fix strictly needs
+
+### Phase 4 Current Attempt / Regression Note
+
+The first shipped `Phase 4` attempt landed one real improvement:
+- browser-window and viewport-body resize wake-ups are now more explicit, so the toolbar has a better chance of recomputing when the model viewport changes size
+
+But the phase is not done yet because the same attempt also introduced two regressions:
+- removing the explicit subsection `toggle` height sync was too aggressive, so the toolbar no longer shrinks truthfully to content when a subsection closes
+- the shell can still look animated on collapse because observer-driven panel measurements continue to feed repeated intermediate used-height updates
+
+So the current honest status is:
+- browser-resize recompute is partially improved
+- immediate subsection-collapse height snap is still open
+- truthful content-sized shrink is still open
+
+Second runtime attempt now in place:
+- `ViewToolbar.tsx` again listens for subsection `toggle` so one section close can wake height recompute immediately
+- toolbar-local resize, viewport-body resize, and browser-window resize now all flow through one queued sync instead of firing immediate overlapping recomputes
+- open-state natural height still reads from the inner panel seam, while the original viewport-owned clamp formula remains unchanged
+
+Current status after that second attempt:
+- browser-resize recompute remains improved
+- subsection-close wake-up is restored
+- the phase stays `~` until live viewport behavior confirms the toolbar now truly shrinks to content and no longer reads as animated during collapse
 
 ### Implementation Spec
 

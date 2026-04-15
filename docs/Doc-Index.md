@@ -4,6 +4,11 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+243. 2026-04-14 23:40:00: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new presentation-modes lane, and updated the `View-Toolbar` subtree listing so the `Classic` versus `Tabs` follow-on is discoverable beside `View-Toolbar 1` through `View-Toolbar 5`
+242. 2026-04-14 23:15:36: Added `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future2/Fly-Mode_Phase Gen2-1 - Runtime Seams And Shared Input Contract.md` to the architecture docs map, refreshed both `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Gen2-Index.md` and `.../Fly-Mode-Index.md` so the `Generation 2` lane now points at its first standalone execution doc, and updated the `View-Toolbar` subtree listing so the new `Future2/` seam-cleanup phase is discoverable beside the broader fly vision and Gen2 index
+241. 2026-04-14 23:06:03: Added `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Gen2-Index.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Vision.md`, `.../Fly-Mode-Index.md`, and `.../View-Toolbar-Index.md` so the fly docs now expose one dedicated phased execution surface for `Generation 2`, and updated the `View-Toolbar` subtree listing so the new gravity-and-FPV phase ladder is discoverable beside the existing fly vision and family index
+240. 2026-04-14 22:51:13: Added `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Vision.md` to the architecture docs map, refreshed both `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md` and `.../View-Toolbar-Index.md` so the `Fly-Mode` family now points at one stable north-star doc, and updated the `View-Toolbar` subtree listing so the new fly vision is discoverable beside the existing fly index and future phase doc
+239. 2026-04-14 22:36:17: Added `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Index.md` and `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future/Fly-Mode_Phase Fly-Mode 1 - Polish UI And Small Features.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new forward-only `Fly-Mode` subfamily, and updated the `View-Toolbar` subtree listing so the new fly-mode planning home is discoverable beside `Gizmo` and the main `Future/` ladder
 238. 2026-04-14 15:16:14: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new later UI-polish lane, and updated the `View-Toolbar` subtree listing so the family docs map matches the current `View-Toolbar 1` through `View-Toolbar 5` ladder plus `Gizmo-Vision.md`
 237. 2026-04-13 09:13:40: Reframed the new `Spaghetti-Editor 4` workspace-family execution surface around the clarified left-side node palette idea by replacing `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` with `.../Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`, refreshing `Spaghetti-Editor-index.md` so the umbrella lane now matches the compact hideable left-palette-and-drag-drop direction, and updating the `Spaghetti-Editor-Arch` subtree listing so the new future doc stays discoverable beside the family index
 236. 2026-04-13 08:43:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` to the docs map as the next dedicated `Spaghetti-Editor-Arch` future execution surface, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md` so the umbrella family now points at the new `Spaghetti-Editor 4` canvas-toolbar-host lane, and extended the `Spaghetti-Editor-Arch` subtree listing so the current future and shipped workspace-level phase docs stay discoverable beside the family index
@@ -774,12 +779,21 @@ Rule notes:
             - `View-Toolbar-Index.md`
         ##### ------------Gizmo
             - `Gizmo/Gizmo-Vision.md`
+        ##### ------------Fly-Mode
+            - `Fly-Mode/Fly-Mode-Vision.md`
+            - `Fly-Mode/Fly-Mode-Gen2-Index.md`
+            - `Fly-Mode/Fly-Mode-Index.md`
+        ###### -------------Future
+            - `Fly-Mode/Future/Fly-Mode_Phase Fly-Mode 1 - Polish UI And Small Features.md`
+        ###### -------------Future2
+            - `Fly-Mode/Future2/Fly-Mode_Phase Gen2-1 - Runtime Seams And Shared Input Contract.md`
         ##### ------------Future
             - `Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`
             - `Future/View_Toolbar_Phase View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls.md`
             - `Future/View_Toolbar_Phase View-Toolbar 3 - Grid, Background, And Core View State.md`
             - `Future/View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
             - `Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`
 #### -------Transform
             - `transform-index.md`
         ##### ------------Future

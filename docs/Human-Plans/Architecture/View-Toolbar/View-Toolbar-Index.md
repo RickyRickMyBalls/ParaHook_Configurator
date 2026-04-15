@@ -3,6 +3,11 @@
 ## Doc Header
 
 ### Doc History
+22. 2026-04-14 23:40:00: Added standalone `Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`, extended the family ladder with `View-Toolbar 6`, and refreshed this umbrella family so the next layout-focused follow-on now has one explicit planning home for retaining the current expanded stack as `Classic` while adding a new left-tabbed `Tabs` presentation
+21. 2026-04-14 23:15:36: Added `Fly-Mode/Future2/Fly-Mode_Phase Gen2-1 - Runtime Seams And Shared Input Contract.md` and refreshed this umbrella family so the newer fly-mode `Generation 2` lane now has its first standalone execution doc, making the seam-cleanup architecture pass discoverable beside the broader Gen2 index while keeping actual fly-runtime ownership with `Camera-Controls`
+20. 2026-04-14 23:06:03: Added `Fly-Mode/Fly-Mode-Gen2-Index.md` and refreshed this umbrella family so the `View-Toolbar` docs now expose one explicit phased execution surface for the fly-mode gravity-and-FPV lane beside the broader fly vision, keeping the runtime order for thrust, momentum, gamepad, and FPV-radio follow-ons discoverable without moving ownership out of `Camera-Controls`
+19. 2026-04-14 22:51:13: Added `Fly-Mode/Fly-Mode-Vision.md` and refreshed this umbrella family so the `View-Toolbar` docs now point at one stable fly-mode north-star beside the existing fly execution docs, explicitly naming a later `Generation 2` gravity-and-FPV research direction while keeping actual fly-runtime ownership with `Camera-Controls`
+18. 2026-04-14 22:36:17: Added `Fly-Mode/Fly-Mode-Index.md` and `Fly-Mode/Future/Fly-Mode_Phase Fly-Mode 1 - Polish UI And Small Features.md`, then refreshed this umbrella family so viewport-local fly UI polish now has one forward-only subfamily home under `View-Toolbar` while `Camera-Controls` remains the owner for actual fly-navigation runtime behavior
 17. 2026-04-14 15:44:58: Corrected the `View-Toolbar 5` umbrella note after the live toolbar-overflow investigation, replacing the older "scrollbar polish first" framing with the more accurate first slice: establish one real scroll owner for the whole `View` toolbar and clamp it against the model viewport bottom before any narrower scrollbar styling polish
 16. 2026-04-14 15:18:59: Tightened `View-Toolbar 5` so its first internal execution slice is explicitly the toolbar scrollbar pass, and updated this umbrella phase note to say later UI polish should start with overflow/scroll-surface clarity before widening into the broader density and copy cleanup
 15. 2026-04-14 15:16:14: Added standalone `Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`, extended the family ladder with `View-Toolbar 5`, and recast the later toolbar-shell refinement as one explicit polish phase so density, layout, and readability cleanup now have a real planning home instead of staying implicit inside earlier feature phases
@@ -102,6 +107,12 @@ Use this folder like this:
 - `Gizmo/`
   - stable gizmo direction docs
   - `Gizmo-Vision.md`
+- `Fly-Mode/`
+  - forward-only fly-mode UI planning docs
+  - `Fly-Mode-Vision.md`
+  - `Fly-Mode-Gen2-Index.md`
+  - `Fly-Mode-Index.md`
+  - `Future2/Fly-Mode_Phase Gen2-1 - Runtime Seams And Shared Input Contract.md`
 - `Future/`
   - standalone view-toolbar execution/planning docs
   - `View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`
@@ -109,6 +120,7 @@ Use this folder like this:
   - `View_Toolbar_Phase View-Toolbar 3 - Grid, Background, And Core View State.md`
   - `View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
   - `View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
+  - `View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 
@@ -119,6 +131,7 @@ Current roadmap home:
 - `[View-Toolbar 3] Grid, Background, And Core View State`
 - `[View-Toolbar 4] Gizmo, Helpers, And Legacy Feel Follow-Ons`
 - `[View-Toolbar 5] UI Polish And Surface Clarity`
+- `[View-Toolbar 6] Classic And Tabs Presentation Modes`
 
 ### Cross-Doc Boundaries
 
@@ -139,6 +152,11 @@ Canonical ownership should stay split like this:
 - `Gizmo` planning
   - `Gizmo/Gizmo-Vision.md`
   - transform-manipulator quality bar plus the split between transform handles and view helpers
+- `Fly-Mode` planning
+  - `Fly-Mode/Fly-Mode-Vision.md`
+  - `Fly-Mode/Fly-Mode-Gen2-Index.md`
+  - `Fly-Mode/Fly-Mode-Index.md`
+  - visible fly-mode UI polish and small viewport-facing follow-ons without taking over fly runtime ownership
 
 Important rule:
 - do not let the toolbar invent separate behavior paths for commands that should also exist in the console
@@ -394,6 +412,7 @@ Current family read:
 - `View-Toolbar 3` is open
 - `View-Toolbar 4` is open
 - `View-Toolbar 5` is open
+- `View-Toolbar 6` is open
 
 Evidence for the completed read:
 - the standalone phase doc [`Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`](./Future/View_Toolbar_Phase%20View-Toolbar%201%20-%20Shared%20View%20Command%20Dispatch%20And%20Projection%20Console%20Entry.md) is marked `## [x]`
@@ -514,6 +533,33 @@ This phase should:
 - clean up overflow, wrapping, and compact-width behavior
 - align labels and copy so the toolbar reads coherently across its sections
 - keep polish downstream from the earlier feature-owner seams instead of hiding new behavior in a UI pass
+
+Completion read:
+- open
+
+## [ ] View-Toolbar 6 - Classic And Tabs Presentation Modes
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`](./Future/View_Toolbar_Phase%20View-Toolbar%206%20-%20Classic%20And%20Tabs%20Presentation%20Modes.md)
+
+Goal:
+- keep the current expanded `View` toolbar available as `Classic` while adding a new focused `Tabs` presentation with a left-side tab rail and one shared content pane
+
+This phase should:
+- keep the current stacked expanded layout as `Classic`
+- add a new expanded presentation called `Tabs`
+- treat `Classic` versus `Tabs` as presentation, not command meaning
+- start the first tab rail around the highest-frequency sections:
+  - `Camera`
+  - `Fly Mode`
+  - `Transform`
+- remember the chosen presentation per viewport
+- remember the active tab per viewport when `Tabs` is selected
+- keep the toolbar clamp and overflow contract honest while the layout changes
+
+Phase rule:
+- do not overload the shared `collapsed / essentials / expanded` density language with this feature
+- do not duplicate section behavior into parallel `Classic`-only versus `Tabs`-only command trees
 
 Completion read:
 - open

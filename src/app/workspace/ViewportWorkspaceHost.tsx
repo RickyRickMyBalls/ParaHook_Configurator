@@ -9,6 +9,7 @@ import type { WorkspaceViewportId } from './workspaceShellTypes'
 type ViewportWorkspaceHostProps = {
   viewportId: WorkspaceViewportId
   onActivateViewerSurface: (viewportId: WorkspaceViewportId) => void
+  reserveBottomConsoleBar?: boolean
   onViewportContextMenu?: (
     viewportId: WorkspaceViewportId,
     event: ReactMouseEvent<HTMLDivElement>,
@@ -16,7 +17,12 @@ type ViewportWorkspaceHostProps = {
 }
 
 export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
-  const { viewportId, onActivateViewerSurface, onViewportContextMenu } = props
+  const {
+    viewportId,
+    onActivateViewerSurface,
+    reserveBottomConsoleBar = false,
+    onViewportContextMenu,
+  } = props
   const ensureViewportChrome = useWorkspaceStore((state) => state.ensureViewportChrome)
 
   useEffect(() => {
@@ -27,6 +33,7 @@ export function ViewportWorkspaceHost(props: ViewportWorkspaceHostProps) {
     <div
       className="ViewportWorkspaceHost"
       data-workspace-viewport-id={viewportId}
+      data-bottom-console-bar-reserved={reserveBottomConsoleBar ? 'true' : 'false'}
       onPointerDownCapture={() => onActivateViewerSurface(viewportId)}
       onContextMenu={
         onViewportContextMenu === undefined
