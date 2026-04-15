@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+37. 2026-04-14: Implemented `Camera-6.3.8`, so the fly-camera polish ladder now includes optional pointer lock during held-`RMB` fly mode for continuous relative mouse look when the browser allows it, and the family checklist no longer leaves pointer lock only as an unstructured later wish
+36. 2026-04-14: Implemented `Camera-6.3.6`, so fly look now pitches through vertical for full loop-the-loops in the existing `PerspectiveCamera`, removing the old pole clamp while preserving the already-shipped roll and speed-control behavior
 35. 2026-04-14: Implemented `Camera-6.3.5`, so held-`RMB` fly mode now temporarily remaps the wheel from zoom to fly-speed control, the HUD speed control stays synced with internal viewer-owned speed changes, and normal wheel zoom returns on fly exit
 34. 2026-04-14: Implemented `Camera-6.3.4`, so the fly-camera polish ladder now includes held `Q` / `E` roll, persistent rolled orientation across fly-session exit and re-entry, and upside-down flight while preserving the existing `viewer-fly` input ownership model
 33. 2026-04-14: Implemented `Camera-6.3.3`, so the viewport HUD/status box now exposes a viewport-scoped fly-speed `ParaSlider`, and the first `Camera-6.3.*` fly polish ladder is now complete end to end
@@ -552,48 +554,3 @@ CheckList:
 - [ ] use `[Camera-6.1]` to lock the first seam audit and implementation read
 - [ ] follow with one later implementation cut for temporary `RMB`-held fly navigation once the seam audit is concrete
 
-### [x] `[Camera-6.1]` - `Fly Navigation Research And Seam Audit`
-
-CheckList:
-- [x] add one standalone future phase doc for the fly-navigation seam audit:
-  - [x] `Future/Camera_Controls_Phase Camera-6.1 - Fly Navigation Research And Seam Audit.md`
-- [x] re-audit the current active-viewer-viewport, pointer, keyboard, and camera-controller seams that would own fly mode
-- [x] identify how fly mode should suppress console typing without weakening the broader input-routing model
-- [x] identify how viewport-local `contextmenu` suppression should attach to the same `RMB` fly interaction
-- [x] identify which release seams still need to be added explicitly for fly teardown:
-  - [x] `keyup`
-  - [x] `blur`
-  - [x] viewport-local `contextmenu`
-- [x] decide whether the first implementation cut should remain non-pointer-lock and perspective-only
-- [x] record the recommended narrow follow-on implementation slice after the seam audit
-
-### [x] `[Camera-6.2]` - `Hold-To-Fly Runtime And Input Ownership`
-
-CheckList:
-- [x] add one standalone future phase doc for the first fly runtime cut:
-  - [x] `Future/Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
-- [x] let held `RMB` arm a temporary fly session in the active viewer viewport when no higher-priority viewer owner already claims the interaction
-- [x] route mouse look plus:
-  - [x] `W` / `A` / `S` / `D` for planar movement
-  - [x] `Space` and `Shift` for vertical movement
-- [x] add one explicit keyboard-routing owner so console auto-capture stands down while fly mode is active
-- [x] keep existing viewer shortcuts like gizmo `W` / `E` / `R` / `Q` dormant while fly mode owns the keyboard
-- [x] add viewport-local `contextmenu` suppression for the same fly interaction
-- [x] stop fly movement immediately on `RMB` release and restore the normal camera/input ownership path cleanly
-
-### [x] `[Camera-6.3]` - `Fly Camera Polish Backlog`
-
-CheckList:
-- [x] add one standalone future phase doc for fly-camera polish:
-  - [x] `Future/Camera_Controls_Phase Camera-6.3 - Fly Camera Polish Backlog.md`
-- [x] split the first fly-camera polish pass into small `Camera-6.3.*` slices that Codex can land one at a time
-- [x] use `[Camera-6.3.1]` for the first runtime-only remap/boost cut
-- [x] use `[Camera-6.3.2]` for base fly-speed state and viewer-seam plumbing
-- [x] use `[Camera-6.3.3]` for the visible viewport HUD/status-box `ParaSlider`
-- [x] use `[Camera-6.3.4]` for plane-style roll controls and persistent rolled orientation
-- [x] use `[Camera-6.3.5]` for temporary fly-mode wheel remapping from zoom to speed control
-- [ ] use `[Camera-6.3.6]` for free-flight pitch through vertical and loop support
-- [ ] leave deeper polish for later:
-  - [ ] mouse-look sensitivity slider
-  - [ ] optional pointer lock
-  - [ ] saved fly settings

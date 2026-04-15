@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+238. 2026-04-14 15:16:14: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new later UI-polish lane, and updated the `View-Toolbar` subtree listing so the family docs map matches the current `View-Toolbar 1` through `View-Toolbar 5` ladder plus `Gizmo-Vision.md`
 237. 2026-04-13 09:13:40: Reframed the new `Spaghetti-Editor 4` workspace-family execution surface around the clarified left-side node palette idea by replacing `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` with `.../Spaghetti-Editor 4 - Left Node Palette And Drag-Drop Surface.md`, refreshing `Spaghetti-Editor-index.md` so the umbrella lane now matches the compact hideable left-palette-and-drag-drop direction, and updating the `Spaghetti-Editor-Arch` subtree listing so the new future doc stays discoverable beside the family index
 236. 2026-04-13 08:43:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Future/Spaghetti-Editor 4 - Canvas Node Toolbar Host And Launcher Contract.md` to the docs map as the next dedicated `Spaghetti-Editor-Arch` future execution surface, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Spaghetti-Editor-index.md` so the umbrella family now points at the new `Spaghetti-Editor 4` canvas-toolbar-host lane, and extended the `Spaghetti-Editor-Arch` subtree listing so the current future and shipped workspace-level phase docs stay discoverable beside the family index
 235. 2026-04-12 10:09:21: Added `docs/Agents/Implementation-Behavior.md` as the new repo-wide implementation behavior guide for file ownership, hook/effect boundaries, migration retirement, and cleanup bias, then refreshed the `Agents` section of this docs map so the new guidance is discoverable beside the existing planning-agent docs
@@ -138,6 +139,7 @@
 107. 2026-03-25 10:06: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.2 - Implicit Parent Multi-Selection.md` to the architecture docs map and refreshed the Browser subtree so the next grouped parent-selection follow-up now has its own standalone implementation-ready future planning surface under the Browser family
 106. 2026-03-25 09:44: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the newly landed reference-selection cleanup after Browser-5
 105. 2026-03-25 03:08: Added `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5.1 - Reference Selection Cleanup.md` to the architecture docs map and refreshed the Browser subtree so the next immediate post-`Browser-5` reference-selection cleanup now has a dedicated future planning surface under the Browser family
+105. 2026-04-14 15:00:25: Added `docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Vision.md` to the architecture docs map and refreshed the `View-Toolbar` subtree so the new folderized gizmo direction now has one stable north-star doc covering transform-manipulator quality, legacy carry-forward expectations, and cross-family boundaries with `Transform`, `Camera-Controls`, and `View-Toolbar`
 104. 2026-03-25 03:00: Added `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/master spaghetti-index.md` plus `docs/Human-Plans/Architecture/Spaghetti-Editor-Arch/Future/Master_Spaghetti_Phase Master Spaghetti-1 - Smart Wiring And Intent-Aware Auto-Insert First Pass.md` to the architecture docs map, so the Spaghetti editor umbrella now has a visible folder entry-point doc and its first standalone future smart-wiring phase record
 103. 2026-03-25 02:50: Moved the shipped `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-5 - Selection And Focus Sync.md` record into `Browser/Shipped/`, refreshed the Browser subtree listing, and kept the docs map aligned with the newly landed Browser selection/focus sync phase
 102. 2026-03-25 01:45: Added `docs/Human-Plans/roadmap/Architecture-roadmap.md` to the docs map as the new cross-family tracker for the newer architecture phase ladders, so `Browser`, `Console`, `Spaghetti Editor`, `Nodes`, `Worker`, and `AppShell` now have one compact roadmap companion under `docs/Human-Plans/roadmap/`
@@ -770,8 +772,14 @@ Rule notes:
 #### -------View-Toolbar
             - `ThreeViewier.md`
             - `View-Toolbar-Index.md`
+        ##### ------------Gizmo
+            - `Gizmo/Gizmo-Vision.md`
         ##### ------------Future
-            - `Future/View_Toolbar_Phase 5.0I-1 - Shared View Command Dispatch And Projection Console Entry.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 3 - Grid, Background, And Core View State.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
 #### -------Transform
             - `transform-index.md`
         ##### ------------Future

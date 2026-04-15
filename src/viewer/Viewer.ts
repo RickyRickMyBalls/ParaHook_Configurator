@@ -78,7 +78,7 @@ import {
   type GeometrySketchRenderLayer,
 } from './geometrySketchOverlay'
 import { TransformGizmo } from './gizmo/TransformGizmo'
-import { AxisGizmo, type SnapDirection } from './overlay/AxisGizmo'
+import { AxisGizmo, type AxisGizmoTarget, type SnapDirection } from './overlay/AxisGizmo'
 import { CameraController, type CameraPose, type CameraPreset } from './scene/CameraController'
 import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
 import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
@@ -138,6 +138,7 @@ type FlySession = {
   lastClientX: number
   lastClientY: number
   heldKeys: Set<FlyMovementKey>
+  pointerLockActive: boolean
 }
 const DEFAULT_BACKGROUND = '#0b0b0f'
 const STUDIO_BACKGROUND = '#151922'
@@ -214,6 +215,9 @@ const createGridLayer = (
 
 const cloneViewSettings = (settings: ViewSettings): ViewSettings => ({
   ...settings,
+  axisOverlayStyle: {
+    ...settings.axisOverlayStyle,
+  },
   lighting: {
     selectedLightId: settings.lighting.selectedLightId,
     lights: settings.lighting.lights.map((light) => ({
@@ -954,6 +958,7 @@ export class Viewer {
     )
 
     this.setAxisOverlayEnabled(settings.axisOverlayEnabled)
+    this.axisGizmo?.setStyle(settings.axisOverlayStyle)
     this.applyLights(settings.lighting.lights)
     this.applyMaterialSettings(settings.materials)
     this.applyShadowFlags()
@@ -994,6 +999,21 @@ export class Viewer {
     appendConsoleEntry({
       layer: 'View',
       text: `Snap camera: ${dir}`,
+      source: 'viewer',
+      severity: 'info',
+    })
+  }
+
+  private snapCameraToOrientationTarget(target: AxisGizmoTarget): void {
+    this.cameraController.animateToDirection(
+      new Vector3(target.direction[0], target.direction[1], target.direction[2]),
+      {
+        durationMs: 320,
+      },
+    )
+    appendConsoleEntry({
+      layer: 'View',
+      text: `Snap camera: ${this.describeAxisGizmoTarget(target)}`,
       source: 'viewer',
       severity: 'info',
     })
@@ -1808,6 +1828,30 @@ export class Viewer {
     this.syncAxisOverlay()
   }
 
+  public beginAxisOverlayPointerInteraction(pointerId: number, clientX: number, clientY: number): void {
+    this.axisGizmo?.beginPointerInteraction(pointerId, clientX, clientY)
+  }
+
+  public updateAxisOverlayPointerInteraction(pointerId: number, clientX: number, clientY: number): void {
+    this.axisGizmo?.updatePointerInteraction(pointerId, clientX, clientY)
+  }
+
+  public endAxisOverlayPointerInteraction(pointerId: number): void {
+    this.axisGizmo?.endPointerInteraction(pointerId)
+  }
+
+  public cancelAxisOverlayPointerInteraction(pointerId: number): void {
+    this.axisGizmo?.cancelPointerInteraction(pointerId)
+  }
+
+  public updateAxisOverlayPointerHover(clientX: number, clientY: number): void {
+    this.axisGizmo?.updatePointerHover(clientX, clientY)
+  }
+
+  public clearAxisOverlayPointerHover(): void {
+    this.axisGizmo?.clearPointerHover()
+  }
+
   public setGeometrySketchOverlay(overlay: GeometrySketchOverlayVm | null): void {
     const previousOverlayMode = this.geometrySketchOverlay?.mode ?? null
     this.geometrySketchOverlay = overlay
@@ -1957,14 +2001,17 @@ export class Viewer {
 
   private startFlySession(event: PointerEvent): void {
     this.rememberCameraPose()
+    this.cameraController.beginFlyMode()
     this.flySession = {
       pointerId: event.pointerId,
       lastClientX: event.clientX,
       lastClientY: event.clientY,
       heldKeys: new Set<FlyMovementKey>(),
+      pointerLockActive: this.isFlyPointerLockActive(),
     }
     this.suppressFlyContextMenu = false
     this.renderer.domElement.setPointerCapture(event.pointerId)
+    this.requestFlyPointerLock()
     event.preventDefault()
     event.stopPropagation()
   }
@@ -1977,6 +2024,8 @@ export class Viewer {
     if (this.renderer.domElement.hasPointerCapture(pointerId)) {
       this.renderer.domElement.releasePointerCapture(pointerId)
     }
+    this.exitFlyPointerLock()
+    this.cameraController.endFlyMode({ restoreUpright: true })
     this.flySession.heldKeys.clear()
     this.flySession = null
     if (options?.suppressContextMenu === true) {
@@ -1988,8 +2037,27 @@ export class Viewer {
     if (this.flySession === null || event.pointerId !== this.flySession.pointerId) {
       return
     }
-    const deltaX = event.clientX - this.flySession.lastClientX
-    const deltaY = event.clientY - this.flySession.lastClientY
+    const pointerLockActive = this.isFlyPointerLockActive()
+    if (this.flySession.pointerLockActive && !pointerLockActive) {
+      this.flySession.pointerLockActive = false
+      this.flySession.lastClientX = event.clientX
+      this.flySession.lastClientY = event.clientY
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+    this.flySession.pointerLockActive = pointerLockActive
+
+    const deltaX = pointerLockActive
+      ? typeof event.movementX === 'number'
+        ? event.movementX
+        : 0
+      : event.clientX - this.flySession.lastClientX
+    const deltaY = pointerLockActive
+      ? typeof event.movementY === 'number'
+        ? event.movementY
+        : 0
+      : event.clientY - this.flySession.lastClientY
     this.flySession.lastClientX = event.clientX
     this.flySession.lastClientY = event.clientY
     event.preventDefault()
@@ -3620,8 +3688,18 @@ export class Viewer {
     }
 
     this.axisGizmo = new AxisGizmo(this.axisOverlayCanvas)
-    this.axisGizmo.setOnDirectionSelected((dir) => {
-      this.snapCameraToDirection(dir)
+    this.axisGizmo.setStyle(this.currentViewSettings.axisOverlayStyle)
+    this.axisGizmo.setOnTargetSelected((target) => {
+      this.snapCameraToOrientationTarget(target)
+    })
+    this.axisGizmo.setOnOrbitDragStart((clientX, clientY) => {
+      this.beginTemporaryOrbitDrag(clientX, clientY)
+    })
+    this.axisGizmo.setOnOrbitDragMove((clientX, clientY) => {
+      this.updateTemporaryOrbitDrag(clientX, clientY)
+    })
+    this.axisGizmo.setOnOrbitDragEnd(() => {
+      this.endTemporaryOrbitDrag()
     })
   }
 
@@ -4561,6 +4639,33 @@ export class Viewer {
     this.zoomCameraByWheelDelta(event.deltaY)
   }
 
+  private isFlyPointerLockActive(): boolean {
+    return document.pointerLockElement === this.renderer.domElement
+  }
+
+  private requestFlyPointerLock(): void {
+    const requestPointerLock = this.renderer.domElement.requestPointerLock
+    if (typeof requestPointerLock !== 'function') {
+      return
+    }
+
+    try {
+      const maybePromise = requestPointerLock.call(this.renderer.domElement) as
+        | Promise<void>
+        | void
+      maybePromise?.catch?.(() => {})
+    } catch {
+      // Browsers may reject pointer lock if the gesture or permissions do not allow it.
+    }
+  }
+
+  private exitFlyPointerLock(): void {
+    if (!this.isFlyPointerLockActive()) {
+      return
+    }
+    document.exitPointerLock?.()
+  }
+
   private readonly renderLoop = (): void => {
     this.frameId = window.requestAnimationFrame(this.renderLoop)
     const dt = this.clock.getDelta()
@@ -4729,5 +4834,28 @@ export class Viewer {
       default:
         return new Vector3(0, 0, -1)
     }
+  }
+
+  private describeAxisGizmoTarget(target: AxisGizmoTarget): string {
+    const [x, y, z] = target.direction
+    if (target.kind === 'axis') {
+      if (x > 0) {
+        return '+X'
+      }
+      if (x < 0) {
+        return '-X'
+      }
+      if (y > 0) {
+        return '+Y'
+      }
+      if (y < 0) {
+        return '-Y'
+      }
+      if (z > 0) {
+        return '+Z'
+      }
+      return '-Z'
+    }
+    return `${target.kind} (${x},${y},${z})`
   }
 }

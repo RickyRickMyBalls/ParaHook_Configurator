@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type {
   LightSpec,
   LightType,
@@ -9,6 +9,7 @@ import {
   artifactToPartKeyStr,
   partKeyStrToLabel,
 } from '../parts/partKeyResolver'
+import { useConsoleStore } from '../console/useConsoleStore'
 import { useAppStore } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
@@ -34,11 +35,26 @@ import {
   resolveRightDockWidth,
   resolveViewAnchorTop,
 } from './viewToolbarLayout'
+import { ParaSlider } from './ParaSlider'
+import { ParaSelect } from './ParaSelect'
 import type { WorkspaceViewportId } from '../workspace/workspaceShellTypes'
 
 const cameraPresets: CameraPreset[] = ['iso', 'top', 'front', 'left', 'right']
 const lightTypes: LightType[] = ['directional', 'point', 'spot', 'hemisphere', 'ambient']
 const shadowSizes = [256, 512, 1024, 2048]
+const axisLabelVisibilityOptions = [
+  { value: 'on', label: 'On' },
+  { value: 'off', label: 'Off' },
+]
+const axisBackgroundOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'blur', label: 'Blur' },
+]
+const axisLabelSizeOptions = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+]
 
 const numericValue = (value: string, fallback: number): number => {
   const parsed = Number(value)
@@ -134,11 +150,15 @@ type ViewToolbarProps = {
 
 export function ViewToolbar(props: ViewToolbarProps = {}) {
   const { viewportId } = props
+  const rightPanelStackRef = useRef<HTMLDivElement | null>(null)
+  const viewToolbarRootRef = useRef<HTMLDetailsElement | null>(null)
+  const viewToolbarPanelRef = useRef<HTMLDivElement | null>(null)
   const viewerTargetParts = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const parts = viewerTargetParts
 
   const globalView = useUiPrefsStore((state) => state.view)
+  const setView = useUiPrefsStore((state) => state.setView)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
   const selectLight = useUiPrefsStore((state) => state.selectLight)
   const addLight = useUiPrefsStore((state) => state.addLight)
@@ -151,6 +171,9 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const setUsePerPartMaterial = useUiPrefsStore((state) => state.setUsePerPartMaterial)
   const assignPartMaterial = useUiPrefsStore((state) => state.assignPartMaterial)
   const clearPartMaterial = useUiPrefsStore((state) => state.clearPartMaterial)
+  const consoleWindowMode = useConsoleStore((state) => state.windowMode)
+  const consoleIsExpanded = useConsoleStore((state) => state.isExpanded)
+  const consoleExpandedHeight = useConsoleStore((state) => state.expandedHeight)
   const localViewState = useWorkspaceStore(
     (state) =>
       (viewportId !== undefined ? state.viewportChromeById[viewportId]?.localViewState : null) ?? null,
@@ -166,6 +189,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     [globalView, localViewState],
   )
   const viewToolbarOpen = localViewState?.viewToolbarOpen ?? false
+  const viewToolbarCompactAxisWidgetSize = localViewState?.viewToolbarCompactAxisWidgetSize ?? null
   const viewToolbarExpandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
 
   const [gizmoEnabled, setGizmoEnabled] = useState(false)
@@ -177,6 +201,9 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const [snapScale, setSnapScale] = useState('0.1')
   const [addLightType, setAddLightType] = useState<LightType>('point')
   const [addLightName, setAddLightName] = useState('')
+  const [viewToolbarMaxHeight, setViewToolbarMaxHeight] = useState<number | null>(null)
+  const [viewToolbarUsedHeight, setViewToolbarUsedHeight] = useState<number | null>(null)
+  const [viewToolbarHasOverflow, setViewToolbarHasOverflow] = useState(false)
 
   const selectedLight = useMemo(
     () => view.lighting.lights.find((light) => light.id === view.lighting.selectedLightId) ?? null,
@@ -199,6 +226,16 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     callback(viewer)
   }
 
+  const updateAxisOverlayStyle = (patch: Partial<typeof globalView.axisOverlayStyle>) => {
+    const currentAxisOverlayStyle = useUiPrefsStore.getState().view.axisOverlayStyle
+    setView({
+      axisOverlayStyle: {
+        ...currentAxisOverlayStyle,
+        ...patch,
+      },
+    })
+  }
+
   const toggleGizmo = () => {
     const next = !gizmoEnabled
     setGizmoEnabled(next)
@@ -218,8 +255,81 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
 
   const resolvedAxisWidgetSize = viewToolbarOpen
     ? viewToolbarExpandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
-    : COMPACT_AXIS_WIDGET_SIZE
+    : viewToolbarCompactAxisWidgetSize ?? COMPACT_AXIS_WIDGET_SIZE
   const rightDockWidth = resolveRightDockWidth(resolvedAxisWidgetSize)
+  const dockedConsoleReserve =
+    consoleWindowMode !== 'docked' ? 0 : consoleIsExpanded ? consoleExpandedHeight + 12 : 30
+  const viewToolbarBottomContentPadding = 12
+
+  useLayoutEffect(() => {
+    const stackElement = rightPanelStackRef.current
+    const toolbarElement = viewToolbarRootRef.current
+    const panelElement = viewToolbarPanelRef.current
+    if (stackElement === null || toolbarElement === null || panelElement === null) {
+      return
+    }
+
+    const syncViewToolbarHeights = () => {
+      const viewportBodyElement = stackElement.closest('.ViewportFrameBody')
+      const stackRect = stackElement.getBoundingClientRect()
+      const viewportBodyRect =
+        viewportBodyElement instanceof HTMLElement
+          ? viewportBodyElement.getBoundingClientRect()
+          : null
+      const viewportHeight =
+        viewportBodyRect === null ? Math.round(stackRect.height) : Math.round(viewportBodyRect.height)
+      const toolbarTopOffset =
+        viewportBodyRect === null ? 0 : Math.max(0, Math.round(stackRect.top - viewportBodyRect.top))
+      const nextMaxHeight = Math.max(0, viewportHeight - toolbarTopOffset - dockedConsoleReserve)
+      const naturalContentHeight = Math.round(toolbarElement.scrollHeight)
+      const nextUsedHeight =
+        nextMaxHeight <= 0 ? 0 : Math.min(naturalContentHeight, nextMaxHeight)
+      const nextHasOverflow = naturalContentHeight > nextMaxHeight + 1
+      if (nextMaxHeight <= 0 || nextUsedHeight <= 0) {
+        return
+      }
+      setViewToolbarMaxHeight((currentHeight) =>
+        currentHeight === nextMaxHeight ? currentHeight : nextMaxHeight,
+      )
+      setViewToolbarUsedHeight((currentHeight) =>
+        currentHeight === nextUsedHeight ? currentHeight : nextUsedHeight,
+      )
+      setViewToolbarHasOverflow((currentValue) =>
+        currentValue === nextHasOverflow ? currentValue : nextHasOverflow,
+      )
+    }
+
+    syncViewToolbarHeights()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', syncViewToolbarHeights)
+      return () => {
+        window.removeEventListener('resize', syncViewToolbarHeights)
+      }
+    }
+
+    const observer = new ResizeObserver(() => {
+      syncViewToolbarHeights()
+    })
+    observer.observe(stackElement)
+    observer.observe(panelElement)
+
+    const subsectionElements = Array.from(
+      panelElement.querySelectorAll<HTMLDetailsElement>('.ViewSection'),
+    )
+    const handleSubsectionToggle = () => {
+      syncViewToolbarHeights()
+    }
+    subsectionElements.forEach((element) => {
+      element.addEventListener('toggle', handleSubsectionToggle)
+    })
+
+    return () => {
+      subsectionElements.forEach((element) => {
+        element.removeEventListener('toggle', handleSubsectionToggle)
+      })
+      observer.disconnect()
+    }
+  }, [dockedConsoleReserve, rightDockWidth, viewToolbarOpen])
 
   return (
     <aside
@@ -230,10 +340,22 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         minWidth: `${rightDockWidth}px`,
         maxWidth: `${rightDockWidth}px`,
         paddingTop: `${resolveViewAnchorTop(resolvedAxisWidgetSize)}px`,
+        ['--v15-view-toolbar-content-padding-bottom' as string]: `${viewToolbarBottomContentPadding}px`,
       }}
     >
-      <div className="RightPanelStack">
-        <details className="V15Panel ViewToolbarRoot" open={viewToolbarOpen}>
+      <div className="RightPanelStack" ref={rightPanelStackRef}>
+        <details
+          className="V15Panel ViewToolbarRoot ViewToolbarScrollSurface"
+          open={viewToolbarOpen}
+          ref={viewToolbarRootRef}
+          data-scrollable={viewToolbarHasOverflow ? 'true' : 'false'}
+          style={{
+            ['--v15-view-toolbar-max-height' as string]:
+              viewToolbarMaxHeight !== null ? `${viewToolbarMaxHeight}px` : undefined,
+            ['--v15-view-toolbar-used-height' as string]:
+              viewToolbarUsedHeight !== null ? `${viewToolbarUsedHeight}px` : undefined,
+          }}
+        >
           <summary
             className="V15PanelTitle ViewToolbarToggle"
             onClick={(event) => {
@@ -247,7 +369,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
           >
             View
           </summary>
-          <div className="ViewToolbarPanel">
+          <div className="ViewToolbarPanel" ref={viewToolbarPanelRef}>
           <details className="ViewSection CameraSection ViewStyledSection">
             <summary>Camera</summary>
             <div className="V15Wrap CameraToolbar">
@@ -304,8 +426,8 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             </div>
           </details>
 
-          <details className="ViewSection GizmoSection ViewStyledSection">
-            <summary>Gizmo</summary>
+          <details className="ViewSection TransformSection ViewStyledSection">
+            <summary>Transform</summary>
             <div className="V15Wrap">
               <button type="button" onClick={toggleGizmo}>
                 Gizmo {gizmoEnabled ? 'On' : 'Off'}
@@ -323,6 +445,11 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 {gizmoSpace === 'local' ? 'Local' : 'World'}
               </button>
             </div>
+            <div className="V15Meta">Mode: {gizmoMode}</div>
+          </details>
+
+          <details className="ViewSection SnapSection ViewStyledSection">
+            <summary>Snap</summary>
             <div className="MiniFieldGrid">
               <label>
                 Move Snap
@@ -378,7 +505,74 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             >
               Apply Snap
             </button>
-            <div className="V15Meta">Mode: {gizmoMode}</div>
+          </details>
+
+          <details className="ViewSection GizmoSection ViewStyledSection">
+            <summary>Gizmo</summary>
+            <div className="GizmoStyleControls">
+              <ParaSlider
+                label="Main Lines"
+                min={0}
+                max={1}
+                step={0.02}
+                value={view.axisOverlayStyle.mainLineOpacity}
+                onChange={(value) => updateAxisOverlayStyle({ mainLineOpacity: value })}
+                formatValue={(value) => `${Math.round(value * 100)}%`}
+              />
+              <ParaSlider
+                label="Other Lines"
+                min={0}
+                max={1}
+                step={0.02}
+                value={view.axisOverlayStyle.secondaryLineOpacity}
+                onChange={(value) => updateAxisOverlayStyle({ secondaryLineOpacity: value })}
+                formatValue={(value) => `${Math.round(value * 100)}%`}
+              />
+              <ParaSlider
+                label="Sphere Size"
+                min={0.5}
+                max={2}
+                step={0.05}
+                value={view.axisOverlayStyle.sphereScale}
+                onChange={(value) => updateAxisOverlayStyle({ sphereScale: value })}
+                formatValue={(value) => `${Math.round(value * 100)}%`}
+              />
+              <ParaSlider
+                label="Camera Dolly"
+                min={2.4}
+                max={5.2}
+                step={0.05}
+                value={view.axisOverlayStyle.cameraDistance}
+                onChange={(value) => updateAxisOverlayStyle({ cameraDistance: value })}
+                formatValue={(value) => value.toFixed(2)}
+              />
+              <ParaSelect
+                label="Labels"
+                value={view.axisOverlayStyle.labelsVisible ? 'on' : 'off'}
+                options={axisLabelVisibilityOptions}
+                onChange={(value) => updateAxisOverlayStyle({ labelsVisible: value === 'on' })}
+              />
+              <ParaSelect
+                label="Background"
+                value={view.axisOverlayStyle.backgroundMode}
+                options={axisBackgroundOptions}
+                onChange={(value) =>
+                  updateAxisOverlayStyle({
+                    backgroundMode: value as typeof view.axisOverlayStyle.backgroundMode,
+                  })
+                }
+              />
+              <ParaSelect
+                label="Text Size"
+                value={view.axisOverlayStyle.labelSize}
+                options={axisLabelSizeOptions}
+                onChange={(value) =>
+                  updateAxisOverlayStyle({
+                    labelSize: value as typeof view.axisOverlayStyle.labelSize,
+                  })
+                }
+              />
+            </div>
           </details>
 
           <details className="ViewSection ViewStyledSection">

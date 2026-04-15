@@ -6,11 +6,40 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const cameraControllerMocks = vi.hoisted(() => ({
   instances: [] as Array<{
     activeCamera: { position: { x: number; y: number; z: number }; up: { x: number; y: number; z: number } }
+    beginTemporaryOrbitDrag: ReturnType<typeof vi.fn>
+    updateTemporaryOrbitDrag: ReturnType<typeof vi.fn>
+    endTemporaryOrbitDrag: ReturnType<typeof vi.fn>
+    beginFlyMode: ReturnType<typeof vi.fn>
+    endFlyMode: ReturnType<typeof vi.fn>
     applyFlyLookDelta: ReturnType<typeof vi.fn>
     applyFlyRollDelta: ReturnType<typeof vi.fn>
+    animateToDirection: ReturnType<typeof vi.fn>
+    snapToDirection: ReturnType<typeof vi.fn>
     translateFly: ReturnType<typeof vi.fn>
     zoomByWheelDelta: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
+  }>,
+}))
+
+const axisGizmoMocks = vi.hoisted(() => ({
+  instances: [] as Array<{
+    onTargetSelected: ((target: { kind: 'axis' | 'corner' | 'edge'; direction: readonly [number, number, number] }) => void) | null
+    onOrbitDragStart: ((clientX: number, clientY: number) => void) | null
+    onOrbitDragMove: ((clientX: number, clientY: number) => void) | null
+    onOrbitDragEnd: (() => void) | null
+    beginPointerInteraction: ReturnType<typeof vi.fn>
+    updatePointerInteraction: ReturnType<typeof vi.fn>
+    endPointerInteraction: ReturnType<typeof vi.fn>
+    cancelPointerInteraction: ReturnType<typeof vi.fn>
+    updatePointerHover: ReturnType<typeof vi.fn>
+    clearPointerHover: ReturnType<typeof vi.fn>
+    setOnTargetSelected: ReturnType<typeof vi.fn>
+    setOnOrbitDragStart: ReturnType<typeof vi.fn>
+    setOnOrbitDragMove: ReturnType<typeof vi.fn>
+    setOnOrbitDragEnd: ReturnType<typeof vi.fn>
+    setStyle: ReturnType<typeof vi.fn>
+    renderFromCameraQuaternion: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
   }>,
 }))
 
@@ -43,6 +72,52 @@ vi.mock('three', async () => {
   }
 })
 
+vi.mock('./overlay/AxisGizmo', () => {
+  class MockAxisGizmo {
+    public onTargetSelected:
+      | ((target: { kind: 'axis' | 'corner' | 'edge'; direction: readonly [number, number, number] }) => void)
+      | null = null
+    public onOrbitDragStart: ((clientX: number, clientY: number) => void) | null = null
+    public onOrbitDragMove: ((clientX: number, clientY: number) => void) | null = null
+    public onOrbitDragEnd: (() => void) | null = null
+    public readonly beginPointerInteraction = vi.fn()
+    public readonly updatePointerInteraction = vi.fn()
+    public readonly endPointerInteraction = vi.fn()
+    public readonly cancelPointerInteraction = vi.fn()
+    public readonly updatePointerHover = vi.fn()
+    public readonly clearPointerHover = vi.fn()
+    public readonly setOnTargetSelected = vi.fn(
+      (
+        handler:
+          | ((target: { kind: 'axis' | 'corner' | 'edge'; direction: readonly [number, number, number] }) => void)
+          | null,
+      ) => {
+        this.onTargetSelected = handler
+      },
+    )
+    public readonly setOnOrbitDragStart = vi.fn((handler: ((clientX: number, clientY: number) => void) | null) => {
+      this.onOrbitDragStart = handler
+    })
+    public readonly setOnOrbitDragMove = vi.fn((handler: ((clientX: number, clientY: number) => void) | null) => {
+      this.onOrbitDragMove = handler
+    })
+    public readonly setOnOrbitDragEnd = vi.fn((handler: (() => void) | null) => {
+      this.onOrbitDragEnd = handler
+    })
+    public readonly setStyle = vi.fn()
+    public readonly renderFromCameraQuaternion = vi.fn()
+    public readonly dispose = vi.fn()
+
+    public constructor(_canvas: HTMLCanvasElement) {
+      axisGizmoMocks.instances.push(this as unknown as (typeof axisGizmoMocks.instances)[number])
+    }
+  }
+
+  return {
+    AxisGizmo: MockAxisGizmo,
+  }
+})
+
 vi.mock('./scene/CameraController', async () => {
   const { Vector3 } = await vi.importActual<typeof import('three')>('three')
 
@@ -58,9 +133,16 @@ vi.mock('./scene/CameraController', async () => {
 
     public readonly applyFlyLookDelta = vi.fn()
     public readonly applyFlyRollDelta = vi.fn()
+    public readonly beginTemporaryOrbitDrag = vi.fn()
+    public readonly updateTemporaryOrbitDrag = vi.fn()
+    public readonly endTemporaryOrbitDrag = vi.fn()
+    public readonly beginFlyMode = vi.fn()
+    public readonly endFlyMode = vi.fn()
     public readonly translateFly = vi.fn()
     public readonly zoomByWheelDelta = vi.fn()
     public readonly update = vi.fn()
+    public readonly animateToDirection = vi.fn()
+    public readonly snapToDirection = vi.fn()
 
     public constructor(
       perspectiveCamera: { position: ThreeVector3; up: ThreeVector3 },
@@ -81,10 +163,6 @@ vi.mock('./scene/CameraController', async () => {
 
     public setProjectionMode(): void {}
     public setPreset(): void {}
-    public snapToDirection(): void {}
-    public beginTemporaryOrbitDrag(): void {}
-    public updateTemporaryOrbitDrag(): void {}
-    public endTemporaryOrbitDrag(): void {}
     public beginTemporaryPanDrag(): void {}
     public updateTemporaryPanDrag(): void {}
     public endTemporaryPanDrag(): void {}
@@ -92,7 +170,6 @@ vi.mock('./scene/CameraController', async () => {
     public frameObject(): void {}
     public animateToPose(): void {}
     public applyPose(): void {}
-    public animateToDirection(): void {}
     public setEnabled(): void {}
     public setLeftButtonOrbitEnabled(): void {}
     public setViewportSize(): void {}
@@ -316,9 +393,12 @@ describe('Viewer baseline replacement', () => {
   let container: HTMLDivElement | null = null
   let viewer: { dispose: () => void } | null = null
   let resizeObserverCallback: ResizeObserverCallback | null = null
+  let pointerLockElement: Element | null = null
 
   beforeEach(() => {
     cameraControllerMocks.instances.length = 0
+    axisGizmoMocks.instances.length = 0
+    pointerLockElement = null
     class MockResizeObserver {
       public constructor(callback: ResizeObserverCallback) {
         resizeObserverCallback = callback
@@ -332,6 +412,16 @@ describe('Viewer baseline replacement', () => {
     vi.stubGlobal('ResizeObserver', MockResizeObserver)
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1)
     vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {})
+    Object.defineProperty(document, 'pointerLockElement', {
+      configurable: true,
+      get: () => pointerLockElement,
+    })
+    Object.defineProperty(document, 'exitPointerLock', {
+      configurable: true,
+      value: vi.fn(() => {
+        pointerLockElement = null
+      }),
+    })
   })
 
   afterEach(async () => {
@@ -434,6 +524,7 @@ describe('Viewer baseline replacement', () => {
     resizeObserverCallback?.([], {} as ResizeObserver)
 
     const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    ;(canvas as HTMLCanvasElement & { requestPointerLock?: () => void }).requestPointerLock = vi.fn()
     const capturedPointerIds = new Set<number>()
     canvas.setPointerCapture = vi.fn((pointerId: number) => {
       capturedPointerIds.add(pointerId)
@@ -460,6 +551,7 @@ describe('Viewer baseline replacement', () => {
 
     expect((viewer as unknown as { isFlyModeActive: () => boolean }).isFlyModeActive()).toBe(true)
     expect(canvas.setPointerCapture).toHaveBeenCalledWith(7)
+    expect(controller.beginFlyMode).toHaveBeenCalledTimes(1)
 
     canvas.dispatchEvent(
       new PointerEvent('pointermove', {
@@ -527,6 +619,7 @@ describe('Viewer baseline replacement', () => {
 
     expect((viewer as unknown as { isFlyModeActive: () => boolean }).isFlyModeActive()).toBe(false)
     expect(canvas.releasePointerCapture).toHaveBeenCalledWith(7)
+    expect(controller.endFlyMode).toHaveBeenCalledWith({ restoreUpright: true })
 
     const contextMenuEvent = new MouseEvent('contextmenu', {
       bubbles: true,
@@ -535,6 +628,282 @@ describe('Viewer baseline replacement', () => {
     canvas.dispatchEvent(contextMenuEvent)
 
     expect(contextMenuEvent.defaultPrevented).toBe(true)
+  })
+
+  it('uses pointer-lock movement deltas during fly mode and releases pointer lock on exit', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    ;(canvas as HTMLCanvasElement & {
+      requestPointerLock?: (options?: PointerLockOptions) => Promise<void>
+    }).requestPointerLock = vi.fn(async () => {
+      pointerLockElement = canvas
+    })
+    const capturedPointerIds = new Set<number>()
+    canvas.setPointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.add(pointerId)
+    })
+    canvas.releasePointerCapture = vi.fn((pointerId: number) => {
+      capturedPointerIds.delete(pointerId)
+    })
+    canvas.hasPointerCapture = vi.fn((pointerId: number) => capturedPointerIds.has(pointerId))
+
+    const controller = cameraControllerMocks.instances[0]!
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        button: 2,
+        buttons: 2,
+        pointerId: 31,
+        clientX: 200,
+        clientY: 220,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(canvas.requestPointerLock).toHaveBeenCalledTimes(1)
+    expect(pointerLockElement).toBe(canvas)
+
+    const moveEvent = new PointerEvent('pointermove', {
+      pointerId: 31,
+      clientX: 200,
+      clientY: 220,
+      bubbles: true,
+      cancelable: true,
+    })
+    Object.defineProperty(moveEvent, 'movementX', {
+      configurable: true,
+      value: 18,
+    })
+    Object.defineProperty(moveEvent, 'movementY', {
+      configurable: true,
+      value: -11,
+    })
+    canvas.dispatchEvent(moveEvent)
+
+    expect(controller.applyFlyLookDelta).toHaveBeenCalledWith(18, -11)
+
+    canvas.dispatchEvent(
+      new PointerEvent('pointerup', {
+        button: 2,
+        buttons: 0,
+        pointerId: 31,
+        clientX: 200,
+        clientY: 220,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+
+    expect(document.exitPointerLock).toHaveBeenCalledTimes(1)
+    expect(pointerLockElement).toBeNull()
+  })
+
+  it('routes orientation-gizmo corner and outer-edge targets through animated camera snaps', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const axisCanvas = document.createElement('canvas')
+    ;(viewer as unknown as { setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void }).setAxisOverlayCanvas(
+      axisCanvas,
+    )
+
+    const axisGizmo = axisGizmoMocks.instances[0]!
+    const controller = cameraControllerMocks.instances[0]!
+
+    axisGizmo.onTargetSelected?.({
+      kind: 'corner',
+      direction: [1, 1, 1],
+    })
+    axisGizmo.onTargetSelected?.({
+      kind: 'edge',
+      direction: [0, 1, 1],
+    })
+
+    expect(controller.animateToDirection).toHaveBeenCalledTimes(2)
+    expect(controller.snapToDirection).not.toHaveBeenCalled()
+    expect(controller.animateToDirection.mock.calls[0]?.[0]).toMatchObject({
+      x: 1,
+      y: 1,
+      z: 1,
+    })
+    expect(controller.animateToDirection.mock.calls[0]?.[1]).toMatchObject({
+      durationMs: 320,
+    })
+    expect(controller.animateToDirection.mock.calls[1]?.[0]).toMatchObject({
+      x: 0,
+      y: 1,
+      z: 1,
+    })
+  })
+
+  it('routes gizmo viewport drag callbacks through the temporary orbit path', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const axisCanvas = document.createElement('canvas')
+    ;(viewer as unknown as { setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void }).setAxisOverlayCanvas(
+      axisCanvas,
+    )
+
+    const axisGizmo = axisGizmoMocks.instances[0]!
+    const controller = cameraControllerMocks.instances[0]!
+
+    axisGizmo.onOrbitDragStart?.(120, 140)
+    axisGizmo.onOrbitDragMove?.(132, 155)
+    axisGizmo.onOrbitDragEnd?.()
+
+    expect(controller.beginTemporaryOrbitDrag).toHaveBeenCalledWith(120, 140)
+    expect(controller.updateTemporaryOrbitDrag).toHaveBeenCalledWith(132, 155)
+    expect(controller.endTemporaryOrbitDrag).toHaveBeenCalledTimes(1)
+    expect(controller.animateToDirection).not.toHaveBeenCalled()
+  })
+
+  it('forwards axis-overlay shell interactions into the live gizmo helper', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const axisCanvas = document.createElement('canvas')
+    ;(viewer as unknown as { setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void }).setAxisOverlayCanvas(
+      axisCanvas,
+    )
+
+    const axisGizmo = axisGizmoMocks.instances[0]!
+
+    ;(viewer as unknown as {
+      beginAxisOverlayPointerInteraction: (pointerId: number, clientX: number, clientY: number) => void
+      updateAxisOverlayPointerInteraction: (pointerId: number, clientX: number, clientY: number) => void
+      endAxisOverlayPointerInteraction: (pointerId: number) => void
+      cancelAxisOverlayPointerInteraction: (pointerId: number) => void
+      updateAxisOverlayPointerHover: (clientX: number, clientY: number) => void
+      clearAxisOverlayPointerHover: () => void
+    }).beginAxisOverlayPointerInteraction(7, 12, 18)
+    ;(viewer as unknown as {
+      updateAxisOverlayPointerInteraction: (pointerId: number, clientX: number, clientY: number) => void
+    }).updateAxisOverlayPointerInteraction(7, 20, 26)
+    ;(viewer as unknown as { endAxisOverlayPointerInteraction: (pointerId: number) => void }).endAxisOverlayPointerInteraction(7)
+    ;(viewer as unknown as { cancelAxisOverlayPointerInteraction: (pointerId: number) => void }).cancelAxisOverlayPointerInteraction(7)
+    ;(viewer as unknown as { updateAxisOverlayPointerHover: (clientX: number, clientY: number) => void }).updateAxisOverlayPointerHover(30, 40)
+    ;(viewer as unknown as { clearAxisOverlayPointerHover: () => void }).clearAxisOverlayPointerHover()
+
+    expect(axisGizmo.beginPointerInteraction).toHaveBeenCalledWith(7, 12, 18)
+    expect(axisGizmo.updatePointerInteraction).toHaveBeenCalledWith(7, 20, 26)
+    expect(axisGizmo.endPointerInteraction).toHaveBeenCalledWith(7)
+    expect(axisGizmo.cancelPointerInteraction).toHaveBeenCalledWith(7)
+    expect(axisGizmo.updatePointerHover).toHaveBeenCalledWith(30, 40)
+    expect(axisGizmo.clearPointerHover).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies axis-overlay style settings to the helper when the overlay is created and when view settings change', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const axisCanvas = document.createElement('canvas')
+    ;(viewer as unknown as { setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void }).setAxisOverlayCanvas(
+      axisCanvas,
+    )
+
+    const axisGizmo = axisGizmoMocks.instances[0]!
+    expect(axisGizmo.setStyle).toHaveBeenCalledWith(DEFAULT_VIEW_SETTINGS.axisOverlayStyle)
+
+    ;(viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }).applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      axisOverlayStyle: {
+        ...DEFAULT_VIEW_SETTINGS.axisOverlayStyle,
+        mainLineOpacity: 0.42,
+        secondaryLineOpacity: 0.08,
+        sphereScale: 1.35,
+        cameraDistance: 4.05,
+        labelsVisible: false,
+        labelSize: 'large',
+      },
+    })
+
+    expect(axisGizmo.setStyle).toHaveBeenLastCalledWith({
+      mainLineOpacity: 0.42,
+      secondaryLineOpacity: 0.08,
+      sphereScale: 1.35,
+      cameraDistance: 4.05,
+      labelsVisible: false,
+      backgroundMode: 'none',
+      backgroundOpacity: 0,
+      labelSize: 'large',
+    })
   })
 
   it('uses an explicit base fly speed value and keeps boost multiplicative on top of it', async () => {
@@ -556,6 +925,7 @@ describe('Viewer baseline replacement', () => {
     resizeObserverCallback?.([], {} as ResizeObserver)
 
     const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    ;(canvas as HTMLCanvasElement & { requestPointerLock?: () => void }).requestPointerLock = vi.fn()
     const capturedPointerIds = new Set<number>()
     canvas.setPointerCapture = vi.fn((pointerId: number) => {
       capturedPointerIds.add(pointerId)
@@ -644,6 +1014,7 @@ describe('Viewer baseline replacement', () => {
     resizeObserverCallback?.([], {} as ResizeObserver)
 
     const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    ;(canvas as HTMLCanvasElement & { requestPointerLock?: () => void }).requestPointerLock = vi.fn()
     const capturedPointerIds = new Set<number>()
     canvas.setPointerCapture = vi.fn((pointerId: number) => {
       capturedPointerIds.add(pointerId)
@@ -731,6 +1102,7 @@ describe('Viewer baseline replacement', () => {
     resizeObserverCallback?.([], {} as ResizeObserver)
 
     const canvas = container.querySelector('canvas') as HTMLCanvasElement
+    ;(canvas as HTMLCanvasElement & { requestPointerLock?: () => void }).requestPointerLock = vi.fn()
     const capturedPointerIds = new Set<number>()
     canvas.setPointerCapture = vi.fn((pointerId: number) => {
       capturedPointerIds.add(pointerId)

@@ -65,6 +65,879 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1327 -->
+### [1327] - 2026-04-14 22:28 - `VT - Build And Strict Typing Cleanup Follow-Up`
+<!-- ENTRY 1327 -->
+HUMAN SUMMARY: `Cleared the failing `npm run build` errors by fixing the new gizmo/helper test typings, the helper edge-hover type narrowing, and the pointer-lock mock signature so the repo now passes `tsc -b` and `vite build` again.`
+#### Scope / Constraints Honored
+- Kept the cleanup tightly scoped to the new gizmo/view tests and the one helper type narrowing issue surfaced by the build.
+- Preserved runtime behavior; this pass was about strict typing and build correctness, not feature redesign.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) to narrow edge-hover hits explicitly before passing them into the hovered-edge line seam.
+- Tightened [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) so the helper internals are accessed through a safe test-only cast instead of a class intersection with private fields, and cleaned up the mocked `getContext` typing.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) to annotate `this` in the DOM mocks and replace strict `delete` usage with `Reflect.deleteProperty(...)`.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) so the mocked `requestPointerLock` matches the browser-facing promise signature.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- No intended runtime behavior change beyond the already-shipped gizmo work.
+- `npm run build` now completes successfully.
+#### Verification Steps
+- Ran `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1326 -->
+### [1326] - 2026-04-14 22:24 - `VT - Gizmo Viewport Resize Cap Increase`
+<!-- ENTRY 1326 -->
+HUMAN SUMMARY: `Raised the gizmo viewport resize ceiling from `420px` to `1000px`, so users can scale the orientation helper much larger when they want a bigger overlay widget.`
+#### Scope / Constraints Honored
+- Kept the change local to the shared gizmo viewport sizing cap without widening into helper rendering, toolbar controls, or camera behavior.
+- Preserved the existing min/default sizing model and the same compact-versus-expanded storage path.
+#### Summary of Implementation
+- Updated [`src/app/components/viewToolbarLayout.ts`](./src/app/components/viewToolbarLayout.ts) so `MAX_AXIS_WIDGET_SIZE` now resolves to `1000` instead of `420`.
+#### Files Changed
+- [`src/app/components/viewToolbarLayout.ts`](./src/app/components/viewToolbarLayout.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The gizmo viewport can now be resized up to `1000px`.
+- Existing default sizing remains unchanged.
+#### Verification Steps
+- Read the live clamp path in [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) and confirmed it uses the shared `MAX_AXIS_WIDGET_SIZE` constant from [`src/app/components/viewToolbarLayout.ts`](./src/app/components/viewToolbarLayout.ts).
+
+<!-- ENTRY 1325 -->
+### [1325] - 2026-04-14 22:21 - `VT - Gizmo Phase 10 Overlay Shell Orbit Drag Follow-Up`
+<!-- ENTRY 1325 -->
+HUMAN SUMMARY: `Moved gizmo-viewport orbit gesture ownership from the tiny helper canvas to the overlay shell, so left-drag orbit keeps working reliably even when the pointer leaves the canvas while preserving the existing click-to-snap behavior.`
+#### Scope / Constraints Honored
+- Kept main camera truth on the existing viewer and camera-controller path instead of teaching the helper camera to own orbit behavior.
+- Preserved the Phase 10 click-versus-drag split and snap behavior while only changing where the pointer lifecycle is owned.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so the `AxisWidget` shell now owns pointerdown / window move / window up for gizmo orbit gestures and forwards those events through the attached viewer bridge.
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) so it now exposes hit-test and pending-interaction methods for external ownership instead of attaching DOM drag listeners directly to the helper canvas.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) and [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) with the narrow axis-overlay pointer forwarding seam needed for the shell-driven interaction path.
+- Added focused proof in [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx), [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), and refreshed [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts).
+#### Files Changed
+- [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx)
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Left-drag orbit from the gizmo viewport now starts from the `AxisWidget` shell instead of depending on the helper canvas to own the full drag lifecycle.
+- Gizmo orbit drags can continue more reliably when the pointer moves beyond the canvas bounds.
+- Click-only gizmo snaps still resolve through the same helper hit targets.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+
+<!-- ENTRY 1324 -->
+### [1324] - 2026-04-14 22:12 - `VT - Phase Gizmo 2 Phase 10 - Orbit The Model Viewport From Gizmo Hover Space`
+<!-- ENTRY 1324 -->
+HUMAN SUMMARY: `The gizmo viewport now supports simple left-drag orbiting of the main model camera by delaying helper snaps until release, splitting click-versus-drag inside the helper, and reusing the existing temporary orbit path instead of creating a second orbit system.`
+#### Scope / Constraints Honored
+- Kept the orbit ownership on the existing viewer and camera-controller path instead of moving main camera truth into the helper camera.
+- Preserved click-to-snap behavior for sphere and outer-edge helper targets by only switching to orbit once a small drag threshold is crossed.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) so left-pointer interactions now begin as pending helper gestures, commit snap on pointer release, and switch to orbit callbacks only after exceeding a small drag threshold.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so the gizmo forwards orbit-drag start, move, and end into the existing `beginTemporaryOrbitDrag(...)`, `updateTemporaryOrbitDrag(...)`, and `endTemporaryOrbitDrag()` path.
+- Added focused proof in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) for delayed snap commitment and gizmo-viewport orbit handoff.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Left drag inside the gizmo viewport now orbits the main model camera.
+- Click-only sphere and outer-edge helper hits still snap correctly.
+- Helper snaps now commit on pointer release instead of immediate `pointerdown`.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1323 -->
+### [1323] - 2026-04-14 21:58 - `VT - Gizmo Default Line Opacity Follow-Up`
+<!-- ENTRY 1323 -->
+HUMAN SUMMARY: `Adjusted the default gizmo line treatment so the main outer lines now start at `50%` opacity while the secondary interior web starts at `10%`, giving the helper a clearer snap structure by default without changing the live control surface.`
+#### Scope / Constraints Honored
+- Kept the change local to the shared default helper-style values without widening into new toolbar controls, helper geometry changes, or camera behavior.
+- Preserved the existing main-line vs secondary-line control split so this is only a default tuning pass, not a new ownership change.
+#### Summary of Implementation
+- Updated [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts) so the shared `axisOverlayStyle` defaults now start at `0.5` for the main outer lines and `0.1` for the secondary connector web.
+- Refreshed focused proof in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) and [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the helper and toolbar tests now lock the new starting values.
+#### Files Changed
+- [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Main gizmo lines now default to `50%` opacity.
+- Other gizmo lines now default to `10%` opacity.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1322 -->
+### [1322] - 2026-04-14 21:53 - `VT - Gizmo Viewport Shadowless Shell Follow-Up`
+<!-- ENTRY 1322 -->
+HUMAN SUMMARY: `Removed the remaining gizmo viewport frame effect by clearing the inherited `box-shadow` from the `AxisWidget` shell, so the gizmo no longer looks like it still has a border after the earlier border-line removal.`
+#### Scope / Constraints Honored
+- Kept the follow-up local to the live gizmo viewport shell styling without widening into helper rendering, camera behavior, or shared overlay widget styling for other panels.
+- Removed the lingering frame effect by overriding only the gizmo shell instead of stripping shadows from every `.ViewportOverlayWidget`.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so the live `AxisWidget` shell now sets `boxShadow: 'none'` alongside the earlier borderless treatment.
+- Extended focused proof in [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx) so the gizmo shell is now explicitly verified as both borderless and shadowless by default.
+#### Files Changed
+- [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx)
+- [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The gizmo viewport shell no longer renders the inherited shadow that made it still appear framed.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+
+<!-- ENTRY 1321 -->
+### [1321] - 2026-04-14 21:49 - `VT - Gizmo Viewport Dolly Default And Borderless Shell Follow-Up`
+<!-- ENTRY 1321 -->
+HUMAN SUMMARY: `Adjusted the gizmo viewport follow-up so the helper camera now defaults to a more pulled-back `4.5` dolly distance and the gizmo viewport shell no longer draws its border line, giving the widget a roomier read with a cleaner frame.`
+#### Scope / Constraints Honored
+- Kept the change narrow to the shared gizmo helper-style default and the gizmo viewport shell styling without widening into new camera behavior, helper geometry changes, or toolbar restructuring.
+- Removed the border only for the gizmo viewport shell instead of changing the shared border treatment for every overlay widget.
+#### Summary of Implementation
+- Updated [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts) so the shared default `cameraDistance` now starts at `4.5`.
+- Updated [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so the live `AxisWidget` shell now renders with `border: none`.
+- Refreshed focused proof in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts), [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx), and [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx).
+#### Files Changed
+- [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts)
+- [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The gizmo helper camera now starts farther out by default at `4.5`.
+- The gizmo viewport shell no longer shows its border line.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+
+<!-- ENTRY 1320 -->
+### [1320] - 2026-04-14 21:45 - `VT - Phase Gizmo Compact Viewport Resize Handle In Collapsed Mode`
+<!-- ENTRY 1320 -->
+HUMAN SUMMARY: `Extended the existing gizmo viewport resize-handle path so the bottom-left grab now stays available when the gizmo is collapsed, with compact-mode size stored separately from expanded-mode size instead of forcing the collapsed widget back to a fixed 80px shell.`
+#### Scope / Constraints Honored
+- Kept the runtime change local to viewport-local shell state, the existing `ViewportOverlay.tsx` resize-handle seam, and the mirrored compact-size read in `ViewToolbar.tsx` without widening into gizmo rendering, camera logic, or new toolbar controls.
+- Preserved separate compact and expanded widget sizing so resizing while collapsed does not silently rewrite the expanded gizmo viewport size.
+#### Summary of Implementation
+- Updated [`src/app/workspace/workspaceShellTypes.ts`](./src/app/workspace/workspaceShellTypes.ts) and [`src/app/workspace/workspacePersistence.ts`](./src/app/workspace/workspacePersistence.ts) to add and persist one viewport-local `viewToolbarCompactAxisWidgetSize` value.
+- Updated [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so the axis-widget resize handle is always rendered, compact mode resolves through the stored compact size when present, and drag-resize writes to compact or expanded size depending on whether the `View` toolbar is closed or open.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the right-dock shell uses the stored compact gizmo size while collapsed instead of always falling back to the fixed compact constant.
+- Extended focused proof in [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx), [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx), and [`src/app/workspace/useWorkspaceStore.test.ts`](./src/app/workspace/useWorkspaceStore.test.ts).
+#### Files Changed
+- [`src/app/workspace/workspaceShellTypes.ts`](./src/app/workspace/workspaceShellTypes.ts)
+- [`src/app/workspace/workspacePersistence.ts`](./src/app/workspace/workspacePersistence.ts)
+- [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx)
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/workspace/useWorkspaceStore.test.ts`](./src/app/workspace/useWorkspaceStore.test.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The gizmo viewport resize handle now remains available when the gizmo is collapsed.
+- Dragging that handle while collapsed resizes the compact gizmo viewport instead of doing nothing.
+- Compact gizmo viewport size is now stored separately from expanded gizmo viewport size and persists through workspace local-view state.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/app/workspace/useWorkspaceStore.test.ts`
+
+<!-- ENTRY 1319 -->
+### [1319] - 2026-04-14 21:35 - `VT - Phase Gizmo 2 Phase 9 - Gizmo Viewport Camera Dolly And Default Framing`
+<!-- ENTRY 1319 -->
+HUMAN SUMMARY: `Implemented the gizmo viewport camera-framing follow-on by adding one shared helper-camera distance value, exposing a new `Camera Dolly` control in the `View` toolbar `Gizmo` section, and pulling the default helper camera back slightly so the dense gizmo reads less cramped without changing snap behavior.`
+#### Scope / Constraints Honored
+- Kept the runtime change local to the gizmo helper style seam, the `View` toolbar `Gizmo` controls, and the helper-local camera in `AxisGizmo.ts` without widening into main scene camera behavior, orbit/fly controls, or snap-target semantics.
+- Changed true helper-camera framing rather than faking the smaller read through sphere, label, or connector geometry scaling.
+#### Summary of Implementation
+- Updated [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts) to add `cameraDistance` to the shared `axisOverlayStyle` seam and set a slightly more zoomed-out default helper framing.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to add a `Camera Dolly` `ParaSlider` in the `View` toolbar `Gizmo` section and publish that value through the existing helper-style update path.
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) so the helper-local `PerspectiveCamera` now uses the shared `cameraDistance` value instead of the old hard-coded `z = 3.1` framing.
+- Extended focused proof in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts), [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx), and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) to verify the new style value, toolbar control, and helper-camera application path.
+#### Files Changed
+- [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts)
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar `Gizmo` section now includes a `Camera Dolly` slider.
+- The gizmo helper camera now starts slightly farther out by default, so the helper appears a bit smaller and less cramped in its viewport.
+- Adjusting `Camera Dolly` changes gizmo viewport framing only; it does not change helper geometry scale or main scene camera behavior.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1318 -->
+### [1318] - 2026-04-14 21:35 - `VR - Phase View-Toolbar 5 Phase 3 - Snap Subsection Split`
+<!-- ENTRY 1318 -->
+HUMAN SUMMARY: `Implemented the next `View` toolbar regrouping pass by giving snap configuration its own top-level `Snap` subsection, so `Transform` now owns only non-snap transform behavior while the snap fields and `Apply Snap` action live together in one explicit place.`
+#### Scope / Constraints Honored
+- Kept the runtime cut local to `ViewToolbar.tsx` plus focused toolbar proof without widening into new snap semantics, transform behavior changes, or broader toolbar redesign.
+- Preserved the existing `setGizmoSnap(...)` behavior and changed only section ownership for the moved controls.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to add a new top-level `Snap` subsection and move the snap fields plus `Apply Snap` action there.
+- Left the non-snap transform controls in the `Transform` subsection and left the newer gizmo appearance/readability controls in `Gizmo`.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now verifies the snap controls render under `Snap`, the non-snap controls remain under `Transform`, and the old mixed ownership no longer appears.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar now exposes a separate top-level `Snap` subsection.
+- The snap fields and `Apply Snap` no longer live under `Transform`.
+- The non-snap transform controls remain grouped under `Transform`.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1317 -->
+### [1317] - 2026-04-14 21:26 - `VR - Phase View-Toolbar 5 Phase 2 - Transform Subsection Split And Gizmo Scope Cleanup`
+<!-- ENTRY 1317 -->
+HUMAN SUMMARY: `Implemented the next `View` toolbar regrouping pass by adding a top-level `Transform` subsection for the older transform controls and leaving the newer gizmo appearance controls in `Gizmo`, so the toolbar now reads as one honest split between transform behavior and gizmo presentation instead of one overloaded `Gizmo` bucket.`
+#### Scope / Constraints Honored
+- Kept the runtime cut local to `ViewToolbar.tsx` plus focused toolbar proof without widening into new transform behavior, snap semantics, or broader toolbar redesign.
+- Preserved the existing handlers and runtime meaning of the moved controls while changing only their section ownership.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to add a new top-level `Transform` subsection and move the older transform-interaction controls there: gizmo on/off, mode buttons, local/world toggle, snap fields, apply-snap action, and the current mode readout.
+- Kept the newer gizmo appearance/readability controls in the `Gizmo` subsection, including line opacity, sphere size, labels, background, and text-size controls.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now verifies the transform controls render under `Transform`, the gizmo-style controls remain under `Gizmo`, and the old mixed ownership no longer appears.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar now exposes a separate top-level `Transform` subsection.
+- The older transform controls no longer live under `Gizmo`.
+- The newer gizmo appearance controls remain grouped under `Gizmo`.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1316 -->
+### [1316] - 2026-04-14 21:20 - `VT - Phase Gizmo 2 Phase 8 - Snap-Line Hover Transparency And Highlight Feedback`
+<!-- ENTRY 1316 -->
+HUMAN SUMMARY: `Shipped helper-local hover feedback for the orientation gizmo so only the snap-capable outer edge lines brighten on hover, then return to their default transparency when the pointer leaves, while the dense interior web stays visually quiet.`
+#### Scope / Constraints Honored
+- Kept the change local to `AxisGizmo` presentation and helper-local pointer state without widening into viewer, camera, or toolbar-control ownership.
+- Preserved the dense interior connector web as a non-promoted background layer and reused the existing outer-line opacity seam instead of adding a second hover-only toolbar control.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) so the helper now tracks pointer hover over the snap-capable outer edge lines, gives each outer edge line its own material treatment, promotes only the currently hovered edge line, and restores the default line treatment when the pointer leaves the helper.
+- Kept the dense connector web on its existing subdued material path, so hover promotion does not spread into the non-pickable interior lattice.
+- Extended focused proof in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) and refreshed the style-contract expectation in [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts).
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Hovering a snap-capable outer edge line now visibly strengthens just that line.
+- Moving off the line or leaving the helper canvas restores the default outer-line transparency.
+- The dense interior web does not receive the same promoted hover treatment.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1315 -->
+### [1315] - 2026-04-14 21:06 - `VT - Phase Gizmo 2 Phase 7 Follow-Up - Gizmo Viewport Background Mode`
+<!-- ENTRY 1315 -->
+HUMAN SUMMARY: `Added a `Background` select to the `View` toolbar gizmo controls so the orientation-helper viewport shell now starts fully transparent and can switch between `None` and `Blur` without changing the snap helper itself.`
+#### Scope / Constraints Honored
+- Kept the change focused on the gizmo viewport shell and the existing shared axis-overlay style seam without widening into camera behavior or helper hit-target logic.
+- Preserved the default transparent shell by keeping background opacity at `0` while only toggling the backdrop treatment between `none` and `blur`.
+#### Summary of Implementation
+- Updated [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts) to extend the shared `axisOverlayStyle` block with `backgroundMode` and `backgroundOpacity`, defaulting the gizmo viewport shell to a fully transparent `none` background.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to add one `ParaSelect` labeled `Background` with `None` and `Blur` options in the `View` toolbar `Gizmo` section.
+- Updated [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx) so the live `AxisWidget` shell now uses the shared background mode to switch `backdrop-filter` between `none` and `blur(8px)` while keeping its background color at transparent alpha.
+- Extended focused proof coverage in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx), [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx), and [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts).
+#### Files Changed
+- [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts)
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewportOverlay.tsx`](./src/app/components/ViewportOverlay.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/components/ViewportOverlay.test.tsx`](./src/app/components/ViewportOverlay.test.tsx)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar `Gizmo` section now includes a `Background` select with `None` and `Blur`.
+- The gizmo viewport shell now defaults to fully transparent background fill and only applies blur when that new mode is selected.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx`
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+
+<!-- ENTRY 1314 -->
+### [1314] - 2026-04-14 20:58 - `VT - Phase Gizmo 2 Phase 7 - v15 Style Controls For Orientation Helper`
+<!-- ENTRY 1314 -->
+HUMAN SUMMARY: `Shipped the first real style-control surface for the orientation helper, adding live `View` toolbar gizmo controls for outer-line opacity, dense-web opacity, sphere size, and axis-label visibility / size while keeping the existing snap behavior intact.`
+#### Scope / Constraints Honored
+- Kept the feature centered on helper presentation and the `View` toolbar `Gizmo` section without widening into camera-snap policy or transform-gizmo semantics.
+- Used one shared helper-style seam so the toolbar, viewer, and live orientation helper stay synchronized instead of creating one-off local knobs.
+#### Summary of Implementation
+- Updated [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts) to add a shared `axisOverlayStyle` settings block with defaults for main-edge opacity, secondary connector opacity, sphere scale, label visibility, and label size.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to expose those values through `ParaSlider` and `ParaSelect` controls in the `View` toolbar `Gizmo` section.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so view-settings application now forwards the shared helper-style values into the live `AxisGizmo` instance.
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) so the helper now applies separate outer-edge versus dense-web opacity, sphere scaling, and axis-label rendering/visibility/size from that shared seam.
+- Extended focused proof coverage in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts), [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), and [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx).
+#### Files Changed
+- [`src/shared/viewSettingsTypes.ts`](./src/shared/viewSettingsTypes.ts)
+- [`src/app/store/uiPrefsStore.ts`](./src/app/store/uiPrefsStore.ts)
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar `Gizmo` section now exposes live controls for the orientation helper's main lines, other lines, sphere size, and axis-label visibility / size.
+- The orientation helper now renders axis labels and responds live to helper-style changes without affecting snapping or camera-target routing.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1313 -->
+### [1313] - 2026-04-14 20:50 - `VR - Phase View-Toolbar 5 Follow-Up - Scrollbar Only At Real Height Clamp`
+<!-- ENTRY 1313 -->
+HUMAN SUMMARY: `Tightened the `View` toolbar overflow ownership so opening the toolbar no longer shows a scrollbar by default; the scrollbar now appears only when the toolbar has actually reached its viewport-owned max height near the bottom of the model viewport.`
+#### Scope / Constraints Honored
+- Kept the follow-up local to `ViewToolbar.tsx`, `viewport-overlay.css`, and the focused toolbar proof without widening into new toolbar layout semantics or subsection-local scrolling.
+- Preserved `.ViewToolbarRoot` as the only scroll owner and kept the existing `30px` bottom reserve behavior intact.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the toolbar now computes an explicit `viewToolbarHasOverflow` flag from the same measured height math, based on whether natural toolbar height actually exceeds the viewport-owned max-height cap.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so scrollbar styling and `overflow-y: auto` only apply when `.ViewToolbarRoot` is both open and marked `data-scrollable="true"`.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now verifies the scrollbar flag stays off below the cap, turns on once the toolbar clamps at `450px`, and clears again when the toolbar closes.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Opening the `View` toolbar with its default subsection list no longer shows a scrollbar when the toolbar still fits above the viewport-bottom reserve.
+- The scrollbar now appears only after the full toolbar actually reaches its measured viewport-owned height cap.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1312 -->
+### [1312] - 2026-04-14 20:47 - `VR - Phase View-Toolbar 5 Phase 1c Follow-Up - Restore Root Height Read And Subsection Reflow`
+<!-- ENTRY 1312 -->
+HUMAN SUMMARY: `Repaired the first `1c` regression by restoring the `View` toolbar's natural height read to the real root seam and explicitly resyncing on inner subsection toggles, so closing `Camera` / `Gizmo` / `View` sections now shrinks the black box again and the fully closed toolbar no longer collapses below its normal shell height.`
+#### Scope / Constraints Honored
+- Kept the follow-up local to `ViewToolbar.tsx` plus the focused toolbar proof without widening into dock, viewer, or broader surface-polish work.
+- Preserved the earlier `1c` fix that removed the slow root height transition and kept `.ViewToolbarRoot` as the only scroll owner.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the used-height sync again reads natural height from `.ViewToolbarRoot.scrollHeight`, restoring the correct closed-shell size and the right min-height behavior when subsections are collapsed.
+- Added explicit `toggle` listeners for the inner `.ViewSection` details so submenu open/close now forces an immediate toolbar height resync even though the root is no longer being observed directly.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) with a focused regression that proves subsection collapse updates `--v15-view-toolbar-used-height` and that the fully closed toolbar still resolves to its normal `48px` shell height.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Closing subsections inside the `View` toolbar now shrinks the black box back down instead of leaving it stuck too tall.
+- Closing the entire `View` toolbar no longer makes the shell render smaller than its intended collapsed height.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1311 -->
+### [1311] - 2026-04-14 20:47 - `VR - Phase View-Toolbar 5 Phase 1c - Collapse Remeasure Loop And Immediate Height Settle`
+<!-- ENTRY 1311 -->
+HUMAN SUMMARY: `Closed the slow-collapse toolbar follow-up by breaking the self-chasing height loop in the \`View\` box, so collapsing subsections now settles immediately instead of repeatedly remeasuring the animating root and dragging through a much longer-looking resize.`
+#### Scope / Constraints Honored
+- Kept the fix local to `ViewToolbar.tsx`, `viewport-overlay.css`, and the focused toolbar proof without widening into viewer, console, or subsection-local scroll ownership changes.
+- Preserved `.ViewToolbarRoot` as the only scroll owner and kept the already-shipped viewport-owned used-height formula from `Phase 1b`.
+- Narrowed the runtime change specifically to the collapse-settle seam instead of reopening broader toolbar polish.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the toolbar height sync no longer observes `.ViewToolbarRoot`, and so natural height is now derived from the stable inner toolbar content seam: closed state reads the summary/header height while open state reads `.ViewToolbarPanel` position plus panel scroll height.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) to remove the `.ViewToolbarRoot` `height/max-height` transition, preventing the old self-chasing collapse settle on submenu close.
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now forces an incorrect `.ViewToolbarRoot.scrollHeight` and still verifies the correct open and closed used-height values, locking the natural-height seam to the inner panel plus summary read instead of the animating root.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Collapsing open `View` toolbar subsections now makes the black toolbar box settle promptly instead of slowly chasing its own height.
+- The toolbar no longer depends on the animating root's live `scrollHeight` to compute its next used height during submenu collapse.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1310 -->
+### [1310] - 2026-04-14 20:34 - `VT - Phase Gizmo 2 Phase 6 - Animated Camera Snapping From Orientation Targets`
+<!-- ENTRY 1310 -->
+HUMAN SUMMARY: `Completed the orientation-helper snap pass by widening \`AxisGizmo.ts\` beyond the old six-axis-only target seam, making corner spheres and the twelve outer edge lines emit honest orientation targets, and routing those helper hits through animated camera transitions in \`Viewer.ts\` while the dense interior web stays visual-only.`
+#### Scope / Constraints Honored
+- Kept camera animation ownership in `Viewer.ts` plus `CameraController.ts` instead of moving transition logic into `AxisGizmo.ts`.
+- Preserved the dense interior connector web as visual-only by keeping `axisGizmoConnectorCage` outside the helper hit path.
+- Kept the app-level six-axis viewer API stable while widening only the helper-local orientation target seam for corner and edge hits.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) to emit a richer `AxisGizmoTarget` contract, keep the dense interior web non-pickable, and split the twelve outer helper edge lines into direct snap hit targets that resolve to edge-orientation vectors.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so orientation-helper target selections now route through `CameraController.animateToDirection(...)` with a fixed animated transition instead of the old immediate snap path used for the helper.
+- Updated [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) so the focused helper proof now locks the new hit-surface contract: 14 sphere pickables, 12 outer-edge line pickables, a 158-position non-pickable interior web, and correct emitted corner and edge targets from pointer hits.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) so the viewer proof now confirms corner and outer-edge helper targets route through `animateToDirection(...)` instead of `snapToDirection(...)`.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Clicking a corner sphere in the orientation helper now preserves the real corner orientation and animates the camera toward that target instead of collapsing back to the nearest axis token.
+- Clicking one of the twelve outer helper edge lines now also triggers the corresponding animated edge-orientation snap, while the dense interior line web remains non-interactive background structure.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1309 -->
+### [1309] - 2026-04-14 20:55 - `VT - Phase Gizmo 3 - Immediate Resize Without Dock Or Widget Lag`
+<!-- ENTRY 1309 -->
+HUMAN SUMMARY: `Removed the size-transition lag from the viewport gizmo resize seam, so dragging the gizmo handle no longer lets the Geometry or Fly Speed HUD jump ahead while the gizmo and right dock ease into place afterward.`
+#### Scope / Constraints Honored
+- Kept the fix narrow to the runtime CSS seams that animate gizmo resize geometry instead of widening into `Viewer.ts`, workspace chrome state, or the gizmo render loop.
+- Preserved the existing per-viewport axis-widget size contract and resize-handle behavior while removing only the lag-producing motion on live size changes.
+#### Summary of Implementation
+- Updated [`src/app/theme/foundation/base.css`](./src/app/theme/foundation/base.css) to remove the `.AxisWidget` width/height transition so the visible gizmo resizes immediately with the drag instead of animating behind the HUD offset change.
+- Updated [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css) to remove the `.RightDock` width and top-padding transition so the docked `View` surface stays in step with the same live gizmo-size change instead of easing after the drag input.
+#### Files Changed
+- [`src/app/theme/foundation/base.css`](./src/app/theme/foundation/base.css)
+- [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Resizing the axis gizmo now updates the visible gizmo and its dock alignment immediately instead of animating them after the HUD has already moved.
+- The top-right Geometry / Fly Speed HUD, gizmo box, and right dock now stay visually locked together during live resize drags.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewportOverlay.test.tsx src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1308 -->
+### [1308] - 2026-04-14 20:25 - `VR - Phase View-Toolbar 5 Phase 1b - Used-Height Clamp And Console-Bar Reserve`
+<!-- ENTRY 1308 -->
+HUMAN SUMMARY: `Implemented the next view-toolbar height pass by making the black \`View\` box use the smaller of its natural content height and the computed viewport-owned cap, so it now shrinks when submenu content is short and stops at \`model viewport height - toolbar top offset - console reserve\` instead of hanging down with dead space.`
+#### Scope / Constraints Honored
+- Kept the fix local to `ViewToolbar.tsx`, `viewport-overlay.css`, and the focused toolbar proof without widening into `ViewerHost`, `ConsoleDock`, or subsection-local scroll containers.
+- Preserved `.ViewToolbarRoot` as the only scroll owner and kept `.ViewToolbarPanel` as content flow rather than creating a nested subsection scroll box.
+- Folded the docked console bar reserve into the used-height formula instead of treating model viewport height by itself as the toolbar height cap.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the toolbar now measures the model viewport height, the toolbar top offset inside that viewport, and the natural toolbar content height, then publishes both a computed `--v15-view-toolbar-max-height` cap and a smaller `--v15-view-toolbar-used-height` when content does not need the full cap.
+- Reduced the always-on inner bottom padding to a small steady breathing-room value because the docked console reserve now lives in the toolbar height formula itself instead of being simulated through oversized content padding.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so `.ViewToolbarRoot` now uses the new measured used-height variable as its actual height while keeping the existing measured max-height clamp and whole-toolbar overflow ownership.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused proof now locks both the computed max-height seam and the smaller used-height seam for open versus closed toolbar content.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The black `View` toolbar box now shrinks back down when submenu content is short instead of always hanging toward the viewport bottom.
+- When the toolbar content grows, the box now stops at the computed model-viewport limit based on viewport height minus toolbar top offset minus docked console reserve, and the full toolbar root keeps the scrollbar once that cap is reached.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1307 -->
+### [1307] - 2026-04-14 20:17 - `VT - Phase Gizmo 2 Phase 5 - Dense Connector Mesh And Lower Opacity`
+<!-- ENTRY 1307 -->
+HUMAN SUMMARY: `Completed the dense old-helper pass in \`AxisGizmo.ts\` by replacing the sparse connector layout with the full fourteen-anchor all-pairs web and lowering connector opacity substantially, so the orientation helper now reads much closer to the faint v15-style lattice while snapping still belongs only to the spheres.`
+#### Scope / Constraints Honored
+- Kept the runtime change inside `src/viewer/overlay/AxisGizmo.ts` without widening into `Viewer.ts`, camera-command behavior, labels, or toolbar controls.
+- Preserved sphere-led hit testing by keeping the denser connector layer out of `pickables`.
+- Kept the helper-local connector seam as one shared line object while widening only topology and opacity for this phase.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) so the helper now builds the connector layer from the full ordered set of six axis anchors plus eight corner anchors and emits every unique anchor pair into one dense `LineSegments` web.
+- Lowered the connector opacity from the previous strong line treatment to a much fainter `0.18` so the line field reads as background structure behind the spheres.
+- Updated [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) so the focused helper proof now locks the denser 182-position geometry count, the lower-opacity material treatment, and the unchanged non-pickable connector contract.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The orientation helper now renders the full dense all-pairs connector web across its fourteen sphere anchors instead of the earlier sparse cage-plus-spokes structure.
+- Connector lines are now much fainter, so the helper reads closer to the older v15 look while the spheres remain the dominant visual and snap targets.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+
+<!-- ENTRY 1306 -->
+### [1306] - 2026-04-14 20:10 - `VR - Phase View-Toolbar 5 Phase 1 - Toolbar Scroll Ownership And Viewport Clamp`
+<!-- ENTRY 1306 -->
+HUMAN SUMMARY: `Implemented the first real View-Toolbar 5 runtime slice by giving the full \`View\` toolbar one measured scroll boundary owned by the model viewport stack, so the toolbar can now clamp against the viewport it lives in and produce a real scrollbar when it actually overflows instead of relying on a soft percentage cap.`
+#### Scope / Constraints Honored
+- Kept the fix local to the view-toolbar seam in `ViewToolbar.tsx` and `viewport-overlay.css` without widening into `ViewerHost`, `ConsoleDock`, or subsection-local scroll containers.
+- Preserved the whole-toolbar scroll owner on `.ViewToolbarRoot` and kept `.ViewToolbarPanel` as content flow plus bottom breathing room.
+- Used the existing right-dock / panel-stack chain as the viewport-owned sizing source instead of reintroducing `100dvh` or other browser-window proxy math.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to measure the live `.RightPanelStack` height, observe it for resize changes, and publish that measured pixel value as `--v15-view-toolbar-max-height` on the full toolbar root.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so `.ViewToolbarRoot` now clamps against that measured toolbar-local max-height variable instead of relying only on a soft `100%` cap.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the focused toolbar proof now asserts that the full toolbar scroll surface receives the measured max-height seam while keeping the existing viewport-local open/closed ownership checks.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The full `View` toolbar now clamps against the measured right-panel stack height inside the model viewport it lives in rather than relying on a percentage-only height cap that could be clipped by ancestors.
+- When the toolbar content exceeds that measured viewport-owned space, the full toolbar root now owns the resulting vertical scrollbar more reliably.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1305 -->
+### [1305] - 2026-04-14 19:59 - `VT - Phase Gizmo 2 Phase 4 - Snap-Safety And Interaction Proofs`
+<!-- ENTRY 1305 -->
+HUMAN SUMMARY: `Completed the proof-only safety pass for the connected orientation helper by widening \`AxisGizmo.test.ts\` to prove the fourteen sphere meshes remain the only registered snap targets while the \`axisGizmoConnectorCage\` stays visual-only and non-pickable.`
+#### Scope / Constraints Honored
+- Kept `Phase 4` as a proof-only implementation pass without changing the shipped helper geometry in `src/viewer/overlay/AxisGizmo.ts`.
+- Kept the work helper-local inside `src/viewer/overlay/AxisGizmo.test.ts` and did not widen into `Viewer.ts`, toolbar seams, or camera logic.
+- Preserved the `Phase 3` connected helper shape while strengthening the interaction contract around sphere-led snapping.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) so the focused helper proof now asserts `pickables.length === 14`.
+- Added explicit proof that every registered pickable remains a sphere-backed `Mesh`, so the helper line work cannot silently become a snap target.
+- Re-kept the connector-cage existence and vertex-count assertions so the proof still points at the shipped connected helper shape while confirming the cage stays outside `pickables`.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The runtime helper behavior is unchanged, but the repo now has explicit proof that the connected cage remains visual-only and that snapping still belongs exclusively to the fourteen sphere targets.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+
+<!-- ENTRY 1304 -->
+### [1304] - 2026-04-14 15:47 - `VT - Phase Gizmo 2 Phase 3 - Complete Connected Cage Read`
+<!-- ENTRY 1304 -->
+HUMAN SUMMARY: `Completed the first fully connected orientation-helper read in \`AxisGizmo.ts\` by tying the 6 axis spheres into the existing corner cage with face-spoke lines, so the gizmo now reads as one connected orientation object instead of a cube plus detached face markers while keeping sphere-led snapping unchanged.`
+#### Scope / Constraints Honored
+- Kept the runtime change inside `src/viewer/overlay/AxisGizmo.ts` without widening into `Viewer.ts`, toolbar controls, or camera-command logic.
+- Preserved sphere-led hit testing by keeping the expanded connector layer out of `pickables`.
+- Kept the already-landed corner cage and only widened the helper read through face-spoke additions from the six axis spheres to their matching face corners.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) to capture the six axis-sphere positions alongside the existing corner positions and to extend the `axisGizmoConnectorCage` geometry with twenty-four new face-spoke segments.
+- Kept the connector object as one helper-local `LineSegments` layer so the connected read remains non-pickable and disposal still flows through the same helper-local resource lists.
+- Updated [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) so the focused helper proof now checks the expanded connected cage shape via the expected 72 position vertices.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The orientation helper now visually ties each axis sphere into the existing corner cage, so the widget reads as one connected orientation object instead of a corner frame plus detached face-center markers.
+- Clicking still routes through the sphere snap targets because the connector layer remains outside the helper raycast list.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+
+<!-- ENTRY 1303 -->
+### [1303] - 2026-04-14 15:41 - `VT - Phase Gizmo 2 Phase 2 - First Non-Pickable Connector Layer`
+<!-- ENTRY 1303 -->
+HUMAN SUMMARY: `Added the first orientation-helper connector cage in \`AxisGizmo.ts\` by drawing a non-pickable corner-only cube-edge \`LineSegments\` layer behind the existing spheres, so the gizmo now reads as a more connected spatial object without changing sphere-led snap behavior.`
+#### Scope / Constraints Honored
+- Kept the runtime change inside `src/viewer/overlay/AxisGizmo.ts` without widening into `Viewer.ts`, toolbar controls, or camera-command logic.
+- Preserved sphere-led hit testing by keeping the new connector layer out of `pickables`.
+- Followed the locked `Phase 1` anchor decision by using the eight corner spheres only and not connecting axis spheres or adding diagonals.
+#### Summary of Implementation
+- Updated [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts) to import `BufferGeometry`, `LineBasicMaterial`, and `LineSegments`, widen the helper resource disposal arrays, and collect the existing corner-sphere positions while building the clickable gizmo.
+- Added one helper-local `axisGizmoConnectorCage` line object built from the twelve corner-only cube edges and attached it under `root` with a shared non-pickable line material.
+- Added focused coverage in [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts) proving the connector cage exists, stays out of `pickables`, and publishes the expected 24 position vertices for the twelve line segments.
+#### Files Changed
+- [`src/viewer/overlay/AxisGizmo.ts`](./src/viewer/overlay/AxisGizmo.ts)
+- [`src/viewer/overlay/AxisGizmo.test.ts`](./src/viewer/overlay/AxisGizmo.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase Gizmo 2 - Orientation Helper Polish And Connector Lines.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Future/Gizmo_Phase%20Gizmo%202%20-%20Orientation%20Helper%20Polish%20And%20Connector%20Lines.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/Gizmo/Gizmo-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The orientation helper now renders one corner-only connector cage behind the spheres, so the helper reads less like a loose point cloud and more like one connected spatial object.
+- Clicking still routes through the sphere snap targets because the connector layer is not included in the helper raycast list.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/overlay/AxisGizmo.test.ts`
+
+<!-- ENTRY 1302 -->
+### [1302] - 2026-04-14 16:18 - `VR - Phase View-Toolbar 5.1 - Model Viewport Bottom Clamp`
+<!-- ENTRY 1302 -->
+HUMAN SUMMARY: `Corrected the view-toolbar height reference after confirming it was still clamping against the browser window via \`100dvh\` instead of the model viewport slot that owns the toolbar, so the toolbar now measures its bottom against the actual model viewport body rather than the page viewport.`
+#### Scope / Constraints Honored
+- Kept the fix narrow to the toolbar height-reference seam without widening into broader dock restructuring.
+- Preserved the existing right-dock absolute anchoring inside the model viewport host.
+- Left the whole-toolbar scroll ownership and inner bottom padding behavior intact.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so `.ViewToolbarRoot` now uses `max-height: 100%` instead of the earlier `100dvh` browser-window clamp.
+- Confirmed the model viewport ownership chain remains [`ViewportWorkspaceHost.tsx`](./src/app/workspace/ViewportWorkspaceHost.tsx) -> `.ViewportWorkspaceHost` / `.ViewportFrameBody` -> [`ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx), meaning the toolbar now clamps to the height of the actual model viewport container it lives in.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar now stops at the bottom of its model viewport slot instead of using the browser window bottom as its height reference.
+- Split layouts, headers, and other workspace chrome above or below the model viewport no longer distort the toolbar's max-height calculation.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1301 -->
+### [1301] - 2026-04-14 16:09 - `VR - Phase View-Toolbar 5.1 - Viewport-Bottom Content Padding`
+<!-- ENTRY 1301 -->
+HUMAN SUMMARY: `Corrected the earlier bottom-clearance approach by keeping the view toolbar anchored to the full model-viewport bottom and moving the extra breathing room into dynamic inner content padding, so the toolbar no longer gets cut short when the console is gone while the last controls can still scroll clear of the docked console when it is present.`
+#### Scope / Constraints Honored
+- Kept the fix local to the view-toolbar bottom-spacing seam without changing console ownership or viewport sizing.
+- Preserved the whole-toolbar scroll ownership on the toolbar root.
+- Switched from shrinking the toolbar container to padding the scroll content itself, which matches the model-viewport bottom requirement.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to read docked console state and publish a toolbar-local bottom content padding value.
+- Reverted the earlier toolbar-height reserve in [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css) and [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the toolbar again reaches the model viewport bottom.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the inner toolbar content gets dynamic bottom padding instead, giving the final sections room to scroll above the docked console overlay.
+- Removed the now-unneeded global bottom-clearance token from [`src/app/theme/foundation/tokens.css`](./src/app/theme/foundation/tokens.css).
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/theme/foundation/tokens.css`](./src/app/theme/foundation/tokens.css)
+- [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar now extends to the bottom of the model viewport again.
+- Extra bottom spacing now lives inside the scrollable toolbar content, so the final controls can clear the docked console without permanently shortening the toolbar when the console is absent.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1300 -->
+### [1300] - 2026-04-14 15:58 - `VR - Phase View-Toolbar 5.1 - Bottom Console Clearance`
+<!-- ENTRY 1300 -->
+HUMAN SUMMARY: `Added an explicit bottom clearance reserve for the right-side view toolbar so the docked console bar no longer steps on top of the toolbar and the scrollbar end now has a little breathing room above the console.`
+#### Scope / Constraints Honored
+- Kept the fix limited to right-dock and view-toolbar height math without widening into console layout changes.
+- Preserved the whole-toolbar scroll ownership from the prior correction.
+- Used one shared bottom-clearance token so dock padding and toolbar max-height stay aligned.
+#### Summary of Implementation
+- Added [`src/app/theme/foundation/tokens.css`](./src/app/theme/foundation/tokens.css) `--v15-view-bottom-clearance` as the shared reserve for the toolbar/console seam.
+- Updated [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css) so the right dock now keeps that bottom clearance in its padding.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the `View` toolbar max-height subtracts the same bottom reserve before overflow begins.
+#### Files Changed
+- [`src/app/theme/foundation/tokens.css`](./src/app/theme/foundation/tokens.css)
+- [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar now stops above the docked console bar instead of visually colliding with it.
+- Scrolling to the bottom of the toolbar leaves a small clear buffer above the console.
+#### Verification Steps
+- Reviewed the shared bottom-clearance token and the matching right-dock/view-toolbar height math.
+- Automated tests not run; this change is limited to CSS/layout presentation.
+
+<!-- ENTRY 1299 -->
+### [1299] - 2026-04-14 15:42 - `VR - Phase View-Toolbar 5.1 - Whole Toolbar Scroll Ownership Correction`
+<!-- ENTRY 1299 -->
+HUMAN SUMMARY: `Corrected the view-toolbar scrollbar seam again by moving scroll ownership to the whole toolbar root instead of the inner section body, so the black box stays content-sized when short, only shows a scrollbar when overflow is real, and scrolls the entire toolbar once it reaches its viewport cap.`
+#### Scope / Constraints Honored
+- Kept the correction limited to the view-toolbar overflow seam without widening into unrelated panel styling.
+- Preserved the existing right-dock width and local toolbar open-state behavior.
+- Ensured there is one toolbar-owned scrollbar instead of a subsection-local or always-visible fake scroll track.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the toolbar root is now the explicit scroll surface and the inner panel returns to normal content flow.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the toolbar root uses `overflow-y: auto` only when open, without forcing a fixed full-height box.
+- Adjusted [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) so the test asserts the scroll-surface ownership on the toolbar root.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The `View` toolbar now stays only as tall as its content until it hits the viewport cap.
+- The toolbar scrollbar now appears only when the full toolbar actually overflows and scrolls the whole toolbar content.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1298 -->
+### [1298] - 2026-04-14 15:32 - `VR - Phase View-Toolbar 5.1 - View Section Scrollbar Visibility Fix`
+<!-- ENTRY 1298 -->
+HUMAN SUMMARY: `Corrected the first view-toolbar scrollbar pass by making the opened section body itself the single explicit scroll surface with a definite open-state height and visible scrollbar skin, so expanding Camera/Gizmo now produces one obvious subsection scrollbar instead of clipping at the viewport bottom with no visible handle.`
+#### Scope / Constraints Honored
+- Kept the correction narrow to the view-toolbar subsection overflow seam without widening into broader panel restyling.
+- Preserved the outer right dock overflow ownership cleanup from the prior pass.
+- Kept one scroll owner for subsection content instead of introducing competing nested scroll regions.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the opened section body is explicitly tagged as the toolbar subsection scroll surface.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the open toolbar gets a definite height and the subsection panel uses a visible styled vertical scrollbar.
+- Updated [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css) so the right-panel stack can shrink correctly inside the dock and let the subsection scroll surface own overflow.
+- Adjusted [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) to assert the rendered subsection scroll-surface seam directly.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- Opening multiple view-toolbar subsections now gives the toolbar body one visible vertical scrollbar for moving between sections.
+- The subsection content no longer relies on clipped growth at the bottom edge of the viewport.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1297 -->
+### [1297] - 2026-04-14 15:21 - `VR - Phase View-Toolbar 5.1 - Inner Scroll Surface Ownership`
+<!-- ENTRY 1297 -->
+HUMAN SUMMARY: `Moved right-dock scrolling down into the view-toolbar's own inner stack so opening toolbar subsections now uses one explicit toolbar-local scrollbar instead of relying on the outer dock container, which was the wrong ownership layer for interactive overflow.` 
+#### Scope / Constraints Honored
+- Kept the change narrow to the right-dock/view-toolbar scroll ownership seam without widening into broader view-toolbar layout restyling.
+- Preserved the existing open/closed local viewport toolbar state behavior.
+- Reused the existing constrained `PanelStack` scroll pattern instead of inventing another custom scroll container model.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the inner right-panel stack is now explicitly marked as the constrained toolbar scroll surface.
+- Updated [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css) so the outer `.RightDock` no longer owns overflow scrolling, letting the toolbar-local stack own the single interactive scrollbar.
+- Extended [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) with a focused assertion that the rendered toolbar uses the constrained inner scroll-surface classes.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- When the `View` toolbar grows taller from opened subsections, the user now gets one toolbar-owned scrollbar on the inner toolbar surface.
+- The outer right dock no longer owns the scroll interaction for this overflow case.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1296 -->
+### [1296] - 2026-04-14 15:04 - `VR - Phase Camera 6.3.7d - Reduce Fly Speed HUD Arrow Glyph Size`
+<!-- ENTRY 1296 -->
+HUMAN SUMMARY: `Reduced the top-right viewport HUD fly-speed arrow glyphs to half their prior size while keeping the already-compacted HUD slider dimensions unchanged, so the smaller cap buttons feel visually lighter instead of crowded.`
+#### Scope / Constraints Honored
+- Kept the glyph-size change local to the viewport HUD cap-button styling in `viewport-overlay.css`.
+- Left the shared `ParaSlider` component and all non-HUD slider surfaces unchanged.
+- Preserved the existing compact HUD slider dimensions from the prior tweak.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the `.ViewportHud button.ParaSliderCap` arrow glyph font size now renders at 50% of its prior HUD-specific value.
+- Left the cap width, cap height, and track sizing unchanged in this follow-up pass.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The top-right viewport HUD fly-speed `<` and `>` arrow glyphs now render smaller inside the compact cap buttons.
+- No fly-speed logic, hit-target sizing, or non-HUD slider appearance changed.
+#### Verification Steps
+- Reviewed the HUD-specific cap-button CSS to confirm only the arrow glyph size changed in this pass.
+- Automated tests not run; this change is limited to CSS presentation.
+
+<!-- ENTRY 1295 -->
+### [1295] - 2026-04-14 15:02 - `VR - Phase Camera 6.3.7c - Compact Fly Speed HUD Slider`
+<!-- ENTRY 1295 -->
+HUMAN SUMMARY: `Reduced the top-right viewport HUD fly-speed slider footprint by cutting its slider height in half and narrowing the arrow caps, so the control takes up less vertical room without changing the shared \`ParaSlider\` styling used elsewhere.`
+#### Scope / Constraints Honored
+- Kept the tweak local to the viewport HUD slider skin in `viewport-overlay.css` instead of modifying the shared `ParaSlider` component.
+- Preserved the existing fly-speed behavior, value formatting, and viewport wiring in the overlay layer.
+- Limited the size change to the HUD surface so transform, console, and editor sliders keep their current sizing.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so the HUD fly-speed slider track and caps now render at half their prior height.
+- Narrowed the HUD slider arrow caps from `30px` to `21px` to match the requested 30% width reduction.
+- Tightened the HUD slider's internal spacing and text sizing so the fly-speed label and value continue to fit inside the smaller control.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+#### Behavior Changes
+- The top-right viewport HUD fly-speed slider now occupies less vertical space and uses narrower arrow buttons.
+- No fly-speed interaction logic or shared slider behavior changed outside the HUD skin.
+#### Verification Steps
+- Reviewed the HUD-specific `.ViewportHud` slider rules to confirm the size reduction stays scoped to the fly-speed overlay surface.
+- Automated tests not run; this change is limited to CSS presentation.
+
+<!-- ENTRY 1294 -->
+### [1294] - 2026-04-14 14:52 - `VR - Phase Camera 6.3.7b - Restore Exact Y-Up On Fly Exit`
+<!-- ENTRY 1294 -->
+HUMAN SUMMARY: `Tightened the post-fly CAD-camera handoff by changing \`CameraController\` to restore an exact upright \`Y-up\` orbit frame on held-\`RMB\` fly exit instead of the earlier upright-ish projected-up frame, so returning to normal CAD orbit now feels like the standard camera again after pitching around in fly mode.`
+#### Scope / Constraints Honored
+- Kept the change local to the fly-exit orbit handoff inside `CameraController` without widening into new viewer-side target selection logic.
+- Preserved the existing true fly-mode ownership and pointer-lock runtime added in the prior camera slices.
+- Kept the location and general view direction handoff behavior while making the returned CAD orbit frame more honest.
+#### Summary of Implementation
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so fly exit now restores a literal `Y-up` perspective camera when rebuilding the normal orbit pose instead of computing a projected upright-ish `up` vector from the final fly forward basis.
+- Added a tiny near-vertical fallback in [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) to avoid a degenerate exact-parallel `forward` / `Y-up` handoff while still returning to the normal CAD frame.
+- Extended [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts) with a focused proof that exiting fly mode from a pitched orientation now restores exact `Y-up`.
+#### Files Changed
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+#### Behavior Changes (if any)
+- Exiting held-`RMB` fly mode now returns the viewer to an exact `Y-up` CAD orbit frame instead of a tilted upright-like orbit frame, which makes post-fly orbiting feel more like the normal loaded CAD camera again.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1293 -->
+### [1293] - 2026-04-14 14:47 - `VR - Phase Camera 6.3.8 - Pointer Lock Fly Look`
+<!-- ENTRY 1293 -->
+HUMAN SUMMARY: `Implemented the next fly-camera follow-on by teaching the existing held-\`RMB\` fly session in \`Viewer.ts\` to optionally request pointer lock, route fly-look input through relative \`movementX\` / \`movementY\` deltas while lock is active, and release pointer lock cleanly on exit while preserving the older client-delta fallback path when the browser does not grant lock.`
+#### Scope / Constraints Honored
+- Kept the change inside the existing held-`RMB` fly-session lifetime instead of widening into sticky fly mode, sensitivity UI, or a new input owner model.
+- Preserved the non-pointer-lock client-delta path as the fallback when pointer lock is unavailable or denied.
+- Left the `CameraController` true fly-orientation ownership from `Camera-6.3.7` intact and limited this pass to the viewer-side mouse-input seam.
+#### Summary of Implementation
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so fly-session start optionally requests pointer lock, fly-session pointer movement uses `movementX` / `movementY` while lock is active, unlock transitions avoid one stale client-delta jump, and fly-session teardown exits pointer lock when the viewer owns it.
+- Kept the existing pointer-capture and client-position delta path in [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) for browsers or cases where pointer lock is not granted.
+- Extended [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) with a focused pointer-lock regression that proves held-`RMB` fly mode requests pointer lock, feeds relative movement deltas into fly look, and releases pointer lock on fly exit while keeping the earlier fly-session tests green.
+#### Files Changed
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+#### Behavior Changes (if any)
+- Held-`RMB` fly mode now optionally uses pointer lock for continuous relative mouse look when the browser allows it, so users can keep pitching and looking around without screen-edge cursor limits.
+- If pointer lock is not available or not granted, fly look continues to work through the existing client-delta fallback path.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts`
+
+<!-- ENTRY 1292 -->
+### [1292] - 2026-04-14 14:11 - `VR - Phase Camera 6.3.7 - True Fly Camera Mode Separation`
+<!-- ENTRY 1292 -->
+HUMAN SUMMARY: `Implemented \`Camera-6.3.7\` by turning the existing held-\`RMB\` fly session into a true internal free-flight camera mode: \`CameraController\` now owns dedicated fly orientation state while fly mode is active, suspends orbit authority during that hold, and restores an upright CAD orbit handoff on exit without changing the viewer-side right-click session lifetime.`
+#### Scope / Constraints Honored
+- Kept the existing viewer-side held-`RMB` fly-session seam in place instead of inventing a new public camera mode or switching to another Three.js control helper.
+- Preserved `PerspectiveCamera` and normal non-fly `OrbitControls` ownership outside fly mode.
+- Restored upright orbit on fly exit as the first-pass handoff behavior without snapping to a canned preset view.
+#### Summary of Implementation
+- Added explicit `beginFlyMode()` / `endFlyMode({ restoreUpright: true })` ownership in [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) with dedicated fly-session orientation state and a fly-only camera-sync path.
+- Updated fly look, roll, and translation in [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so active fly mode derives its local basis from that dedicated fly orientation state and no longer calls back into `OrbitControls.update(...)` for fly motion.
+- Changed [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) `update(dt)` to skip orbit-driven updates while fly mode is active, then rebuild the normal orbit pose from the final fly forward direction and restore an upright exit frame when fly mode ends.
+- Wired [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) to enter and exit that true fly mode from the existing held-`RMB` session lifetime.
+- Extended [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) with proofs for orbit-update suspension during fly mode, upright exit handoff, and the viewer-to-controller begin/end fly-mode seam.
+#### Files Changed
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+#### Behavior Changes (if any)
+- Held-`RMB` fly mode now runs as a true internal free-flight mode instead of continuing to let `OrbitControls` remain the orientation authority during flight.
+- On fly exit, the camera now hands back into an upright orbit frame while keeping the current location and general view direction instead of preserving rolled orbit state.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/Viewer.test.ts`
+
 <!-- ENTRY 1291 -->
 ### [1291] - 2026-04-14 10:50 - `WK - Phase Worker 10 Phase 5 - Repair Complex Parallel Preview Locality And Settled Sibling Completeness`
 <!-- ENTRY 1291 -->

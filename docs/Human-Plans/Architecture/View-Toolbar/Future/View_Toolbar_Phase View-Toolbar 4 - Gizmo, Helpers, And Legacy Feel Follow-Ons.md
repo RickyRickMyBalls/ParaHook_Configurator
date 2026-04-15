@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-14 15:10:34: Expanded this later helper-tuning phase to explicitly include orientation-gizmo connector/cage lines between the snap spheres so the helper can recover clearer side/volume readability as one concrete follow-on instead of leaving that visual-depth detail implicit
 1. 2026-03-30 15:01: Created this standalone future phase doc for `View-Toolbar 4`, turning the fourth `View-Toolbar` cut into an implementation-ready planning surface centered on later helper tuning, orientation-gizmo parity, and any legacy camera-feel controls that still deserve a modern home
 
 ### Purpose
@@ -100,6 +101,7 @@ This phase should:
 - separate orientation-gizmo controls from transform-gizmo controls
 - add orientation-gizmo tuning such as:
   - line opacity
+  - connector/cage lines between the snap spheres so the helper sides read clearly
   - sphere size
   - text size
   - text visibility

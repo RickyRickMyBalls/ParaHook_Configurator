@@ -316,6 +316,15 @@ const normalizeViewportChromeRecord = (
         : localViewState?.viewToolbarExpandedAxisWidgetSize === null
           ? { viewToolbarExpandedAxisWidgetSize: null }
           : {}),
+      ...(typeof localViewState?.viewToolbarCompactAxisWidgetSize === 'number' &&
+      Number.isFinite(localViewState.viewToolbarCompactAxisWidgetSize)
+        ? {
+            viewToolbarCompactAxisWidgetSize:
+              localViewState.viewToolbarCompactAxisWidgetSize,
+          }
+        : localViewState?.viewToolbarCompactAxisWidgetSize === null
+          ? { viewToolbarCompactAxisWidgetSize: null }
+          : {}),
       ...(localViewState?.viewportResultMode === 'draft' ||
       localViewState?.viewportResultMode === 'final'
         ? { viewportResultMode: localViewState.viewportResultMode }

@@ -1,10 +1,23 @@
 export type ToneMappingMode = 'none' | 'aces'
 export type EnvPreset = 'none' | 'studio'
 export type ProjectionMode = 'perspective' | 'orthographic'
+export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
+export type AxisOverlayBackgroundMode = 'none' | 'blur'
 
 export type LightType = 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient'
 
 export type Vec3 = { x: number; y: number; z: number }
+
+export type AxisOverlayStyleSettings = {
+  mainLineOpacity: number
+  secondaryLineOpacity: number
+  sphereScale: number
+  cameraDistance: number
+  labelsVisible: boolean
+  labelSize: AxisOverlayLabelSize
+  backgroundMode: AxisOverlayBackgroundMode
+  backgroundOpacity: number
+}
 
 export type LightSpec = {
   id: string
@@ -51,6 +64,7 @@ export type ViewSettings = {
   exposure: number
   envPreset: EnvPreset
   axisOverlayEnabled: boolean
+  axisOverlayStyle: AxisOverlayStyleSettings
   lighting: {
     selectedLightId: string | null
     lights: LightSpec[]
@@ -61,6 +75,17 @@ export type ViewSettings = {
     usePerPart: boolean
     perPart: PartMaterialMap
   }
+}
+
+export const DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS: AxisOverlayStyleSettings = {
+  mainLineOpacity: 0.5,
+  secondaryLineOpacity: 0.1,
+  sphereScale: 1,
+  cameraDistance: 4.5,
+  labelsVisible: true,
+  labelSize: 'medium',
+  backgroundMode: 'none',
+  backgroundOpacity: 0,
 }
 
 export const DEFAULT_MATERIAL_PRESETS: MaterialPreset[] = [
@@ -121,6 +146,7 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
   exposure: 1,
   envPreset: 'none',
   axisOverlayEnabled: true,
+  axisOverlayStyle: DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS,
   lighting: {
     selectedLightId: 'key',
     lights: [

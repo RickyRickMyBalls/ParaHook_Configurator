@@ -467,6 +467,13 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const axisWidgetRef = useRef<HTMLDivElement | null>(null)
   const overlayRootRef = useRef<HTMLDivElement | null>(null)
+  const attachedViewerRef = useRef<ViewerApi | null>(null)
+  const axisWidgetPointerInteractionRef = useRef<{
+    pointerId: number
+    handleMove: (event: PointerEvent) => void
+    handlePointerUp: (event: PointerEvent) => void
+    handlePointerCancel: (event: PointerEvent) => void
+  } | null>(null)
   const sketchPlaneToolPanelRef = useRef<HTMLDivElement | null>(null)
   const sketchSessionWindowRef = useRef<HTMLDivElement | null>(null)
   const [flyMoveSpeed, setFlyMoveSpeed] = useState<number | null>(null)
@@ -597,8 +604,10 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const setViewportLocalViewState = useWorkspaceStore((state) => state.setViewportLocalViewState)
   const axisOverlayEnabled = localViewState?.axisOverlayEnabled ?? false
   const viewToolbarOpen = localViewState?.viewToolbarOpen ?? false
+  const compactAxisWidgetSize = localViewState?.viewToolbarCompactAxisWidgetSize ?? null
   const expandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
   const viewportResultMode = localViewState?.viewportResultMode ?? 'auto'
+  const axisOverlayStyleSettings = useUiPrefsStore((state) => state.view.axisOverlayStyle)
   const sketchPlaneToolbarGhostPlaneScale = useUiPrefsStore(
     (state) => state.sketchPlaneToolbarGhostPlaneScale,
   )
@@ -903,7 +912,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
 
   const resolvedAxisWidgetSize = viewToolbarOpen
     ? expandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
-    : COMPACT_AXIS_WIDGET_SIZE
+    : compactAxisWidgetSize ?? COMPACT_AXIS_WIDGET_SIZE
 
   const pickStageLabel = useMemo(() => {
     if (sketchPlanePickSession === null) {
@@ -1167,9 +1176,6 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   }
 
   const startResize = (event: ReactPointerEvent<HTMLDivElement>): void => {
-    if (!viewToolbarOpen) {
-      return
-    }
     const host = axisWidgetRef.current
     if (host === null) {
       return
@@ -1203,7 +1209,9 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       const clamped = Math.min(Math.max(next, MIN_AXIS_WIDGET_SIZE), MAX_AXIS_WIDGET_SIZE)
       if (viewportId !== undefined) {
         setViewportLocalViewState(viewportId, {
-          viewToolbarExpandedAxisWidgetSize: clamped,
+          ...(viewToolbarOpen
+            ? { viewToolbarExpandedAxisWidgetSize: clamped }
+            : { viewToolbarCompactAxisWidgetSize: clamped }),
         })
       }
     }
@@ -1227,6 +1235,93 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     window.addEventListener('pointercancel', stop)
   }
 
+  const clearAxisWidgetPointerInteraction = () => {
+    const currentInteraction = axisWidgetPointerInteractionRef.current
+    if (currentInteraction === null) {
+      return
+    }
+    window.removeEventListener('pointermove', currentInteraction.handleMove)
+    window.removeEventListener('pointerup', currentInteraction.handlePointerUp)
+    window.removeEventListener('pointercancel', currentInteraction.handlePointerCancel)
+    axisWidgetPointerInteractionRef.current = null
+  }
+
+  const startAxisWidgetPointerInteraction = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (event.button !== 0) {
+      return
+    }
+    if ((event.target as HTMLElement | null)?.closest('.AxisWidgetResizeHandle') !== null) {
+      return
+    }
+    const attachedViewer = attachedViewerRef.current
+    if (!axisOverlayEnabled || attachedViewer === null) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    clearAxisWidgetPointerInteraction()
+    attachedViewer.beginAxisOverlayPointerInteraction?.(
+      event.pointerId,
+      event.clientX,
+      event.clientY,
+    )
+
+    const handleMove = (moveEvent: PointerEvent): void => {
+      const currentInteraction = axisWidgetPointerInteractionRef.current
+      if (currentInteraction === null || moveEvent.pointerId !== currentInteraction.pointerId) {
+        return
+      }
+      attachedViewerRef.current?.updateAxisOverlayPointerInteraction?.(
+        moveEvent.pointerId,
+        moveEvent.clientX,
+        moveEvent.clientY,
+      )
+    }
+
+    const handlePointerUp = (upEvent: PointerEvent): void => {
+      const currentInteraction = axisWidgetPointerInteractionRef.current
+      if (currentInteraction === null || upEvent.pointerId !== currentInteraction.pointerId) {
+        return
+      }
+      attachedViewerRef.current?.endAxisOverlayPointerInteraction?.(upEvent.pointerId)
+      clearAxisWidgetPointerInteraction()
+    }
+
+    const handlePointerCancel = (cancelEvent: PointerEvent): void => {
+      const currentInteraction = axisWidgetPointerInteractionRef.current
+      if (currentInteraction === null || cancelEvent.pointerId !== currentInteraction.pointerId) {
+        return
+      }
+      attachedViewerRef.current?.cancelAxisOverlayPointerInteraction?.(cancelEvent.pointerId)
+      clearAxisWidgetPointerInteraction()
+    }
+
+    axisWidgetPointerInteractionRef.current = {
+      pointerId: event.pointerId,
+      handleMove,
+      handlePointerUp,
+      handlePointerCancel,
+    }
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerCancel)
+  }
+
+  const handleAxisWidgetPointerMove = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (axisWidgetPointerInteractionRef.current !== null) {
+      return
+    }
+    attachedViewerRef.current?.updateAxisOverlayPointerHover?.(event.clientX, event.clientY)
+  }
+
+  const handleAxisWidgetPointerLeave = (): void => {
+    if (axisWidgetPointerInteractionRef.current !== null) {
+      return
+    }
+    attachedViewerRef.current?.clearAxisOverlayPointerHover?.()
+  }
+
   useEffect(() => {
     let attachedViewer: ViewerApi | null = null
     const canvas = axisOverlayEnabled ? canvasRef.current : null
@@ -1235,6 +1330,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       if (attachedViewer !== viewer) {
         attachedViewer?.setAxisOverlayCanvas(null)
         attachedViewer = viewer
+        attachedViewerRef.current = viewer
       }
 
       if (attachedViewer === null) {
@@ -1250,10 +1346,27 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
     }, viewportId)
 
     return () => {
+      const pointerId = axisWidgetPointerInteractionRef.current?.pointerId ?? null
+      if (pointerId !== null) {
+        attachedViewerRef.current?.cancelAxisOverlayPointerInteraction?.(pointerId)
+      }
+      clearAxisWidgetPointerInteraction()
       attachedViewer?.setAxisOverlayCanvas(null)
+      attachedViewerRef.current = null
       unsubscribe()
     }
   }, [axisOverlayEnabled, viewportId])
+
+  useEffect(() => {
+    return () => {
+      const pointerId = axisWidgetPointerInteractionRef.current?.pointerId ?? null
+      if (pointerId !== null) {
+        attachedViewerRef.current?.cancelAxisOverlayPointerInteraction?.(pointerId)
+      }
+      clearAxisWidgetPointerInteraction()
+      attachedViewerRef.current?.clearAxisOverlayPointerHover?.()
+    }
+  }, [])
 
   useEffect(() => {
     const syncFlyMoveSpeed = (viewer: ViewerApi | null): void => {
@@ -2019,8 +2132,15 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       right: `${RIGHT_DOCK_PADDING_X}px`,
       width: `${axisWidgetSize}px`,
       height: `${axisWidgetSize}px`,
+      border: 'none',
+      boxShadow: 'none',
+      backgroundColor: `rgba(20, 20, 24, ${axisOverlayStyleSettings.backgroundOpacity})`,
+      backdropFilter:
+        axisOverlayStyleSettings.backgroundMode === 'blur' ? 'blur(8px)' : 'none',
+      WebkitBackdropFilter:
+        axisOverlayStyleSettings.backgroundMode === 'blur' ? 'blur(8px)' : 'none',
     }),
-    [axisWidgetSize],
+    [axisOverlayStyleSettings.backgroundMode, axisOverlayStyleSettings.backgroundOpacity, axisWidgetSize],
   )
   const viewportHudStyle = useMemo(
     () => ({
@@ -2483,11 +2603,12 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
           ref={axisWidgetRef}
           className={`ViewportOverlayWidget AxisWidget ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`}
           style={axisWidgetStyle}
+          onPointerDown={startAxisWidgetPointerInteraction}
+          onPointerMove={handleAxisWidgetPointerMove}
+          onPointerLeave={handleAxisWidgetPointerLeave}
         >
           <canvas ref={canvasRef} />
-          {viewToolbarOpen ? (
-            <div className="AxisWidgetResizeHandle" onPointerDown={startResize} />
-          ) : null}
+          <div className="AxisWidgetResizeHandle" onPointerDown={startResize} />
         </div>
       ) : null}
       {activePlanePickNode !== null && sketchPlanePickSession !== null ? (

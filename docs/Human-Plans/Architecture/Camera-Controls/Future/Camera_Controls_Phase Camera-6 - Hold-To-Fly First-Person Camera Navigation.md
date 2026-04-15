@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+16. 2026-04-14: Implemented `Camera-6.3.8 - Pointer Lock Fly Look` as the next narrow follow-on after true fly-mode separation, so the umbrella fly-camera polish ladder now includes optional pointer lock for continuous relative mouse look during held-`RMB` flight when the browser allows it while keeping the existing non-lock fallback path
+15. 2026-04-14: Added planned `Camera-6.3.7 - True Fly Camera Mode Separation`, so the fly-camera polish ladder now captures the next deeper architecture step: let held-`RMB` fly mode own a dedicated free-flight orientation model, then return to the normal upright CAD orbit controller on fly exit
+14. 2026-04-14: Implemented `Camera-6.3.6 - Free-Flight Pitch And Loop Support`, so the fly-camera polish ladder now supports pitching through vertical and full loop-the-loops in the existing perspective fly camera without a camera-type swap
 13. 2026-04-14: Added planned `Camera-6.3.6 - Free-Flight Pitch And Loop Support`, so the fly-camera polish ladder now captures removing the current pitch clamp and allowing full loop-the-loops in the existing perspective fly camera without a camera-type swap
 12. 2026-04-14: Implemented `Camera-6.3.5 - Fly Mode Scroll Wheel Speed Control`, so held-`RMB` fly mode now temporarily steals the wheel from zoom to adjust fly speed in-place, and normal wheel zoom returns immediately once fly mode ends
 11. 2026-04-14: Added planned `Camera-6.3.5 - Fly Mode Scroll Wheel Speed Control`, so the fly-camera polish ladder now captures temporary wheel remapping during held-`RMB` fly mode where wheel input adjusts fly speed instead of zoom and normal zoom returns on fly exit
@@ -127,6 +130,8 @@ Reason:
     - temporary wheel remap from zoom to fly-speed adjustment during fly mode
   - `Camera-6.3.6`
     - free-flight pitch through vertical and loop support
+  - `Camera-6.3.7`
+    - true fly-mode separation from normal CAD orbit plus upright-orbit restore on exit
 
 ### Fly Camera Polish Backlog
 
@@ -149,10 +154,13 @@ Codex-sized order:
   - remap wheel to increase/decrease fly speed only while held-`RMB` fly mode is active, then restore normal zoom on exit
 - `Camera-6.3.6`
   - remove the current fly-look pitch clamp so the camera can loop over the top like an aircraft
+- `Camera-6.3.7`
+  - let fly mode own a dedicated free-flight orientation model, then hand back to upright CAD orbit on release
+- `Camera-6.3.8`
+  - optionally request pointer lock during held-`RMB` fly mode so mouse look can keep using relative input past screen edges when the browser allows it
 
 Suggested near-follow-ons:
 - mouse-look sensitivity slider
-- pointer lock as an optional upgrade
 - persist fly settings between sessions
 - reset-to-default fly settings action
 - optional fly HUD or status hint while active

@@ -265,6 +265,20 @@ export interface ViewerApi {
   setOnContentObjectTransformSpaceChange: ((handler: ((space: GizmoSpace) => void) | null) => void)
   setAxisOverlayEnabled: (enabled: boolean) => void
   setAxisOverlayCanvas: (canvas: HTMLCanvasElement | null) => void
+  beginAxisOverlayPointerInteraction?: (
+    pointerId: number,
+    clientX: number,
+    clientY: number,
+  ) => void
+  updateAxisOverlayPointerInteraction?: (
+    pointerId: number,
+    clientX: number,
+    clientY: number,
+  ) => void
+  endAxisOverlayPointerInteraction?: (pointerId: number) => void
+  cancelAxisOverlayPointerInteraction?: (pointerId: number) => void
+  updateAxisOverlayPointerHover?: (clientX: number, clientY: number) => void
+  clearAxisOverlayPointerHover?: () => void
   setGeometrySketchOverlay: (overlay: GeometrySketchOverlayVm | null) => void
   setVisibleGeometrySketchOverlays: (overlays: VisibleGeometrySketchOverlayVm[]) => void
   setOnGeometrySketchHoverPoint: (

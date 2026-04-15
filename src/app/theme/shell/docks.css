@@ -190,14 +190,8 @@
   flex-direction: column;
   gap: 10px;
   align-self: flex-start;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   pointer-events: none;
-  transition:
-    width 180ms ease,
-    min-width 180ms ease,
-    max-width 180ms ease,
-    padding-top 180ms ease;
 }
 
 .RightPanelStack {
@@ -205,6 +199,8 @@
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .PrimaryViewportLeftDock > *,

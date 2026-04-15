@@ -74,9 +74,18 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-height: calc(100dvh - var(--v15-view-anchor-top) - 16px);
+  max-height: var(--v15-view-toolbar-max-height, 100%);
+  height: var(--v15-view-toolbar-used-height, auto);
+  min-height: 0;
   overflow: hidden;
-  transition: max-height 180ms ease;
+}
+
+.ViewToolbarRoot[open][data-scrollable='true'] {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
 }
 
 .ViewToolbarToggle {
@@ -109,13 +118,33 @@
   gap: 10px;
   margin-top: 10px;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-gutter: stable;
+  padding-bottom: var(--v15-view-toolbar-content-padding-bottom, 12px);
 }
 
-.ViewToolbarRoot[open] .ViewToolbarPanel {
-  flex: 1;
+.ViewToolbarRoot[open][data-scrollable='true']::-webkit-scrollbar {
+  width: 12px;
+}
+
+.ViewToolbarRoot[open][data-scrollable='true']::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.ViewToolbarRoot[open][data-scrollable='true']::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border-radius: 999px;
+  border: 2px solid rgba(8, 10, 14, 0.92);
+}
+
+.ViewToolbarRoot[open][data-scrollable='true']::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
 }
 
 .ViewSection {
@@ -1628,15 +1657,15 @@
 }
 
 .ViewportHud button.ParaSliderCap {
-  flex: 0 0 30px;
-  width: 30px;
-  min-width: 30px;
-  height: 28px;
+  flex: 0 0 21px;
+  width: 21px;
+  min-width: 21px;
+  height: 14px;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(180deg, rgba(26, 31, 48, 0.96) 0%, rgba(18, 22, 36, 0.96) 100%);
   color: rgba(244, 247, 255, 0.96);
-  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-size: calc((var(--sp-window-font-size) - 2px) * 0.5);
   line-height: 1;
   border-radius: 0;
 }
@@ -1654,7 +1683,7 @@
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  height: 28px;
+  height: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-left: none;
   background: linear-gradient(180deg, rgba(47, 57, 89, 0.84) 0%, rgba(34, 41, 68, 0.84) 100%);
@@ -1669,8 +1698,8 @@
 
 .ViewportHud .ParaSliderFill {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 2px;
+  bottom: 2px;
   background: linear-gradient(90deg, rgba(124, 160, 255, 0.34) 0%, rgba(124, 160, 255, 0.14) 100%);
   border-radius: 0;
   pointer-events: none;
@@ -1678,8 +1707,8 @@
 
 .ViewportHud .ParaSliderValueMarker {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 2px;
+  bottom: 2px;
   width: 2px;
   margin-left: -1px;
   border-radius: 999px;
@@ -1695,14 +1724,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 0 10px;
+  gap: 6px;
+  padding: 0 6px;
   pointer-events: none;
 }
 
 .ViewportHud .ParaSliderLabel,
 .ViewportHud .ParaSliderValue {
-  font-size: 11px;
+  font-size: 10px;
   font-family: var(--sp-window-font-family);
   line-height: 1;
   white-space: nowrap;
@@ -1723,10 +1752,10 @@
   z-index: 2;
   pointer-events: auto;
   min-width: 74px;
-  height: 22px;
-  padding: 0 8px;
+  height: 12px;
+  padding: 0 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
   font-family: var(--sp-window-font-family);
   line-height: 1;
   text-align: right;

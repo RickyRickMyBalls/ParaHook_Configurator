@@ -3,7 +3,7 @@ export const AXIS_WIDGET_TOP = 12
 export const VIEW_ANCHOR_GAP = 12
 export const VIEWPORT_HUD_GAP = 10
 export const MIN_AXIS_WIDGET_SIZE = 80
-export const MAX_AXIS_WIDGET_SIZE = 420
+export const MAX_AXIS_WIDGET_SIZE = 1000
 export const COMPACT_AXIS_WIDGET_SIZE = MIN_AXIS_WIDGET_SIZE
 export const DEFAULT_EXPANDED_AXIS_WIDGET_SIZE = 308
 

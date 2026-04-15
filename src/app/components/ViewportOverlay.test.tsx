@@ -171,7 +171,7 @@ describe('ViewportOverlay sketch session window', () => {
       useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
         axisOverlayEnabled: true,
         viewToolbarOpen: false,
-        viewToolbarExpandedAxisWidgetSize: null,
+        viewToolbarCompactAxisWidgetSize: 96,
       })
     })
 
@@ -200,9 +200,186 @@ describe('ViewportOverlay sketch session window', () => {
     expect(overlayRoots[1]?.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
     expect(document.documentElement.style.getPropertyValue('--v15-axis-widget-size')).toBe('')
     expect(axisWidgets[0]?.style.width).toBe('308px')
-    expect(axisWidgets[1]?.style.width).toBe('80px')
+    expect(axisWidgets[1]?.style.width).toBe('96px')
     expect(huds[0]?.style.right).toBe('334px')
-    expect(huds[1]?.style.right).toBe('106px')
+    expect(huds[1]?.style.right).toBe('122px')
+  })
+
+  it('keeps the axis-widget resize handle available when collapsed and stores compact size separately', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        axisOverlayEnabled: true,
+        viewToolbarOpen: false,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    const axisWidget = container.querySelector('.AxisWidget') as HTMLDivElement | null
+    const resizeHandle = container.querySelector('.AxisWidgetResizeHandle') as HTMLDivElement | null
+
+    expect(axisWidget).not.toBeNull()
+    expect(resizeHandle).not.toBeNull()
+    expect(axisWidget?.classList.contains('isCompact')).toBe(true)
+    expect(axisWidget?.style.width).toBe('80px')
+
+    Object.defineProperty(axisWidget, 'clientWidth', {
+      configurable: true,
+      get: () => 80,
+    })
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 9,
+          button: 0,
+          clientX: 80,
+          clientY: 80,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          pointerId: 9,
+          clientX: 80,
+          clientY: 104,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 9 }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarCompactAxisWidgetSize,
+    ).toBe(104)
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarExpandedAxisWidgetSize,
+    ).toBeNull()
+    expect(axisWidget?.style.width).toBe('104px')
+    expect(axisWidget?.style.height).toBe('104px')
+  })
+
+  it('keeps the gizmo viewport shell transparent by default and can switch it to blur mode', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        axisOverlayEnabled: true,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    const axisWidget = container.querySelector('.AxisWidget') as HTMLDivElement | null
+    expect(axisWidget).not.toBeNull()
+    expect(axisWidget?.style.borderStyle).toBe('none')
+    expect(axisWidget?.style.boxShadow).toBe('none')
+    expect(axisWidget?.style.backgroundColor).toBe('rgba(20, 20, 24, 0)')
+    expect(axisWidget?.style.backdropFilter).toBe('none')
+
+    await act(async () => {
+      useUiPrefsStore.getState().setView({
+        axisOverlayStyle: {
+          ...useUiPrefsStore.getState().view.axisOverlayStyle,
+          backgroundMode: 'blur',
+        },
+      })
+    })
+
+    expect(axisWidget?.style.backgroundColor).toBe('rgba(20, 20, 24, 0)')
+    expect(axisWidget?.style.backdropFilter).toBe('blur(8px)')
+  })
+
+  it('routes axis-widget shell drag gestures through the attached viewer so orbit can continue beyond the canvas', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+    const { getViewer, subscribeViewer } = await import('../viewerBridge')
+
+    const viewer: Partial<ViewerApi> = {
+      setAxisOverlayCanvas: vi.fn(),
+      beginAxisOverlayPointerInteraction: vi.fn(),
+      updateAxisOverlayPointerInteraction: vi.fn(),
+      endAxisOverlayPointerInteraction: vi.fn(),
+      cancelAxisOverlayPointerInteraction: vi.fn(),
+      updateAxisOverlayPointerHover: vi.fn(),
+      clearAxisOverlayPointerHover: vi.fn(),
+    }
+
+    vi.mocked(getViewer).mockReturnValue(viewer as ViewerApi)
+    vi.mocked(subscribeViewer).mockReturnValue(() => {})
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        axisOverlayEnabled: true,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewportOverlay viewportId="model-viewer-primary" />)
+    })
+
+    const axisWidget = container.querySelector('.AxisWidget') as HTMLDivElement | null
+    expect(axisWidget).not.toBeNull()
+
+    await act(async () => {
+      axisWidget?.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 40,
+          clientY: 50,
+        }),
+      )
+      axisWidget?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 4,
+          button: 0,
+          clientX: 40,
+          clientY: 50,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          pointerId: 4,
+          clientX: 66,
+          clientY: 78,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 4 }))
+    })
+
+    expect(viewer.updateAxisOverlayPointerHover).toHaveBeenCalledWith(40, 50)
+    expect(viewer.beginAxisOverlayPointerInteraction).toHaveBeenCalledWith(4, 40, 50)
+    expect(viewer.updateAxisOverlayPointerInteraction).toHaveBeenCalledWith(4, 66, 78)
+    expect(viewer.endAxisOverlayPointerInteraction).toHaveBeenCalledWith(4)
   })
 
   it('shows a final-unavailable geometry HUD status when final mode has no accepted final result', async () => {

@@ -233,6 +233,24 @@ describe('CameraController', () => {
     expect(controls.update).toHaveBeenCalledTimes(1)
   })
 
+  it('lets fly look pitch through vertical for full loop-style motion', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+    controls.update.mockClear()
+
+    controller.applyFlyLookDelta(0, -120)
+
+    expect(controls.target.y).toBeGreaterThan(perspectiveCamera.position.y)
+    expect(controls.target.z).toBeGreaterThan(perspectiveCamera.position.z)
+    expect(perspectiveCamera.up.y).toBeLessThan(0)
+
+    const targetAfterFirstPitch = controls.target.clone()
+    controller.applyFlyLookDelta(0, -120)
+
+    expect(controls.target.toArray()).not.toEqual(targetAfterFirstPitch.toArray())
+    expect(controls.target.z).toBeGreaterThan(perspectiveCamera.position.z)
+    expect(controls.update).toHaveBeenCalledTimes(2)
+  })
+
   it('translates fly movement by moving both the camera position and orbit target together', () => {
     const { controller, controls, perspectiveCamera } = createController()
     controls.update.mockClear()
@@ -276,6 +294,48 @@ describe('CameraController', () => {
     expect(controls.target.x).toBeGreaterThan(targetBefore.x)
     expect(perspectiveCamera.position.y).toBeCloseTo(positionBefore.y, 6)
     expect(controls.target.y).toBeCloseTo(targetBefore.y, 6)
+  })
+
+  it('suspends orbit-control updates while true fly mode is active', () => {
+    const { controller, controls } = createController()
+
+    controller.beginFlyMode()
+    controls.update.mockClear()
+
+    controller.update(0.25)
+
+    expect(controls.update).not.toHaveBeenCalled()
+  })
+
+  it('hands true fly mode back to an upright orbit pose on exit', () => {
+    const { controller, controls, perspectiveCamera } = createController()
+
+    controller.beginFlyMode()
+    controller.applyFlyRollDelta(Math.PI / 2)
+    controller.translateFly(1.5, 0.5, 0.25)
+
+    const positionBeforeExit = perspectiveCamera.position.clone()
+    const targetBeforeExit = controls.target.clone()
+
+    controller.endFlyMode({ restoreUpright: true })
+
+    expect(perspectiveCamera.position.toArray()).toEqual(positionBeforeExit.toArray())
+    expect(controls.target.toArray()).toEqual(targetBeforeExit.toArray())
+    expect(perspectiveCamera.up.x).toBeCloseTo(0, 6)
+    expect(perspectiveCamera.up.y).toBeCloseTo(1, 6)
+    expect(perspectiveCamera.up.z).toBeCloseTo(0, 6)
+  })
+
+  it('restores exact y-up orbit after exiting fly mode from a pitched orientation', () => {
+    const { controller, perspectiveCamera } = createController()
+
+    controller.beginFlyMode()
+    controller.applyFlyLookDelta(0, -120)
+    controller.endFlyMode({ restoreUpright: true })
+
+    expect(perspectiveCamera.up.x).toBeCloseTo(0, 6)
+    expect(perspectiveCamera.up.y).toBeCloseTo(1, 6)
+    expect(perspectiveCamera.up.z).toBeCloseTo(0, 6)
   })
 
   it('frames a client drag window on the target plane in both projection modes', () => {

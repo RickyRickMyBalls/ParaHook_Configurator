@@ -26,6 +26,9 @@ const clonePreset = (preset: MaterialPreset): MaterialPreset => ({ ...preset })
 
 const cloneView = (view: ViewSettings): ViewSettings => ({
   ...view,
+  axisOverlayStyle: {
+    ...view.axisOverlayStyle,
+  },
   lighting: {
     selectedLightId: view.lighting.selectedLightId,
     lights: view.lighting.lights.map(cloneLight),

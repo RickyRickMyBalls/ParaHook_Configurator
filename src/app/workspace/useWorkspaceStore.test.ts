@@ -270,6 +270,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       projectionMode: 'orthographic',
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
+      viewToolbarCompactAxisWidgetSize: 112,
       viewportResultMode: 'draft',
     })
 
@@ -287,6 +288,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+        viewToolbarCompactAxisWidgetSize: 112,
         viewportResultMode: 'draft',
       }),
     )
@@ -382,6 +384,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       projectionMode: 'orthographic',
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
+      viewToolbarCompactAxisWidgetSize: 112,
       viewportResultMode: 'draft',
     })
     useWorkspaceStore.getState().setActiveViewerViewportId('model-viewer-workspace-slot-2')
@@ -411,6 +414,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+        viewToolbarCompactAxisWidgetSize: 112,
         viewportResultMode: 'draft',
       }),
     )

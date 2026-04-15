@@ -195,6 +195,7 @@ export type WorkspaceViewportLocalViewState = {
   projectionMode: ProjectionMode
   axisOverlayEnabled: boolean
   viewToolbarOpen: boolean
+  viewToolbarCompactAxisWidgetSize: number | null
   viewToolbarExpandedAxisWidgetSize: number | null
   viewportResultMode: WorkspaceViewportResultMode
 }
@@ -342,6 +343,7 @@ export const createDefaultWorkspaceViewportLocalViewState =
     projectionMode: DEFAULT_VIEW_SETTINGS.projectionMode,
     axisOverlayEnabled: DEFAULT_VIEW_SETTINGS.axisOverlayEnabled,
     viewToolbarOpen: false,
+    viewToolbarCompactAxisWidgetSize: null,
     viewToolbarExpandedAxisWidgetSize: null,
     viewportResultMode: 'auto',
   })

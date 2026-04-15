@@ -3381,10 +3381,6 @@ button.ParaSelectMenuAction:hover {
   height: var(--v15-axis-widget-size);
   overflow: hidden;
   user-select: text;
-  transition:
-    width 180ms ease,
-    height 180ms ease,
-    transform 180ms ease;
 }
 
 .AxisWidgetResizeHandle {

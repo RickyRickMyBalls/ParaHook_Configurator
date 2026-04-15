@@ -85,6 +85,12 @@ export class CameraController {
   private orthoViewHeight = DEFAULT_ORTHO_VIEW_HEIGHT
   private viewportWidth = 1
   private viewportHeight = 1
+  private flyMode:
+    | {
+        orientation: Quaternion
+        targetDistance: number
+      }
+    | null = null
 
   public constructor(
     perspectiveCamera: PerspectiveCamera,
@@ -130,6 +136,7 @@ export class CameraController {
       return
     }
     this.cameraTransition = null
+    this.flyMode = null
     if (mode === 'orthographic') {
       this.syncOrthographicFromPerspective()
       this.controls.object = this.orthographicCamera as Camera
@@ -168,6 +175,9 @@ export class CameraController {
       if (linearT >= 1) {
         this.cameraTransition = null
       }
+    }
+    if (this.flyMode !== null) {
+      return
     }
     this.controls.update(dt)
   }
@@ -244,12 +254,64 @@ export class CameraController {
     this.temporaryPanDrag = null
   }
 
+  public beginFlyMode(): void {
+    if (this.projectionMode !== 'perspective') {
+      return
+    }
+
+    this.cameraTransition = null
+    this.flyMode = {
+      orientation: this.perspectiveCamera.quaternion.clone().normalize(),
+      targetDistance: Math.max(
+        this.perspectiveCamera.position.distanceTo(this.controls.target),
+        MIN_CAMERA_DISTANCE,
+      ),
+    }
+    this.syncPerspectiveCameraFromFlyMode()
+  }
+
+  public endFlyMode(options?: { restoreUpright?: boolean }): void {
+    if (this.flyMode === null) {
+      return
+    }
+
+    this.cameraTransition = null
+    const targetDistance = this.flyMode.targetDistance
+    this.tmpForward.set(0, 0, -1).applyQuaternion(this.flyMode.orientation).normalize()
+    this.flyMode = null
+
+    if (options?.restoreUpright === true) {
+      this.restorePerspectiveOrbitFromForward(this.tmpForward, targetDistance)
+      return
+    }
+
+    this.controls.update()
+  }
+
   public applyFlyLookDelta(deltaX: number, deltaY: number): void {
     if (this.projectionMode !== 'perspective' || (deltaX === 0 && deltaY === 0)) {
       return
     }
 
     this.cameraTransition = null
+    if (this.flyMode !== null) {
+      const elementHeight = Math.max(this.controls.domElement?.clientHeight ?? 1, 1)
+      const twoPi = Math.PI * 2
+      const yaw = (-twoPi * deltaX) / elementHeight
+      const pitch = (-twoPi * deltaY) / elementHeight
+
+      this.tmpUp.set(0, 1, 0).applyQuaternion(this.flyMode.orientation).normalize()
+      this.tmpYawQuaternion.setFromAxisAngle(this.tmpUp, yaw)
+      this.flyMode.orientation.premultiply(this.tmpYawQuaternion).normalize()
+
+      this.tmpRight.set(1, 0, 0).applyQuaternion(this.flyMode.orientation).normalize()
+      this.tmpPitchQuaternion.setFromAxisAngle(this.tmpRight, pitch)
+      this.flyMode.orientation.premultiply(this.tmpPitchQuaternion).normalize()
+
+      this.syncPerspectiveCameraFromFlyMode()
+      return
+    }
+
     const activeCamera = this.perspectiveCamera
     const targetDistance = Math.max(
       activeCamera.position.distanceTo(this.controls.target),
@@ -285,12 +347,18 @@ export class CameraController {
     }
 
     this.tmpPitchQuaternion.setFromAxisAngle(this.tmpRight, pitch)
-    const yawedForward = this.tmpForward.clone()
     this.tmpForward.applyQuaternion(this.tmpPitchQuaternion).normalize()
-    if (Math.abs(this.tmpForward.dot(this.tmpUp)) > 0.995) {
-      this.tmpForward.copy(yawedForward)
+    this.tmpUp.applyQuaternion(this.tmpPitchQuaternion).normalize()
+    this.tmpRight.crossVectors(this.tmpForward, this.tmpUp).normalize()
+    if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+      activeCamera.lookAt(this.controls.target)
+      activeCamera.updateProjectionMatrix()
+      this.controls.update()
+      return
     }
+    this.tmpUp.crossVectors(this.tmpRight, this.tmpForward).normalize()
 
+    activeCamera.up.copy(this.tmpUp)
     this.controls.target.copy(activeCamera.position).addScaledVector(this.tmpForward, targetDistance)
     activeCamera.lookAt(this.controls.target)
     activeCamera.updateProjectionMatrix()
@@ -303,6 +371,14 @@ export class CameraController {
     }
 
     this.cameraTransition = null
+    if (this.flyMode !== null) {
+      this.tmpForward.set(0, 0, -1).applyQuaternion(this.flyMode.orientation).normalize()
+      this.tmpRollQuaternion.setFromAxisAngle(this.tmpForward, deltaRadians)
+      this.flyMode.orientation.premultiply(this.tmpRollQuaternion).normalize()
+      this.syncPerspectiveCameraFromFlyMode()
+      return
+    }
+
     const activeCamera = this.perspectiveCamera
     const targetDistance = Math.max(
       activeCamera.position.distanceTo(this.controls.target),
@@ -349,6 +425,22 @@ export class CameraController {
     }
 
     this.cameraTransition = null
+    if (this.flyMode !== null) {
+      const activeCamera = this.perspectiveCamera
+      this.tmpForward.set(0, 0, -1).applyQuaternion(this.flyMode.orientation).normalize()
+      this.tmpRight.set(1, 0, 0).applyQuaternion(this.flyMode.orientation).normalize()
+      this.tmpUp.set(0, 1, 0).applyQuaternion(this.flyMode.orientation).normalize()
+
+      this.tmpFlyOffset.set(0, 0, 0)
+      this.tmpFlyOffset.addScaledVector(this.tmpForward, forwardDistance)
+      this.tmpFlyOffset.addScaledVector(this.tmpRight, rightDistance)
+      this.tmpFlyOffset.addScaledVector(this.tmpUp, upDistance)
+
+      activeCamera.position.add(this.tmpFlyOffset)
+      this.syncPerspectiveCameraFromFlyMode()
+      return
+    }
+
     const activeCamera = this.perspectiveCamera
     this.tmpForward.copy(this.controls.target).sub(activeCamera.position)
     if (!Number.isFinite(this.tmpForward.lengthSq()) || this.tmpForward.lengthSq() < 1e-8) {
@@ -715,6 +807,50 @@ export class CameraController {
     this.controls.mouseButtons.LEFT = this.leftButtonOrbitEnabled ? MOUSE.ROTATE : null
     this.controls.mouseButtons.MIDDLE = MOUSE.PAN
     this.controls.mouseButtons.RIGHT = null
+  }
+
+  private syncPerspectiveCameraFromFlyMode(): void {
+    if (this.flyMode === null) {
+      return
+    }
+
+    this.tmpForward.set(0, 0, -1).applyQuaternion(this.flyMode.orientation).normalize()
+    this.tmpUp.set(0, 1, 0).applyQuaternion(this.flyMode.orientation).normalize()
+    this.perspectiveCamera.up.copy(this.tmpUp)
+    this.perspectiveCamera.quaternion.copy(this.flyMode.orientation)
+    this.controls.target
+      .copy(this.perspectiveCamera.position)
+      .addScaledVector(this.tmpForward, this.flyMode.targetDistance)
+    this.perspectiveCamera.updateProjectionMatrix()
+    this.perspectiveCamera.updateMatrixWorld()
+  }
+
+  private restorePerspectiveOrbitFromForward(forward: Vector3, targetDistance: number): void {
+    this.tmpForward.copy(forward)
+    if (!Number.isFinite(this.tmpForward.lengthSq()) || this.tmpForward.lengthSq() < 1e-8) {
+      this.tmpForward.set(0, 0, -1)
+    } else {
+      this.tmpForward.normalize()
+    }
+
+    if (Math.abs(this.tmpForward.dot(this.tmpUp.set(0, 1, 0))) > 0.999) {
+      this.tmpRight.set(1, 0, 0).applyQuaternion(this.perspectiveCamera.quaternion)
+      this.tmpRight.addScaledVector(this.tmpForward, -this.tmpRight.dot(this.tmpForward))
+      if (!Number.isFinite(this.tmpRight.lengthSq()) || this.tmpRight.lengthSq() < 1e-8) {
+        this.tmpRight.set(1, 0, 0)
+      } else {
+        this.tmpRight.normalize()
+      }
+      this.tmpForward.addScaledVector(this.tmpRight, 0.001).normalize()
+    }
+
+    this.perspectiveCamera.up.set(0, 1, 0)
+    this.controls.target
+      .copy(this.perspectiveCamera.position)
+      .addScaledVector(this.tmpForward, Math.max(targetDistance, MIN_CAMERA_DISTANCE))
+    this.perspectiveCamera.lookAt(this.controls.target)
+    this.perspectiveCamera.updateProjectionMatrix()
+    this.controls.update()
   }
 
   private getAspect(): number {

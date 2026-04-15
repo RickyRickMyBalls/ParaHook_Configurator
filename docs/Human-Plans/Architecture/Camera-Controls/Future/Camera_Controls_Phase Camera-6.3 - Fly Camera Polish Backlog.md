@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-04-14: Implemented `Camera-6.3.8 - Pointer Lock Fly Look` as the next narrow post-`6.3.7` follow-on, so held-`RMB` fly mode now optionally requests pointer lock, mouse look can keep using relative `movementX` / `movementY` input past screen edges when the browser allows it, and the previous client-delta path remains as the fallback when pointer lock is unavailable or denied
+17. 2026-04-14: Tightened `Camera-6.3.7 - True Fly Camera Mode Separation` into an implementation-ready slice by locking the split between fly-session orientation ownership and normal `OrbitControls` ownership, confirming `Y-up` as the upright exit target, and defining the pose handoff direction for returning from true fly mode back into the normal CAD orbit controller
+16. 2026-04-14: Added planned `Camera-6.3.7 - True Fly Camera Mode Separation`, so the backlog now captures the next deeper follow-on: stop relying on `OrbitControls` as the fly-orientation authority during held-`RMB` fly mode, use a dedicated free-flight orientation model instead, and hand the resulting pose back to the normal CAD orbit controller on fly exit
+15. 2026-04-14: Implemented `Camera-6.3.6 - Free-Flight Pitch And Loop Support`, so fly look now pitches through vertical without the old pole clamp, loop-the-loops work in the existing `PerspectiveCamera`, and the previously shipped roll, translation, boost, and wheel-speed controls continue to operate in the same local flight frame
 14. 2026-04-14: Tightened `Camera-6.3.6 - Free-Flight Pitch And Loop Support` into an implementation-ready slice by locking the fix to `CameraController.applyFlyLookDelta(...)`, clarifying that the current pitch step rotates only `forward` while leaving `up` fixed, and defining the needed free-flight basis update where pitch rotates both `forward` and `up` around the current right axis without the old pole clamp
 13. 2026-04-14: Added planned `Camera-6.3.6 - Free-Flight Pitch And Loop Support` as the next narrow follow-on after wheel speed control, so the backlog now explicitly captures removing the current fly-look pole clamp and allowing pitch to carry through vertical for full aircraft-style loop-the-loops without changing camera type
 12. 2026-04-14: Implemented `Camera-6.3.5 - Fly Mode Scroll Wheel Speed Control`, so held-`RMB` fly mode now temporarily remaps the wheel from zoom to base fly-speed adjustment, wheel up/down changes stay synced with the HUD speed control, and normal zoom resumes immediately on fly exit
@@ -69,10 +73,11 @@ This phase family covers:
 - keeping boost as a multiplier on top of the base speed
 - adding plane-style roll controls during fly mode
 - allowing free-flight pitch to pass through vertical so the camera can complete loops
+- separating true fly orientation ownership from the normal CAD orbit controller
+- optionally requesting pointer lock during held-`RMB` fly mode so mouse look can keep using relative input past screen edges when the browser allows it
 - verifying the updated fly key map still exits cleanly and does not regress viewer or console behavior
 
 This phase family does not cover:
-- pointer lock
 - sticky toggle-based fly mode
 - orthographic fly behavior
 - mouse-look sensitivity UI
@@ -114,10 +119,20 @@ This phase family does not cover:
     - uses wheel up to increase fly speed and wheel down to decrease fly speed
     - restores normal wheel zoom immediately after fly mode exits
 - `Camera-6.3.6`
-  - planned:
+  - shipped:
     - removes the current fly-look pole clamp that blocks pitch through vertical
     - allows full aircraft-style loop-the-loops while staying on the existing `PerspectiveCamera`
     - keeps roll, translation, and wheel-speed control working in the same free-flight orientation model
+- `Camera-6.3.7`
+  - shipped:
+    - uses a dedicated free-flight orientation model during held-`RMB` fly mode instead of relying on `OrbitControls` updates
+    - returns to the normal CAD orbit controller when fly mode ends
+    - optionally resets the camera back to upright CAD orbit on exit instead of preserving an upside-down orbit state
+- `Camera-6.3.8`
+  - shipped:
+    - optionally requests pointer lock during held-`RMB` fly mode
+    - uses relative `movementX` / `movementY` look deltas while pointer lock is active
+    - falls back to the existing client-delta path when pointer lock is unavailable or denied
 
 #### Current code-backed read:
 - `src/viewer/Viewer.ts` already owns:
@@ -145,7 +160,7 @@ This phase family does not cover:
   - `Shift`
     - boost
 - treat boost as a multiplier on top of the current base fly speed
-- do not mix persistence, pointer lock, or sensitivity UI into the first polish ladder
+- do not mix persistence or sensitivity UI into the fly polish ladder
 
 ### Phase Breakdown
 
@@ -177,6 +192,16 @@ Reason:
 Reason:
 - once roll and wheel-speed control are in place, the next honest flight-feel gap is the current pitch clamp that still prevents the camera from looping over the top like an aircraft
 - this is a math/orientation-model fix inside the existing perspective fly camera, not a camera-type swap
+
+7. `Camera-6.3.7 - True Fly Camera Mode Separation`
+Reason:
+- even after the pitch clamp is removed, the current fly runtime still leans on `OrbitControls.update()` as part of the camera path
+- the cleanest way to get a true aircraft-style fly camera is to let fly mode own its own orientation model completely, then hand the resulting pose back to the normal CAD orbit controller when the user releases `RMB`
+
+8. `Camera-6.3.8 - Pointer Lock Fly Look`
+Reason:
+- once true fly mode owns its own orientation model, the next narrow feel gap is the browser cursor edge that still limits continuous mouse-look travel even though the camera math itself already supports unlimited pitch
+- optional pointer lock is the smallest honest follow-on that makes held-`RMB` fly look feel truly continuous without widening into sticky fly mode, sensitivity UI, or input rebinding work
 
 ### Questions / Decisions
 
@@ -293,6 +318,26 @@ Reason:
 - the current blocker is the pitch clamp in `CameraController.applyFlyLookDelta(...)`, not the camera type itself
 - `PerspectiveCamera` is already the correct camera type for free-flight navigation
 - changing camera type would not solve the current pole-clamp behavior on its own
+
+#### [x] Question 9 - How should we achieve a true fly camera?
+
+##### Suggested answer
+- keep the existing `PerspectiveCamera`
+- do not swap to a different Three.js control helper
+- when held-`RMB` fly mode starts:
+  - suspend `OrbitControls` as the orientation authority
+  - use a dedicated fly orientation basis or quaternion owned by the viewer/camera controller
+- while fly mode is active:
+  - apply yaw, pitch, roll, and translation from that dedicated free-flight orientation
+- when fly mode ends:
+  - hand the resulting pose back to the normal CAD orbit controller
+  - recommended first pass:
+    - restore upright CAD orbit on exit instead of preserving an upside-down orbit state
+
+##### Why
+- `OrbitControls` is designed for orbit behavior, not true aircraft-style free flight
+- separating the two modes gives fly mode unrestricted orientation while keeping the existing CAD orbit interaction model intact
+- restoring upright orbit on exit avoids leaving the normal CAD camera in a confusing upside-down state
 
 ## [x] `Camera-6.3.1` - `Fly Boost And Descend Remap`
 
@@ -601,12 +646,17 @@ Reason:
 - HUD slider state stays aligned with the wheel-adjusted speed
 - normal wheel zoom still behaves exactly as before outside fly mode
 
-## [ ] `Camera-6.3.6` - `Free-Flight Pitch And Loop Support`
+## [x] `Camera-6.3.6` - `Free-Flight Pitch And Loop Support`
 
 ### Summary
 
 #### Purpose:
 - remove the remaining FPS-style fly-look clamp so the camera can pitch through vertical and complete full aircraft-style loops
+
+#### Shipped result:
+- `CameraController.applyFlyLookDelta(...)` now rotates both `forward` and `up` during pitch instead of leaving `up` fixed
+- the old pole-clamp rejection path has been removed, so fly look can pass through vertical
+- free-flight pitch continues to use the existing `PerspectiveCamera` and keeps the local flight frame coherent for later roll and translation
 
 #### Target result:
 - looking up while flying can continue smoothly past vertical instead of stopping near straight up
@@ -694,6 +744,128 @@ Reason:
 - rolled orientation, translation, boost, and wheel-speed control still behave coherently after the change
 - no camera-type swap is required
 
+## [ ] `Camera-6.3.7` - `True Fly Camera Mode Separation`
+
+### Summary
+
+#### Purpose:
+- make fly mode a true free-flight camera mode instead of an orbit-controller variant, while still returning cleanly to the normal CAD orbit experience on exit
+
+#### Target result:
+- held-`RMB` fly mode owns its own orientation model fully
+- fly orientation no longer depends on `OrbitControls.update()` to stay coherent
+- `W/A/S/D`, `Space/Ctrl`, `Q/E`, mouse look, boost, and wheel-speed control all operate inside one dedicated free-flight frame
+- on `RMB` release, the viewer returns to the normal CAD orbit controller
+- recommended first pass:
+  - reset back to upright CAD orbit on exit
+
+#### Scope:
+- separate fly orientation ownership from normal orbit ownership
+- keep the existing `PerspectiveCamera`
+- keep normal non-fly camera behavior orbit-based
+- define how fly-exit pose handoff should work
+
+#### Likely files:
+- `src/viewer/scene/CameraController.ts`
+- `src/viewer/scene/CameraController.test.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `src/app/viewerBridge.ts` only if one tiny seam is needed for debug or mode visibility
+
+#### Suggested implementation direction:
+1. introduce an explicit fly-orientation state for the current fly session or camera controller
+2. stop using `OrbitControls.update()` as the fly orientation authority while fly mode is active
+3. derive local `forward/right/up` from that fly orientation for look, roll, and translation
+4. on fly exit, convert the resulting fly pose back into the normal orbit controller state
+5. recommended first pass:
+   - restore upright CAD orbit on exit by resetting the orbit camera `up` axis to the repo's normal upright axis
+
+#### Locked implementation notes:
+- `src/viewer/scene/CameraController.ts`
+  - keep `OrbitControls` for:
+    - normal non-fly orbit/pan/zoom behavior
+    - camera transitions
+    - framing helpers
+  - do not let `OrbitControls.update()` remain the fly orientation authority during held-`RMB` fly mode
+  - recommended implementation shape:
+    - add explicit fly-session camera basis or quaternion state inside `CameraController`
+    - expose:
+      - `beginFlyMode()`
+      - `endFlyMode({ restoreUpright: true })`
+      - or equivalent narrow helpers
+    - while fly mode is active:
+      - `applyFlyLookDelta(...)`
+      - `applyFlyRollDelta(...)`
+      - `translateFly(...)`
+      - all operate from the dedicated fly orientation state
+    - when `update(dt)` runs:
+      - skip orbit-driven orientation updates while fly mode is active
+      - keep any unrelated transition logic inactive or explicitly disabled during fly mode
+- `src/viewer/Viewer.ts`
+  - `startFlySession(...)` should notify the camera controller to enter true fly mode
+  - `endFlySession(...)` should notify the camera controller to exit true fly mode and restore upright CAD orbit
+  - the existing fly keyboard and pointer ownership model can stay in place
+- exit handoff:
+  - preferred first pass:
+    - rebuild orbit state from the final fly camera position and view target
+    - then reset the camera up axis to upright `Y-up`
+  - keep the current view direction as much as possible while returning to an upright orbit frame
+
+#### Locked behavior rules:
+- fly mode uses the same `PerspectiveCamera`
+- true fly mode may roll and loop freely while active
+- normal CAD orbit remains orbit-based outside fly mode
+- on fly exit:
+  - restore upright `Y-up`
+  - do not leave the normal CAD orbit controller upside down
+- the user should not lose their location when exiting fly mode
+- the exit should feel like a mode handoff, not a full camera reset to a preset direction
+
+#### Locked anti-goals:
+- do not swap to another Three.js control helper
+- do not try to fake true fly mode by stacking more constraints on top of `OrbitControls`
+- do not reset the camera to a canned top/front/iso pose on fly exit
+- do not preserve an upside-down orbit state as the default first-pass exit behavior
+
+#### Seam read from current code:
+- `CameraController.update(dt)` currently always calls `this.controls.update(dt)`, which is the core reason orbit-style behavior still leaks into fly mode
+- `Viewer.startFlySession(...)` and `Viewer.endFlySession(...)` already define the fly-mode lifetime cleanly, so they are the right seam for entering and exiting a dedicated fly orientation mode
+- `CameraController.applyPose(...)` and `getPose()` already provide a pose vocabulary that can be reused for the handoff back into normal orbit state
+- `snapToDirection(...)` currently treats upright orbit as `Y-up`, which matches the desired exit restore behavior for this phase
+
+#### Verification focus:
+- while fly mode is active, repeated look/roll input is no longer re-limited by orbit-style control behavior
+- during true fly mode, the camera can loop and roll freely without `OrbitControls` pulling it back
+- on `RMB` release, the camera returns to upright `Y-up` orbit mode
+- after exit, normal wheel zoom, pan, and orbit behave like the existing CAD camera again
+- after exit, the camera remains near the same location and general viewing direction instead of jumping to a preset
+- a second fly entry starts from the current upright CAD orbit pose cleanly
+
+#### Locked recommendation:
+- keep:
+  - `PerspectiveCamera`
+- do not switch to:
+  - `TrackballControls`
+  - `FlyControls`
+  - `PointerLockControls`
+  - another Three.js camera helper
+- build the true fly mode as a dedicated internal mode on top of the existing viewer/camera architecture
+
+#### Suggested exit behavior:
+- preferred first pass:
+  - `Reset upright on exit`
+- meaning:
+  - while flying, the user can roll and loop freely
+  - once they release `RMB`, the camera returns to normal upright CAD orbit mode
+- repo note:
+  - the current viewer's normal upright orbit is `Y-up`, not a literal global `Z-up`
+
+#### Definition of done:
+- fly mode no longer depends on orbit-style orientation updates for its core motion
+- normal CAD orbit still works as before outside fly mode
+- fly exit cleanly returns the user to upright CAD orbit
+- the camera class remains `PerspectiveCamera`
+
 ### Verification Matrix
 
 Must verify by the end of `Camera-6.3.*`:
@@ -708,6 +880,8 @@ Must verify by the end of `Camera-6.3.*`:
 - the fly camera can remain upside down after roll input without auto-leveling
 - fly look can pass smoothly through straight up and straight down without freezing or snapping back
 - the camera can complete a loop and still move coherently afterward
+- fly mode can own free-flight orientation without `OrbitControls` forcing orbit-style limits back in
+- on fly exit, normal upright CAD orbit resumes cleanly
 - console capture still stands down while fly mode owns the keyboard
 - viewer shortcuts do not fire while fly mode is active
 - `RMB` release still exits fly mode and suppresses the same-interaction context menu cleanly
@@ -727,4 +901,5 @@ Likely focused tests across the ladder:
 - `Camera-6.3.4` owns plane-style roll controls and persistent rolled orientation
 - `Camera-6.3.5` owns temporary fly-mode wheel remapping from zoom to speed control
 - `Camera-6.3.6` owns free-flight pitch through vertical and loop support
+- `Camera-6.3.7` owns true fly-mode separation from CAD orbit plus the exit handoff back to upright orbit
 - deeper fly polish still stays intentionally deferred

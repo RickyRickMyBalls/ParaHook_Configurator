@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+17. 2026-04-14 15:44:58: Corrected the `View-Toolbar 5` umbrella note after the live toolbar-overflow investigation, replacing the older "scrollbar polish first" framing with the more accurate first slice: establish one real scroll owner for the whole `View` toolbar and clamp it against the model viewport bottom before any narrower scrollbar styling polish
+16. 2026-04-14 15:18:59: Tightened `View-Toolbar 5` so its first internal execution slice is explicitly the toolbar scrollbar pass, and updated this umbrella phase note to say later UI polish should start with overflow/scroll-surface clarity before widening into the broader density and copy cleanup
+15. 2026-04-14 15:16:14: Added standalone `Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`, extended the family ladder with `View-Toolbar 5`, and recast the later toolbar-shell refinement as one explicit polish phase so density, layout, and readability cleanup now have a real planning home instead of staying implicit inside earlier feature phases
+14. 2026-04-14 15:12:57: Cleaned up the `View-Toolbar` index by marking the audited shipped `View-Toolbar 1` projection seam complete, leaving `View-Toolbar 2` through `View-Toolbar 4` open, and adding one explicit completion-read summary plus direct standalone-doc references so the umbrella answers phase status more honestly at a glance
+13. 2026-04-14 15:09:55: Reorganized the `View-Toolbar` phase ladder into explicit checklist-style `## [ ]` phase sections so this family index matches the newer repo-standard umbrella format instead of burying each phase under one older generic `Phases` heading
+12. 2026-04-14 15:00:25: Added `Gizmo/Gizmo-Vision.md` and refreshed this index so the `View-Toolbar` family now points at one stable gizmo north-star doc for transform-manipulator quality and cross-family boundary rules instead of leaving gizmo direction scattered only across legacy carry-forward notes and narrower phase docs
 11. 2026-03-30 15:02: Added standalone `Future/` phase docs for `View-Toolbar 1` through `View-Toolbar 4`, renamed the old `5.0I-1` future doc into the new family naming, and rewired this index so the live `Future/` folder now matches the newer `View-Toolbar` phase ladder directly
 10. 2026-03-30 14:51: Renamed the live phase labels in this index from the older `[5.0I-*]` shorthand to the clearer `View-Toolbar 1` through `View-Toolbar 4` naming, while leaving the existing standalone doc filenames unchanged for now so the family can transition without a bigger path churn
 9. 2026-03-23 14:07: Added the first standalone future phase doc under `Future/` for `[5.0I-1] Shared View Command Dispatch And Projection Console Entry`, so the family now has an implementation-ready planning surface for the initial `Orthographic` versus `Perspective` console-plus-toolbar seam instead of only the umbrella phase summary
@@ -31,7 +37,8 @@ Use it to answer:
 - use `Control Families` to see the intended toolbar surface
 - use `Cross-Doc Boundaries` to keep camera, console, gizmo, and toolbar ownership clean
 - use `Missing Legacy Carry-Forward` to capture older viewport/view features that still need a modern home
-- use `Doc Split Follow-Ons` when the family grows enough for standalone future phase docs
+- use the `## [ ] View-Toolbar N ...` sections to scan the family phase ladder in the newer umbrella-index format
+- use `Current Completion Read` when you need the fast answer for which indexed phases are actually complete today
 
 ### Scope Note
 
@@ -92,12 +99,16 @@ Use this folder like this:
   - umbrella architecture direction
   - control-family summary
   - cross-doc ownership summary
+- `Gizmo/`
+  - stable gizmo direction docs
+  - `Gizmo-Vision.md`
 - `Future/`
   - standalone view-toolbar execution/planning docs
   - `View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`
   - `View_Toolbar_Phase View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls.md`
   - `View_Toolbar_Phase View-Toolbar 3 - Grid, Background, And Core View State.md`
   - `View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
+  - `View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 
@@ -107,6 +118,7 @@ Current roadmap home:
 - `[View-Toolbar 2] Projection Surface, ParaSelect, And Lens Controls`
 - `[View-Toolbar 3] Grid, Background, And Core View State`
 - `[View-Toolbar 4] Gizmo, Helpers, And Legacy Feel Follow-Ons`
+- `[View-Toolbar 5] UI Polish And Surface Clarity`
 
 ### Cross-Doc Boundaries
 
@@ -125,7 +137,8 @@ Canonical ownership should stay split like this:
   - layout/grouping of those controls
   - persisted view-state controls that belong to the active viewport/viewer
 - `Gizmo` planning
-  - orientation-gizmo parity and tuning details
+  - `Gizmo/Gizmo-Vision.md`
+  - transform-manipulator quality bar plus the split between transform handles and view helpers
 
 Important rule:
 - do not let the toolbar invent separate behavior paths for commands that should also exist in the console
@@ -373,14 +386,28 @@ Important rule:
 - not every `/17.0` control must come back exactly as-is
 - but projection, `FOV`, zoom/framing, real grid controls, background modes, and orientation-gizmo tuning are the strongest legacy features currently missing from `/20`
 
+### Current Completion Read
 
+Current family read:
+- `View-Toolbar 1` is complete
+- `View-Toolbar 2` is open
+- `View-Toolbar 3` is open
+- `View-Toolbar 4` is open
+- `View-Toolbar 5` is open
 
+Evidence for the completed read:
+- the standalone phase doc [`Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`](./Future/View_Toolbar_Phase%20View-Toolbar%201%20-%20Shared%20View%20Command%20Dispatch%20And%20Projection%20Console%20Entry.md) is marked `## [x]`
+- that standalone doc now reads as a current-code-audited record of the shipped projection seam rather than an unresolved future-only placeholder
+- shipped `5.0I-1` projection entries exist in [`docs/CHANGELOG.md`](../../../../CHANGELOG.md)
 
-### Phases
+### Phase Ladder
 
 This family should ship in the fewest safe cuts that still keep command ownership, projection changes, grid growth, and legacy helper carry-forward readable.
 
-#### [ ] View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry
+## [x] View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`](./Future/View_Toolbar_Phase%20View-Toolbar%201%20-%20Shared%20View%20Command%20Dispatch%20And%20Projection%20Console%20Entry.md)
 
 Goal:
 - make the first view-toolbar command family real through the shared toolbar-plus-console seam
@@ -401,7 +428,13 @@ Why first:
 - this is the smallest honest `View-Toolbar` vertical slice
 - it proves the command-structure rule before the family widens into sliders and richer settings
 
-#### [ ] View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls
+Completion read:
+- complete
+
+## [ ] View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls.md`](./Future/View_Toolbar_Phase%20View-Toolbar%202%20-%20Projection%20Surface,%20ParaSelect,%20And%20Lens%20Controls.md)
 
 Goal:
 - turn projection into a fuller user-facing view section instead of only a command leaf
@@ -415,7 +448,13 @@ This phase should:
 - decide whether `Zoom` belongs here as a visible framing control
 - define per-mode remembered values where useful
 
-#### [ ] View-Toolbar 3 - Grid, Background, And Core View State
+Completion read:
+- open
+
+## [ ] View-Toolbar 3 - Grid, Background, And Core View State
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 3 - Grid, Background, And Core View State.md`](./Future/View_Toolbar_Phase%20View-Toolbar%203%20-%20Grid,%20Background,%20And%20Core%20View%20State.md)
 
 Goal:
 - recover the broader everyday view-state controls that make the viewer feel intentionally configurable
@@ -428,7 +467,13 @@ This phase should:
 - decide the first return set for scene/environment variants
 - keep these controls reachable through console as honest view-state commands
 
-#### [ ] View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons
+Completion read:
+- open
+
+## [ ] View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`](./Future/View_Toolbar_Phase%20View-Toolbar%204%20-%20Gizmo,%20Helpers,%20And%20Legacy%20Feel%20Follow-Ons.md)
 
 Goal:
 - bring back the later helper-tuning and camera-feel controls without polluting the first essential view cuts
@@ -450,6 +495,28 @@ This phase should:
 Phase rule:
 - do not widen `View-Toolbar 1` with legacy helper tuning just because the old app had it
 - prove shared command ownership first, then widen the visible settings surface
+
+Completion read:
+- open
+
+## [ ] View-Toolbar 5 - UI Polish And Surface Clarity
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+
+Goal:
+- polish the `View` toolbar shell after the core feature families land so density, readability, spacing, and narrow-width behavior feel intentional
+
+This phase should:
+- start with the toolbar scroll-owner and model-viewport clamp slice
+- tighten section spacing and row density
+- improve active-state and current-value legibility
+- clean up overflow, wrapping, and compact-width behavior
+- align labels and copy so the toolbar reads coherently across its sections
+- keep polish downstream from the earlier feature-owner seams instead of hiding new behavior in a UI pass
+
+Completion read:
+- open
 
 ### Open Questions
 
