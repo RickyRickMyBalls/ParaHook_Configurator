@@ -117,6 +117,12 @@ const resolveStagedAdvanceIdentity = ({
     if (matchedCanonicalToken === 'RADIO') {
       return buildIdentity('Console', 'Root', 'Radio')
     }
+    if (matchedCanonicalToken === 'HIDE') {
+      return buildIdentity('Console', 'Root', 'Hide')
+    }
+    if (matchedCanonicalToken === 'UNHIDEALL') {
+      return buildIdentity('Console', 'Root', 'UnhideAll')
+    }
     if (matchedCanonicalToken === 'ZOOM') {
       return buildIdentity('Console', 'Root', 'Zoom')
     }
@@ -584,6 +590,10 @@ const resolveStagedChoiceIdentity = ({
         default:
           return null
       }
+    case 'referenceHideRoot':
+      return matchedCanonicalToken === 'BACK'
+        ? buildIdentity('Console', 'Root', 'Hide', 'Back')
+        : resolveSelectionIdentity(['Console', 'Root', 'Hide'], matchedLabel)
     case 'graphRoot':
     case 'graphSelected':
     case 'sketchDrawRoot':
@@ -874,6 +884,26 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'Content', 'Rename')
     case 'content.delete':
       return buildIdentity('Console', 'Content', 'Delete')
+    case 'content.visibility.hide':
+      return buildIdentity('Console', 'Content', 'Hide')
+    case 'content.visibility.show':
+      return buildIdentity('Console', 'Content', 'Show')
+    case 'reference.delete':
+      return buildIdentity('Console', 'References', 'Delete')
+    case 'reference.hide':
+      return activeScopeId === 'referenceHideRoot'
+        ? buildIdentity('Console', 'Root', 'Hide', 'Commit')
+        : activeScopeId === 'multiSelectSelected'
+        ? buildIdentity('Console', 'References', 'MultiSelect', 'Hide')
+        : buildIdentity('Console', 'References', 'Hide')
+    case 'reference.multiDelete':
+      return buildIdentity('Console', 'References', 'MultiSelect', 'Delete')
+    case 'reference.multiHide':
+      return buildIdentity('Console', 'References', 'MultiSelect', 'Hide')
+    case 'reference.multiUnhide':
+      return buildIdentity('Console', 'References', 'MultiSelect', 'Unhide')
+    case 'reference.unhideAll':
+      return buildIdentity('Console', 'Root', 'UnhideAll', 'Commit')
   }
   throw new Error(`Unhandled staged execute action identity: ${String(actionId)}`)
 }

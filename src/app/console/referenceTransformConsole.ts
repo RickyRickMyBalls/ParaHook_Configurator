@@ -120,6 +120,8 @@ export const buildReferenceConsoleWorkspaceTarget = (
     fallbackGraphDocumentId: null,
     referenceId,
     canLoadModel: referenceItem ? !referenceItem.isVisible && referenceItem.loadState !== 'error' : false,
+    canDelete: referenceItem?.sourceKind === 'imported',
+    canHide: referenceItem?.isVisible ?? false,
     referenceCategoryId: categoryId,
     referenceCategoryLabel: categoryLabel,
   }

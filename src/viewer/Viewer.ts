@@ -81,7 +81,13 @@ import {
 } from './geometrySketchOverlay'
 import { TransformGizmo } from './gizmo/TransformGizmo'
 import { AxisGizmo, type AxisGizmoTarget, type SnapDirection } from './overlay/AxisGizmo'
-import { CameraController, type CameraPose, type CameraPreset } from './scene/CameraController'
+import {
+  CameraController,
+  type CameraClipRange,
+  type CameraClipRangeUpdate,
+  type CameraPose,
+  type CameraPreset,
+} from './scene/CameraController'
 import { SketchPlanePickHelper } from './sketch/SketchPlanePickHelper'
 import { GeometrySketchDrawHelper } from './sketch/GeometrySketchDrawHelper'
 import { ReferenceTransformHistoryHelper } from './ReferenceTransformHistoryHelper'
@@ -423,6 +429,8 @@ export class Viewer {
   private onSketchPlanePickTransformCommit: (() => void) | null = null
   private onFlyMoveSpeedChange: ((speed: number) => void) | null = null
   private onFlyRollSpeedChange: ((speed: number) => void) | null = null
+  private onPerspectiveFovDegChange: ((fovDeg: number) => void) | null = null
+  private onCameraClipRangeChange: ((range: CameraClipRange) => void) | null = null
   private onFlyActivationModeChange: ((mode: FlyActivationMode) => void) | null = null
   private onFlyModeTypeChange: ((mode: FlyModeType) => void) | null = null
   private onCameraPoseChange: ((pose: CameraPose) => void) | null = null
@@ -1502,6 +1510,60 @@ export class Viewer {
     this.onFlyRollSpeedChange = handler
   }
 
+  public getPerspectiveFovDeg(): number {
+    return this.cameraController.getPerspectiveFovDeg()
+  }
+
+  public setPerspectiveFovDeg(fovDeg: number): void {
+    const previousFovDeg = this.cameraController.getPerspectiveFovDeg()
+    this.cameraController.setPerspectiveFovDeg(fovDeg)
+    const nextFovDeg = this.cameraController.getPerspectiveFovDeg()
+    if (Math.abs(nextFovDeg - previousFovDeg) <= 1e-8) {
+      return
+    }
+    this.onPerspectiveFovDegChange?.(nextFovDeg)
+  }
+
+  public setOnPerspectiveFovDegChange(handler: ((fovDeg: number) => void) | null): void {
+    this.onPerspectiveFovDegChange = handler
+  }
+
+  public getCameraClipRange(): CameraClipRange {
+    return this.cameraController.getCameraClipRange()
+  }
+
+  public setCameraClipRange(range: CameraClipRangeUpdate): void {
+    const previousRange = this.cameraController.getCameraClipRange()
+    this.cameraController.setCameraClipRange(range)
+    const nextRange = this.cameraController.getCameraClipRange()
+    if (
+      previousRange.mode === nextRange.mode &&
+      Math.abs(previousRange.clipStart - nextRange.clipStart) <= 1e-8 &&
+      Math.abs(previousRange.clipEnd - nextRange.clipEnd) <= 1e-8
+    ) {
+      return
+    }
+    this.onCameraClipRangeChange?.(nextRange)
+  }
+
+  public resetCameraClipRange(): void {
+    const previousRange = this.cameraController.getCameraClipRange()
+    this.cameraController.resetCameraClipRange()
+    const nextRange = this.cameraController.getCameraClipRange()
+    if (
+      previousRange.mode === nextRange.mode &&
+      Math.abs(previousRange.clipStart - nextRange.clipStart) <= 1e-8 &&
+      Math.abs(previousRange.clipEnd - nextRange.clipEnd) <= 1e-8
+    ) {
+      return
+    }
+    this.onCameraClipRangeChange?.(nextRange)
+  }
+
+  public setOnCameraClipRangeChange(handler: ((range: CameraClipRange) => void) | null): void {
+    this.onCameraClipRangeChange = handler
+  }
+
   public frameAll(): void {
     this.rememberCameraPose()
     this.cameraController.frameBox(this.getFrameAllBounds())
@@ -1594,7 +1656,30 @@ export class Viewer {
   }
 
   public applyCameraPose(pose: CameraPose): void {
+    const previousFovDeg = this.cameraController.getPerspectiveFovDeg()
+    const previousClipRange = this.cameraController.getCameraClipRange()
     this.cameraController.applyPose(pose)
+    const nextFovDeg = this.cameraController.getPerspectiveFovDeg()
+    const nextClipRange = this.cameraController.getCameraClipRange()
+    if (Math.abs(nextFovDeg - previousFovDeg) <= 1e-8) {
+      if (
+        previousClipRange.mode === nextClipRange.mode &&
+        Math.abs(previousClipRange.clipStart - nextClipRange.clipStart) <= 1e-8 &&
+        Math.abs(previousClipRange.clipEnd - nextClipRange.clipEnd) <= 1e-8
+      ) {
+        return
+      }
+    } else {
+      this.onPerspectiveFovDegChange?.(nextFovDeg)
+    }
+    if (
+      previousClipRange.mode === nextClipRange.mode &&
+      Math.abs(previousClipRange.clipStart - nextClipRange.clipStart) <= 1e-8 &&
+      Math.abs(previousClipRange.clipEnd - nextClipRange.clipEnd) <= 1e-8
+    ) {
+      return
+    }
+    this.onCameraClipRangeChange?.(nextClipRange)
   }
 
   public setOnCameraPoseChange(handler: ((pose: CameraPose) => void) | null): void {
@@ -1611,6 +1696,9 @@ export class Viewer {
       projectionMode: pose.projectionMode,
       perspectiveFovDeg: pose.perspectiveFovDeg,
       orthoViewHeight: pose.orthoViewHeight,
+      clipRangeMode: pose.clipRangeMode,
+      clipStart: pose.clipStart,
+      clipEnd: pose.clipEnd,
     })
   }
 
@@ -2020,7 +2108,13 @@ export class Viewer {
     return (
       left.position.distanceToSquared(right.position) <= 1e-8 &&
       left.target.distanceToSquared(right.target) <= 1e-8 &&
-      left.up.distanceToSquared(right.up) <= 1e-8
+      left.up.distanceToSquared(right.up) <= 1e-8 &&
+      left.projectionMode === right.projectionMode &&
+      Math.abs(left.perspectiveFovDeg - right.perspectiveFovDeg) <= 1e-8 &&
+      Math.abs(left.orthoViewHeight - right.orthoViewHeight) <= 1e-8 &&
+      left.clipRangeMode === right.clipRangeMode &&
+      Math.abs(left.clipStart - right.clipStart) <= 1e-8 &&
+      Math.abs(left.clipEnd - right.clipEnd) <= 1e-8
     )
   }
 
@@ -4811,7 +4905,10 @@ export class Viewer {
         !this.areCameraPosesEquivalent(this.lastEmittedCameraPose, pose) ||
         this.lastEmittedCameraPose.projectionMode !== pose.projectionMode ||
         Math.abs(this.lastEmittedCameraPose.perspectiveFovDeg - pose.perspectiveFovDeg) > 1e-8 ||
-        Math.abs(this.lastEmittedCameraPose.orthoViewHeight - pose.orthoViewHeight) > 1e-8
+        Math.abs(this.lastEmittedCameraPose.orthoViewHeight - pose.orthoViewHeight) > 1e-8 ||
+        this.lastEmittedCameraPose.clipRangeMode !== pose.clipRangeMode ||
+        Math.abs(this.lastEmittedCameraPose.clipStart - pose.clipStart) > 1e-8 ||
+        Math.abs(this.lastEmittedCameraPose.clipEnd - pose.clipEnd) > 1e-8
       ) {
         this.lastEmittedCameraPose = pose
         this.onCameraPoseChange({
@@ -4821,6 +4918,9 @@ export class Viewer {
           projectionMode: pose.projectionMode,
           perspectiveFovDeg: pose.perspectiveFovDeg,
           orthoViewHeight: pose.orthoViewHeight,
+          clipRangeMode: pose.clipRangeMode,
+          clipStart: pose.clipStart,
+          clipEnd: pose.clipEnd,
         })
       }
     }

@@ -35,8 +35,24 @@ export type BrowserContextMenuBuilderDeps = {
   startReferenceLoadBatchForCategory: (categoryId: ReferenceCategoryId) => void
   retryReferenceItemLoad: (referenceId: string) => void
   setReferenceItemVisibility: (referenceId: string, isVisible: boolean) => void
+  setPartVisibility: (partKey: string, isVisible: boolean) => void
   handleRetryImportedReferenceRow: (referenceId: string) => void
   handleRemoveImportedReferenceRow: (referenceId: string) => void
+  handleRemoveImportedReferenceRows?: (referenceIds: string[]) => void
+  getMultiSelectImportedReferenceDeleteAction?: (
+    row: BrowserRenderableRowVm,
+  ) => {
+    referenceIds: string[]
+    ariaLabel: string
+  } | null
+  getMultiSelectVisibilityAction?: (
+    row: BrowserRenderableRowVm,
+  ) => {
+    id: string
+    label: string
+    ariaLabel: string
+    onSelect: () => void
+  } | null
   setBrowserGraphBuildPolicy: (graphDocumentId: string, policy: BrowserBuildPolicy) => void
   setBrowserContentBuildPolicy: (rowId: string, policy: BrowserBuildPolicy) => void
   clearBrowserGraphBuildPolicy: (graphDocumentId: string) => void
@@ -61,6 +77,41 @@ export const buildBrowserContextMenuItems = (
     referenceBackedObjectRow?.contentOriginKind === 'imported-reference' ? referenceBackedObjectRow : null
   const sourceReferenceObjectRow =
     referenceBackedObjectRow?.contentOriginKind === 'source-reference' ? referenceBackedObjectRow : null
+  const multiSelectVisibilityAction = deps.getMultiSelectVisibilityAction?.(row) ?? null
+  const createContentVisibilityItem = (
+    targetRow: BrowserRenderableRowVm & {
+      rowKind: 'assembly' | 'component'
+      isVisible: boolean
+      visibilityPartKeys: string[]
+      visibilityReferenceIds?: string[]
+    },
+  ): BrowserContextMenuItem | null => {
+    const visibilityPartKeys = [...new Set(targetRow.visibilityPartKeys.filter((partKey) => partKey.length > 0))]
+    const visibilityReferenceIds = [
+      ...new Set((targetRow.visibilityReferenceIds ?? []).filter((referenceId) => referenceId.length > 0)),
+    ]
+    if (visibilityPartKeys.length === 0 && visibilityReferenceIds.length === 0) {
+      return null
+    }
+    const nextVisible = !targetRow.isVisible
+    const actionLabel = nextVisible ? 'Show' : 'Hide'
+    return {
+      id: `${targetRow.rowKind}:${targetRow.rowId}:visibility`,
+      label: actionLabel,
+      ariaLabel: `${actionLabel} ${targetRow.label}`,
+      onSelect: () => {
+        deps.closeMenus()
+        deps.selectRow(targetRow.rowId)
+        deps.appendBrowserEntry(`${actionLabel}: ${describeBrowserRow(targetRow)}`)
+        visibilityPartKeys.forEach((partKey) => {
+          deps.setPartVisibility(partKey, nextVisible)
+        })
+        visibilityReferenceIds.forEach((referenceId) => {
+          deps.setReferenceItemVisibility(referenceId, nextVisible)
+        })
+      },
+    }
+  }
   const items: BrowserContextMenuItem[] = row.actions.map((action) => ({
     id: `row-action:${action.actionId}`,
     label: action.label,
@@ -71,6 +122,12 @@ export const buildBrowserContextMenuItems = (
 
   if (row.rowKind === 'assembly') {
     const assemblyItems: BrowserContextMenuItem[] = []
+    const visibilityItem =
+      multiSelectVisibilityAction ??
+      (referenceContainerRootRow === null ? createContentVisibilityItem(row) : null)
+    if (visibilityItem !== null) {
+      assemblyItems.push(visibilityItem)
+    }
     if (referenceContainerRootRow === null && deps.renameContentOwner !== undefined) {
       const renameContentOwner = deps.renameContentOwner
       assemblyItems.push({
@@ -116,19 +173,20 @@ export const buildBrowserContextMenuItems = (
     }
   }
 
-  if (
-    row.rowKind === 'component' &&
-    referenceContainerCategoryRow === null &&
-    deps.renameContentOwner !== undefined &&
-    deps.canRenameComponent?.(row.rowId) === true
-  ) {
-    const renameContentOwner = deps.renameContentOwner
-    items.unshift({
-      id: `component:${row.rowId}:rename`,
-      label: 'Rename',
-      ariaLabel: `Rename ${row.label}`,
-      onSelect: () => renameContentOwner({ kind: 'component', componentId: row.rowId }),
-    })
+  if (row.rowKind === 'component' && referenceContainerCategoryRow === null) {
+    const visibilityItem = multiSelectVisibilityAction ?? createContentVisibilityItem(row)
+    if (visibilityItem !== null) {
+      items.unshift(visibilityItem)
+    }
+    if (deps.renameContentOwner !== undefined && deps.canRenameComponent?.(row.rowId) === true) {
+      const renameContentOwner = deps.renameContentOwner
+      items.unshift({
+        id: `component:${row.rowId}:rename`,
+        label: 'Rename',
+        ariaLabel: `Rename ${row.label}`,
+        onSelect: () => renameContentOwner({ kind: 'component', componentId: row.rowId }),
+      })
+    }
     if (deps.deleteContentOwner !== undefined && deps.canDeleteComponent?.(row.rowId) === true) {
       const deleteContentOwner = deps.deleteContentOwner
       items.push({
@@ -174,6 +232,13 @@ export const buildBrowserContextMenuItems = (
   }
 
   if (
+    multiSelectVisibilityAction !== null &&
+    (row.rowKind === 'reference-item' || row.rowKind === 'object')
+  ) {
+    items.unshift(multiSelectVisibilityAction)
+  }
+
+  if (
     (row.rowKind === 'reference-item' && !row.isVisible && row.state !== 'error') ||
     (referenceBackedObjectRow !== null &&
       !referenceBackedObjectRow.isVisible &&
@@ -214,6 +279,10 @@ export const buildBrowserContextMenuItems = (
     importedContentObjectRow !== null ||
     sourceReferenceObjectRow?.referenceSourceKind === 'imported'
   ) {
+    const groupedDeleteAction =
+      deps.handleRemoveImportedReferenceRows !== undefined
+        ? deps.getMultiSelectImportedReferenceDeleteAction?.(row) ?? null
+        : null
     const referenceId =
       row.rowKind === 'reference-item'
         ? row.referenceId
@@ -237,14 +306,23 @@ export const buildBrowserContextMenuItems = (
     }
     items.push({
       id:
-        importedContentObjectRow !== null
-          ? 'imported-object:remove'
-          : sourceReferenceObjectRow !== null
-            ? 'reference-object:remove'
-            : 'reference-item:remove',
+        groupedDeleteAction !== null
+          ? importedContentObjectRow !== null
+            ? 'imported-object:remove-multi'
+            : sourceReferenceObjectRow !== null
+              ? 'reference-object:remove-multi'
+              : 'reference-item:remove-multi'
+          : importedContentObjectRow !== null
+            ? 'imported-object:remove'
+            : sourceReferenceObjectRow !== null
+              ? 'reference-object:remove'
+              : 'reference-item:remove',
       label: 'Remove',
-      ariaLabel: `Remove ${row.label}`,
-      onSelect: () => deps.handleRemoveImportedReferenceRow(referenceId),
+      ariaLabel: groupedDeleteAction?.ariaLabel ?? `Remove ${row.label}`,
+      onSelect: () =>
+        groupedDeleteAction !== null
+          ? deps.handleRemoveImportedReferenceRows?.(groupedDeleteAction.referenceIds)
+          : deps.handleRemoveImportedReferenceRow(referenceId),
     })
   }
 

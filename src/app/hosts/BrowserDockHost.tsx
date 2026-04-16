@@ -44,6 +44,19 @@ const minBrowserFloatingHeight = 220
 const floatingEdgePadding = 12
 const browserPopoutBackground = 'rgb(11, 12, 16)'
 const browserSplitDividerSize = 10
+type BrowserFloatingResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+
+const browserFloatingResizeDirections: readonly BrowserFloatingResizeDirection[] = [
+  'n',
+  's',
+  'e',
+  'w',
+  'ne',
+  'nw',
+  'se',
+  'sw',
+] as const
+
 type BrowserFloatingFrame = {
   shellWidth: number
   shellHeight: number
@@ -179,6 +192,15 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         }
       | null
   } | null>(null)
+  const browserResizeRef = useRef<{
+    direction: BrowserFloatingResizeDirection
+    startPointerX: number
+    startPointerY: number
+    startX: number
+    startY: number
+    startWidth: number
+    startHeight: number
+  } | null>(null)
   const browserSplitDockPreviewRef = useRef<BrowserSplitDockPreview | null>(null)
   const browserNestedSplitPreviewRef = useRef<BrowserNestedSplitPreview | null>(null)
   const browserDragUserSelectRestoreRef = useRef<string | null>(null)
@@ -213,37 +235,37 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
         return false
       }
 
-      const dockedPanelStack = browserRoot.closest('.PanelStack.isConstrained')
-      if (dockedPanelStack instanceof HTMLElement) {
-        const maxScrollTop = Math.max(
-          0,
-          dockedPanelStack.scrollHeight - dockedPanelStack.clientHeight,
-        )
+      const browserBody = browserRoot.querySelector('.BrowserPanelBody')
+      if (browserBody instanceof HTMLElement) {
+        const maxScrollTop = Math.max(0, browserBody.scrollHeight - browserBody.clientHeight)
         if (maxScrollTop > 0) {
-          const nextScrollTop = Math.max(
-            0,
-            Math.min(maxScrollTop, dockedPanelStack.scrollTop + deltaY),
-          )
-          if (nextScrollTop !== dockedPanelStack.scrollTop) {
-            dockedPanelStack.scrollTop = nextScrollTop
+          const nextScrollTop = Math.max(0, Math.min(maxScrollTop, browserBody.scrollTop + deltaY))
+          if (nextScrollTop !== browserBody.scrollTop) {
+            browserBody.scrollTop = nextScrollTop
             return true
           }
         }
       }
 
-      const browserBody = browserRoot.querySelector('.BrowserPanelBody')
-      if (!(browserBody instanceof HTMLElement)) {
+      const dockedPanelStack = browserRoot.closest('.PanelStack.isConstrained')
+      if (!(dockedPanelStack instanceof HTMLElement)) {
         return false
       }
-      const maxScrollTop = Math.max(0, browserBody.scrollHeight - browserBody.clientHeight)
+      const maxScrollTop = Math.max(
+        0,
+        dockedPanelStack.scrollHeight - dockedPanelStack.clientHeight,
+      )
       if (maxScrollTop <= 0) {
         return false
       }
-      const nextScrollTop = Math.max(0, Math.min(maxScrollTop, browserBody.scrollTop + deltaY))
-      if (nextScrollTop === browserBody.scrollTop) {
+      const nextScrollTop = Math.max(
+        0,
+        Math.min(maxScrollTop, dockedPanelStack.scrollTop + deltaY),
+      )
+      if (nextScrollTop === dockedPanelStack.scrollTop) {
         return false
       }
-      browserBody.scrollTop = nextScrollTop
+      dockedPanelStack.scrollTop = nextScrollTop
       return true
     },
     [],
@@ -377,7 +399,10 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   )
 
   const clampBrowserFloatingPos = useCallback(
-    (pos: BrowserFloatingPosition): BrowserFloatingPosition => {
+    (
+      pos: BrowserFloatingPosition,
+      size: BrowserFloatingSize = browserFloatingSizeRef.current,
+    ): BrowserFloatingPosition => {
       const frame = getBrowserFloatingFrame()
       if (frame === null) {
         return {
@@ -389,11 +414,11 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
       const minY = frame.minY
       const maxX = Math.max(
         minX,
-        frame.shellWidth - browserFloatingSizeRef.current.width - floatingEdgePadding,
+        frame.shellWidth - size.width - floatingEdgePadding,
       )
       const maxY = Math.max(
         minY,
-        frame.maxY - browserFloatingSizeRef.current.height - floatingEdgePadding,
+        frame.maxY - size.height - floatingEdgePadding,
       )
       return {
         x: Math.min(maxX, Math.max(minX, Math.round(pos.x))),
@@ -722,6 +747,36 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     ],
   )
 
+  const handleBrowserResizeStart = useCallback(
+    (
+      direction: BrowserFloatingResizeDirection,
+      event: ReactPointerEvent<HTMLDivElement>,
+    ) => {
+      if (event.button !== 0 || !isBrowserFloating || isBrowserCollapsed) {
+        return
+      }
+      onActivateBrowserFloatingWindow()
+      browserResizeRef.current = {
+        direction,
+        startPointerX: event.clientX,
+        startPointerY: event.clientY,
+        startX: browserFloatingPosRef.current.x,
+        startY: browserFloatingPosRef.current.y,
+        startWidth: browserFloatingSizeRef.current.width,
+        startHeight: browserFloatingSizeRef.current.height,
+      }
+      lockBrowserDragTextSelection()
+      event.preventDefault()
+      event.stopPropagation()
+    },
+    [
+      isBrowserCollapsed,
+      isBrowserFloating,
+      lockBrowserDragTextSelection,
+      onActivateBrowserFloatingWindow,
+    ],
+  )
+
   const handleBrowserSplitDragStart = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || !isBrowserViewportSplit) {
@@ -878,39 +933,6 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
   ])
 
   useEffect(() => {
-    if (!isBrowserFloating || typeof ResizeObserver === 'undefined') {
-      return
-    }
-    const element = browserFloatingWindowRef.current
-    if (element === null) {
-      return
-    }
-
-    const syncBrowserFloatingHeight = () => {
-      const nextHeight = Math.round(element.getBoundingClientRect().height)
-      if (nextHeight <= 0) {
-        return
-      }
-      const nextSize = {
-        ...browserFloatingSizeRef.current,
-        height: nextHeight,
-      }
-      browserFloatingSizeRef.current = nextSize
-      setBrowserFloatingSize(nextSize)
-    }
-
-    syncBrowserFloatingHeight()
-    const observer = new ResizeObserver(() => {
-      syncBrowserFloatingHeight()
-    })
-    observer.observe(element)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [isBrowserFloating, setBrowserFloatingSize])
-
-  useEffect(() => {
     if (
       activeLeftDockPreviewPanelId === 'browser' &&
       !isBrowserFloating &&
@@ -1048,6 +1070,46 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
+      if (browserResizeRef.current !== null) {
+        const state = browserResizeRef.current
+        const deltaX = event.clientX - state.startPointerX
+        const deltaY = event.clientY - state.startPointerY
+        const movesWestEdge =
+          state.direction === 'w' || state.direction === 'nw' || state.direction === 'sw'
+        const movesEastEdge =
+          state.direction === 'e' || state.direction === 'ne' || state.direction === 'se'
+        const movesNorthEdge =
+          state.direction === 'n' || state.direction === 'ne' || state.direction === 'nw'
+        const movesSouthEdge =
+          state.direction === 's' || state.direction === 'se' || state.direction === 'sw'
+        const startRight = state.startX + state.startWidth
+        const startBottom = state.startY + state.startHeight
+        const rawWidth = movesWestEdge
+          ? state.startWidth - deltaX
+          : movesEastEdge
+            ? state.startWidth + deltaX
+            : state.startWidth
+        const rawHeight = movesNorthEdge
+          ? state.startHeight - deltaY
+          : movesSouthEdge
+            ? state.startHeight + deltaY
+            : state.startHeight
+        const nextSize = clampBrowserFloatingSize({
+          width: rawWidth,
+          height: rawHeight,
+        })
+        const rawPos = {
+          x: movesWestEdge ? startRight - nextSize.width : state.startX,
+          y: movesNorthEdge ? startBottom - nextSize.height : state.startY,
+        }
+        const nextPos = clampBrowserFloatingPos(rawPos, nextSize)
+        browserFloatingSizeRef.current = nextSize
+        browserFloatingPosRef.current = nextPos
+        setBrowserFloatingSize(nextSize)
+        setBrowserFloatingPos(nextPos)
+        return
+      }
+
       if (browserDragRef.current !== null) {
         if (
           !browserDragRef.current.hasExitedSourceRect &&
@@ -1097,6 +1159,12 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
     }
 
     const handlePointerUp = (event: PointerEvent) => {
+      if (browserResizeRef.current !== null) {
+        browserResizeRef.current = null
+        unlockBrowserDragTextSelection()
+        return
+      }
+
       const allowDockOrSplit =
         browserDragRef.current?.sourceKind === 'floating' ||
         browserDragRef.current?.hasExitedSourceRect === true
@@ -1241,6 +1309,7 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               left: `${browserFloatingPos.x}px`,
               top: `${browserFloatingPos.y}px`,
               width: `${browserFloatingSize.width}px`,
+              height: isBrowserCollapsed ? 'auto' : `${browserFloatingSize.height}px`,
             }}
           >
             <BrowserPanel
@@ -1256,6 +1325,16 @@ export function BrowserDockHost(props: BrowserDockHostProps) {
               onTitleBarPointerDown={handleBrowserDragStart}
               newEditorSpawnPosition={newEditorSpawnPosition}
             />
+            {!isBrowserCollapsed
+              ? browserFloatingResizeDirections.map((direction) => (
+                  <div
+                    key={direction}
+                    className={`BrowserFloatingResizeHandle BrowserFloatingResizeHandle--${direction}`}
+                    data-browser-floating-resize-handle={direction}
+                    onPointerDown={(event) => handleBrowserResizeStart(direction, event)}
+                  />
+                ))
+              : null}
           </div>
         </aside>
       ) : null}

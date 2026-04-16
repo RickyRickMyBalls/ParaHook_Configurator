@@ -74,4 +74,53 @@ describe('BrowserTreeRowShell', () => {
       }),
     )
   })
+
+  it('shows a content visibility eye for authored parent rows that only carry reference-backed visibility ids', async () => {
+    const onToggleContentVisibility = vi.fn()
+    const row: BrowserRenderableRowVm = {
+      rowId: 'assembly-1',
+      rowKind: 'assembly',
+      depth: 0,
+      treeGuides: [],
+      iconLabel: 'A',
+      label: 'Assembly 1',
+      meta: '',
+      isSelected: false,
+      isExpandable: true,
+      isExpanded: true,
+      actions: [],
+      isVisible: true,
+      visibilityPartKeys: [],
+      visibilityReferenceIds: ['reference-import:1'],
+      buildState: 'done',
+      buildStateLabel: 'Done',
+      rebuildGraphDocumentIds: [],
+    }
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <BrowserTreeRowShell
+          row={row}
+          onSelect={vi.fn()}
+          onContextMenu={vi.fn()}
+          onToggleContentVisibility={onToggleContentVisibility}
+        />,
+      )
+    })
+
+    const visibilityButton = container.querySelector(
+      'button[aria-label="Hide Assembly 1"]',
+    ) as HTMLButtonElement | null
+    expect(visibilityButton).not.toBeNull()
+
+    await act(async () => {
+      visibilityButton?.click()
+    })
+
+    expect(onToggleContentVisibility).toHaveBeenCalledWith(row)
+  })
 })

@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+23. 2026-04-15 00:41:42: Added `View-Toolbar 5 Phase 6 - Exact Browser Read-Only Subsection Spacing Parity` as a docs-only follow-on so the toolbar polish lane now holds one explicit future phase for matching the browser read-only `gap: 0` / `padding: 0` subsection stack more literally without claiming another shipped runtime pass
+22. 2026-04-15 00:36:10: Added and marked complete `View-Toolbar 5 Phase 5 - Browser Read-Only Subsection Density Match` after the runtime polish pass removed the extra top-level subsection gap and zeroed the section shell padding so the `View` toolbar stack now reads tighter in the same `gap: 0` / `padding: 0` direction as the browser read-only surface
 21. 2026-04-14 22:45:18: Landed a second `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` runtime attempt that restores explicit subsection `toggle` wake-up, coalesces toolbar-local height triggers through one queued sync, and keeps the browser-resize plus `.ViewportFrameBody` wake-up path from the first attempt, while leaving the phase at partial `~` status until live viewport behavior confirms the regressions are actually gone
 20. 2026-04-14 22:41:44: Reopened `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` to partial `~` status after live code review showed the first implementation fixed the browser-resize wake-up seam but regressed truthful content shrink by removing the explicit subsection `toggle` height sync too aggressively, leaving the toolbar dependent on observer-only panel updates and still visually stepping through repeated height recomputes during collapse
 19. 2026-04-14 22:33:56: Marked `View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap` complete after the runtime pass removed the redundant subsection `toggle` resync path, moved the open-state natural-height read onto the inner panel seam, and added reliable viewport-body plus browser-resize wake-ups so the toolbar now snaps to its final height and recomputes when the model viewport changes size
@@ -867,6 +869,82 @@ Current status after that second attempt:
 - subsection-close wake-up is restored
 - the phase stays `~` until live viewport behavior confirms the toolbar now truly shrinks to content and no longer reads as animated during collapse
 
+## [x] Phase 5 - Browser Read-Only Subsection Density Match
+
+Purpose:
+- tighten the vertical spacing between top-level `View` toolbar subsections so the stack reads more like the browser read-only surface and wastes less dead space between sections
+
+Owns:
+- removing the extra top-level subsection gap in `.ViewToolbarPanel`
+- zeroing the section shell padding in `.ViewSection`
+- removing the leftover collapsed-shell padding so closed sections sit in one tighter stack
+
+Does not own:
+- new section regrouping
+- new toolbar typography changes
+- inner control-row spacing rewrites
+- browser-tree behavior outside the `View` toolbar
+
+Why next:
+- after the earlier height-settle and regrouping passes, the biggest remaining density mismatch was now the loose dead space between top-level toolbar subsections
+- the browser read-only surface already proves the requested `gap: 0` / `padding: 0` direction, so this follow-on can stay one honest subsection-density cleanup instead of widening into a general redesign
+
+Current target seam:
+- `src/app/theme/surfaces/viewport-overlay.css`
+  - `.ViewToolbarPanel` still used `gap: 10px`
+  - `.ViewSection` still used `padding: 8px`
+  - `.ViewStyledSection:not([open])` still added extra collapsed-shell padding
+- `src/app/theme/surfaces/browser.css`
+  - the browser read-only rows already use the tighter `gap: 0` and `padding: 0` direction the user asked to match
+
+Likely runtime file:
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+Done when:
+- top-level `View` toolbar subsections no longer keep the earlier loose gap between each section shell
+- section shell padding is `0`, matching the tighter browser read-only direction
+- the current toolbar ordering, height behavior, and scroll ownership remain unchanged
+
+### Phase 5 Result
+
+- `viewport-overlay.css` now removes the extra top-level subsection gap by changing `.ViewToolbarPanel` to `gap: 0`.
+- `.ViewSection` now uses `padding: 0`, so each section summary and body sit directly on the section shell instead of carrying extra card padding.
+- `.ViewStyledSection:not([open])` now also uses `padding: 0`, leaving collapsed sections in the same tighter stack without the earlier extra collapsed-shell spacing.
+
+## [ ] Phase 6 - Exact Browser Read-Only Subsection Spacing Parity
+
+Purpose:
+- reserve one explicit follow-on if the `View` toolbar still needs a stricter visual match to the browser read-only subsection stack, especially around the exact zero-padding and zero-gap read between top-level sections
+
+Owns:
+- the exact browser-read-only-style `gap: 0` parity read for the top-level subsection stack
+- the exact browser-read-only-style `padding: 0` parity read for subsection shells
+- any final top-level collapsed-versus-open subsection stack cleanup needed to make that tighter spacing read intentional rather than incidental
+
+Does not own:
+- new section regrouping
+- inner row-spacing or control-density changes
+- typography changes
+- browser-tree behavior outside the toolbar spacing reference
+
+Why next:
+- `Phase 5` tightened the stack, but this family still benefits from one explicit future slot if later live review says the toolbar should match the browser read-only spacing even more literally
+- the user request is specific enough that it deserves its own named follow-on instead of being left implicit under the broader polish umbrella
+
+Current target seam:
+- `src/app/theme/surfaces/viewport-overlay.css`
+  - the top-level `View` toolbar subsection stack is the only intended runtime owner for this spacing follow-on
+- `src/app/theme/surfaces/browser.css`
+  - remains the reference-only spacing source for the requested read-only `gap: 0` / `padding: 0` direction
+
+Likely runtime file:
+- `src/app/theme/surfaces/viewport-overlay.css`
+
+Done when:
+- the visible space between top-level `View` toolbar subsections matches the intended browser read-only density direction more literally
+- subsection shell padding reads as a clear `0`-padding stack rather than a looser card stack
+- the pass stays styling-local and does not widen into toolbar behavior or ownership changes
+
 ### Implementation Spec
 
 This phase should:
@@ -876,6 +954,8 @@ This phase should:
 - follow with `Phase 2 - Transform Subsection Split And Gizmo Scope Cleanup`
 - follow with `Phase 3 - Snap Subsection Split`
 - follow with `Phase 4 - Immediate Section-Collapse Height Snap`
+- follow with `Phase 5 - Browser Read-Only Subsection Density Match`
+- follow with `Phase 6 - Exact Browser Read-Only Subsection Spacing Parity`
 - tighten section spacing and row rhythm so controls feel related instead of loosely stacked
 - standardize row heights, gaps, and value/control alignment where the feature phases left drift
 - improve active, selected, disabled, and current-value visual states so the toolbar is scannable at a glance

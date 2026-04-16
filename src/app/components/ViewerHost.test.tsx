@@ -650,6 +650,9 @@ describe('ViewerHost reference loading', () => {
       projectionMode: 'orthographic',
       perspectiveFovDeg: 42,
       orthoViewHeight: 18,
+      clipRangeMode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
     })
 
     container = document.createElement('div')
@@ -910,8 +913,8 @@ describe('ViewerHost reference loading', () => {
     const load = deferred<void>()
     viewerEnsureReferenceLoaded.mockReturnValue(load.promise)
     viewerGetReferencePartDescriptors.mockReturnValue([
-      { partKey: 'reference-part:shoe:shoe-1:0', label: 'Upper' },
-      { partKey: 'reference-part:shoe:shoe-1:1', label: 'Sole' },
+      { partKey: 'reference-part:shoe:shoe-1:0', label: 'Upper', sourceMeshIndex: 0 },
+      { partKey: 'reference-part:shoe:shoe-1:1', label: 'Sole', sourceMeshIndex: 1 },
     ])
 
     const { ViewerHost } = await import('./ViewerHost')
@@ -939,11 +942,13 @@ describe('ViewerHost reference loading', () => {
         rowId: 'reference-part-row:reference-part:shoe:shoe-1:0',
         partKey: 'reference-part:shoe:shoe-1:0',
         label: 'Upper',
+        sourceMeshIndex: 0,
       },
       {
         rowId: 'reference-part-row:reference-part:shoe:shoe-1:1',
         partKey: 'reference-part:shoe:shoe-1:1',
         label: 'Sole',
+        sourceMeshIndex: 1,
       },
     ])
   })

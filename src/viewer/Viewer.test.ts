@@ -2,10 +2,15 @@
 
 import type { Vector3 as ThreeVector3 } from 'three'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CameraClipRangeMode } from './scene/CameraController'
 
 const cameraControllerMocks = vi.hoisted(() => ({
   instances: [] as Array<{
     activeCamera: { position: { x: number; y: number; z: number }; up: { x: number; y: number; z: number } }
+    perspectiveFovDeg: number
+    clipRangeMode: CameraClipRangeMode
+    clipStart: number
+    clipEnd: number
     beginTemporaryOrbitDrag: ReturnType<typeof vi.fn>
     updateTemporaryOrbitDrag: ReturnType<typeof vi.fn>
     endTemporaryOrbitDrag: ReturnType<typeof vi.fn>
@@ -20,6 +25,9 @@ const cameraControllerMocks = vi.hoisted(() => ({
     translateFly: ReturnType<typeof vi.fn>
     zoomByWheelDelta: ReturnType<typeof vi.fn>
     update: ReturnType<typeof vi.fn>
+    setPerspectiveFovDeg: ReturnType<typeof vi.fn>
+    setCameraClipRange: ReturnType<typeof vi.fn>
+    resetCameraClipRange: ReturnType<typeof vi.fn>
   }>,
 }))
 
@@ -147,6 +155,23 @@ vi.mock('./scene/CameraController', async () => {
     public readonly update = vi.fn()
     public readonly animateToDirection = vi.fn()
     public readonly snapToDirection = vi.fn()
+    public perspectiveFovDeg = 45
+    public clipRangeMode: CameraClipRangeMode = 'auto'
+    public clipStart = 0.1
+    public clipEnd = 1000
+    public readonly setPerspectiveFovDeg = vi.fn((fovDeg: number) => {
+      this.perspectiveFovDeg = fovDeg
+    })
+    public readonly setCameraClipRange = vi.fn((range: { clipStart?: number; clipEnd?: number }) => {
+      this.clipRangeMode = 'authored'
+      this.clipStart = range.clipStart ?? this.clipStart
+      this.clipEnd = range.clipEnd ?? this.clipEnd
+    })
+    public readonly resetCameraClipRange = vi.fn(() => {
+      this.clipRangeMode = 'auto'
+      this.clipStart = 0.1
+      this.clipEnd = 1000
+    })
 
     public constructor(
       perspectiveCamera: { position: ThreeVector3; up: ThreeVector3 },
@@ -173,7 +198,17 @@ vi.mock('./scene/CameraController', async () => {
     public frameBox(): void {}
     public frameObject(): void {}
     public animateToPose(): void {}
-    public applyPose(): void {}
+    public applyPose(pose: {
+      perspectiveFovDeg: number
+      clipRangeMode: CameraClipRangeMode
+      clipStart: number
+      clipEnd: number
+    }): void {
+      this.perspectiveFovDeg = pose.perspectiveFovDeg
+      this.clipRangeMode = pose.clipRangeMode
+      this.clipStart = pose.clipStart
+      this.clipEnd = pose.clipEnd
+    }
     public setEnabled(): void {}
     public setLeftButtonOrbitEnabled(): void {}
     public setViewportSize(): void {}
@@ -186,6 +221,24 @@ vi.mock('./scene/CameraController', async () => {
         position: new Vector3(),
         target: new Vector3(),
         up: new Vector3(0, 1, 0),
+        projectionMode: 'perspective' as const,
+        perspectiveFovDeg: this.perspectiveFovDeg,
+        orthoViewHeight: 4,
+        clipRangeMode: this.clipRangeMode,
+        clipStart: this.clipStart,
+        clipEnd: this.clipEnd,
+      }
+    }
+
+    public getPerspectiveFovDeg(): number {
+      return this.perspectiveFovDeg
+    }
+
+    public getCameraClipRange() {
+      return {
+        mode: this.clipRangeMode,
+        clipStart: this.clipStart,
+        clipEnd: this.clipEnd,
       }
     }
 
@@ -1246,6 +1299,182 @@ describe('Viewer baseline replacement', () => {
         cancelable: true,
       }),
     )
+  })
+
+  it('exposes a dedicated perspective FOV viewer contract and notifies listeners on change', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    const handlePerspectiveFovChange = vi.fn()
+    const fovViewer = viewer as unknown as {
+      getPerspectiveFovDeg: () => number
+      setPerspectiveFovDeg: (fovDeg: number) => void
+      setOnPerspectiveFovDegChange: (handler: ((fovDeg: number) => void) | null) => void
+      applyCameraPose: (pose: {
+        position: ThreeVector3
+        target: ThreeVector3
+        up: ThreeVector3
+        projectionMode: 'perspective' | 'orthographic'
+        perspectiveFovDeg: number
+        orthoViewHeight: number
+      }) => void
+      getCameraPose: () => {
+        position: ThreeVector3
+        target: ThreeVector3
+        up: ThreeVector3
+        projectionMode: 'perspective' | 'orthographic'
+        perspectiveFovDeg: number
+        orthoViewHeight: number
+      }
+    }
+
+    expect(fovViewer.getPerspectiveFovDeg()).toBe(45)
+
+    fovViewer.setOnPerspectiveFovDegChange(handlePerspectiveFovChange)
+    fovViewer.setPerspectiveFovDeg(70)
+
+    expect(controller.setPerspectiveFovDeg).toHaveBeenCalledWith(70)
+    expect(fovViewer.getPerspectiveFovDeg()).toBe(70)
+    expect(handlePerspectiveFovChange).toHaveBeenCalledWith(70)
+
+    const currentPose = fovViewer.getCameraPose()
+    fovViewer.applyCameraPose({
+      ...currentPose,
+      perspectiveFovDeg: 55,
+    })
+
+    expect(fovViewer.getPerspectiveFovDeg()).toBe(55)
+    expect(handlePerspectiveFovChange).toHaveBeenLastCalledWith(55)
+  })
+
+  it('exposes a dedicated camera clip-range viewer contract and notifies listeners on change', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    const handleCameraClipRangeChange = vi.fn()
+    const clipViewer = viewer as unknown as {
+      getCameraClipRange: () => {
+        mode: CameraClipRangeMode
+        clipStart: number
+        clipEnd: number
+      }
+      setCameraClipRange: (range: { clipStart?: number; clipEnd?: number }) => void
+      resetCameraClipRange: () => void
+      setOnCameraClipRangeChange: (
+        handler:
+          | ((range: { mode: CameraClipRangeMode; clipStart: number; clipEnd: number }) => void)
+          | null,
+      ) => void
+      applyCameraPose: (pose: {
+        position: ThreeVector3
+        target: ThreeVector3
+        up: ThreeVector3
+        projectionMode: 'perspective' | 'orthographic'
+        perspectiveFovDeg: number
+        orthoViewHeight: number
+        clipRangeMode: CameraClipRangeMode
+        clipStart: number
+        clipEnd: number
+      }) => void
+      getCameraPose: () => {
+        position: ThreeVector3
+        target: ThreeVector3
+        up: ThreeVector3
+        projectionMode: 'perspective' | 'orthographic'
+        perspectiveFovDeg: number
+        orthoViewHeight: number
+        clipRangeMode: CameraClipRangeMode
+        clipStart: number
+        clipEnd: number
+      }
+    }
+
+    expect(clipViewer.getCameraClipRange()).toMatchObject({
+      mode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
+    })
+
+    clipViewer.setOnCameraClipRangeChange(handleCameraClipRangeChange)
+    clipViewer.setCameraClipRange({ clipStart: 0.5, clipEnd: 300 })
+
+    expect(controller.setCameraClipRange).toHaveBeenCalledWith({
+      clipStart: 0.5,
+      clipEnd: 300,
+    })
+    expect(clipViewer.getCameraClipRange()).toMatchObject({
+      mode: 'authored',
+      clipStart: 0.5,
+      clipEnd: 300,
+    })
+    expect(handleCameraClipRangeChange).toHaveBeenCalledWith({
+      mode: 'authored',
+      clipStart: 0.5,
+      clipEnd: 300,
+    })
+
+    const currentPose = clipViewer.getCameraPose()
+    clipViewer.applyCameraPose({
+      ...currentPose,
+      clipRangeMode: 'authored',
+      clipStart: 1.5,
+      clipEnd: 150,
+    })
+
+    expect(clipViewer.getCameraClipRange()).toMatchObject({
+      mode: 'authored',
+      clipStart: 1.5,
+      clipEnd: 150,
+    })
+    expect(handleCameraClipRangeChange).toHaveBeenLastCalledWith({
+      mode: 'authored',
+      clipStart: 1.5,
+      clipEnd: 150,
+    })
+
+    clipViewer.resetCameraClipRange()
+
+    expect(controller.resetCameraClipRange).toHaveBeenCalledTimes(1)
+    expect(clipViewer.getCameraClipRange()).toMatchObject({
+      mode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
+    })
+    expect(handleCameraClipRangeChange).toHaveBeenLastCalledWith({
+      mode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
+    })
   })
 
   it('preserves drone roll behavior while keeping free-cam upright and ignoring roll input', async () => {

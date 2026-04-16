@@ -5703,9 +5703,95 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some(
           (entry) =>
-            entry.text === 'Content > Choose next [New Component, Rename, SelectAll, Zoom, Back]',
+            entry.text === 'Content > Choose next [New Component, Hide, Rename, SelectAll, Zoom, Back]',
         ),
     ).toBe(true)
+  })
+
+  it('hides a selected assembly from the console selected-content session', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.setState((state) => ({
+        ...state,
+        projectContent: {
+          ...state.projectContent,
+          assembliesById: {
+            'assembly-root:project-file-1': {
+              assemblyId: 'assembly-root:project-file-1',
+              label: 'Assembly 1',
+              childRowIds: ['component-1'],
+            },
+          },
+          componentsById: {
+            'component-1': {
+              componentId: 'component-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              label: 'Component 1',
+              componentSourceKind: 'published-component',
+              resolutionState: 'resolved',
+              receiveId: null,
+              childObjectIds: ['object-1'],
+            },
+          },
+          objectsById: {
+            'object-1': {
+              objectId: 'object-1',
+              ownerGraphDocumentId: 'graph-document-1',
+              parentComponentId: 'component-1',
+              objectSourceKind: 'published-object',
+              sourceGraphDocumentId: 'graph-document-1',
+              sourceOutputEntryId: 'output-entry-1',
+              sourceNodeId: 'node-output-1',
+              slotId: 'slot-a',
+              label: 'Object 1',
+              resolutionState: 'resolved',
+            },
+          },
+        },
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          resolvedContentSelection: {
+            rootRowId: 'assembly-root:project-file-1',
+            rootKind: 'assembly',
+            partKeys: ['graph-document-1:slot-a'],
+            groupedRowIds: ['component-1', 'object-1'],
+          },
+        },
+      }))
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'assembly',
+        assemblyId: 'assembly-root:project-file-1',
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('hide')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(Object.values(useAppStore.getState().partsVisibility)).toContain(false)
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentAssemblySelected')
+    expect(useConsoleStore.getState().entries.some((entry) => entry.text === 'Hidden Assembly 1')).toBe(
+      true,
+    )
   })
 
   it('frames a selected assembly from assembly-local z > o', async () => {
@@ -5832,6 +5918,649 @@ describe('ConsoleDock', () => {
       useConsoleStore
         .getState()
         .entries.some((entry) => entry.text === 'Reference > Choose next [Load Model, Zoom, Back]'),
+    ).toBe(true)
+  })
+
+  it('executes delete from a selected imported reference-object console session', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-1',
+      })
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceId),
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) =>
+          entry.text === 'Reference > Choose next [ViewTransform, Move, Rotate, Scale, Delete, Zoom, Back]',
+        ),
+    ).toBe(true)
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Delete')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceId],
+    ).toBeUndefined()
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted shoe.glb'),
+    ).toBe(true)
+  })
+
+  it('deletes a selected imported reference object from the keyboard Delete key', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-2',
+      })
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceId),
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceId],
+    ).toBeUndefined()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted shoe.glb'),
+    ).toBe(true)
+  })
+
+  it('hides a selected imported reference object from the console Hide command', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-hide.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-hide',
+      })
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceId),
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map(
+        (choice) => choice.canonicalToken,
+      ),
+    ).toContain('HIDE')
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('H')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.visibilityById[importedReferenceId],
+    ).toBe(false)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Hidden shoe-hide.glb'),
+    ).toBe(true)
+  })
+
+  it('hides a selected imported reference object from Shift+H', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-shift.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-shift',
+      })
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceId),
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'H',
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.visibilityById[importedReferenceId],
+    ).toBe(false)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Hidden shoe-shift.glb'),
+    ).toBe(true)
+  })
+
+  it('hides a visible reference object from the root Hide command flow', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let visibleReferenceId = ''
+    let hiddenReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      visibleReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-root-hide.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-root-hide',
+      })
+      hiddenReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-already-hidden.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-already-hidden',
+      })
+      useAppStore.getState().setReferenceItemVisibility(hiddenReferenceId, false)
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Hide')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceHideRoot')
+    expect(
+      useConsoleStore
+        .getState()
+        .stagedNavigationSession?.validChoices.some((choice) =>
+          choice.label.includes('shoe-root-hide.glb'),
+        ),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .stagedNavigationSession?.validChoices.some((choice) =>
+          choice.label.includes('shoe-already-hidden.glb'),
+        ),
+    ).toBe(false)
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('1')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[visibleReferenceId]).toBe(false)
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId(visibleReferenceId),
+    })
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Hidden shoe-root-hide.glb'),
+    ).toBe(true)
+  })
+
+  it('restores hidden reference objects from the root Unhide All command flow', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let hiddenReferenceA = ''
+    let hiddenReferenceB = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      hiddenReferenceA = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-unhide-a.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-unhide-a',
+      })
+      hiddenReferenceB = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-unhide-b.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-unhide-b',
+      })
+      useAppStore.getState().setReferenceItemVisibility(hiddenReferenceA, false)
+      useAppStore.getState().setReferenceItemVisibility(hiddenReferenceB, false)
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Unhide All')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[hiddenReferenceA]).toBe(true)
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[hiddenReferenceB]).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text.startsWith('Restored ') && entry.text.includes('reference objects'),
+        ),
+    ).toBe(true)
+  })
+
+  it('restores hidden reference objects from Alt+H', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let hiddenReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      hiddenReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-alt-unhide.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-alt-unhide',
+      })
+      useAppStore.getState().setReferenceItemVisibility(hiddenReferenceId, false)
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'H',
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[hiddenReferenceId]).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.startsWith('Restored ')),
+    ).toBe(true)
+  })
+
+  it('reports a safe no-op when Unhide All is used with no hidden references', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      const appState = useAppStore.getState()
+      appState.referenceWorkspace.importedReferenceOrder.forEach((referenceId) => {
+        appState.setReferenceItemVisibility(referenceId, true)
+      })
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Unhide All')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'No hidden reference objects to restore'),
+    ).toBe(true)
+  })
+
+  it('executes delete from a selected imported reference multi-select console session', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceA = ''
+    let importedReferenceB = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceA = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-a.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-a',
+      })
+      importedReferenceB = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-b.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-b',
+      })
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceA),
+          },
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceB),
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map(
+        (choice) => choice.canonicalToken,
+      ),
+    ).toEqual(['DELETE', 'ZOOM', 'BACK'])
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Delete')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceA],
+    ).toBeUndefined()
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceB],
+    ).toBeUndefined()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Deleted 2 reference objects'),
+    ).toBe(true)
+  })
+
+  it('hides a selected imported reference multi-select from the console Hide command', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceA = ''
+    let importedReferenceB = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceA = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-hide-a.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-hide-a',
+      })
+      importedReferenceB = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-hide-b.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-hide-b',
+      })
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceA),
+          },
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceB),
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map(
+        (choice) => choice.canonicalToken,
+      ),
+    ).toContain('HIDE')
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Hide')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[importedReferenceA]).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[importedReferenceB]).toBe(false)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Hidden 2 reference objects'),
+    ).toBe(true)
+  })
+
+  it('restores a selected hidden imported reference multi-select from the console Unhide command', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceA = ''
+    let importedReferenceB = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceA = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-unhide-a.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-unhide-a',
+      })
+      importedReferenceB = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-unhide-b.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-unhide-b',
+      })
+      useAppStore.getState().setReferenceItemVisibility(importedReferenceA, false)
+      useAppStore.getState().setReferenceItemVisibility(importedReferenceB, false)
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceA),
+          },
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceB),
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('multiSelectSelected')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map(
+        (choice) => choice.canonicalToken,
+      ),
+    ).toContain('UNHIDE')
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Unhide')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[importedReferenceA]).toBe(true)
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[importedReferenceB]).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Restored 2 reference objects'),
+    ).toBe(true)
+  })
+
+  it('deletes a selected imported reference multi-select from the keyboard Delete key', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceA = ''
+    let importedReferenceB = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceA = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-c.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-c',
+      })
+      importedReferenceB = useAppStore.getState().addImportedReference({
+        fileName: 'shoe-d.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-d',
+      })
+      useAppStore.getState().setWorkspaceExplicitSelection({
+        selectedTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceA),
+          },
+          {
+            kind: 'object',
+            objectId: buildImportedReferenceRowId(importedReferenceB),
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceA],
+    ).toBeUndefined()
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceB],
+    ).toBeUndefined()
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Deleted 2 reference objects'),
     ).toBe(true)
   })
 

@@ -169,7 +169,10 @@ export const buildConsolePromptSessionText = (
 export const buildRootPromptText = (
   choices: string[] = [
     'Graph',
+    'Content',
     'References',
+    'Hide',
+    'Unhide All',
     'Workspace Modes',
     'Camera',
     'Radio',

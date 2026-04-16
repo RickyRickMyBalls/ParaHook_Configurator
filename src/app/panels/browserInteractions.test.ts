@@ -239,6 +239,7 @@ const createDeps = (
   workspaceSelectedTarget: null,
   workspaceExplicitSelectedTargets: [],
   workspaceSelectionAnchorTarget: null,
+  workspaceResolvedContentSelection: null,
   workspaceIntentDeps: {
     app: {} as never,
     spaghetti: {} as never,
@@ -257,6 +258,7 @@ const createDeps = (
   toggleReferenceWorkspaceExpanded: vi.fn(),
   toggleReferenceCategoryExpanded: vi.fn(),
   toggleReferenceItemVisibility: vi.fn(),
+  setReferenceItemVisibility: vi.fn(),
   toggleReferenceCategoryVisibility: vi.fn(),
   toggleSketchVisibility: vi.fn(),
   setPartVisibility: vi.fn(),
@@ -630,5 +632,223 @@ describe('createBrowserRowInteractionHandlers', () => {
     expect(deps.toggleSketchVisibility).toHaveBeenCalledWith(nextSketchRow.rowId)
     expect(deps.setPartVisibility).toHaveBeenCalledWith('part:object-1', false)
     expect(deps.setPartVisibility).toHaveBeenCalledWith('part:object-1:1', false)
+  })
+
+  it('dispatches authored parent visibility toggles through reference-backed child visibility when no part keys exist', () => {
+    const row: BrowserAssemblyTreeRowVm = {
+      ...assemblyRow('assembly-1', 'Assembly 1'),
+      visibilityPartKeys: [],
+      visibilityReferenceIds: ['reference-import:1', 'reference-import:2'],
+    }
+    const deps = createDeps()
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleToggleContentVisibility(row)
+
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(1, 'reference-import:1', false)
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(2, 'reference-import:2', false)
+    expect(deps.setPartVisibility).not.toHaveBeenCalled()
+  })
+
+  it('fans a reference-backed object row visibility click across selected reference-item targets', () => {
+    const firstRow: BrowserObjectTreeRowVm = {
+      ...objectRow('reference-item-row:shoe-1', 'Shoe 1'),
+      visibilityPartKeys: [],
+      highlightViewerKey: null,
+      contentOriginKind: 'imported-reference',
+      referenceId: 'shoe-1',
+      sourceGraphDocumentId: null,
+      sourceOutputEntryId: null,
+      slotId: null,
+      sourceNodeId: null,
+      authoringGraphDocumentId: null,
+      authoringNodeId: null,
+    }
+    const secondRow: BrowserObjectTreeRowVm = {
+      ...objectRow('reference-item-row:shoe-2', 'Shoe 2'),
+      visibilityPartKeys: [],
+      highlightViewerKey: null,
+      contentOriginKind: 'imported-reference',
+      referenceId: 'shoe-2',
+      sourceGraphDocumentId: null,
+      sourceOutputEntryId: null,
+      slotId: null,
+      sourceNodeId: null,
+      authoringGraphDocumentId: null,
+      authoringNodeId: null,
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [firstRow, secondRow],
+      },
+      workspaceSelectedTarget: {
+        kind: 'reference-item',
+        referenceId: 'shoe-1',
+      },
+      workspaceExplicitSelectedTargets: [
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe-1',
+        },
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe-2',
+        },
+      ],
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleToggleReferenceVisibility(firstRow)
+
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(1, 'shoe-1', false)
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(2, 'shoe-2', false)
+    expect(deps.appendBrowserEntry).toHaveBeenCalledWith('Selected browser visibility toggled')
+    expect(deps.toggleReferenceItemVisibility).not.toHaveBeenCalled()
+  })
+
+  it('uses grouped selected reference rows when explicit targets are narrower', () => {
+    const firstRow: BrowserReferenceItemTreeRowVm = {
+      ...referenceItemRow(),
+      isVisible: true,
+    }
+    const secondRow: BrowserReferenceItemTreeRowVm = {
+      ...referenceItemRow(),
+      rowId: 'reference-item-row:shoe-2',
+      label: 'Shoe 2',
+      referenceId: 'shoe-2',
+      assetPath: '/ReferenceModels/shoes/shoe-2.glb',
+      isVisible: true,
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [firstRow, secondRow],
+        contentRows: [],
+      },
+      workspaceSelectedTarget: {
+        kind: 'object',
+        objectId: 'reference-item-row:shoe-1',
+      },
+      workspaceExplicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'reference-item-row:shoe-1',
+        },
+      ],
+      workspaceResolvedContentSelection: {
+        rootRowId: 'multi-select',
+        rootKind: 'multi-select',
+        partKeys: [],
+        groupedRowIds: ['reference-item-row:shoe-1', 'reference-item-row:shoe-2'],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleToggleReferenceVisibility(firstRow)
+
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(1, 'shoe-1', false)
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(2, 'shoe-2', false)
+    expect(deps.appendBrowserEntry).toHaveBeenCalledWith('Selected browser visibility toggled')
+    expect(deps.toggleReferenceItemVisibility).not.toHaveBeenCalled()
+  })
+
+  it('fans an object row visibility click across the resolved selected content set', () => {
+    const firstRow = {
+      ...objectRow('object-1', 'Object 1', 'part:object-1'),
+    }
+    const secondRow = {
+      ...objectRow('object-2', 'Object 2', 'part:object-2'),
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [firstRow, secondRow],
+      },
+      workspaceSelectedTarget: {
+        kind: 'object',
+        objectId: 'object-1',
+      },
+      workspaceResolvedContentSelection: {
+        rootRowId: 'multi-select',
+        rootKind: 'multi-select',
+        partKeys: ['part:object-1', 'part:object-2'],
+        groupedRowIds: [],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleToggleContentVisibility(firstRow)
+
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(1, 'part:object-1', false)
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(2, 'part:object-2', false)
+    expect(deps.appendBrowserEntry).toHaveBeenCalledWith('Selected browser visibility toggled')
+  })
+
+  it('prefers explicit selected target roots for authored container visibility fan-out', () => {
+    const firstRow = assemblyRow('assembly-1', 'Assembly 1')
+    const secondRow = componentRow('component-2', 'Component 2')
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [firstRow, secondRow],
+      },
+      workspaceSelectedTarget: {
+        kind: 'assembly',
+        assemblyId: 'assembly-1',
+      },
+      workspaceExplicitSelectedTargets: [
+        {
+          kind: 'assembly',
+          assemblyId: 'assembly-1',
+        },
+        {
+          kind: 'component',
+          componentId: 'component-2',
+        },
+      ],
+      workspaceResolvedContentSelection: {
+        rootRowId: 'multi-select',
+        rootKind: 'multi-select',
+        partKeys: ['part:assembly-1', 'part:component-2'],
+        groupedRowIds: [],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleToggleContentVisibility(firstRow)
+
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(1, 'part:assembly-1', false)
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(2, 'part:component-2', false)
+  })
+
+  it('uses resolved selected content object keys when explicit targets are stale or narrower', () => {
+    const firstRow = {
+      ...objectRow('object-1', 'Object 1', 'part:object-1'),
+    }
+    const secondRow = {
+      ...objectRow('object-2', 'Object 2', 'part:object-2'),
+    }
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [firstRow, secondRow],
+      },
+      workspaceSelectedTarget: {
+        kind: 'object',
+        objectId: 'object-1',
+      },
+      workspaceResolvedContentSelection: {
+        rootRowId: 'multi-select',
+        rootKind: 'multi-select',
+        partKeys: ['part:object-1', 'part:object-2'],
+        groupedRowIds: [],
+      },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleToggleContentVisibility(firstRow)
+
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(1, 'part:object-1', false)
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(2, 'part:object-2', false)
   })
 })

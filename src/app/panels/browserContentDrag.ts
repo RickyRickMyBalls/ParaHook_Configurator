@@ -52,7 +52,9 @@ export type BrowserContentDragSession = {
   phase: BrowserContentDragPhase
   pointerId: number
   draggedRowId: string
+  draggedRowIds: string[]
   draggedTarget: BrowserDraggableTarget
+  draggedTargets: BrowserDraggableTarget[]
   startPointer: BrowserContentPointer
   currentPointer: BrowserContentPointer
   hoveredRowId: string | null
@@ -86,30 +88,44 @@ const createDropTargetKey = (dropTarget: ProjectContentOwnerDropTarget): string 
 
 export const createBrowserContentDragSession = (args: {
   draggedRowId: string
+  draggedRowIds?: string[]
   draggedTarget: BrowserDraggableTarget
+  draggedTargets?: BrowserDraggableTarget[]
   pointerId: number
   startPointer: BrowserContentPointer
-}): BrowserContentDragSession => ({
-  phase: 'pending',
-  pointerId: args.pointerId,
-  draggedRowId: args.draggedRowId,
-  draggedTarget: args.draggedTarget,
-  startPointer: args.startPointer,
-  currentPointer: args.startPointer,
-  hoveredRowId: null,
-  resolvedIntent: 'none',
-  displayIntent: 'none',
-  resolvedDropTarget: null,
-  previewParentRowId: null,
-  previewAnchorRowId: null,
-  previewInsertIndex: null,
-  previewDepth: null,
-  previewIsCollapsedOwner: false,
-  junctionDepth: null,
-  ownerSupportRowId: null,
-  laneCount: 0,
-  activeLaneIndex: null,
-})
+}): BrowserContentDragSession => {
+  const draggedRowIds =
+    args.draggedRowIds === undefined || args.draggedRowIds.length === 0
+      ? [args.draggedRowId]
+      : [...new Set(args.draggedRowIds)]
+  const draggedTargets =
+    args.draggedTargets === undefined || args.draggedTargets.length === 0
+      ? [args.draggedTarget]
+      : [...args.draggedTargets]
+  return {
+    phase: 'pending',
+    pointerId: args.pointerId,
+    draggedRowId: args.draggedRowId,
+    draggedRowIds,
+    draggedTarget: args.draggedTarget,
+    draggedTargets,
+    startPointer: args.startPointer,
+    currentPointer: args.startPointer,
+    hoveredRowId: null,
+    resolvedIntent: 'none',
+    displayIntent: 'none',
+    resolvedDropTarget: null,
+    previewParentRowId: null,
+    previewAnchorRowId: null,
+    previewInsertIndex: null,
+    previewDepth: null,
+    previewIsCollapsedOwner: false,
+    junctionDepth: null,
+    ownerSupportRowId: null,
+    laneCount: 0,
+    activeLaneIndex: null,
+  }
+}
 
 export const hasBrowserContentDragCrossedThreshold = (
   session: BrowserContentDragSession,
@@ -298,14 +314,14 @@ const buildOwnerLaneOptions = (args: {
   contentRows: BrowserContentPreviewRowVm[]
   hoveredRowId: string
   candidatePosition: ProjectContentDropPosition
-  draggedTarget: BrowserDraggableTarget
+  draggedTargets: BrowserDraggableTarget[]
   resolveRowTarget: (rowId: string) => ProjectContentOwnerTarget | null
   resolveDrop: BrowserContentDropResolver
 }): BrowserContentOwnerLane[] => {
   const {
     candidatePosition,
     contentRows,
-    draggedTarget,
+    draggedTargets,
     hoveredRowId,
     resolveDrop,
     resolveRowTarget,
@@ -327,13 +343,27 @@ const buildOwnerLaneOptions = (args: {
 
   const hoveredTarget = resolveRowTarget(hoveredRow.rowId)
   const lanesByKey = new Map<string, BrowserContentOwnerLane>()
+  const isGroupedDrag = draggedTargets.length > 1
+  const canResolveDropTarget = (dropTarget: ProjectContentOwnerDropTarget): boolean => {
+    if (draggedTargets.length === 0) {
+      return false
+    }
+    if (
+      isGroupedDrag &&
+      (dropTarget.position !== 'into' ||
+        (dropTarget.kind !== 'assembly' && dropTarget.kind !== 'component'))
+    ) {
+      return false
+    }
+    return draggedTargets.every((draggedTarget) => resolveDrop(draggedTarget, dropTarget).valid)
+  }
 
   if (hoveredTarget !== null) {
     const directDropTarget = {
       ...hoveredTarget,
       position: candidatePosition,
     } as ProjectContentOwnerDropTarget
-    if (resolveDrop(draggedTarget, directDropTarget).valid) {
+    if (canResolveDropTarget(directDropTarget)) {
       lanesByKey.set(createDropTargetKey(directDropTarget), {
         dropTarget: directDropTarget,
         ...buildLanePlacement({
@@ -347,6 +377,7 @@ const buildOwnerLaneOptions = (args: {
   }
 
   if (
+    !isGroupedDrag &&
     (candidatePosition === 'before' || candidatePosition === 'after') &&
     hoveredParentRowId !== null &&
     hoveredParentRowIndex >= 0
@@ -357,7 +388,7 @@ const buildOwnerLaneOptions = (args: {
         ...hoveredParentTarget,
         position: 'into',
       } as ProjectContentOwnerDropTarget
-      if (resolveDrop(draggedTarget, parentIntoDropTarget).valid) {
+      if (canResolveDropTarget(parentIntoDropTarget)) {
         lanesByKey.set(
           `${createDropTargetKey(parentIntoDropTarget)}:${candidatePosition}:${hoveredRow.rowId}`,
           {
@@ -421,7 +452,7 @@ export const resolveBrowserContentDragPreviewState = (args: {
       contentRows,
       hoveredRowId,
       candidatePosition,
-      draggedTarget: session.draggedTarget,
+      draggedTargets: session.draggedTargets,
       resolveRowTarget,
       resolveDrop,
     })

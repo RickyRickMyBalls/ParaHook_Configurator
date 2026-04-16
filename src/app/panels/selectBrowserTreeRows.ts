@@ -142,6 +142,7 @@ export type BrowserAssemblyTreeRowVm = BrowserTreeRowBaseVm &
   rowKind: 'assembly'
   isVisible: boolean
   visibilityPartKeys: string[]
+  visibilityReferenceIds?: string[]
   buildState: ProjectContentBuildState
   buildStateLabel: string
   rebuildGraphDocumentIds: string[]
@@ -180,6 +181,7 @@ export type BrowserComponentTreeRowVm = BrowserTreeRowBaseVm &
   parentComponentId?: string | null
   isVisible: boolean
   visibilityPartKeys: string[]
+  visibilityReferenceIds?: string[]
   buildState: ProjectContentBuildState
   buildStateLabel: string
   rebuildGraphDocumentIds: string[]
@@ -991,6 +993,7 @@ export const selectBrowserTreeRows = (options: {
       ],
       isVisible: componentRow.isVisible ?? false,
       visibilityPartKeys: componentRow.visibilityPartKeys ?? [],
+      visibilityReferenceIds: componentRow.visibilityReferenceIds ?? [],
       buildState: componentRow.buildState ?? 'done',
       buildStateLabel: componentRow.buildStateLabel ?? '',
       rebuildGraphDocumentIds: componentRow.rebuildGraphDocumentIds ?? [],
@@ -1107,6 +1110,7 @@ export const selectBrowserTreeRows = (options: {
             ],
       isVisible: assemblyRow.isVisible ?? false,
       visibilityPartKeys: assemblyRow.visibilityPartKeys ?? [],
+      visibilityReferenceIds: assemblyRow.visibilityReferenceIds ?? [],
       buildState: assemblyRow.buildState ?? 'done',
       buildStateLabel: assemblyRow.buildStateLabel ?? '',
       rebuildGraphDocumentIds: assemblyRow.rebuildGraphDocumentIds ?? [],

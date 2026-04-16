@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+30. 2026-04-15 11:51:13: Marked `View-Toolbar 7` complete again in this umbrella family after the shipped `Phase 7` regrouping pass added one collapsible lower `Projection & Framing` subsection to the `Camera` section, keeping the clip controls above it while preserving the existing command seams
+29. 2026-04-15 11:39:24: Prepped `View-Toolbar 7 / Phase 7` for implementation by grounding the regrouping pass in the current flat `CameraToolbar` stack, the existing toolbar-local nested-`details` height-sync seam, and the likely `viewport-overlay.css` styling touchpoints so the next slice can land as one small collapsible-subsection implementation
+28. 2026-04-15 11:27:04: Reopened `View-Toolbar 7` in this umbrella family and added a new `Phase 7` follow-on so the current `Camera` section can be regrouped more clearly, with the projection and framing actions moving into their own lower subsection beneath the clip controls without widening into broader camera-surface changes
+27. 2026-04-15 11:23:53: Marked `View-Toolbar 7` complete in this umbrella family after the final `Phase 6` proof-only closeout landed, confirming the shipped `Camera` section keeps `FOV` plus clip controls synchronized across live `Perspective` versus `Orthographic` transitions without widening into more camera-surface growth
+26. 2026-04-15 10:58:15: Prepped `View-Toolbar 7 / Phase 6` for implementation by tightening the final follow-on from a vague proof placeholder into one explicit projection-toggle sync closeout, so the next Codex-sized slice is tests-first and stops after the shipped `FOV` plus clip rows are proven stable across `Perspective` versus `Orthographic`
+25. 2026-04-15 08:05:18: Prepped `View-Toolbar 7` for implementation by refreshing this umbrella family so the camera-controls-enrichment lane now reads as smaller Codex-sized slices, with `FOV` contract and UI landing ahead of the deeper authored clip-range runtime and toolbar follow-ons
+24. 2026-04-15 08:02:21: Updated `View-Toolbar 7` in this umbrella family so the new camera-controls-enrichment lane now explicitly includes a visible `FOV` `ParaSlider` alongside `Clip Start` and `Clip End`, tightening the first internal slice around the practical missing lens rows
+23. 2026-04-15 07:53:39: Added standalone `Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`, extended the family ladder with `View-Toolbar 7`, and refreshed this umbrella family so the next camera-settings follow-on now has one explicit planning home for user-facing `Clip Start` and `Clip End` `ParaSlider` controls
 22. 2026-04-14 23:40:00: Added standalone `Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`, extended the family ladder with `View-Toolbar 6`, and refreshed this umbrella family so the next layout-focused follow-on now has one explicit planning home for retaining the current expanded stack as `Classic` while adding a new left-tabbed `Tabs` presentation
 21. 2026-04-14 23:15:36: Added `Fly-Mode/Future2/Fly-Mode_Phase Gen2-1 - Runtime Seams And Shared Input Contract.md` and refreshed this umbrella family so the newer fly-mode `Generation 2` lane now has its first standalone execution doc, making the seam-cleanup architecture pass discoverable beside the broader Gen2 index while keeping actual fly-runtime ownership with `Camera-Controls`
 20. 2026-04-14 23:06:03: Added `Fly-Mode/Fly-Mode-Gen2-Index.md` and refreshed this umbrella family so the `View-Toolbar` docs now expose one explicit phased execution surface for the fly-mode gravity-and-FPV lane beside the broader fly vision, keeping the runtime order for thrust, momentum, gamepad, and FPV-radio follow-ons discoverable without moving ownership out of `Camera-Controls`
@@ -121,6 +129,7 @@ Use this folder like this:
   - `View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
   - `View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
   - `View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`
+  - `View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 
@@ -132,6 +141,7 @@ Current roadmap home:
 - `[View-Toolbar 4] Gizmo, Helpers, And Legacy Feel Follow-Ons`
 - `[View-Toolbar 5] UI Polish And Surface Clarity`
 - `[View-Toolbar 6] Classic And Tabs Presentation Modes`
+- `[View-Toolbar 7] Camera Controls Enrichment`
 
 ### Cross-Doc Boundaries
 
@@ -296,6 +306,7 @@ Current likely carry-forward items that need a modern `View-Toolbar` home:
 - orthographic versus perspective as an obvious user control
 - perspective preset selection instead of one fixed perspective mode
 - user-facing `FOV` control
+- user-facing clip start / clip end control
 - clearer grid controls instead of hard-coded viewer defaults
 - separation between orientation gizmo settings and transform gizmo settings
 - `/15.1` orientation-gizmo parity/tuning options currently only captured in the older gizmo wishlist
@@ -316,6 +327,8 @@ This is the concrete feature list the current `/20` `View` toolbar still needs i
 - add `Rear`
 - add user-facing `Zoom` control
 - add user-facing `FOV` control
+- add user-facing `Clip Start`
+- add user-facing `Clip End`
 
 Projection rule:
 - `Orthographic` must be implemented as a real orthographic camera mode
@@ -413,6 +426,7 @@ Current family read:
 - `View-Toolbar 4` is open
 - `View-Toolbar 5` is open
 - `View-Toolbar 6` is open
+- `View-Toolbar 7` is complete
 
 Evidence for the completed read:
 - the standalone phase doc [`Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`](./Future/View_Toolbar_Phase%20View-Toolbar%201%20-%20Shared%20View%20Command%20Dispatch%20And%20Projection%20Console%20Entry.md) is marked `## [x]`
@@ -563,6 +577,37 @@ Phase rule:
 
 Completion read:
 - open
+
+## [x] View-Toolbar 7 - Camera Controls Enrichment
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+
+Goal:
+- extend the visible camera-settings surface with the next practical user-facing lens/framing controls after the earlier projection and `FOV` work
+
+This phase should:
+- add visible `ParaSlider` controls for:
+  - `FOV`
+  - `Clip Start`
+  - `Clip End`
+- keep those controls grouped with the rest of the camera/lens settings surface
+- route them through one honest shared camera-setting seam instead of toolbar-only local math
+- keep the values understandable and safe for ordinary viewport use
+
+Phase rule:
+- do not widen this first cut into a generic debug-camera dump
+- split the implementation into small slices:
+  - shared `FOV` contract
+  - visible `FOV` slider
+  - authored clip-range runtime contract
+  - visible `Clip Start` / `Clip End` sliders
+  - value-language and `Auto Clip` polish
+  - projection-toggle sync proof and stop
+  - camera subsection grouping and framing split
+
+Completion read:
+- complete
 
 ### Open Questions
 

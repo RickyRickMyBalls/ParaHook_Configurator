@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+135. 2026-04-16 00:25:02: Added `Browser-14 - Explicit Part Explosion Into Real Object Rows` as the next Browser parts-focused follow-on after the earlier part-row exposure and cleanup work, locking that explicit `Explode` on eligible reference-backed object rows should promote truthful child parts into sibling real object rows through a dedicated Browser-owned command instead of leaving those parts permanently trapped under one imported wrapper row
+134. 2026-04-15 23:05: Tightened the Browser `12.2.3` planning surface into implementation-prep shape after `12.2.2` landed, and refreshed the Browser family ladder so the `12.2` umbrella now reads Browser context-menu plus selected Console parity as already in place while keyboard hide parity remains the next queued slice
+133. 2026-04-15 22:34: Folded shipped `Browser-13 - Phase 1` and `Browser-13 - Phase 2` detail back into the `Browser-13 - UI Clean Polish And Cleanup` umbrella doc, corrected the Browser family ladder so `Phase 2` now reads as shipped, and marked that umbrella file as the canonical working planning surface for the Browser-13 cleanup ladder
+132. 2026-04-15 22:18: Tightened `Browser-12.2 - Explicit Assembly And Component Visibility Control` into implementation-prep shape and broke it into Codex-sized `12.2.1` through `12.2.3` follow-ons so authored container visibility work now starts from the live Browser eyeball baseline and proceeds one seam at a time through Browser context-menu parity, selected Console parity, and selected keyboard parity
+131. 2026-04-15 21:24: Added `Browser-12.2 - Explicit Assembly And Component Visibility Control` as the next Browser visibility follow-on after `Browser-12.1`, locking that users should be able to hide authored assemblies/components directly from Browser through the normal eyeball contract while keeping that action viewer-only instead of mixing it with collapse, delete, or build-policy semantics
+130. 2026-04-15 12:45: Renamed the first Browser `ReferenceObjects` future phase from `ReferenceObjects-1 - Cleanup And Polish` to `ReferenceObjects-1 - Phase 1` and tightened that subfamily so the next delivery is explicitly implementation-prep around `Console And Keyboard Delete Sync`
+129. 2026-04-15 12:08: Added a dedicated `Browser/ReferenceObjects/ReferenceObjects-Index.md` subfamily plus the first `ReferenceObjects-1 - Cleanup And Polish` future phase so Browser reference-object row cleanup now has a focused planning home separate from the broader Browser umbrella ladder
 128. 2026-03-29 14:32: Widened `Browser-12.1 - Real STEP Import Row Progress` from STEP-only wording to all imported object rows handled by the same loader path, so the next Browser progress phase now covers the whole imported-object loader family instead of one file-label-specific subset
 127. 2026-03-29 14:26: Added `Browser-12.1 - Real STEP Import Row Progress` as the next small Browser enrichment after shipped `Browser-12`, locking that imported STEP object rows should show true per-file loading progress in Browser through real loader/state plumbing instead of fake smoothing or aggregate-only cues
 126. 2026-03-29 10:17: Marked `Browser-12 - Part Row Surface Cleanup And Usability Polish` shipped after Browser part rows were moved onto the slim content-row surface treatment, the extra outer box around part labels was removed, and the Browser family index now points at the canonical shipped phase record instead of the duplicate future copy
@@ -153,6 +160,8 @@ Use this folder like this:
   - umbrella Browser architecture direction
   - live seam read
   - Browser-family summary
+- `ReferenceObjects/`
+  - dedicated Browser reference-object subfamily index plus future/shipped phase docs for narrower row cleanup and polish
 - `Future/`
   - standalone implementation-ready Browser phase docs
 - `Shipped/`
@@ -1544,14 +1553,17 @@ Move the Browser toward one cleaner structured hierarchy model so assemblies/com
     - stronger active-target highlight
     - clearer provisional `into` owner treatment
     - a more readable dragged-row ghost or placeholder
-  - shipped polish follow-on doc:
-    - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md`
-  - shipped polish result:
-    - dragged rows now render a lightweight drag ghost while the real tree stays unchanged until drop
-    - active provisional target feedback is stronger during drag, including a clearer collapsed-owner `into` treatment
-    - same-parent reorder and cross-parent reparent behavior from `8.4` is preserved
 
-#### Polish Questions / Decisions
+### [x] Browser-8.4.1 - Drag Preview And Hover Retarget Polish
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-8.4.1 - Drag Preview And Hover Retarget Polish.md`
+- shipped result:
+  - dragged rows now render a lightweight drag ghost while the real tree stays unchanged until drop
+  - active provisional target feedback is stronger during drag, including a clearer collapsed-owner `into` treatment
+  - same-parent reorder and cross-parent reparent behavior from `8.4` is preserved
+
+#### Questions / Decisions
 
 ##### [x] q5 - Should the drag-preview polish use a row ghost, a placeholder, or target-only emphasis?
 
@@ -1975,7 +1987,7 @@ Suggestion:
 - avoid fake duplicate-tree behavior
 - keep the source row stable and let one explicit drop indicator explain the current target
 
-### [ ] Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy
+## [ ] Browser-9 - Reference Tree Convergence Into Standard Content Hierarchy
 
 - treat this as the next structural Browser cleanup after the drag-reset ladder, not as another drag subphase
 - remove the special long-lived Browser tree species for:
@@ -2098,10 +2110,46 @@ Decision:
 - promote imported/reference-backed object rows into true content-owner behavior after `9.1` through `9.3` are stable
 - preserve current imported-object transform compatibility while the ownership seam converges
 
+### [x] Browser-9.1 - Reference Tree Convergence Baseline
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-9.1 - Reference Tree Convergence Baseline.md`
+- shipped result:
+  - `References` now reads as the assembly-like root in the converged Browser tree
+  - category/grouping rows now read through normal component language instead of special reference container species
+  - object rows keep imported-versus-generated origin styling while the underlying Browser structure converges onto one normal hierarchy vocabulary
+
+### [x] Browser-9.2 - Import Landing And Hierarchy Mapping
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-9.2 - Import Landing And Hierarchy Mapping.md`
+- shipped result:
+  - imported references now record a real Browser landing parent in the working hierarchy
+  - landed imported rows no longer stay stranded in the old `User References` branch
+  - imported rows now render under their resolved assembly/component owner while current `referenceId` transform compatibility stays adapter-backed
+
+### [x] Browser-9.3 - Part Row Exposure For Imported Objects
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`
+- shipped result:
+  - imported object rows can now expand to show truthful child `Part` rows when the loaded source structure contains real parts
+  - Browser keeps `Object` as the parent owner and treats part exposure as source-structure rendering instead of a new owner model
+  - current reference transform and generated-content part semantics remain out of scope for this narrower Browser pass
+
+### [x] Browser-9.4 - Imported Object Promotion To True Content Owners
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-9.4 - Imported Object Promotion To True Content Owners.md`
+- shipped result:
+  - landed imported/reference-backed object rows now participate as true Browser content owners
+  - mixed authored-plus-imported parent ordering now works through the shared content hierarchy
+  - current imported-object transform compatibility stayed adapter-backed while owner truth converged
+
 ### [x] Browser-9.5 - Library Object Rows And Direct Placement Drag
 
 - shipped phase doc:
-  - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-9.5 - Library Object Rows And Direct Placement Drag.md`
 - shipped result:
   - source/library rows like `XL.step` now render as structural Browser `Object` rows in `References`
   - the user can start the same visible drag interaction directly from those source/library object rows
@@ -2249,7 +2297,7 @@ Decision:
   - the live Browser tree no longer depends on rendered `references-root` / `reference-category` container species
   - current reference-backed selection, visibility, context-menu, and transform compatibility still adapt through the existing reference-target seams underneath
 
-### [ ] Browser-10 - Unified Project Object Tree Source Of Truth
+## [ ] Browser-10 - Unified Project Object Tree Source Of Truth
 
 - treat this as the next Browser architecture reset after the `9.x` convergence ladder, not as another narrow compatibility patch
 - locked direction:
@@ -2299,7 +2347,52 @@ Decision:
 - standalone phase doc:
   - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-10 - Unified Project Object Tree Source Of Truth.md`
 
-### [ ] Browser-11 - Real Project-Owned Reference Containers And Full Container Parity
+### [x] Browser-10.1 - Unified Reference-Backed Project Owner Records
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-10.1 - Unified Reference-Backed Project Owner Records.md`
+- shipped result:
+  - ordinary Browser reference-backed object identity now commits through the shared `imported-reference` owner seam
+  - the older `source-reference` / `place-source` drag-store branch is removed
+  - Browser-visible reference-backed objects now travel through one canonical owner-record model instead of shelf-only versus landed identity splits
+
+### [x] Browser-10.2 - Single Browser Tree Derivation
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-10.2 - Single Browser Tree Derivation.md`
+- shipped result:
+  - the live Browser now renders from one visible `contentRows` lane instead of split content/reference hierarchy lanes
+  - visible reference assembly/category/object rows now flow through the unified project-content row path
+  - `referenceWorkspaceTree` remains only as compatibility fallback plus metadata/runtime support instead of the live Browser hierarchy source
+
+### [x] Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-10.3 - Unified Owner Routing Across Browser Console And Viewer.md`
+- shipped result:
+  - converged Browser rows now commit selection through visible owner targets instead of translating back into legacy reference target kinds first
+  - viewer picks/highlighting now adapt from owner routing
+  - Console owner labels and owner-context routing now understand reference-backed owners directly while `reference-item` remains only as a narrow runtime adapter
+
+### [x] Browser-10.4 - Load And Runtime Traits On Normal Nodes
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-10.4 - Load And Runtime Traits On Normal Nodes.md`
+- shipped result:
+  - shared reference-backed runtime traits now resolve through one app-store seam for visibility, load state, error state, transform override, and part rows
+  - Browser item/content-row derivation, `ViewerHost`, and `ConsoleDock` now read the same runtime trait contract instead of scattering raw `referenceWorkspace` lookups
+  - Browser membership stays independent from viewer load state while current runtime and transform adapters remain intact
+
+### [x] Browser-10.5 - Compatibility Seam Retirement
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-10.5 - Compatibility Seam Retirement.md`
+- shipped result:
+  - live Browser and Console reference selection now stays on normal `assembly`, `component`, and `object` owner targets
+  - the older `references-root`, `reference-category`, and broad public `reference-item` contract is reduced to compatibility fallback behavior
+  - Browser no longer depends on the dual-tree mental model for normal live interaction
+
+## [ ] Browser-11 - Real Project-Owned Reference Containers And Full Container Parity
 
 - next Browser follow-on after `Browser-10`
 - locked direction:
@@ -2393,7 +2486,52 @@ Decision:
   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.4 - Adapted Container Seam Retirement.md`
   - `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
 
-### [x] Browser-12 - Part Row Surface Cleanup And Usability Polish
+### [x] Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-11.1 - Promote Visible Reference Containers Into Real Owner Records.md`
+- shipped result:
+  - visible `References` and grouping parents now resolve through real effective assembly/component owner records
+  - Browser/store selection helpers no longer treat those visible containers as ad hoc synthetic fallbacks
+  - the first Browser-11 pass turns visible reference grouping parents into honest owners before later drag parity and seam retirement
+
+### [x] Browser-11.2 - Container Drag And Reparent Parity
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-11.2 - Container Drag And Reparent Parity.md`
+- shipped result:
+  - promoted reference category containers now enter Browser drag as normal `component` owner targets
+  - those rows can reparent into and back out of authored assemblies through the shared move path
+  - Browser no longer keeps a separate non-draggable rule just because the container came from the old reference hierarchy
+
+### [x] Browser-11.3 - Grouping Label Survival And Tree Simplification
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-11.3 - Grouping Label Survival And Tree Simplification.md`
+- shipped result:
+  - `References`, `Footpads`, `Shoes`, and `Premade Foothooks` remain the surviving first-pass real grouping structure
+  - the live Browser no longer renders `User References` as a separate grouping parent
+  - imported rows that used to live under that historical label now flatten directly under the surviving `References` assembly
+
+### [x] Browser-11.4 - Adapted Container Seam Retirement
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-11.4 - Adapted Container Seam Retirement.md`
+- shipped result:
+  - the remaining Browser-facing `referenceContainerKind`, `references-root`, and `reference-category` interaction/context-menu branches are retired for surviving root/category rows
+  - live owner targeting, category drag, expand, visibility, and `Load All` behavior now resolve from ordinary assembly/component owner rows
+  - only narrow object-level `referenceId` adapters remain where runtime/reference behavior still honestly needs them
+
+### [x] Browser-11.5 - Cross-Parent First-Drop Ordering Parity
+
+- shipped phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Shipped/Browser_Phase Browser-11.5 - Cross-Parent First-Drop Ordering Parity.md`
+- shipped result:
+  - hovering a concrete child slot under `Assembly 1` or another legal owner now lets that first cross-parent drop land directly beside the visible anchor row
+  - Browser no longer requires `drop into owner first, then reorder` when the intended child slot is already visible
+  - plain owner-row hover still stays honest as `into`, so this remains a parity/polish pass instead of a second drag grammar
+
+## [~] Browser-12 - Part Row Surface Cleanup And Usability Polish
 
 - next Browser follow-on after the shipped `Browser-11` ladder
 - locked direction:
@@ -2499,3 +2637,396 @@ Decision:
   - keep `Browser-12.1` narrowly about real imported-object row progress for this loader family
 - standalone phase doc:
   - `docs/Human-Plans/Architecture/Browser/Future/Browser_Phase Browser-12.1 - Real STEP Import Row Progress.md`
+
+### [ ] Browser-12.2 - Explicit Assembly And Component Visibility Control
+
+- next Browser visibility follow-on after `Browser-12.1` and before the broader `Browser-13` UI cleanup pass
+- locked direction:
+  - users should be able to hide authored `Assembly` and `Component` rows directly from Browser without dropping down to one-object-at-a-time visibility management
+  - parent hide should stay viewer visibility only:
+    it must not act like collapse, delete, unload, or build-policy `off`
+  - hiding an assembly or component should flow through the same underlying descendant visibility membership the Browser already uses for row truth instead of inventing a second hidden-container state
+  - hidden rows should remain present in Browser so the user can still find the structure and turn visibility back on
+- why this exists:
+  - the live Browser already shows authored container eyeballs, but the authored-container visibility story is still incomplete across the rest of the Browser command surfaces
+  - users should not need to rely only on the tiny row eyeball when the Browser already has right-click, selected console, and keyboard entry points for adjacent commands
+  - this deserves a focused Browser-owned planning surface before the wider `Browser-13` polish work so authored container visibility parity does not get buried inside generic UI cleanup
+- implementation-prep read:
+  - direct Browser eyeball toggling for authored assembly/component rows is already live through the shared content visibility seam
+  - `Browser-12.2` is now the authored-container visibility parity umbrella, not a speculative “invent the eyeball” phase
+  - `Browser-12.2.1` is the next queued Browser-local follow-on
+  - `Browser-12.2.2` and `Browser-12.2.3` are the next command-surface follow-ons after Browser-local parity lands
+- current live seam read:
+  - `browserTreeRowPresenter.tsx` already shows the Browser visibility eye for authored `Assembly` / `Component` rows that carry aggregated `visibilityPartKeys`
+  - `browserInteractions.ts` already fans authored container toggles through descendant part visibility by calling `setPartVisibility(...)` for each aggregated part key
+  - `browserContextMenu.ts` still appears to lack explicit authored container `Hide` / `Show` actions, so Browser right-click parity is the first clear Browser-local gap
+  - `useAppStore.ts` console target shapes for authored `assembly` / `component` rows do not yet carry `canHide` / `canShow` style metadata the way reference targets already carry visibility eligibility
+  - `stagedNavigation.ts` content selected sessions expose rename/delete/zoom and object transform actions, but not authored container visibility choices
+  - `inputRouting.ts` currently routes visibility shortcuts only for reference-object hide and recovery, not for selected authored containers
+- Questions / Decisions:
+
+  #### [ ] q1 - Should assembly/component hide stay viewer-only instead of changing build or ownership state?
+
+  Question:
+  - when a user hides an authored assembly or component from Browser, should that action affect only viewport visibility and leave build policy, content ownership, and hierarchy placement unchanged?
+
+  Suggestion:
+  - yes
+  - keep hide as visibility-only
+
+  #### [ ] q2 - Should hiding a parent row fan out to its visible descendant geometry instead of requiring manual child-by-child hide?
+
+  Question:
+  - when the user hides an `Assembly` or `Component` row, should Browser apply that visibility change across the descendant object/part visibility membership represented by that row rather than making the user hide every child separately?
+
+  Suggestion:
+  - yes
+  - parent hide should act as the natural aggregate visibility control
+
+  #### [ ] q3 - Should hidden assemblies/components remain visible in Browser so users can restore them directly?
+
+  Question:
+  - after an assembly or component is hidden, should its row stay in Browser with a hidden-state affordance so the user can unhide it in place instead of losing the hierarchy entry entirely?
+
+  Suggestion:
+  - yes
+  - keep the Browser tree stable and use the row surface to show hidden state
+
+  #### [ ] q4 - Should this phase stay narrower than layers, isolate/solo, or visibility presets?
+
+  Question:
+  - should `Browser-12.2` stay focused on direct authored assembly/component hide/show behavior in Browser, leaving later layer-style isolate, solo, visibility presets, or broader scene-management commands to separate workspaces/phases?
+
+  Suggestion:
+  - yes
+  - keep this first cut narrowly about explicit Browser-owned container hide control
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-12.2 - Explicit Assembly And Component Visibility Control.md`
+
+### [ ] Browser-12.2.1 - Browser Context Menu Hide And Show Parity For Authored Containers
+
+- first Codex-sized `Browser-12.2` slice
+- locked direction:
+  - keep the existing authored container eyeball as the baseline
+  - add matching Browser right-click `Hide` / `Show` entry for authored `Assembly` and `Component` rows through the same visibility seam
+  - do not widen this slice into console or keyboard command work
+- why this exists:
+  - the authored container visibility behavior is already reachable through the row eyeball, but Browser right-click still appears to lag that capability
+  - Browser-local parity is the smallest user-facing follow-on because it stays inside the panel/controller/menu seam
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-12.2.1 - Browser Context Menu Hide And Show Parity For Authored Containers.md`
+
+### [ ] Browser-12.2.2 - Selected Authored Container Console Hide And Show Parity
+
+- second Codex-sized `Browser-12.2` slice after Browser-local parity
+- locked direction:
+  - when an authored `Assembly` or `Component` row is selected, Console should expose matching `Hide` or `Show` actions instead of leaving visibility Browser-only
+  - keep this slice on the selected-target console session only
+  - do not widen yet into root command-pick flows
+- why this exists:
+  - selected authored content sessions already expose rename/delete/zoom actions, so visibility is the next obvious parity gap
+  - this slice stays bounded to target metadata plus selected-session choices instead of reopening broader command navigation
+- implementation read:
+  - this selected-target Console parity is already in place and now acts as the proven eligibility/action seam the keyboard slice should reuse
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-12.2.2 - Selected Authored Container Console Hide And Show Parity.md`
+
+### [ ] Browser-12.2.3 - Selected Authored Container Keyboard Hide Parity
+
+- third Codex-sized `Browser-12.2` slice and the next queued authored-container visibility follow-on
+- locked direction:
+  - let selected authored containers enter the same hide path from keyboard without inventing a second visibility authority
+  - keep this slice selected-target only:
+    no root visibility picker and no global authored `Unhide All`
+  - prefer the same eligibility truth already proven by the selected console slice
+- why this exists:
+  - Browser context-menu and selected Console parity are already explicit, so keyboard routing is now the remaining first-ladder command-surface gap
+  - keeping the slice selected-target-only avoids inventing a larger authored-content recovery model in the same pass
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-12.2.3 - Selected Authored Container Keyboard Hide Parity.md`
+
+## [ ] Browser-13 - UI Clean Polish And Cleanup
+
+- next Browser UI follow-on after the current structure and progress cleanup ladder
+- locked direction:
+  - treat this as a Browser presentation polish and cleanup pass, not another owner-model or hierarchy rewrite
+  - clean up leftover one-off Browser row surfaces so the panel reads as one coherent UI system
+  - tighten spacing, alignment, icon/action rhythm, and state-surface consistency across row families
+  - preserve current Browser truth and interaction behavior while reducing visual noise and stale styling seams
+- why this exists:
+  - Browser architecture and tree truth have improved a lot across the `8` through `12.1` ladder, but the UI still carries some uneven polish from phases that landed at different times
+  - row families, badges, progress bars, hover/action affordances, and indentation cues are more honest than before, but they do not always feel visually unified
+  - a dedicated Browser UI cleanup pass will make the panel feel more intentional without reopening the deeper model work that already landed
+- first-pass direction:
+  - audit the Browser row families and identify presentation-only inconsistencies that can be cleaned up safely
+  - unify spacing, icon sizing/alignment, label rhythm, pill placement, and row-state treatment where the UI still feels stitched together
+  - remove dead or redundant Browser-specific surface/CSS branches that no longer match the current row model
+  - keep the pass narrow: polish and cleanup only, with no new hierarchy semantics hidden inside the styling work
+  - use the Browser-13 umbrella doc as the canonical working planning surface for this ladder, while the split `13.x` docs remain narrower detail and history records
+- Questions / Decisions:
+
+  #### [ ] q1 - Should `Browser-13` stay strictly presentation-only instead of reopening Browser ownership or drag behavior?
+
+  Question:
+  - should this phase stay limited to Browser UI polish and cleanup, leaving any new hierarchy, ownership, or drag behavior changes to separate future phases?
+
+  Suggestion:
+  - yes
+  - keep `Browser-13` safe, visual, and cleanup-focused
+
+  #### [ ] q2 - Should the cleanup prioritize consistency across all row families over special-case styling for individual row types?
+
+  Question:
+  - when Browser rows differ today, should `Browser-13` prefer one shared visual system unless a row family truly needs a distinct surface for meaning?
+
+  Suggestion:
+  - yes
+  - reduce one-off styling and let truth come from consistent row language first
+
+  #### [ ] q3 - Should stale CSS and presentation seams be deleted as part of this phase when they no longer match the current Browser model?
+
+  Question:
+  - if `Browser-13` finds dead or obsolete Browser UI branches left behind by earlier phases, should the cleanup remove them instead of only layering more polish on top?
+
+  Suggestion:
+  - yes
+  - the cleanup should leave the Browser UI codepath simpler, not just prettier
+
+  #### [ ] q4 - Should this phase include small usability polish to hover/action visibility as long as the behavior itself does not change?
+
+  Question:
+  - should `Browser-13` allow small non-behavioral usability polish such as clearer hover affordances or more consistent action visibility, provided the underlying Browser actions and rules stay the same?
+
+  Suggestion:
+  - yes
+  - allow minor clarity improvements, but do not smuggle new interaction rules into the polish pass
+- canonical Browser-13 working doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`
+
+### [x] Browser-13 - Phase 1
+
+- first concrete Browser-13 UI cleanup phase
+- locked direction:
+  - Browser content must stay contained within the Browser panel instead of running off the bottom of the app when many objects are present
+  - when the Browser tree is taller than the available panel height, the Browser should expose a vertical scrollbar so users can scroll through the full object list
+  - keep the Browser header/chrome stable while the object list area becomes the scrollable region
+  - treat this as overflow containment and usability cleanup, not as a hierarchy or row-behavior change
+- why this exists:
+  - large object lists currently push Browser rows off the bottom of the visible app instead of remaining inside a bounded panel
+  - users cannot reliably reach all Browser rows when the panel content exceeds the available viewport height
+  - the Browser needs a normal scroll container so long projects remain usable
+- first-pass direction:
+  - identify the correct Browser panel body/list container that should own vertical overflow
+  - clamp the Browser content area to the available panel height
+  - enable vertical scrolling for the tree/list region when content overflows
+  - keep row rendering, hierarchy truth, and Browser actions unchanged while fixing the overflow behavior
+- implementation prep:
+  - `BrowserPanel.tsx` already renders `.BrowserPanelBody` as the natural Browser-local scroll container around `.BrowserTree`
+  - `browser.css` already gives `.BrowserPanelBody` `overflow-y: auto`, which suggests the visible bug is a height/flex containment leak rather than a missing scrollbar style
+  - the live dock path is `PrimaryViewportLeftDockPanelTarget--browser -> BrowserPanelRoot -> BrowserPanelBody`
+  - `docks.css` currently gives the meatball-editor dock target an explicit `flex: 1 1 auto; min-height: 0` contract, but the browser dock target does not have that same explicit shrink/containment rule
+  - `PanelStack.isConstrained` already has its own vertical scroll path, so this phase should prefer fixing Browser-local containment before widening outer dock scrolling behavior
+- shipped result:
+  - the docked Browser target now owns a real flex/min-height containment contract, so long Browser object lists stay bounded inside the Browser panel instead of pushing rows off the bottom of the app
+  - `.BrowserPanelBody` remains the Browser-local scroll owner and now gets first priority for wheel forwarding before the outer left-dock stack
+  - the docked Browser path preserves the existing floating, popout, and split Browser surface contracts while restoring ordinary scrollbar behavior for long object lists
+  - `Attempt 2` widened the constrained left-dock stack path into the normal unsplit primary viewport shell, so Browser no longer relies on split-only layout gating before it can behave like a bounded scrollable dock panel
+- Questions / Decisions:
+
+  #### [ ] q1 - Should the scrollable region be the Browser content body instead of the whole app shell?
+
+  Question:
+  - when the Browser overflows, should only the Browser content/list region scroll while the surrounding app shell and Browser chrome stay stable?
+
+  Suggestion:
+  - yes
+  - keep the scroll behavior local to the Browser panel
+
+  #### [ ] q2 - Should the Browser header/chrome remain visible while the object list scrolls?
+
+  Question:
+  - should the Browser title bar and nearby panel controls remain visible while the user scrolls through many objects?
+
+  Suggestion:
+  - yes
+  - keep the Browser chrome fixed and let the list area carry the scrolling
+
+  #### [ ] q3 - Should this phase stay limited to overflow containment instead of bundling other Browser UI cleanup changes?
+
+  Question:
+  - should `Browser-13 - Phase 1` stay narrowly about containing tall Browser content and adding a working scrollbar, leaving other Browser polish for later `13.x` follow-ons?
+
+  Suggestion:
+  - yes
+  - land the overflow fix cleanly before bundling unrelated polish
+- retained detail doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow.md`
+
+### [x] Browser-13 - Phase 2
+
+- second concrete Browser-13 UI cleanup phase
+- locked direction:
+  - users should be able to re-adjust Browser size in both supported Browser host modes:
+    docked Browser width in the left rail and floating Browser window size in floating mode
+  - preserve the current Browser host-mode model instead of inventing a new Browser-only layout system
+  - keep this phase about resize affordances, persistence, and safe clamp behavior, not Browser hierarchy or content truth
+- why this exists:
+  - after `Phase 1`, the Browser now behaves correctly when content overflows, but users still need a direct way to tune how much space the Browser gets
+  - docked Browser width currently rides the shared left-dock seam, but this needs to be treated explicitly as a Browser usability surface
+  - floating Browser already persists a size contract in workspace state, but it still needs a user-facing resize affordance so people can intentionally re-shape the window
+- first-pass direction:
+  - keep docked Browser width adjustment on the existing left-dock width seam instead of inventing a Browser-specific parallel width system
+  - expose a clear, normal resize affordance for the floating Browser window
+  - preserve min/max clamping and persistence in both host modes so Browser size remains stable across workspace changes
+  - keep drag-to-move, popout, split, and docking behavior working while resize is added or clarified
+- implementation prep:
+  - docked Browser already lives inside the shared primary left-dock width path:
+    `leftDockWidth` in workspace state, `.PrimaryViewportLeftDockResizeHandle`, and `handleLeftDockResizeStart`
+  - floating Browser already stores and persists `browserShell.size`, and `BrowserDockHost.tsx` already owns `clampBrowserFloatingSize` plus `setBrowserFloatingSize`
+  - `.BrowserFloatingWindow` already has min/max shell bounds in `windows.css`, so the likely missing piece is the user-facing resize seam/handles rather than a new storage contract
+  - this phase should verify that docked resize still respects console anchoring and left-dock split behavior while floating resize respects viewport/app-shell bounds
+- shipped result:
+  - docked Browser width stays on the shared `leftDockWidth` rail contract instead of introducing a Browser-only dock-width state
+  - the docked shared resize seam is now reachable on the visible right edge of the whole left rail, so the ParaHook Generator title/status panel and Browser widen together where users expect to grab the seam
+  - floating Browser now supports direct edge/corner resizing through the existing `browserShell.size` contract while clamp and persistence behavior stay on the existing workspace-shell path
+- Questions / Decisions:
+
+  #### [ ] q1 - Should docked Browser width continue to use the shared left-dock width contract instead of a Browser-only width state?
+
+  Question:
+  - when the Browser is docked on the left, should resizing continue to flow through the existing shared left-dock width seam rather than introducing a second Browser-specific dock-width state?
+
+  Suggestion:
+  - yes
+  - keep one left-rail width contract and let Browser benefit from it
+
+  #### [ ] q2 - Should floating Browser use direct edge/corner resize affordances instead of menu-only size presets?
+
+  Question:
+  - when the Browser is floating, should users re-adjust it through a normal draggable resize seam or handle instead of only through future menus or fixed presets?
+
+  Suggestion:
+  - yes
+  - match normal floating-window expectations
+
+  #### [ ] q3 - Should this phase stay focused on resize affordances and persistence instead of bundling broader Browser layout redesign?
+
+  Question:
+  - should `Browser-13 - Phase 2` stay narrowly about Browser resizing in docked and floating modes, leaving broader Browser panel/layout redesign to later follow-ons?
+
+  Suggestion:
+  - yes
+  - keep the phase small and implementation-ready
+- retained detail doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2 - Re-Adjustable Docked And Floating Browser Size.md`
+
+### [x] Browser-13 - Phase 2.1
+
+- first Codex-sized Browser Phase 2 subphase
+- locked direction:
+  - keep docked Browser width on the existing shared left-rail resize seam
+  - dragging the right edge should widen the whole left rail, including the ParaHook Generator title/status panel above Browser
+  - do not introduce a Browser-only inner dock width system
+- why this exists:
+  - the docked seam already exists, but this behavior should be made explicit, verified, and treated as Browser-owned usability
+- shipped result:
+  - the existing shared left-rail resize seam remains the docked Browser width owner
+  - the left-dock status strip and docked Browser host now expose the same shared-width signal so the coupling is explicit and testable
+  - AppShell proof now confirms the Browser and the ParaHook Generator title/status panel widen together while the current console-anchor resize behavior remains intact
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.1 - Docked Browser Width Uses The Shared Left Rail Resize Seam.md`
+
+### [x] Browser-13 - Phase 2.2
+
+- second Codex-sized Browser Phase 2 subphase
+- locked direction:
+  - add direct floating Browser resize affordances without changing the existing Browser host-mode model
+  - keep floating size changes on the current `browserShell.size` plus `clampBrowserFloatingSize` contract
+- why this exists:
+  - floating Browser already stores a size contract, but users still need a direct way to re-size the window
+- shipped result:
+  - floating Browser now exposes direct edge/corner resize handles
+  - floating resize writes explicit width and height back through the existing `browserShell.size` store path and clamp contract
+  - focused Browser host proof now covers direct resize plus shell-bound clamping while the two older popup split-menu failures in untouched popout-path tests remain unchanged
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.2 - Floating Browser Window Resize Affordances.md`
+
+### [x] Browser-13 - Phase 2.3
+
+- docked Browser follow-up after the `2.1` proof and `2.2` floating work
+- locked direction:
+  - keep the shared `leftDockWidth` resize contract
+  - make the real user-facing resize seam reachable on the visible right edge of the docked Browser / whole left rail
+  - do not solve this with a Browser-only inner width state
+- why this exists:
+  - the shared left-dock resize controller still works in code, but the live handle likely sits in the wrong dock sub-container and may be clipped by overflow, so users cannot reliably grab the seam where they expect it
+- shipped result:
+  - the shared resize handle now belongs to the full left-dock content edge instead of the inner Browser panel-stack shell
+  - users can resize from the visible Browser/right-rail edge while the existing shared `leftDockWidth` contract remains the only docked width owner
+  - focused dock structure and resize proofs remain green
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.3 - Reachable Shared Right-Edge Dock Resize Seam.md`
+
+## [ ] Browser-14 - Explicit Part Explosion Into Real Object Rows
+
+- next Browser parts-focused follow-on after the earlier truthful part-row exposure and row-surface cleanup work
+- locked direction:
+  - when a reference-backed `Object` row already contains real child `Part` rows, Browser should expose an explicit `Explode` action instead of leaving those parts permanently trapped under one imported wrapper object
+  - exploding should replace that one eligible wrapper object with multiple independently owned imported-reference-backed `Object` rows, one per truthful source part, under the same parent owner
+  - each exploded object should then participate in ordinary delete, hide, and move flows through its own object or reference identity instead of staying a Browser-only promoted row
+  - keep this explicit and opt-in:
+    imported objects that contain parts should stay as one object plus child part rows until the user actually chooses `Explode`
+  - do not invent synthetic exploded objects for flat imports or for objects that do not already expose truthful child parts
+  - do not fake this as Browser-only row promotion:
+    the first real cut should create durable per-part object ownership instead of just changing tree presentation
+- why this exists:
+  - `Browser-9.3` exposed truthful child `Part` rows for imported objects whose loaded source already contains real part structure
+  - `Browser-12` cleaned up how those `Part` rows look in the Browser tree
+  - those rows still remain Browser-local leaves under one imported wrapper object, which means users cannot yet turn source-contained parts into separately usable project objects when they need to delete, hide, or move those parts independently
+- first-pass direction:
+  - enrich the truthful part contract with stable per-part source identity so the explode path can target one real source part at a time
+  - add a store or runtime explode mutation that converts one eligible imported wrapper object into multiple imported-reference-backed objects, one per truthful source part
+  - expose an explicit Browser `Explode` entry for eligible reference-backed object rows
+  - preserve source order and truthful part labels as the baseline naming truth for the new objects
+  - remove the old wrapper object's child-part presentation after the explode succeeds so the Browser tree reads as the new independently owned object set instead of both models at once
+  - keep the first cut single-object and Browser-owned:
+    no multi-select explode, no Console or keyboard parity, and no wider part-target promotion in the same phase
+- Questions / Decisions:
+
+  #### [ ] q1 - Should part promotion happen only through an explicit `Explode` command instead of automatically when parts are detected?
+
+  Question:
+  - when a reference-backed object already contains real child parts, should Browser keep the current wrapper object plus part-row presentation until the user explicitly chooses `Explode`?
+
+  Suggestion:
+  - yes
+  - keep the structural promotion user-driven and avoid surprising automatic hierarchy rewrites on load
+
+  #### [ ] q2 - Should `Explode` only appear for objects that already expose real child part rows from the loaded source?
+
+  Question:
+  - should Browser limit `Explode` to reference-backed object rows whose loaded source already exposes truthful child `Part` rows, instead of inventing synthetic explode results for flat or opaque imports?
+
+  Suggestion:
+  - yes
+  - keep explode grounded in truthful source structure only
+
+  #### [ ] q3 - Should exploding replace the wrapper object with sibling object rows under the same parent owner?
+
+  Question:
+  - when the user explodes one eligible reference-backed object, should the system replace that wrapper row with sibling real imported-reference-backed `Object` rows under the same parent owner instead of keeping a nested object-under-object structure or a Browser-only fake row promotion?
+
+  Suggestion:
+  - yes
+  - the result should read like real project content with real ownership, not a second wrapper hierarchy or a simulated Browser-only split
+
+  #### [ ] q4 - Should the first cut stay narrower than part-target transform, selection, and command-surface parity?
+
+  Question:
+  - should `Browser-14` stay focused on the real per-part object-ownership baseline first, leaving deeper part-target transform or selection convergence plus Console, keyboard, or multi-select explode follow-ons to later phases if we still want them?
+
+  Suggestion:
+  - yes
+  - land the real per-part ownership conversion cleanly before widening the command surface further
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`

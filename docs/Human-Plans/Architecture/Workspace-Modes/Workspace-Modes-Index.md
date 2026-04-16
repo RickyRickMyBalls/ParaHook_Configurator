@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+90. 2026-04-15 20:24:35: Added the new workspace-family home `Workspaces/Catalog/Catalog-Vision.md` plus `Workspaces/Catalog/Catalog-Index.md`, refreshed the umbrella workspace read so `Catalog` now appears as a real workspace-global surface beside the earlier families, and recorded one dedicated planning home for curated repo-backed reusable assets such as hooks, shoes, footpads, HDRIs, and later loadable reference families
 89. 2026-04-12 08:50:58: Added the new planned `Workspace 8 - Browser-Truth Published Object Rendering And Visibility` phase to this workspace-family index, grounding the next multi-graph render/read direction in the rule that published Browser/project-content objects should render by default across the project while explicit graph/object visibility becomes the honest user control for turning them off
 88. 2026-04-06 11:36: Added the new workspace-family home `Workspaces/Model-Viewport/Model-Viewport-Index.md`, created its first `Model-Viewport 1` future phase doc around the geometry-execution reset plus preview-policy direction, and refreshed this workspace umbrella so `Model Viewport` now has its own dedicated planning home for the draft-preview versus authoritative-geometry overhaul
 87. 2026-04-03 19:38: Promoted `Dashboard` out of `Wish-Features` into the real workspace-family roadmap by adding `Workspace 7.5-17 - Dashboard And Notepad Surface Onboarding.md`, grounding its first `Phase 0` read in the live `Workspace 7.x` surface seams, and refreshing this workspace-family index so the new surface-onboarding lane now sits beside the other active future workspace docs
@@ -938,6 +939,7 @@ The right mental model is:
 - workspace-global surfaces
   - `Model Viewport`
   - `Browser`
+  - `Catalog`
   - `Console`
   - `Spaghetti Editor`
   - `Radio`
@@ -959,6 +961,9 @@ The right mental model is:
 - `Model Viewport`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
   - dedicated home for the geometry-execution, preview-policy, and authoritative-geometry handoff direction that is too large to keep only inside the umbrella workspace-family doc
+- `Catalog`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+  - dedicated home for the curated repo-backed reusable-asset workspace direction, including hooks, shoes, footpads, HDRIs, and later explicit browse-and-load families without turning the catalog into a second Browser/content owner
 
 
 ## Phases

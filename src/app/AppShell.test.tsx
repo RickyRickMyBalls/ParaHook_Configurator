@@ -1195,6 +1195,17 @@ describe('AppShell', () => {
     expect(panelStack?.classList.contains('isConstrained')).toBe(true)
   })
 
+  it('keeps the primary left dock panel stack constrained even before the primary viewport is split', async () => {
+    ;({ container, root } = await renderAppShell())
+    mockShellGeometry(container)
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+    const panelStack = primarySlot?.querySelector('.PanelStack') as HTMLElement | null
+
+    expect(primarySlot?.querySelector('.PrimaryViewportLeftDock')).not.toBeNull()
+    expect(panelStack?.classList.contains('isConstrained')).toBe(true)
+  })
+
   it('renders duplicated secondary slot surfaces from the workspace slot tree', async () => {
     const duplicatedEditorViewportId =
       currentSpaghettiState.openGraphDocumentInNewViewport('graph-document-1')
@@ -1585,6 +1596,9 @@ describe('AppShell', () => {
         projectionMode: 'perspective',
         perspectiveFovDeg: 55,
         orthoViewHeight: 12,
+        clipRangeMode: 'auto',
+        clipStart: 0.1,
+        clipEnd: 1000,
       }),
     } as any)
 
@@ -1631,17 +1645,20 @@ describe('AppShell', () => {
       projectionMode: 'perspective',
       perspectiveFovDeg: 55,
       orthoViewHeight: 12,
+      clipRangeMode: 'auto',
     })
     expect(secondaryQueuedPose).toMatchObject({
       projectionMode: 'perspective',
       perspectiveFovDeg: 55,
       orthoViewHeight: 12,
+      clipRangeMode: 'auto',
     })
     expect(applyCameraPose).toHaveBeenCalledWith(
       expect.objectContaining({
         projectionMode: 'perspective',
         perspectiveFovDeg: 55,
         orthoViewHeight: 12,
+        clipRangeMode: 'auto',
       }),
     )
     expect(
@@ -8306,16 +8323,29 @@ describe('AppShell', () => {
       width: 340,
       height: 48,
     })
-
-    const leftDockSplitButton = container?.querySelector(
-      'button[aria-label="Toggle left dock viewport split"]',
-    ) as HTMLButtonElement | null
-    expect(leftDockSplitButton).not.toBeNull()
+    const resizeHandle = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeHandle',
+    ) as HTMLDivElement | null
 
     await act(async () => {
-      leftDockSplitButton?.dispatchEvent(
-        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      resizeHandle?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 380,
+          clientY: 260,
+        }),
       )
+    })
+    const splitViewportButton = Array.from(
+      container?.querySelectorAll('.PrimaryViewportLeftDockResizeMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Split Viewport') as
+      | HTMLButtonElement
+      | undefined
+    expect(splitViewportButton).not.toBeUndefined()
+
+    await act(async () => {
+      splitViewportButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
     mockShellGeometry(container)
     mockRect(container?.querySelector('.SpaghettiFloatingDock .SpaghettiFloatingHandle'), {
@@ -8364,13 +8394,28 @@ describe('AppShell', () => {
       width: 340,
       height: 48,
     })
-
-    const leftDockSplitButton = container?.querySelector(
-      'button[aria-label=\"Toggle left dock viewport split\"]',
-    ) as HTMLButtonElement | null
+    const resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
+    expect(resizeHandle).not.toBeNull()
 
     await act(async () => {
-      leftDockSplitButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      resizeHandle?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 380,
+          clientY: 260,
+        }),
+      )
+    })
+    const splitViewportButton = Array.from(
+      container?.querySelectorAll('.PrimaryViewportLeftDockResizeMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Split Viewport') as
+      | HTMLButtonElement
+      | undefined
+    expect(splitViewportButton).not.toBeUndefined()
+
+    await act(async () => {
+      splitViewportButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
     mockShellGeometry(container)
 
@@ -8472,12 +8517,27 @@ describe('AppShell', () => {
 
     ;({ container, root } = await renderAppShell())
 
+    expect(
+      container?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor')?.classList.contains(
+        'isOccupied',
+      ),
+    ).toBe(true)
     expect(container?.textContent).not.toContain('Parts List Panel')
     expect(container?.textContent).not.toContain('Legacy Box Panel')
     expect(container?.querySelector('.SpaghettiMeatballHost')).not.toBeNull()
     expect(container?.querySelector('.SpaghettiMeatballHost .SpaghettiFloatingHandle')).not.toBeNull()
     expect(container?.textContent).toContain('Spaghetti Panel editor-viewport-1')
     expect(container?.querySelector('.SpaghettiFloatingDock')).toBeNull()
+  })
+
+  it('keeps the meatball dock target collapsed when no meatball editor view is active', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    expect(
+      container?.querySelector('.PrimaryViewportLeftDockPanelTarget--meatball-editor')?.classList.contains(
+        'isOccupied',
+      ),
+    ).toBe(false)
   })
 
   it('keeps the Browser docked while opening a child-window popout copy from the popout toggle', async () => {
@@ -8656,10 +8716,18 @@ describe('AppShell', () => {
     mockShellGeometry(container)
 
     const leftDock = container?.querySelector('.PrimaryViewportLeftDock') as HTMLElement | null
+    const titleStatusZone = container?.querySelector('.PrimaryViewportLeftDockStatus') as HTMLElement | null
+    const dockedBrowserHost = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelTarget--browser',
+    ) as HTMLElement | null
     let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
     expect(leftDock).not.toBeNull()
+    expect(titleStatusZone).not.toBeNull()
+    expect(dockedBrowserHost).not.toBeNull()
     expect(resizeHandle).not.toBeNull()
     expect(leftDock?.style.width).toBe('320px')
+    expect(titleStatusZone?.dataset.leftDockSharedWidth).toBe('320')
+    expect(dockedBrowserHost?.dataset.leftDockSharedWidth).toBe('320')
 
     await act(async () => {
       resizeHandle?.dispatchEvent(
@@ -8692,6 +8760,8 @@ describe('AppShell', () => {
     expect(leftDock?.style.width).toBe('392px')
     expect(leftDock?.style.minWidth).toBe('392px')
     expect(leftDock?.style.maxWidth).toBe('392px')
+    expect(titleStatusZone?.dataset.leftDockSharedWidth).toBe('392')
+    expect(dockedBrowserHost?.dataset.leftDockSharedWidth).toBe('392')
   })
 
   it('bumps the floating spaghetti editor with the dock during resize and releases the lock on pointer-up', async () => {
@@ -8912,17 +8982,31 @@ describe('AppShell', () => {
     ).toBe('browser')
   })
 
-  it('lets the resize-bar toggle button switch left dock viewport split on and off', async () => {
+  it('lets the resize-handle menu switch left dock viewport split on and off', async () => {
     ;({ container, root } = await renderAppShell())
     mockShellGeometry(container)
 
-    let splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
-      (element) => element.getAttribute('aria-label') === 'Toggle left dock viewport split',
-    ) as HTMLButtonElement | undefined
     let resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
-    expect(splitToggle).not.toBeUndefined()
     expect(resizeHandle?.classList.contains('isViewportSplit')).toBe(false)
-    expect(splitToggle?.classList.contains('isSlotSplitActive')).toBe(false)
+    expect(container?.querySelector('button[aria-label="Toggle left dock viewport split"]')).toBeNull()
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 380,
+          clientY: 260,
+        }),
+      )
+    })
+
+    let splitToggle = Array.from(
+      container?.querySelectorAll('.PrimaryViewportLeftDockResizeMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Split Viewport') as
+      | HTMLButtonElement
+      | undefined
+    expect(splitToggle).not.toBeUndefined()
 
     await act(async () => {
       splitToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -8936,10 +9020,22 @@ describe('AppShell', () => {
     expect(resizeHandle?.classList.contains('isViewportSplit')).toBe(false)
     expect(resizeHandle?.classList.contains('isSlotSplitActive')).toBe(true)
 
-    splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
-      (element) => element.getAttribute('aria-label') === 'Toggle left dock viewport split',
-    ) as HTMLButtonElement | undefined
-    expect(splitToggle?.classList.contains('isSlotSplitActive')).toBe(true)
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 380,
+          clientY: 260,
+        }),
+      )
+    })
+    splitToggle = Array.from(
+      container?.querySelectorAll('.PrimaryViewportLeftDockResizeMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Unsplit Viewport') as
+      | HTMLButtonElement
+      | undefined
+    expect(splitToggle).not.toBeUndefined()
 
     await act(async () => {
       splitToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -8948,13 +9044,10 @@ describe('AppShell', () => {
     workspaceState = useWorkspaceStore.getState()
     rootNode = workspaceState.viewportLayoutNodesById[workspaceState.viewportSlotRootNodeId]
     resizeHandle = container?.querySelector('.PrimaryViewportLeftDockResizeHandle') as HTMLDivElement | null
-    splitToggle = Array.from(container?.querySelectorAll('button') ?? []).find(
-      (element) => element.getAttribute('aria-label') === 'Toggle left dock viewport split',
-    ) as HTMLButtonElement | undefined
     expect(rootNode?.kind).toBe('leaf')
     expect(resizeHandle?.classList.contains('isViewportSplit')).toBe(false)
     expect(resizeHandle?.classList.contains('isSlotSplitActive')).toBe(false)
-    expect(splitToggle?.classList.contains('isSlotSplitActive')).toBe(false)
+    expect(container?.querySelector('button[aria-label="Toggle left dock viewport split"]')).toBeNull()
   })
 
   it('undocks the Browser into a floating window when the docked titlebar is dragged', async () => {

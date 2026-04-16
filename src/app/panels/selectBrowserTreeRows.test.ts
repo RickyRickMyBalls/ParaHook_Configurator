@@ -1663,11 +1663,13 @@ describe('selectBrowserTreeRows', () => {
               rowId: 'reference-part-row:reference-part:reference-import:1:0',
               partKey: 'reference-part:reference-import:1:0',
               label: 'Upper',
+              sourceMeshIndex: 0,
             },
             {
               rowId: 'reference-part-row:reference-part:reference-import:1:1',
               partKey: 'reference-part:reference-import:1:1',
               label: 'Sole',
+              sourceMeshIndex: 1,
             },
           ],
         },

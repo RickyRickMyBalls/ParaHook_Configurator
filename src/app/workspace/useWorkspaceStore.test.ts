@@ -270,6 +270,9 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       projectionMode: 'orthographic',
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarDockMode: 'top-right-cluster',
+      viewToolbarActiveTab: 'materials',
       viewToolbarCompactAxisWidgetSize: 112,
       viewportResultMode: 'draft',
     })
@@ -280,6 +283,9 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'perspective',
         axisOverlayEnabled: true,
         viewToolbarOpen: false,
+        viewToolbarExpandedPresentationMode: 'classic',
+        viewToolbarDockMode: 'below-axis',
+        viewToolbarActiveTab: 'camera',
         viewportResultMode: 'auto',
       }),
     )
@@ -288,6 +294,9 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+        viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarActiveTab: 'materials',
         viewToolbarCompactAxisWidgetSize: 112,
         viewportResultMode: 'draft',
       }),
@@ -384,6 +393,9 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       projectionMode: 'orthographic',
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarDockMode: 'top-right-cluster',
+      viewToolbarActiveTab: 'view',
       viewToolbarCompactAxisWidgetSize: 112,
       viewportResultMode: 'draft',
     })
@@ -414,6 +426,9 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         projectionMode: 'orthographic',
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
+        viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarActiveTab: 'view',
         viewToolbarCompactAxisWidgetSize: 112,
         viewportResultMode: 'draft',
       }),
@@ -426,6 +441,35 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(normalized?.surfacePlacementById[defaultBrowserToolbarOwnerSurfaceInstanceId]).toEqual(
       expect.objectContaining({
         hostMode: 'docked',
+      }),
+    )
+  })
+
+  it('falls back invalid persisted toolbar tabs to camera', () => {
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const corrupted = {
+      ...serialized,
+      viewportChromeById: {
+        ...serialized.viewportChromeById,
+        'model-viewer-primary': {
+          ...serialized.viewportChromeById['model-viewer-primary'],
+          localViewState: {
+            ...serialized.viewportChromeById['model-viewer-primary']?.localViewState,
+            viewToolbarExpandedPresentationMode: 'tabs' as const,
+            viewToolbarDockMode: 'bad-dock',
+            viewToolbarActiveTab: 'bad-tab',
+          },
+        },
+      },
+    }
+
+    const normalized = normalizePersistedWorkspaceLayout(corrupted)
+
+    expect(normalized?.viewportChromeById['model-viewer-primary']?.localViewState).toEqual(
+      expect.objectContaining({
+        viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarDockMode: 'below-axis',
+        viewToolbarActiveTab: 'camera',
       }),
     )
   })

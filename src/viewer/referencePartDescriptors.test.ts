@@ -12,8 +12,8 @@ describe('extractReferencePartDescriptors', () => {
     root.add(left, right)
 
     expect(extractReferencePartDescriptors('ref-1', root)).toEqual([
-      { partKey: 'reference-part:ref-1:0', label: 'Shell' },
-      { partKey: 'reference-part:ref-1:1', label: 'Mount' },
+      { partKey: 'reference-part:ref-1:0', label: 'Shell', sourceMeshIndex: 0 },
+      { partKey: 'reference-part:ref-1:1', label: 'Mount', sourceMeshIndex: 1 },
     ])
   })
 

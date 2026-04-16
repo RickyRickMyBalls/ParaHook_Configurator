@@ -307,6 +307,26 @@ const normalizeViewportChromeRecord = (
       ...(typeof localViewState?.viewToolbarOpen === 'boolean'
         ? { viewToolbarOpen: localViewState.viewToolbarOpen }
         : {}),
+      ...(localViewState?.viewToolbarExpandedPresentationMode === 'tabs'
+        ? { viewToolbarExpandedPresentationMode: 'tabs' as const }
+        : localViewState?.viewToolbarExpandedPresentationMode === 'classic'
+          ? { viewToolbarExpandedPresentationMode: 'classic' as const }
+          : {}),
+      ...(localViewState?.viewToolbarDockMode === 'top-right-cluster'
+        ? { viewToolbarDockMode: 'top-right-cluster' as const }
+        : localViewState?.viewToolbarDockMode === 'below-axis'
+          ? { viewToolbarDockMode: 'below-axis' as const }
+          : {}),
+      ...(localViewState?.viewToolbarActiveTab === 'camera' ||
+      localViewState?.viewToolbarActiveTab === 'fly-mode' ||
+      localViewState?.viewToolbarActiveTab === 'transform' ||
+      localViewState?.viewToolbarActiveTab === 'snap' ||
+      localViewState?.viewToolbarActiveTab === 'gizmo' ||
+      localViewState?.viewToolbarActiveTab === 'view' ||
+      localViewState?.viewToolbarActiveTab === 'environment' ||
+      localViewState?.viewToolbarActiveTab === 'materials'
+        ? { viewToolbarActiveTab: localViewState.viewToolbarActiveTab }
+        : {}),
       ...(typeof localViewState?.viewToolbarExpandedAxisWidgetSize === 'number' &&
       Number.isFinite(localViewState.viewToolbarExpandedAxisWidgetSize)
         ? {

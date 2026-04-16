@@ -388,6 +388,18 @@ describe('CameraController', () => {
     expect(roundTripPose.perspectiveFovDeg).toBeCloseTo(perspectivePose.perspectiveFovDeg, 6)
   })
 
+  it('supports a back camera preset', () => {
+    const { controller } = createController()
+
+    controller.setPreset('back')
+
+    const pose = controller.getPose()
+    expect(pose.target.toArray()).toEqual([0, 0, 0])
+    expect(pose.position.x).toBeCloseTo(0, 6)
+    expect(pose.position.y).toBeCloseTo(0, 6)
+    expect(pose.position.z).toBeLessThan(0)
+  })
+
   it('frames bounds correctly in orthographic mode', () => {
     const { controller, orthographicCamera } = createController()
     controller.setProjectionMode('orthographic')
@@ -413,6 +425,119 @@ describe('CameraController', () => {
     const restoredPose = controller.getPose()
     expect(restoredPose.projectionMode).toBe('orthographic')
     expect(restoredPose.orthoViewHeight).toBeCloseTo(orthoPose.orthoViewHeight, 6)
+  })
+
+  it('exposes a dedicated perspective FOV seam without changing orthographic mode immediately', () => {
+    const { controller, perspectiveCamera, controls } = createController()
+    controls.update.mockClear()
+
+    expect(controller.getPerspectiveFovDeg()).toBeCloseTo(45, 6)
+
+    controller.setPerspectiveFovDeg(60)
+
+    expect(controller.getPerspectiveFovDeg()).toBeCloseTo(60, 6)
+    expect(perspectiveCamera.fov).toBeCloseTo(60, 6)
+    expect(controls.update).toHaveBeenCalledTimes(1)
+
+    controller.setProjectionMode('orthographic')
+    const orthographicPoseBefore = controller.getPose()
+
+    controller.setPerspectiveFovDeg(75)
+
+    const orthographicPoseAfter = controller.getPose()
+    expect(controller.getPerspectiveFovDeg()).toBeCloseTo(75, 6)
+    expect(perspectiveCamera.fov).toBeCloseTo(75, 6)
+    expect(orthographicPoseAfter.position.toArray()).toEqual(orthographicPoseBefore.position.toArray())
+    expect(orthographicPoseAfter.target.toArray()).toEqual(orthographicPoseBefore.target.toArray())
+    expect(orthographicPoseAfter.orthoViewHeight).toBeCloseTo(orthographicPoseBefore.orthoViewHeight, 6)
+  })
+
+  it('applies perspective FOV from camera poses while already in perspective mode', () => {
+    const { controller } = createController()
+    const pose = controller.getPose()
+
+    controller.setPerspectiveFovDeg(80)
+    const updatedPose = controller.getPose()
+    expect(updatedPose.perspectiveFovDeg).toBeCloseTo(80, 6)
+
+    controller.applyPose({
+      ...pose,
+      perspectiveFovDeg: 55,
+    })
+
+    expect(controller.getPerspectiveFovDeg()).toBeCloseTo(55, 6)
+    expect(controller.getPose().perspectiveFovDeg).toBeCloseTo(55, 6)
+  })
+
+  it('exposes an authored clip-range seam and updates both cameras from the runtime owner', () => {
+    const { controller, perspectiveCamera, orthographicCamera } = createController()
+
+    expect(controller.getCameraClipRange()).toMatchObject({
+      mode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
+    })
+
+    controller.setCameraClipRange({ clipStart: 0.25, clipEnd: 250 })
+
+    expect(controller.getCameraClipRange()).toMatchObject({
+      mode: 'authored',
+      clipStart: 0.25,
+      clipEnd: 250,
+    })
+    expect(perspectiveCamera.near).toBeCloseTo(0.25, 6)
+    expect(perspectiveCamera.far).toBeCloseTo(250, 6)
+    expect(orthographicCamera.near).toBeCloseTo(0.25, 6)
+    expect(orthographicCamera.far).toBeCloseTo(250, 6)
+  })
+
+  it('stores clip-range metadata in camera poses and can restore auto clip ownership', () => {
+    const { controller } = createController()
+    const autoPose = controller.getPose()
+
+    controller.setCameraClipRange({ clipStart: 0.5, clipEnd: 300 })
+
+    const authoredPose = controller.getPose()
+    expect(authoredPose).toMatchObject({
+      clipRangeMode: 'authored',
+      clipStart: 0.5,
+      clipEnd: 300,
+    })
+
+    controller.applyPose(autoPose)
+
+    expect(controller.getCameraClipRange()).toMatchObject({
+      mode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
+    })
+
+    controller.applyPose(authoredPose)
+
+    expect(controller.getCameraClipRange()).toMatchObject({
+      mode: 'authored',
+      clipStart: 0.5,
+      clipEnd: 300,
+    })
+  })
+
+  it('can reset authored clip range back to auto distance-derived ownership', () => {
+    const { controller } = createController()
+
+    controller.setCameraClipRange({ clipStart: 0.75, clipEnd: 250 })
+    expect(controller.getCameraClipRange()).toMatchObject({
+      mode: 'authored',
+      clipStart: 0.75,
+      clipEnd: 250,
+    })
+
+    controller.resetCameraClipRange()
+
+    expect(controller.getCameraClipRange()).toMatchObject({
+      mode: 'auto',
+      clipStart: 0.1,
+      clipEnd: 1000,
+    })
   })
 
   it('honors an explicit up vector when animating to a direction', () => {

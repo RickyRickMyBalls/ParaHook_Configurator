@@ -7,6 +7,7 @@ type FileLike = Blob & {
 type InputLike = {
   type: string
   accept: string
+  multiple?: boolean
   onchange: (() => void) | null
   files?: ArrayLike<FileLike> | null
   click: () => void
@@ -27,6 +28,10 @@ type UrlLike = {
 type ReferenceImportEnv = {
   documentRef: DocumentLike
   urlRef: UrlLike
+}
+
+type ReferenceImportOptions = {
+  multiple?: boolean
 }
 
 export type ImportedReferenceFile = {
@@ -72,38 +77,61 @@ const getReferenceFilename = (file: FileLike, fileType: ReferenceFileType): stri
   return `Imported Reference.${fileType}`
 }
 
-export const importReferenceFileFromDisk = async (
+const createReferenceImportInput = (
   fileType: ReferenceFileType,
-  env: ReferenceImportEnv = getBrowserReferenceImportEnv(),
-): Promise<ImportedReferenceFile> => {
+  env: ReferenceImportEnv,
+  options: ReferenceImportOptions = {},
+): InputLike => {
   const input = env.documentRef.createElement('input')
   input.type = 'file'
   input.accept = REFERENCE_IMPORT_ACCEPT_BY_FILE_TYPE[fileType]
+  if (options.multiple === true) {
+    input.multiple = true
+  }
 
   if (env.documentRef.body !== undefined) {
     env.documentRef.body.appendChild(input as unknown as Node)
   }
 
-  return new Promise<ImportedReferenceFile>((resolve, reject) => {
+  return input
+}
+
+const createImportedReferenceFile = (
+  file: FileLike,
+  fileType: ReferenceFileType,
+  env: ReferenceImportEnv,
+): ImportedReferenceFile => ({
+  fileName: getReferenceFilename(file, fileType),
+  fileType,
+  objectUrl: env.urlRef.createObjectURL(file),
+})
+
+const getSelectedReferenceFiles = (input: InputLike): FileLike[] =>
+  input.files === undefined || input.files === null ? [] : Array.from(input.files)
+
+const importReferenceFilesWithOptions = async (
+  fileType: ReferenceFileType,
+  env: ReferenceImportEnv,
+  options: ReferenceImportOptions = {},
+): Promise<ImportedReferenceFile[]> => {
+  const input = createReferenceImportInput(fileType, env, options)
+
+  return new Promise<ImportedReferenceFile[]>((resolve, reject) => {
     const cleanup = () => {
       input.onchange = null
       input.remove()
     }
 
     input.onchange = () => {
-      const file = input.files?.[0]
-      if (file === undefined) {
+      const files = getSelectedReferenceFiles(input)
+      if (files.length === 0) {
         cleanup()
         reject(new Error('No reference file selected.'))
         return
       }
 
       try {
-        resolve({
-          fileName: getReferenceFilename(file, fileType),
-          fileType,
-          objectUrl: env.urlRef.createObjectURL(file),
-        })
+        resolve(files.map((file) => createImportedReferenceFile(file, fileType, env)))
       } catch (error) {
         reject(
           error instanceof Error
@@ -117,4 +145,23 @@ export const importReferenceFileFromDisk = async (
 
     input.click()
   })
+}
+
+export const importReferenceFilesFromDisk = async (
+  fileType: ReferenceFileType,
+  env: ReferenceImportEnv = getBrowserReferenceImportEnv(),
+): Promise<ImportedReferenceFile[]> =>
+  importReferenceFilesWithOptions(fileType, env, {
+    multiple: fileType === 'obj',
+  })
+
+export const importReferenceFileFromDisk = async (
+  fileType: ReferenceFileType,
+  env: ReferenceImportEnv = getBrowserReferenceImportEnv(),
+): Promise<ImportedReferenceFile> => {
+  const [file] = await importReferenceFilesWithOptions(fileType, env)
+  if (file === undefined) {
+    throw new Error('No reference file selected.')
+  }
+  return file
 }

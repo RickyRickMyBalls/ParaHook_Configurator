@@ -750,6 +750,8 @@ const buildStagedNavigationContextFromStoreState = (
         referenceId: item.referenceId,
         label: item.label,
         canLoadModel: !item.isVisible || item.loadState === 'error' || item.loadState === 'unloaded',
+        canDelete: item.sourceKind === 'imported',
+        canHide: item.isVisible,
       })),
     })),
     {

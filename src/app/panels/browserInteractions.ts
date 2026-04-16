@@ -14,6 +14,7 @@ import {
 import type {
   ConsoleContextSyncReason,
   ConsoleWorkspaceContextHandoff,
+  WorkspaceResolvedContentSelection,
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from '../store/useAppStore'
@@ -57,6 +58,7 @@ export type BrowserRowInteractionDeps = {
   workspaceSelectedTarget: WorkspaceSelectedTarget | null
   workspaceExplicitSelectedTargets: WorkspaceSelectedTarget[]
   workspaceSelectionAnchorTarget: WorkspaceSelectedTarget | null
+  workspaceResolvedContentSelection: WorkspaceResolvedContentSelection | null
   workspaceIntentDeps: WorkspaceIntentDeps
   newEditorSpawnPosition: { x: number; y: number }
   sharedViewerCompositionActive: boolean
@@ -78,6 +80,7 @@ export type BrowserRowInteractionDeps = {
   toggleReferenceWorkspaceExpanded: () => void
   toggleReferenceCategoryExpanded: (categoryId: ReferenceCategoryId) => void
   toggleReferenceItemVisibility: (referenceId: string) => void
+  setReferenceItemVisibility: (referenceId: string, visible: boolean) => void
   toggleReferenceCategoryVisibility: (categoryId: ReferenceCategoryId) => void
   toggleSketchVisibility: (rowId: string) => void
   setPartVisibility: (partKey: string, isVisible: boolean) => void
@@ -115,6 +118,11 @@ const isExplicitSelectionTarget = (
   (target.kind === 'assembly' ||
     target.kind === 'component' ||
     target.kind === 'object')
+
+const isReferenceVisibilitySelectionTarget = (
+  target: WorkspaceSelectedTarget | null,
+): target is Extract<WorkspaceSelectedTarget, { kind: 'reference-item' } | { kind: 'object' }> =>
+  target !== null && (target.kind === 'reference-item' || target.kind === 'object')
 
 const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
   switch (target.kind) {
@@ -160,11 +168,115 @@ const buildExplicitSelectionTargetFromRow = (
   }
 }
 
+const isMultiSelectContentVisibilityRow = (
+  row: BrowserRenderableRowVm,
+): row is Extract<BrowserRenderableRowVm, { rowKind: 'assembly' | 'component' | 'object' }> =>
+  row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object'
+
+const getFilteredVisibilityPartKeys = (row: { visibilityPartKeys: string[] }): string[] =>
+  row.visibilityPartKeys.filter((partKey) => partKey.length > 0)
+
+const rowHasSelectedPartKey = (
+  row: { visibilityPartKeys: string[] },
+  selectedPartKeys: ReadonlySet<string>,
+): boolean =>
+  getFilteredVisibilityPartKeys(row).some((partKey) => selectedPartKeys.has(partKey))
+
+const dedupeVisibilityRows = <
+  T extends Extract<BrowserRenderableRowVm, { rowKind: 'assembly' | 'component' | 'object' }>,
+>(
+  rows: readonly T[],
+): T[] => {
+  const seen = new Set<string>()
+  const deduped: T[] = []
+  rows.forEach((candidate) => {
+    if (seen.has(candidate.rowId)) {
+      return
+    }
+    seen.add(candidate.rowId)
+    deduped.push(candidate)
+  })
+  return deduped
+}
+
 export const createBrowserRowInteractionHandlers = (
   deps: BrowserRowInteractionDeps,
 ): BrowserRowInteractionHandlers => {
   const resolveSelectedBrowserRowIdFromTarget = (target: WorkspaceSelectedTarget | null): string | null =>
     resolveBrowserSelectedRowIdFromTarget(target, deps)
+
+  const getCurrentExplicitSelectionTargets = (): WorkspaceSelectedTarget[] =>
+    deps.workspaceExplicitSelectedTargets.length > 0
+      ? deps.workspaceExplicitSelectedTargets
+      : deps.workspaceSelectedTarget !== null
+        ? isExplicitSelectionTarget(deps.workspaceSelectedTarget)
+          ? [deps.workspaceSelectedTarget]
+          : []
+        : []
+
+  const getCurrentReferenceVisibilitySelectionTargets = (): Array<
+    Extract<WorkspaceSelectedTarget, { kind: 'reference-item' } | { kind: 'object' }>
+  > =>
+    deps.workspaceExplicitSelectedTargets.length > 0
+      ? deps.workspaceExplicitSelectedTargets.filter(isReferenceVisibilitySelectionTarget)
+      : deps.workspaceSelectedTarget !== null &&
+          isReferenceVisibilitySelectionTarget(deps.workspaceSelectedTarget)
+        ? [deps.workspaceSelectedTarget]
+        : []
+
+  const resolveReferenceVisibilityRowReferenceId = (
+    candidate: BrowserRenderableRowVm | undefined,
+  ): string | null => {
+    if (candidate === undefined) {
+      return null
+    }
+    if (
+      candidate.rowKind === 'reference-item' &&
+      typeof candidate.referenceId === 'string' &&
+      candidate.referenceId.length > 0
+    ) {
+      return candidate.referenceId
+    }
+    if (
+      candidate.rowKind === 'object' &&
+      (candidate.contentOriginKind === 'imported-reference' ||
+        candidate.contentOriginKind === 'source-reference') &&
+      typeof candidate.referenceId === 'string' &&
+      candidate.referenceId.length > 0
+    ) {
+      return candidate.referenceId
+    }
+    return null
+  }
+
+  const resolveSelectedReferenceVisibilityIds = (): string[] => {
+    const referenceIds = new Set<string>()
+    const addReferenceIdFromRowId = (rowId: string) => {
+      const row =
+        deps.browserTreeRows.contentRows.find((candidate) => candidate.rowId === rowId) ??
+        deps.browserTreeRows.referenceRows.find((candidate) => candidate.rowId === rowId)
+      const referenceId = resolveReferenceVisibilityRowReferenceId(row)
+      if (referenceId !== null) {
+        referenceIds.add(referenceId)
+      }
+    }
+
+    getCurrentReferenceVisibilitySelectionTargets().forEach((target) => {
+      if (target.kind === 'reference-item') {
+        if (target.referenceId.length > 0) {
+          referenceIds.add(target.referenceId)
+        }
+        return
+      }
+      addReferenceIdFromRowId(target.objectId)
+    })
+
+    if (deps.workspaceResolvedContentSelection?.rootKind === 'multi-select') {
+      deps.workspaceResolvedContentSelection.groupedRowIds.forEach(addReferenceIdFromRowId)
+    }
+
+    return [...referenceIds]
+  }
 
   const getExplicitSelectionSectionRows = (row: BrowserRenderableRowVm): BrowserRenderableRowVm[] => {
     if (
@@ -242,14 +354,7 @@ export const createBrowserRowInteractionHandlers = (
     if (isExplicitSelectionRow(row)) {
       const explicitSelectionTarget = buildExplicitSelectionTargetFromRow(row)
       if (explicitSelectionTarget !== null) {
-        const currentExplicitTargets =
-          deps.workspaceExplicitSelectedTargets.length > 0
-            ? deps.workspaceExplicitSelectedTargets
-            : deps.workspaceSelectedTarget !== null
-              ? isExplicitSelectionTarget(deps.workspaceSelectedTarget)
-                ? [deps.workspaceSelectedTarget]
-                : []
-              : []
+        const currentExplicitTargets = getCurrentExplicitSelectionTargets()
 
         if (modifiers.shiftKey) {
           const sectionRows = getExplicitSelectionSectionRows(row)
@@ -526,6 +631,15 @@ export const createBrowserRowInteractionHandlers = (
       return
     }
     if (row.rowKind === 'reference-item') {
+      const selectedReferenceIds = resolveSelectedReferenceVisibilityIds()
+      if (selectedReferenceIds.length > 1 && selectedReferenceIds.includes(row.referenceId)) {
+        const nextVisible = !row.isVisible
+        deps.appendBrowserEntry('Selected browser visibility toggled')
+        selectedReferenceIds.forEach((referenceId) => {
+          deps.setReferenceItemVisibility(referenceId, nextVisible)
+        })
+        return
+      }
       deps.appendBrowserEntry(`${row.label} visibility toggled`)
       deps.toggleReferenceItemVisibility(row.referenceId)
       return
@@ -535,6 +649,15 @@ export const createBrowserRowInteractionHandlers = (
       (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference') &&
       row.referenceId
     ) {
+      const selectedReferenceIds = resolveSelectedReferenceVisibilityIds()
+      if (selectedReferenceIds.length > 1 && selectedReferenceIds.includes(row.referenceId)) {
+        const nextVisible = !row.isVisible
+        deps.appendBrowserEntry('Selected browser visibility toggled')
+        selectedReferenceIds.forEach((referenceId) => {
+          deps.setReferenceItemVisibility(referenceId, nextVisible)
+        })
+        return
+      }
       deps.appendBrowserEntry(`${row.label} visibility toggled`)
       deps.toggleReferenceItemVisibility(row.referenceId)
     }
@@ -559,15 +682,91 @@ export const createBrowserRowInteractionHandlers = (
     ) {
       return
     }
-    if (row.visibilityPartKeys.length === 0) {
+    const resolveTargetRows = (): Array<
+      Extract<BrowserRenderableRowVm, { rowKind: 'assembly' | 'component' | 'object' | 'part' }>
+    > => {
+      if (!isMultiSelectContentVisibilityRow(row)) {
+        return [row]
+      }
+      const clickedTarget = buildExplicitSelectionTargetFromRow(row)
+      const currentExplicitTargets = getCurrentExplicitSelectionTargets()
+      const hasExplicitMultiSelection = currentExplicitTargets.length > 1
+      const explicitTargetsAreAllObjects =
+        currentExplicitTargets.length > 0 &&
+        currentExplicitTargets.every((target) => target.kind === 'object')
+      const selectedTargetKeys = new Set(
+        hasExplicitMultiSelection ? currentExplicitTargets.map(getWorkspaceTargetKey) : [],
+      )
+      const explicitSelectedRows = deps.browserTreeRows.contentRows.filter(
+        (candidate): candidate is Extract<
+          BrowserRenderableRowVm,
+          { rowKind: 'assembly' | 'component' | 'object' }
+        > => {
+          if (!isMultiSelectContentVisibilityRow(candidate)) {
+            return false
+          }
+          if (clickedTarget === null) {
+            return false
+          }
+          const candidateTarget = buildExplicitSelectionTargetFromRow(candidate)
+          return candidateTarget !== null &&
+            selectedTargetKeys.has(getWorkspaceTargetKey(clickedTarget)) &&
+            selectedTargetKeys.has(getWorkspaceTargetKey(candidateTarget))
+        },
+      )
+      const resolvedSelection = deps.workspaceResolvedContentSelection
+      const selectedPartKeys = new Set((resolvedSelection?.partKeys ?? []).filter((partKey) => partKey.length > 0))
+      const resolvedObjectRows =
+        row.rowKind === 'object' &&
+        resolvedSelection?.rootKind === 'multi-select' &&
+        selectedPartKeys.size > 0 &&
+        rowHasSelectedPartKey(row, selectedPartKeys) &&
+        (!hasExplicitMultiSelection || explicitTargetsAreAllObjects)
+          ? deps.browserTreeRows.contentRows.filter(
+              (candidate): candidate is Extract<BrowserRenderableRowVm, { rowKind: 'object' }> =>
+                candidate.rowKind === 'object' && rowHasSelectedPartKey(candidate, selectedPartKeys),
+            )
+          : []
+      const selectedRows = dedupeVisibilityRows([
+        ...explicitSelectedRows,
+        ...resolvedObjectRows,
+      ])
+      return selectedRows.length > 1 && selectedRows.some((candidate) => candidate.rowId === row.rowId)
+        ? selectedRows
+        : [row]
+    }
+
+    const nextVisible = !row.isVisible
+    const targetRows = resolveTargetRows().filter((candidate) => candidate.isVisible !== nextVisible)
+    const visibilityPartKeys = [
+      ...new Set(
+        targetRows.flatMap((candidate) =>
+          getFilteredVisibilityPartKeys(candidate),
+        ),
+      ),
+    ]
+    const visibilityReferenceIds = [
+      ...new Set(
+        targetRows.flatMap((candidate) =>
+          candidate.rowKind === 'assembly' || candidate.rowKind === 'component'
+            ? (candidate.visibilityReferenceIds ?? []).filter((referenceId) => referenceId.length > 0)
+            : [],
+        ),
+      ),
+    ]
+    if (visibilityPartKeys.length === 0 && visibilityReferenceIds.length === 0) {
       return
     }
     deps.setLocalSelectedBrowserRowId(row.rowId)
     deps.closeMenus()
-    deps.appendBrowserEntry(`${row.label} visibility toggled`)
-    const nextVisible = !row.isVisible
-    row.visibilityPartKeys.forEach((partKey) => {
+    deps.appendBrowserEntry(
+      targetRows.length > 1 ? 'Selected browser visibility toggled' : `${row.label} visibility toggled`,
+    )
+    visibilityPartKeys.forEach((partKey) => {
       deps.setPartVisibility(partKey, nextVisible)
+    })
+    visibilityReferenceIds.forEach((referenceId) => {
+      deps.setReferenceItemVisibility(referenceId, nextVisible)
     })
   }
 

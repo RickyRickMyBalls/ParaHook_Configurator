@@ -8,6 +8,7 @@ import type { ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
 let currentSpaghettiState: any
 let currentAppState: any
 let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
+let importReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
 let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
   viewerFrameSelectionSetMock: vi.fn(),
@@ -20,7 +21,21 @@ const isReferenceCategoryComponentId = (componentId: string) =>
   componentId.startsWith('reference-category-row:')
 
 const resolveMockOwnerParentKey = (target: any) => {
-  if (target.kind === 'object') {
+  if (target.kind === 'object' || target.kind === 'imported-reference') {
+    if (target.kind === 'imported-reference') {
+      const referenceItem =
+        currentAppState.referenceWorkspaceTree?.categories
+          ?.flatMap((category: any) => category.items)
+          ?.find((item: any) => item.referenceId === target.referenceId) ?? null
+      if (referenceItem === null) {
+        return null
+      }
+      return (
+        referenceItem.parentComponentId ??
+        referenceItem.parentAssemblyId ??
+        `reference-category-row:${referenceItem.categoryId}`
+      )
+    }
     const objectRow = currentAppState.projectContent?.objectsById?.[target.objectId] ?? null
     if (objectRow !== null) {
       return objectRow.parentComponentId ?? objectRow.parentAssemblyId ?? null
@@ -226,8 +241,12 @@ vi.mock('../store/useAppStore', () => ({
   resolveProjectContentOwnerDrop: (_state: any, draggedTarget: any, dropTarget: any) => {
     const resolveParentKey = (target: any) => resolveMockOwnerParentKey(target)
     if (
-      (draggedTarget.kind === 'object' || draggedTarget.kind === 'component') &&
-      (dropTarget.kind === 'object' || dropTarget.kind === 'component') &&
+      (draggedTarget.kind === 'object' ||
+        draggedTarget.kind === 'component' ||
+        draggedTarget.kind === 'imported-reference') &&
+      (dropTarget.kind === 'object' ||
+        dropTarget.kind === 'component' ||
+        dropTarget.kind === 'imported-reference') &&
       (dropTarget.position === 'before' || dropTarget.position === 'after')
     ) {
       return resolveParentKey(draggedTarget) === resolveParentKey(dropTarget)
@@ -241,7 +260,9 @@ vi.mock('../store/useAppStore', () => ({
         : { valid: false, reason: 'invalid-same-parent' }
     }
     if (
-      (draggedTarget.kind === 'object' || draggedTarget.kind === 'component') &&
+      (draggedTarget.kind === 'object' ||
+        draggedTarget.kind === 'component' ||
+        draggedTarget.kind === 'imported-reference') &&
       dropTarget.kind === 'component' &&
       dropTarget.position === 'into'
     ) {
@@ -254,7 +275,9 @@ vi.mock('../store/useAppStore', () => ({
       }
     }
     if (
-      (draggedTarget.kind === 'object' || draggedTarget.kind === 'component') &&
+      (draggedTarget.kind === 'object' ||
+        draggedTarget.kind === 'component' ||
+        draggedTarget.kind === 'imported-reference') &&
       dropTarget.kind === 'assembly' &&
       dropTarget.position === 'into'
     ) {
@@ -278,8 +301,12 @@ vi.mock('../store/useAppStore', () => ({
       resolveProjectContentOwnerDrop: (_nextState: any, nextDraggedTarget: any, nextDropTarget: any) => {
         const resolveParentKey = (target: any) => resolveMockOwnerParentKey(target)
         if (
-          (nextDraggedTarget.kind === 'object' || nextDraggedTarget.kind === 'component') &&
-          (nextDropTarget.kind === 'object' || nextDropTarget.kind === 'component') &&
+          (nextDraggedTarget.kind === 'object' ||
+            nextDraggedTarget.kind === 'component' ||
+            nextDraggedTarget.kind === 'imported-reference') &&
+          (nextDropTarget.kind === 'object' ||
+            nextDropTarget.kind === 'component' ||
+            nextDropTarget.kind === 'imported-reference') &&
           (nextDropTarget.position === 'before' || nextDropTarget.position === 'after')
         ) {
           return resolveParentKey(nextDraggedTarget) === resolveParentKey(nextDropTarget)
@@ -293,7 +320,9 @@ vi.mock('../store/useAppStore', () => ({
             : { valid: false, reason: 'invalid-same-parent' }
         }
         if (
-          (nextDraggedTarget.kind === 'object' || nextDraggedTarget.kind === 'component') &&
+          (nextDraggedTarget.kind === 'object' ||
+            nextDraggedTarget.kind === 'component' ||
+            nextDraggedTarget.kind === 'imported-reference') &&
           nextDropTarget.kind === 'component' &&
           nextDropTarget.position === 'into'
         ) {
@@ -306,7 +335,9 @@ vi.mock('../store/useAppStore', () => ({
           }
         }
         if (
-          (nextDraggedTarget.kind === 'object' || nextDraggedTarget.kind === 'component') &&
+          (nextDraggedTarget.kind === 'object' ||
+            nextDraggedTarget.kind === 'component' ||
+            nextDraggedTarget.kind === 'imported-reference') &&
           nextDropTarget.kind === 'assembly' &&
           nextDropTarget.position === 'into'
         ) {
@@ -343,6 +374,7 @@ vi.mock('../references/importReferenceFile', () => ({
     glb: 'Import .glb',
   },
   importReferenceFileFromDisk: (...args: unknown[]) => importReferenceFileFromDiskMock(...args),
+  importReferenceFilesFromDisk: (...args: unknown[]) => importReferenceFilesFromDiskMock(...args),
 }))
 
 vi.mock('../viewerBridge', () => ({
@@ -466,7 +498,7 @@ const emptyReferenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
   ],
 }
 
-const referenceWorkspaceStateFromTree = (tree: typeof emptyReferenceWorkspaceTree) => ({
+const referenceWorkspaceStateFromTree = (tree: ReferenceWorkspaceBrowserTreeVm) => ({
   referencesExpanded: tree.isExpanded,
   categoryExpandedById: Object.fromEntries(
     tree.categories.map((category) => [category.categoryId, category.isExpanded]),
@@ -536,6 +568,15 @@ const getMockSelectionTargetKey = (target: any): string => {
       return `${target.kind}`
   }
 }
+
+const resolveMockWorkspaceSelectionTargetFromOwnerTarget = (target: any) =>
+  target.kind === 'assembly'
+    ? { kind: 'assembly', assemblyId: target.assemblyId }
+    : target.kind === 'component'
+      ? { kind: 'component', componentId: target.componentId }
+      : target.kind === 'object'
+        ? { kind: 'object', objectId: target.objectId }
+        : { kind: 'object', objectId: `reference-item-row:${target.referenceId}` }
 
 const resolveMockContentSelection = (explicitTargets: any[]) => {
   const projectContentRows = buildMockProjectContentRows()
@@ -665,6 +706,9 @@ const resolveMockContentSelection = (explicitTargets: any[]) => {
       continue
     }
     selection.partKeys.forEach((partKey: string) => partKeySet.add(partKey))
+    if (selection.rootKind === 'object') {
+      groupedRowIdSet.add(selection.rootRowId)
+    }
     selection.groupedRowIds.forEach((rowId: string) => groupedRowIdSet.add(rowId))
   }
   return {
@@ -879,6 +923,7 @@ describe('BrowserPanel', () => {
   beforeEach(() => {
     viewerFrameSelectionSetMock.mockReset()
     importReferenceFileFromDiskMock = vi.fn()
+    importReferenceFilesFromDiskMock = vi.fn()
     mockRequestBrowserGraphDocumentBuild = vi.fn()
     currentSpaghettiState = {
       graphDocumentsById: {
@@ -1081,6 +1126,32 @@ describe('BrowserPanel', () => {
       createProjectAssembly: vi.fn(() => 'assembly-authored-1'),
       createProjectComponent: vi.fn(() => 'component-authored-1'),
       moveProjectContentOwner: vi.fn(() => true),
+      moveProjectContentOwnersBatch: vi.fn((draggedTargets: any[], dropTarget: any) => {
+        if (draggedTargets.length === 0) {
+          return false
+        }
+        const moved = draggedTargets.every((draggedTarget) =>
+          currentAppState.moveProjectContentOwner(draggedTarget, dropTarget),
+        )
+        if (!moved) {
+          return false
+        }
+        const selectedTarget = resolveMockWorkspaceSelectionTargetFromOwnerTarget(draggedTargets[0])
+        const explicitSelectedTargets = draggedTargets.map(
+          resolveMockWorkspaceSelectionTargetFromOwnerTarget,
+        )
+        currentAppState = {
+          ...currentAppState,
+          workspaceSelection: {
+            ...currentAppState.workspaceSelection,
+            selectedTarget,
+            explicitSelectedTargets,
+            selectionAnchorTarget: selectedTarget,
+            resolvedContentSelection: resolveMockContentSelection(explicitSelectedTargets),
+          },
+        }
+        return true
+      }),
       renameProjectContentOwner: vi.fn(() => true),
       deleteProjectContentOwner: vi.fn(() => true),
       beginReferenceTransform: vi.fn(),
@@ -3799,6 +3870,50 @@ describe('BrowserPanel', () => {
     expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
   })
 
+  it('imports a batch of obj files into the working hierarchy from one menu action', async () => {
+    importReferenceFilesFromDiskMock.mockResolvedValue([
+      {
+        fileName: 'shoe-1.obj',
+        fileType: 'obj',
+        objectUrl: 'blob:shoe-1',
+      },
+      {
+        fileName: 'shoe-2.obj',
+        fileType: 'obj',
+        objectUrl: 'blob:shoe-2',
+      },
+    ])
+
+    ;({ root } = await renderBrowserPanel())
+
+    const importButton = findButtonByLabel('Import reference file')
+    expect(importButton).not.toBeNull()
+
+    await click(importButton!)
+    expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Import Reference')
+
+    await click(findButtonByLabel('Import .obj')!)
+
+    expect(importReferenceFilesFromDiskMock).toHaveBeenCalledWith('obj')
+    expect(importReferenceFileFromDiskMock).not.toHaveBeenCalledWith('obj')
+    expect(currentAppState.addImportedReference).toHaveBeenCalledTimes(2)
+    expect(currentAppState.addImportedReference).toHaveBeenNthCalledWith(1, {
+      fileName: 'shoe-1.obj',
+      fileType: 'obj',
+      objectUrl: 'blob:shoe-1',
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    expect(currentAppState.addImportedReference).toHaveBeenNthCalledWith(2, {
+      fileName: 'shoe-2.obj',
+      fileType: 'obj',
+      objectUrl: 'blob:shoe-2',
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
+  })
+
   it('shows Transform Object on reference item right-click and starts reference transform mode', async () => {
     currentAppState = {
       ...currentAppState,
@@ -3916,6 +4031,354 @@ describe('BrowserPanel', () => {
     await contextMenu(findRowMainByLabel('shoe.glb')!)
     await click(findButtonByLabel('Remove')!)
     expect(currentAppState.removeImportedReference).toHaveBeenCalledWith('reference-import:1')
+  })
+
+  it('uses grouped remove from the row menu when the clicked imported reference belongs to a deletable multi-select', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 2,
+            visibleItemCount: 2,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:reference-import:1',
+                referenceId: 'reference-import:1',
+                sourceKind: 'imported',
+                label: 'shoe-a.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-a',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+              {
+                rowId: 'reference-item-row:reference-import:2',
+                referenceId: 'reference-import:2',
+                sourceKind: 'imported',
+                label: 'shoe-b.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-b',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+        ],
+      },
+      workspaceSelection: {
+        ...currentAppState.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'reference-item-row:reference-import:1',
+          },
+          {
+            kind: 'object',
+            objectId: 'reference-item-row:reference-import:2',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:1',
+        },
+        resolvedContentSelection: {
+          rootRowId: 'multi-select',
+          rootKind: 'multi-select',
+          partKeys: [],
+          groupedRowIds: [
+            'reference-item-row:reference-import:1',
+            'reference-item-row:reference-import:2',
+          ],
+        },
+        activeSurface: 'browser',
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    await contextMenu(findRowMainByLabel('shoe-a.glb')!)
+    await click(findButtonByLabel('Remove')!)
+
+    expect(currentAppState.removeImportedReference).toHaveBeenNthCalledWith(1, 'reference-import:1')
+    expect(currentAppState.removeImportedReference).toHaveBeenNthCalledWith(2, 'reference-import:2')
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+  })
+
+  it('uses grouped Hide from the row menu when the clicked object belongs to a visible browser multi-select', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+      workspaceSelection: {
+        ...currentAppState.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('Object 2')!, { ctrlKey: true })
+    await contextMenu(findRowMainByLabel('Object 1')!)
+    await click(findButtonByLabel('Hide')!)
+
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(1, 'graph-document-1:slot-a', false)
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(2, 'graph-document-1:slot-b', false)
+  })
+
+  it('uses grouped Hide from the row menu when the clicked imported reference row belongs to a visible browser multi-select', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 2,
+            visibleItemCount: 2,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:shoe-1',
+                referenceId: 'shoe-1',
+                sourceKind: 'imported',
+                label: 'shoe-a.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-a',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+              {
+                rowId: 'reference-item-row:shoe-2',
+                referenceId: 'shoe-2',
+                sourceKind: 'imported',
+                label: 'shoe-b.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-b',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+        ],
+      },
+      workspaceSelection: {
+        ...currentAppState.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:shoe-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'reference-item-row:shoe-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:shoe-1',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('shoe-b.glb')!, { ctrlKey: true })
+    await contextMenu(findRowMainByLabel('shoe-a.glb')!)
+    await click(findButtonByLabel('Hide')!)
+
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenNthCalledWith(1, 'shoe-1', false)
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenNthCalledWith(2, 'shoe-2', false)
+  })
+
+  it('applies a selected imported reference row hide eye across the eligible browser multi-selection', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 2,
+            visibleItemCount: 2,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:shoe-1',
+                referenceId: 'shoe-1',
+                sourceKind: 'imported',
+                label: 'shoe-a.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-a',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+              {
+                rowId: 'reference-item-row:shoe-2',
+                referenceId: 'shoe-2',
+                sourceKind: 'imported',
+                label: 'shoe-b.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-b',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+              },
+            ],
+          },
+        ],
+      },
+      workspaceSelection: {
+        ...currentAppState.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:shoe-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'reference-item-row:shoe-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:shoe-1',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('shoe-b.glb')!, { ctrlKey: true })
+    await click(findButtonByLabel('Hide shoe-a.glb')!)
+
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenNthCalledWith(1, 'shoe-1', false)
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenNthCalledWith(2, 'shoe-2', false)
   })
 
   it('renders active reference bars darker for loaded rows and dormant bars lighter for unloaded rows', async () => {
@@ -4395,6 +4858,301 @@ describe('BrowserPanel', () => {
     expect(findButtonByLabel('Hide Assembly 1')).not.toBeNull()
     expect(findButtonByLabel('Hide Component 1')).not.toBeNull()
     expect(findButtonByLabel('Hide Object 1')).not.toBeNull()
+  })
+
+  it('applies a selected object row hide eye across the eligible browser multi-selection', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+      workspaceSelection: {
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        resolvedContentSelection: null,
+        activeSurface: 'browser',
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('Object 2')!, { ctrlKey: true })
+    await click(findButtonByLabel('Hide Object 1')!)
+
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(1, 'graph-document-1:slot-a', false)
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(2, 'graph-document-1:slot-b', false)
+  })
+
+  it('applies an object row hide eye across the resolved selected content set when explicit targets are narrower', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContentRows: [
+        {
+          rowId: 'assembly-root:project-file-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'object-1',
+          kind: 'object',
+          label: 'Object 1',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-a'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-1',
+          slotId: 'slot-a',
+          sourceNodeId: 'node-1',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-a',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-1',
+        },
+        {
+          rowId: 'object-2',
+          kind: 'object',
+          label: 'Object 2',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['graph-document-1:slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          parentComponentId: null,
+          objectSourceKind: 'published-object',
+          sourceGraphDocumentId: 'graph-document-1',
+          sourceOutputEntryId: 'output-entry-2',
+          slotId: 'slot-b',
+          sourceNodeId: 'node-2',
+          resolutionState: 'resolved',
+          highlightViewerKey: 'graph-document-1:slot-b',
+          authoringGraphDocumentId: 'graph-document-1',
+          authoringNodeId: 'node-2',
+        },
+      ],
+      workspaceSelection: {
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'object-1',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'object-1',
+        },
+        resolvedContentSelection: {
+          rootRowId: 'multi-select',
+          rootKind: 'multi-select',
+          partKeys: ['graph-document-1:slot-a', 'graph-document-1:slot-b'],
+          groupedRowIds: [],
+        },
+        activeSurface: 'viewport',
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findButtonByLabel('Hide Object 1')!)
+
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(1, 'graph-document-1:slot-a', false)
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(2, 'graph-document-1:slot-b', false)
+  })
+
+  it('adds Hide to authored container row menus and routes it through shared part visibility', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'runtime-root',
+            childRowIds: ['component-1'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+            ownerGraphDocumentId: 'graph-document-1',
+            label: 'Component 1',
+            componentSourceKind: 'authored',
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            slotId: null,
+            receiveId: null,
+            resolutionState: 'resolved',
+            childObjectIds: ['object-1', 'object-2'],
+          },
+        },
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: null,
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+          'object-2': {
+            objectId: 'object-2',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: null,
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-2',
+            sourceNodeId: 'node-2',
+            slotId: 'slot-b',
+            label: 'Object 2',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+        {
+          rowId: 'component-1',
+          kind: 'component',
+          label: 'Component 1',
+          meta: 'Graph 1',
+          isVisible: true,
+          visibilityPartKeys: ['slot-a', 'slot-b'],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          ownerGraphDocumentId: 'graph-document-1',
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          componentSourceKind: 'authored',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectCount: 2,
+          slotId: null,
+          sourceNodeId: null,
+          highlightViewerKey: null,
+          authoringGraphDocumentId: null,
+          authoringNodeId: null,
+        },
+      ],
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    await contextMenu(findRowMainByLabel('Assembly 1')!)
+    const hideButton =
+      Array.from(document.querySelectorAll('.BrowserTreeContextMenu button')).find(
+        (element) => element.textContent?.trim() === 'Hide',
+      ) ?? null
+
+    expect(hideButton).not.toBeNull()
+
+    await click(hideButton!)
+
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(1, 'slot-a', false)
+    expect(currentAppState.setPartVisibility).toHaveBeenNthCalledWith(2, 'slot-b', false)
   })
 
   it('shows same-parent drop intent and reorders published objects through the shared move seam', async () => {
@@ -5506,6 +6264,298 @@ describe('BrowserPanel', () => {
     expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
       kind: 'assembly',
       assemblyId: 'assembly-1',
+    })
+  })
+
+  const buildGroupedImportedReferenceDragScenario = (options?: {
+    includeTargetObject?: boolean
+  }) => {
+    const includeTargetObject = options?.includeTargetObject ?? false
+    const referenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
+      rowId: 'reference-root',
+      label: 'References',
+      isExpanded: true,
+      categories: [
+        ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+        {
+          rowId: 'reference-category-row:user-references',
+          categoryId: 'user-references',
+          label: 'User References',
+          isExpanded: true,
+          itemCount: 2,
+          visibleItemCount: 2,
+          hasLoadingItem: false,
+          hasErrorItem: false,
+          emptyLabel: 'No imported references yet.',
+          items: [
+            {
+              rowId: 'reference-item-row:reference-import:1',
+              referenceId: 'reference-import:1',
+              sourceKind: 'imported',
+              label: 'shoe-a.glb',
+              categoryId: 'user-references',
+              fileType: 'glb',
+              assetPath: 'blob:shoe-a',
+              isVisible: true,
+              loadState: 'loaded',
+              errorMessage: null,
+              parts: [],
+              parentAssemblyId: 'assembly-1',
+            },
+            {
+              rowId: 'reference-item-row:reference-import:2',
+              referenceId: 'reference-import:2',
+              sourceKind: 'imported',
+              label: 'shoe-b.glb',
+              categoryId: 'user-references',
+              fileType: 'glb',
+              assetPath: 'blob:shoe-b',
+              isVisible: true,
+              loadState: 'loaded',
+              errorMessage: null,
+              parts: [],
+              parentAssemblyId: 'assembly-1',
+            },
+          ],
+        },
+      ],
+    }
+
+    return {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: [],
+          },
+          'assembly-2': {
+            assemblyId: 'assembly-2',
+            label: 'Assembly 2',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: includeTargetObject ? ['object-target-1'] : [],
+          },
+        },
+        componentsById: {},
+        objectsById: includeTargetObject
+          ? {
+              'object-target-1': {
+                objectId: 'object-target-1',
+                ownerGraphDocumentId: 'graph-document-1',
+                parentAssemblyId: 'assembly-2',
+                parentComponentId: null,
+                objectSourceKind: 'published-object',
+                sourceGraphDocumentId: 'graph-document-1',
+                sourceOutputEntryId: 'output-entry-target-1',
+                sourceNodeId: 'node-target-1',
+                slotId: 'slot-target-1',
+                label: 'Target Object 1',
+                resolutionState: 'resolved',
+              },
+            }
+          : {},
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          parentAssemblyId: null,
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+        },
+        {
+          rowId: 'assembly-2',
+          kind: 'assembly',
+          label: 'Assembly 2',
+          meta: '',
+          parentAssemblyId: null,
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+          statusLabel: 'Ready',
+          statusTone: 'ready',
+        },
+        ...(includeTargetObject
+          ? [
+              {
+                rowId: 'object-target-1',
+                kind: 'object',
+                label: 'Target Object 1',
+                meta: '',
+                isVisible: true,
+                visibilityPartKeys: ['slot-target-1'],
+                buildState: 'done',
+                buildStateLabel: 'Built',
+                rebuildGraphDocumentIds: [],
+                ownerGraphDocumentId: 'graph-document-1',
+                parentAssemblyId: 'assembly-2',
+                parentComponentId: null,
+                objectSourceKind: 'published-object',
+                sourceGraphDocumentId: 'graph-document-1',
+                sourceOutputEntryId: 'output-entry-target-1',
+                slotId: 'slot-target-1',
+                sourceNodeId: 'node-target-1',
+                resolutionState: 'resolved',
+                highlightViewerKey: 'slot-target-1',
+                authoringGraphDocumentId: 'graph-document-1',
+                authoringNodeId: 'node-target-1',
+              },
+            ]
+          : []),
+      ],
+      referenceWorkspaceTree,
+      referenceWorkspace: referenceWorkspaceStateFromTree(referenceWorkspaceTree),
+      workspaceSelection: {
+        ...currentAppState.workspaceSelection,
+        selectedTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:1',
+        },
+        explicitSelectedTargets: [
+          {
+            kind: 'object',
+            objectId: 'reference-item-row:reference-import:1',
+          },
+          {
+            kind: 'object',
+            objectId: 'reference-item-row:reference-import:2',
+          },
+        ],
+        selectionAnchorTarget: {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:1',
+        },
+        resolvedContentSelection: {
+          rootRowId: 'multi-select',
+          rootKind: 'multi-select',
+          partKeys: [],
+          groupedRowIds: [
+            'reference-item-row:reference-import:1',
+            'reference-item-row:reference-import:2',
+          ],
+        },
+        activeSurface: 'browser',
+      },
+    }
+  }
+
+  it('keeps imported reference multi-select rows grouped through drag start', async () => {
+    currentAppState = buildGroupedImportedReferenceDragScenario()
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('shoe-a.glb')?.closest('.BrowserTreeRow')
+    const siblingRow = findRowMainByLabel('shoe-b.glb')?.closest('.BrowserTreeRow')
+    expect(sourceRow).not.toBeNull()
+    expect(siblingRow).not.toBeNull()
+
+    await beginDragRow(sourceRow!)
+
+    expect(sourceRow!.classList.contains('isDragging')).toBe(true)
+    expect(siblingRow!.classList.contains('isDragging')).toBe(true)
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'reference-item-row:reference-import:1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:1',
+        },
+        {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:2',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'reference-item-row:reference-import:1',
+      },
+    })
+  })
+
+  it('keeps grouped imported reference drag invalid on non-owner rows', async () => {
+    currentAppState = buildGroupedImportedReferenceDragScenario({
+      includeTargetObject: true,
+    })
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('shoe-a.glb')?.closest('.BrowserTreeRow')
+    const targetObjectRow = findRowMainByLabel('Target Object 1')?.closest('.BrowserTreeRow')
+    const targetAssemblyRow = findRowMainByLabel('Assembly 2')?.closest('.BrowserTreeRow')
+    expect(sourceRow).not.toBeNull()
+    expect(targetObjectRow).not.toBeNull()
+    expect(targetAssemblyRow).not.toBeNull()
+
+    mockRowRect(targetAssemblyRow!, 0)
+    mockRowRect(targetObjectRow!, 36)
+    mockRowRect(sourceRow!, 72)
+
+    const dataTransfer = await beginDragRow(sourceRow!)
+
+    await dragOverRow(targetObjectRow!, dataTransfer, 52)
+
+    expect(targetObjectRow!.classList.contains('isDropTargetInvalid')).toBe(true)
+    expect(targetAssemblyRow!.classList.contains('isDropOwnerSupport')).toBe(false)
+  })
+
+  it('preserves grouped selection after moving imported reference multi-selects', async () => {
+    currentAppState = buildGroupedImportedReferenceDragScenario()
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('shoe-a.glb')?.closest('.BrowserTreeRow')
+    const targetAssemblyRow = findRowMainByLabel('Assembly 2')?.closest('.BrowserTreeRow')
+    expect(sourceRow).not.toBeNull()
+    expect(targetAssemblyRow).not.toBeNull()
+
+    mockRowRect(targetAssemblyRow!, 0)
+    mockRowRect(sourceRow!, 72)
+
+    await dragRow(sourceRow!, targetAssemblyRow!, 16)
+
+    expect(currentAppState.moveProjectContentOwnersBatch).toHaveBeenCalledWith(
+      [
+        { kind: 'imported-reference', referenceId: 'reference-import:1' },
+        { kind: 'imported-reference', referenceId: 'reference-import:2' },
+      ],
+      { kind: 'assembly', assemblyId: 'assembly-2', position: 'into' },
+    )
+    expect(currentAppState.workspaceSelection.selectedTarget).toEqual({
+      kind: 'object',
+      objectId: 'reference-item-row:reference-import:1',
+    })
+    expect(currentAppState.workspaceSelection.explicitSelectedTargets).toEqual([
+      {
+        kind: 'object',
+        objectId: 'reference-item-row:reference-import:1',
+      },
+      {
+        kind: 'object',
+        objectId: 'reference-item-row:reference-import:2',
+      },
+    ])
+    expect(currentAppState.workspaceSelection.resolvedContentSelection).toMatchObject({
+      rootKind: 'multi-select',
+      groupedRowIds: [
+        'reference-item-row:reference-import:1',
+        'reference-item-row:reference-import:2',
+      ],
     })
   })
 

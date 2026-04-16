@@ -9,7 +9,7 @@ import {
 } from './stagedNavigation'
 
 describe('stagedNavigation', () => {
-  it('creates a root staged session with Graph, Camera, and Radio choices', () => {
+  it('creates a root staged session with the full root command surface', () => {
     const result = createConsoleRootSession()
 
     expect(result.scopeId).toBe('root')
@@ -18,6 +18,9 @@ describe('stagedNavigation', () => {
       'GRAPH',
       'CONTENT',
       'REFERENCES',
+      'HIDE',
+      'UNHIDEALL',
+      'WORKSPACEMODES',
       'CAMERA',
       'RADIO',
       'ZOOM',
@@ -26,15 +29,30 @@ describe('stagedNavigation', () => {
     ])
   })
 
-  it('advances from the explicit root session into graph, camera, and radio scopes', () => {
+  it('advances from the explicit root session into graph, camera, radio, and hide scopes', () => {
     const context = createConsoleStagedNavigationContext([
       { graphDocumentId: 'graph-document-1', name: 'Graph 1' },
       { graphDocumentId: 'graph-document-2', name: 'Graph 2' },
+    ], [], [
+      {
+        categoryId: 'shoes',
+        label: 'Shoes',
+        canLoadAll: true,
+        items: [
+          {
+            referenceId: 'shoe:shoe-1',
+            label: 'Shoe 1',
+            canLoadModel: false,
+            canHide: true,
+          },
+        ],
+      },
     ])
 
     const cameraResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'camera', context)
     const graphResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'graph', context)
     const radioResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'radio', context)
+    const hideResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'hide', context)
 
     expect(cameraResult).toMatchObject({
       kind: 'advance',
@@ -53,6 +71,70 @@ describe('stagedNavigation', () => {
       session: {
         scopeId: 'radioRoot',
       },
+    })
+    expect(hideResult).toMatchObject({
+      kind: 'advance',
+      session: {
+        scopeId: 'referenceHideRoot',
+      },
+    })
+  })
+
+  it('routes root Hide into visible reference picking and executes hide for the chosen object', () => {
+    const context = createConsoleStagedNavigationContext([], [], [
+      {
+        categoryId: 'shoes',
+        label: 'Shoes',
+        canLoadAll: true,
+        items: [
+          {
+            referenceId: 'shoe:shoe-visible',
+            label: 'Visible Shoe',
+            canLoadModel: false,
+            canHide: true,
+          },
+          {
+            referenceId: 'shoe:shoe-hidden',
+            label: 'Hidden Shoe',
+            canLoadModel: true,
+            canHide: false,
+          },
+        ],
+      },
+    ])
+
+    const hideRoot = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'hide', context)
+    expect(hideRoot.kind).toBe('advance')
+    if (hideRoot.kind !== 'advance') {
+      throw new Error('Expected Hide to advance into the root hide picker')
+    }
+
+    expect(hideRoot.session.scopeId).toBe('referenceHideRoot')
+    expect(hideRoot.validChoices.map((choice) => choice.label)).toEqual([
+      'Shoes / Visible Shoe',
+      'Back',
+    ])
+
+    const executeResult = submitConsoleStagedNavigationToken(hideRoot.session, '1', context)
+    expect(executeResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.hide',
+      breadcrumb: ['Hide', 'Shoes / Visible Shoe'],
+      selections: {
+        referenceId: 'shoe:shoe-visible',
+        referenceCategoryId: 'shoes',
+      },
+    })
+  })
+
+  it('executes root Unhide All directly', () => {
+    const context = createConsoleStagedNavigationContext([])
+
+    const unhideResult = submitConsoleStagedNavigationToken(createConsoleRootSession(), 'unhide all', context)
+    expect(unhideResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.unhideAll',
+      breadcrumb: ['Root', 'Unhide All'],
     })
   })
 
@@ -301,6 +383,64 @@ describe('stagedNavigation', () => {
     expect(backResult.session.scopeId).toBe('contentAssemblySelected')
   })
 
+  it('executes Hide from a selected visible assembly session', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const assemblySession: ConsoleStagedNavigationSession = {
+      scopeId: 'contentAssemblySelected',
+      breadcrumb: ['Select', 'Content', 'Assembly 1'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        contentAssemblyId: 'assembly-1',
+        contentCanHide: true,
+        contentCanShow: false,
+        contentVisibilityPartKeys: ['slot-a', 'slot-b'],
+        referenceId: null,
+      },
+      validChoices: [],
+    }
+
+    expect(submitConsoleStagedNavigationToken(assemblySession, 'hide', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'content.visibility.hide',
+      breadcrumb: ['Select', 'Content', 'Assembly 1', 'Hide'],
+      selections: {
+        contentAssemblyId: 'assembly-1',
+        contentVisibilityPartKeys: ['slot-a', 'slot-b'],
+      },
+    })
+  })
+
+  it('executes Show from a selected hidden component session', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const componentSession: ConsoleStagedNavigationSession = {
+      scopeId: 'contentComponentSelected',
+      breadcrumb: ['Select', 'Content', 'Assembly 1', 'Component 1'],
+      selections: {
+        graphDocumentId: 'graph-document-1',
+        selectedNodeId: null,
+        sketchNodeId: null,
+        contentComponentId: 'component-1',
+        contentCanHide: false,
+        contentCanShow: true,
+        contentVisibilityPartKeys: ['slot-a'],
+        referenceId: null,
+      },
+      validChoices: [],
+    }
+
+    expect(submitConsoleStagedNavigationToken(componentSession, 'show', context)).toMatchObject({
+      kind: 'execute',
+      actionId: 'content.visibility.show',
+      breadcrumb: ['Select', 'Content', 'Assembly 1', 'Component 1', 'Show'],
+      selections: {
+        contentComponentId: 'component-1',
+        contentVisibilityPartKeys: ['slot-a'],
+      },
+    })
+  })
+
   it('routes multi-select zoom back to the multi-select scope', () => {
     const context = createConsoleStagedNavigationContext([])
     const multiSelectSession = {
@@ -353,6 +493,177 @@ describe('stagedNavigation', () => {
     expect(backResult.session.scopeId).toBe('multiSelectSelected')
     expect(backResult.session.breadcrumb).toEqual(['Multi-Select', '[Object 1, Object 2]'])
     expect(backResult.validChoices.map((choice) => choice.canonicalToken)).toEqual(['ZOOM', 'BACK'])
+  })
+
+  it('exposes delete for deletable selected multi-select references and executes it directly', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const multiSelectSession = {
+      scopeId: 'multiSelectSelected' as const,
+      breadcrumb: ['Multi-Select', '[Shoe 1, Shoe 2]'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+        multiSelectLabels: ['Shoe 1', 'Shoe 2'],
+        multiSelectCanDelete: true,
+        multiSelectReferenceDeleteIds: ['reference-import:1', 'reference-import:2'],
+      },
+      validChoices: [
+        {
+          canonicalToken: 'DELETE',
+          aliases: ['D'],
+          label: 'Delete',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action' as const,
+        },
+      ],
+    }
+
+    const deleteResult = submitConsoleStagedNavigationToken(multiSelectSession, 'delete', context)
+    expect(deleteResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.multiDelete',
+      breadcrumb: ['Multi-Select', '[Shoe 1, Shoe 2]', 'Delete'],
+    })
+  })
+
+  it('exposes hide for hideable selected references and executes it directly', () => {
+    const context = createConsoleStagedNavigationContext([], [
+      {
+        categoryId: 'shoes',
+        label: 'Shoes',
+        canLoadAll: true,
+        items: [{ referenceId: 'shoe:shoe-1', label: 'Shoe 1', canLoadModel: false }],
+      },
+    ])
+    const referenceSession: ConsoleStagedNavigationSession = {
+      scopeId: 'referenceSelected',
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: 'shoe:shoe-1',
+        referenceCategoryId: 'shoes',
+        referenceCanLoadModel: false,
+        referenceCanDelete: false,
+        referenceCanHide: true,
+      },
+      validChoices: [],
+    }
+
+    const hideResult = submitConsoleStagedNavigationToken(referenceSession, 'h', context)
+    expect(hideResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.hide',
+      breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Hide'],
+    })
+  })
+
+  it('exposes hide for hideable selected multi-select references and executes it directly', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const multiSelectSession = {
+      scopeId: 'multiSelectSelected' as const,
+      breadcrumb: ['Multi-Select', '[Shoe 1, Shoe 2]'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+        multiSelectLabels: ['Shoe 1', 'Shoe 2'],
+        multiSelectCanDelete: false,
+        multiSelectReferenceDeleteIds: [],
+        multiSelectCanHide: true,
+        multiSelectReferenceHideIds: ['reference-import:1', 'reference-import:2'],
+      },
+      validChoices: [
+        {
+          canonicalToken: 'HIDE',
+          aliases: ['H'],
+          label: 'Hide',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action' as const,
+        },
+      ],
+    }
+
+    const hideResult = submitConsoleStagedNavigationToken(multiSelectSession, 'hide', context)
+    expect(hideResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.multiHide',
+      breadcrumb: ['Multi-Select', '[Shoe 1, Shoe 2]', 'Hide'],
+    })
+  })
+
+  it('exposes unhide for restorable selected multi-select references and executes it directly', () => {
+    const context = createConsoleStagedNavigationContext([])
+    const multiSelectSession = {
+      scopeId: 'multiSelectSelected' as const,
+      breadcrumb: ['Multi-Select', '[Shoe 1, Shoe 2]'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: null,
+        multiSelectLabels: ['Shoe 1', 'Shoe 2'],
+        multiSelectCanDelete: false,
+        multiSelectReferenceDeleteIds: [],
+        multiSelectCanHide: false,
+        multiSelectReferenceHideIds: [],
+        multiSelectCanUnhide: true,
+        multiSelectReferenceUnhideIds: ['reference-import:1', 'reference-import:2'],
+      },
+      validChoices: [
+        {
+          canonicalToken: 'UNHIDE',
+          aliases: ['U'],
+          label: 'Unhide',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'ZOOM',
+          aliases: ['Z'],
+          label: 'Zoom',
+          kind: 'action' as const,
+        },
+        {
+          canonicalToken: 'BACK',
+          aliases: ['B'],
+          label: 'Back',
+          kind: 'action' as const,
+        },
+      ],
+    }
+
+    const unhideResult = submitConsoleStagedNavigationToken(multiSelectSession, 'unhide', context)
+    expect(unhideResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.multiUnhide',
+      breadcrumb: ['Multi-Select', '[Shoe 1, Shoe 2]', 'Unhide'],
+    })
   })
 
   it('routes selected reference transform through a canonical transform branch while keeping direct move as a shortcut', () => {
@@ -842,6 +1153,59 @@ describe('stagedNavigation', () => {
       'ZOOM',
       'BACK',
     ])
+  })
+
+  it('exposes delete for deletable selected references and executes it directly', () => {
+    const context = createConsoleStagedNavigationContext([], [
+      {
+        categoryId: 'user-references',
+        label: 'User References',
+        canLoadAll: false,
+        items: [
+          {
+            referenceId: 'imported-reference-1',
+            label: 'shoe.glb',
+            canLoadModel: false,
+            canDelete: true,
+          },
+        ],
+      },
+    ])
+    const referenceSession: ConsoleStagedNavigationSession = {
+      scopeId: 'referenceSelected' as const,
+      breadcrumb: ['Select', 'References', 'User References', 'shoe.glb'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: 'imported-reference-1',
+        referenceCategoryId: 'user-references',
+        referenceCanLoadModel: false,
+        referenceCanDelete: true,
+      },
+      validChoices: [],
+    }
+
+    const deleteResult = submitConsoleStagedNavigationToken(referenceSession, 'delete', context)
+    expect(deleteResult.kind).toBe('execute')
+    if (deleteResult.kind !== 'execute') {
+      throw new Error('Expected delete token to execute')
+    }
+    expect(deleteResult.actionId).toBe('reference.delete')
+    expect(deleteResult.breadcrumb).toEqual([
+      'Select',
+      'References',
+      'User References',
+      'shoe.glb',
+      'Delete',
+    ])
+
+    const transformResult = submitConsoleStagedNavigationToken(referenceSession, 'transform', context)
+    expect(transformResult.kind).toBe('advance')
+    if (transformResult.kind !== 'advance') {
+      throw new Error('Expected transform token to advance')
+    }
+    expect(transformResult.session.scopeId).toBe('referenceTransformRoot')
   })
 
   it('routes references-root zoom back to the references scope', () => {

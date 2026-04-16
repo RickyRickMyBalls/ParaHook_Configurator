@@ -13,6 +13,7 @@ import {
   type SketchPlanePickOverlayVm,
   type VisibleGeometrySketchOverlayVm,
 } from '../viewerBridge'
+import { useViewerCameraShortcuts } from '../useViewerCameraShortcuts'
 import { useViewportRuntimeStatsStore } from '../store/viewportRuntimeStatsStore'
 import { Viewer, type ViewerViewportRenderLayers } from '../../viewer/Viewer'
 import type {
@@ -282,6 +283,7 @@ type ViewerHostProps = {
 
 export function ViewerHost(props: ViewerHostProps) {
   const { viewportId } = props
+  useViewerCameraShortcuts(viewportId)
   const mountRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const isMountedRef = useRef(false)

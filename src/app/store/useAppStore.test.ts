@@ -872,6 +872,253 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
   })
 
+  it('moves grouped imported references through the shared batch move seam and preserves explicit selection', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: ['component-a'],
+          },
+        },
+        componentsById: {
+          'component-a': {
+            componentId: 'component-a',
+            label: 'Component A',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+        },
+        objectsById: {},
+      },
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        importedReferencesById: {
+          'imported-reference-1': {
+            referenceId: 'imported-reference-1',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Imported Object A',
+            fileType: 'glb',
+            assetPath: 'references/imported/object-a.glb',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+          },
+          'imported-reference-2': {
+            referenceId: 'imported-reference-2',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Imported Object B',
+            fileType: 'glb',
+            assetPath: 'references/imported/object-b.glb',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+          },
+        },
+        importedReferenceOrder: ['imported-reference-1', 'imported-reference-2'],
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          'imported-reference-1': true,
+          'imported-reference-2': true,
+        },
+        loadStateById: {
+          ...state.referenceWorkspace.loadStateById,
+          'imported-reference-1': 'loaded',
+          'imported-reference-2': 'loaded',
+        },
+        errorById: {
+          ...state.referenceWorkspace.errorById,
+          'imported-reference-1': null,
+          'imported-reference-2': null,
+        },
+        contentOrderByParentKey: {
+          'assembly:assembly-1': [
+            'component-a',
+            'reference-item-row:imported-reference-1',
+            'reference-item-row:imported-reference-2',
+          ],
+          'component:component-a': [],
+        },
+      },
+    }))
+
+    expect(
+      useAppStore.getState().moveProjectContentOwnersBatch(
+        [
+          { kind: 'imported-reference', referenceId: 'imported-reference-1' },
+          { kind: 'imported-reference', referenceId: 'imported-reference-2' },
+        ],
+        { kind: 'component', componentId: 'component-a', position: 'into' },
+      ),
+    ).toBe(true)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById['imported-reference-1'],
+    ).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: 'component-a',
+    })
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById['imported-reference-2'],
+    ).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: 'component-a',
+    })
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['assembly:assembly-1'],
+    ).toEqual(['component-a'])
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['component:component-a'],
+    ).toEqual([
+      'reference-item-row:imported-reference-1',
+      'reference-item-row:imported-reference-2',
+    ])
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toEqual({
+      kind: 'object',
+      objectId: 'reference-item-row:imported-reference-1',
+    })
+    expect(useAppStore.getState().workspaceSelection.explicitSelectedTargets).toEqual([
+      {
+        kind: 'object',
+        objectId: 'reference-item-row:imported-reference-1',
+      },
+      {
+        kind: 'object',
+        objectId: 'reference-item-row:imported-reference-2',
+      },
+    ])
+  })
+
+  it('rolls grouped imported reference moves back when the shared batch move fails mid-commit', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: ['component-a'],
+          },
+        },
+        componentsById: {
+          'component-a': {
+            componentId: 'component-a',
+            label: 'Component A',
+            parentAssemblyId: 'assembly-1',
+            ownerGraphDocumentId: null,
+            sourceGraphDocumentId: null,
+            sourceOutputEntryId: null,
+            sourceNodeId: null,
+            componentSourceKind: 'authored',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: [],
+          },
+        },
+        objectsById: {},
+      },
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        importedReferencesById: {
+          'imported-reference-1': {
+            referenceId: 'imported-reference-1',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Imported Object A',
+            fileType: 'glb',
+            assetPath: 'references/imported/object-a.glb',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+          },
+          'imported-reference-2': {
+            referenceId: 'imported-reference-2',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Imported Object B',
+            fileType: 'glb',
+            assetPath: 'references/imported/object-b.glb',
+            parentAssemblyId: 'assembly-1',
+            parentComponentId: null,
+          },
+        },
+        importedReferenceOrder: ['imported-reference-1', 'imported-reference-2'],
+        contentOrderByParentKey: {
+          'assembly:assembly-1': [
+            'component-a',
+            'reference-item-row:imported-reference-1',
+            'reference-item-row:imported-reference-2',
+          ],
+          'component:component-a': [],
+        },
+      },
+    }))
+
+    const originalMoveProjectContentOwner = useAppStore.getState().moveProjectContentOwner
+    let moveCallCount = 0
+    useAppStore.setState((state) => ({
+      ...state,
+      moveProjectContentOwner: ((draggedTarget, dropTarget) => {
+        moveCallCount += 1
+        if (moveCallCount === 2) {
+          return false
+        }
+        return originalMoveProjectContentOwner(draggedTarget, dropTarget)
+      }) as typeof state.moveProjectContentOwner,
+    }))
+
+    expect(
+      useAppStore.getState().moveProjectContentOwnersBatch(
+        [
+          { kind: 'imported-reference', referenceId: 'imported-reference-1' },
+          { kind: 'imported-reference', referenceId: 'imported-reference-2' },
+        ],
+        { kind: 'component', componentId: 'component-a', position: 'into' },
+      ),
+    ).toBe(false)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById['imported-reference-1'],
+    ).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: null,
+    })
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById['imported-reference-2'],
+    ).toMatchObject({
+      parentAssemblyId: 'assembly-1',
+      parentComponentId: null,
+    })
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['assembly:assembly-1'],
+    ).toEqual([
+      'component-a',
+      'reference-item-row:imported-reference-1',
+      'reference-item-row:imported-reference-2',
+    ])
+    expect(
+      useAppStore.getState().referenceWorkspace.contentOrderByParentKey['component:component-a'],
+    ).toEqual([])
+  })
+
   it('routes reference-backed assembly, component, and object targets through shared owner selectors', async () => {
     const {
       buildImportedReferenceRowId,
@@ -939,6 +1186,414 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       kind: 'object',
       objectId: buildImportedReferenceRowId('shoe:shoe-1'),
       label: 'Shoe 1',
+      canDelete: false,
+    })
+  })
+
+  it('marks imported reference-object console targets as deletable', async () => {
+    const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
+      await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const referenceId = useAppStore.getState().addImportedReference({
+      fileName: 'shoe.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-1',
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId(referenceId),
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId(referenceId),
+      label: 'shoe.glb',
+      referenceId,
+      canDelete: true,
+    })
+  })
+
+  it('marks imported reference-object multi-select console targets as deletable only when every selected target qualifies', async () => {
+    const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
+      await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const importedReferenceA = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-a.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-a',
+    })
+    const importedReferenceB = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-b.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-b',
+    })
+
+    useAppStore.getState().setWorkspaceExplicitSelection({
+      selectedTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceB),
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'multi-select',
+      canDelete: true,
+      referenceDeleteIds: [importedReferenceA, importedReferenceB],
+    })
+
+    useAppStore.getState().setWorkspaceExplicitSelection({
+      selectedTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        {
+          kind: 'reference-item',
+          referenceId: 'shoe:shoe-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'multi-select',
+      canDelete: false,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).not.toMatchObject({
+      referenceDeleteIds: expect.any(Array),
+    })
+  })
+
+  it('marks selected reference-object console targets as hideable only while they are visible', async () => {
+    const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
+      await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const referenceId = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-hide.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-hide',
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId(referenceId),
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      referenceId,
+      canHide: true,
+    })
+
+    useAppStore.getState().setReferenceItemVisibility(referenceId, false)
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      referenceId,
+      canHide: false,
+      canLoadModel: true,
+    })
+  })
+
+  it('marks selected authored assemblies as hideable while visible and showable while hidden', async () => {
+    const { selectConsoleWorkspaceContextTarget, useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['component-1'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            parentAssemblyId: 'assembly-root:project-file-1',
+            parentComponentId: null,
+            ownerGraphDocumentId: 'graph-document-1',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            label: 'Component 1',
+            componentSourceKind: 'published-component',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-1'],
+          },
+        },
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-root:project-file-1',
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'assembly',
+      assemblyId: 'assembly-root:project-file-1',
+    })
+
+    const visibleTarget = selectConsoleWorkspaceContextTarget(useAppStore.getState())
+    expect(visibleTarget).toMatchObject({
+      kind: 'assembly',
+      assemblyId: 'assembly-root:project-file-1',
+      canHide: true,
+      canShow: false,
+    })
+    expect((visibleTarget as Extract<typeof visibleTarget, { kind: 'assembly' }>)?.visibilityPartKeys?.length).toBeGreaterThan(0)
+
+    ;((visibleTarget as Extract<typeof visibleTarget, { kind: 'assembly' }>)?.visibilityPartKeys ?? []).forEach(
+      (partKey) => {
+        useAppStore.getState().setPartVisibility(partKey, false)
+      },
+    )
+
+    const hiddenTarget = selectConsoleWorkspaceContextTarget(useAppStore.getState())
+    expect(hiddenTarget).toMatchObject({
+      kind: 'assembly',
+      assemblyId: 'assembly-root:project-file-1',
+      canHide: false,
+      canShow: true,
+    })
+    expect((hiddenTarget as Extract<typeof hiddenTarget, { kind: 'assembly' }>)?.visibilityPartKeys?.length).toBeGreaterThan(0)
+  })
+
+  it('marks selected authored components as hideable while visible and showable while hidden', async () => {
+    const { selectConsoleWorkspaceContextTarget, useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      projectContent: {
+        ...state.projectContent,
+        assembliesById: {
+          'assembly-root:project-file-1': {
+            assemblyId: 'assembly-root:project-file-1',
+            label: 'Assembly 1',
+            childRowIds: ['component-1'],
+          },
+        },
+        componentsById: {
+          'component-1': {
+            componentId: 'component-1',
+            parentAssemblyId: 'assembly-root:project-file-1',
+            parentComponentId: null,
+            ownerGraphDocumentId: 'graph-document-1',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            label: 'Component 1',
+            componentSourceKind: 'published-component',
+            resolutionState: 'resolved',
+            receiveId: null,
+            childObjectIds: ['object-1'],
+          },
+        },
+        objectsById: {
+          'object-1': {
+            objectId: 'object-1',
+            ownerGraphDocumentId: 'graph-document-1',
+            parentAssemblyId: 'assembly-root:project-file-1',
+            parentComponentId: 'component-1',
+            objectSourceKind: 'published-object',
+            sourceGraphDocumentId: 'graph-document-1',
+            sourceOutputEntryId: 'output-entry-1',
+            sourceNodeId: 'node-output-1',
+            slotId: 'slot-a',
+            label: 'Object 1',
+            resolutionState: 'resolved',
+          },
+        },
+      },
+    }))
+
+    const componentId = 'component-1'
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'component',
+      componentId,
+    })
+
+    const visibleTarget = selectConsoleWorkspaceContextTarget(useAppStore.getState())
+    expect(visibleTarget).toMatchObject({
+      kind: 'component',
+      componentId,
+      canHide: true,
+      canShow: false,
+    })
+    expect((visibleTarget as Extract<typeof visibleTarget, { kind: 'component' }>)?.visibilityPartKeys?.length).toBeGreaterThan(0)
+
+    ;((visibleTarget as Extract<typeof visibleTarget, { kind: 'component' }>)?.visibilityPartKeys ?? []).forEach(
+      (partKey) => {
+        useAppStore.getState().setPartVisibility(partKey, false)
+      },
+    )
+
+    const hiddenTarget = selectConsoleWorkspaceContextTarget(useAppStore.getState())
+    expect(hiddenTarget).toMatchObject({
+      kind: 'component',
+      componentId,
+      canHide: false,
+      canShow: true,
+    })
+    expect((hiddenTarget as Extract<typeof hiddenTarget, { kind: 'component' }>)?.visibilityPartKeys?.length).toBeGreaterThan(0)
+  })
+
+  it('marks reference-object multi-select console targets as hideable only when every selected target is visible', async () => {
+    const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
+      await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const importedReferenceA = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-visible-a.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-visible-a',
+    })
+    const importedReferenceB = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-visible-b.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-visible-b',
+    })
+
+    useAppStore.getState().setWorkspaceExplicitSelection({
+      selectedTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceB),
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'multi-select',
+      canHide: true,
+      referenceHideIds: [importedReferenceA, importedReferenceB],
+    })
+
+    useAppStore.getState().setReferenceItemVisibility(importedReferenceB, false)
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'multi-select',
+      canHide: false,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).not.toMatchObject({
+      referenceHideIds: expect.any(Array),
+    })
+  })
+
+  it('marks reference-object multi-select console targets as restorable only when every selected target is hidden', async () => {
+    const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
+      await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const importedReferenceA = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-hidden-a.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-hidden-a',
+    })
+    const importedReferenceB = useAppStore.getState().addImportedReference({
+      fileName: 'shoe-hidden-b.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-hidden-b',
+    })
+
+    useAppStore.getState().setWorkspaceExplicitSelection({
+      selectedTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceA),
+        },
+        {
+          kind: 'object',
+          objectId: buildImportedReferenceRowId(importedReferenceB),
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceA),
+      },
+    })
+
+    useAppStore.getState().setReferenceItemVisibility(importedReferenceA, false)
+    useAppStore.getState().setReferenceItemVisibility(importedReferenceB, false)
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'multi-select',
+      canHide: false,
+      canUnhide: true,
+      referenceUnhideIds: [importedReferenceA, importedReferenceB],
+    })
+
+    useAppStore.getState().setReferenceItemVisibility(importedReferenceB, true)
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'multi-select',
+      canUnhide: false,
+    })
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).not.toMatchObject({
+      referenceUnhideIds: expect.any(Array),
     })
   })
 
@@ -6751,6 +7406,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
 
   it('projects shared reference runtime traits through workspace items and unified content rows', async () => {
     const {
+      canReferenceItemExplode,
       resolveReferenceRuntimeTraits,
       selectCurrentProjectContentBrowserRows,
       selectReferenceWorkspaceItems,
@@ -6761,13 +7417,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     useAppStore.setState(useAppStore.getInitialState(), true)
 
     useAppStore.getState().setReferenceItemVisibility('shoe:shoe-1', true)
-      useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'error', 'Load failed')
-      useAppStore.getState().setReferenceItemPartRows('shoe:shoe-1', [
-        {
-          partKey: 'shoe:shoe-1:sole',
-          label: 'Sole',
-        },
-      ])
+    useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'error', 'Load failed')
+    useAppStore.getState().setReferenceItemPartRows('shoe:shoe-1', [
+      {
+        partKey: 'shoe:shoe-1:sole',
+        label: 'Sole',
+        sourceMeshIndex: 0,
+      },
+    ])
 
     expect(resolveReferenceRuntimeTraits(useAppStore.getState(), 'shoe:shoe-1')).toMatchObject({
       isVisible: true,
@@ -6778,6 +7435,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             rowId: 'reference-part-row:shoe:shoe-1:sole',
             partKey: 'shoe:shoe-1:sole',
             label: 'Sole',
+            sourceMeshIndex: 0,
           },
         ],
     })
@@ -6793,6 +7451,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             rowId: 'reference-part-row:shoe:shoe-1:sole',
             partKey: 'shoe:shoe-1:sole',
             label: 'Sole',
+            sourceMeshIndex: 0,
           },
         ],
     })
@@ -6815,9 +7474,16 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             rowId: 'reference-part-row:shoe:shoe-1:sole',
             partKey: 'shoe:shoe-1:sole',
             label: 'Sole',
+            sourceMeshIndex: 0,
           },
         ],
     })
+
+    expect(canReferenceItemExplode(useAppStore.getState(), 'shoe:shoe-1')).toBe(false)
+
+    useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'loaded')
+
+    expect(canReferenceItemExplode(useAppStore.getState(), 'shoe:shoe-1')).toBe(true)
   })
 
   it('adds imported references under User References, disambiguates duplicate labels, and removes them with true workspace cleanup', async () => {
@@ -6948,6 +7614,57 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         }),
       ]),
     )
+  })
+
+  it('derives authored assembly and component Browser visibility from owned reference-backed children', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const assemblyId = useAppStore.getState().createProjectAssembly()
+    const componentId = useAppStore.getState().createProjectComponent(assemblyId)
+
+    expect(componentId).not.toBeNull()
+
+    const directReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'assembly-owned.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:assembly-owned',
+      parentAssemblyId: assemblyId,
+    })
+    const componentReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'component-owned.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:component-owned',
+      parentAssemblyId: assemblyId,
+      parentComponentId: componentId,
+    })
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      referenceWorkspace: useAppStore.getState().referenceWorkspace,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(
+      browserRows.find((row) => row.kind === 'assembly' && row.rowId === assemblyId),
+    ).toMatchObject({
+      isVisible: true,
+      visibilityPartKeys: [],
+      visibilityReferenceIds: expect.arrayContaining([directReferenceId, componentReferenceId]),
+    })
+    expect(
+      browserRows.find((row) => row.kind === 'component' && row.rowId === componentId),
+    ).toMatchObject({
+      isVisible: true,
+      visibilityPartKeys: [],
+      visibilityReferenceIds: [componentReferenceId],
+    })
   })
 
   it('starts a root reference batch in deterministic browser order and resets errored targets', async () => {

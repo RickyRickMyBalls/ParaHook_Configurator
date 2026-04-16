@@ -231,6 +231,599 @@ describe('ViewToolbar', () => {
     expect(frameAllCommandMock).toHaveBeenCalledWith('model-viewer-primary')
   })
 
+  it('renders a perspective-only FOV slider in the camera section and keeps it synced to the viewer seam', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+
+    let perspectiveFovDeg = 60
+    let onPerspectiveFovDegChange: ((fovDeg: number) => void) | null = null
+    const viewer = {
+      getPerspectiveFovDeg: vi.fn(() => perspectiveFovDeg),
+      setPerspectiveFovDeg: vi.fn((fovDeg: number) => {
+        perspectiveFovDeg = fovDeg
+        onPerspectiveFovDegChange?.(perspectiveFovDeg)
+      }),
+      setOnPerspectiveFovDegChange: vi.fn((handler: ((fovDeg: number) => void) | null) => {
+        onPerspectiveFovDegChange = handler
+      }),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const cameraSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('Camera'),
+    )
+    const increaseButton = container.querySelector(
+      'button[aria-label="Increase FOV"]',
+    ) as HTMLButtonElement | null
+    const valueButton = container.querySelector(
+      'button[aria-label="Edit FOV value"]',
+    ) as HTMLButtonElement | null
+
+    expect(cameraSection).toBeTruthy()
+    expect(cameraSection?.textContent).toContain('FOV')
+    expect(increaseButton).not.toBeNull()
+    expect(valueButton?.textContent).toBe('60 deg')
+
+    await act(async () => {
+      increaseButton?.click()
+    })
+
+    expect(viewer.setPerspectiveFovDeg).toHaveBeenCalledWith(61)
+    expect(valueButton?.textContent).toBe('61 deg')
+
+    await act(async () => {
+      onPerspectiveFovDegChange?.(72)
+    })
+
+    expect(valueButton?.textContent).toBe('72 deg')
+  })
+
+  it('keeps the camera FOV slider hidden while orthographic projection is active', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      projectionMode: 'orthographic',
+    })
+
+    const viewer = {
+      getPerspectiveFovDeg: vi.fn(() => 55),
+      setPerspectiveFovDeg: vi.fn(),
+      setOnPerspectiveFovDegChange: vi.fn(),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const cameraSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('Camera'),
+    )
+
+    expect(cameraSection).toBeTruthy()
+    expect(cameraSection?.textContent).not.toContain('FOV')
+    expect(container.querySelector('button[aria-label="Increase FOV"]')).toBeNull()
+    expect(container.querySelector('button[aria-label="Edit FOV value"]')).toBeNull()
+  })
+
+  it('keeps camera controls synchronized when projection mode toggles away from and back to perspective', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    let perspectiveFovDeg = 60
+    let onPerspectiveFovDegChange: ((fovDeg: number) => void) | null = null
+    let clipMode: 'auto' | 'authored' = 'authored'
+    let clipStart = 0.5
+    let clipEnd = 300
+    let onCameraClipRangeChange:
+      | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+      | null = null
+    const viewer = {
+      getPerspectiveFovDeg: vi.fn(() => perspectiveFovDeg),
+      setPerspectiveFovDeg: vi.fn((fovDeg: number) => {
+        perspectiveFovDeg = fovDeg
+        onPerspectiveFovDegChange?.(perspectiveFovDeg)
+      }),
+      setOnPerspectiveFovDegChange: vi.fn((handler: ((fovDeg: number) => void) | null) => {
+        onPerspectiveFovDegChange = handler
+      }),
+      getCameraClipRange: vi.fn(() => ({
+        mode: clipMode,
+        clipStart,
+        clipEnd,
+      })),
+      setCameraClipRange: vi.fn((range: { clipStart?: number; clipEnd?: number }) => {
+        clipMode = 'authored'
+        clipStart = range.clipStart ?? clipStart
+        clipEnd = range.clipEnd ?? clipEnd
+        onCameraClipRangeChange?.({
+          mode: clipMode,
+          clipStart,
+          clipEnd,
+        })
+      }),
+      setOnCameraClipRangeChange: vi.fn(
+        (
+          handler:
+            | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+            | null,
+        ) => {
+          onCameraClipRangeChange = handler
+        },
+      ),
+      resetCameraClipRange: vi.fn(() => {
+        clipMode = 'auto'
+        clipStart = 0.1
+        clipEnd = 1000
+        onCameraClipRangeChange?.({
+          mode: clipMode,
+          clipStart,
+          clipEnd,
+        })
+      }),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const getCameraSection = () =>
+      Array.from(container?.querySelectorAll('.ViewStyledSection') ?? []).find((section) =>
+        section.querySelector('summary')?.textContent?.includes('Camera'),
+      )
+
+    expect(getCameraSection()?.textContent).toContain('FOV')
+    expect(getCameraSection()?.textContent).toContain('Clip Start')
+    expect(getCameraSection()?.textContent).toContain('Clip End')
+    expect(getCameraSection()?.textContent).toContain('Clip: Authored. Start stays before end.')
+    expect(
+      (container?.querySelector(
+        'button[aria-label="Edit FOV value"]',
+      ) as HTMLButtonElement | null)?.textContent,
+    ).toBe('60 deg')
+
+    await act(async () => {
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        projectionMode: 'orthographic',
+      })
+    })
+
+    expect(getCameraSection()?.textContent).not.toContain('FOV')
+    expect(getCameraSection()?.textContent).toContain('Clip Start')
+    expect(getCameraSection()?.textContent).toContain('Clip End')
+    expect(getCameraSection()?.textContent).toContain('Clip: Authored. Start stays before end.')
+    expect(container?.querySelector('button[aria-label="Increase FOV"]')).toBeNull()
+    expect(container?.querySelector('button[aria-label="Edit FOV value"]')).toBeNull()
+
+    await act(async () => {
+      perspectiveFovDeg = 72
+      onPerspectiveFovDegChange?.(perspectiveFovDeg)
+      clipMode = 'auto'
+      clipStart = 0.1
+      clipEnd = 1000
+      onCameraClipRangeChange?.({
+        mode: clipMode,
+        clipStart,
+        clipEnd,
+      })
+    })
+
+    expect(getCameraSection()?.textContent).toContain('Clip: Auto. Distance driven.')
+
+    await act(async () => {
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        projectionMode: 'perspective',
+      })
+    })
+
+    expect(getCameraSection()?.textContent).toContain('FOV')
+    expect(getCameraSection()?.textContent).toContain('Clip Start')
+    expect(getCameraSection()?.textContent).toContain('Clip End')
+    expect(getCameraSection()?.textContent).toContain('Clip: Auto. Distance driven.')
+    expect(
+      (container?.querySelector(
+        'button[aria-label="Edit FOV value"]',
+      ) as HTMLButtonElement | null)?.textContent,
+    ).toBe('72 deg')
+    expect(
+      Array.from(container?.querySelectorAll('button') ?? []).find(
+        (button) => button.textContent === 'Auto Clip',
+      ),
+    ).toBeUndefined()
+  })
+
+  it('renders Clip Start and Clip End sliders in the camera section and keeps them synced to the viewer seam', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+
+    let clipStart = 0.5
+    let clipEnd = 300
+    let onCameraClipRangeChange:
+      | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+      | null = null
+    const viewer = {
+      getCameraClipRange: vi.fn(() => ({
+        mode: 'authored' as const,
+        clipStart,
+        clipEnd,
+      })),
+      setCameraClipRange: vi.fn((range: { clipStart?: number; clipEnd?: number }) => {
+        clipStart = range.clipStart ?? clipStart
+        clipEnd = range.clipEnd ?? clipEnd
+        onCameraClipRangeChange?.({
+          mode: 'authored',
+          clipStart,
+          clipEnd,
+        })
+      }),
+      setOnCameraClipRangeChange: vi.fn(
+        (
+          handler:
+            | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+            | null,
+        ) => {
+          onCameraClipRangeChange = handler
+        },
+      ),
+      resetCameraClipRange: vi.fn(() => {
+        clipStart = 0.1
+        clipEnd = 1000
+        onCameraClipRangeChange?.({
+          mode: 'auto',
+          clipStart,
+          clipEnd,
+        })
+      }),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const cameraSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('Camera'),
+    )
+    const clipStartIncreaseButton = container.querySelector(
+      'button[aria-label="Increase Clip Start"]',
+    ) as HTMLButtonElement | null
+    const clipEndIncreaseButton = container.querySelector(
+      'button[aria-label="Increase Clip End"]',
+    ) as HTMLButtonElement | null
+    const clipStartValueButton = container.querySelector(
+      'button[aria-label="Edit Clip Start value"]',
+    ) as HTMLButtonElement | null
+    const clipEndValueButton = container.querySelector(
+      'button[aria-label="Edit Clip End value"]',
+    ) as HTMLButtonElement | null
+
+    expect(cameraSection).toBeTruthy()
+    expect(cameraSection?.textContent).toContain('Clip Start')
+    expect(cameraSection?.textContent).toContain('Clip End')
+    expect(cameraSection?.textContent).toContain('Clip: Authored. Start stays before end.')
+    expect(clipStartIncreaseButton).not.toBeNull()
+    expect(clipEndIncreaseButton).not.toBeNull()
+    expect(clipStartValueButton?.textContent).toBe('0.5')
+    expect(clipEndValueButton?.textContent).toBe('300')
+    expect(container.querySelectorAll('button').length).toBeGreaterThan(0)
+
+    await act(async () => {
+      clipStartIncreaseButton?.click()
+      clipEndIncreaseButton?.click()
+    })
+
+    expect(viewer.setCameraClipRange).toHaveBeenCalledWith({ clipStart: 0.51 })
+    expect(viewer.setCameraClipRange).toHaveBeenCalledWith({ clipEnd: 301 })
+    expect(clipStartValueButton?.textContent).toBe('0.51')
+    expect(clipEndValueButton?.textContent).toBe('301')
+
+    await act(async () => {
+      onCameraClipRangeChange?.({
+        mode: 'authored',
+        clipStart: 1.25,
+        clipEnd: 150,
+      })
+    })
+
+    expect(clipStartValueButton?.textContent).toBe('1.25')
+    expect(clipEndValueButton?.textContent).toBe('150')
+  })
+
+  it('offers an Auto Clip reset button that returns the clip seam to auto mode', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+
+    let clipStart = 0.5
+    let clipEnd = 300
+    let clipMode: 'auto' | 'authored' = 'authored'
+    let onCameraClipRangeChange:
+      | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+      | null = null
+    const viewer = {
+      getCameraClipRange: vi.fn(() => ({
+        mode: clipMode,
+        clipStart,
+        clipEnd,
+      })),
+      setCameraClipRange: vi.fn(),
+      setOnCameraClipRangeChange: vi.fn(
+        (
+          handler:
+            | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+            | null,
+        ) => {
+          onCameraClipRangeChange = handler
+        },
+      ),
+      resetCameraClipRange: vi.fn(() => {
+        clipMode = 'auto'
+        clipStart = 0.1
+        clipEnd = 1000
+        onCameraClipRangeChange?.({
+          mode: clipMode,
+          clipStart,
+          clipEnd,
+        })
+      }),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const autoClipButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Auto Clip',
+    ) as HTMLButtonElement | undefined
+
+    expect(autoClipButton).toBeDefined()
+
+    await act(async () => {
+      autoClipButton?.click()
+    })
+
+    expect(viewer.resetCameraClipRange).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Clip: Auto. Distance driven.')
+    expect(Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Auto Clip')).toBeUndefined()
+  })
+
+  it('groups projection and framing into a collapsible lower camera subsection without changing command routing', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+
+    let perspectiveFovDeg = 60
+    let onPerspectiveFovDegChange: ((fovDeg: number) => void) | null = null
+    let clipMode: 'auto' | 'authored' = 'authored'
+    let clipStart = 0.5
+    let clipEnd = 300
+    let onCameraClipRangeChange:
+      | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+      | null = null
+    const viewer = {
+      getPerspectiveFovDeg: vi.fn(() => perspectiveFovDeg),
+      setPerspectiveFovDeg: vi.fn((fovDeg: number) => {
+        perspectiveFovDeg = fovDeg
+        onPerspectiveFovDegChange?.(perspectiveFovDeg)
+      }),
+      setOnPerspectiveFovDegChange: vi.fn((handler: ((fovDeg: number) => void) | null) => {
+        onPerspectiveFovDegChange = handler
+      }),
+      getCameraClipRange: vi.fn(() => ({
+        mode: clipMode,
+        clipStart,
+        clipEnd,
+      })),
+      setCameraClipRange: vi.fn((range: { clipStart?: number; clipEnd?: number }) => {
+        clipMode = 'authored'
+        clipStart = range.clipStart ?? clipStart
+        clipEnd = range.clipEnd ?? clipEnd
+        onCameraClipRangeChange?.({
+          mode: clipMode,
+          clipStart,
+          clipEnd,
+        })
+      }),
+      setOnCameraClipRangeChange: vi.fn(
+        (
+          handler:
+            | ((range: { mode: 'auto' | 'authored'; clipStart: number; clipEnd: number }) => void)
+            | null,
+        ) => {
+          onCameraClipRangeChange = handler
+        },
+      ),
+      resetCameraClipRange: vi.fn(() => {
+        clipMode = 'auto'
+        clipStart = 0.1
+        clipEnd = 1000
+        onCameraClipRangeChange?.({
+          mode: clipMode,
+          clipStart,
+          clipEnd,
+        })
+      }),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const cameraSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('Camera'),
+    )
+    const autoClipButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Auto Clip',
+    ) as HTMLButtonElement | undefined
+    const subsection = container.querySelector(
+      '.CameraProjectionFramingSubsection',
+    ) as HTMLDetailsElement | null
+    const subsectionSummary = subsection?.querySelector('summary') as HTMLElement | null
+
+    expect(cameraSection).toBeTruthy()
+    expect(autoClipButton).toBeDefined()
+    expect(subsection).not.toBeNull()
+    expect(subsectionSummary?.textContent).toBe('Projection & Framing')
+    expect(subsection?.open).toBe(true)
+    expect(
+      (autoClipButton?.compareDocumentPosition(subsection as Node) ?? 0) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(subsection?.textContent).toContain('Perspective')
+    expect(subsection?.textContent).toContain('Orthographic')
+    expect(subsection?.textContent).toContain('Frame')
+    expect(subsection?.textContent).toContain('Frame All')
+
+    await act(async () => {
+      if (subsection !== null) {
+        subsection.open = false
+        subsection.dispatchEvent(new Event('toggle'))
+      }
+    })
+
+    expect(subsection?.open).toBe(false)
+    expect(subsection?.textContent).toContain('Projection & Framing')
+    expect(subsection?.textContent).not.toContain('Perspective')
+    expect(subsection?.textContent).not.toContain('Orthographic')
+    expect(subsection?.textContent).not.toContain('Frame All')
+    expect(
+      Array.from(subsection?.querySelectorAll('button') ?? []).find(
+        (button) => button.textContent === 'Perspective',
+      ),
+    ).toBeUndefined()
+
+    await act(async () => {
+      if (subsection !== null) {
+        subsection.open = true
+        subsection.dispatchEvent(new Event('toggle'))
+      }
+    })
+
+    const perspectiveButton = Array.from(subsection?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Perspective',
+    ) as HTMLButtonElement | undefined
+    const topButton = Array.from(subsection?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Top',
+    ) as HTMLButtonElement | undefined
+    const frameButton = Array.from(subsection?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Frame',
+    ) as HTMLButtonElement | undefined
+    const frameAllButton = Array.from(subsection?.querySelectorAll('button') ?? []).find(
+      (button) => button.textContent === 'Frame All',
+    ) as HTMLButtonElement | undefined
+
+    expect(subsection?.open).toBe(true)
+    expect(perspectiveButton).toBeDefined()
+    expect(topButton).toBeDefined()
+    expect(frameButton).toBeDefined()
+    expect(frameAllButton).toBeDefined()
+
+    await act(async () => {
+      perspectiveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      topButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      frameButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      frameAllButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(setProjectionModeCommandMock).toHaveBeenCalledWith('perspective', 'model-viewer-primary')
+    expect(setCameraPresetCommandMock).toHaveBeenCalledWith('top', 'model-viewer-primary')
+    expect(frameSelectedCommandMock).toHaveBeenCalledWith('part:object-1', 'model-viewer-primary')
+    expect(frameAllCommandMock).toHaveBeenCalledWith('model-viewer-primary')
+  })
+
+  it('keeps Clip Start and Clip End visible in orthographic mode while FOV stays hidden', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { setViewer } = await import('../viewerBridge')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      projectionMode: 'orthographic',
+    })
+
+    const viewer = {
+      getCameraClipRange: vi.fn(() => ({
+        mode: 'auto' as const,
+        clipStart: 0.1,
+        clipEnd: 1000,
+      })),
+      setCameraClipRange: vi.fn(),
+      setOnCameraClipRangeChange: vi.fn(),
+      resetCameraClipRange: vi.fn(),
+      getPerspectiveFovDeg: vi.fn(() => 55),
+      setPerspectiveFovDeg: vi.fn(),
+      setOnPerspectiveFovDegChange: vi.fn(),
+    }
+
+    setViewer('model-viewer-primary', viewer as never)
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const cameraSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('Camera'),
+    )
+
+    expect(cameraSection).toBeTruthy()
+    expect(cameraSection?.textContent).not.toContain('FOV')
+    expect(cameraSection?.textContent).toContain('Clip Start')
+    expect(cameraSection?.textContent).toContain('Clip End')
+    expect(cameraSection?.textContent).toContain('Clip: Auto. Distance driven.')
+    expect(container.querySelector('button[aria-label="Increase FOV"]')).toBeNull()
+    expect(container.querySelector('button[aria-label="Edit FOV value"]')).toBeNull()
+    expect(container.querySelector('button[aria-label="Increase Clip Start"]')).not.toBeNull()
+    expect(container.querySelector('button[aria-label="Increase Clip End"]')).not.toBeNull()
+  })
+
   it('keeps toolbar open state local to the clicked model viewport', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
@@ -306,6 +899,404 @@ describe('ViewToolbar', () => {
       useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
         .viewToolbarOpen,
     ).toBe(true)
+  })
+
+  it('keeps toolbar presentation mode local to the selected model viewport', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+      viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+    })
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewToolbar viewportId="model-viewer-primary" />
+          <ViewToolbar viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const presentationSelects = Array.from(
+      container.querySelectorAll('.ParaSelectNative[aria-label="Presentation"]'),
+    ) as HTMLSelectElement[]
+    expect(presentationSelects).toHaveLength(2)
+    expect(presentationSelects[0]?.value).toBe('classic')
+    expect(presentationSelects[1]?.value).toBe('tabs')
+
+    await act(async () => {
+      presentationSelects[0]!.value = 'tabs'
+      presentationSelects[0]?.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarExpandedPresentationMode,
+    ).toBe('tabs')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarExpandedPresentationMode,
+    ).toBe('tabs')
+
+    await act(async () => {
+      presentationSelects[1]!.value = 'classic'
+      presentationSelects[1]?.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarExpandedPresentationMode,
+    ).toBe('tabs')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarExpandedPresentationMode,
+    ).toBe('classic')
+  })
+
+  it('keeps toolbar dock mode local and updates the expanded top-right anchor', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+      viewToolbarOpen: true,
+      viewToolbarDockMode: 'top-right-cluster',
+    })
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewToolbar viewportId="model-viewer-primary" />
+          <ViewToolbar viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const dockSelects = Array.from(
+      container.querySelectorAll('.ParaSelectNative[aria-label="Dock"]'),
+    ) as HTMLSelectElement[]
+    const rightDocks = Array.from(container.querySelectorAll('.RightDock')) as HTMLElement[]
+    expect(dockSelects).toHaveLength(2)
+    expect(rightDocks).toHaveLength(2)
+    expect(dockSelects[0]?.value).toBe('below-axis')
+    expect(dockSelects[1]?.value).toBe('top-right-cluster')
+    expect(rightDocks[0]?.dataset.viewToolbarDockMode).toBe('below-axis')
+    expect(rightDocks[1]?.dataset.viewToolbarDockMode).toBe('top-right-cluster')
+    expect(rightDocks[0]?.style.paddingTop).toBe('332px')
+    expect(rightDocks[1]?.style.paddingTop).toBe('12px')
+
+    await act(async () => {
+      dockSelects[0]!.value = 'top-right-cluster'
+      dockSelects[0]?.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarDockMode,
+    ).toBe('top-right-cluster')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarDockMode,
+    ).toBe('top-right-cluster')
+    expect(rightDocks[0]?.dataset.viewToolbarDockMode).toBe('top-right-cluster')
+    expect(rightDocks[0]?.style.paddingTop).toBe('12px')
+
+    await act(async () => {
+      dockSelects[1]!.value = 'below-axis'
+      dockSelects[1]?.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarDockMode,
+    ).toBe('top-right-cluster')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarDockMode,
+    ).toBe('below-axis')
+    expect(rightDocks[1]?.dataset.viewToolbarDockMode).toBe('below-axis')
+    expect(rightDocks[1]?.style.paddingTop).toBe('332px')
+  })
+
+  it('opens an expanded-toolbar presentation context menu that syncs with the viewport-local select', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+      viewToolbarOpen: false,
+      viewToolbarExpandedPresentationMode: 'classic',
+    })
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewToolbar viewportId="model-viewer-primary" />
+          <ViewToolbar viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const toolbarToggles = Array.from(
+      container.querySelectorAll('.ViewToolbarToggle'),
+    ) as HTMLElement[]
+    expect(toolbarToggles).toHaveLength(2)
+
+    await act(async () => {
+      toolbarToggles[1]?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 220,
+          clientY: 180,
+        }),
+      )
+    })
+
+    expect(container.querySelector('.ViewToolbarContextMenu')).toBeNull()
+
+    await act(async () => {
+      toolbarToggles[0]?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 220,
+          clientY: 180,
+        }),
+      )
+    })
+
+    const contextMenu = container.querySelector('.ViewToolbarContextMenu') as HTMLDivElement | null
+    expect(contextMenu).not.toBeNull()
+
+    const menuItems = Array.from(
+      container.querySelectorAll('.ViewToolbarContextMenu .SpaghettiContextMenuItem'),
+    ) as HTMLButtonElement[]
+    const classicItem = menuItems.find((item) => item.textContent === 'Classic')
+    const tabsItem = menuItems.find((item) => item.textContent === 'Tabs')
+
+    expect(classicItem).not.toBeUndefined()
+    expect(tabsItem).not.toBeUndefined()
+    expect(classicItem?.disabled).toBe(true)
+    expect(tabsItem?.disabled).toBe(false)
+
+    await act(async () => {
+      tabsItem?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(container.querySelector('.ViewToolbarContextMenu')).toBeNull()
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarExpandedPresentationMode,
+    ).toBe('tabs')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarExpandedPresentationMode,
+    ).toBe('classic')
+
+    const viewTabButton = Array.from(container.querySelectorAll('.ViewToolbarTabButton')).find(
+      (button) => button.textContent === 'View',
+    ) as HTMLButtonElement | undefined
+    expect(viewTabButton).toBeDefined()
+
+    await act(async () => {
+      viewTabButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const presentationSelects = Array.from(
+      container.querySelectorAll('.ParaSelectNative[aria-label="Presentation"]'),
+    ) as HTMLSelectElement[]
+    expect(presentationSelects).toHaveLength(2)
+    expect(presentationSelects.map((select) => select.value).sort()).toEqual(['classic', 'tabs'])
+
+    await act(async () => {
+      toolbarToggles[0]?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 240,
+          clientY: 200,
+        }),
+      )
+    })
+
+    const reopenedMenuItems = Array.from(
+      container.querySelectorAll('.ViewToolbarContextMenu .SpaghettiContextMenuItem'),
+    ) as HTMLButtonElement[]
+    const reopenedClassicItem = reopenedMenuItems.find((item) => item.textContent === 'Classic')
+    const reopenedTabsItem = reopenedMenuItems.find((item) => item.textContent === 'Tabs')
+
+    expect(reopenedClassicItem?.disabled).toBe(false)
+    expect(reopenedTabsItem?.disabled).toBe(true)
+  })
+
+  it('renders tabs mode with the full section rail and keeps camera commands functional', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+    })
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const tabButtons = Array.from(
+      container.querySelectorAll('.ViewToolbarTabButton'),
+    ) as HTMLButtonElement[]
+    expect(tabButtons.map((button) => button.textContent)).toEqual([
+      'Camera',
+      'Fly Mode',
+      'Transform',
+      'Snap',
+      'Gizmo',
+      'View',
+      'Environment',
+      'Materials',
+    ])
+    expect(container.querySelectorAll('[data-tab-active="true"]')).toHaveLength(1)
+
+    const viewTabButton = tabButtons.find((button) => button.textContent === 'View')
+    expect(viewTabButton).not.toBeUndefined()
+
+    await act(async () => {
+      viewTabButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const activeViewSection = container.querySelector(
+      '[data-view-toolbar-section="view"][data-tab-active="true"]',
+    ) as HTMLDetailsElement | null
+    expect(activeViewSection).not.toBeNull()
+    expect(container.querySelector('.ParaSelectNative[aria-label="Presentation"]')).not.toBeNull()
+
+    const cameraTabButton = tabButtons.find((button) => button.textContent === 'Camera')
+    expect(cameraTabButton).not.toBeUndefined()
+
+    await act(async () => {
+      cameraTabButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const orthographicButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Orthographic',
+    )
+    expect(orthographicButton).not.toBeUndefined()
+
+    await act(async () => {
+      orthographicButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(setProjectionModeCommandMock).toHaveBeenCalledWith('orthographic', 'model-viewer-primary')
+  })
+
+  it('restores the remembered active tab per viewport after remounting tabs mode', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarActiveTab: 'view',
+    })
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+      viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarActiveTab: 'materials',
+    })
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    const renderToolbarPair = async () => {
+      await act(async () => {
+        root?.render(
+          <>
+            <ViewToolbar viewportId="model-viewer-primary" />
+            <ViewToolbar viewportId="model-viewer-secondary" />
+          </>,
+        )
+      })
+    }
+
+    await renderToolbarPair()
+
+    const primaryDock = container.querySelector(
+      '.RightDock[data-workspace-viewport-id="model-viewer-primary"]',
+    ) as HTMLElement | null
+    const secondaryDock = container.querySelector(
+      '.RightDock[data-workspace-viewport-id="model-viewer-secondary"]',
+    ) as HTMLElement | null
+
+    expect(primaryDock).not.toBeNull()
+    expect(secondaryDock).not.toBeNull()
+    expect(
+      primaryDock?.querySelector('[data-view-toolbar-section="view"][data-tab-active="true"]'),
+    ).not.toBeNull()
+    expect(
+      secondaryDock?.querySelector(
+        '[data-view-toolbar-section="materials"][data-tab-active="true"]',
+      ),
+    ).not.toBeNull()
+
+    await act(async () => {
+      root?.unmount()
+    })
+
+    root = createRoot(container)
+    await renderToolbarPair()
+
+    const remountedPrimaryDock = container.querySelector(
+      '.RightDock[data-workspace-viewport-id="model-viewer-primary"]',
+    ) as HTMLElement | null
+    const remountedSecondaryDock = container.querySelector(
+      '.RightDock[data-workspace-viewport-id="model-viewer-secondary"]',
+    ) as HTMLElement | null
+
+    expect(
+      remountedPrimaryDock?.querySelector(
+        '[data-view-toolbar-section="view"][data-tab-active="true"]',
+      ),
+    ).not.toBeNull()
+    expect(
+      remountedSecondaryDock?.querySelector(
+        '[data-view-toolbar-section="materials"][data-tab-active="true"]',
+      ),
+    ).not.toBeNull()
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarActiveTab,
+    ).toBe('view')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
+        .viewToolbarActiveTab,
+    ).toBe('materials')
   })
 
   it('publishes gizmo style controls into the shared axis-overlay style seam', async () => {

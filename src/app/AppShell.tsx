@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -342,19 +341,16 @@ export function AppShell() {
     handleLeftDockResizeStart,
     handleLeftDockResizeContextMenu,
     handleResetLeftDockWidth,
-    handleLeftDockSplitTogglePointerDown,
   } = useAppShellDockController({
     appShellRef,
     dockedBrowserHostRef,
     dockedMeatballHostRef,
     leftDockWidth,
     setLeftDockWidth,
-    isLeftDockViewportSplit,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,
     setWorkspaceSplitMenu,
-    setIsLeftDockViewportSplit,
     onLeftDockWidthPreview: (nextWidth) => {
       leftDockWidthPreviewHandlerRef.current?.(nextWidth)
     },
@@ -363,6 +359,13 @@ export function AppShell() {
   const splitRatio = activeEditorSurface?.splitRatio ?? activeEditorViewport?.splitRatio ?? 0.5
   const isBrowserDockPreviewActive = activeLeftDockPreviewPanelId === 'browser'
   const isMeatballDockPreviewActive = activeLeftDockPreviewPanelId === 'meatball-editor'
+  const isMeatballDockOccupied = useMemo(
+    () =>
+      Object.values(editorViewportsById).some(
+        (viewport) => viewport.windowMode === 'meatball editor view',
+      ),
+    [editorViewportsById],
+  )
   const consoleWindowMode = useConsoleStore((state) => state.windowMode)
   const [suppressRuntimeProjectedDockedBrowserSurface, setSuppressRuntimeProjectedDockedBrowserSurface] =
     useState(false)
@@ -719,15 +722,6 @@ export function AppShell() {
     splitViewportSlot,
   })
 
-  const handleLeftDockSplitToggleClick = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      event.stopPropagation()
-      handleTogglePrimaryLeftDockSlotSplit()
-    },
-    [handleTogglePrimaryLeftDockSlotSplit],
-  )
-
   const {
     handleFloatingSplitMenu,
     handleOpenViewportSpawnMenu,
@@ -877,6 +871,7 @@ export function AppShell() {
       isLeftDockViewportSplit={isLeftDockViewportSplit}
       isBrowserDockPreviewActive={isBrowserDockPreviewActive}
       isMeatballDockPreviewActive={isMeatballDockPreviewActive}
+      isMeatballDockOccupied={isMeatballDockOccupied}
       browserPresentationMode={browserPresentationMode}
       isBrowserCollapsed={isBrowserCollapsed}
       windowSettingsOpenByViewportId={windowSettingsOpenByViewportId}
@@ -904,8 +899,6 @@ export function AppShell() {
       onViewportLayoutDividerPointerDown={handleViewportLayoutDividerPointerDown}
       onLeftDockResizeStart={handleLeftDockResizeStart}
       onLeftDockResizeContextMenu={handleLeftDockResizeContextMenu}
-      onLeftDockSplitTogglePointerDown={handleLeftDockSplitTogglePointerDown}
-      onLeftDockSplitToggleClick={handleLeftDockSplitToggleClick}
       resolvePrimaryLeftDockBottomInset={resolvePrimaryLeftDockBottomInset}
       reservePrimaryViewportBottomConsoleBar={shouldReservePrimaryViewportBottomConsoleBar}
     />

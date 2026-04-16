@@ -12,6 +12,19 @@ import { BrowserTreeRowShell, type BrowserTreeRowHandlers } from './browserTreeR
 
 const BROWSER_CONTENT_ROW_FLIP_DURATION_MS = 180
 
+const scheduleBrowserAnimationFrame = (callback: FrameRequestCallback): number =>
+  typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
+    ? window.requestAnimationFrame(callback)
+    : window.setTimeout(() => callback(performance.now()), 0)
+
+const cancelBrowserAnimationFrame = (frameId: number): void => {
+  if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+    window.cancelAnimationFrame(frameId)
+    return
+  }
+  window.clearTimeout(frameId)
+}
+
 function BrowserAnimatedContentRows(props: {
   contentRows: BrowserTreeRowsVm['contentRows']
   rowHandlers: BrowserTreeRowHandlers
@@ -19,7 +32,10 @@ function BrowserAnimatedContentRows(props: {
 }) {
   const { contentRows, registerContentRowElement, rowHandlers } = props
   const rowElementsByIdRef = useRef(new Map<string, HTMLDivElement>())
+  const scrollContainerElementRef = useRef<HTMLElement | null>(null)
   const previousTopByRowIdRef = useRef(new Map<string, number>())
+  const previousRowOrderRef = useRef<string[]>([])
+  const didScrollSinceLastLayoutRef = useRef(false)
   const activeCleanupByRowIdRef = useRef(new Map<string, () => void>())
   const animationFrameIdsRef = useRef<number[]>([])
 
@@ -28,9 +44,16 @@ function BrowserAnimatedContentRows(props: {
       registerContentRowElement?.(rowId)(element)
       if (element === null) {
         rowElementsByIdRef.current.delete(rowId)
+        if (rowElementsByIdRef.current.size === 0) {
+          scrollContainerElementRef.current = null
+        }
         return
       }
       rowElementsByIdRef.current.set(rowId, element)
+      const scrollContainer = element.closest('.BrowserPanelBody')
+      if (scrollContainer instanceof HTMLElement) {
+        scrollContainerElementRef.current = scrollContainer
+      }
     },
     [registerContentRowElement],
   )
@@ -39,26 +62,50 @@ function BrowserAnimatedContentRows(props: {
     return () => {
       activeCleanupByRowIdRef.current.forEach((cleanup) => cleanup())
       activeCleanupByRowIdRef.current.clear()
-      const cancelFrame =
-        typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function'
-          ? window.cancelAnimationFrame.bind(window)
-          : null
       animationFrameIdsRef.current.forEach((frameId) => {
-        if (cancelFrame !== null) {
-          cancelFrame(frameId)
-        }
+        cancelBrowserAnimationFrame(frameId)
       })
       animationFrameIdsRef.current = []
     }
   }, [])
 
+  useEffect(() => {
+    const scrollContainer = scrollContainerElementRef.current
+    if (!(scrollContainer instanceof HTMLElement)) {
+      return
+    }
+
+    const handleScroll = () => {
+      didScrollSinceLastLayoutRef.current = true
+    }
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll)
+    }
+  }, [contentRows])
+
   useLayoutEffect(() => {
     const nextTopByRowId = new Map<string, number>()
-    const scheduleAnimationFrame =
-      typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'
-        ? window.requestAnimationFrame.bind(window)
-        : (callback: FrameRequestCallback) =>
-            window.setTimeout(() => callback(performance.now()), 0)
+    const nextRowOrder = contentRows.map((row) => row.rowId)
+    const rowOrderChanged =
+      nextRowOrder.length !== previousRowOrderRef.current.length ||
+      nextRowOrder.some((rowId, index) => rowId !== previousRowOrderRef.current[index])
+
+    if (didScrollSinceLastLayoutRef.current && !rowOrderChanged) {
+      contentRows.forEach((row) => {
+        const element = rowElementsByIdRef.current.get(row.rowId)
+        if (element === undefined) {
+          return
+        }
+        nextTopByRowId.set(row.rowId, element.getBoundingClientRect().top)
+      })
+      previousTopByRowIdRef.current = nextTopByRowId
+      previousRowOrderRef.current = nextRowOrder
+      didScrollSinceLastLayoutRef.current = false
+      return
+    }
 
     contentRows.forEach((row) => {
       const element = rowElementsByIdRef.current.get(row.rowId)
@@ -105,7 +152,7 @@ function BrowserAnimatedContentRows(props: {
 
       let cleanupTimerId: number | null = null
       element.addEventListener('transitionend', handleTransitionEnd)
-      const frameId = scheduleAnimationFrame(() => {
+      const frameId = scheduleBrowserAnimationFrame(() => {
         element.style.transition = `transform ${BROWSER_CONTENT_ROW_FLIP_DURATION_MS}ms ease`
         element.style.transform = 'translateY(0px)'
         cleanupTimerId = window.setTimeout(
@@ -118,6 +165,8 @@ function BrowserAnimatedContentRows(props: {
     })
 
     previousTopByRowIdRef.current = nextTopByRowId
+    previousRowOrderRef.current = nextRowOrder
+    didScrollSinceLastLayoutRef.current = false
   }, [contentRows])
 
   return (

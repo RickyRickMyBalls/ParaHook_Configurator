@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { buildBrowserContextMenuItems } from './browserContextMenu'
+import {
+  buildBrowserContextMenuItems,
+  type BrowserContextMenuBuilderDeps,
+} from './browserContextMenu'
 import type {
   BrowserAssemblyTreeRowVm,
   BrowserComponentTreeRowVm,
@@ -133,6 +136,36 @@ const importedContentObjectRow = (): BrowserObjectTreeRowVm => ({
   errorMessage: 'Load failed',
 })
 
+const visibleContentObjectRow = (): BrowserObjectTreeRowVm => ({
+  rowId: 'object-1',
+  rowKind: 'object',
+  depth: 1,
+  treeGuides: ['elbow'],
+  iconLabel: 'O',
+  label: 'Object 1',
+  meta: 'Graph 1',
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+  isVisible: true,
+  visibilityPartKeys: ['slot-a'],
+  buildState: 'done',
+  buildStateLabel: 'Built',
+  rebuildGraphDocumentIds: [],
+  ownerGraphDocumentId: 'graph-document-1',
+  parentComponentId: null,
+  objectSourceKind: 'published-object',
+  sourceGraphDocumentId: 'graph-document-1',
+  sourceOutputEntryId: 'output-entry-1',
+  slotId: 'slot-a',
+  sourceNodeId: 'node-1',
+  resolutionState: 'resolved',
+  highlightViewerKey: 'slot-a',
+  authoringGraphDocumentId: 'graph-document-1',
+  authoringNodeId: 'node-1',
+})
+
 const inheritedComponentRow = (): BrowserComponentTreeRowVm => ({
   rowId: 'component-1',
   rowKind: 'component',
@@ -167,6 +200,36 @@ const inheritedComponentRow = (): BrowserComponentTreeRowVm => ({
   effectiveBrowserBuildPolicySourceLabel: 'Main Assembly',
 })
 
+const hiddenComponentRow = (): BrowserComponentTreeRowVm => ({
+  ...inheritedComponentRow(),
+  isVisible: false,
+})
+
+const visibleAssemblyRow = (): BrowserAssemblyTreeRowVm => ({
+  rowId: 'assembly-1',
+  rowKind: 'assembly',
+  depth: 0,
+  treeGuides: [],
+  iconLabel: 'A',
+  label: 'Main Assembly',
+  meta: '',
+  isSelected: false,
+  isExpandable: true,
+  isExpanded: true,
+  actions: [],
+  isVisible: true,
+  visibilityPartKeys: ['slot-a', 'slot-b', 'slot-a'],
+  buildState: 'done',
+  buildStateLabel: 'Done',
+  rebuildGraphDocumentIds: [],
+})
+
+const visibleAssemblyRowWithReferences = (): BrowserAssemblyTreeRowVm => ({
+  ...visibleAssemblyRow(),
+  visibilityPartKeys: [],
+  visibilityReferenceIds: ['reference-import:1', 'reference-import:2'],
+})
+
 const authoredGraphRow = (): BrowserGraphTreeRowVm => ({
   rowId: 'graph-row:graph-document-1',
   rowKind: 'graph-document',
@@ -194,22 +257,31 @@ const authoredGraphRow = (): BrowserGraphTreeRowVm => ({
   effectiveBrowserBuildPolicySourceLabel: null,
 })
 
-const createDeps = () => ({
-  handleRowAction: vi.fn(),
-  closeMenus: vi.fn(),
-  selectRow: vi.fn(),
-  appendBrowserEntry: vi.fn(),
-  startReferenceLoadBatchForAll: vi.fn(),
-  startReferenceLoadBatchForCategory: vi.fn(),
-  retryReferenceItemLoad: vi.fn(),
-  setReferenceItemVisibility: vi.fn(),
-  handleRetryImportedReferenceRow: vi.fn(),
-  handleRemoveImportedReferenceRow: vi.fn(),
-  setBrowserGraphBuildPolicy: vi.fn(),
-  setBrowserContentBuildPolicy: vi.fn(),
-  clearBrowserGraphBuildPolicy: vi.fn(),
-  clearBrowserContentBuildPolicy: vi.fn(),
-})
+const createDeps = () =>
+  ({
+    handleRowAction: vi.fn(),
+    closeMenus: vi.fn(),
+    selectRow: vi.fn(),
+    appendBrowserEntry: vi.fn(),
+    startReferenceLoadBatchForAll: vi.fn(),
+    startReferenceLoadBatchForCategory: vi.fn(),
+    retryReferenceItemLoad: vi.fn(),
+    setReferenceItemVisibility: vi.fn(),
+    setPartVisibility: vi.fn(),
+    handleRetryImportedReferenceRow: vi.fn(),
+    handleRemoveImportedReferenceRow: vi.fn(),
+    handleRemoveImportedReferenceRows: vi.fn(),
+    getMultiSelectImportedReferenceDeleteAction:
+      vi.fn<NonNullable<BrowserContextMenuBuilderDeps['getMultiSelectImportedReferenceDeleteAction']>>(
+        () => null,
+      ),
+    getMultiSelectVisibilityAction:
+      vi.fn<NonNullable<BrowserContextMenuBuilderDeps['getMultiSelectVisibilityAction']>>(() => null),
+    setBrowserGraphBuildPolicy: vi.fn(),
+    setBrowserContentBuildPolicy: vi.fn(),
+    clearBrowserGraphBuildPolicy: vi.fn(),
+    clearBrowserContentBuildPolicy: vi.fn(),
+  }) satisfies BrowserContextMenuBuilderDeps
 
 describe('buildBrowserContextMenuItems', () => {
   it('adds load-all actions for the references root and categories', () => {
@@ -270,6 +342,63 @@ describe('buildBrowserContextMenuItems', () => {
     expect(deps.handleRemoveImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
   })
 
+  it('uses grouped remove for imported reference rows when a deletable multi-select action is available', () => {
+    const deps = createDeps()
+    deps.getMultiSelectImportedReferenceDeleteAction.mockReturnValue({
+      referenceIds: ['shoe-1', 'shoe-2'],
+      ariaLabel: 'Remove 2 selected reference objects',
+    })
+    const items = buildBrowserContextMenuItems(importedContentObjectRow(), deps)
+    const removeItem = items.find((item) => item.id === 'imported-object:remove-multi')
+
+    removeItem?.onSelect()
+
+    expect(removeItem?.label).toBe('Remove')
+    expect(removeItem?.ariaLabel).toBe('Remove 2 selected reference objects')
+    expect(deps.handleRemoveImportedReferenceRows).toHaveBeenCalledWith(['shoe-1', 'shoe-2'])
+    expect(deps.handleRemoveImportedReferenceRow).not.toHaveBeenCalled()
+  })
+
+  it('uses grouped Hide for visible object rows when a selected visibility action is available', () => {
+    const deps = createDeps()
+    deps.getMultiSelectVisibilityAction.mockReturnValue({
+      id: 'selected-rows:visibility:hide',
+      label: 'Hide',
+      ariaLabel: 'Hide 2 selected browser rows',
+      onSelect: vi.fn(),
+    })
+    const items = buildBrowserContextMenuItems(visibleContentObjectRow(), deps)
+    const hideItem = items.find((item) => item.id === 'selected-rows:visibility:hide')
+
+    hideItem?.onSelect()
+
+    expect(hideItem?.label).toBe('Hide')
+    expect(hideItem?.ariaLabel).toBe('Hide 2 selected browser rows')
+    expect(deps.getMultiSelectVisibilityAction).toHaveBeenCalledWith(
+      expect.objectContaining({ rowId: 'object-1' }),
+    )
+  })
+
+  it('uses grouped Hide for imported reference object rows when a selected visibility action is available', () => {
+    const deps = createDeps()
+    deps.getMultiSelectVisibilityAction.mockReturnValue({
+      id: 'selected-rows:visibility:hide',
+      label: 'Hide',
+      ariaLabel: 'Hide 2 selected browser rows',
+      onSelect: vi.fn(),
+    })
+    const items = buildBrowserContextMenuItems(importedContentObjectRow(), deps)
+    const hideItem = items.find((item) => item.id === 'selected-rows:visibility:hide')
+
+    hideItem?.onSelect()
+
+    expect(hideItem?.label).toBe('Hide')
+    expect(hideItem?.ariaLabel).toBe('Hide 2 selected browser rows')
+    expect(deps.getMultiSelectVisibilityAction).toHaveBeenCalledWith(
+      expect.objectContaining({ rowId: 'reference-item-row:shoe-1' }),
+    )
+  })
+
   it('adds make-independent actions for inherited build-policy rows', () => {
     const deps = createDeps()
     const items = buildBrowserContextMenuItems(inheritedComponentRow(), deps)
@@ -279,6 +408,49 @@ describe('buildBrowserContextMenuItems', () => {
 
     expect(makeIndependentItem?.label).toBe('Make Independent')
     expect(deps.setBrowserContentBuildPolicy).toHaveBeenCalledWith('component-1', 'manual')
+  })
+
+  it('adds Hide for visible assembly rows and toggles all unique descendant part keys off', () => {
+    const deps = createDeps()
+    const items = buildBrowserContextMenuItems(visibleAssemblyRow(), deps)
+    const hideItem = items.find((item) => item.id === 'assembly:assembly-1:visibility')
+
+    hideItem?.onSelect()
+
+    expect(hideItem?.label).toBe('Hide')
+    expect(deps.closeMenus).toHaveBeenCalledTimes(1)
+    expect(deps.selectRow).toHaveBeenCalledWith('assembly-1')
+    expect(deps.appendBrowserEntry).toHaveBeenCalledWith('Hide: assembly Main Assembly')
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(1, 'slot-a', false)
+    expect(deps.setPartVisibility).toHaveBeenNthCalledWith(2, 'slot-b', false)
+    expect(deps.setPartVisibility).toHaveBeenCalledTimes(2)
+  })
+
+  it('adds Show for hidden component rows and toggles descendant part keys on', () => {
+    const deps = createDeps()
+    const items = buildBrowserContextMenuItems(hiddenComponentRow(), deps)
+    const showItem = items.find((item) => item.id === 'component:component-1:visibility')
+
+    showItem?.onSelect()
+
+    expect(showItem?.label).toBe('Show')
+    expect(deps.closeMenus).toHaveBeenCalledTimes(1)
+    expect(deps.selectRow).toHaveBeenCalledWith('component-1')
+    expect(deps.appendBrowserEntry).toHaveBeenCalledWith('Show: component Pedal Component')
+    expect(deps.setPartVisibility).toHaveBeenCalledWith('part:component-1', true)
+  })
+
+  it('adds Hide for visible assembly rows that only own reference-backed children and routes through reference visibility', () => {
+    const deps = createDeps()
+    const items = buildBrowserContextMenuItems(visibleAssemblyRowWithReferences(), deps)
+    const hideItem = items.find((item) => item.id === 'assembly:assembly-1:visibility')
+
+    hideItem?.onSelect()
+
+    expect(hideItem?.label).toBe('Hide')
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(1, 'reference-import:1', false)
+    expect(deps.setReferenceItemVisibility).toHaveBeenNthCalledWith(2, 'reference-import:2', false)
+    expect(deps.setPartVisibility).not.toHaveBeenCalled()
   })
 
   it('adds return-to-default actions for authored graph build-policy rows', () => {

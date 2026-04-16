@@ -183,6 +183,93 @@ describe('routeKeyboardInput', () => {
     })
   })
 
+  it('routes Delete to selected reference targets when delete is available', () => {
+    const result = routeKeyboardInput({
+      event: createEvent('Delete'),
+      selectedReferenceDeleteAvailable: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'reference-selection',
+      decision: 'handle',
+    })
+  })
+
+  it('routes Shift+H to selected reference targets when hide is available', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'H',
+        shiftKey: true,
+        target: null,
+      },
+      selectedReferenceHideAvailable: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'reference-selection',
+      decision: 'handle',
+    })
+  })
+
+  it('routes Alt+H to reference visibility recovery when hidden references exist', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: 'H',
+        altKey: true,
+        target: null,
+      },
+      hiddenReferenceRestoreAvailable: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'reference-selection',
+      decision: 'handle',
+    })
+  })
+
+  it('routes active viewer camera shortcuts before flat console capture', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: '5',
+        code: 'Numpad5',
+        target: null,
+      },
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    })
+  })
+
+  it('keeps viewer camera shortcuts dormant while fly mode is active', () => {
+    const result = routeKeyboardInput({
+      event: {
+        key: '5',
+        code: 'Numpad5',
+        target: null,
+      },
+      viewerFlyActive: true,
+      viewerCameraShortcutsEnabled: true,
+      stagedConsoleActive: true,
+      allowFlatConsoleCapture: true,
+    })
+
+    expect(result).toEqual({
+      owner: 'staged-console',
+      decision: 'handle',
+    })
+  })
+
   it('routes m/r/s to reference transform before console capture', () => {
     expect(
       routeKeyboardInput({

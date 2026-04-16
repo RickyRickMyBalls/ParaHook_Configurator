@@ -100,12 +100,11 @@ describe('PrimaryViewportLeftDock', () => {
           isLeftDockViewportSplit={false}
           isBrowserDockPreviewActive={false}
           isMeatballDockPreviewActive={false}
+          isMeatballDockOccupied={false}
           dockedBrowserHostRef={browserHostRef}
           dockedMeatballHostRef={meatballHostRef}
           onResizeStart={() => {}}
           onResizeContextMenu={() => {}}
-          onSplitTogglePointerDown={() => {}}
-          onSplitToggleClick={() => {}}
         />,
       )
     })
@@ -131,12 +130,11 @@ describe('PrimaryViewportLeftDock', () => {
             isLeftDockViewportSplit={false}
             isBrowserDockPreviewActive={false}
             isMeatballDockPreviewActive={false}
+            isMeatballDockOccupied={false}
             dockedBrowserHostRef={browserHostRef}
             dockedMeatballHostRef={meatballHostRef}
             onResizeStart={() => {}}
             onResizeContextMenu={() => {}}
-            onSplitTogglePointerDown={() => {}}
-            onSplitToggleClick={() => {}}
           />
         </>,
       )
@@ -196,6 +194,25 @@ describe('PrimaryViewportLeftDock', () => {
     const statusPosition = Array.from(statusZone?.parentElement?.children ?? []).indexOf(statusZone!)
     const panelStackPosition = Array.from(statusZone?.parentElement?.children ?? []).indexOf(panelStackShell!)
     expect(statusPosition).toBeLessThan(panelStackPosition)
+  })
+
+  it('anchors the shared resize seam to the full left-dock content edge instead of the inner panel stack shell', async () => {
+    await renderDock()
+
+    const dockContent = container?.querySelector('.PrimaryViewportLeftDockContent') as HTMLElement | null
+    const panelStackShell = container?.querySelector(
+      '.PrimaryViewportLeftDockPanelStackShell',
+    ) as HTMLElement | null
+    const resizeHandle = container?.querySelector(
+      '.PrimaryViewportLeftDockResizeHandle',
+    ) as HTMLElement | null
+
+    expect(dockContent).not.toBeNull()
+    expect(panelStackShell).not.toBeNull()
+    expect(resizeHandle).not.toBeNull()
+    expect(dockContent?.contains(resizeHandle!)).toBe(true)
+    expect(panelStackShell?.contains(resizeHandle!)).toBe(false)
+    expect(dockContent?.lastElementChild).toBe(resizeHandle)
   })
 
   it('keeps viewport presentation controls hidden behind the runtime inspector info menu and writes changes into app state', async () => {

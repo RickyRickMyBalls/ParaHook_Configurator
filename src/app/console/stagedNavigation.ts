@@ -53,6 +53,8 @@ export type ConsoleStagedNavigationContext = {
       referenceId: string
       label: string
       canLoadModel: boolean
+      canDelete?: boolean
+      canHide?: boolean
     }>
   }>
   referenceTransformShellByReferenceId: Record<
@@ -154,6 +156,7 @@ export type ConsoleStagedNavigationScopeId =
   | 'contentObjectZoomRoot'
   | 'multiSelectSelected'
   | 'multiSelectZoomRoot'
+  | 'referenceHideRoot'
   | 'referencesSelected'
   | 'referencesZoomRoot'
   | 'referenceCategorySelected'
@@ -184,12 +187,23 @@ export type ConsoleStagedNavigationSelection = {
   workspaceViewportId?: string | null
   contentAssemblyId?: string | null
   contentComponentId?: string | null
+  contentVisibilityPartKeys?: string[]
+  contentCanHide?: boolean
+  contentCanShow?: boolean
   contentObjectId?: string | null
   referenceId?: string | null
   referenceCategoryId?: string | null
   referenceCanLoadModel?: boolean
+  referenceCanDelete?: boolean
+  referenceCanHide?: boolean
   referenceZoomIds?: string[]
   multiSelectLabels?: string[]
+  multiSelectCanDelete?: boolean
+  multiSelectReferenceDeleteIds?: string[]
+  multiSelectCanHide?: boolean
+  multiSelectReferenceHideIds?: string[]
+  multiSelectCanUnhide?: boolean
+  multiSelectReferenceUnhideIds?: string[]
 }
 
 export type ConsoleStagedNavigationSession = {
@@ -259,12 +273,20 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'content.newComponent'
     | 'content.rename'
     | 'content.delete'
+    | 'content.visibility.hide'
+    | 'content.visibility.show'
     | 'sketch.plane'
     | 'sketch.draw'
     | 'node.delete'
     | 'reference.loadAll'
     | 'reference.category.loadAll'
     | 'reference.loadModel'
+    | 'reference.delete'
+    | 'reference.hide'
+    | 'reference.unhideAll'
+    | 'reference.multiDelete'
+    | 'reference.multiHide'
+    | 'reference.multiUnhide'
   | 'reference.transform.commitShell'
   | 'reference.transform.deleteLatest'
   | 'reference.transform.move'
@@ -384,6 +406,20 @@ const ROOT_REFERENCES_CHOICE: ConsoleStagedNavigationChoice = {
   aliases: ['REF', 'REFS', 'REFERENCE', 'REFRENCE'],
   label: 'References',
   kind: 'scope',
+}
+
+const ROOT_HIDE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'HIDE',
+  aliases: ['H'],
+  label: 'Hide',
+  kind: 'scope',
+}
+
+const ROOT_UNHIDE_ALL_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'UNHIDEALL',
+  aliases: ['UH', 'UA'],
+  label: 'Unhide All',
+  kind: 'action',
 }
 
 const ROOT_WORKSPACE_MODES_CHOICE: ConsoleStagedNavigationChoice = {
@@ -862,6 +898,21 @@ const createReferenceItemChoice = (
   referenceId,
 })
 
+const createReferenceHideItemChoice = (
+  referenceId: string,
+  label: string,
+  categoryId: string,
+  categoryLabel: string,
+  index: number,
+): ConsoleStagedNavigationChoice => ({
+  canonicalToken: `${categoryLabel} ${label}`.toUpperCase(),
+  aliases: [`${index + 1}`, label.toUpperCase()],
+  label: `${categoryLabel} / ${label}`,
+  kind: 'action',
+  referenceId,
+  referenceCategoryId: categoryId,
+})
+
 const MOVE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'MOVE',
   aliases: ['M'],
@@ -915,6 +966,27 @@ const DELETE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'DELETE',
   aliases: ['DEL'],
   label: 'Delete',
+  kind: 'action',
+}
+
+const HIDE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'HIDE',
+  aliases: ['H'],
+  label: 'Hide',
+  kind: 'action',
+}
+
+const SHOW_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'SHOW',
+  aliases: ['SH'],
+  label: 'Show',
+  kind: 'action',
+}
+
+const UNHIDE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'UNHIDE',
+  aliases: ['U'],
+  label: 'Unhide',
   kind: 'action',
 }
 
@@ -1143,6 +1215,8 @@ const buildRootChoices = (): ConsoleStagedNavigationChoice[] => [
   ROOT_GRAPH_CHOICE,
   ROOT_CONTENT_CHOICE,
   ROOT_REFERENCES_CHOICE,
+  ROOT_HIDE_CHOICE,
+  ROOT_UNHIDE_ALL_CHOICE,
   ROOT_WORKSPACE_MODES_CHOICE,
   ROOT_CAMERA_CHOICE,
   ROOT_RADIO_CHOICE,
@@ -1414,15 +1488,23 @@ const buildGraphNodeSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
 
 const buildContentComponentSelectedChoices = (
   canRenameDelete: boolean,
+  canHide: boolean,
+  canShow: boolean,
 ): ConsoleStagedNavigationChoice[] => [
+  ...(canShow ? [SHOW_CHOICE] : []),
+  ...(canHide ? [HIDE_CHOICE] : []),
   ...(canRenameDelete ? [RENAME_CHOICE, DELETE_CHOICE] : []),
   SELECT_ALL_CHOICE,
   createBackChoice(),
 ]
 const buildContentAssemblySelectedChoices = (
   canDelete: boolean,
+  canHide: boolean,
+  canShow: boolean,
 ): ConsoleStagedNavigationChoice[] => [
   NEW_COMPONENT_CHOICE,
+  ...(canShow ? [SHOW_CHOICE] : []),
+  ...(canHide ? [HIDE_CHOICE] : []),
   RENAME_CHOICE,
   ...(canDelete ? [DELETE_CHOICE] : []),
   SELECT_ALL_CHOICE,
@@ -1437,7 +1519,14 @@ const buildContentObjectSelectedChoices = (): ConsoleStagedNavigationChoice[] =>
   ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
-const buildMultiSelectSelectedChoices = (): ConsoleStagedNavigationChoice[] => [
+const buildMultiSelectSelectedChoices = (
+  canDelete: boolean,
+  canHide: boolean,
+  canUnhide: boolean,
+): ConsoleStagedNavigationChoice[] => [
+  ...(canUnhide ? [UNHIDE_CHOICE] : []),
+  ...(canHide ? [HIDE_CHOICE] : []),
+  ...(canDelete ? [DELETE_CHOICE] : []),
   ROOT_ZOOM_CHOICE,
   createBackChoice(),
 ]
@@ -1464,10 +1553,47 @@ const buildReferenceCategorySelectedChoices = (
   createBackChoice(),
 ]
 
-const buildReferenceSelectedChoices = (canLoadModel: boolean): ConsoleStagedNavigationChoice[] => [
+const buildReferenceHideRootChoices = (
+  referenceCategories: ConsoleStagedNavigationContext['referenceCategories'],
+): ConsoleStagedNavigationChoice[] => {
+  let visibleItemIndex = 0
+  const visibleChoices = referenceCategories.flatMap((category) =>
+    category.items
+      .filter((item) => item.canHide === true)
+      .map((item) =>
+        createReferenceHideItemChoice(
+          item.referenceId,
+          item.label,
+          category.categoryId,
+          category.label,
+          visibleItemIndex++,
+        ),
+      ),
+  )
+
+  return [...visibleChoices, createBackChoice()]
+}
+
+const buildReferenceSelectedChoices = (
+  canLoadModel: boolean,
+  canDelete: boolean,
+  canHide: boolean,
+): ConsoleStagedNavigationChoice[] => [
   ...(canLoadModel
-    ? [REFERENCE_LOAD_MODEL_CHOICE, ROOT_ZOOM_CHOICE]
-    : [TRANSFORM_CHOICE, MOVE_CHOICE, ROTATE_CHOICE, SCALE_CHOICE, ROOT_ZOOM_CHOICE]),
+    ? [
+        REFERENCE_LOAD_MODEL_CHOICE,
+        ...(canDelete ? [DELETE_CHOICE] : []),
+        ROOT_ZOOM_CHOICE,
+      ]
+    : [
+        TRANSFORM_CHOICE,
+        MOVE_CHOICE,
+        ROTATE_CHOICE,
+        SCALE_CHOICE,
+        ...(canHide ? [HIDE_CHOICE] : []),
+        ...(canDelete ? [DELETE_CHOICE] : []),
+        ROOT_ZOOM_CHOICE,
+      ]),
   createBackChoice(),
 ]
 
@@ -1907,6 +2033,9 @@ const createContentAssemblySelectedSession = (
   labels: string | string[],
   assemblyId: string | null,
   canDelete: boolean,
+  canHide = false,
+  canShow = false,
+  visibilityPartKeys: string[] = [],
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentAssemblySelected',
   breadcrumb: buildContentBreadcrumb(labels),
@@ -1916,9 +2045,12 @@ const createContentAssemblySelectedSession = (
     sketchNodeId: null,
     contentAssemblyId: assemblyId,
     contentComponentId: null,
+    contentVisibilityPartKeys: visibilityPartKeys,
+    contentCanHide: canHide,
+    contentCanShow: canShow,
     referenceId: null,
   },
-  validChoices: buildContentAssemblySelectedChoices(canDelete),
+  validChoices: buildContentAssemblySelectedChoices(canDelete, canHide, canShow),
 })
 
 const createContentAssemblyZoomRootSession = (
@@ -1940,6 +2072,9 @@ const createContentComponentSelectedSession = (
   fallbackGraphDocumentId: string | null,
   componentId: string | null,
   canRenameDelete: boolean,
+  canHide = false,
+  canShow = false,
+  visibilityPartKeys: string[] = [],
 ): ConsoleStagedNavigationSession => ({
   scopeId: 'contentComponentSelected',
   breadcrumb: buildContentBreadcrumb(labels),
@@ -1949,9 +2084,12 @@ const createContentComponentSelectedSession = (
     sketchNodeId: null,
     contentAssemblyId: null,
     contentComponentId: componentId,
+    contentVisibilityPartKeys: visibilityPartKeys,
+    contentCanHide: canHide,
+    contentCanShow: canShow,
     referenceId: null,
   },
-  validChoices: buildContentComponentSelectedChoices(canRenameDelete),
+  validChoices: buildContentComponentSelectedChoices(canRenameDelete, canHide, canShow),
 })
 
 const createContentObjectSelectedSession = (
@@ -2123,7 +2261,15 @@ const createContentObjectTransformAxisSnapRootSession = (
 
 const formatMultiSelectLabels = (labels: readonly string[]): string => `[${labels.join(', ')}]`
 
-const createMultiSelectSelectedSession = (labels: string[]): ConsoleStagedNavigationSession => ({
+const createMultiSelectSelectedSession = (
+  labels: string[],
+  canDelete = false,
+  referenceDeleteIds: string[] = [],
+  canHide = false,
+  referenceHideIds: string[] = [],
+  canUnhide = false,
+  referenceUnhideIds: string[] = [],
+): ConsoleStagedNavigationSession => ({
   scopeId: 'multiSelectSelected',
   breadcrumb: ['Multi-Select', formatMultiSelectLabels(labels)],
   selections: {
@@ -2132,14 +2278,22 @@ const createMultiSelectSelectedSession = (labels: string[]): ConsoleStagedNaviga
     sketchNodeId: null,
     referenceId: null,
     multiSelectLabels: labels,
+    multiSelectCanDelete: canDelete,
+    multiSelectReferenceDeleteIds: referenceDeleteIds,
+    multiSelectCanHide: canHide,
+    multiSelectReferenceHideIds: referenceHideIds,
+    multiSelectCanUnhide: canUnhide,
+    multiSelectReferenceUnhideIds: referenceUnhideIds,
   },
-  validChoices: buildMultiSelectSelectedChoices(),
+  validChoices: buildMultiSelectSelectedChoices(canDelete, canHide, canUnhide),
 })
 
 const createReferenceSelectedSession = (
   label: string,
   referenceId: string,
   canLoadModel: boolean,
+  canDelete: boolean,
+  canHide: boolean,
   referenceCategoryId: string | null = null,
   referenceCategoryLabel: string | null = null,
 ): ConsoleStagedNavigationSession => ({
@@ -2155,8 +2309,10 @@ const createReferenceSelectedSession = (
     referenceId,
     referenceCategoryId,
     referenceCanLoadModel: canLoadModel,
+    referenceCanDelete: canDelete,
+    referenceCanHide: canHide,
   },
-  validChoices: buildReferenceSelectedChoices(canLoadModel),
+  validChoices: buildReferenceSelectedChoices(canLoadModel, canDelete, canHide),
 })
 
 const createReferenceTransformRootSession = (
@@ -2638,6 +2794,21 @@ const createReferencesSelectedSession = (
   validChoices: buildReferencesSelectedChoices(categoryOptions, canLoadAll),
 })
 
+const createReferenceHideRootSession = (
+  referenceCategories: ConsoleStagedNavigationContext['referenceCategories'],
+): ConsoleStagedNavigationSession => ({
+  scopeId: 'referenceHideRoot',
+  breadcrumb: ['Hide'],
+  selections: {
+    graphDocumentId: null,
+    selectedNodeId: null,
+    sketchNodeId: null,
+    referenceId: null,
+    referenceCategoryId: null,
+  },
+  validChoices: buildReferenceHideRootChoices(referenceCategories),
+})
+
 const createReferencesZoomRootSession = (
   label: string,
   referenceIds: string[],
@@ -2739,6 +2910,9 @@ export const resolveConsoleWorkspaceContextSync = (
         target.contentBreadcrumbLabels ?? target.label,
         target.assemblyId,
         target.canDelete,
+        target.canHide ?? false,
+        target.canShow ?? false,
+        target.visibilityPartKeys ?? [],
       ),
       selectedLabel: target.label,
     }
@@ -2772,6 +2946,9 @@ export const resolveConsoleWorkspaceContextSync = (
         target.fallbackGraphDocumentId,
         target.componentId,
         target.canRename || target.canDelete,
+        target.canHide ?? false,
+        target.canShow ?? false,
+        target.visibilityPartKeys ?? [],
       ),
       selectedLabel: target.label,
     }
@@ -2784,6 +2961,8 @@ export const resolveConsoleWorkspaceContextSync = (
           target.label,
           target.referenceId,
           target.canLoadModel ?? false,
+          target.canDelete ?? false,
+          target.canHide ?? false,
           target.referenceCategoryId ?? null,
           target.referenceCategoryLabel ?? null,
         ),
@@ -2802,7 +2981,15 @@ export const resolveConsoleWorkspaceContextSync = (
 
   if ('kind' in target && target.kind === 'multi-select') {
     return {
-      session: createMultiSelectSelectedSession(target.selectedLabels),
+      session: createMultiSelectSelectedSession(
+        target.selectedLabels,
+        target.canDelete ?? false,
+        target.referenceDeleteIds ?? [],
+        target.canHide ?? false,
+        target.referenceHideIds ?? [],
+        target.canUnhide ?? false,
+        target.referenceUnhideIds ?? [],
+      ),
       selectedLabel: target.label,
     }
   }
@@ -2846,6 +3033,8 @@ export const resolveConsoleWorkspaceContextSync = (
         target.label,
         target.referenceId,
         target.canLoadModel,
+        target.canDelete ?? false,
+        target.canHide ?? false,
         target.referenceCategoryId,
         target.referenceCategoryLabel,
       ),
@@ -3220,6 +3409,8 @@ export const createConsoleStagedNavigationContext = (
         referenceId: item.referenceId,
         label: item.label,
         canLoadModel: item.canLoadModel,
+        canDelete: item.canDelete ?? false,
+        canHide: item.canHide ?? false,
       })),
     })),
     sketchDraw,
@@ -3270,6 +3461,24 @@ export const submitConsoleStagedNavigationToken = (
         submittedToken,
         matchedRootChoice,
       )
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_HIDE_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferenceHideRootSession(context.referenceCategories),
+        submittedToken,
+        matchedRootChoice,
+      )
+    }
+    if (matchedRootChoice.canonicalToken === ROOT_UNHIDE_ALL_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: createConsoleRootSession(),
+        submittedToken,
+        matchedChoice: matchedRootChoice,
+        actionId: 'reference.unhideAll',
+        breadcrumb: ['Root', matchedRootChoice.label],
+        selections: createConsoleRootSession().selections,
+      }
     }
     if (matchedRootChoice.canonicalToken === ROOT_WORKSPACE_MODES_CHOICE.canonicalToken) {
       return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedRootChoice)
@@ -3331,6 +3540,27 @@ export const submitConsoleStagedNavigationToken = (
         submittedToken,
         matchedChoice,
       )
+    }
+    if (matchedChoice.canonicalToken === ROOT_HIDE_CHOICE.canonicalToken) {
+      return createAdvanceResult(
+        createReferenceHideRootSession(context.referenceCategories),
+        submittedToken,
+        matchedChoice,
+      )
+    }
+    if (matchedChoice.canonicalToken === ROOT_UNHIDE_ALL_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: rootChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.unhideAll',
+        breadcrumb: ['Root', matchedChoice.label],
+        selections: session.selections,
+      }
     }
     if (matchedChoice.canonicalToken === ROOT_WORKSPACE_MODES_CHOICE.canonicalToken) {
       return createAdvanceResult(createWorkspaceModesRootSession(context), submittedToken, matchedChoice)
@@ -4011,6 +4241,8 @@ export const submitConsoleStagedNavigationToken = (
           session.breadcrumb.at(-2) ?? 'Reference',
           session.selections.referenceId ?? '',
           session.selections.referenceCanLoadModel ?? false,
+          session.selections.referenceCanDelete ?? false,
+          session.selections.referenceCanHide ?? false,
           session.selections.referenceCategoryId ?? null,
           session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-3) ?? null) : null,
         ),
@@ -4738,7 +4970,11 @@ export const submitConsoleStagedNavigationToken = (
     const canDelete = context.contentAssemblies.find(
       (assembly) => assembly.assemblyId === session.selections.contentAssemblyId,
     )?.canDelete ?? false
-    const contentChoices = buildContentAssemblySelectedChoices(canDelete)
+    const contentChoices = buildContentAssemblySelectedChoices(
+      canDelete,
+      session.selections.contentCanHide ?? false,
+      session.selections.contentCanShow ?? false,
+    )
     const matchedChoice =
       contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -4795,6 +5031,28 @@ export const submitConsoleStagedNavigationToken = (
         selections: session.selections,
       }
     }
+    if (matchedChoice.canonicalToken === HIDE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.visibility.hide',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === SHOW_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.visibility.show',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
     if (matchedChoice.canonicalToken === ROOT_ZOOM_CHOICE.canonicalToken) {
       return createAdvanceResult(
         createContentAssemblyZoomRootSession(extractContentBreadcrumbLabels(session.breadcrumb)),
@@ -4820,6 +5078,9 @@ export const submitConsoleStagedNavigationToken = (
           context.contentAssemblies.find(
             (assembly) => assembly.assemblyId === session.selections.contentAssemblyId,
           )?.canDelete ?? false,
+          session.selections.contentCanHide ?? false,
+          session.selections.contentCanShow ?? false,
+          session.selections.contentVisibilityPartKeys ?? [],
         ),
         submittedToken,
         matchedChoice,
@@ -4860,6 +5121,8 @@ export const submitConsoleStagedNavigationToken = (
     const contentChoices = buildContentComponentSelectedChoices(
       session.selections.contentComponentId !== null &&
         session.selections.contentComponentId !== undefined,
+      session.selections.contentCanHide ?? false,
+      session.selections.contentCanShow ?? false,
     )
     const matchedChoice =
       contentChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
@@ -4902,6 +5165,28 @@ export const submitConsoleStagedNavigationToken = (
         submittedToken,
         matchedChoice,
         actionId: 'content.delete',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === HIDE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.visibility.hide',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === SHOW_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: { ...session, validChoices: contentChoices },
+        submittedToken,
+        matchedChoice,
+        actionId: 'content.visibility.show',
         breadcrumb: [...session.breadcrumb, matchedChoice.label],
         selections: session.selections,
       }
@@ -5517,7 +5802,11 @@ export const submitConsoleStagedNavigationToken = (
   }
 
   if (session.scopeId === 'multiSelectSelected') {
-    const multiSelectChoices = buildMultiSelectSelectedChoices()
+    const multiSelectChoices = buildMultiSelectSelectedChoices(
+      session.selections.multiSelectCanDelete ?? false,
+      session.selections.multiSelectCanHide ?? false,
+      session.selections.multiSelectCanUnhide ?? false,
+    )
     const matchedChoice =
       multiSelectChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
     if (matchedChoice === null) {
@@ -5541,6 +5830,48 @@ export const submitConsoleStagedNavigationToken = (
         selections: session.selections,
       }
     }
+    if (matchedChoice.canonicalToken === UNHIDE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: multiSelectChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.multiUnhide',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === HIDE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: multiSelectChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.multiHide',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
+    if (matchedChoice.canonicalToken === DELETE_CHOICE.canonicalToken) {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: multiSelectChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.multiDelete',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: session.selections,
+      }
+    }
     return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
   }
 
@@ -5553,7 +5884,15 @@ export const submitConsoleStagedNavigationToken = (
     }
     if (matchedChoice.canonicalToken === 'BACK') {
       return createAdvanceResult(
-        createMultiSelectSelectedSession(session.selections.multiSelectLabels ?? []),
+        createMultiSelectSelectedSession(
+          session.selections.multiSelectLabels ?? [],
+          session.selections.multiSelectCanDelete ?? false,
+          session.selections.multiSelectReferenceDeleteIds ?? [],
+          session.selections.multiSelectCanHide ?? false,
+          session.selections.multiSelectReferenceHideIds ?? [],
+          session.selections.multiSelectCanUnhide ?? false,
+          session.selections.multiSelectReferenceUnhideIds ?? [],
+        ),
         submittedToken,
         matchedChoice,
       )
@@ -5644,6 +5983,37 @@ export const submitConsoleStagedNavigationToken = (
       breadcrumb: [...session.breadcrumb, matchedChoice.label],
       selections: session.selections,
     }
+  }
+
+  if (session.scopeId === 'referenceHideRoot') {
+    const hideChoices = buildReferenceHideRootChoices(context.referenceCategories)
+    const matchedChoice =
+      hideChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
+    if (matchedChoice === null) {
+      return createInvalidResult({ ...session, validChoices: hideChoices }, submittedToken, hideChoices)
+    }
+    if (matchedChoice.canonicalToken === 'BACK') {
+      return createAdvanceResult(createConsoleRootSession(), submittedToken, matchedChoice)
+    }
+    if (typeof matchedChoice.referenceId === 'string') {
+      return {
+        kind: 'execute',
+        session: {
+          ...session,
+          validChoices: hideChoices,
+        },
+        submittedToken,
+        matchedChoice,
+        actionId: 'reference.hide',
+        breadcrumb: [...session.breadcrumb, matchedChoice.label],
+        selections: {
+          ...session.selections,
+          referenceId: matchedChoice.referenceId,
+          referenceCategoryId: matchedChoice.referenceCategoryId ?? null,
+        },
+      }
+    }
+    return createInvalidResult({ ...session, validChoices: hideChoices }, submittedToken, hideChoices)
   }
 
   if (session.scopeId === 'referencesZoomRoot') {
@@ -5744,6 +6114,8 @@ export const submitConsoleStagedNavigationToken = (
           matchedChoice.label,
           matchedChoice.referenceId,
           matchedItem?.canLoadModel ?? true,
+          matchedItem?.canDelete ?? false,
+          matchedItem?.canHide ?? false,
           session.selections.referenceCategoryId ?? null,
           session.breadcrumb.at(-1) ?? null,
         ),
@@ -5827,6 +6199,8 @@ export const submitConsoleStagedNavigationToken = (
   if (session.scopeId === 'referenceSelected') {
     const referenceChoices = buildReferenceSelectedChoices(
       session.selections.referenceCanLoadModel ?? false,
+      session.selections.referenceCanDelete ?? false,
+      session.selections.referenceCanHide ?? false,
     )
     const matchedChoice =
       referenceChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
@@ -5893,12 +6267,16 @@ export const submitConsoleStagedNavigationToken = (
       Extract<
         ConsoleStagedNavigationExecuteResult['actionId'],
         | 'reference.loadModel'
+        | 'reference.delete'
+        | 'reference.hide'
         | 'reference.transform.move'
         | 'reference.transform.rotate'
         | 'reference.transform.scale'
       >
     > = {
       'LOAD MODEL': 'reference.loadModel',
+      DELETE: 'reference.delete',
+      HIDE: 'reference.hide',
       MOVE: 'reference.transform.move',
       ROTATE: 'reference.transform.rotate',
       SCALE: 'reference.transform.scale',

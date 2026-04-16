@@ -34,6 +34,7 @@ type WorkspaceViewportTreeProps = {
   isLeftDockViewportSplit: boolean
   isBrowserDockPreviewActive: boolean
   isMeatballDockPreviewActive: boolean
+  isMeatballDockOccupied: boolean
   browserPresentationMode: BrowserPresentationMode
   isBrowserCollapsed: boolean
   windowSettingsOpenByViewportId: Record<string, boolean>
@@ -72,8 +73,6 @@ type WorkspaceViewportTreeProps = {
   ) => void
   onLeftDockResizeStart: (event: ReactPointerEvent<HTMLDivElement>) => void
   onLeftDockResizeContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => void
-  onLeftDockSplitTogglePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void
-  onLeftDockSplitToggleClick: (event: ReactMouseEvent<HTMLButtonElement>) => void
   resolvePrimaryLeftDockBottomInset: (slotLeafNodeId: WorkspaceLayoutNodeId) => string
   reservePrimaryViewportBottomConsoleBar?: boolean
   splitDividerSize?: number
@@ -89,6 +88,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     isLeftDockViewportSplit,
     isBrowserDockPreviewActive,
     isMeatballDockPreviewActive,
+    isMeatballDockOccupied,
     browserPresentationMode,
     isBrowserCollapsed,
     windowSettingsOpenByViewportId,
@@ -108,8 +108,6 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     onViewportLayoutDividerPointerDown,
     onLeftDockResizeStart,
     onLeftDockResizeContextMenu,
-    onLeftDockSplitTogglePointerDown,
-    onLeftDockSplitToggleClick,
     resolvePrimaryLeftDockBottomInset,
     reservePrimaryViewportBottomConsoleBar = false,
     splitDividerSize = 10,
@@ -226,12 +224,11 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
                 isLeftDockViewportSplit={isLeftDockViewportSplit}
                 isBrowserDockPreviewActive={isBrowserDockPreviewActive}
                 isMeatballDockPreviewActive={isMeatballDockPreviewActive}
+                isMeatballDockOccupied={isMeatballDockOccupied}
                 dockedBrowserHostRef={dockedBrowserHostRef}
                 dockedMeatballHostRef={dockedMeatballHostRef}
                 onResizeStart={onLeftDockResizeStart}
                 onResizeContextMenu={onLeftDockResizeContextMenu}
-                onSplitTogglePointerDown={onLeftDockSplitTogglePointerDown}
-                onSplitToggleClick={onLeftDockSplitToggleClick}
               />
             ) : null}
             <ViewportWorkspaceHost

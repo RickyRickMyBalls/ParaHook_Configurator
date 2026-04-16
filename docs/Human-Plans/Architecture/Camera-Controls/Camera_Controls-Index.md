@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+38. 2026-04-16: Implemented `Camera-7`, so the active model viewer now supports first-cut standard-view camera shortcuts on `Numpad2` / `Numpad4` / `Numpad5` / `Numpad6` / `Numpad8` through the shared keyboard-routing seam, and the shared camera preset contract now includes a real `Back` view for `Numpad8`
 37. 2026-04-14: Implemented `Camera-6.3.8`, so the fly-camera polish ladder now includes optional pointer lock during held-`RMB` fly mode for continuous relative mouse look when the browser allows it, and the family checklist no longer leaves pointer lock only as an unstructured later wish
 36. 2026-04-14: Implemented `Camera-6.3.6`, so fly look now pitches through vertical for full loop-the-loops in the existing `PerspectiveCamera`, removing the old pole clamp while preserving the already-shipped roll and speed-control behavior
 35. 2026-04-14: Implemented `Camera-6.3.5`, so held-`RMB` fly mode now temporarily remaps the wheel from zoom to fly-speed control, the HUD speed control stays synced with internal viewer-owned speed changes, and normal wheel zoom returns on fly exit
@@ -70,6 +71,7 @@ Use this folder like this:
   - `Camera_Controls_Phase Camera-6.1 - Fly Navigation Research And Seam Audit.md`
   - `Camera_Controls_Phase Camera-6.2 - Hold-To-Fly Runtime And Input Ownership.md`
   - `Camera_Controls_Phase Camera-6.3 - Fly Camera Polish Backlog.md`
+  - `Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`
 - `Shipped/`
   - later shipped records for completed camera-controls cuts if the family grows enough to justify them
   - `Camera_Controls_Phase Camera-1 - Sketch Draw Camera Blocking.md`
@@ -88,6 +90,7 @@ Current phase ladder:
 - `[Camera-6.1] Fly Navigation Research And Seam Audit`
 - `[Camera-6.2] Hold-To-Fly Runtime And Input Ownership`
 - `[Camera-6.3] Fly Camera Polish Backlog`
+- `[Camera-7] Active Viewer Camera Control Shortcuts`
 
 ### Why This Doc Exists
 
@@ -467,7 +470,7 @@ Use this as the working direction:
 
 ## Phases
 
-### [x] `[Camera-1]` - `Sketch Draw Camera Blocking`
+## [x] `[Camera-1]` - `Sketch Draw Camera Blocking`
 
 CheckList:
 - [x] stop plain camera orbit/pan from stealing `LMB` click or drag inside idle `Sketch Draw`
@@ -479,7 +482,7 @@ CheckList:
 - [x] keep non-conflicting camera navigation available through intentional alternate gestures during sketch work
 - [x] verify `DS-3` selection and delete can be tested end to end without orbit interference
 
-### [x] `[Camera-2]` - `Fusion-Style Model Viewport Camera Baseline`
+## [x] `[Camera-2]` - `Fusion-Style Model Viewport Camera Baseline`
 
 CheckList:
 - [x] change model viewport wheel behavior to consistent mouse-point zoom
@@ -492,7 +495,7 @@ CheckList:
   - or active target
 - [x] verify the new gesture map does not break current authoring interactions
 
-### [x] `[Camera-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
+## [x] `[Camera-3]` - `Spaghetti Canvas And Model Viewport Coexistence`
 
 CheckList:
 - [x] preserve graph-canvas pointer-centered wheel zoom
@@ -505,7 +508,7 @@ CheckList:
   - [x] `Shift + Ctrl + MMB` drag forwards orbit to the model viewport
 - [x] verify the active surface stays obvious and predictable while both surfaces are visible
 
-### [x] `[Camera-4]` - `Camera Console Commands`
+## [x] `[Camera-4]` - `Camera Console Commands`
 
 CheckList:
 - [x] add a root `ZOOM` / `Z` console command family as a sibling of `Graph`
@@ -524,7 +527,7 @@ CheckList:
   - [x] `Graph > Zoom > Canvas > Previous` returns honest not-implemented feedback
 - [x] bind camera console commands to the intended target surface without confusing the graph canvas with the 3D model camera
 
-### [ ] `[Camera-5]` - `Shared View Input Owner Model`
+## [ ] `[Camera-5]` - `Shared View Input Owner Model`
 
 CheckList:
 - [ ] introduce one resolved viewport input owner model or equivalent arbitration seam
@@ -534,7 +537,7 @@ CheckList:
 - [ ] add enough debug visibility to diagnose which system currently owns the pointer
 - [ ] remove remaining one-off exceptions once the shared owner path is stable
 
-### [ ] `[Camera-5.1]` - `Viewer Object Window Selection`
+## [ ] `[Camera-5.1]` - `Viewer Object Window Selection`
 
 CheckList:
 - [ ] add one standalone future phase doc for viewer object marquee selection:
@@ -545,7 +548,7 @@ CheckList:
 - [ ] keep gizmo/widget hits and camera gestures from stealing an active marquee drag after selection owns the pointer
 - [ ] push the final captured objects into shared app selection truth instead of a viewer-local selection cache
 
-### [ ] `[Camera-6]` - `Hold-To-Fly First-Person Camera Navigation`
+## [ ] `[Camera-6]` - `Hold-To-Fly First-Person Camera Navigation`
 
 CheckList:
 - [ ] add one standalone future umbrella doc for fly navigation:
@@ -554,3 +557,18 @@ CheckList:
 - [ ] use `[Camera-6.1]` to lock the first seam audit and implementation read
 - [ ] follow with one later implementation cut for temporary `RMB`-held fly navigation once the seam audit is concrete
 
+## [x] `[Camera-7]` - `Active Viewer Camera Control Shortcuts`
+
+CheckList:
+- [x] add one standalone phase doc for the shipped viewer camera shortcut pass:
+  - [x] `Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`
+- [x] add one dedicated shared keyboard-routing owner for active-viewer camera shortcuts
+- [x] keep the shortcut map centralized so later binding swaps stay local to one seam
+- [x] bind first-cut standard views to the physical numpad:
+  - [x] `Numpad5` = `Top`
+  - [x] `Numpad2` = `Front`
+  - [x] `Numpad8` = `Back`
+  - [x] `Numpad4` = `Left`
+  - [x] `Numpad6` = `Right`
+- [x] install the shortcut listener per viewer host while restricting execution to the active viewer viewport
+- [x] widen the shared camera preset contract just enough to support a real `Back` preset for `Numpad8`

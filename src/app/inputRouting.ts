@@ -1,8 +1,12 @@
+import { resolveViewerCameraShortcutAction } from './cameraShortcuts'
+
 export type InputRoutingOwner =
   | 'text-field'
   | 'viewer-fly'
+  | 'viewer-camera-shortcuts'
   | 'sketch-plane'
   | 'sketch-draw'
+  | 'reference-selection'
   | 'reference-transform'
   | 'staged-console'
   | 'flat-console'
@@ -12,6 +16,8 @@ export type InputRoutingDecision = 'handle' | 'defer-native' | 'ignore'
 
 type KeyboardLikeEvent = {
   key: string
+  code?: string
+  shiftKey?: boolean
   ctrlKey?: boolean
   altKey?: boolean
   metaKey?: boolean
@@ -21,8 +27,12 @@ type KeyboardLikeEvent = {
 export type InputRoutingRequest = {
   event: KeyboardLikeEvent
   viewerFlyActive?: boolean
+  viewerCameraShortcutsEnabled?: boolean
   sketchPlanePickStage?: 'pick' | 'adjust' | null
   geometrySketchMode?: 'draw' | 'review' | null
+  selectedReferenceDeleteAvailable?: boolean
+  selectedReferenceHideAvailable?: boolean
+  hiddenReferenceRestoreAvailable?: boolean
   referenceTransformActive?: boolean
   referenceTransformHasPendingKeyboardTransform?: boolean
   stagedConsoleActive?: boolean
@@ -75,8 +85,12 @@ const isViewerFlyMovementKey = (event: KeyboardLikeEvent): boolean => {
 export const routeKeyboardInput = ({
   event,
   viewerFlyActive = false,
+  viewerCameraShortcutsEnabled = false,
   sketchPlanePickStage = null,
   geometrySketchMode = null,
+  selectedReferenceDeleteAvailable = false,
+  selectedReferenceHideAvailable = false,
+  hiddenReferenceRestoreAvailable = false,
   referenceTransformActive = false,
   referenceTransformHasPendingKeyboardTransform = false,
   stagedConsoleActive = false,
@@ -131,7 +145,36 @@ export const routeKeyboardInput = ({
     if (geometrySketchMode === 'draw') {
       return { owner: 'sketch-draw', decision: 'handle' }
     }
+    if (
+      selectedReferenceDeleteAvailable &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey
+    ) {
+      return { owner: 'reference-selection', decision: 'handle' }
+    }
     return { owner: 'none', decision: 'ignore' }
+  }
+
+  if (
+    key === 'h' &&
+    event.shiftKey &&
+    selectedReferenceHideAvailable &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !event.metaKey
+  ) {
+    return { owner: 'reference-selection', decision: 'handle' }
+  }
+
+  if (
+    key === 'h' &&
+    event.altKey &&
+    hiddenReferenceRestoreAvailable &&
+    !event.ctrlKey &&
+    !event.metaKey
+  ) {
+    return { owner: 'reference-selection', decision: 'handle' }
   }
 
   if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && stagedConsoleActive) {
@@ -149,6 +192,13 @@ export const routeKeyboardInput = ({
 
   if (referenceTransformActive && (key === 'm' || key === 'r' || key === 's')) {
     return { owner: 'reference-transform', decision: 'handle' }
+  }
+
+  if (!viewerFlyActive && viewerCameraShortcutsEnabled && resolveViewerCameraShortcutAction(event) !== null) {
+    return {
+      owner: 'viewer-camera-shortcuts',
+      decision: 'handle',
+    }
   }
 
   if (allowFlatConsoleCapture && isConsoleCapturePrintableKey(event)) {

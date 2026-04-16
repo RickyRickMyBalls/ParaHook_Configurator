@@ -13,7 +13,17 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { ProjectionMode } from '../../shared/viewSettingsTypes'
 
-export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
+export type CameraPreset = 'iso' | 'top' | 'front' | 'back' | 'left' | 'right'
+export type CameraClipRangeMode = 'auto' | 'authored'
+export type CameraClipRange = {
+  mode: CameraClipRangeMode
+  clipStart: number
+  clipEnd: number
+}
+export type CameraClipRangeUpdate = {
+  clipStart?: number
+  clipEnd?: number
+}
 export type CameraPose = {
   position: Vector3
   target: Vector3
@@ -21,11 +31,18 @@ export type CameraPose = {
   projectionMode: ProjectionMode
   perspectiveFovDeg: number
   orthoViewHeight: number
+  clipRangeMode: CameraClipRangeMode
+  clipStart: number
+  clipEnd: number
 }
 
 const MIN_CAMERA_DISTANCE = 0.05
 const DEFAULT_ORTHO_VIEW_HEIGHT = 4
 const FIT_PADDING = 1.2
+const MIN_PERSPECTIVE_FOV_DEG = 1
+const MAX_PERSPECTIVE_FOV_DEG = 179
+const MIN_CAMERA_CLIP_START = 0.01
+const MIN_CAMERA_CLIP_SPAN = 0.01
 
 export class CameraController {
   private readonly perspectiveCamera: PerspectiveCamera
@@ -83,6 +100,9 @@ export class CameraController {
   private projectionMode: ProjectionMode = 'perspective'
   private lastPerspectiveFovDeg: number
   private orthoViewHeight = DEFAULT_ORTHO_VIEW_HEIGHT
+  private clipRangeMode: CameraClipRangeMode = 'auto'
+  private authoredClipStart: number | null = null
+  private authoredClipEnd: number | null = null
   private viewportWidth = 1
   private viewportHeight = 1
   private flyMode:
@@ -758,6 +778,9 @@ export class CameraController {
       case 'front':
         direction.set(0, 0, 1)
         break
+      case 'back':
+        direction.set(0, 0, -1)
+        break
       case 'left':
         direction.set(-1, 0, 0)
         break
@@ -775,6 +798,7 @@ export class CameraController {
 
   public getPose(): CameraPose {
     const activeCamera = this.getActiveCamera()
+    const clipRange = this.getCameraClipRange()
     return {
       position: activeCamera.position.clone(),
       target: this.controls.target.clone(),
@@ -782,7 +806,116 @@ export class CameraController {
       projectionMode: this.projectionMode,
       perspectiveFovDeg: this.lastPerspectiveFovDeg,
       orthoViewHeight: this.orthoViewHeight,
+      clipRangeMode: clipRange.mode,
+      clipStart: clipRange.clipStart,
+      clipEnd: clipRange.clipEnd,
     }
+  }
+
+  public getPerspectiveFovDeg(): number {
+    return this.lastPerspectiveFovDeg
+  }
+
+  public setPerspectiveFovDeg(fovDeg: number): void {
+    if (!Number.isFinite(fovDeg)) {
+      return
+    }
+    const nextFovDeg = Math.min(
+      MAX_PERSPECTIVE_FOV_DEG,
+      Math.max(MIN_PERSPECTIVE_FOV_DEG, fovDeg),
+    )
+    if (Math.abs(nextFovDeg - this.lastPerspectiveFovDeg) <= 1e-8) {
+      return
+    }
+    this.lastPerspectiveFovDeg = nextFovDeg
+    this.perspectiveCamera.fov = nextFovDeg
+    if (this.projectionMode === 'perspective') {
+      this.syncNearFarFromDistance(
+        Math.max(
+          this.perspectiveCamera.position.distanceTo(this.controls.target),
+          MIN_CAMERA_DISTANCE,
+        ),
+      )
+      this.perspectiveCamera.updateProjectionMatrix()
+      this.controls.update()
+      return
+    }
+    this.perspectiveCamera.updateProjectionMatrix()
+  }
+
+  public getCameraClipRange(): CameraClipRange {
+    if (
+      this.clipRangeMode === 'authored' &&
+      this.authoredClipStart !== null &&
+      this.authoredClipEnd !== null
+    ) {
+      return {
+        mode: 'authored',
+        clipStart: this.authoredClipStart,
+        clipEnd: this.authoredClipEnd,
+      }
+    }
+    const activeCamera = this.getActiveCamera()
+    return {
+      mode: 'auto',
+      clipStart: activeCamera.near,
+      clipEnd: activeCamera.far,
+    }
+  }
+
+  public setCameraClipRange(range: CameraClipRangeUpdate): void {
+    const nextClipStartInput = range.clipStart
+    const nextClipEndInput = range.clipEnd
+    if (
+      (nextClipStartInput !== undefined && !Number.isFinite(nextClipStartInput)) ||
+      (nextClipEndInput !== undefined && !Number.isFinite(nextClipEndInput))
+    ) {
+      return
+    }
+    if (nextClipStartInput === undefined && nextClipEndInput === undefined) {
+      return
+    }
+
+    const currentRange = this.getCameraClipRange()
+    let nextClipStart = nextClipStartInput ?? currentRange.clipStart
+    let nextClipEnd = nextClipEndInput ?? currentRange.clipEnd
+
+    nextClipStart = Math.max(nextClipStart, MIN_CAMERA_CLIP_START)
+    nextClipEnd = Math.max(nextClipEnd, MIN_CAMERA_CLIP_START + MIN_CAMERA_CLIP_SPAN)
+    if (nextClipStart > nextClipEnd - MIN_CAMERA_CLIP_SPAN) {
+      if (nextClipEndInput !== undefined && nextClipStartInput === undefined) {
+        nextClipEnd = nextClipStart + MIN_CAMERA_CLIP_SPAN
+      } else {
+        nextClipStart = nextClipEnd - MIN_CAMERA_CLIP_SPAN
+      }
+    }
+
+    const currentClipStart = currentRange.clipStart
+    const currentClipEnd = currentRange.clipEnd
+    if (
+      this.clipRangeMode === 'authored' &&
+      Math.abs(nextClipStart - currentClipStart) <= 1e-8 &&
+      Math.abs(nextClipEnd - currentClipEnd) <= 1e-8
+    ) {
+      return
+    }
+
+    this.clipRangeMode = 'authored'
+    this.authoredClipStart = nextClipStart
+    this.authoredClipEnd = nextClipEnd
+    this.syncAllCameraClipRanges()
+    this.controls.update()
+  }
+
+  public resetCameraClipRange(): void {
+    if (this.clipRangeMode === 'auto') {
+      return
+    }
+    this.clipRangeMode = 'auto'
+    this.authoredClipStart = null
+    this.authoredClipEnd = null
+    this.syncAllCameraClipRanges()
+    this.controls.update()
   }
 
   public animateToDirection(
@@ -828,7 +961,10 @@ export class CameraController {
     },
   ): void {
     this.lastPerspectiveFovDeg = pose.perspectiveFovDeg
+    this.perspectiveCamera.fov = this.lastPerspectiveFovDeg
+    this.perspectiveCamera.updateProjectionMatrix()
     this.orthoViewHeight = Math.max(pose.orthoViewHeight, 0.001)
+    this.applyPoseClipRange(pose)
     this.setProjectionMode(pose.projectionMode)
     const activeCamera = this.getActiveCamera()
     this.transitionFromPosition.copy(activeCamera.position)
@@ -846,7 +982,10 @@ export class CameraController {
   public applyPose(pose: CameraPose): void {
     this.cameraTransition = null
     this.lastPerspectiveFovDeg = pose.perspectiveFovDeg
+    this.perspectiveCamera.fov = this.lastPerspectiveFovDeg
+    this.perspectiveCamera.updateProjectionMatrix()
     this.orthoViewHeight = Math.max(pose.orthoViewHeight, 0.001)
+    this.applyPoseClipRange(pose)
     this.setProjectionMode(pose.projectionMode)
     const activeCamera = this.getActiveCamera()
     activeCamera.position.copy(pose.position)
@@ -941,8 +1080,9 @@ export class CameraController {
   }
 
   private syncNearFarFromDistance(distance: number): void {
-    this.perspectiveCamera.near = Math.max(distance / 100, 0.01)
-    this.perspectiveCamera.far = Math.max(distance * 100, 100)
+    const clipRange = this.resolveClipRangeFromDistance(distance)
+    this.perspectiveCamera.near = clipRange.clipStart
+    this.perspectiveCamera.far = clipRange.clipEnd
   }
 
   private updateOrthographicFrustum(): void {
@@ -956,9 +1096,53 @@ export class CameraController {
       this.orthographicCamera.position.distanceTo(this.controls.target),
       0.5,
     )
-    this.orthographicCamera.near = Math.max(orthoDistance / 100, 0.01)
-    this.orthographicCamera.far = Math.max(orthoDistance * 100, 100)
+    const clipRange = this.resolveClipRangeFromDistance(orthoDistance)
+    this.orthographicCamera.near = clipRange.clipStart
+    this.orthographicCamera.far = clipRange.clipEnd
     this.orthographicCamera.updateProjectionMatrix()
+  }
+
+  private resolveClipRangeFromDistance(distance: number): CameraClipRange {
+    if (
+      this.clipRangeMode === 'authored' &&
+      this.authoredClipStart !== null &&
+      this.authoredClipEnd !== null
+    ) {
+      return {
+        mode: 'authored',
+        clipStart: this.authoredClipStart,
+        clipEnd: this.authoredClipEnd,
+      }
+    }
+    return {
+      mode: 'auto',
+      clipStart: Math.max(distance / 100, MIN_CAMERA_CLIP_START),
+      clipEnd: Math.max(distance * 100, 100),
+    }
+  }
+
+  private applyPoseClipRange(pose: CameraPose): void {
+    if (pose.clipRangeMode === 'authored') {
+      const nextClipStart = Math.max(pose.clipStart, MIN_CAMERA_CLIP_START)
+      const nextClipEnd = Math.max(pose.clipEnd, nextClipStart + MIN_CAMERA_CLIP_SPAN)
+      this.clipRangeMode = 'authored'
+      this.authoredClipStart = nextClipStart
+      this.authoredClipEnd = nextClipEnd
+      return
+    }
+    this.clipRangeMode = 'auto'
+    this.authoredClipStart = null
+    this.authoredClipEnd = null
+  }
+
+  private syncAllCameraClipRanges(): void {
+    const perspectiveDistance = Math.max(
+      this.perspectiveCamera.position.distanceTo(this.controls.target),
+      MIN_CAMERA_DISTANCE,
+    )
+    this.syncNearFarFromDistance(perspectiveDistance)
+    this.perspectiveCamera.updateProjectionMatrix()
+    this.updateOrthographicFrustum()
   }
 
   private syncOrthographicFromPerspective(): void {

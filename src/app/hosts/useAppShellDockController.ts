@@ -15,7 +15,7 @@ import {
 
 const dockGhostHeight = 72
 const minLeftDockWidth = 260
-const maxLeftDockWidth = 520
+const maxLeftDockWidth = 1000
 
 type DockTargetRect = {
   left: number
@@ -42,12 +42,10 @@ type UseAppShellDockControllerInput = {
   dockedMeatballHostRef: RefObject<HTMLDivElement | null>
   leftDockWidth: number
   setLeftDockWidth: (nextWidth: number) => void
-  isLeftDockViewportSplit: boolean
   leftDockResizeMenu: LeftDockResizeMenuState | null
   setLeftDockResizeMenu: (menu: LeftDockResizeMenuState | null) => void
   workspaceSplitMenu: WorkspaceSplitMenuState | null
   setWorkspaceSplitMenu: (menu: WorkspaceSplitMenuState | null) => void
-  setIsLeftDockViewportSplit: (isSplit: boolean) => void
   onLeftDockWidthPreview?: (nextWidth: number) => void
 }
 
@@ -58,12 +56,10 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
     dockedMeatballHostRef,
     leftDockWidth,
     setLeftDockWidth,
-    isLeftDockViewportSplit,
     leftDockResizeMenu,
     setLeftDockResizeMenu,
     workspaceSplitMenu,
     setWorkspaceSplitMenu,
-    setIsLeftDockViewportSplit,
     onLeftDockWidthPreview,
   } = input
   const leftDockResizeRef = useRef<{
@@ -76,7 +72,7 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
       const shellWidth = appShellRef.current?.clientWidth ?? 1440
       const cappedMaxWidth = Math.min(
         maxLeftDockWidth,
-        Math.max(minLeftDockWidth, shellWidth - 240),
+        Math.max(minLeftDockWidth, shellWidth - 50),
       )
       return Math.min(cappedMaxWidth, Math.max(minLeftDockWidth, Math.round(nextWidth)))
     },
@@ -278,35 +274,10 @@ export function useAppShellDockController(input: UseAppShellDockControllerInput)
     setLeftDockResizeMenu(null)
   }, [setLeftDockResizeMenu, setLeftDockWidth])
 
-  const handleToggleLeftDockViewportSplit = useCallback(() => {
-    setIsLeftDockViewportSplit(!isLeftDockViewportSplit)
-    setLeftDockResizeMenu(null)
-  }, [isLeftDockViewportSplit, setIsLeftDockViewportSplit, setLeftDockResizeMenu])
-
-  const handleLeftDockSplitTogglePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      event.stopPropagation()
-    },
-    [],
-  )
-
-  const handleLeftDockSplitToggleClick = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      event.stopPropagation()
-      handleToggleLeftDockViewportSplit()
-    },
-    [handleToggleLeftDockViewportSplit],
-  )
-
   return {
     resolveLeftDockPreviewPanelId,
     handleLeftDockResizeStart,
     handleLeftDockResizeContextMenu,
     handleResetLeftDockWidth,
-    handleToggleLeftDockViewportSplit,
-    handleLeftDockSplitTogglePointerDown,
-    handleLeftDockSplitToggleClick,
   }
 }

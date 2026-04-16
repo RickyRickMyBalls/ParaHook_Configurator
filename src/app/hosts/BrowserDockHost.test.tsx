@@ -459,7 +459,7 @@ describe('BrowserDockHost', () => {
     expect(container?.textContent).toContain('Browser Panel docked expanded')
   })
 
-  it('forwards wheel scrolling from the whole left-docked browser surface into the browser body', async () => {
+  it('prefers browser-body scrolling before falling back to the outer left-dock stack', async () => {
     await renderHarness()
     mockGeometry()
 
@@ -521,7 +521,8 @@ describe('BrowserDockHost', () => {
       dockedHost?.dispatchEvent(wheelEvent)
     })
 
-    expect(panelStack?.dataset.scrollTop).toBe('96')
+    expect(browserBody?.dataset.scrollTop).toBe('96')
+    expect(panelStack?.dataset.scrollTop).toBeUndefined()
   })
 
   it('keeps the docked browser visible while opening a child-window popup workspace', async () => {
@@ -786,6 +787,90 @@ describe('BrowserDockHost', () => {
 
     expect(container?.querySelector('.BrowserFloatingWindow')).toBeNull()
     expect(container?.textContent).toContain('Browser Panel docked expanded')
+  })
+
+  it('lets the user resize the floating browser from the south-east handle and persists width and height', async () => {
+    useWorkspaceStore.getState().setBrowserFloating(true)
+    useWorkspaceStore.getState().setBrowserFloatingPosition({ x: 16, y: 96 })
+    useWorkspaceStore.getState().setBrowserFloatingSize({ width: 320, height: 560 })
+
+    await renderHarness()
+    mockGeometry()
+
+    const floatingWindow = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    const resizeHandle = container?.querySelector(
+      '[data-browser-floating-resize-handle="se"]',
+    ) as HTMLDivElement | null
+
+    expect(floatingWindow?.style.width).toBe('320px')
+    expect(floatingWindow?.style.height).toBe('560px')
+    expect(resizeHandle).not.toBeNull()
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 336,
+          clientY: 656,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 396,
+          clientY: 736,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.size).toEqual({ width: 380, height: 640 })
+    expect(useWorkspaceStore.getState().browserShell.position).toEqual({ x: 16, y: 96 })
+    expect(floatingWindow?.style.width).toBe('380px')
+    expect(floatingWindow?.style.height).toBe('640px')
+  })
+
+  it('clamps floating browser resize within the app shell frame', async () => {
+    useWorkspaceStore.getState().setBrowserFloating(true)
+    useWorkspaceStore.getState().setBrowserFloatingPosition({ x: 16, y: 96 })
+    useWorkspaceStore.getState().setBrowserFloatingSize({ width: 320, height: 560 })
+
+    await renderHarness()
+    mockGeometry()
+
+    const resizeHandle = container?.querySelector(
+      '[data-browser-floating-resize-handle="se"]',
+    ) as HTMLDivElement | null
+    expect(resizeHandle).not.toBeNull()
+
+    await act(async () => {
+      resizeHandle?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 336,
+          clientY: 656,
+        }),
+      )
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 1600,
+          clientY: 1600,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useWorkspaceStore.getState().browserShell.size).toEqual({ width: 840, height: 876 })
+    const floatingWindow = container?.querySelector('.BrowserFloatingWindow') as HTMLDivElement | null
+    expect(floatingWindow?.style.width).toBe('840px')
+    expect(floatingWindow?.style.height).toBe('876px')
   })
 
   it('quick-docks a detached slotted browser back into the toolbar through the shared route path', async () => {

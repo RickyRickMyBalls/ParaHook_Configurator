@@ -817,14 +817,39 @@ export function useConsoleInteraction(
   const routeConsoleGlobalKey = useCallback((event: KeyboardEvent) => {
     const spaghettiState = useSpaghettiStore.getState()
     const appState = useAppStore.getState()
+    const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
+    const selectedReferenceDeleteAvailable =
+      (selectedConsoleTarget?.kind === 'object' &&
+        typeof selectedConsoleTarget.referenceId === 'string' &&
+        selectedConsoleTarget.canDelete === true) ||
+      (selectedConsoleTarget?.kind === 'multi-select' &&
+        selectedConsoleTarget.canDelete === true &&
+        Array.isArray(selectedConsoleTarget.referenceDeleteIds) &&
+        selectedConsoleTarget.referenceDeleteIds.length > 1)
+    const selectedReferenceHideAvailable =
+      (selectedConsoleTarget?.kind === 'object' &&
+        typeof selectedConsoleTarget.referenceId === 'string' &&
+        selectedConsoleTarget.canHide === true) ||
+      (selectedConsoleTarget?.kind === 'multi-select' &&
+        selectedConsoleTarget.canHide === true &&
+        Array.isArray(selectedConsoleTarget.referenceHideIds) &&
+        selectedConsoleTarget.referenceHideIds.length > 1)
+    const hiddenReferenceRestoreAvailable = appState.referenceWorkspace.importedReferenceOrder.some(
+      (referenceId) => (appState.referenceWorkspace.visibilityById[referenceId] ?? false) === false,
+    )
     return routeKeyboardInput({
       event,
       viewerFlyActive: getViewer()?.isFlyModeActive?.() === true,
+      viewerCameraShortcutsEnabled:
+        appState.workspaceSelection.activeSurface === 'viewer' && getViewer() !== null,
       sketchPlanePickStage: spaghettiState.sketchPlanePickSession?.stage ?? null,
       geometrySketchMode:
         useConsoleStore.getState().featureAssistDescriptor !== null
           ? null
           : spaghettiState.geometrySketchSession?.mode ?? null,
+      selectedReferenceDeleteAvailable,
+      selectedReferenceHideAvailable,
+      hiddenReferenceRestoreAvailable,
       referenceTransformActive:
         appState.referenceWorkspace.activeReferenceTransformSession?.entryActive === true ||
         appState.referenceWorkspace.activeContentObjectTransformSession?.entryActive === true,
@@ -835,6 +860,240 @@ export function useConsoleInteraction(
       allowFlatConsoleCapture: true,
     })
   }, [])
+
+  const deleteSelectedReferenceTargets = useCallback((): boolean => {
+    const appState = useAppStore.getState()
+    const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
+    if (
+      selectedConsoleTarget?.kind === 'object' &&
+      typeof selectedConsoleTarget.referenceId === 'string' &&
+      selectedConsoleTarget.canDelete === true
+    ) {
+      appState.removeImportedReference(selectedConsoleTarget.referenceId)
+      appState.requestConsoleContextSync('target-selection')
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Deleted ${selectedConsoleTarget.label}`,
+        source: 'console',
+        severity: 'info',
+      })
+      return true
+    }
+    if (
+      selectedConsoleTarget?.kind === 'multi-select' &&
+      selectedConsoleTarget.canDelete === true &&
+      Array.isArray(selectedConsoleTarget.referenceDeleteIds) &&
+      selectedConsoleTarget.referenceDeleteIds.length > 1
+    ) {
+      selectedConsoleTarget.referenceDeleteIds.forEach((referenceId) => {
+        appState.removeImportedReference(referenceId)
+      })
+      appState.requestConsoleContextSync('target-selection')
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Deleted ${selectedConsoleTarget.referenceDeleteIds.length} reference objects`,
+        source: 'console',
+        severity: 'info',
+      })
+      return true
+    }
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: 'Delete is not available for the selected reference object',
+      source: 'console',
+      severity: 'warn',
+    })
+    return false
+  }, [])
+
+  const setSelectedContentContainerVisibility = useCallback(
+    ({
+      assemblyId,
+      componentId,
+      visibilityPartKeys,
+      visible,
+    }: {
+      assemblyId?: string | null
+      componentId?: string | null
+      visibilityPartKeys?: string[]
+      visible: boolean
+    }): boolean => {
+      const appState = useAppStore.getState()
+      const uniquePartKeys = [
+        ...new Set((visibilityPartKeys ?? []).filter((partKey) => partKey.length > 0)),
+      ]
+      if (uniquePartKeys.length === 0) {
+        appendConsoleEntry({
+          layer: 'Browser',
+          text: `${visible ? 'Show' : 'Hide'} is not available for the selected content container`,
+          source: 'console',
+          severity: 'warn',
+        })
+        return false
+      }
+      uniquePartKeys.forEach((partKey) => {
+        appState.setPartVisibility(partKey, visible)
+      })
+      appState.requestConsoleContextSync('target-selection')
+      const label =
+        assemblyId !== null && assemblyId !== undefined
+          ? appState.projectContent.assembliesById[assemblyId]?.label ?? assemblyId
+          : componentId !== null && componentId !== undefined
+            ? appState.projectContent.componentsById[componentId]?.label ?? componentId
+            : 'content container'
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `${visible ? 'Shown' : 'Hidden'} ${label}`,
+        source: 'console',
+        severity: 'info',
+      })
+      return true
+    },
+    [appendConsoleEntry],
+  )
+
+  const hideReferenceTargets = useCallback(
+    (
+      referenceIds: string[],
+      options?: {
+        selectTargetAfterHide?: { kind: 'object'; objectId: string } | null
+      },
+    ): boolean => {
+      const appState = useAppStore.getState()
+      const uniqueReferenceIds = [...new Set(referenceIds)]
+      if (uniqueReferenceIds.length === 0) {
+        return false
+      }
+      uniqueReferenceIds.forEach((referenceId) => {
+        appState.setReferenceItemVisibility(referenceId, false)
+      })
+      if (options?.selectTargetAfterHide != null) {
+        commitWorkspaceTargetSelection(
+          {
+            setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectPart: appState.selectPart,
+            requestConsoleContextSync: appState.requestConsoleContextSync,
+          },
+          options.selectTargetAfterHide,
+          {
+            selectedPartKey: null,
+          },
+        )
+      } else {
+        appState.requestConsoleContextSync('target-selection')
+      }
+      appendConsoleEntry({
+        layer: 'Browser',
+        text:
+          uniqueReferenceIds.length === 1
+            ? `Hidden ${appState.referenceWorkspace.importedReferencesById[uniqueReferenceIds[0]]?.label ?? uniqueReferenceIds[0]}`
+            : `Hidden ${uniqueReferenceIds.length} reference objects`,
+        source: 'console',
+        severity: 'info',
+      })
+      return true
+    },
+    [appendConsoleEntry],
+  )
+
+  const hideSelectedReferenceTargets = useCallback((): boolean => {
+    const appState = useAppStore.getState()
+    const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
+    if (
+      selectedConsoleTarget?.kind === 'object' &&
+      typeof selectedConsoleTarget.referenceId === 'string' &&
+      selectedConsoleTarget.canHide === true
+    ) {
+      return hideReferenceTargets([selectedConsoleTarget.referenceId])
+    }
+    if (
+      selectedConsoleTarget?.kind === 'multi-select' &&
+      selectedConsoleTarget.canHide === true &&
+      Array.isArray(selectedConsoleTarget.referenceHideIds) &&
+      selectedConsoleTarget.referenceHideIds.length > 1
+    ) {
+      return hideReferenceTargets(selectedConsoleTarget.referenceHideIds)
+    }
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: 'Hide is not available for the selected reference object',
+      source: 'console',
+      severity: 'warn',
+    })
+    return false
+  }, [appendConsoleEntry, hideReferenceTargets])
+
+  const unhideAllReferenceTargets = useCallback((): boolean => {
+    const appState = useAppStore.getState()
+    const hiddenReferenceIds = appState.referenceWorkspace.importedReferenceOrder.filter(
+      (referenceId) => (appState.referenceWorkspace.visibilityById[referenceId] ?? false) === false,
+    )
+    if (hiddenReferenceIds.length === 0) {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: 'No hidden reference objects to restore',
+        source: 'console',
+        severity: 'info',
+      })
+      return false
+    }
+    hiddenReferenceIds.forEach((referenceId) => {
+      appState.setReferenceItemVisibility(referenceId, true)
+    })
+    appState.requestConsoleContextSync('target-selection')
+    appendConsoleEntry({
+      layer: 'Browser',
+      text:
+        hiddenReferenceIds.length === 1
+          ? `Restored ${appState.referenceWorkspace.importedReferencesById[hiddenReferenceIds[0]]?.label ?? hiddenReferenceIds[0]}`
+          : `Restored ${hiddenReferenceIds.length} reference objects`,
+      source: 'console',
+      severity: 'info',
+    })
+    return true
+  }, [appendConsoleEntry])
+
+  const unhideReferenceTargets = useCallback((referenceIds: string[]): boolean => {
+    const appState = useAppStore.getState()
+    const uniqueReferenceIds = [...new Set(referenceIds)]
+    if (uniqueReferenceIds.length === 0) {
+      return false
+    }
+    uniqueReferenceIds.forEach((referenceId) => {
+      appState.setReferenceItemVisibility(referenceId, true)
+    })
+    appState.requestConsoleContextSync('target-selection')
+    appendConsoleEntry({
+      layer: 'Browser',
+      text:
+        uniqueReferenceIds.length === 1
+          ? `Restored ${appState.referenceWorkspace.importedReferencesById[uniqueReferenceIds[0]]?.label ?? uniqueReferenceIds[0]}`
+          : `Restored ${uniqueReferenceIds.length} reference objects`,
+      source: 'console',
+      severity: 'info',
+    })
+    return true
+  }, [appendConsoleEntry])
+
+  const unhideSelectedReferenceTargets = useCallback((): boolean => {
+    const appState = useAppStore.getState()
+    const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
+    if (
+      selectedConsoleTarget?.kind === 'multi-select' &&
+      selectedConsoleTarget.canUnhide === true &&
+      Array.isArray(selectedConsoleTarget.referenceUnhideIds) &&
+      selectedConsoleTarget.referenceUnhideIds.length > 1
+    ) {
+      return unhideReferenceTargets(selectedConsoleTarget.referenceUnhideIds)
+    }
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: 'Unhide is not available for the selected reference object',
+      source: 'console',
+      severity: 'warn',
+    })
+    return false
+  }, [appendConsoleEntry, unhideReferenceTargets])
 
   const cancelActiveStagedNavigationSession = useCallback(() => {
     const activeSession = useConsoleStore.getState().stagedNavigationSession
@@ -2921,6 +3180,106 @@ export function useConsoleInteraction(
             return
           }
           if (
+            stagedResult.actionId === 'content.visibility.hide' ||
+            stagedResult.actionId === 'content.visibility.show'
+          ) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (
+              setSelectedContentContainerVisibility({
+                assemblyId: stagedResult.selections.contentAssemblyId ?? null,
+                componentId: stagedResult.selections.contentComponentId ?? null,
+                visibilityPartKeys: stagedResult.selections.contentVisibilityPartKeys ?? [],
+                visible: stagedResult.actionId === 'content.visibility.show',
+              })
+            ) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
+            return
+          }
+          if (
+            stagedResult.actionId === 'reference.delete' ||
+            stagedResult.actionId === 'reference.multiDelete'
+          ) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (deleteSelectedReferenceTargets()) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
+            return
+          }
+          if (
+            stagedResult.actionId === 'reference.hide' ||
+            stagedResult.actionId === 'reference.multiHide'
+          ) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            const referenceIds =
+              stagedResult.actionId === 'reference.multiHide'
+                ? stagedResult.selections.multiSelectReferenceHideIds ?? []
+                : typeof stagedResult.selections.referenceId === 'string'
+                  ? [stagedResult.selections.referenceId]
+                  : []
+            const selectTargetAfterHide =
+              activeStagedSession?.scopeId === 'referenceHideRoot' &&
+              typeof stagedResult.selections.referenceId === 'string'
+                ? {
+                    kind: 'object' as const,
+                    objectId: buildImportedReferenceRowId(stagedResult.selections.referenceId),
+                  }
+                : null
+            if (
+              (referenceIds.length > 0 &&
+                hideReferenceTargets(referenceIds, {
+                  selectTargetAfterHide,
+                })) ||
+              hideSelectedReferenceTargets()
+            ) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
+            return
+          }
+          if (stagedResult.actionId === 'reference.multiUnhide') {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            const referenceIds = stagedResult.selections.multiSelectReferenceUnhideIds ?? []
+            if (
+              (referenceIds.length > 0 && unhideReferenceTargets(referenceIds)) ||
+              unhideSelectedReferenceTargets()
+            ) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
+            return
+          }
+          if (stagedResult.actionId === 'reference.unhideAll') {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (unhideAllReferenceTargets()) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
+            return
+          }
+          if (
             stagedResult.actionId === 'camera.pan' ||
             stagedResult.actionId === 'camera.orbit' ||
             stagedResult.actionId === 'camera.projection.orthographic' ||
@@ -4556,6 +4915,13 @@ export function useConsoleInteraction(
       createActiveReferenceTransformRootSession,
       createDeleteLatestTransformConfirmPromptSession,
       createMissingGraphNodeInGraphDocument,
+      deleteSelectedReferenceTargets,
+      hideReferenceTargets,
+      hideSelectedReferenceTargets,
+      setSelectedContentContainerVisibility,
+      unhideReferenceTargets,
+      unhideSelectedReferenceTargets,
+      unhideAllReferenceTargets,
       deleteLatestContentObjectTransformEntry,
       deleteLatestReferenceTransformEntry,
       dispatchImmediateShortcut,
@@ -4619,6 +4985,24 @@ export function useConsoleInteraction(
       }
       const routing = routeConsoleGlobalKey(event)
       if (routing.owner === 'viewer-fly') {
+        return
+      }
+      if (routing.owner === 'reference-selection' && event.key === 'Delete') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        deleteSelectedReferenceTargets()
+        return
+      }
+      if (routing.owner === 'reference-selection' && event.shiftKey && event.key.toLowerCase() === 'h') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        hideSelectedReferenceTargets()
+        return
+      }
+      if (routing.owner === 'reference-selection' && event.altKey && event.key.toLowerCase() === 'h') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        unhideAllReferenceTargets()
         return
       }
       const keyTarget = event.target instanceof HTMLElement ? event.target : null
@@ -4710,6 +5094,9 @@ export function useConsoleInteraction(
     cycleActiveContentObjectTransformModeWithTab,
     cycleActiveReferenceTransformModeWithTab,
     cycleStagedChoiceWithRadioBurst,
+    deleteSelectedReferenceTargets,
+    hideSelectedReferenceTargets,
+    unhideAllReferenceTargets,
     featureAssistDescriptor,
     focusMainConsoleInput,
     handleEscCancelCommand,
@@ -4764,6 +5151,24 @@ export function useConsoleInteraction(
         return
       }
       const routing = routeConsoleGlobalKey(event)
+      if (routing.owner === 'reference-selection' && event.key === 'Delete') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        deleteSelectedReferenceTargets()
+        return
+      }
+      if (routing.owner === 'reference-selection' && event.shiftKey && event.key.toLowerCase() === 'h') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        hideSelectedReferenceTargets()
+        return
+      }
+      if (routing.owner === 'reference-selection' && event.altKey && event.key.toLowerCase() === 'h') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        unhideAllReferenceTargets()
+        return
+      }
       const keyTarget = event.target instanceof HTMLElement ? event.target : null
       const shouldSubmitFlatConsoleDraft =
         event.key === 'Enter' &&
@@ -4853,6 +5258,9 @@ export function useConsoleInteraction(
     cycleActiveContentObjectTransformModeWithTab,
     cycleActiveReferenceTransformModeWithTab,
     cycleStagedChoiceWithRadioBurst,
+    deleteSelectedReferenceTargets,
+    hideSelectedReferenceTargets,
+    unhideAllReferenceTargets,
     featureAssistDescriptor,
     focusPopoutConsoleInput,
     handleEscCancelCommand,

@@ -2,6 +2,20 @@
 
 ## Doc Body
 
+### [ ] - [19] - Catalog workspace for preloaded references, preview viewport, and `Add To Project`
+
+- ParaHook should have a real `Catalog` workspace for the repo's preloaded reusable references and later other curated assets
+- the first strong target is:
+  - `Foothooks`
+  - `Shoes`
+  - `Footpads`
+  - later `HDRIs`
+- the user should be able to:
+  - browse those families in dedicated catalog sections
+  - preview one in a separate preview viewport
+  - choose `Add To Project` only when the item should become real Browser/project content
+- dedicated planning surface: [Catalog/Catalog.md](./Catalog/Catalog.md)
+
 ### [ ] - [01] - Turn Parasliders into rows that accept an input - first node to add wil be "LFO" - similar to "timeline" in refrence transform. 
 
 - parasliders like move X, move Y, move Z, `Scale XYZ`, rotate, and similar transform controls could become real authored rows with optional input pins instead of staying value-only widgets

@@ -1,5 +1,9 @@
 import type { ProjectionMode, ViewSettings } from '../shared/viewSettingsTypes'
-import type { CameraPose } from '../viewer/scene/CameraController'
+import type {
+  CameraClipRange,
+  CameraClipRangeUpdate,
+  CameraPose,
+} from '../viewer/scene/CameraController'
 import type { ReferenceTransformOverride } from './references/referenceManifest'
 import type { ActiveReferenceTransformHandle } from './store/useAppStore'
 import type {
@@ -12,7 +16,7 @@ import type {
   GeometrySketchSelectionWindowDraft,
 } from './spaghetti/store/useSpaghettiStore'
 
-export type CameraPreset = 'iso' | 'top' | 'front' | 'left' | 'right'
+export type CameraPreset = 'iso' | 'top' | 'front' | 'back' | 'left' | 'right'
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
 export type GizmoSpace = 'local' | 'world'
 export type SnapDirection = '+X' | '-X' | '+Y' | '-Y' | '+Z' | '-Z'
@@ -152,6 +156,13 @@ export interface ViewerApi {
   getFlyRollSpeed?: () => number
   setFlyRollSpeed?: (speed: number) => void
   setOnFlyRollSpeedChange?: (handler: ((speed: number) => void) | null) => void
+  getPerspectiveFovDeg?: () => number
+  setPerspectiveFovDeg?: (fovDeg: number) => void
+  setOnPerspectiveFovDegChange?: (handler: ((fovDeg: number) => void) | null) => void
+  getCameraClipRange?: () => CameraClipRange
+  setCameraClipRange?: (range: CameraClipRangeUpdate) => void
+  resetCameraClipRange?: () => void
+  setOnCameraClipRangeChange?: (handler: ((range: CameraClipRange) => void) | null) => void
   getCameraPose?: () => CameraPose
   applyCameraPose?: (pose: CameraPose) => void
   setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void
@@ -244,6 +255,7 @@ export interface ViewerApi {
   ) => Array<{
     partKey: string
     label: string
+    sourceMeshIndex: number
   }>
   setOnReferenceTransformChange: (
     handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
@@ -339,6 +351,9 @@ const cloneCameraPose = (pose: CameraPose): CameraPose => ({
   projectionMode: pose.projectionMode,
   perspectiveFovDeg: pose.perspectiveFovDeg,
   orthoViewHeight: pose.orthoViewHeight,
+  clipRangeMode: pose.clipRangeMode,
+  clipStart: pose.clipStart,
+  clipEnd: pose.clipEnd,
 })
 
 const cancelScheduledViewerCameraRestore = (viewportId: string): void => {
@@ -526,6 +541,9 @@ export const getLatestViewerCameraPose = (viewportId: string): CameraPose | null
     projectionMode: pose.projectionMode,
     perspectiveFovDeg: pose.perspectiveFovDeg,
     orthoViewHeight: pose.orthoViewHeight,
+    clipRangeMode: pose.clipRangeMode,
+    clipStart: pose.clipStart,
+    clipEnd: pose.clipEnd,
   }
 }
 

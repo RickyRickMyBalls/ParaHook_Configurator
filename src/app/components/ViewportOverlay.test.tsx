@@ -205,6 +205,54 @@ describe('ViewportOverlay sketch session window', () => {
     expect(huds[1]?.style.right).toBe('122px')
   })
 
+  it('repositions the axis widget and HUD when the expanded toolbar uses the top-right cluster dock', async () => {
+    const { ViewportOverlay } = await import('./ViewportOverlay')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    act(() => {
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-primary')
+      useWorkspaceStore.getState().ensureViewportChrome('model-viewer-secondary')
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+        axisOverlayEnabled: true,
+        viewToolbarOpen: true,
+        viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarExpandedAxisWidgetSize: 308,
+      })
+      useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
+        axisOverlayEnabled: true,
+        viewToolbarOpen: false,
+        viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarCompactAxisWidgetSize: 96,
+      })
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <>
+          <ViewportOverlay viewportId="model-viewer-primary" />
+          <ViewportOverlay viewportId="model-viewer-secondary" />
+        </>,
+      )
+    })
+
+    const axisWidgets = Array.from(container.querySelectorAll('.AxisWidget')) as HTMLDivElement[]
+    const huds = Array.from(container.querySelectorAll('.ViewportHud')) as HTMLDivElement[]
+    expect(axisWidgets).toHaveLength(2)
+    expect(huds).toHaveLength(2)
+    expect(axisWidgets[0]?.dataset.viewToolbarDockMode).toBe('top-right-cluster')
+    expect(axisWidgets[0]?.style.right).toBe('350px')
+    expect(huds[0]?.dataset.viewToolbarDockMode).toBe('top-right-cluster')
+    expect(huds[0]?.style.right).toBe('668px')
+    expect(axisWidgets[1]?.dataset.viewToolbarDockMode).toBe('below-axis')
+    expect(axisWidgets[1]?.style.right).toBe('16px')
+    expect(huds[1]?.dataset.viewToolbarDockMode).toBe('below-axis')
+    expect(huds[1]?.style.right).toBe('122px')
+  })
+
   it('keeps the axis-widget resize handle available when collapsed and stores compact size separately', async () => {
     const { ViewportOverlay } = await import('./ViewportOverlay')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')

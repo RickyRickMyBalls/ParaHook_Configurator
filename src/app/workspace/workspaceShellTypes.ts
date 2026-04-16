@@ -190,11 +190,25 @@ export type WorkspaceViewportChromeState = {
 }
 
 export type WorkspaceViewportResultMode = 'auto' | 'draft' | 'final'
+export type WorkspaceViewToolbarExpandedPresentationMode = 'classic' | 'tabs'
+export type WorkspaceViewToolbarDockMode = 'below-axis' | 'top-right-cluster'
+export type WorkspaceViewToolbarTabKey =
+  | 'camera'
+  | 'fly-mode'
+  | 'transform'
+  | 'snap'
+  | 'gizmo'
+  | 'view'
+  | 'environment'
+  | 'materials'
 
 export type WorkspaceViewportLocalViewState = {
   projectionMode: ProjectionMode
   axisOverlayEnabled: boolean
   viewToolbarOpen: boolean
+  viewToolbarExpandedPresentationMode: WorkspaceViewToolbarExpandedPresentationMode
+  viewToolbarDockMode: WorkspaceViewToolbarDockMode
+  viewToolbarActiveTab: WorkspaceViewToolbarTabKey
   viewToolbarCompactAxisWidgetSize: number | null
   viewToolbarExpandedAxisWidgetSize: number | null
   viewportResultMode: WorkspaceViewportResultMode
@@ -343,6 +357,9 @@ export const createDefaultWorkspaceViewportLocalViewState =
     projectionMode: DEFAULT_VIEW_SETTINGS.projectionMode,
     axisOverlayEnabled: DEFAULT_VIEW_SETTINGS.axisOverlayEnabled,
     viewToolbarOpen: false,
+    viewToolbarExpandedPresentationMode: 'classic',
+    viewToolbarDockMode: 'below-axis',
+    viewToolbarActiveTab: 'camera',
     viewToolbarCompactAxisWidgetSize: null,
     viewToolbarExpandedAxisWidgetSize: null,
     viewportResultMode: 'auto',

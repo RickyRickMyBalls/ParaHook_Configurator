@@ -49,21 +49,6 @@ const collectLeafSlotIdsFromLayoutNode = (
   ]
 }
 
-const findParentSplitNodeIdForLayoutNode = (
-  childNodeId: WorkspaceLayoutNodeId,
-  viewportLayoutNodesById: Record<string, WorkspaceLayoutNode>,
-): WorkspaceLayoutNodeId | null => {
-  for (const node of Object.values(viewportLayoutNodesById)) {
-    if (
-      node.kind === 'split' &&
-      (node.firstChildId === childNodeId || node.secondChildId === childNodeId)
-    ) {
-      return node.nodeId
-    }
-  }
-  return null
-}
-
 export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelectorsArgs) {
   const {
     activeEditorSurface,
@@ -234,9 +219,7 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
     const primaryViewportSlotIsConstrained =
       primarySlot === null
         ? isLeftDockViewportSplit
-        : isLeftDockViewportSplit ||
-          findParentSplitNodeIdForLayoutNode(primarySlot.leafNodeId, viewportLayoutNodesById) !==
-            null
+        : true
 
     return {
       editor: {

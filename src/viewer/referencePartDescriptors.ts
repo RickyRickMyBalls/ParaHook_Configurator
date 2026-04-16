@@ -3,6 +3,7 @@ import { Mesh, type Object3D } from 'three'
 export type ReferencePartDescriptor = {
   partKey: string
   label: string
+  sourceMeshIndex: number
 }
 
 const REFERENCE_GENERIC_NAME_PATTERNS = [
@@ -66,6 +67,7 @@ export const extractReferencePartDescriptors = (
     return {
       partKey: `reference-part:${referenceId}:${index}`,
       label,
+      sourceMeshIndex: index,
     }
   })
 }

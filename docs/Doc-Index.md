@@ -4,6 +4,11 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+248. 2026-04-15 23:25:36: Added `docs/Human-Plans/Wish-Features/Catalog/Catalog.md` to the docs map, added a direct Catalog pointer from `docs/Human-Plans/Wish-Features/WISHLIST.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md` plus `Catalog-Index.md` so they now capture the preloaded `foothooks` / `shoes` / `footpads` migration direction and the `Load Preview` versus `Add To Project` workflow, and extended the `Wish-Features` subtree so the new Catalog branch is discoverable beside `Collaberate`
+247. 2026-04-15 20:24:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md` so the new family now hands forward into an explicit foundation/setup phase, and updated the `Catalog` subtree listing so the first clean workspace-onboarding lane is discoverable beside the new vision and family index
+246. 2026-04-15 20:24:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the workspace umbrella now lists `Catalog` as a real workspace-global surface with its own planning home, and updated the `Workspace-Modes/Workspaces` subtree listing so the new catalog family is discoverable beside the existing Browser, Export, and Model-Viewport homes
+245. 2026-04-15 07:53:39: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new camera-controls-enrichment lane, and updated the `View-Toolbar` subtree listing so the `Clip Start` / `Clip End` follow-on is discoverable beside `View-Toolbar 1` through `View-Toolbar 6`
+244. 2026-04-15 00:46:11: Added `docs/Human-Plans/Architecture/Viewport-HUD/Viewport-HUD-Index.md` and `docs/Human-Plans/Architecture/Viewport-HUD/Future/Viewport-HUD_Phase Viewport-HUD 1 - Docking And Resizing.md` to the architecture docs map, establishing `Viewport-HUD` as its own family beside the existing viewport and toolbar surfaces so the first docking-and-resizing lane is now discoverable through the canonical docs index
 243. 2026-04-14 23:40:00: Added `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new presentation-modes lane, and updated the `View-Toolbar` subtree listing so the `Classic` versus `Tabs` follow-on is discoverable beside `View-Toolbar 1` through `View-Toolbar 5`
 242. 2026-04-14 23:15:36: Added `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Future2/Fly-Mode_Phase Gen2-1 - Runtime Seams And Shared Input Contract.md` to the architecture docs map, refreshed both `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Gen2-Index.md` and `.../Fly-Mode-Index.md` so the `Generation 2` lane now points at its first standalone execution doc, and updated the `View-Toolbar` subtree listing so the new `Future2/` seam-cleanup phase is discoverable beside the broader fly vision and Gen2 index
 241. 2026-04-14 23:06:03: Added `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Gen2-Index.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/Fly-Mode/Fly-Mode-Vision.md`, `.../Fly-Mode-Index.md`, and `.../View-Toolbar-Index.md` so the fly docs now expose one dedicated phased execution surface for `Generation 2`, and updated the `View-Toolbar` subtree listing so the new gravity-and-FPV phase ladder is discoverable beside the existing fly vision and family index
@@ -693,6 +698,11 @@ Rule notes:
             - `Workspaces/Browser/Browser-Index.md`
 ###### -------------Build-Path
             - `Workspaces/Build-Path/Build-Path-Index.md`
+###### -------------Catalog
+            - `Workspaces/Catalog/Catalog-Vision.md`
+            - `Workspaces/Catalog/Catalog-Index.md`
+####### --------------Future
+            - `Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md`
 ###### -------------Console
             - `Workspaces/Console/Console-Index.md`
 ###### -------------Dashboard
@@ -794,6 +804,11 @@ Rule notes:
             - `Future/View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
             - `Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
             - `Future/View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`
+            - `Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`
+#### -------Viewport-HUD
+            - `Viewport-HUD/Viewport-HUD-Index.md`
+        ##### ------------Future
+            - `Viewport-HUD/Future/Viewport-HUD_Phase Viewport-HUD 1 - Docking And Resizing.md`
 #### -------Transform
             - `transform-index.md`
         ##### ------------Future
@@ -850,6 +865,8 @@ Rule notes:
         - `10 - radio-Sampler.md`
         - `11 - Scenes.md`
         - `WISHLIST.md`
+#### -------Catalog
+            - `Catalog.md`
 #### -------Collaberate
             - `Collaberate.md`
 #### -------Jake-Mode

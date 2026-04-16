@@ -79,7 +79,7 @@ import {
   DEFAULT_EXPANDED_AXIS_WIDGET_SIZE,
   MAX_AXIS_WIDGET_SIZE,
   MIN_AXIS_WIDGET_SIZE,
-  RIGHT_DOCK_PADDING_X,
+  resolveAxisWidgetRight,
   resolveViewportHudRight,
 } from './viewToolbarLayout'
 
@@ -604,6 +604,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const setViewportLocalViewState = useWorkspaceStore((state) => state.setViewportLocalViewState)
   const axisOverlayEnabled = localViewState?.axisOverlayEnabled ?? false
   const viewToolbarOpen = localViewState?.viewToolbarOpen ?? false
+  const viewToolbarDockMode = localViewState?.viewToolbarDockMode ?? 'below-axis'
   const compactAxisWidgetSize = localViewState?.viewToolbarCompactAxisWidgetSize ?? null
   const expandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
   const viewportResultMode = localViewState?.viewportResultMode ?? 'auto'
@@ -2129,7 +2130,7 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
   const axisWidgetStyle = useMemo(
     () => ({
       top: `${AXIS_WIDGET_TOP}px`,
-      right: `${RIGHT_DOCK_PADDING_X}px`,
+      right: `${resolveAxisWidgetRight(axisWidgetSize, viewToolbarDockMode, viewToolbarOpen)}px`,
       width: `${axisWidgetSize}px`,
       height: `${axisWidgetSize}px`,
       border: 'none',
@@ -2140,13 +2141,19 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
       WebkitBackdropFilter:
         axisOverlayStyleSettings.backgroundMode === 'blur' ? 'blur(8px)' : 'none',
     }),
-    [axisOverlayStyleSettings.backgroundMode, axisOverlayStyleSettings.backgroundOpacity, axisWidgetSize],
+    [
+      axisOverlayStyleSettings.backgroundMode,
+      axisOverlayStyleSettings.backgroundOpacity,
+      axisWidgetSize,
+      viewToolbarDockMode,
+      viewToolbarOpen,
+    ],
   )
   const viewportHudStyle = useMemo(
     () => ({
-      right: `${resolveViewportHudRight(axisWidgetSize)}px`,
+      right: `${resolveViewportHudRight(axisWidgetSize, viewToolbarDockMode, viewToolbarOpen)}px`,
     }),
-    [axisWidgetSize],
+    [axisWidgetSize, viewToolbarDockMode, viewToolbarOpen],
   )
   const handleFlyMoveSpeedChange = (nextSpeed: number): void => {
     const viewer = getViewer(viewportId)
@@ -2602,6 +2609,11 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
         <div
           ref={axisWidgetRef}
           className={`ViewportOverlayWidget AxisWidget ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`}
+          data-view-toolbar-dock-mode={
+            viewToolbarDockMode === 'top-right-cluster' && viewToolbarOpen
+              ? 'top-right-cluster'
+              : 'below-axis'
+          }
           style={axisWidgetStyle}
           onPointerDown={startAxisWidgetPointerInteraction}
           onPointerMove={handleAxisWidgetPointerMove}
@@ -4613,7 +4625,15 @@ export function ViewportOverlay(props: ViewportOverlayProps = {}) {
           />
         </div>
       ) : null}
-      <div className="ViewportOverlayWidget ViewportHud" style={viewportHudStyle}>
+      <div
+        className="ViewportOverlayWidget ViewportHud"
+        data-view-toolbar-dock-mode={
+          viewToolbarDockMode === 'top-right-cluster' && viewToolbarOpen
+            ? 'top-right-cluster'
+            : 'below-axis'
+        }
+        style={viewportHudStyle}
+      >
         <span
           className="HudLine ViewportHudResultStatus"
           data-viewport-result-status-kind={viewportResultStatus.kind}

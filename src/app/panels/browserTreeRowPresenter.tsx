@@ -211,7 +211,9 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
         : false
   const isContentVisibilityRow =
     (row.rowKind === 'assembly' || row.rowKind === 'component' || row.rowKind === 'object') &&
-    row.visibilityPartKeys.length > 0
+    (row.visibilityPartKeys.length > 0 ||
+      ((row.rowKind === 'assembly' || row.rowKind === 'component') &&
+        (row.visibilityReferenceIds?.length ?? 0) > 0))
   const isContentVisible = isContentVisibilityRow ? row.isVisible : false
   const isPartVisibilityRow = row.rowKind === 'part' && row.visibilityPartKeys.length > 0
   const isPartVisible = isPartVisibilityRow ? row.isVisible : false

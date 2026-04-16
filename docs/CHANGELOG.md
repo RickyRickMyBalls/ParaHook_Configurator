@@ -65,6 +65,374 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1357 -->
+### [1357] - 2026-04-16 01:14 - `VR - Phase Camera 7 - Active Viewer Camera Control Shortcuts`
+<!-- ENTRY 1357 -->
+HUMAN SUMMARY: `Implemented \`Camera-7\` by adding active-viewer numpad standard-view shortcuts through a centralized binding seam plus shared keyboard routing, and by widening the shared camera preset contract with a real \`Back\` view so \`Numpad8\` can land honestly instead of faking the direction in the shortcut layer.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the first requested numeric standard-view shortcut block instead of widening into projection, iso, frame, or keybinding-customization work.
+- Reused the existing shared `viewCommands.ts` seam and active-viewer routing model instead of inventing a viewer-local shortcut island.
+- Added only the minimal camera-runtime widening needed for the new `Back` shortcut.
+#### Summary of Implementation
+- Added [`src/app/cameraShortcuts.ts`](./src/app/cameraShortcuts.ts) plus [`src/app/cameraShortcuts.test.ts`](./src/app/cameraShortcuts.test.ts) to centralize the current `Numpad5` / `Numpad2` / `Numpad8` / `Numpad4` / `Numpad6` shortcut map and resolve those bindings from `KeyboardEvent.code`.
+- Updated [`src/app/inputRouting.ts`](./src/app/inputRouting.ts) and [`src/app/inputRouting.test.ts`](./src/app/inputRouting.test.ts) so the shared routing seam exposes `viewer-camera-shortcuts`, allows that owner to beat flat console capture for the active viewer, and keeps the shortcut layer out of the way while fly mode is active.
+- Added [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts), hooked it from [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx), and covered the active-viewer-only behavior in [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx).
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) and [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so the shared camera preset contract now includes `back` and the underlying camera preset math can resolve that view honestly.
+#### Files Changed
+- [`src/app/cameraShortcuts.ts`](./src/app/cameraShortcuts.ts)
+- [`src/app/cameraShortcuts.test.ts`](./src/app/cameraShortcuts.test.ts)
+- [`src/app/inputRouting.ts`](./src/app/inputRouting.ts)
+- [`src/app/inputRouting.test.ts`](./src/app/inputRouting.test.ts)
+- [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts)
+- [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx)
+- [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+#### Behavior Changes (if any)
+- The active model viewer now supports first-cut standard-view camera shortcuts on `Numpad5` = `Top`, `Numpad2` = `Front`, `Numpad8` = `Back`, `Numpad4` = `Left`, and `Numpad6` = `Right`.
+- Those shortcuts only execute for the active viewer viewport and no longer depend on a provisional shift-letter map.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/cameraShortcuts.test.ts src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx src/app/viewCommands.test.ts`
+- Ran `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts --testNamePattern "supports a back camera preset"`
+
+<!-- ENTRY 1356 -->
+### [1356] - 2026-04-16 01:03 - `BR - Browser-14 Phase 1 - Stable Part Identity And Explode Contract`
+<!-- ENTRY 1356 -->
+HUMAN SUMMARY: `Shipped Browser-14 Phase 1 by widening truthful reference-part descriptors with explicit source mesh identity, preserving that contract through the viewer-to-store handoff, and adding the first read-only explode-eligibility seam without widening into real explode mutation yet.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the Phase 1 contract foundation for Browser-14.
+- Preserved the existing part-row Browser presentation instead of widening into exploded object creation.
+- Added a read-only eligibility seam only; no Browser context-menu entry, runtime isolated-part loading, or object-creation mutation landed in this cut.
+#### Summary of Implementation
+- Updated [`src/viewer/referencePartDescriptors.ts`](./src/viewer/referencePartDescriptors.ts) so truthful extracted part descriptors now include `sourceMeshIndex` alongside the existing `partKey` and `label`, keeping the initial source locator grounded in the same leaf-mesh traversal order already used during extraction.
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so stored `ReferenceWorkspacePartVm` rows preserve `sourceMeshIndex` through `setReferenceItemPartRows(...)` and so later Browser-14 phases can query the new read-only `canReferenceItemExplode(...)` helper instead of inventing a second eligibility detector.
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) to keep the viewer-to-app bridge contract aligned with the widened descriptor payload.
+- Extended [`src/viewer/referencePartDescriptors.test.ts`](./src/viewer/referencePartDescriptors.test.ts), [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx), and [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so the widened descriptor shape and the first explode-eligibility seam are proven from viewer extraction through stored runtime traits.
+- Marked [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) shipped for `Phase 1`.
+#### Files Changed
+- [`src/viewer/referencePartDescriptors.ts`](./src/viewer/referencePartDescriptors.ts)
+- [`src/viewer/referencePartDescriptors.test.ts`](./src/viewer/referencePartDescriptors.test.ts)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Truthful imported-reference part rows now retain explicit `sourceMeshIndex` identity in app state, which gives later Browser-14 phases a stable per-part source locator instead of label-only row data.
+- Browser-14 now has a store-level `canReferenceItemExplode(...)` seam that only returns `true` for loaded imported references with truthful stored part rows and valid source locators.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/viewer/referencePartDescriptors.test.ts src/app/components/ViewerHost.test.tsx`
+- Passed `npx.cmd vitest run src/app/store/useAppStore.test.ts -t "projects shared reference runtime traits through workspace items and unified content rows"`
+- Passed `npm.cmd exec tsc -- --noEmit`
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts` still reports 12 pre-existing failures in unrelated store behavior tests outside this Phase 1 seam.
+
+<!-- ENTRY 1355 -->
+### [1355] - 2026-04-15 15:02 - `BR - Browser-13 Phase 2.3 - Reachable Docked Resize Seam`
+<!-- ENTRY 1355 -->
+HUMAN SUMMARY: `Fixed the docked Browser resize seam by moving the shared left-rail handle off the inner Browser stack shell and onto the full dock-content edge, so the visible right side of the Browser/left rail is now the real drag target users expect.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the docked shared-edge seam bug.
+- Preserved the existing shared `leftDockWidth` controller instead of inventing a Browser-only dock width.
+- Left floating Browser resize behavior untouched after the shipped `Phase 2.2` work.
+#### Summary of Implementation
+- Updated [`src/app/workspace/PrimaryViewportLeftDock.tsx`](./src/app/workspace/PrimaryViewportLeftDock.tsx) to re-home the shared dock resize handle so it belongs to the full `PrimaryViewportLeftDockContent` edge instead of the inner Browser panel-stack shell.
+- Updated [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css) so the shared seam now sits flush on the visible right edge of the left rail with a larger reachable hit area and no clipped outboard placement.
+- Extended [`src/app/workspace/PrimaryViewportLeftDock.test.tsx`](./src/app/workspace/PrimaryViewportLeftDock.test.tsx) with a structure-level proof that the resize handle now belongs to the shared dock-content edge rather than the inner panel stack, and kept the existing dock-resize AppShell proofs green.
+- Marked [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.3 - Reachable Shared Right-Edge Dock Resize Seam.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202.3%20-%20Reachable%20Shared%20Right-Edge%20Dock%20Resize%20Seam.md), [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2 - Re-Adjustable Docked And Floating Browser Size.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202%20-%20Re-Adjustable%20Docked%20And%20Floating%20Browser%20Size.md), [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md), and [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20UI%20Clean%20Polish%20And%20Cleanup.md) shipped for `Phase 2.3`.
+#### Files Changed
+- [`src/app/workspace/PrimaryViewportLeftDock.tsx`](./src/app/workspace/PrimaryViewportLeftDock.tsx)
+- [`src/app/theme/shell/docks.css`](./src/app/theme/shell/docks.css)
+- [`src/app/workspace/PrimaryViewportLeftDock.test.tsx`](./src/app/workspace/PrimaryViewportLeftDock.test.tsx)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.3 - Reachable Shared Right-Edge Dock Resize Seam.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202.3%20-%20Reachable%20Shared%20Right-Edge%20Dock%20Resize%20Seam.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2 - Re-Adjustable Docked And Floating Browser Size.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202%20-%20Re-Adjustable%20Docked%20And%20Floating%20Browser%20Size.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20UI%20Clean%20Polish%20And%20Cleanup.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- The docked Browser/left-rail resize seam now lives on the visible shared right edge users are expected to drag instead of hiding inside the inner Browser stack shell.
+#### Verification Steps
+- Passed `npm.cmd test -- PrimaryViewportLeftDock.test.tsx`
+- Passed `npm.cmd test -- AppShell.test.tsx -t "lets the user resize the full left dock width from the shared vertical handle"`
+- Passed `npm.cmd test -- AppShell.test.tsx -t "anchors console list mode to the browser resize seam and moves it with dock resize"`
+
+<!-- ENTRY 1354 -->
+### [1354] - 2026-04-15 14:42 - `BR - Browser-13 Phase 2.2 - Floating Resize Affordances`
+<!-- ENTRY 1354 -->
+HUMAN SUMMARY: `Closed the floating half of Browser resizing by adding direct edge and corner resize handles, switching the floating Browser shell onto explicit stored width plus height sizing, and covering the new resize plus clamp behavior with focused Browser host tests.`
+#### Scope / Constraints Honored
+- Kept this pass limited to floating Browser resize affordances and the existing Browser floating-size contract.
+- Reused the current `browserShell.size` plus `clampBrowserFloatingSize` path instead of inventing a second Browser sizing model.
+- Left the older popup split-menu failures in untouched popout-path tests outside this phase.
+#### Summary of Implementation
+- Updated [`src/app/hosts/BrowserDockHost.tsx`](./src/app/hosts/BrowserDockHost.tsx) to add eight-direction floating Browser resize handles, route pointer-driven resize through the existing Browser floating-size and floating-position clamp path, and render the floating shell with explicit stored width plus height.
+- Updated [`src/app/theme/shell/windows.css`](./src/app/theme/shell/windows.css) to position the new floating Browser edge/corner resize affordances and apply the expected resize cursors.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the floating Browser panel root stretches correctly inside the now explicitly-sized floating shell.
+- Marked [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2 - Re-Adjustable Docked And Floating Browser Size.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202%20-%20Re-Adjustable%20Docked%20And%20Floating%20Browser%20Size.md), [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.2 - Floating Browser Window Resize Affordances.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202.2%20-%20Floating%20Browser%20Window%20Resize%20Affordances.md), [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md), and [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20UI%20Clean%20Polish%20And%20Cleanup.md) shipped for `Phase 2.2`.
+#### Files Changed
+- [`src/app/hosts/BrowserDockHost.tsx`](./src/app/hosts/BrowserDockHost.tsx)
+- [`src/app/hosts/BrowserDockHost.test.tsx`](./src/app/hosts/BrowserDockHost.test.tsx)
+- [`src/app/theme/shell/windows.css`](./src/app/theme/shell/windows.css)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2 - Re-Adjustable Docked And Floating Browser Size.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202%20-%20Re-Adjustable%20Docked%20And%20Floating%20Browser%20Size.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.2 - Floating Browser Window Resize Affordances.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202.2%20-%20Floating%20Browser%20Window%20Resize%20Affordances.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20UI%20Clean%20Polish%20And%20Cleanup.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Floating Browser windows can now be resized directly from edges and corners, and their explicit stored height now follows the same user-owned size path as width.
+#### Verification Steps
+- Passed `npm.cmd test -- BrowserDockHost.test.tsx -t "lets the user resize the floating browser from the south-east handle and persists width and height"`
+- Passed `npm.cmd test -- BrowserDockHost.test.tsx -t "clamps floating browser resize within the app shell frame"`
+- Passed `npm.cmd test -- BrowserDockHost.test.tsx -t "shows separate quick dock and popout controls for a floating browser"`
+- `npm.cmd test -- BrowserDockHost.test.tsx` still reports the same two existing popup split-menu failures in untouched popout-path tests:
+  - `lets a popped-out browser split from the popup workspace titlebar menu`
+  - `opens the popup split menu from the browser pane top strip even when the precise header target is missed`
+
+<!-- ENTRY 1353 -->
+### [1353] - 2026-04-15 14:10 - `BR - Browser-13 Phase 2.1 - Shared Dock Width Proof`
+<!-- ENTRY 1353 -->
+HUMAN SUMMARY: `Closed the docked half of Browser resizing by making the shared left-rail width coupling explicit in the DOM and extending AppShell proof so the Browser plus the ParaHook Generator title/status strip both widen together from the existing right-edge resize seam.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the docked Browser width proof path.
+- Left the shared left-dock resize controller as the only docked width owner.
+- Did not begin floating Browser resize handles or broader dock redesign work.
+#### Summary of Implementation
+- Updated [`src/app/workspace/PrimaryViewportLeftDock.tsx`](./src/app/workspace/PrimaryViewportLeftDock.tsx) so the left-dock status strip and docked Browser host both expose the current shared left-dock width as an explicit DOM signal.
+- Extended [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx) so the existing shared left-dock resize test now proves the ParaHook Generator title/status strip and docked Browser host report the same shared width before and after drag-resizing the current right-edge seam.
+- Marked [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.1 - Docked Browser Width Uses The Shared Left Rail Resize Seam.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202.1%20-%20Docked%20Browser%20Width%20Uses%20The%20Shared%20Left%20Rail%20Resize%20Seam.md), [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md), and [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20UI%20Clean%20Polish%20And%20Cleanup.md) shipped for `Phase 2.1`.
+#### Files Changed
+- [`src/app/workspace/PrimaryViewportLeftDock.tsx`](./src/app/workspace/PrimaryViewportLeftDock.tsx)
+- [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.1 - Docked Browser Width Uses The Shared Left Rail Resize Seam.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20Phase%202.1%20-%20Docked%20Browser%20Width%20Uses%20The%20Shared%20Left%20Rail%20Resize%20Seam.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-13%20-%20UI%20Clean%20Polish%20And%20Cleanup.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Docked Browser resizing still uses the same shared left-rail seam, but the shared-width coupling is now explicit and test-visible in the left-dock DOM.
+#### Verification Steps
+- Passed `npm.cmd test -- AppShell.test.tsx -t "lets the user resize the full left dock width from the shared vertical handle"`
+- Passed `npm.cmd test -- AppShell.test.tsx -t "anchors console list mode to the browser resize seam and moves it with dock resize"`
+- Passed `npm.cmd test -- PrimaryViewportLeftDock.test.tsx`
+
+<!-- ENTRY 1352 -->
+### [1352] - 2026-04-15 11:51 - `VT - View-Toolbar 7 Phase 7 - Camera Subsection Grouping And Framing Split`
+<!-- ENTRY 1352 -->
+HUMAN SUMMARY: `Reorganized the \`Camera\` section by adding a collapsible lower \`Projection & Framing\` subsection beneath the clip controls, so the projection buttons, preset views, and framing actions can hide together without changing their existing command routing.`
+#### Scope / Constraints Honored
+- Kept this pass limited to camera-section grouping and a local collapsible shell.
+- Left the `FOV`, `Clip Start`, `Clip End`, helper text, and `Auto Clip` path in the top camera area.
+- Preserved the existing projection, preset, and framing command seams instead of inventing new camera behavior.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) so the `Camera` section now renders one lower `Projection & Framing` `details` subsection below the clip controls, with `Perspective`, `Orthographic`, preset buttons, `Frame`, and `Frame All` grouped inside that collapsible shell.
+- Updated the toolbar height-sync seam in [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to watch the new nested camera subsection toggles alongside the existing top-level section toggles.
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) with local subsection styling for the new nested camera shell.
+- Extended focused proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) to verify the new subsection sits below `Auto Clip`, hides its grouped options when collapsed, restores them when reopened, and keeps the same projection/preset/framing command routing.
+- Updated [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md) and [`docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md) to mark `Phase 7` and the full `View-Toolbar 7` lane complete again.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- The `Camera` section now includes a nested `Projection & Framing` subsection that can collapse to hide the projection/preset/framing controls as a group.
+- Projection mode buttons, preset view buttons, `Frame`, and `Frame All` keep their previous behavior and routing.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Passed `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1351 -->
+### [1351] - 2026-04-15 11:23 - `VT - View-Toolbar 7 Phase 6 - Projection Toggle Sync Proof And Stop`
+<!-- ENTRY 1351 -->
+HUMAN SUMMARY: `Closed \`View-Toolbar 7\` with a focused proof-only pass in \`ViewToolbar.test.tsx\` that keeps one mounted camera section alive while projection mode flips away from and back to perspective, confirming the \`FOV\` row hides and restores correctly while the clip controls stay synced.`
+#### Scope / Constraints Honored
+- Kept this final slice tests-first and did not widen it into new camera controls, persistence, or layout work.
+- Proved the visible projection-toggle behavior at the toolbar surface instead of inventing another runtime feature lane.
+- Left existing shipped `FOV`, `Clip Start`, and `Clip End` behavior unchanged.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) with one focused transition test that mounts the camera section in perspective, flips to orthographic, updates the shared seam state, then returns to perspective to confirm the `FOV` row comes back live-synced instead of stale.
+- Updated [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md) to mark `Phase 6` complete and close the full `View-Toolbar 7` lane.
+- Updated [`docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md) so the family read now shows `View-Toolbar 7` complete.
+#### Files Changed
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+- [`docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`](./docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- No runtime behavior changed in this pass; it adds focused proof for the already-shipped camera controls and marks the phase complete.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+
+<!-- ENTRY 1350 -->
+### [1350] - 2026-04-15 10:09 - `VT - View-Toolbar 7 Phase 5 - Value Language, Defaults, And Small Safety Polish`
+<!-- ENTRY 1350 -->
+HUMAN SUMMARY: `Polished the new camera clip controls by adding clearer clip-mode language and an \`Auto Clip\` reset path, so authored clip edits can return to sane distance-driven defaults without the toolbar inventing its own hidden workaround.`
+#### Scope / Constraints Honored
+- Kept this pass in the small-polish lane for the existing `FOV`, `Clip Start`, and `Clip End` controls.
+- Added reset behavior through the shared viewer/runtime seam instead of introducing toolbar-only ownership.
+- Avoided widening the camera section into a larger redesign or adding unrelated camera features.
+#### Summary of Implementation
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts), [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts), and [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) so the shared clip-range seam now supports resetting authored clip ownership back to auto through a dedicated `resetCameraClipRange` path.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to preserve clip-range mode in local UI state, show compact helper text describing whether clip behavior is `Auto` or `Authored`, and render an `Auto Clip` action when the user has moved into authored clip mode.
+- Extended focused proof in [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts), [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), and [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) to cover reset behavior plus the new camera-section wording.
+#### Files Changed
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+#### Behavior Changes
+- The `Camera` section now shows clip-mode helper text: `Clip: Auto. Distance driven.` or `Clip: Authored. Start stays before end.`
+- Authored clip edits now expose an `Auto Clip` button that resets the shared clip seam back to auto defaults.
+- The reset behavior lives in the shared viewer/runtime seam, so future surfaces can reuse it without reimplementing clip ownership rules.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts src/viewer/Viewer.test.ts`
+- Passed `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Passed `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1349 -->
+### [1349] - 2026-04-15 08:38 - `VT - View-Toolbar 7 Phase 4 - Clip Start And Clip End ParaSliders`
+<!-- ENTRY 1349 -->
+HUMAN SUMMARY: `Added visible \`Clip Start\` and \`Clip End\` \`ParaSlider\` rows to the \`View\` toolbar \`Camera\` section, wired directly to the authored clip-range viewer seam so the toolbar now exposes all three planned camera controls without owning clip correction logic itself.`
+#### Scope / Constraints Honored
+- Kept this pass focused on the visible clip-range rows in the existing `Camera` section.
+- Left runtime validity and authored-vs-auto ownership in the Phase 3 camera seam instead of re-implementing correction logic in toolbar JSX.
+- Preserved the perspective-only `FOV` rule while allowing clip-range rows to remain visible in orthographic mode.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to subscribe to the shared camera clip-range seam, track live `clipStart` and `clipEnd` values, and render `Clip Start` plus `Clip End` `ParaSlider` rows alongside the existing `FOV` control.
+- Wired the new clip rows so each slider sends one partial runtime update through `setCameraClipRange`, then refreshes from `getCameraClipRange`, keeping the visible values aligned with runtime-owned clamping.
+- Added toolbar-local clip formatting and dynamic slider-range/step helpers so the first visible rows stay readable across small and large clip distances without widening into a broader camera-surface redesign.
+- Added focused toolbar proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) covering visible clip-row rendering, viewer-sync updates, and orthographic visibility while `FOV` remains hidden.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+#### Behavior Changes
+- The `View` toolbar `Camera` section now shows live `Clip Start` and `Clip End` sliders when the shared clip-range seam is available.
+- Slider edits now route through the authored clip-range runtime seam and reflect the resulting clamped values back into the toolbar.
+- Orthographic mode still hides `FOV`, but now keeps both clip sliders visible.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Passed `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1348 -->
+### [1348] - 2026-04-15 08:33 - `VT - View-Toolbar 7 Phase 3 - Authored Clip Range Runtime Contract`
+<!-- ENTRY 1348 -->
+HUMAN SUMMARY: `Added the shared authored clip-range runtime seam behind future \`Clip Start\` and \`Clip End\` controls, so clip ownership now lives in the camera runtime and survives pose history, viewer restore, and camera-pose application instead of staying auto-only distance math.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared runtime and viewer seams for clip range, without adding visible toolbar rows yet.
+- Preserved toolbar ownership boundaries by keeping validity and clamping in the camera runtime instead of JSX.
+- Kept persistence out of scope while still carrying clip state through camera-pose history and restore paths.
+#### Summary of Implementation
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) to add one explicit camera clip-range contract with `auto` vs `authored` ownership, shared `clipStart < clipEnd` guardrails, and authored clip application across both perspective and orthographic cameras.
+- Extended [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) `CameraPose` so it now carries clip-range mode plus clip values, keeping `frame previous`, pose application, and viewport restore aligned with the same runtime owner.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) and [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) with dedicated camera clip-range getter, setter, and change-handler seams, plus the necessary camera-pose cloning updates for viewport handoff paths.
+- Added focused proof in [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), and updated pose-copy tests in [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) and [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx) so camera-pose literals carry the new clip metadata.
+#### Files Changed
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+- [`src/app/AppShell.test.tsx`](./src/app/AppShell.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+#### Behavior Changes
+- The camera runtime now exposes a dedicated clip-range seam with authored mode and runtime-owned validity rules.
+- Camera poses now preserve clip-range ownership and values through viewer restore and pose application.
+- Phase 4 can now add visible `Clip Start` and `Clip End` rows without inventing toolbar-local correction logic.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts src/viewer/Viewer.test.ts`
+- Passed `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx`
+- Passed `cmd /c npm.cmd run build`
+- `cmd /c npm.cmd test -- src/app/components/ViewerHost.test.tsx src/app/AppShell.test.tsx` still reports unrelated existing failures in `src/app/AppShell.test.tsx` dashboard/radio cases outside this camera clip-range work
+
+<!-- ENTRY 1347 -->
+### [1347] - 2026-04-15 08:25 - `VT - View-Toolbar 7 Phase 2 - Camera Section FOV ParaSlider`
+<!-- ENTRY 1347 -->
+HUMAN SUMMARY: `Added the first visible camera-lens control to the \`View\` toolbar by rendering a perspective-only \`FOV\` \`ParaSlider\` in the existing \`Camera\` section, wired directly to the shared viewer seam from Phase 1.`
+#### Scope / Constraints Honored
+- Kept this pass focused on one visible `FOV` row in the existing `Camera` section.
+- Preserved the rest of the camera section behavior and left clip-range controls out of scope.
+- Kept orthographic mode honest by hiding the `FOV` row instead of inventing an orthographic lens control in the same cut.
+#### Summary of Implementation
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to track the shared perspective-`FOV` seam, subscribe to live `FOV` changes from the viewer, and render one `ParaSlider` labeled `FOV` in the `Camera` section only while perspective projection is active.
+- Wired the new row so slider edits call `setPerspectiveFovDeg`, then refresh from `getPerspectiveFovDeg`, keeping the toolbar synchronized with viewer-owned clamping and runtime truth.
+- Cleaned up the same toolbar file's local section-definition typing so the file now builds cleanly while Phase 2 lands.
+- Added focused toolbar proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) covering visible `FOV` rendering, viewer-sync updates, and orthographic hiding.
+#### Files Changed
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+#### Behavior Changes
+- The `View` toolbar `Camera` section now shows a live `FOV` slider while perspective projection is active.
+- Viewer-driven `FOV` changes now flow back into the visible toolbar row through the shared change-notification seam.
+- The `FOV` row remains hidden in orthographic mode.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Passed `cmd /c npm.cmd run build`
+
+<!-- ENTRY 1346 -->
+### [1346] - 2026-04-15 08:14 - `VT - View-Toolbar 7 Phase 1 - Perspective FOV Viewer Contract`
+<!-- ENTRY 1346 -->
+HUMAN SUMMARY: `Added a dedicated perspective \`FOV\` viewer contract so the \`View\` toolbar now has an honest shared seam for reading, writing, and live-syncing camera field of view before the visible \`FOV\` slider lands.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the shared perspective-`FOV` runtime seam in `viewerBridge.ts`, `Viewer.ts`, and `CameraController.ts`.
+- Left the visible `View` toolbar JSX unchanged so Phase 2 can add the `ParaSlider` on top of a stable viewer contract.
+- Kept clip-range ownership out of this slice and preserved orthographic behavior.
+#### Summary of Implementation
+- Extended [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) with dedicated perspective-`FOV` getter, setter, and change-handler methods so toolbar-facing code can consume the same narrow seam style already used by fly-mode controls.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) to proxy the new perspective-`FOV` seam through the viewer owner and emit change notifications when direct `FOV` writes or applied camera poses change the effective perspective `FOV`.
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so perspective `FOV` is now readable and writable through narrow helpers, authored values are clamped into a safe runtime range, and pose application keeps the real perspective camera projection matrix aligned with the stored `FOV`.
+- Added focused proof in [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts) and [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) covering the new contract without widening into toolbar UI or clip-range behavior.
+#### Files Changed
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%207%20-%20Camera%20Controls%20Enrichment.md)
+#### Behavior Changes
+- Viewer owners can now read, write, and subscribe to perspective `FOV` through a dedicated shared seam instead of routing all `FOV` changes indirectly through whole camera poses.
+- Applying a camera pose that changes perspective `FOV` now emits the same dedicated viewer-side `FOV` change notification as a direct `FOV` write.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/viewer/scene/CameraController.test.ts src/viewer/Viewer.test.ts`
+- `cmd /c npm.cmd run build` currently fails in pre-existing [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) typing issues: `TS2304 Cannot find name 'ViewToolbarTabKey'` and `TS2503 Cannot find namespace 'JSX'`
+
+<!-- ENTRY 1345 -->
+### [1345] - 2026-04-15 00:36 - `VT - View-Toolbar 5 Phase 5 - Browser Read-Only Subsection Density Match`
+<!-- ENTRY 1345 -->
+HUMAN SUMMARY: `Tightened the space between the \`View\` toolbar subsections by removing the extra panel gap and zeroing the section-shell padding, so the stack now reads more like the browser read-only surface without changing toolbar behavior.`
+#### Scope / Constraints Honored
+- Kept the pass local to the top-level `View` toolbar subsection shell spacing seam.
+- Preserved the current section ordering, height-sync behavior, and whole-toolbar scroll ownership.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css) so `.ViewToolbarPanel` now uses `gap: 0`, `.ViewSection` now uses `padding: 0`, and collapsed `.ViewStyledSection` shells no longer add their own extra padding.
+- Updated [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md) to add and mark complete `View-Toolbar 5 Phase 5 - Browser Read-Only Subsection Density Match`, tying the shipped density pass back to the planning surface that now names the browser read-only spacing direction explicitly.
+#### Files Changed
+- [`src/app/theme/surfaces/viewport-overlay.css`](./src/app/theme/surfaces/viewport-overlay.css)
+- [`docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`](./docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase%20View-Toolbar%205%20-%20UI%20Polish%20And%20Surface%20Clarity.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Top-level `View` toolbar subsections now sit in a tighter stack with no extra panel gap between them.
+- Section shell padding is now `0`, matching the requested browser read-only density direction more closely.
+#### Verification Steps
+- Ran `cmd /c npm.cmd test -- src/app/components/ViewToolbar.test.tsx`
+- Ran `cmd /c npm.cmd run build`
+
 <!-- ENTRY 1344 -->
 ### [1344] - 2026-04-15 00:19 - `VT - Free Cam Default Fly Mode Type`
 <!-- ENTRY 1344 -->
@@ -40684,6 +41052,97 @@ HUMAN SUMMARY: `Exposed truthful imported-object part rows in Browser by derivin
 #### Verification Steps
 - `cmd /c npx vitest run src/viewer/referencePartDescriptors.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
 - `cmd /c npx tsc --noEmit`
+
+<!-- ENTRY 694 -->
+### [694] - 2026-04-15 12:31 - `BRW - Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow`
+<!-- ENTRY 694 -->
+HUMAN SUMMARY: `Fixed the docked Browser overflow bug so large object lists stay contained inside the Browser panel and scroll through the Browser body instead of running off the bottom of the app or depending on the outer left-dock stack to carry the load.` 
+
+#### Scope / Constraints Honored
+- Kept the fix narrowly focused on docked Browser overflow containment and scroll ownership.
+- Preserved existing Browser hierarchy, row rendering, selection, drag, and action behavior.
+- Left floating, popout, and viewport-split Browser presentation modes on their existing height contracts.
+
+#### Summary of Implementation
+- Added the missing flex/min-height containment contract to the docked Browser target so the Browser panel can shrink within the left dock and expose its own inner scroll region.
+- Tightened Browser surface CSS so the docked Browser root fills the constrained target instead of sizing purely to content height.
+- Changed BrowserDockHost wheel forwarding to prefer `.BrowserPanelBody` scrolling before falling back to the outer constrained dock stack.
+- Updated the dock-host regression test to assert Browser-body-first wheel scrolling on the docked surface.
+
+#### Files Changed
+- `src/app/hosts/BrowserDockHost.tsx`
+- `src/app/hosts/BrowserDockHost.test.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- `npm.cmd test -- BrowserPanel.test.tsx`
+- `npm.cmd test -- BrowserDockHost.test.tsx -t "prefers browser-body scrolling before falling back to the outer left-dock stack"`
+
+<!-- ENTRY 695 -->
+### [695] - 2026-04-15 12:47 - `BRW - Browser-13 - Phase 1 - Unsplit Left Dock Constraint Follow-Up`
+<!-- ENTRY 695 -->
+HUMAN SUMMARY: `Followed up the Browser Phase 1 scrollbar work by forcing the primary left dock into its constrained stack path even before any viewport split exists, so the docked Browser can behave like a bounded panel in the normal unsplit shell instead of only after split-layout gating turns on.` 
+
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the unsplit left-dock constraint gate.
+- Did not reopen Browser row rendering, BrowserPanel structure, or meatball docking behavior in the same change.
+- Left the earlier Browser-body-first wheel routing intact.
+
+#### Summary of Implementation
+- Changed the primary left-dock selector path so the primary Browser-bearing dock is treated as constrained in the normal unsplit shell instead of only after a viewport split.
+- Added a focused AppShell regression test proving the unsplit primary left dock now receives the constrained panel-stack class.
+- Reused the earlier BrowserDockHost focused test to confirm the docked Browser scroll path still prefers Browser-body scrolling.
+
+#### Files Changed
+- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- `npm.cmd test -- AppShell.test.tsx -t "keeps the primary left dock panel stack constrained even before the primary viewport is split"`
+- `npm.cmd test -- BrowserDockHost.test.tsx -t "prefers browser-body scrolling before falling back to the outer left-dock stack"`
+
+<!-- ENTRY 696 -->
+### [696] - 2026-04-15 15:18 - `BRW - Browser-13 - Phase 2.3 - Shared Dock Resize Seam Chrome Cleanup`
+<!-- ENTRY 696 -->
+HUMAN SUMMARY: `Removed the legacy painted vertical seam line and visible [] split-toggle button from the shared docked Browser/right-rail resize edge, while preserving the seam hit area itself and keeping viewport split actions available through the existing resize-handle context menu.` 
+
+#### Scope / Constraints Honored
+- Kept this pass narrowly focused on the docked resize seam chrome that reappeared after `Phase 2.3`.
+- Preserved the shared `leftDockWidth` resize path and did not introduce a new Browser-only dock width system.
+- Kept viewport split actions available through the existing seam context menu instead of removing split access entirely.
+
+#### Summary of Implementation
+- Removed the visible `[]` split-toggle button from the shared left-dock resize seam and deleted its unused prop plumbing through the AppShell and workspace tree path.
+- Removed the old painted vertical seam pseudo-element styling so the seam now behaves like an invisible hit area on the Browser/right-rail edge.
+- Updated the AppShell split-related tests to use the seam context-menu actions instead of the removed button and kept the focused dock-edge structure proof in place.
+
+#### Files Changed
+- `src/app/workspace/PrimaryViewportLeftDock.tsx`
+- `src/app/theme/shell/docks.css`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/hosts/useAppShellDockController.ts`
+- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.3 - Reachable Shared Right-Edge Dock Resize Seam.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Verification Steps
+- `npm.cmd test -- PrimaryViewportLeftDock.test.tsx`
+- `npm.cmd test -- AppShell.test.tsx -t "lets the resize-handle menu switch left dock viewport split on and off"`
+- `npm.cmd test -- AppShell.test.tsx -t "lets the resize handle menu split the viewport from the left dock edge"`
+- `npm.cmd test -- AppShell.test.tsx -t "keeps the floating spaghetti editor draggable when left dock viewport split is active"`
 # 2026-03-28
 
 - Browser: landed `Browser-9.1` reference tree convergence baseline so the Browser now presents `References` as an assembly-like root, reference categories as component-like rows, and reference items as object-like rows while preserving the current reference-transform target compatibility underneath

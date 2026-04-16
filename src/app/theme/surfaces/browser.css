@@ -36,6 +36,7 @@
   flex-direction: column;
   width: 100%;
   max-width: 100%;
+  min-height: 0;
   gap: 0;
   padding: 0;
   box-sizing: border-box;
@@ -46,7 +47,8 @@
 }
 
 .V15Panel.BrowserPanelRoot.isFloating {
-  height: auto;
+  flex: 1 1 auto;
+  height: 100%;
   min-height: 0;
   max-height: 100%;
   overflow: hidden;
@@ -57,6 +59,15 @@
 .WorkspaceViewportSlotSurface--browser .V15Panel.BrowserPanelRoot {
   height: 100%;
   min-height: 0;
+}
+
+.PrimaryViewportLeftDockPanelTarget--browser > .V15Panel.BrowserPanelRoot,
+.PrimaryViewportLeftDockPanelTarget--browser > .BrowserPanelRoot {
+  flex: 0 1 auto;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .BrowserPanelBody {
