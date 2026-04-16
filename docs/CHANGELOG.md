@@ -65,6 +65,260 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1382 -->
+### [1382] - 2026-04-16 13:54 - `Import-3 - Phase 11 - Narrow Cleanup And Regression Pass`
+<!-- ENTRY 1382 -->
+HUMAN SUMMARY: `Finished the staged import-window lane with one coherent Browser regression for the full staged journey, one focused empty-draft store guard, clearer final import-window copy and disabled-state affordances, and a small controller cleanup that removes repeated staged-file lookup glue without widening the shipped feature.`
+#### Scope / Constraints Honored
+- Kept the pass narrow around cleanup, regression hardening, and final message clarity only.
+- Did not widen into new import settings, drag-and-drop intake, material handling, or generalized asset-management behavior.
+- Preserved the shipped staged-import contract and left the Phase 10 commit ownership model intact.
+#### Summary of Implementation
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the Browser proof now covers one coherent staged-import journey from `Import Files...` through Browser intake, honest structure review, staged setting changes, and explicit `Add To Project` acceptance with no project mutation before the final click.
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) to add a focused store guard proving `commitStagedImportDraft()` returns `null` and leaves the staged draft open when acceptance is attempted with no staged files.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the final import-window copy, preview Browser hint, empty state, and `Add To Project` disabled-state titles read more intentionally and stay honest about staged draft versus accepted project content.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) to resolve staged draft file records through one shared helper instead of repeating per-handler staged-file lookups across the row-local import settings flow.
+- Marked [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md) shipped for Phase 11 and recorded the docs maintenance in [`docs/Doc-Log.md`](./docs/Doc-Log.md).
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "staged import|Add To Project|Import Files"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "Add To Project is attempted with no staged files|commits staged single-object imports|commits reviewed multi-object staged imports"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1381 -->
+### [1381] - 2026-04-16 13:35 - `Import-3 - Phase 10 - Add-To-Project Commit Path`
+<!-- ENTRY 1381 -->
+HUMAN SUMMARY: `Implemented the staged import accept path by adding an explicit Add To Project action, routing acceptance through a store-owned commit helper, and committing reviewed single-object or truthful per-part multi-object imports into real project content only after explicit user acceptance.`
+#### Scope / Constraints Honored
+- Kept the phase focused on the explicit staged-import accept path without widening into cleanup, background jobs, or generalized asset-management work.
+- Preserved the older direct import compatibility rows and kept cancel or close behavior project-safe until acceptance succeeds.
+- Stored accepted up-axis and scale or units choices as import-owned transform truth instead of leaving them as draft-only viewer-facing settings.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) to add `commitStagedImportDraft()`, commit reviewed staged files through the preview-organization graph, create authored assemblies or components as needed, and translate staged up-axis and scale or units choices into accepted import transform overrides.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts), [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx), and [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the import dialog now exposes `Add To Project`, routes acceptance through the staged-import commit seam, and closes the dialog only after a successful commit.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the dialog action row now supports the new acceptance button cleanly.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) and [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) to prove the explicit accept click path plus accepted single-object and truthful multi-object commit shapes.
+- Marked [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md) shipped for Phase 10 and recorded the docs maintenance in [`docs/Doc-Log.md`](./docs/Doc-Log.md).
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts -t "staged|Add To Project"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1380 -->
+### [1380] - 2026-04-16 13:03 - `Import-3 - Phase 9 - New Assembly Placement Option`
+<!-- ENTRY 1380 -->
+HUMAN SUMMARY: `Implemented the staged import placement pass by adding one draft-owned new-assembly option with a default off-state, surfacing an explicit placement control and honest commit-time copy in the import dialog, and keeping those changes entirely inside the import draft without creating project content yet.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around explicit accepted-placement intent only.
+- Did not widen into real assembly creation, final `Add To Project` commit behavior, or preview-organization refactors.
+- Kept the off-state aligned with the current resolved Browser landing-parent behavior while leaving authored assembly creation for the later commit phase.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) to add one draft-owned `putAcceptedImportsInNewAssembly` field to the staged import draft, default new drafts to `false`, and expose a dedicated staged setter without touching project content.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) and [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) so the import dialog now routes the new assembly placement control through the staged draft controller flow.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) and [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the import dialog now shows an explicit `Put Accepted Imports In New Assembly` control and honest commit-time placement hint copy near the landing target.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove the control is visible, defaults off, and changes placement intent without creating project content or authored assemblies.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1379 -->
+### [1379] - 2026-04-16 12:45 - `Import-3 - Phase 8 - Scale And Units Alignment`
+<!-- ENTRY 1379 -->
+HUMAN SUMMARY: `Implemented the staged import size-alignment pass by adding one draft-owned per-file scale setting with a compatibility default, surfacing explicit Current/mm/cm/m/in controls on staged rows, and keeping those changes entirely inside the import draft without mutating accepted project content or reference transforms yet.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around explicit staged size alignment only.
+- Did not widen into arbitrary numeric scale editing, viewer-only compensation logic, or final `Add To Project` commit behavior.
+- Kept the staged setting aligned with the existing display-transform scale seam so later acceptance can land as import-owned truth instead of a post-import override.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) to add one draft-owned `scaleAlignment` field to each staged file, default new staged files to `current-size`, expose a dedicated staged setter, and define the deterministic preset-to-scale-factor seam for later commit work.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) and [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) so the import dialog now routes row-local size-alignment actions through the staged draft controller flow.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so each staged file row now shows explicit `Current`, `mm`, `cm`, `m`, and `in` size-alignment controls alongside the existing import settings.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove default `Current`, visible size-alignment choices, and draft-only per-file size updates without project-content mutation.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1378 -->
+### [1378] - 2026-04-16 12:08 - `Import-3 - Phase 7 - Up-Axis Settings`
+<!-- ENTRY 1378 -->
+HUMAN SUMMARY: `Implemented the staged import up-axis pass by adding one draft-owned per-file orientation setting with default Z-up, surfacing explicit Z/Y/X controls on staged rows, and keeping those changes entirely inside the import draft without mutating accepted project content yet.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around explicit staged per-file up-axis choice only.
+- Did not widen into arbitrary rotation editing, scale or units alignment, or final `Add To Project` commit behavior.
+- Kept orientation changes draft-only and aligned the setting with the existing reference `rotationDeg` seam for later acceptance work.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) to add one draft-owned `upAxis` field to each staged file, default new staged files to `z-up`, and expose a dedicated staged setter without touching accepted reference transform state.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) and [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) so the import dialog now routes row-local up-axis actions through the staged draft controller flow.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so each staged file row now shows explicit `Z Up`, `Y Up`, and `X Up` controls, including while structure inspection is still loading or unavailable.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove default `Z Up`, visible axis choices, and draft-only per-file axis updates without project-content mutation.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1377 -->
+### [1377] - 2026-04-16 11:35 - `Import-3 - Phase 6 - Preview Browser Organization Before Commit`
+<!-- ENTRY 1377 -->
+HUMAN SUMMARY: `Implemented the staged preview Browser organization pass by extending staged structure reads with truthful part rows, adding a draft-owned preview-organization graph plus compact preview Browser rows inside the import dialog, and reusing the shared Browser drag-session language so staged rows can be organized before commit without touching project content.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around staging-only preview organization inside the import window.
+- Reused the shared Browser drag/drop preview language instead of inventing a second drag contract.
+- Did not widen into final `Add To Project` commit behavior, up-axis, scale or units, or `New Assembly` acceptance wiring yet.
+#### Summary of Implementation
+- Updated [`src/viewer/referenceStructureInspection.ts`](./src/viewer/referenceStructureInspection.ts) so staged structure inspection now keeps truthful per-part rows alongside the compact summary, giving the preview Browser a real split-child seam instead of fake labels.
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) to add a draft-owned preview-organization graph, sync it against staged files plus import mode changes, expose draft assembly and component creation actions, and support preview-only owner moves through a dedicated staged drop resolver.
+- Added [`src/app/panels/selectStagedImportPreviewRows.ts`](./src/app/panels/selectStagedImportPreviewRows.ts) and updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) to flatten the staged preview graph into Browser-like rows and route shared drag-session behavior into draft-only preview organization state.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/BrowserPanel.tsx) and [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the `Import Files` dialog now renders a compact preview Browser section with `New Assembly`, `Add Component`, and staged row drag/drop feedback.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove truthful split rows appear in the preview surface, legal preview drop feedback is visible, and preview organization changes stay draft-only.
+#### Files Changed
+- [`src/viewer/referenceStructureInspection.ts`](./src/viewer/referenceStructureInspection.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/selectStagedImportPreviewRows.ts`](./src/app/panels/selectStagedImportPreviewRows.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+#### Behavior Changes
+- The `Import Files` dialog now shows a draft-only preview Browser organization surface for staged import results.
+- Split-ready files in `Multiple Objects In 1 Component` mode now preview a truthful component plus part-child structure before commit.
+- Users can now create draft assemblies and components in the preview surface and drag staged rows into those owners without mutating project content.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1376 -->
+### [1376] - 2026-04-16 10:58 - `Import-3 - Phase 5 - Structured Import Mode Choice`
+<!-- ENTRY 1376 -->
+HUMAN SUMMARY: `Implemented the staged import-mode choice by giving each staged file a draft-owned \`1 Object\` default, showing \`Multiple Objects In 1 Component\` only when the staged structure read is truthfully part-backed, and keeping that choice draft-only with no project mutation yet.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around per-file staged import-mode choice only.
+- Reused the shipped staged structure summary seam and existing truthful split direction instead of inventing a second Browser-only split model.
+- Did not widen into preview organization, up-axis, scale or units, `New Assembly`, or final `Add To Project` commit behavior.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so each staged file now carries one explicit draft-owned import mode plus a guarded setter that keeps unsupported rows on `1 Object`.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) and [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) to route row-local mode changes from the staged import dialog back into the staged draft without mutating project content.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) and [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so staged rows now show compact `Import as` controls with `1 Object` always visible and `Multiple Objects In 1 Component` shown only when the row is truthfully split-ready.
+- Added focused proof in [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) that split-ready files show both choices, flat files stay honest with only `1 Object`, and import-mode changes remain draft-only.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+#### Behavior Changes
+- Staged import rows now have an explicit draft-owned import mode.
+- Truthfully split-ready staged files can now choose between `1 Object` and `Multiple Objects In 1 Component`.
+- Unsupported or flat files stay on the compatibility path and still do not mutate project content during staged review.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1375 -->
+### [1375] - 2026-04-16 10:31 - `Import-3 - Phase 4 - Pre-Add Structure Inspection Contract`
+<!-- ENTRY 1375 -->
+HUMAN SUMMARY: `Implemented the first honest pre-add structure read for staged imports by inspecting each staged file through the live reference loaders, storing compact draft-owned structure summaries, and surfacing row-local multiple-object, hierarchy, parts, and label reads without creating project content or inventing fake trees.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around compact pre-add structure summaries only.
+- Reused the existing reference load and part-descriptor seams instead of widening into committed import ownership or import-mode controls.
+- Did not widen into drag-and-drop organization, up-axis, scale or units, `New Assembly`, or `Add to Project`.
+#### Summary of Implementation
+- Added shared reference asset-loading and structure-inspection helpers in [`src/viewer/referenceAssetLoader.ts`](./src/viewer/referenceAssetLoader.ts) and [`src/viewer/referenceStructureInspection.ts`](./src/viewer/referenceStructureInspection.ts) so staged imports can reuse the live supported `.step`, `.stl`, `.obj`, and `.glb` loader truth before commit.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) to reuse that shared asset loader and disposal seam while preserving the existing viewer-owned load path.
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so each staged file now carries draft-owned structure inspection state plus compact resolved summary data for honest row rendering.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) to start asynchronous structure inspection for newly staged files without mutating project content.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) and [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so staged rows now show explicit loading, unavailable, flat-file, and truthful structure-summary reads with meaningful labels when they exist.
+- Added focused proof in [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) that staged rows show honest structure summaries, keep loading and unavailable states explicit, and leave project content untouched.
+#### Files Changed
+- [`src/viewer/referenceAssetLoader.ts`](./src/viewer/referenceAssetLoader.ts)
+- [`src/viewer/referenceStructureInspection.ts`](./src/viewer/referenceStructureInspection.ts)
+- [`src/viewer/referencePartDescriptors.ts`](./src/viewer/referencePartDescriptors.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+#### Behavior Changes
+- Staged import rows now inspect and report the first honest pre-add structure summary available from the live loaders.
+- Files with truthful structure can now show multiple-object, hierarchy, parts, and meaningful-label reads before commit.
+- Flat files stay explicit in the dialog instead of implying fake hierarchy, and project content still remains unchanged during inspection.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1374 -->
+### [1374] - 2026-04-16 09:38 - `Import-3 - Phase 3B - Staged File List Polish Pass`
+<!-- ENTRY 1374 -->
+HUMAN SUMMARY: `Implemented the first staged-list polish slice by giving the visible staged review list its own bounded scroll region and local scrollbar, keeping overflow inside the list while leaving the staged row contract and project-safe review behavior unchanged.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around staged-list overflow handling and scrollbar polish only.
+- Reused the existing staged review list from Phase 3 instead of widening into new row actions or visual redesign.
+- Did not widen into structure inspection, import settings, or final commit behavior.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the staged file list now renders inside a dedicated labeled scroll region while keeping the existing empty state outside that overflow behavior.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the staged review area now has a bounded max height, local overflow scrolling, and a matching scrollbar treatment.
+- Added focused proof in [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) that the scroll region appears once files are staged while stable staged order remains intact.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+#### Behavior Changes
+- The staged file review list now has its own bounded scrollable area.
+- Overflow now stays local to the staged review area instead of forcing the whole dialog to grow.
+- Staged review still remains draft-only and does not mutate project content.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
 <!-- ENTRY 1373 -->
 ### [1373] - 2026-04-16 09:23 - `Import-3 - Phase 3 - Staged File List And Multi-File Review`
 <!-- ENTRY 1373 -->

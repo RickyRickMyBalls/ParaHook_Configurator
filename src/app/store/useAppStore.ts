@@ -50,6 +50,7 @@ import {
   resolveReferenceAssetPath,
   type ReferenceCategoryId,
   type ReferenceTransformOverride,
+  type ReferenceTransformVector3,
   type ReferenceFileType,
   type ReferenceManifestItem,
   type ReferenceSourceKind,
@@ -74,6 +75,7 @@ import {
   type WorkspaceStoreState,
 } from '../workspace/useWorkspaceStore'
 import type { WorkspaceViewportResultModeBehavior } from '../workspace/workspaceViewportResultMode'
+import type { ImportedReferenceStructureInspectionSummary } from '../../viewer/referenceStructureInspection'
 
 type PartsVisibility = Record<string, boolean>
 type BuildPolicy = 'live' | 'release' | 'manual'
@@ -260,11 +262,63 @@ export type ImportedReferenceRecord = {
 export type StagedImportDraftState = {
   parentAssemblyId: string | null
   parentComponentId: string | null
+  putAcceptedImportsInNewAssembly: boolean
   stagedFiles: StagedImportDraftFileRecord[]
+  previewOrganization: StagedImportPreviewOrganizationState
 }
+
+export type StagedImportMode = 'single-object' | 'multiple-objects-in-component'
+export type StagedImportUpAxis = 'z-up' | 'y-up' | 'x-up'
+export type StagedImportScaleAlignment =
+  | 'current-size'
+  | 'millimeters'
+  | 'centimeters'
+  | 'meters'
+  | 'inches'
+
+export type StagedImportPreviewNodeKind = 'assembly' | 'component' | 'object'
+
+export type StagedImportPreviewNodeRecord = {
+  nodeId: string
+  nodeKind: StagedImportPreviewNodeKind
+  sourceKind: 'authored' | 'staged-file' | 'staged-part'
+  label: string
+  parentNodeId: string | null
+  stagedFileId: string | null
+  fileType: ReferenceFileType | null
+  sourcePartKey: string | null
+  sourceMeshIndex: number | null
+}
+
+export type StagedImportPreviewOrganizationState = {
+  nodesById: Record<string, StagedImportPreviewNodeRecord>
+  rootNodeIds: string[]
+  childNodeIdsByParentId: Record<string, string[]>
+}
+
+export type StagedImportStructureInspectionState =
+  | {
+      status: 'idle' | 'loading'
+      summary: null
+      errorMessage: null
+    }
+  | {
+      status: 'ready'
+      summary: ImportedReferenceStructureInspectionSummary
+      errorMessage: null
+    }
+  | {
+      status: 'error'
+      summary: null
+      errorMessage: string
+    }
 
 export type StagedImportDraftFileRecord = ImportedReferenceFile & {
   stagedFileId: string
+  importMode: StagedImportMode
+  upAxis: StagedImportUpAxis
+  scaleAlignment: StagedImportScaleAlignment
+  structureInspection: StagedImportStructureInspectionState
 }
 
 export type ReferenceWorkspacePartVm = {
@@ -1021,6 +1075,26 @@ export type AppState = {
     parentComponentId?: string | null
   }) => void
   appendStagedImportDraftFiles: (files: ImportedReferenceFile[]) => void
+  createStagedImportPreviewAssembly: () => string | null
+  createStagedImportPreviewComponent: (parentAssemblyId: string) => string | null
+  moveStagedImportPreviewOwner: (
+    draggedTarget: ProjectContentOwnerTarget,
+    dropTarget: ProjectContentOwnerDropTarget,
+  ) => boolean
+  setStagedImportFileMode: (stagedFileId: string, importMode: StagedImportMode) => void
+  setStagedImportFileUpAxis: (stagedFileId: string, upAxis: StagedImportUpAxis) => void
+  setStagedImportFileScaleAlignment: (
+    stagedFileId: string,
+    scaleAlignment: StagedImportScaleAlignment,
+  ) => void
+  setStagedImportPutAcceptedInNewAssembly: (enabled: boolean) => void
+  commitStagedImportDraft: () => string | null
+  beginStagedImportFileStructureInspection: (stagedFileId: string) => void
+  resolveStagedImportFileStructureInspection: (
+    stagedFileId: string,
+    summary: ImportedReferenceStructureInspectionSummary,
+  ) => void
+  failStagedImportFileStructureInspection: (stagedFileId: string, errorMessage: string) => void
   closeStagedImportDraft: () => void
   addImportedReference: (reference: {
     fileName: string
@@ -2191,6 +2265,114 @@ const areProjectContentContainerTargetsEqual = (
     : left.componentId === (right as Extract<ProjectContentContainerTarget, { kind: 'component' }>).componentId
 }
 
+type StagedImportPreviewOwnerRecord = {
+  kind: 'assembly' | 'component' | 'object'
+  ownerId: string
+  parentTarget: ProjectContentContainerTarget | null
+  draggable: boolean
+}
+
+const resolveStagedImportPreviewOwnerRecord = (
+  previewOrganization: StagedImportPreviewOrganizationState,
+  target: ProjectContentOwnerTarget,
+): StagedImportPreviewOwnerRecord | null => {
+  const nodeId = resolveStagedImportPreviewNodeIdFromTarget(target)
+  const node = previewOrganization.nodesById[nodeId]
+  if (node === undefined) {
+    return null
+  }
+  return {
+    kind: node.nodeKind,
+    ownerId: node.nodeId,
+    parentTarget: resolveStagedImportPreviewParentTarget(node, previewOrganization),
+    draggable: true,
+  }
+}
+
+const selectStagedImportPreviewAssemblyDescendantIds = (
+  previewOrganization: StagedImportPreviewOrganizationState,
+  assemblyId: string,
+): Set<string> => {
+  const descendantIds = new Set<string>()
+  const stack = [...(previewOrganization.childNodeIdsByParentId[assemblyId] ?? [])]
+  while (stack.length > 0) {
+    const currentNodeId = stack.pop()
+    if (currentNodeId === undefined || descendantIds.has(currentNodeId)) {
+      continue
+    }
+    descendantIds.add(currentNodeId)
+    const currentNode = previewOrganization.nodesById[currentNodeId]
+    if (currentNode?.nodeKind === 'assembly') {
+      stack.push(...(previewOrganization.childNodeIdsByParentId[currentNodeId] ?? []))
+    }
+  }
+  return descendantIds
+}
+
+export const resolveStagedImportPreviewOwnerDrop = (
+  previewOrganization: StagedImportPreviewOrganizationState,
+  draggedTarget: ProjectContentOwnerTarget,
+  dropTarget: ProjectContentOwnerDropTarget,
+): ProjectContentOwnerDropResolution => {
+  const draggedRecord = resolveStagedImportPreviewOwnerRecord(previewOrganization, draggedTarget)
+  const targetRecord = resolveStagedImportPreviewOwnerRecord(previewOrganization, dropTarget)
+  if (draggedRecord === null || targetRecord === null) {
+    return { valid: false, reason: 'missing-owner' }
+  }
+  if (!draggedRecord.draggable) {
+    return { valid: false, reason: 'not-draggable' }
+  }
+  if (draggedRecord.kind === targetRecord.kind && draggedRecord.ownerId === targetRecord.ownerId) {
+    return { valid: false, reason: 'same-row' }
+  }
+
+  if (dropTarget.position === 'before' || dropTarget.position === 'after') {
+    if (!areProjectContentContainerTargetsEqual(draggedRecord.parentTarget, targetRecord.parentTarget)) {
+      return { valid: false, reason: 'invalid-same-parent' }
+    }
+    return {
+      valid: true,
+      kind: 'reorder',
+      parentTarget: draggedRecord.parentTarget,
+      draggedTarget,
+      dropTarget,
+    }
+  }
+
+  if (targetRecord.kind === 'object') {
+    return { valid: false, reason: 'illegal-target' }
+  }
+
+  const targetContainer: ProjectContentContainerTarget =
+    targetRecord.kind === 'assembly'
+      ? { kind: 'assembly', assemblyId: targetRecord.ownerId }
+      : { kind: 'component', componentId: targetRecord.ownerId }
+
+  if (areProjectContentContainerTargetsEqual(draggedRecord.parentTarget, targetContainer)) {
+    return { valid: false, reason: 'same-parent-into' }
+  }
+
+  if (targetRecord.kind === 'component' && draggedRecord.kind !== 'object') {
+    return { valid: false, reason: 'illegal-container' }
+  }
+
+  if (draggedRecord.kind === 'assembly' && targetRecord.kind === 'assembly') {
+    if (selectStagedImportPreviewAssemblyDescendantIds(previewOrganization, draggedRecord.ownerId).has(
+      targetRecord.ownerId,
+    )) {
+      return { valid: false, reason: 'descendant-cycle' }
+    }
+  }
+
+  return {
+    valid: true,
+    kind: 'reparent',
+    parentTarget: targetContainer,
+    draggedTarget,
+    dropTarget,
+  }
+}
+
 const resolveProjectContentOwnerRecord = (
   state: Pick<AppState, 'projectContent' | 'referenceWorkspace'>,
   target: ProjectContentOwnerTarget,
@@ -2570,6 +2752,341 @@ const buildDefaultReferenceTransformOverride = (): ReferenceTransformOverride =>
 })
 
 const buildStagedImportDraftFileId = () => newId('staged-import-file')
+const DEFAULT_STAGED_IMPORT_MODE: StagedImportMode = 'single-object'
+const DEFAULT_STAGED_IMPORT_UP_AXIS: StagedImportUpAxis = 'z-up'
+const DEFAULT_STAGED_IMPORT_SCALE_ALIGNMENT: StagedImportScaleAlignment = 'current-size'
+
+export const resolveStagedImportScaleAlignmentFactor = (
+  scaleAlignment: StagedImportScaleAlignment,
+): number => {
+  switch (scaleAlignment) {
+    case 'millimeters':
+      return 1
+    case 'centimeters':
+      return 10
+    case 'meters':
+      return 1000
+    case 'inches':
+      return 25.4
+    case 'current-size':
+    default:
+      return 1
+  }
+}
+
+const resolveStagedImportUpAxisRotationDeg = (
+  upAxis: StagedImportUpAxis,
+): ReferenceTransformVector3 =>
+  upAxis === 'z-up'
+    ? { x: 0, y: 0, z: 0 }
+    : upAxis === 'y-up'
+      ? { x: 90, y: 0, z: 0 }
+      : { x: 0, y: -90, z: 0 }
+
+const resolveStagedImportAcceptedTransformOverride = (
+  file: Pick<StagedImportDraftFileRecord, 'upAxis' | 'scaleAlignment'>,
+): ReferenceTransformOverride | null => {
+  const rotationDeg = resolveStagedImportUpAxisRotationDeg(file.upAxis)
+  const scaleFactor = resolveStagedImportScaleAlignmentFactor(file.scaleAlignment)
+  const hasRotation =
+    rotationDeg.x !== 0 || rotationDeg.y !== 0 || rotationDeg.z !== 0
+  const hasScale = scaleFactor !== 1
+  if (!hasRotation && !hasScale) {
+    return null
+  }
+  return {
+    position: { x: 0, y: 0, z: 0 },
+    rotationDeg,
+    scale: {
+      x: scaleFactor,
+      y: scaleFactor,
+      z: scaleFactor,
+    },
+  }
+}
+
+const buildInitialStagedImportStructureInspectionState =
+  (): StagedImportStructureInspectionState => ({
+    status: 'idle',
+    summary: null,
+    errorMessage: null,
+  })
+
+const buildInitialStagedImportPreviewOrganizationState =
+  (): StagedImportPreviewOrganizationState => ({
+    nodesById: {},
+    rootNodeIds: [],
+    childNodeIdsByParentId: {},
+  })
+
+const buildStagedImportPreviewAssemblyNodeId = () => newId('staged-import-preview-assembly')
+const buildStagedImportPreviewComponentNodeId = () => newId('staged-import-preview-component')
+const buildStagedImportPreviewFileObjectNodeId = (stagedFileId: string) =>
+  `staged-import-preview-object:file:${stagedFileId}`
+const buildStagedImportPreviewFileComponentNodeId = (stagedFileId: string) =>
+  `staged-import-preview-component:file:${stagedFileId}`
+const buildStagedImportPreviewPartObjectNodeId = (
+  stagedFileId: string,
+  sourceMeshIndex: number,
+) => `staged-import-preview-object:part:${stagedFileId}:${sourceMeshIndex}`
+
+const isStagedImportPreviewOwnerNode = (
+  node: StagedImportPreviewNodeRecord | null | undefined,
+): node is StagedImportPreviewNodeRecord & { nodeKind: 'assembly' | 'component' } =>
+  node?.nodeKind === 'assembly' || node?.nodeKind === 'component'
+
+const resolveStagedImportPreviewNodeIdFromTarget = (target: ProjectContentOwnerTarget): string =>
+  target.kind === 'assembly'
+    ? target.assemblyId
+    : target.kind === 'component'
+      ? target.componentId
+      : target.kind === 'object'
+        ? target.objectId
+        : target.referenceId
+
+const resolveStagedImportPreviewParentTarget = (
+  node: Pick<StagedImportPreviewNodeRecord, 'parentNodeId'>,
+  previewOrganization: StagedImportPreviewOrganizationState,
+): ProjectContentContainerTarget | null => {
+  if (node.parentNodeId === null) {
+    return null
+  }
+  const parentNode = previewOrganization.nodesById[node.parentNodeId]
+  if (parentNode?.nodeKind === 'assembly') {
+    return {
+      kind: 'assembly',
+      assemblyId: parentNode.nodeId,
+    }
+  }
+  if (parentNode?.nodeKind === 'component') {
+    return {
+      kind: 'component',
+      componentId: parentNode.nodeId,
+    }
+  }
+  return null
+}
+
+const canStagedImportPreviewNodeUseMultipleObjects = (
+  file: Pick<StagedImportDraftFileRecord, 'importMode' | 'structureInspection'>,
+): file is Pick<StagedImportDraftFileRecord, 'importMode' | 'structureInspection'> & {
+  importMode: 'multiple-objects-in-component'
+  structureInspection: Extract<StagedImportStructureInspectionState, { status: 'ready' }>
+} =>
+  file.importMode === 'multiple-objects-in-component' &&
+  file.structureInspection.status === 'ready' &&
+  file.structureInspection.summary.partRows.length > 0
+
+const canStagedImportPreviewNodeParentNode = (
+  nodesById: Record<string, StagedImportPreviewNodeRecord>,
+  nodeId: string,
+  parentNodeId: string | null,
+): boolean => {
+  if (parentNodeId === null) {
+    return true
+  }
+
+  const node = nodesById[nodeId]
+  const parentNode = nodesById[parentNodeId]
+  if (node === undefined || parentNode === undefined) {
+    return false
+  }
+  if (!isStagedImportPreviewOwnerNode(parentNode) || parentNode.nodeId === nodeId) {
+    return false
+  }
+  if (parentNode.nodeKind === 'component' && node.nodeKind !== 'object') {
+    return false
+  }
+
+  let currentParentId: string | null = parentNode.parentNodeId
+  while (currentParentId !== null) {
+    if (currentParentId === nodeId) {
+      return false
+    }
+    currentParentId = nodesById[currentParentId]?.parentNodeId ?? null
+  }
+  return true
+}
+
+const normalizeStagedImportPreviewChildOrder = (
+  orderedNodeIds: readonly string[] | undefined,
+  defaultNodeIds: readonly string[],
+): string[] => {
+  if (orderedNodeIds === undefined) {
+    return dedupeOrderedRowIds(defaultNodeIds)
+  }
+  const defaultNodeIdSet = new Set(defaultNodeIds)
+  const normalized = dedupeOrderedRowIds(
+    orderedNodeIds.filter((nodeId) => defaultNodeIdSet.has(nodeId)),
+  )
+  defaultNodeIds.forEach((nodeId) => {
+    if (!normalized.includes(nodeId)) {
+      normalized.push(nodeId)
+    }
+  })
+  return normalized
+}
+
+const syncStagedImportPreviewOrganizationState = (
+  stagedFiles: StagedImportDraftFileRecord[],
+  currentPreviewOrganization: StagedImportPreviewOrganizationState | null,
+): StagedImportPreviewOrganizationState => {
+  const nextNodesById: Record<string, StagedImportPreviewNodeRecord> = {}
+  const fallbackRankByNodeId = new Map<string, number>()
+  let nextFallbackRank = 0
+
+  stagedFiles.forEach((file) => {
+    if (canStagedImportPreviewNodeUseMultipleObjects(file)) {
+      const componentNodeId = buildStagedImportPreviewFileComponentNodeId(file.stagedFileId)
+      nextNodesById[componentNodeId] = {
+        nodeId: componentNodeId,
+        nodeKind: 'component',
+        sourceKind: 'staged-file',
+        label: file.fileName,
+        parentNodeId: null,
+        stagedFileId: file.stagedFileId,
+        fileType: file.fileType,
+        sourcePartKey: null,
+        sourceMeshIndex: null,
+      }
+      fallbackRankByNodeId.set(componentNodeId, nextFallbackRank++)
+      file.structureInspection.summary.partRows.forEach((partRow) => {
+        const nodeId = buildStagedImportPreviewPartObjectNodeId(
+          file.stagedFileId,
+          partRow.sourceMeshIndex,
+        )
+        nextNodesById[nodeId] = {
+          nodeId,
+          nodeKind: 'object',
+          sourceKind: 'staged-part',
+          label: partRow.label,
+          parentNodeId: componentNodeId,
+          stagedFileId: file.stagedFileId,
+          fileType: file.fileType,
+          sourcePartKey: partRow.partKey,
+          sourceMeshIndex: partRow.sourceMeshIndex,
+        }
+        fallbackRankByNodeId.set(nodeId, nextFallbackRank++)
+      })
+      return
+    }
+
+    const nodeId = buildStagedImportPreviewFileObjectNodeId(file.stagedFileId)
+    nextNodesById[nodeId] = {
+      nodeId,
+      nodeKind: 'object',
+      sourceKind: 'staged-file',
+      label: file.fileName,
+      parentNodeId: null,
+      stagedFileId: file.stagedFileId,
+      fileType: file.fileType,
+      sourcePartKey: null,
+      sourceMeshIndex: null,
+    }
+    fallbackRankByNodeId.set(nodeId, nextFallbackRank++)
+  })
+
+  const authoredNodes = Object.values(currentPreviewOrganization?.nodesById ?? {}).filter(
+    (node) => node.sourceKind === 'authored',
+  )
+  authoredNodes.forEach((node) => {
+    nextNodesById[node.nodeId] = node
+    fallbackRankByNodeId.set(node.nodeId, nextFallbackRank++)
+  })
+
+  const nextNodeIds = new Set(Object.keys(nextNodesById))
+  const nextResolvedNodesById: Record<string, StagedImportPreviewNodeRecord> = {}
+  Object.values(nextNodesById).forEach((node) => {
+    const currentParentId =
+      currentPreviewOrganization?.nodesById[node.nodeId]?.parentNodeId ?? node.parentNodeId
+    const fallbackParentId = node.parentNodeId
+    const parentNodeId = canStagedImportPreviewNodeParentNode(
+      nextNodesById,
+      node.nodeId,
+      currentParentId,
+    )
+      ? currentParentId
+      : canStagedImportPreviewNodeParentNode(nextNodesById, node.nodeId, fallbackParentId)
+        ? fallbackParentId
+        : null
+    nextResolvedNodesById[node.nodeId] = {
+      ...node,
+      parentNodeId,
+    }
+  })
+
+  const childNodeIdsByParentId = new Map<string | null, string[]>()
+  Object.values(nextResolvedNodesById).forEach((node) => {
+    const siblingNodeIds = childNodeIdsByParentId.get(node.parentNodeId) ?? []
+    siblingNodeIds.push(node.nodeId)
+    childNodeIdsByParentId.set(node.parentNodeId, siblingNodeIds)
+  })
+
+  const sortByFallbackRank = (nodeIds: string[]): string[] =>
+    [...nodeIds].sort(
+      (left, right) =>
+        (fallbackRankByNodeId.get(left) ?? Number.MAX_SAFE_INTEGER) -
+          (fallbackRankByNodeId.get(right) ?? Number.MAX_SAFE_INTEGER) ||
+        left.localeCompare(right),
+    )
+
+  const nextRootNodeIds = normalizeStagedImportPreviewChildOrder(
+    currentPreviewOrganization?.rootNodeIds,
+    sortByFallbackRank(childNodeIdsByParentId.get(null) ?? []),
+  )
+
+  const nextChildNodeIdsByParentId: Record<string, string[]> = {}
+  Object.values(nextResolvedNodesById).forEach((node) => {
+    if (!isStagedImportPreviewOwnerNode(node)) {
+      return
+    }
+    const childNodeIds = sortByFallbackRank(childNodeIdsByParentId.get(node.nodeId) ?? [])
+    if (childNodeIds.length === 0) {
+      return
+    }
+    const previousOrderedNodeIds = currentPreviewOrganization?.childNodeIdsByParentId[node.nodeId]
+    const normalizedChildNodeIds = normalizeStagedImportPreviewChildOrder(
+      previousOrderedNodeIds,
+      childNodeIds,
+    ).filter((childNodeId) => nextNodeIds.has(childNodeId))
+    if (normalizedChildNodeIds.length > 0) {
+      nextChildNodeIdsByParentId[node.nodeId] = normalizedChildNodeIds
+    }
+  })
+
+  return {
+    nodesById: nextResolvedNodesById,
+    rootNodeIds: nextRootNodeIds.filter((nodeId) => nextNodeIds.has(nodeId)),
+    childNodeIdsByParentId: nextChildNodeIdsByParentId,
+  }
+}
+
+export const canStagedImportFileUseMultipleObjects = (
+  file: Pick<StagedImportDraftFileRecord, 'structureInspection'>,
+): boolean =>
+  file.structureInspection.status === 'ready' && file.structureInspection.summary.hasParts
+
+const updateStagedImportDraftFileRecord = (
+  draft: StagedImportDraftState,
+  stagedFileId: string,
+  updater: (file: StagedImportDraftFileRecord) => StagedImportDraftFileRecord,
+): StagedImportDraftState | null => {
+  let changed = false
+  const stagedFiles = draft.stagedFiles.map((file) => {
+    if (file.stagedFileId !== stagedFileId) {
+      return file
+    }
+    changed = true
+    return updater(file)
+  })
+
+  return changed
+    ? {
+        ...draft,
+        stagedFiles,
+      }
+    : null
+}
 
 const revokeStagedImportDraftObjectUrls = (draft: StagedImportDraftState | null) => {
   if (
@@ -5597,7 +6114,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           stagedImportDraft: {
             parentAssemblyId,
             parentComponentId,
+            putAcceptedImportsInNewAssembly: false,
             stagedFiles: [],
+            previewOrganization: buildInitialStagedImportPreviewOrganizationState(),
           },
         },
       }
@@ -5609,18 +6128,850 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (currentDraft === null || files.length === 0) {
         return state
       }
+      const nextFiles = files.map((file) => ({
+        ...file,
+        stagedFileId: buildStagedImportDraftFileId(),
+        importMode: DEFAULT_STAGED_IMPORT_MODE,
+        upAxis: DEFAULT_STAGED_IMPORT_UP_AXIS,
+        scaleAlignment: DEFAULT_STAGED_IMPORT_SCALE_ALIGNMENT,
+        structureInspection: buildInitialStagedImportStructureInspectionState(),
+      }))
+      const nextStagedFiles = [...currentDraft.stagedFiles, ...nextFiles]
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
           stagedImportDraft: {
             ...currentDraft,
-            stagedFiles: [
-              ...currentDraft.stagedFiles,
-              ...files.map((file) => ({
-                ...file,
-                stagedFileId: buildStagedImportDraftFileId(),
-              })),
-            ],
+            stagedFiles: nextStagedFiles,
+            previewOrganization: syncStagedImportPreviewOrganizationState(
+              nextStagedFiles,
+              currentDraft.previewOrganization,
+            ),
+          },
+        },
+      }
+    })
+  },
+  createStagedImportPreviewAssembly: () => {
+    const currentDraft = get().referenceWorkspace.stagedImportDraft
+    if (currentDraft === null) {
+      return null
+    }
+    const assemblyId = buildStagedImportPreviewAssemblyNodeId()
+    const label = buildNextOrdinalLabel(
+      Object.values(currentDraft.previewOrganization.nodesById)
+        .filter((node) => node.sourceKind === 'authored' && node.nodeKind === 'assembly')
+        .map((node) => node.label),
+      'Assembly',
+    )
+    set((state) => {
+      const draft = state.referenceWorkspace.stagedImportDraft
+      if (draft === null) {
+        return state
+      }
+      const nextPreviewOrganization = syncStagedImportPreviewOrganizationState(draft.stagedFiles, {
+        nodesById: {
+          ...draft.previewOrganization.nodesById,
+          [assemblyId]: {
+            nodeId: assemblyId,
+            nodeKind: 'assembly',
+            sourceKind: 'authored',
+            label,
+            parentNodeId: null,
+            stagedFileId: null,
+            fileType: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+        },
+        rootNodeIds: [...draft.previewOrganization.rootNodeIds, assemblyId],
+        childNodeIdsByParentId: {
+          ...draft.previewOrganization.childNodeIdsByParentId,
+        },
+      })
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...draft,
+            previewOrganization: nextPreviewOrganization,
+          },
+        },
+      }
+    })
+    return assemblyId
+  },
+  createStagedImportPreviewComponent: (parentAssemblyId) => {
+    const currentDraft = get().referenceWorkspace.stagedImportDraft
+    if (currentDraft === null) {
+      return null
+    }
+    const parentNode = currentDraft.previewOrganization.nodesById[parentAssemblyId]
+    if (parentNode?.nodeKind !== 'assembly') {
+      return null
+    }
+    const componentId = buildStagedImportPreviewComponentNodeId()
+    const label = buildNextOrdinalLabel(
+      Object.values(currentDraft.previewOrganization.nodesById)
+        .filter(
+          (node) =>
+            node.sourceKind === 'authored' &&
+            node.nodeKind === 'component' &&
+            node.parentNodeId === parentAssemblyId,
+        )
+        .map((node) => node.label),
+      'Component',
+    )
+    set((state) => {
+      const draft = state.referenceWorkspace.stagedImportDraft
+      if (draft === null) {
+        return state
+      }
+      if (draft.previewOrganization.nodesById[parentAssemblyId]?.nodeKind !== 'assembly') {
+        return state
+      }
+      const nextPreviewOrganization = syncStagedImportPreviewOrganizationState(draft.stagedFiles, {
+        nodesById: {
+          ...draft.previewOrganization.nodesById,
+          [componentId]: {
+            nodeId: componentId,
+            nodeKind: 'component',
+            sourceKind: 'authored',
+            label,
+            parentNodeId: parentAssemblyId,
+            stagedFileId: null,
+            fileType: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+        },
+        rootNodeIds: [...draft.previewOrganization.rootNodeIds],
+        childNodeIdsByParentId: {
+          ...draft.previewOrganization.childNodeIdsByParentId,
+          [parentAssemblyId]: [
+            ...(draft.previewOrganization.childNodeIdsByParentId[parentAssemblyId] ?? []),
+            componentId,
+          ],
+        },
+      })
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...draft,
+            previewOrganization: nextPreviewOrganization,
+          },
+        },
+      }
+    })
+    return componentId
+  },
+  moveStagedImportPreviewOwner: (draggedTarget, dropTarget) => {
+    const currentDraft = get().referenceWorkspace.stagedImportDraft
+    if (currentDraft === null) {
+      return false
+    }
+    const resolution = resolveStagedImportPreviewOwnerDrop(
+      currentDraft.previewOrganization,
+      draggedTarget,
+      dropTarget,
+    )
+    if (!resolution.valid) {
+      return false
+    }
+
+    let moved = false
+    set((state) => {
+      const draft = state.referenceWorkspace.stagedImportDraft
+      if (draft === null) {
+        return state
+      }
+      const draggedNodeId = resolveStagedImportPreviewNodeIdFromTarget(draggedTarget)
+      const draggedNode = draft.previewOrganization.nodesById[draggedNodeId]
+      if (draggedNode === undefined) {
+        return state
+      }
+
+      const removeNodeFromOrderedChildren = (
+        previewOrganization: StagedImportPreviewOrganizationState,
+        parentNodeId: string | null,
+        nodeId: string,
+      ): Pick<StagedImportPreviewOrganizationState, 'rootNodeIds' | 'childNodeIdsByParentId'> => {
+        if (parentNodeId === null) {
+          return {
+            rootNodeIds: previewOrganization.rootNodeIds.filter((candidate) => candidate !== nodeId),
+            childNodeIdsByParentId: {
+              ...previewOrganization.childNodeIdsByParentId,
+            },
+          }
+        }
+        const nextChildNodeIdsByParentId = {
+          ...previewOrganization.childNodeIdsByParentId,
+          [parentNodeId]: (previewOrganization.childNodeIdsByParentId[parentNodeId] ?? []).filter(
+            (candidate) => candidate !== nodeId,
+          ),
+        }
+        if (nextChildNodeIdsByParentId[parentNodeId]?.length === 0) {
+          delete nextChildNodeIdsByParentId[parentNodeId]
+        }
+        return {
+          rootNodeIds: [...previewOrganization.rootNodeIds],
+          childNodeIdsByParentId: nextChildNodeIdsByParentId,
+        }
+      }
+
+      if (resolution.kind === 'reorder') {
+        const parentNodeId = draggedNode.parentNodeId
+        const dropNodeId = resolveStagedImportPreviewNodeIdFromTarget(dropTarget)
+        const reorderPosition = dropTarget.position === 'before' ? 'before' : 'after'
+        if (parentNodeId === null) {
+          moved = true
+          return {
+            referenceWorkspace: {
+              ...state.referenceWorkspace,
+              stagedImportDraft: {
+                ...draft,
+                previewOrganization: syncStagedImportPreviewOrganizationState(draft.stagedFiles, {
+                  ...draft.previewOrganization,
+                  rootNodeIds: moveOrderedIdAroundSibling(
+                    draft.previewOrganization.rootNodeIds,
+                    draggedNodeId,
+                    dropNodeId,
+                    reorderPosition,
+                  ),
+                  childNodeIdsByParentId: {
+                    ...draft.previewOrganization.childNodeIdsByParentId,
+                  },
+                }),
+              },
+            },
+          }
+        }
+        moved = true
+        return {
+          referenceWorkspace: {
+            ...state.referenceWorkspace,
+            stagedImportDraft: {
+              ...draft,
+              previewOrganization: syncStagedImportPreviewOrganizationState(draft.stagedFiles, {
+                ...draft.previewOrganization,
+                rootNodeIds: [...draft.previewOrganization.rootNodeIds],
+                childNodeIdsByParentId: {
+                  ...draft.previewOrganization.childNodeIdsByParentId,
+                  [parentNodeId]: moveOrderedIdAroundSibling(
+                    draft.previewOrganization.childNodeIdsByParentId[parentNodeId] ?? [],
+                    draggedNodeId,
+                    dropNodeId,
+                    reorderPosition,
+                  ),
+                },
+              }),
+            },
+          },
+        }
+      }
+
+      const nextParentNodeId =
+        resolution.parentTarget.kind === 'assembly'
+          ? resolution.parentTarget.assemblyId
+          : resolution.parentTarget.componentId
+      if (!canStagedImportPreviewNodeParentNode(draft.previewOrganization.nodesById, draggedNodeId, nextParentNodeId)) {
+        return state
+      }
+
+      const removedPreviewOrganization = removeNodeFromOrderedChildren(
+        draft.previewOrganization,
+        draggedNode.parentNodeId,
+        draggedNodeId,
+      )
+      const nextPreviewOrganization = syncStagedImportPreviewOrganizationState(draft.stagedFiles, {
+        nodesById: {
+          ...draft.previewOrganization.nodesById,
+          [draggedNodeId]: {
+            ...draggedNode,
+            parentNodeId: nextParentNodeId,
+          },
+        },
+        rootNodeIds: removedPreviewOrganization.rootNodeIds,
+        childNodeIdsByParentId: {
+          ...removedPreviewOrganization.childNodeIdsByParentId,
+          [nextParentNodeId]: [
+            ...(removedPreviewOrganization.childNodeIdsByParentId[nextParentNodeId] ?? []),
+            draggedNodeId,
+          ],
+        },
+      })
+      moved = true
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...draft,
+            previewOrganization: nextPreviewOrganization,
+          },
+        },
+      }
+    })
+
+    return moved
+  },
+  setStagedImportFileMode: (stagedFileId, importMode) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
+        const nextImportMode =
+          importMode === 'multiple-objects-in-component' &&
+          !canStagedImportFileUseMultipleObjects(file)
+            ? DEFAULT_STAGED_IMPORT_MODE
+            : importMode
+        if (file.importMode === nextImportMode) {
+          return file
+        }
+        return {
+          ...file,
+          importMode: nextImportMode,
+        }
+      })
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...nextDraft,
+            previewOrganization: syncStagedImportPreviewOrganizationState(
+              nextDraft.stagedFiles,
+              currentDraft.previewOrganization,
+            ),
+          },
+        },
+      }
+    })
+  },
+  setStagedImportFileUpAxis: (stagedFileId, upAxis) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
+        if (file.upAxis === upAxis) {
+          return file
+        }
+        return {
+          ...file,
+          upAxis,
+        }
+      })
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: nextDraft,
+        },
+      }
+    })
+  },
+  setStagedImportFileScaleAlignment: (stagedFileId, scaleAlignment) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
+        if (file.scaleAlignment === scaleAlignment) {
+          return file
+        }
+        return {
+          ...file,
+          scaleAlignment,
+        }
+      })
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: nextDraft,
+        },
+      }
+    })
+  },
+  setStagedImportPutAcceptedInNewAssembly: (enabled) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null || currentDraft.putAcceptedImportsInNewAssembly === enabled) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...currentDraft,
+            putAcceptedImportsInNewAssembly: enabled,
+          },
+        },
+      }
+    })
+  },
+  commitStagedImportDraft: () => {
+    const currentDraft = get().referenceWorkspace.stagedImportDraft
+    if (currentDraft === null || currentDraft.stagedFiles.length === 0) {
+      return null
+    }
+
+    let committedAnchorRowId: string | null = null
+    let committedReferenceCount = 0
+
+    set((state) => {
+      const draft = state.referenceWorkspace.stagedImportDraft
+      if (draft === null || draft.stagedFiles.length === 0) {
+        return state
+      }
+
+      const previewOrganization = syncStagedImportPreviewOrganizationState(
+        draft.stagedFiles,
+        draft.previewOrganization,
+      )
+      const stagedFileById = new Map(
+        draft.stagedFiles.map((file) => [file.stagedFileId, file] as const),
+      )
+
+      const nextProjectContent: ProjectContentState = {
+        assembliesById: { ...state.projectContent.assembliesById },
+        componentsById: { ...state.projectContent.componentsById },
+        objectsById: { ...state.projectContent.objectsById },
+      }
+      const nextReferenceWorkspace: ReferenceWorkspaceState = {
+        ...state.referenceWorkspace,
+        referencesExpanded: true,
+        categoryExpandedById: {
+          ...state.referenceWorkspace.categoryExpandedById,
+          [USER_REFERENCE_CATEGORY_ID]: true,
+        },
+        visibilityById: { ...state.referenceWorkspace.visibilityById },
+        loadStateById: { ...state.referenceWorkspace.loadStateById },
+        errorById: { ...state.referenceWorkspace.errorById },
+        transformOverrideById: { ...state.referenceWorkspace.transformOverrideById },
+        channelClampRangeByReferenceId: {
+          ...state.referenceWorkspace.channelClampRangeByReferenceId,
+        },
+        timelineModeByReferenceId: { ...state.referenceWorkspace.timelineModeByReferenceId },
+        timelineConfigByReferenceId: { ...state.referenceWorkspace.timelineConfigByReferenceId },
+        transformSnapByReferenceId: { ...state.referenceWorkspace.transformSnapByReferenceId },
+        importedReferencesById: { ...state.referenceWorkspace.importedReferencesById },
+        importedReferenceOrder: [...state.referenceWorkspace.importedReferenceOrder],
+        partRowsByReferenceId: { ...state.referenceWorkspace.partRowsByReferenceId },
+        contentOrderByParentKey: { ...state.referenceWorkspace.contentOrderByParentKey },
+      }
+      const createdContainerOrderKeys = new Set<string>()
+
+      const setCommittedAnchorRowId = (rowId: string) => {
+        if (committedAnchorRowId === null) {
+          committedAnchorRowId = rowId
+        }
+      }
+
+      const buildNextAssemblyLabel = () =>
+        buildNextOrdinalLabel(
+          Object.values(nextProjectContent.assembliesById).map((assembly) => assembly.label),
+          'Assembly',
+        )
+
+      const buildImportedLabel = (baseLabel: string) =>
+        buildImportedReferenceLabel(
+          baseLabel,
+          nextReferenceWorkspace.importedReferenceOrder
+            .map(
+              (referenceId) =>
+                nextReferenceWorkspace.importedReferencesById[referenceId]?.label ?? null,
+            )
+            .filter((label): label is string => label !== null),
+        )
+
+      const createCommittedAssembly = (
+        label: string,
+        parentAssemblyId: string | null,
+      ): string => {
+        const assemblyId = buildAuthoredAssemblyId(state.currentProject.projectFileId)
+        nextProjectContent.assembliesById[assemblyId] = {
+          assemblyId,
+          label,
+          parentAssemblyId,
+          assemblySourceKind: 'authored',
+          childRowIds: [],
+        }
+        if (parentAssemblyId !== null) {
+          const parentAssembly = nextProjectContent.assembliesById[parentAssemblyId]
+          if (parentAssembly !== undefined) {
+            parentAssembly.childRowIds = [...parentAssembly.childRowIds, assemblyId]
+          }
+        }
+        createdContainerOrderKeys.add(`assembly:${assemblyId}`)
+        setCommittedAnchorRowId(assemblyId)
+        return assemblyId
+      }
+
+      const createCommittedComponent = (
+        label: string,
+        parentAssemblyId: string,
+      ): string => {
+        const componentId = buildAuthoredComponentId(state.currentProject.projectFileId)
+        nextProjectContent.componentsById[componentId] = {
+          componentId,
+          parentAssemblyId,
+          parentComponentId: null,
+          ownerGraphDocumentId: null,
+          sourceGraphDocumentId: null,
+          sourceOutputEntryId: null,
+          sourceNodeId: null,
+          label,
+          componentSourceKind: 'authored',
+          resolutionState: 'resolved',
+          receiveId: null,
+          childObjectIds: [],
+        }
+        const parentAssembly = nextProjectContent.assembliesById[parentAssemblyId]
+        if (parentAssembly !== undefined) {
+          parentAssembly.childRowIds = [...parentAssembly.childRowIds, componentId]
+        }
+        createdContainerOrderKeys.add(`component:${componentId}`)
+        setCommittedAnchorRowId(componentId)
+        return componentId
+      }
+
+      const createCommittedImportedReference = (options: {
+        label: string
+        file: StagedImportDraftFileRecord
+        parentTarget: ProjectContentContainerTarget | null
+        sourcePartKey: string | null
+        sourceMeshIndex: number | null
+      }): string => {
+        const referenceId = buildImportedReferenceId()
+        const transformOverride = resolveStagedImportAcceptedTransformOverride(options.file)
+        nextReferenceWorkspace.visibilityById[referenceId] = true
+        nextReferenceWorkspace.loadStateById[referenceId] = 'unloaded'
+        nextReferenceWorkspace.errorById[referenceId] = null
+        nextReferenceWorkspace.transformOverrideById[referenceId] = transformOverride
+        nextReferenceWorkspace.channelClampRangeByReferenceId[referenceId] = {
+          'move-x': getReferenceTimelineDefaultRange('move-x'),
+          'move-y': getReferenceTimelineDefaultRange('move-y'),
+          'move-z': getReferenceTimelineDefaultRange('move-z'),
+          'rotate-x': getReferenceTimelineDefaultRange('rotate-x'),
+          'rotate-y': getReferenceTimelineDefaultRange('rotate-y'),
+          'rotate-z': getReferenceTimelineDefaultRange('rotate-z'),
+          'scale-x': getReferenceTimelineDefaultRange('scale-x'),
+          'scale-y': getReferenceTimelineDefaultRange('scale-y'),
+          'scale-z': getReferenceTimelineDefaultRange('scale-z'),
+          'rotate-snap': getReferenceTimelineDefaultRange('rotate-snap'),
+        }
+        nextReferenceWorkspace.timelineModeByReferenceId[referenceId] = {}
+        nextReferenceWorkspace.timelineConfigByReferenceId[referenceId] = {}
+        nextReferenceWorkspace.transformSnapByReferenceId[referenceId] =
+          cloneReferenceTransformSnapState()
+        nextReferenceWorkspace.importedReferencesById[referenceId] = {
+          referenceId,
+          sourceKind: 'imported',
+          categoryId: USER_REFERENCE_CATEGORY_ID,
+          label: buildImportedLabel(options.label),
+          fileType: options.file.fileType,
+          assetPath: options.file.objectUrl,
+          parentAssemblyId:
+            options.parentTarget?.kind === 'assembly'
+              ? options.parentTarget.assemblyId
+              : null,
+          parentComponentId:
+            options.parentTarget?.kind === 'component'
+              ? options.parentTarget.componentId
+              : null,
+          explodedFromReferenceId: null,
+          sourcePartKey: options.sourcePartKey,
+          sourceMeshIndex: options.sourceMeshIndex,
+        }
+        nextReferenceWorkspace.importedReferenceOrder = [
+          ...nextReferenceWorkspace.importedReferenceOrder,
+          referenceId,
+        ]
+        nextReferenceWorkspace.partRowsByReferenceId[referenceId] = []
+        committedReferenceCount += 1
+        const rowId = buildImportedReferenceRowId(referenceId)
+        setCommittedAnchorRowId(rowId)
+        return rowId
+      }
+
+      const readOrderedNodeIds = (parentNodeId: string | null): string[] =>
+        parentNodeId === null
+          ? previewOrganization.rootNodeIds
+          : previewOrganization.childNodeIdsByParentId[parentNodeId] ?? []
+
+      const readExistingOrderForParent = (
+        parentTarget: ProjectContentContainerTarget,
+      ): string[] => {
+        const parentKey = buildContentParentOrderKey(parentTarget)
+        if (createdContainerOrderKeys.has(parentKey)) {
+          return []
+        }
+        return resolveEffectiveContentOrderForParent(
+          {
+            projectContent: state.projectContent,
+            referenceWorkspace: state.referenceWorkspace,
+          },
+          parentTarget,
+        )
+      }
+
+      const commitNodeTree = (
+        nodeId: string,
+        parentTarget: ProjectContentContainerTarget | null,
+      ): string | null => {
+        const node = previewOrganization.nodesById[nodeId]
+        if (node === undefined) {
+          return null
+        }
+        const stagedFile =
+          node.stagedFileId === null ? null : stagedFileById.get(node.stagedFileId) ?? null
+        if (node.nodeKind === 'object') {
+          if (stagedFile === null) {
+            return null
+          }
+          return createCommittedImportedReference({
+            label: node.label,
+            file: stagedFile,
+            parentTarget,
+            sourcePartKey: node.sourcePartKey,
+            sourceMeshIndex: node.sourceMeshIndex,
+          })
+        }
+
+        if (node.nodeKind === 'component') {
+          if (parentTarget === null || parentTarget.kind !== 'assembly') {
+            return null
+          }
+          const componentId = createCommittedComponent(node.label, parentTarget.assemblyId)
+          const componentTarget: ProjectContentContainerTarget = {
+            kind: 'component',
+            componentId,
+          }
+          const childRowIds = readOrderedNodeIds(node.nodeId)
+            .map((childNodeId) => commitNodeTree(childNodeId, componentTarget))
+            .filter((rowId): rowId is string => rowId !== null)
+          if (childRowIds.length > 0) {
+            nextReferenceWorkspace.contentOrderByParentKey[
+              buildContentParentOrderKey(componentTarget)
+            ] = dedupeOrderedRowIds(childRowIds)
+          }
+          return componentId
+        }
+
+        const assemblyId = createCommittedAssembly(
+          node.label,
+          parentTarget?.kind === 'assembly' ? parentTarget.assemblyId : null,
+        )
+        const assemblyTarget: ProjectContentContainerTarget = {
+          kind: 'assembly',
+          assemblyId,
+        }
+        const childRowIds = readOrderedNodeIds(node.nodeId)
+          .map((childNodeId) => commitNodeTree(childNodeId, assemblyTarget))
+          .filter((rowId): rowId is string => rowId !== null)
+        if (childRowIds.length > 0) {
+          nextReferenceWorkspace.contentOrderByParentKey[
+            buildContentParentOrderKey(assemblyTarget)
+          ] = dedupeOrderedRowIds(childRowIds)
+        }
+        return assemblyId
+      }
+
+      const rootNodeIds = readOrderedNodeIds(null)
+      const hasRootOwnerNodes = rootNodeIds.some((nodeId) => {
+        const node = previewOrganization.nodesById[nodeId]
+        return node?.nodeKind === 'assembly' || node?.nodeKind === 'component'
+      })
+      const hasRootComponentNodes = rootNodeIds.some(
+        (nodeId) => previewOrganization.nodesById[nodeId]?.nodeKind === 'component',
+      )
+
+      let rootCommitTarget: ProjectContentContainerTarget | null = null
+
+      if (draft.putAcceptedImportsInNewAssembly) {
+        const assemblyId = createCommittedAssembly(buildNextAssemblyLabel(), null)
+        rootCommitTarget = { kind: 'assembly', assemblyId }
+      } else if (draft.parentAssemblyId !== null) {
+        rootCommitTarget = {
+          kind: 'assembly',
+          assemblyId: draft.parentAssemblyId,
+        }
+      } else if (draft.parentComponentId !== null) {
+        if (hasRootOwnerNodes) {
+          const parentAssemblyId =
+            nextProjectContent.componentsById[draft.parentComponentId]?.parentAssemblyId ?? null
+          if (parentAssemblyId !== null) {
+            rootCommitTarget = {
+              kind: 'assembly',
+              assemblyId: parentAssemblyId,
+            }
+          } else {
+            const assemblyId = createCommittedAssembly(buildNextAssemblyLabel(), null)
+            rootCommitTarget = { kind: 'assembly', assemblyId }
+          }
+        } else {
+          rootCommitTarget = {
+            kind: 'component',
+            componentId: draft.parentComponentId,
+          }
+        }
+      } else if (hasRootComponentNodes) {
+        const assemblyId = createCommittedAssembly(buildNextAssemblyLabel(), null)
+        rootCommitTarget = { kind: 'assembly', assemblyId }
+      }
+
+      const rootExistingOrder =
+        rootCommitTarget === null ? [] : readExistingOrderForParent(rootCommitTarget)
+      const committedRootRowIds = rootNodeIds
+        .map((nodeId) => commitNodeTree(nodeId, rootCommitTarget))
+        .filter((rowId): rowId is string => rowId !== null)
+
+      if (rootCommitTarget !== null && committedRootRowIds.length > 0) {
+        nextReferenceWorkspace.contentOrderByParentKey[
+          buildContentParentOrderKey(rootCommitTarget)
+        ] = dedupeOrderedRowIds([...rootExistingOrder, ...committedRootRowIds])
+      }
+
+      if (committedReferenceCount === 0) {
+        return state
+      }
+
+      return {
+        projectContent: nextProjectContent,
+        referenceWorkspace: nextReferenceWorkspace,
+      }
+    })
+
+    if (committedReferenceCount === 0) {
+      return null
+    }
+
+    appendConsoleEntry({
+      layer: 'Browser',
+      text:
+        committedReferenceCount === 1
+          ? 'Added 1 staged import to project.'
+          : `Added ${committedReferenceCount} staged imports to project.`,
+      source: 'browser',
+      severity: 'info',
+    })
+
+    return committedAnchorRowId
+  },
+  beginStagedImportFileStructureInspection: (stagedFileId) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
+        if (file.structureInspection.status !== 'idle') {
+          return file
+        }
+        return {
+          ...file,
+          structureInspection: {
+            status: 'loading',
+            summary: null,
+            errorMessage: null,
+          },
+        }
+      })
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...nextDraft,
+            previewOrganization: syncStagedImportPreviewOrganizationState(
+              nextDraft.stagedFiles,
+              currentDraft.previewOrganization,
+            ),
+          },
+        },
+      }
+    })
+  },
+  resolveStagedImportFileStructureInspection: (stagedFileId, summary) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
+        const nextFile: StagedImportDraftFileRecord = {
+          ...file,
+          structureInspection: {
+            status: 'ready',
+            summary,
+            errorMessage: null,
+          },
+        }
+        return canStagedImportFileUseMultipleObjects(nextFile)
+          ? nextFile
+          : {
+              ...nextFile,
+              importMode: DEFAULT_STAGED_IMPORT_MODE,
+            }
+      })
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...nextDraft,
+            previewOrganization: syncStagedImportPreviewOrganizationState(
+              nextDraft.stagedFiles,
+              currentDraft.previewOrganization,
+            ),
+          },
+        },
+      }
+    })
+  },
+  failStagedImportFileStructureInspection: (stagedFileId, errorMessage) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => ({
+        ...file,
+        importMode: DEFAULT_STAGED_IMPORT_MODE,
+        structureInspection: {
+          status: 'error',
+          summary: null,
+          errorMessage,
+        },
+      }))
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...nextDraft,
+            previewOrganization: syncStagedImportPreviewOrganizationState(
+              nextDraft.stagedFiles,
+              currentDraft.previewOrganization,
+            ),
           },
         },
       }

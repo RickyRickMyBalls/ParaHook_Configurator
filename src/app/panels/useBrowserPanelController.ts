@@ -15,6 +15,7 @@ import {
 } from '../references/importReferenceFile'
 import type { ReferenceFileType } from '../references/referenceManifest'
 import { getViewer } from '../viewerBridge'
+import { inspectImportedReferenceFileStructure } from '../../viewer/referenceStructureInspection'
 import {
   defaultViewportPosition,
   selectSharedViewerComposition,
@@ -24,12 +25,17 @@ import {
 import {
   buildImportedReferenceRowId,
   canReferenceItemExplode,
+  canStagedImportFileUseMultipleObjects,
   buildProjectSketchBrowserRowId,
   REFERENCE_ROOT_ROW_ID,
   resolveBrowserDraggableTargetDrop,
+  resolveStagedImportPreviewOwnerDrop,
   selectCurrentProjectContentBrowserRows,
   selectReferenceWorkspaceBrowserTree,
   selectShouldSuppressBrowserGraphRuntimeOutput,
+  type StagedImportMode,
+  type StagedImportScaleAlignment,
+  type StagedImportUpAxis,
   type BrowserDraggableTarget,
   type ProjectContentOwnerTarget,
   type StagedImportDraftState,
@@ -64,6 +70,10 @@ import {
   type BrowserTreeRowActionVm,
   selectBrowserTreeRows,
 } from './selectBrowserTreeRows'
+import {
+  selectStagedImportPreviewRows,
+  type StagedImportPreviewRowVm,
+} from './selectStagedImportPreviewRows'
 import type { BrowserTreeRowHandlers } from './browserTreeRowPresenter'
 import type { BrowserImportMenuState, BrowserRowContextMenuState } from './browserTreeMenus'
 
@@ -93,9 +103,32 @@ type BrowserPanelControllerOutput = {
     importMenuRef: React.RefObject<HTMLDivElement | null>
     importMenuStyle: { left: string; top: string } | undefined
     stagedImportDraft: StagedImportDraftState | null
+    stagedImportPreviewRows: StagedImportPreviewRowVm[]
     isBrowsingImportFiles: boolean
     onOpenImportFiles: () => void
     onBrowseImportFiles: () => void
+    onSetStagedImportFileMode: (stagedFileId: string, importMode: StagedImportMode) => void
+    onSetStagedImportFileUpAxis: (stagedFileId: string, upAxis: StagedImportUpAxis) => void
+    onSetStagedImportFileScaleAlignment: (
+      stagedFileId: string,
+      scaleAlignment: StagedImportScaleAlignment,
+    ) => void
+    onSetStagedImportPutAcceptedInNewAssembly: (enabled: boolean) => void
+    onCreateStagedImportPreviewAssembly: () => void
+    onCreateStagedImportPreviewComponent: (assemblyId: string) => void
+    registerStagedImportPreviewRowElement: (rowId: string) => (element: HTMLDivElement | null) => void
+    onStagedImportPreviewRowPointerDown: (
+      row: StagedImportPreviewRowVm,
+      event: ReactPointerEvent<HTMLButtonElement>,
+    ) => void
+    getStagedImportPreviewRowDragState: (row: StagedImportPreviewRowVm) => {
+      draggable: boolean
+      isDragging: boolean
+      isPendingDrag: boolean
+      dropIntent: 'none' | 'before' | 'after' | 'into' | 'invalid'
+      isDropOwnerSupport: boolean
+    }
+    onCommitStagedImportDraft: () => void
     onCloseImportDialog: () => void
     onImportReferenceFile: (fileType: ReferenceFileType) => void
   }
@@ -191,6 +224,31 @@ export function useBrowserPanelController(
   const stagedImportDraft = useAppStore((state) => state.referenceWorkspace.stagedImportDraft)
   const openStagedImportDraft = useAppStore((state) => state.openStagedImportDraft)
   const appendStagedImportDraftFiles = useAppStore((state) => state.appendStagedImportDraftFiles)
+  const createStagedImportPreviewAssembly = useAppStore(
+    (state) => state.createStagedImportPreviewAssembly,
+  )
+  const createStagedImportPreviewComponent = useAppStore(
+    (state) => state.createStagedImportPreviewComponent,
+  )
+  const moveStagedImportPreviewOwner = useAppStore((state) => state.moveStagedImportPreviewOwner)
+  const setStagedImportFileMode = useAppStore((state) => state.setStagedImportFileMode)
+  const setStagedImportFileUpAxis = useAppStore((state) => state.setStagedImportFileUpAxis)
+  const setStagedImportFileScaleAlignment = useAppStore(
+    (state) => state.setStagedImportFileScaleAlignment,
+  )
+  const setStagedImportPutAcceptedInNewAssembly = useAppStore(
+    (state) => state.setStagedImportPutAcceptedInNewAssembly,
+  )
+  const commitStagedImportDraft = useAppStore((state) => state.commitStagedImportDraft)
+  const beginStagedImportFileStructureInspection = useAppStore(
+    (state) => state.beginStagedImportFileStructureInspection,
+  )
+  const resolveStagedImportFileStructureInspection = useAppStore(
+    (state) => state.resolveStagedImportFileStructureInspection,
+  )
+  const failStagedImportFileStructureInspection = useAppStore(
+    (state) => state.failStagedImportFileStructureInspection,
+  )
   const closeStagedImportDraft = useAppStore((state) => state.closeStagedImportDraft)
   const addImportedReference = useAppStore((state) => state.addImportedReference)
   const retryReferenceItemLoad = useAppStore((state) => state.retryReferenceItemLoad)
@@ -234,10 +292,14 @@ export function useBrowserPanelController(
   const [contextMenu, setContextMenu] = useState<BrowserRowContextMenuState | null>(null)
   const [importMenu, setImportMenu] = useState<BrowserImportMenuState | null>(null)
   const [isBrowsingImportFiles, setIsBrowsingImportFiles] = useState(false)
+  const [stagedImportPreviewDragState, setStagedImportPreviewDragState] =
+    useState<BrowserContentDragSession | null>(null)
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
   const importMenuRef = useRef<HTMLDivElement | null>(null)
   const contentRowElementsByIdRef = useRef(new Map<string, HTMLDivElement>())
+  const stagedImportPreviewRowElementsByIdRef = useRef(new Map<string, HTMLDivElement>())
   const suppressedClickRowIdRef = useRef<string | null>(null)
+  const stagedImportInspectionIdsRef = useRef(new Set<string>())
 
   const projectContentRows = useMemo(
     () =>
@@ -259,6 +321,11 @@ export function useBrowserPanelController(
       referenceWorkspace,
       sketchVisibilityByRowId,
     ],
+  )
+
+  const stagedImportPreviewRows = useMemo(
+    () => selectStagedImportPreviewRows(stagedImportDraft),
+    [stagedImportDraft],
   )
 
   const contentRootBuildPolicy = useMemo<BrowserBuildPolicy>(() => {
@@ -695,6 +762,68 @@ export function useBrowserPanelController(
       })
   }, [browserTreeRows.contentRows])
 
+  const registerStagedImportPreviewRowElement = useCallback(
+    (rowId: string) => (element: HTMLDivElement | null) => {
+      if (element === null) {
+        stagedImportPreviewRowElementsByIdRef.current.delete(rowId)
+        return
+      }
+      stagedImportPreviewRowElementsByIdRef.current.set(rowId, element)
+    },
+    [],
+  )
+
+  const resolveStagedImportPreviewOwnerTargetFromRowId = useCallback(
+    (rowId: string): ProjectContentOwnerTarget | null => {
+      const row = stagedImportPreviewRows.find((candidate) => candidate.rowId === rowId) ?? null
+      if (row === null) {
+        return null
+      }
+      return row.rowKind === 'assembly'
+        ? { kind: 'assembly', assemblyId: row.rowId }
+        : row.rowKind === 'component'
+          ? { kind: 'component', componentId: row.rowId }
+          : { kind: 'object', objectId: row.rowId }
+    },
+    [stagedImportPreviewRows],
+  )
+
+  const buildVisibleStagedImportPreviewRowMetrics = useCallback((): BrowserContentRowMetric[] => {
+    return stagedImportPreviewRows
+      .flatMap((row) => {
+        const element = stagedImportPreviewRowElementsByIdRef.current.get(row.rowId)
+        if (element === undefined) {
+          return []
+        }
+        const rect = element.getBoundingClientRect()
+        if (rect.height <= 0 || rect.width <= 0) {
+          return []
+        }
+        return [
+          {
+            rowId: row.rowId,
+            depth: row.depth,
+            isExpandable: row.isExpandable,
+            isExpanded: row.isExpanded,
+            rowKind: row.rowKind,
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          } satisfies BrowserContentRowMetric,
+        ]
+      })
+      .sort((left, right) => {
+        if (left.top !== right.top) {
+          return left.top - right.top
+        }
+        if (left.left !== right.left) {
+          return left.left - right.left
+        }
+        return left.rowId.localeCompare(right.rowId)
+      })
+  }, [stagedImportPreviewRows])
+
   const clearSuppressedBrowserRowClick = useCallback((row: BrowserRenderableRowVm) => {
     if (suppressedClickRowIdRef.current === row.rowId) {
       suppressedClickRowIdRef.current = null
@@ -913,10 +1042,128 @@ export function useBrowserPanelController(
       })
   }, [appendStagedImportDraftFiles, isBrowsingImportFiles, stagedImportDraft])
 
+  const resolveStagedDraftFile = useCallback(
+    (stagedFileId: string) =>
+      stagedImportDraft?.stagedFiles.find((file) => file.stagedFileId === stagedFileId) ?? null,
+    [stagedImportDraft],
+  )
+
+  const handleSetStagedImportFileMode = useCallback(
+    (stagedFileId: string, importMode: StagedImportMode) => {
+      const stagedFile = resolveStagedDraftFile(stagedFileId)
+      if (stagedFile === null) {
+        return
+      }
+      if (
+        importMode === 'multiple-objects-in-component' &&
+        !canStagedImportFileUseMultipleObjects(stagedFile)
+      ) {
+        return
+      }
+      setStagedImportFileMode(stagedFileId, importMode)
+    },
+    [resolveStagedDraftFile, setStagedImportFileMode],
+  )
+
+  const handleSetStagedImportFileUpAxis = useCallback(
+    (stagedFileId: string, upAxis: StagedImportUpAxis) => {
+      const stagedFile = resolveStagedDraftFile(stagedFileId)
+      if (stagedFile === null) {
+        return
+      }
+      setStagedImportFileUpAxis(stagedFileId, upAxis)
+    },
+    [resolveStagedDraftFile, setStagedImportFileUpAxis],
+  )
+
+  const handleSetStagedImportFileScaleAlignment = useCallback(
+    (stagedFileId: string, scaleAlignment: StagedImportScaleAlignment) => {
+      const stagedFile = resolveStagedDraftFile(stagedFileId)
+      if (stagedFile === null) {
+        return
+      }
+      setStagedImportFileScaleAlignment(stagedFileId, scaleAlignment)
+    },
+    [resolveStagedDraftFile, setStagedImportFileScaleAlignment],
+  )
+
+  const handleSetStagedImportPutAcceptedInNewAssembly = useCallback(
+    (enabled: boolean) => {
+      if (stagedImportDraft === null) {
+        return
+      }
+      setStagedImportPutAcceptedInNewAssembly(enabled)
+    },
+    [setStagedImportPutAcceptedInNewAssembly, stagedImportDraft],
+  )
+
+  const handleCreateStagedImportPreviewAssembly = useCallback(() => {
+    createStagedImportPreviewAssembly()
+  }, [createStagedImportPreviewAssembly])
+
+  const handleCreateStagedImportPreviewComponent = useCallback(
+    (assemblyId: string) => {
+      createStagedImportPreviewComponent(assemblyId)
+    },
+    [createStagedImportPreviewComponent],
+  )
+
+  const handleCommitStagedImportDraft = useCallback(() => {
+    if (stagedImportDraft === null || stagedImportDraft.stagedFiles.length === 0) {
+      return
+    }
+    const committedRowId = commitStagedImportDraft()
+    if (committedRowId === null) {
+      return
+    }
+    setLocalSelectedBrowserRowId(committedRowId)
+    closeStagedImportDraft()
+  }, [closeStagedImportDraft, commitStagedImportDraft, stagedImportDraft])
+
+  useEffect(() => {
+    if (stagedImportDraft === null) {
+      stagedImportInspectionIdsRef.current.clear()
+      return
+    }
+
+    for (const file of stagedImportDraft.stagedFiles) {
+      if (
+        file.structureInspection.status !== 'idle' ||
+        stagedImportInspectionIdsRef.current.has(file.stagedFileId)
+      ) {
+        continue
+      }
+
+      stagedImportInspectionIdsRef.current.add(file.stagedFileId)
+      beginStagedImportFileStructureInspection(file.stagedFileId)
+      void inspectImportedReferenceFileStructure(file.stagedFileId, file)
+        .then((summary) => {
+          resolveStagedImportFileStructureInspection(file.stagedFileId, summary)
+        })
+        .catch((error: unknown) => {
+          failStagedImportFileStructureInspection(
+            file.stagedFileId,
+            error instanceof Error ? error.message : 'Failed to inspect import structure.',
+          )
+        })
+        .finally(() => {
+          stagedImportInspectionIdsRef.current.delete(file.stagedFileId)
+        })
+    }
+  }, [
+    beginStagedImportFileStructureInspection,
+    failStagedImportFileStructureInspection,
+    resolveStagedImportFileStructureInspection,
+    stagedImportDraft,
+  ])
+
   useEffect(() => {
     if (stagedImportDraft === null) {
       if (isBrowsingImportFiles) {
         setIsBrowsingImportFiles(false)
+      }
+      if (stagedImportPreviewDragState !== null) {
+        setStagedImportPreviewDragState(null)
       }
       return
     }
@@ -932,7 +1179,214 @@ export function useBrowserPanelController(
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [closeStagedImportDraft, isBrowsingImportFiles, stagedImportDraft])
+  }, [
+    closeStagedImportDraft,
+    isBrowsingImportFiles,
+    stagedImportDraft,
+    stagedImportPreviewDragState,
+  ])
+
+  const handleStagedImportPreviewRowPointerDragStartCandidate = useCallback(
+    (row: StagedImportPreviewRowVm, event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0) {
+        return
+      }
+      const draggedTarget = resolveStagedImportPreviewOwnerTargetFromRowId(row.rowId)
+      if (draggedTarget === null) {
+        return
+      }
+      event.stopPropagation()
+      setStagedImportPreviewDragState(
+        createBrowserContentDragSession({
+          draggedRowId: row.rowId,
+          draggedTarget,
+          pointerId: event.pointerId,
+          startPointer: {
+            x: event.clientX,
+            y: event.clientY,
+          },
+        }),
+      )
+    },
+    [resolveStagedImportPreviewOwnerTargetFromRowId],
+  )
+
+  const getStagedImportPreviewRowDragState = useCallback(
+    (row: StagedImportPreviewRowVm) => ({
+      draggable: true,
+      isDragging:
+        stagedImportPreviewDragState?.draggedRowIds.includes(row.rowId) === true &&
+        stagedImportPreviewDragState.phase === 'active',
+      isPendingDrag:
+        stagedImportPreviewDragState?.draggedRowIds.includes(row.rowId) === true &&
+        stagedImportPreviewDragState.phase === 'pending',
+      dropIntent:
+        stagedImportPreviewDragState?.previewAnchorRowId === row.rowId
+          ? stagedImportPreviewDragState.displayIntent
+          : stagedImportPreviewDragState?.hoveredRowId === row.rowId &&
+              stagedImportPreviewDragState.resolvedIntent === 'invalid'
+            ? 'invalid'
+            : 'none',
+      isDropOwnerSupport:
+        stagedImportPreviewDragState?.ownerSupportRowId === row.rowId &&
+        stagedImportPreviewDragState.phase === 'active',
+    }),
+    [stagedImportPreviewDragState],
+  )
+
+  useEffect(() => {
+    if (stagedImportPreviewDragState === null || stagedImportDraft === null) {
+      return
+    }
+
+    const resolveDragSessionAtPointer = (
+      current: BrowserContentDragSession,
+      pointer: BrowserContentPointer,
+    ): BrowserContentDragSession =>
+      resolveBrowserContentDragPreviewState({
+        contentRows: stagedImportPreviewRows,
+        rowMetrics: buildVisibleStagedImportPreviewRowMetrics(),
+        session: {
+          ...current,
+          phase: 'active',
+        },
+        pointer,
+        resolveRowTarget: resolveStagedImportPreviewOwnerTargetFromRowId,
+        resolveDrop: (sourceTarget, dropTarget) =>
+          resolveStagedImportPreviewOwnerDrop(
+            stagedImportDraft.previewOrganization,
+            sourceTarget,
+            dropTarget,
+          ),
+      })
+
+    const clearDragPreview = () => {
+      setStagedImportPreviewDragState(null)
+    }
+
+    const commitPointerDrag = (pointer?: BrowserContentPointer) => {
+      setStagedImportPreviewDragState((current) => {
+        if (current === null) {
+          return null
+        }
+        const resolvedCurrent =
+          pointer === undefined
+            ? current
+            : resolveDragSessionAtPointer(
+                current.phase === 'pending'
+                  ? {
+                      ...current,
+                      phase: 'active',
+                    }
+                  : current,
+                pointer,
+              )
+        if (resolvedCurrent.phase !== 'active') {
+          return null
+        }
+        const resolvedDropTarget = resolvedCurrent.resolvedDropTarget
+        if (resolvedDropTarget === null) {
+          return null
+        }
+        let moved = moveStagedImportPreviewOwner(resolvedCurrent.draggedTarget, resolvedDropTarget)
+        if (
+          moved &&
+          resolvedDropTarget.position === 'into' &&
+          (resolvedCurrent.resolvedIntent === 'before' ||
+            resolvedCurrent.resolvedIntent === 'after') &&
+          resolvedCurrent.previewAnchorRowId !== null
+        ) {
+          const anchorTarget = resolveStagedImportPreviewOwnerTargetFromRowId(
+            resolvedCurrent.previewAnchorRowId,
+          )
+          if (anchorTarget !== null && anchorTarget.kind !== 'imported-reference') {
+            moved =
+              moveStagedImportPreviewOwner(resolvedCurrent.draggedTarget, {
+                ...anchorTarget,
+                position: resolvedCurrent.resolvedIntent,
+              }) || moved
+          }
+        }
+        return null
+      })
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      setStagedImportPreviewDragState((current) => {
+        if (current === null || event.pointerId !== current.pointerId) {
+          return current
+        }
+        const pointer: BrowserContentPointer = {
+          x: event.clientX,
+          y: event.clientY,
+        }
+        if (current.phase === 'pending' && !hasBrowserContentDragCrossedThreshold(current, pointer)) {
+          return {
+            ...current,
+            currentPointer: pointer,
+          }
+        }
+        return resolveDragSessionAtPointer(current, pointer)
+      })
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        clearDragPreview()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        clearDragPreview()
+      }
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (
+        stagedImportPreviewDragState !== null &&
+        event.pointerId === stagedImportPreviewDragState.pointerId
+      ) {
+        commitPointerDrag({
+          x: event.clientX,
+          y: event.clientY,
+        })
+      }
+    }
+
+    const handlePointerCancel = (event: PointerEvent) => {
+      if (
+        stagedImportPreviewDragState !== null &&
+        event.pointerId === stagedImportPreviewDragState.pointerId
+      ) {
+        clearDragPreview()
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerCancel)
+    window.addEventListener('blur', clearDragPreview)
+    window.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerCancel)
+      window.removeEventListener('blur', clearDragPreview)
+      window.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [
+    buildVisibleStagedImportPreviewRowMetrics,
+    moveStagedImportPreviewOwner,
+    resolveStagedImportPreviewOwnerTargetFromRowId,
+    stagedImportDraft,
+    stagedImportPreviewDragState,
+    stagedImportPreviewRows,
+  ])
 
   useEffect(() => {
     if (contextMenu === null && importMenu === null) {
@@ -2014,13 +2468,24 @@ export function useBrowserPanelController(
       importMenu,
       importMenuRef,
       importMenuStyle,
-    stagedImportDraft,
-    isBrowsingImportFiles,
-    onOpenImportFiles: handleOpenImportFiles,
-    onBrowseImportFiles: handleBrowseImportFiles,
-    onCloseImportDialog: closeStagedImportDraft,
-    onImportReferenceFile: handleImportReferenceFile,
-  },
+      stagedImportDraft,
+      stagedImportPreviewRows,
+      isBrowsingImportFiles,
+      onOpenImportFiles: handleOpenImportFiles,
+      onBrowseImportFiles: handleBrowseImportFiles,
+      onSetStagedImportFileMode: handleSetStagedImportFileMode,
+      onSetStagedImportFileUpAxis: handleSetStagedImportFileUpAxis,
+      onSetStagedImportFileScaleAlignment: handleSetStagedImportFileScaleAlignment,
+      onSetStagedImportPutAcceptedInNewAssembly: handleSetStagedImportPutAcceptedInNewAssembly,
+      onCreateStagedImportPreviewAssembly: handleCreateStagedImportPreviewAssembly,
+      onCreateStagedImportPreviewComponent: handleCreateStagedImportPreviewComponent,
+      registerStagedImportPreviewRowElement,
+      onStagedImportPreviewRowPointerDown: handleStagedImportPreviewRowPointerDragStartCandidate,
+      getStagedImportPreviewRowDragState,
+      onCommitStagedImportDraft: handleCommitStagedImportDraft,
+      onCloseImportDialog: closeStagedImportDraft,
+      onImportReferenceFile: handleImportReferenceFile,
+    },
     bodyHandlers: {
       onBrowserBodyClick: handleBrowserBodyClick,
       onActivateBrowserSurface: handleActivateBrowserSurface,

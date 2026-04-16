@@ -10,6 +10,7 @@ let currentAppState: any
 let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
 let importReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
 let importSupportedReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
+let inspectImportedReferenceFileStructureMock: ReturnType<typeof vi.fn>
 let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
   viewerFrameSelectionSetMock: vi.fn(),
@@ -66,6 +67,264 @@ const resolveMockOwnerParentKey = (target: any) => {
   }
   const assemblyRow = currentAppState.projectContent?.assembliesById?.[target.assemblyId] ?? null
   return assemblyRow?.parentAssemblyId ?? null
+}
+
+const buildEmptyMockStagedImportPreviewOrganization = () => ({
+  nodesById: {},
+  rootNodeIds: [],
+  childNodeIdsByParentId: {},
+})
+
+const buildMockPreviewFileObjectNodeId = (stagedFileId: string) =>
+  `staged-import-preview-object:file:${stagedFileId}`
+
+const buildMockPreviewFileComponentNodeId = (stagedFileId: string) =>
+  `staged-import-preview-component:file:${stagedFileId}`
+
+const buildMockPreviewPartObjectNodeId = (stagedFileId: string, sourceMeshIndex: number) =>
+  `staged-import-preview-object:part:${stagedFileId}:${sourceMeshIndex}`
+
+const buildMockPreviewTargetNodeId = (target: any) =>
+  target.kind === 'assembly'
+    ? target.assemblyId
+    : target.kind === 'component'
+      ? target.componentId
+      : target.objectId
+
+const canMockPreviewNodeUseMultipleObjects = (file: any) =>
+  file?.importMode === 'multiple-objects-in-component' &&
+  file?.structureInspection?.status === 'ready' &&
+  Array.isArray(file?.structureInspection?.summary?.partRows) &&
+  file.structureInspection.summary.partRows.length > 0
+
+const canMockPreviewNodeParent = (
+  nodesById: Record<string, any>,
+  nodeId: string,
+  parentNodeId: string | null,
+) => {
+  if (parentNodeId === null) {
+    return true
+  }
+  const node = nodesById[nodeId]
+  const parentNode = nodesById[parentNodeId]
+  if (node === undefined || parentNode === undefined || parentNodeId === nodeId) {
+    return false
+  }
+  if (parentNode.nodeKind !== 'assembly' && parentNode.nodeKind !== 'component') {
+    return false
+  }
+  if (parentNode.nodeKind === 'component' && node.nodeKind !== 'object') {
+    return false
+  }
+  let currentParentId = parentNode.parentNodeId ?? null
+  while (currentParentId !== null) {
+    if (currentParentId === nodeId) {
+      return false
+    }
+    currentParentId = nodesById[currentParentId]?.parentNodeId ?? null
+  }
+  return true
+}
+
+const normalizeMockPreviewOrder = (orderedIds: string[] | undefined, defaultIds: string[]) => {
+  if (orderedIds === undefined) {
+    return [...defaultIds]
+  }
+  const defaultIdSet = new Set(defaultIds)
+  const normalized = [...new Set(orderedIds.filter((nodeId) => defaultIdSet.has(nodeId)))]
+  defaultIds.forEach((nodeId) => {
+    if (!normalized.includes(nodeId)) {
+      normalized.push(nodeId)
+    }
+  })
+  return normalized
+}
+
+const syncMockStagedImportPreviewOrganization = (draft: any) => {
+  const currentPreview = draft.previewOrganization ?? buildEmptyMockStagedImportPreviewOrganization()
+  const nextNodesById: Record<string, any> = {}
+  const fallbackRanks = new Map<string, number>()
+  let nextRank = 0
+
+  for (const file of draft.stagedFiles ?? []) {
+    if (canMockPreviewNodeUseMultipleObjects(file)) {
+      const componentNodeId = buildMockPreviewFileComponentNodeId(file.stagedFileId)
+      nextNodesById[componentNodeId] = {
+        nodeId: componentNodeId,
+        nodeKind: 'component',
+        sourceKind: 'staged-file',
+        label: file.fileName,
+        parentNodeId: null,
+        stagedFileId: file.stagedFileId,
+        fileType: file.fileType,
+        sourcePartKey: null,
+        sourceMeshIndex: null,
+      }
+      fallbackRanks.set(componentNodeId, nextRank++)
+      for (const partRow of file.structureInspection.summary.partRows) {
+        const nodeId = buildMockPreviewPartObjectNodeId(file.stagedFileId, partRow.sourceMeshIndex)
+        nextNodesById[nodeId] = {
+          nodeId,
+          nodeKind: 'object',
+          sourceKind: 'staged-part',
+          label: partRow.label,
+          parentNodeId: componentNodeId,
+          stagedFileId: file.stagedFileId,
+          fileType: file.fileType,
+          sourcePartKey: partRow.partKey,
+          sourceMeshIndex: partRow.sourceMeshIndex,
+        }
+        fallbackRanks.set(nodeId, nextRank++)
+      }
+      continue
+    }
+
+    const nodeId = buildMockPreviewFileObjectNodeId(file.stagedFileId)
+    nextNodesById[nodeId] = {
+      nodeId,
+      nodeKind: 'object',
+      sourceKind: 'staged-file',
+      label: file.fileName,
+      parentNodeId: null,
+      stagedFileId: file.stagedFileId,
+      fileType: file.fileType,
+      sourcePartKey: null,
+      sourceMeshIndex: null,
+    }
+    fallbackRanks.set(nodeId, nextRank++)
+  }
+
+  Object.values(currentPreview.nodesById ?? {})
+    .filter((node: any) => node.sourceKind === 'authored')
+    .forEach((node: any) => {
+      nextNodesById[node.nodeId] = node
+      fallbackRanks.set(node.nodeId, nextRank++)
+    })
+
+  Object.values(nextNodesById).forEach((node: any) => {
+    const currentParentId = currentPreview.nodesById?.[node.nodeId]?.parentNodeId ?? node.parentNodeId
+    const fallbackParentId = node.parentNodeId ?? null
+    node.parentNodeId = canMockPreviewNodeParent(nextNodesById, node.nodeId, currentParentId)
+      ? currentParentId
+      : canMockPreviewNodeParent(nextNodesById, node.nodeId, fallbackParentId)
+        ? fallbackParentId
+        : null
+  })
+
+  const childrenByParentId = new Map<string | null, string[]>()
+  Object.values(nextNodesById).forEach((node: any) => {
+    const children = childrenByParentId.get(node.parentNodeId ?? null) ?? []
+    children.push(node.nodeId)
+    childrenByParentId.set(node.parentNodeId ?? null, children)
+  })
+
+  const sortByRank = (nodeIds: string[]) =>
+    [...nodeIds].sort(
+      (left, right) =>
+        (fallbackRanks.get(left) ?? Number.MAX_SAFE_INTEGER) -
+          (fallbackRanks.get(right) ?? Number.MAX_SAFE_INTEGER) ||
+        left.localeCompare(right),
+    )
+
+  const nextChildNodeIdsByParentId: Record<string, string[]> = {}
+  Object.values(nextNodesById).forEach((node: any) => {
+    if (node.nodeKind !== 'assembly' && node.nodeKind !== 'component') {
+      return
+    }
+    const childNodeIds = sortByRank(childrenByParentId.get(node.nodeId) ?? [])
+    if (childNodeIds.length === 0) {
+      return
+    }
+    nextChildNodeIdsByParentId[node.nodeId] = normalizeMockPreviewOrder(
+      currentPreview.childNodeIdsByParentId?.[node.nodeId],
+      childNodeIds,
+    )
+  })
+
+  return {
+    nodesById: nextNodesById,
+    rootNodeIds: normalizeMockPreviewOrder(
+      currentPreview.rootNodeIds,
+      sortByRank(childrenByParentId.get(null) ?? []),
+    ),
+    childNodeIdsByParentId: nextChildNodeIdsByParentId,
+  }
+}
+
+const resolveMockStagedImportPreviewParentTarget = (preview: any, node: any) => {
+  if (node?.parentNodeId == null) {
+    return null
+  }
+  const parentNode = preview.nodesById?.[node.parentNodeId] ?? null
+  if (parentNode?.nodeKind === 'assembly') {
+    return { kind: 'assembly', assemblyId: parentNode.nodeId }
+  }
+  if (parentNode?.nodeKind === 'component') {
+    return { kind: 'component', componentId: parentNode.nodeId }
+  }
+  return null
+}
+
+const resolveMockStagedImportPreviewOwnerDrop = (preview: any, draggedTarget: any, dropTarget: any) => {
+  const draggedNode = preview.nodesById?.[buildMockPreviewTargetNodeId(draggedTarget)] ?? null
+  const targetNode = preview.nodesById?.[buildMockPreviewTargetNodeId(dropTarget)] ?? null
+  if (draggedNode === null || targetNode === null) {
+    return { valid: false, reason: 'missing-owner' }
+  }
+  if (draggedNode.nodeId === targetNode.nodeId && draggedNode.nodeKind === targetNode.nodeKind) {
+    return { valid: false, reason: 'same-row' }
+  }
+  const draggedParentTarget = resolveMockStagedImportPreviewParentTarget(preview, draggedNode)
+  const targetParentTarget = resolveMockStagedImportPreviewParentTarget(preview, targetNode)
+
+  if (dropTarget.position === 'before' || dropTarget.position === 'after') {
+    const sameParent =
+      JSON.stringify(draggedParentTarget) === JSON.stringify(targetParentTarget)
+    return sameParent
+      ? {
+          valid: true,
+          kind: 'reorder',
+          parentTarget: draggedParentTarget,
+          draggedTarget,
+          dropTarget,
+        }
+      : { valid: false, reason: 'invalid-same-parent' }
+  }
+
+  if (targetNode.nodeKind === 'object') {
+    return { valid: false, reason: 'illegal-target' }
+  }
+
+  const targetContainer =
+    targetNode.nodeKind === 'assembly'
+      ? { kind: 'assembly', assemblyId: targetNode.nodeId }
+      : { kind: 'component', componentId: targetNode.nodeId }
+
+  if (JSON.stringify(draggedParentTarget) === JSON.stringify(targetContainer)) {
+    return { valid: false, reason: 'same-parent-into' }
+  }
+
+  if (targetNode.nodeKind === 'component' && draggedNode.nodeKind !== 'object') {
+    return { valid: false, reason: 'illegal-container' }
+  }
+
+  if (draggedNode.nodeKind === 'assembly' && targetNode.nodeKind === 'assembly') {
+    let currentParentId = targetNode.parentNodeId ?? null
+    while (currentParentId !== null) {
+      if (currentParentId === draggedNode.nodeId) {
+        return { valid: false, reason: 'descendant-cycle' }
+      }
+      currentParentId = preview.nodesById?.[currentParentId]?.parentNodeId ?? null
+    }
+  }
+
+  return {
+    valid: true,
+    kind: 'reparent',
+    parentTarget: targetContainer,
+    draggedTarget,
+    dropTarget,
+  }
 }
 
 const buildMockProjectContentRows = () => {
@@ -233,6 +492,9 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
 
 vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
+  canStagedImportFileUseMultipleObjects: (file: any) =>
+    file?.structureInspection?.status === 'ready' &&
+    file?.structureInspection?.summary?.hasParts === true,
   canReferenceItemExplode: (state: any, referenceId: string) => {
     const referenceRecord = state.referenceWorkspace?.importedReferencesById?.[referenceId]
     if (referenceRecord === undefined) {
@@ -254,6 +516,8 @@ vi.mock('../store/useAppStore', () => ({
   selectCurrentProjectContentBrowserRows: () => buildMockProjectContentRows(),
   selectReferenceWorkspaceBrowserTree: () => currentAppState.referenceWorkspaceTree,
   selectShouldSuppressBrowserGraphRuntimeOutput: () => false,
+  resolveStagedImportPreviewOwnerDrop: (preview: any, draggedTarget: any, dropTarget: any) =>
+    resolveMockStagedImportPreviewOwnerDrop(preview, draggedTarget, dropTarget),
   resolveProjectContentOwnerDrop: (_state: any, draggedTarget: any, dropTarget: any) => {
     const resolveParentKey = (target: any) => resolveMockOwnerParentKey(target)
     if (
@@ -394,6 +658,11 @@ vi.mock('../references/importReferenceFile', () => ({
   importReferenceFilesFromDisk: (...args: unknown[]) => importReferenceFilesFromDiskMock(...args),
   importSupportedReferenceFilesFromDisk: (...args: unknown[]) =>
     importSupportedReferenceFilesFromDiskMock(...args),
+}))
+
+vi.mock('../../viewer/referenceStructureInspection', () => ({
+  inspectImportedReferenceFileStructure: (...args: unknown[]) =>
+    inspectImportedReferenceFileStructureMock(...args),
 }))
 
 vi.mock('../viewerBridge', () => ({
@@ -1114,6 +1383,13 @@ describe('BrowserPanel', () => {
     importReferenceFileFromDiskMock = vi.fn()
     importReferenceFilesFromDiskMock = vi.fn()
     importSupportedReferenceFilesFromDiskMock = vi.fn()
+    inspectImportedReferenceFileStructureMock = vi.fn().mockResolvedValue({
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
+    })
     mockRequestBrowserGraphDocumentBuild = vi.fn()
     currentSpaghettiState = {
       graphDocumentsById: {
@@ -1314,7 +1590,9 @@ describe('BrowserPanel', () => {
             stagedImportDraft: {
               parentAssemblyId: draft.parentAssemblyId ?? null,
               parentComponentId: draft.parentComponentId ?? null,
+              putAcceptedImportsInNewAssembly: false,
               stagedFiles: [],
+              previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
             },
           },
         }
@@ -1325,24 +1603,469 @@ describe('BrowserPanel', () => {
           if (currentDraft === null) {
             return
           }
+          const nextDraft = {
+            ...currentDraft,
+            stagedFiles: [
+              ...currentDraft.stagedFiles,
+              ...files.map((file, index) => ({
+                ...file,
+                stagedFileId: `staged-import-file:${currentDraft.stagedFiles.length + index + 1}`,
+                importMode: 'single-object',
+                upAxis: 'z-up',
+                scaleAlignment: 'current-size',
+                structureInspection: {
+                  status: 'idle',
+                  summary: null,
+                  errorMessage: null,
+                },
+              })),
+            ],
+          }
           currentAppState = {
             ...currentAppState,
             referenceWorkspace: {
               ...currentAppState.referenceWorkspace,
               stagedImportDraft: {
-                ...currentDraft,
-                stagedFiles: [
-                  ...currentDraft.stagedFiles,
-                  ...files.map((file, index) => ({
-                    ...file,
-                    stagedFileId: `staged-import-file:${currentDraft.stagedFiles.length + index + 1}`,
-                  })),
-                ],
+                ...nextDraft,
+                previewOrganization: syncMockStagedImportPreviewOrganization(nextDraft),
               },
             },
           }
         },
       ),
+      createStagedImportPreviewAssembly: vi.fn(() => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return null
+        }
+        const assemblyId = `staged-import-preview-assembly:${Object.keys(currentDraft.previewOrganization.nodesById ?? {}).length + 1}`
+        const nextDraft = {
+          ...currentDraft,
+          previewOrganization: {
+            ...currentDraft.previewOrganization,
+            nodesById: {
+              ...currentDraft.previewOrganization.nodesById,
+              [assemblyId]: {
+                nodeId: assemblyId,
+                nodeKind: 'assembly',
+                sourceKind: 'authored',
+                label: `Assembly ${Object.values(currentDraft.previewOrganization.nodesById ?? {}).filter((node: any) => node.nodeKind === 'assembly' && node.sourceKind === 'authored').length + 1}`,
+                parentNodeId: null,
+                stagedFileId: null,
+                fileType: null,
+                sourcePartKey: null,
+                sourceMeshIndex: null,
+              },
+            },
+            rootNodeIds: [...(currentDraft.previewOrganization.rootNodeIds ?? []), assemblyId],
+            childNodeIdsByParentId: {
+              ...currentDraft.previewOrganization.childNodeIdsByParentId,
+            },
+          },
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...nextDraft,
+              previewOrganization: syncMockStagedImportPreviewOrganization(nextDraft),
+            },
+          },
+        }
+        return assemblyId
+      }),
+      createStagedImportPreviewComponent: vi.fn((parentAssemblyId: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return null
+        }
+        const parentNode = currentDraft.previewOrganization.nodesById?.[parentAssemblyId] ?? null
+        if (parentNode?.nodeKind !== 'assembly') {
+          return null
+        }
+        const componentId = `staged-import-preview-component:${Object.keys(currentDraft.previewOrganization.nodesById ?? {}).length + 1}`
+        const siblingCount = Object.values(currentDraft.previewOrganization.nodesById ?? {}).filter(
+          (node: any) =>
+            node.nodeKind === 'component' &&
+            node.sourceKind === 'authored' &&
+            node.parentNodeId === parentAssemblyId,
+        ).length
+        const nextDraft = {
+          ...currentDraft,
+          previewOrganization: {
+            ...currentDraft.previewOrganization,
+            nodesById: {
+              ...currentDraft.previewOrganization.nodesById,
+              [componentId]: {
+                nodeId: componentId,
+                nodeKind: 'component',
+                sourceKind: 'authored',
+                label: `Component ${siblingCount + 1}`,
+                parentNodeId: parentAssemblyId,
+                stagedFileId: null,
+                fileType: null,
+                sourcePartKey: null,
+                sourceMeshIndex: null,
+              },
+            },
+            rootNodeIds: [...(currentDraft.previewOrganization.rootNodeIds ?? [])],
+            childNodeIdsByParentId: {
+              ...currentDraft.previewOrganization.childNodeIdsByParentId,
+              [parentAssemblyId]: [
+                ...(currentDraft.previewOrganization.childNodeIdsByParentId?.[parentAssemblyId] ?? []),
+                componentId,
+              ],
+            },
+          },
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...nextDraft,
+              previewOrganization: syncMockStagedImportPreviewOrganization(nextDraft),
+            },
+          },
+        }
+        return componentId
+      }),
+      beginStagedImportFileStructureInspection: vi.fn((stagedFileId: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      structureInspection: {
+                        status: 'loading',
+                        summary: null,
+                        errorMessage: null,
+                      },
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+      }),
+      resolveStagedImportFileStructureInspection: vi.fn((stagedFileId: string, summary: any) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      structureInspection: {
+                        status: 'ready',
+                        summary,
+                        errorMessage: null,
+                      },
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+        currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+          syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+      }),
+      failStagedImportFileStructureInspection: vi.fn((stagedFileId: string, errorMessage: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      importMode: 'single-object',
+                      structureInspection: {
+                        status: 'error',
+                        summary: null,
+                        errorMessage,
+                      },
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+        currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+          syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+      }),
+      setStagedImportFileMode: vi.fn((stagedFileId: string, importMode: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      importMode,
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+        currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+          syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+      }),
+      setStagedImportFileUpAxis: vi.fn((stagedFileId: string, upAxis: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      upAxis,
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+      }),
+      setStagedImportFileScaleAlignment: vi.fn((stagedFileId: string, scaleAlignment: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      scaleAlignment,
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+      }),
+      setStagedImportPutAcceptedInNewAssembly: vi.fn((enabled: boolean) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              putAcceptedImportsInNewAssembly: enabled,
+            },
+          },
+        }
+      }),
+      commitStagedImportDraft: vi.fn(() => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null || currentDraft.stagedFiles.length === 0) {
+          return null
+        }
+        const nextImportedReferencesById = {
+          ...currentAppState.referenceWorkspace.importedReferencesById,
+        }
+        const nextImportedReferenceOrder = [
+          ...currentAppState.referenceWorkspace.importedReferenceOrder,
+        ]
+        currentDraft.stagedFiles.forEach((file: any) => {
+          const referenceId = `committed:${file.stagedFileId}`
+          nextImportedReferencesById[referenceId] = {
+            referenceId,
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: file.fileName,
+            fileType: file.fileType,
+            assetPath: file.objectUrl,
+            parentAssemblyId:
+              currentDraft.putAcceptedImportsInNewAssembly || currentDraft.parentAssemblyId !== null
+                ? currentDraft.parentAssemblyId ?? 'assembly-committed-1'
+                : null,
+            parentComponentId: currentDraft.parentComponentId ?? null,
+            explodedFromReferenceId: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          }
+          nextImportedReferenceOrder.push(referenceId)
+        })
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            importedReferencesById: nextImportedReferencesById,
+            importedReferenceOrder: nextImportedReferenceOrder,
+          },
+        }
+        return `reference-item-row:committed:${currentDraft.stagedFiles[0]!.stagedFileId}`
+      }),
+      moveStagedImportPreviewOwner: vi.fn((draggedTarget: any, dropTarget: any) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return false
+        }
+        const resolution = resolveMockStagedImportPreviewOwnerDrop(
+          currentDraft.previewOrganization,
+          draggedTarget,
+          dropTarget,
+        )
+        if (!resolution.valid) {
+          return false
+        }
+        const draggedNodeId = buildMockPreviewTargetNodeId(draggedTarget)
+        const dropNodeId = buildMockPreviewTargetNodeId(dropTarget)
+        const draggedNode = currentDraft.previewOrganization.nodesById?.[draggedNodeId] ?? null
+        if (draggedNode === null) {
+          return false
+        }
+        const removeFromParent = (preview: any, parentNodeId: string | null, nodeId: string) => {
+          if (parentNodeId === null) {
+            return {
+              rootNodeIds: (preview.rootNodeIds ?? []).filter((candidate: string) => candidate !== nodeId),
+              childNodeIdsByParentId: {
+                ...preview.childNodeIdsByParentId,
+              },
+            }
+          }
+          const nextChildNodeIdsByParentId = {
+            ...preview.childNodeIdsByParentId,
+            [parentNodeId]: (preview.childNodeIdsByParentId?.[parentNodeId] ?? []).filter(
+              (candidate: string) => candidate !== nodeId,
+            ),
+          }
+          if ((nextChildNodeIdsByParentId[parentNodeId] ?? []).length === 0) {
+            delete nextChildNodeIdsByParentId[parentNodeId]
+          }
+          return {
+            rootNodeIds: [...(preview.rootNodeIds ?? [])],
+            childNodeIdsByParentId: nextChildNodeIdsByParentId,
+          }
+        }
+        let nextPreview = {
+          ...currentDraft.previewOrganization,
+        }
+        if (resolution.kind === 'reorder') {
+          const orderedIds =
+            draggedNode.parentNodeId === null
+              ? [...(nextPreview.rootNodeIds ?? [])]
+              : [...(nextPreview.childNodeIdsByParentId?.[draggedNode.parentNodeId] ?? [])]
+          const filtered = orderedIds.filter((candidate: string) => candidate !== draggedNodeId)
+          const targetIndex = filtered.indexOf(dropNodeId)
+          if (targetIndex < 0) {
+            return false
+          }
+          const insertIndex = dropTarget.position === 'before' ? targetIndex : targetIndex + 1
+          const nextOrderedIds = [
+            ...filtered.slice(0, insertIndex),
+            draggedNodeId,
+            ...filtered.slice(insertIndex),
+          ]
+          nextPreview =
+            draggedNode.parentNodeId === null
+              ? {
+                  ...nextPreview,
+                  rootNodeIds: nextOrderedIds,
+                }
+              : {
+                  ...nextPreview,
+                  childNodeIdsByParentId: {
+                    ...nextPreview.childNodeIdsByParentId,
+                    [draggedNode.parentNodeId]: nextOrderedIds,
+                  },
+                }
+        } else {
+          const parentTarget = resolution.parentTarget as
+            | { kind: 'assembly'; assemblyId: string }
+            | { kind: 'component'; componentId: string }
+          const nextParentNodeId =
+            parentTarget.kind === 'assembly'
+              ? parentTarget.assemblyId
+              : parentTarget.componentId
+          if (!canMockPreviewNodeParent(nextPreview.nodesById, draggedNodeId, nextParentNodeId)) {
+            return false
+          }
+          const removed = removeFromParent(nextPreview, draggedNode.parentNodeId ?? null, draggedNodeId)
+          nextPreview = {
+            ...nextPreview,
+            nodesById: {
+              ...nextPreview.nodesById,
+              [draggedNodeId]: {
+                ...draggedNode,
+                parentNodeId: nextParentNodeId,
+              },
+            },
+            rootNodeIds: removed.rootNodeIds,
+            childNodeIdsByParentId: {
+              ...removed.childNodeIdsByParentId,
+              [nextParentNodeId]: [
+                ...(removed.childNodeIdsByParentId?.[nextParentNodeId] ?? []),
+                draggedNodeId,
+              ],
+            },
+          }
+        }
+        const nextDraft = {
+          ...currentDraft,
+          previewOrganization: syncMockStagedImportPreviewOrganization({
+            ...currentDraft,
+            previewOrganization: nextPreview,
+          }),
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: nextDraft,
+          },
+        }
+        return true
+      }),
       closeStagedImportDraft: vi.fn(() => {
         currentAppState = {
           ...currentAppState,
@@ -4142,6 +4865,7 @@ describe('BrowserPanel', () => {
     expect(importDialog?.textContent).toContain('0 files staged in draft')
     expect(importDialog?.textContent).toContain('No files staged yet.')
     expect(document.querySelectorAll('.BrowserImportDialogStagedRow')).toHaveLength(0)
+    expect(document.querySelector('[role="region"][aria-label="Staged import file list"]')).toBeNull()
 
     await click(findButtonByLabel('Browser')!)
     await act(async () => {
@@ -4166,6 +4890,9 @@ describe('BrowserPanel', () => {
     ])
     expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(2)
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('2 files staged in draft')
+    expect(
+      document.querySelector('[role="region"][aria-label="Staged import file list"]'),
+    ).not.toBeNull()
     expect(
       Array.from(document.querySelectorAll('.BrowserImportDialogStagedRowName')).map((element) =>
         element.textContent?.trim(),
@@ -4224,7 +4951,798 @@ describe('BrowserPanel', () => {
         element.textContent?.trim(),
       ),
     ).toEqual(['alpha.step', 'beta.obj', 'gamma.glb'])
+    expect(
+      document.querySelector('[role="region"][aria-label="Staged import file list"]'),
+    ).not.toBeNull()
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('3 files staged in draft')
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows honest staged structure summaries per file without changing project content', async () => {
+    inspectImportedReferenceFileStructureMock
+      .mockResolvedValueOnce({
+        hasMultipleObjects: true,
+        hasHierarchy: true,
+        hasParts: true,
+        labels: ['Body', 'Upper'],
+        partRows: [
+          { partKey: 'reference-part:staged-import-file:1:0', label: 'Body', sourceMeshIndex: 0 },
+          { partKey: 'reference-part:staged-import-file:1:1', label: 'Upper', sourceMeshIndex: 1 },
+        ],
+      })
+      .mockResolvedValueOnce({
+        hasMultipleObjects: false,
+        hasHierarchy: false,
+        hasParts: false,
+        labels: [],
+        partRows: [],
+      })
+
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'shoe.step',
+              fileType: 'step',
+              objectUrl: 'blob:shoe-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'idle',
+                summary: null,
+                errorMessage: null,
+              },
+            },
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:2',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'idle',
+                summary: null,
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.beginStagedImportFileStructureInspection).toHaveBeenNthCalledWith(
+      1,
+      'staged-import-file:1',
+    )
+    expect(currentAppState.beginStagedImportFileStructureInspection).toHaveBeenNthCalledWith(
+      2,
+      'staged-import-file:2',
+    )
+    expect(inspectImportedReferenceFileStructureMock).toHaveBeenNthCalledWith(
+      1,
+      'staged-import-file:1',
+      expect.objectContaining({
+        fileName: 'shoe.step',
+        fileType: 'step',
+        objectUrl: 'blob:shoe-step',
+      }),
+    )
+    expect(inspectImportedReferenceFileStructureMock).toHaveBeenNthCalledWith(
+      2,
+      'staged-import-file:2',
+      expect.objectContaining({
+        fileName: 'flat.stl',
+        fileType: 'stl',
+        objectUrl: 'blob:flat-stl',
+      }),
+    )
+
+    const stagedRows = Array.from(document.querySelectorAll('.BrowserImportDialogStagedRow'))
+    expect(stagedRows).toHaveLength(2)
+    expect(stagedRows[0]?.textContent).toContain('Multiple objects')
+    expect(stagedRows[0]?.textContent).toContain('Hierarchy')
+    expect(stagedRows[0]?.textContent).toContain('Parts')
+    expect(stagedRows[0]?.textContent).toContain('Body')
+    expect(stagedRows[0]?.textContent).toContain('Upper')
+    expect(stagedRows[1]?.textContent).toContain('Flat file')
+    expect(stagedRows[1]?.textContent).not.toContain('Hierarchy')
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('keeps staged structure loading and unavailable states explicit without changing project content', async () => {
+    let rejectInspection: ((reason?: unknown) => void) | null = null
+    inspectImportedReferenceFileStructureMock.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          rejectInspection = reject
+        }),
+    )
+
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'pending.glb',
+              fileType: 'glb',
+              objectUrl: 'blob:pending-glb',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'idle',
+                summary: null,
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(document.querySelector('.BrowserImportDialogStagedRow')?.textContent).toContain(
+      'Reading structure...',
+    )
+
+    await act(async () => {
+      rejectInspection?.(new Error('Could not inspect staged file.'))
+      await Promise.resolve()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(document.querySelector('.BrowserImportDialogStagedRow')?.textContent).toContain(
+      'Structure unavailable',
+    )
+    expect(document.querySelector('.BrowserImportDialogStagedRow')?.textContent).toContain(
+      'Could not inspect staged file.',
+    )
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows both import mode choices for truthfully split-ready staged files and keeps the choice draft-only', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:1:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:1:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
+    expect(stagedRow?.textContent).toContain('1 Object')
+    expect(stagedRow?.textContent).toContain('Multiple Objects In 1 Component')
+    expect(
+      document.querySelector('button.BrowserImportDialogImportModeButton.isSelected')?.textContent,
+    ).toContain('1 Object')
+
+    await click(findButtonByLabel('Multiple Objects In 1 Component')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileMode).toHaveBeenCalledWith(
+      'staged-import-file:1',
+      'multiple-objects-in-component',
+    )
+    expect(
+      currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.importMode,
+    ).toBe('multiple-objects-in-component')
+    expect(
+      document.querySelector('button.BrowserImportDialogImportModeButton.isSelected')?.textContent,
+    ).toContain('Multiple Objects In 1 Component')
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('keeps flat staged files honest by showing only the 1 Object import mode', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
+    expect(stagedRow?.textContent).toContain('1 Object')
+    expect(stagedRow?.textContent).not.toContain('Multiple Objects In 1 Component')
+
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileMode).not.toHaveBeenCalled()
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows explicit Z Up, Y Up, and X Up choices and keeps staged up-axis changes draft-only', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'upright.step',
+              fileType: 'step',
+              objectUrl: 'blob:upright-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              upAxis: 'z-up',
+              scaleAlignment: 'current-size',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
+    expect(stagedRow?.textContent).toContain('Z Up')
+    expect(stagedRow?.textContent).toContain('Y Up')
+    expect(stagedRow?.textContent).toContain('X Up')
+
+    const selectedButtons = Array.from(
+      document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'),
+    )
+    expect(selectedButtons.map((button) => button.textContent?.trim())).toContain('Z Up')
+
+    await click(findButtonByLabel('Y Up')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileUpAxis).toHaveBeenCalledWith(
+      'staged-import-file:1',
+      'y-up',
+    )
+    expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.upAxis).toBe('y-up')
+    expect(
+      Array.from(document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'))
+        .map((button) => button.textContent?.trim())
+        .includes('Y Up'),
+    ).toBe(true)
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows explicit scale or units choices and keeps staged size-alignment changes draft-only', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          putAcceptedImportsInNewAssembly: false,
+          stagedFiles: [
+            {
+              fileName: 'sized.step',
+              fileType: 'step',
+              objectUrl: 'blob:sized-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              upAxis: 'z-up',
+              scaleAlignment: 'current-size',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
+    expect(stagedRow?.textContent).toContain('Current')
+    expect(stagedRow?.textContent).toContain('mm')
+    expect(stagedRow?.textContent).toContain('cm')
+    expect(stagedRow?.textContent).toContain('m')
+    expect(stagedRow?.textContent).toContain('in')
+
+    const selectedButtons = Array.from(
+      document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'),
+    )
+    expect(selectedButtons.map((button) => button.textContent?.trim())).toContain('Current')
+
+    await click(findButtonByLabel('cm')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileScaleAlignment).toHaveBeenCalledWith(
+      'staged-import-file:1',
+      'centimeters',
+    )
+    expect(
+      currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.scaleAlignment,
+    ).toBe('centimeters')
+    expect(
+      Array.from(document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'))
+        .map((button) => button.textContent?.trim())
+        .includes('cm'),
+    ).toBe(true)
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows the new assembly placement option and keeps placement changes draft-only', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: 'assembly-selected-1',
+          parentComponentId: null,
+          putAcceptedImportsInNewAssembly: false,
+          stagedFiles: [],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const placementButton = findButtonByLabel('Put Accepted Imports In New Assembly')
+    expect(placementButton).not.toBeNull()
+    expect(placementButton?.getAttribute('aria-pressed')).toBe('false')
+    expect(document.body.textContent).toContain('Selected assembly')
+    expect(document.body.textContent).toContain(
+      'Accepted imports will use the current landing target at commit.',
+    )
+
+    await click(placementButton!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportPutAcceptedInNewAssembly).toHaveBeenCalledWith(true)
+    expect(
+      currentAppState.referenceWorkspace.stagedImportDraft?.putAcceptedImportsInNewAssembly,
+    ).toBe(true)
+    expect(findButtonByLabel('Put Accepted Imports In New Assembly')?.getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+    expect(document.body.textContent).toContain(
+      'Accepted imports will create a new assembly at commit.',
+    )
+    expect(currentAppState.createProjectAssembly).not.toHaveBeenCalled()
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('keeps the full staged import journey draft-only until Add To Project is explicitly accepted', async () => {
+    importSupportedReferenceFilesFromDiskMock.mockResolvedValue([
+      {
+        fileName: 'structured.step',
+        fileType: 'step',
+        objectUrl: 'blob:structured-step',
+      },
+      {
+        fileName: 'flat.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:flat-glb',
+      },
+    ])
+    inspectImportedReferenceFileStructureMock
+      .mockResolvedValueOnce({
+        hasMultipleObjects: true,
+        hasHierarchy: true,
+        hasParts: true,
+        labels: ['Body', 'Upper'],
+        partRows: [
+          { partKey: 'reference-part:staged-import-file:1:0', label: 'Body', sourceMeshIndex: 0 },
+          { partKey: 'reference-part:staged-import-file:1:1', label: 'Upper', sourceMeshIndex: 1 },
+        ],
+      })
+      .mockResolvedValueOnce({
+        hasMultipleObjects: false,
+        hasHierarchy: false,
+        hasParts: false,
+        labels: [],
+        partRows: [],
+      })
+
+    const importedReferenceCountBefore =
+      currentAppState.referenceWorkspace.importedReferenceOrder.length
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findButtonByLabel('Import reference file')!)
+    await click(findButtonByLabel('Import Files...')!)
+
+    expect(document.body.textContent).toContain(
+      'Stage supported local reference files, review structure and import settings, then organize the reviewed result here before adding it to project content.',
+    )
+    expect(document.body.textContent).toContain(
+      'Preview only. Organize staged rows into components or assemblies before acceptance.',
+    )
+
+    let addToProjectButton = findButtonByLabel('Add staged imports to project')
+    expect(addToProjectButton).not.toBeNull()
+    expect(addToProjectButton?.hasAttribute('disabled')).toBe(true)
+    expect(addToProjectButton?.getAttribute('title')).toBe(
+      'Stage one or more files before adding them to project content.',
+    )
+    expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
+    expect(currentAppState.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore,
+    )
+
+    await click(findButtonByLabel('Browser')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.appendStagedImportDraftFiles).toHaveBeenCalledWith([
+      {
+        fileName: 'structured.step',
+        fileType: 'step',
+        objectUrl: 'blob:structured-step',
+      },
+      {
+        fileName: 'flat.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:flat-glb',
+      },
+    ])
+    expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(2)
+    expect(document.body.textContent).toContain('2 files staged in draft')
+    expect(document.body.textContent).toContain('Multiple objects')
+    expect(document.body.textContent).toContain('Hierarchy')
+    expect(document.body.textContent).toContain('Parts')
+    expect(document.body.textContent).toContain('Flat file')
+    addToProjectButton = findButtonByLabel('Add staged imports to project')
+    expect(addToProjectButton?.hasAttribute('disabled')).toBe(false)
+    expect(addToProjectButton?.getAttribute('title')).toBe('Add staged imports to project content.')
+
+    await click(findButtonByLabel('Multiple Objects In 1 Component')!)
+    await click(findButtonByLabel('Put Accepted Imports In New Assembly')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileMode).toHaveBeenCalledWith(
+      'staged-import-file:1',
+      'multiple-objects-in-component',
+    )
+    expect(currentAppState.setStagedImportPutAcceptedInNewAssembly).toHaveBeenCalledWith(true)
+    expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
+    expect(currentAppState.closeStagedImportDraft).not.toHaveBeenCalled()
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+    expect(currentAppState.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore,
+    )
+
+    addToProjectButton = findButtonByLabel('Add staged imports to project')
+    await click(addToProjectButton!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.commitStagedImportDraft).toHaveBeenCalledTimes(1)
+    expect(currentAppState.closeStagedImportDraft).toHaveBeenCalledTimes(1)
+    expect(currentAppState.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore + 2,
+    )
+    expect(
+      Object.values(currentAppState.referenceWorkspace.importedReferencesById).map(
+        (reference: any) => reference.assetPath,
+      ),
+    ).toEqual(expect.arrayContaining(['blob:structured-step', 'blob:flat-glb']))
+    expect(currentAppState.referenceWorkspace.stagedImportDraft).toBeNull()
+  })
+
+  it('shows a preview Browser surface and expands truthful split rows when the staged mode switches to multiple objects', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:2',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:2:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:2:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const getPreviewTree = () => document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    expect(getPreviewTree()?.textContent).toContain('flat.stl')
+    expect(getPreviewTree()?.textContent).toContain('structured.step')
+    expect(getPreviewTree()?.textContent).not.toContain('Body')
+
+    await click(findButtonByLabel('Multiple Objects In 1 Component')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(getPreviewTree()?.textContent).toContain('Body')
+    expect(getPreviewTree()?.textContent).toContain('Upper')
+    expect(
+      Array.from(getPreviewTree()?.querySelectorAll('.BrowserTreeRow') ?? []).find((element) =>
+        element.textContent?.includes('Body'),
+      )?.className,
+    ).toContain('BrowserTreeRow--depth-1')
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows legal preview drop feedback and keeps preview organization draft-only when moving staged rows into a draft component', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const getPreviewTree = () => document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    const findPreviewRowMainByLabel = (label: string) =>
+      Array.from(getPreviewTree()?.querySelectorAll('.BrowserTreeRowMain') ?? []).find((element) =>
+        element.textContent?.includes(label),
+      ) as HTMLButtonElement | null
+
+    await click(findButtonByLabel('New preview assembly')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+    await click(findButtonByLabel('Add component to Assembly 1')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    const sourceRow = findPreviewRowMainByLabel('flat.stl')?.closest('.BrowserTreeRow')
+    const targetRow = findPreviewRowMainByLabel('Component 1')?.closest('.BrowserTreeRow')
+    expect(sourceRow).not.toBeNull()
+    expect(targetRow).not.toBeNull()
+
+    mockRowRect(sourceRow!, 0)
+    mockRowRect(targetRow!, 48)
+
+    const dataTransfer = createMockDataTransfer()
+    await beginDragRow(sourceRow!, dataTransfer)
+    await dragOverRow(targetRow!, dataTransfer, 60)
+
+    expect(
+      targetRow!.classList.contains('isDropTargetAfter') &&
+        targetRow!.classList.contains('isDropOwnerSupport'),
+    ).toBe(true)
+
+    await dropRow(targetRow!, dataTransfer, 60)
+    await endDragRow(sourceRow!, dataTransfer)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.moveStagedImportPreviewOwner).toHaveBeenCalledWith(
+      { kind: 'object', objectId: buildMockPreviewFileObjectNodeId('staged-import-file:1') },
+      expect.objectContaining({
+        kind: 'component',
+        position: 'into',
+      }),
+    )
+    expect(
+      findPreviewRowMainByLabel('flat.stl')?.closest('.BrowserTreeRow')?.className,
+    ).toContain('BrowserTreeRow--depth-2')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
   })
 

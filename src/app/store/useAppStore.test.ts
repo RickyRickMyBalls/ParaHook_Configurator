@@ -9005,5 +9005,247 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewRadiusDeg).toBe(180)
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewDelayMs).toBe(0)
   })
+
+  it('returns null and keeps the draft open when Add To Project is attempted with no staged files', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+
+    const importedReferenceCountBefore =
+      useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
+
+    const committedAnchorRowId = useAppStore.getState().commitStagedImportDraft()
+    const state = useAppStore.getState()
+
+    expect(committedAnchorRowId).toBeNull()
+    expect(state.referenceWorkspace.stagedImportDraft).not.toBeNull()
+    expect(state.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(0)
+    expect(state.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore,
+    )
+  })
+
+  it('commits staged single-object imports only when accepted and stores the chosen import transform truth', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    useAppStore.getState().appendStagedImportDraftFiles([
+      {
+        fileName: 'accepted.step',
+        fileType: 'step',
+        objectUrl: 'blob:accepted-step',
+      },
+    ])
+
+    const stagedFileId =
+      useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.stagedFileId ?? null
+    expect(stagedFileId).toBeTruthy()
+
+    useAppStore.getState().setStagedImportFileUpAxis(stagedFileId!, 'y-up')
+    useAppStore.getState().setStagedImportFileScaleAlignment(stagedFileId!, 'centimeters')
+    useAppStore.getState().setStagedImportPutAcceptedInNewAssembly(true)
+
+    const importedReferenceCountBefore =
+      useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
+
+    const committedAnchorRowId = useAppStore.getState().commitStagedImportDraft()
+    const state = useAppStore.getState()
+
+    expect(committedAnchorRowId).toBeTruthy()
+    expect(state.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore + 1,
+    )
+
+    const committedReference =
+      state.referenceWorkspace.importedReferenceOrder
+        .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]!)
+        .find((reference) => reference.assetPath === 'blob:accepted-step') ?? null
+    expect(committedReference).toBeTruthy()
+    expect(committedReference).toMatchObject({
+      assetPath: 'blob:accepted-step',
+      parentComponentId: null,
+      explodedFromReferenceId: null,
+      sourcePartKey: null,
+      sourceMeshIndex: null,
+    })
+    expect(committedReference?.parentAssemblyId).toBeTruthy()
+    expect(
+      state.projectContent.assembliesById[committedReference!.parentAssemblyId!],
+    ).toMatchObject({
+      parentAssemblyId: null,
+      assemblySourceKind: 'authored',
+    })
+    expect(
+      state.referenceWorkspace.transformOverrideById[committedReference!.referenceId],
+    ).toMatchObject({ rotationDeg: { x: 90, y: 0, z: 0 }, scale: { x: 10, y: 10, z: 10 } })
+    expect(state.referenceWorkspace.stagedImportDraft).not.toBeNull()
+  })
+
+  it('commits reviewed multi-object staged imports through the preview organization without flattening them', async () => {
+    const { buildImportedReferenceRowId, useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const landingAssemblyId = useAppStore.getState().createProjectAssembly()
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: landingAssemblyId,
+      parentComponentId: null,
+    })
+    useAppStore.getState().appendStagedImportDraftFiles([
+      {
+        fileName: 'structured.step',
+        fileType: 'step',
+        objectUrl: 'blob:structured-step',
+      },
+      {
+        fileName: 'flat.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:flat-glb',
+      },
+    ])
+
+    const initialDraft = useAppStore.getState().referenceWorkspace.stagedImportDraft
+    expect(initialDraft?.stagedFiles).toHaveLength(2)
+
+    const structuredFileId = initialDraft?.stagedFiles[0]?.stagedFileId ?? null
+    const flatFileId = initialDraft?.stagedFiles[1]?.stagedFileId ?? null
+    expect(structuredFileId).toBeTruthy()
+    expect(flatFileId).toBeTruthy()
+
+    useAppStore.getState().resolveStagedImportFileStructureInspection(structuredFileId!, {
+      hasMultipleObjects: true,
+      hasHierarchy: true,
+      hasParts: true,
+      labels: ['Body', 'Upper'],
+      partRows: [
+        {
+          partKey: 'reference-part:structured:0',
+          label: 'Body',
+          sourceMeshIndex: 0,
+        },
+        {
+          partKey: 'reference-part:structured:1',
+          label: 'Upper',
+          sourceMeshIndex: 1,
+        },
+      ],
+    })
+    useAppStore.getState().setStagedImportFileMode(
+      structuredFileId!,
+      'multiple-objects-in-component',
+    )
+    useAppStore.getState().setStagedImportFileUpAxis(structuredFileId!, 'x-up')
+    useAppStore.getState().setStagedImportFileScaleAlignment(structuredFileId!, 'inches')
+
+    const previewAssemblyId = useAppStore.getState().createStagedImportPreviewAssembly()
+    expect(previewAssemblyId).toBeTruthy()
+
+    const previewNodesById =
+      useAppStore.getState().referenceWorkspace.stagedImportDraft?.previewOrganization.nodesById ?? {}
+    const structuredPreviewComponentId =
+      Object.values(previewNodesById).find(
+        (node) => node.stagedFileId === structuredFileId && node.nodeKind === 'component',
+      )?.nodeId ?? null
+    const flatPreviewObjectId =
+      Object.values(previewNodesById).find(
+        (node) => node.stagedFileId === flatFileId && node.nodeKind === 'object',
+      )?.nodeId ?? null
+    expect(structuredPreviewComponentId).toBeTruthy()
+    expect(flatPreviewObjectId).toBeTruthy()
+
+    expect(
+      useAppStore.getState().moveStagedImportPreviewOwner(
+        {
+          kind: 'component',
+          componentId: structuredPreviewComponentId!,
+        },
+        {
+          kind: 'assembly',
+          assemblyId: previewAssemblyId!,
+          position: 'into',
+        },
+      ),
+    ).toBe(true)
+    expect(
+      useAppStore.getState().moveStagedImportPreviewOwner(
+        {
+          kind: 'object',
+          objectId: flatPreviewObjectId!,
+        },
+        {
+          kind: 'assembly',
+          assemblyId: previewAssemblyId!,
+          position: 'into',
+        },
+      ),
+    ).toBe(true)
+
+    const committedAnchorRowId = useAppStore.getState().commitStagedImportDraft()
+    const state = useAppStore.getState()
+
+    expect(committedAnchorRowId).toBeTruthy()
+
+    const committedPreviewAssembly = Object.values(state.projectContent.assembliesById).find(
+      (assembly) =>
+        assembly.assemblyId !== landingAssemblyId && assembly.parentAssemblyId === landingAssemblyId,
+    )
+    expect(committedPreviewAssembly).toBeTruthy()
+
+    const committedSplitComponent = Object.values(state.projectContent.componentsById).find(
+      (component) =>
+        component.parentAssemblyId === committedPreviewAssembly?.assemblyId &&
+        component.label === 'structured.step',
+    )
+    expect(committedSplitComponent).toBeTruthy()
+
+    const importedReferences = state.referenceWorkspace.importedReferenceOrder.map(
+      (referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]!,
+    )
+    const flatReference = importedReferences.find(
+      (reference) =>
+        reference.assetPath === 'blob:flat-glb' &&
+        reference.parentAssemblyId === committedPreviewAssembly?.assemblyId,
+    )
+    expect(flatReference).toBeTruthy()
+
+    const splitReferences = importedReferences.filter(
+      (reference) => reference.parentComponentId === committedSplitComponent?.componentId,
+    )
+    expect(splitReferences).toHaveLength(2)
+    expect(splitReferences.map((reference) => reference.sourcePartKey)).toEqual([
+      'reference-part:structured:0',
+      'reference-part:structured:1',
+    ])
+    expect(splitReferences.map((reference) => reference.sourceMeshIndex)).toEqual([0, 1])
+    expect(state.referenceWorkspace.transformOverrideById[splitReferences[0]!.referenceId]).toMatchObject(
+      {
+        rotationDeg: { x: 0, y: -90, z: 0 },
+        scale: { x: 25.4, y: 25.4, z: 25.4 },
+      },
+    )
+    expect(
+      state.referenceWorkspace.contentOrderByParentKey[
+        `assembly:${committedPreviewAssembly!.assemblyId}`
+      ],
+    ).toEqual([
+      committedSplitComponent!.componentId,
+      buildImportedReferenceRowId(flatReference!.referenceId),
+    ])
+    expect(
+      state.referenceWorkspace.contentOrderByParentKey[
+        `component:${committedSplitComponent!.componentId}`
+      ],
+    ).toEqual(splitReferences.map((reference) => buildImportedReferenceRowId(reference.referenceId)))
+  })
 })
 

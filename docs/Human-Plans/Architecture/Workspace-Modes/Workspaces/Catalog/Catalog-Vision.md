@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+14. 2026-04-16 12:10:00: Expanded `Generation 2` linked-source intake again by documenting the Dropbox shared-link split more explicitly, clarifying that some PubParts links point to shared folders while others point to ZIP files, that shared folders may eventually support inspect-first selective download, and that ZIP-file links should use staged archive inspection so ParaHook can filter supported versus unsupported files and let the user choose which importable files to bring in
+13. 2026-04-16 11:44:00: Named the first `Generation 3` rule-based compatibility layer the `Ricky Checker`, making explicit that this initial true/false fitment read is manually curated by Ricky and may still say a combination is possible even before later dimensional proof work exists
+12. 2026-04-16 11:37:00: Expanded `Generation 3` compatibility again so it now explicitly covers pre-programmed allowed-part rules, builder-owned sub-part requirements such as a rear box needing battery, BMS, and supporting wiring or electronics, and a later `Generation 3.5` direction for dimensional packaging checks such as comparing battery size against rear-box volume and width/length/height constraints
+11. 2026-04-16 11:28:00: Expanded `Generation 3` again by adding a first explicit `Onewheel Builder` direction, documenting that later Catalog should include a builder-style flow where the user fills an initially empty required-parts list against a curated board recipe covering tire, motor, axles, rails, boxes, ESC, battery, footpads, bumpers, fasteners, and accessories
+10. 2026-04-16 11:21:00: Added the first explicit `Generation 3` direction for a real catalog compatibility-check system, documenting that `Generation 2` should lay the metadata groundwork as honestly as possible while `Generation 3` should actually evaluate whether a selected part or set of parts will work and report a user-facing true/false compatibility read
+9. 2026-04-16 11:09:00: Expanded `Generation 2` again so the catalog system now explicitly separates `Platform` parts from `Wheel` parts, documenting that motors and tires should live under a `Wheel` system instead of being forced under one platform family when their real compatibility crosses multiple boards and depends on fitment details such as axle blocks
+8. 2026-04-16 10:58:00: Tightened the `Generation 2` platform read so ParaHook now treats `GT` as the canonical platform family and handles `GTS` through narrower part-compatibility metadata because the shared board shape is mostly the same while electronics and motor stator compatibility can differ, and added the direction that `Catalog` should also include pre-built Onewheel bases the user can load into the model
+7. 2026-04-16 10:49:00: Expanded `Generation 2` to cover PubParts intake more concretely, documenting that ParaHook should be able to ingest the PubParts part catalog into the ParaHook `Catalog` shape instead of mirroring the PubParts browse structure, that Dropbox-backed model archives may later support user-triggered download plus import handoff, and that the platform system should widen to include `ADV`, `GT/GTS`, `Pint`, `XR`, and `XR Classic` with separate sub-platform compatibility and cross-platform compatibility metadata
 6. 2026-04-16 10:32:00: Reorganized the `Catalog` vision into explicit generations by defining the entire existing repo-backed browse-and-load direction as `Generation 1`, then adding a first `Generation 2` widening lane for curated external catalog integration such as `pubparts.xyz` plus linked `3D` model entries that stay explicit and metadata-backed instead of collapsing `Catalog` into generic web search or user import
 5. 2026-04-15 23:57:42: Added the first explicit Onewheel-oriented filter-system direction to the `Catalog` vision, documenting that the early Catalog should use structured metadata for platform, part type, product name, and position instead of parsing display labels, and locking the first filter groups around `ADV`, `XR`, `GT`, `Other`, `Footpads`, `Bumpers`, `Rails`, `Motors`, and the `Other` sub-sections `FootHolds`, `Shoes`, and `Screw & Nuts`
 4. 2026-04-15 23:44:46: Updated the `Catalog` vision again to match the newer store-style browse flow, documenting that the main catalog surface should open with no previews loaded, that every item should render as a `1x1` card inside a filter-plus-grid store layout, that users should trigger previews only for the items they want and may keep multiple temporary previews open, and that clicking an item should open a larger item page whose primary responsibilities are the viewport, `Add To Project`, and the description
@@ -89,6 +97,10 @@ This doc exists to keep the catalog on the narrow honest path between those two 
 
 `Generation 2` should widen that workspace so it can also integrate curated external catalog sources such as `pubparts.xyz` and support linked `3D` model entries more generally.
 
+`Generation 3` should turn the earlier compatibility metadata into a real check system that can tell the user whether a chosen part or build combination will actually work.
+
+Later `Generation 3.5` style work could make those checks smarter by adding dimensional fit and packaging math.
+
 It should also be treated as its own real workspace mode or surface inside the shared workspace system, not as a nested Browser panel or one-off overlay.
 
 When it is good, it should let the user:
@@ -158,12 +170,14 @@ The first concrete proof target for this generation should be:
 
 This generation should make room for:
 - curated external catalog integrations
+- source adapters that intake structured third-party catalog data and normalize it into the ParaHook catalog contract
 - catalog entries whose main source is a link instead of only a repo-local asset path
 - linked `3D` model entries more generally, even when the model does not ship inside the ParaHook repo
 - explicit source metadata that says whether an item is repo-backed, externally linked, or later another source type
 
 The main promise of `Generation 2` is:
 - users can browse trusted external part libraries through the same `Catalog` workspace
+- ParaHook can reorganize external sources like PubParts into the ParaHook browse model instead of being forced to copy the source site's organization exactly
 - ParaHook can represent `3D` model links explicitly instead of pretending every useful asset must already live in the repo
 - linked-source items remain curated, inspectable, and honest about where they come from
 - the catalog still does not become a generic search engine, hidden downloader, or arbitrary web browser
@@ -175,10 +189,162 @@ Important rule:
 Likely first `Generation 2` metadata additions:
 - source kind
 - source site or provider
+- source collection or source section label when helpful
 - external item page URL
 - linked model URL when relevant
+- linked archive download URL when relevant
 - attribution or source notes
 - any later open, import, or handoff action that matches the linked asset type honestly
+
+#### Generation 3 - Compatibility Check Catalog
+
+`Generation 3` should make the catalog able to evaluate compatibility instead of only storing best-effort compatibility metadata.
+
+`Generation 2` should still do its best to define compatibility honestly through:
+- platform family
+- frame family
+- sub-platform tags
+- wheel-versus-platform system classification
+- narrower fitment metadata where needed
+
+But `Generation 2` should still be read mainly as:
+- explicit compatibility metadata
+- manual curation
+- strong best-effort fitment truth
+
+`Generation 3` should add one stronger promise:
+- the catalog can run a compatibility check and tell the user whether a selected part or part combination should work
+
+The main promise of `Generation 3` is:
+- the user can ask whether a part fits the currently loaded board or pre-built board
+- the user can ask whether one part works with another part
+- the system can answer `true` or `false` instead of only showing tags and leaving the rest implicit
+- the catalog can explain why something does or does not fit when the repo has enough truth to say so honestly
+- the catalog can also host a `Onewheel Builder` flow where the user fills a board recipe from a required-parts list instead of only browsing disconnected individual items
+- the compatibility system can use pre-programmed allowed-part rules for known assemblies and known part relationships
+
+The first user-facing name for this rule-based layer should be:
+- `Ricky Checker`
+
+Why:
+- the user should understand that this first true/false read comes from Ricky's manually curated fitment knowledge
+- the name makes it explicit that the answer is a trusted human-programmed rule read, not a fully automatic geometric proof
+- that also leaves room for later stronger checks without pretending the first layer is more objective than it really is
+
+Important rule:
+- `Generation 3` compatibility checks should build on the curated metadata groundwork from `Generation 2`
+- they should not replace honest metadata with hidden guesses
+
+Healthy `Generation 3` examples:
+- check whether a selected motor works with the current board when the required axle blocks are present or absent
+- check whether a `GT`-family part also works with `XR Classic`
+- check whether a fastener matches the specific part or assembly the user is trying to install
+- check whether a chosen set of parts still produces one compatible pre-built board configuration
+- check whether the current builder selection fills every required board slot and whether the chosen combination is still valid as one build
+- check whether a selected rear box allows the battery, BMS, and supporting electronics the user is trying to pair with it
+
+Healthy user-facing read:
+- `true`
+  - this should work
+- `false`
+  - this should not work
+- later maybe `unknown`
+  - the repo does not have enough truth yet to claim compatibility honestly
+
+Important rule:
+- if the catalog cannot prove compatibility honestly, it should not pretend
+- broader metadata and notes may still exist, but the check result should stay explicit about whether the answer is proven, rejected, or not yet known
+
+Healthy `Generation 3` compatibility read:
+- first use curated allowed-part truth
+- explicitly encode which parts are allowed to work with which other parts
+- let builder-owned slots and sub-slots evaluate against those allowed-part rules
+- keep the result explainable instead of magical
+
+Healthy `Ricky Checker` read:
+- `true`
+  - Ricky says this should work
+- `false`
+  - Ricky says this should not work
+- later maybe `possible`
+  - Ricky believes this may work, but the repo does not yet have enough stronger proof to claim a hard yes
+
+### Generation 3 Onewheel Builder Direction
+
+`Generation 3` should also introduce a `Onewheel Builder` as part of the catalog experience.
+
+This should not be only a loose browse surface.
+
+It should also be able to act like a board recipe or build checklist that starts with an empty list of required parts and lets the user fill those slots from the catalog.
+
+The first intended builder read is:
+- the app knows the main parts a complete Onewheel build needs
+- the builder presents those required slots clearly
+- the user fills those slots by choosing compatible items from the catalog
+- the compatibility system can evaluate the resulting combination as the build fills in
+- some slots can also own sub-part requirements that must be satisfied for the larger build to count as complete and valid
+
+The first required-part list should include:
+- `Tire`
+- `Motor`
+- `Axles`
+- `Rails`
+- `Boxes`
+- `ESC`
+- `Battery`
+- `Footpads`
+- `Bumpers`
+- `Fasteners`
+- `Accessories`
+
+Important rule:
+- the builder should start from a curated required-parts list, not from a blank unstructured shopping cart
+- the slot list is what makes the builder read as `build a board` instead of only `collect some parts`
+
+Important sub-assembly rule:
+- some builder parts should own their own sub-parts list
+- a `Rear Box` is one important example
+- the rear box may require:
+  - `Battery`
+  - `BMS`
+  - supporting wires or electronics
+- the compatibility system should eventually evaluate both the outer board recipe and these inner sub-assembly requirements
+
+Healthy `Generation 3` read:
+- `Catalog`
+  - browse parts, assemblies, boards, and external-linked items
+- `Onewheel Builder`
+  - fill the required board slots with chosen catalog items
+  - check whether the resulting board is complete and compatible
+
+Important rule:
+- the builder should reuse catalog item truth instead of inventing a second separate part universe
+- one part catalog should feed both normal browsing and the builder slot system
+
+### Generation 3.5 - Dimensional Fit And Packaging Checks
+
+Later `Generation 3.5` work could make the compatibility checker more exact by adding dimensional and volume-based fit checks on top of the earlier pre-programmed rules.
+
+The first strong proof case should be rear-box packaging.
+
+Concrete example:
+- if the selected box is `XR_Box_Rear`
+- and the user tries to add `Battery_20s2p.obj`
+- the system may eventually reject that combination for two different reasons:
+  - the pre-programmed compatibility rules say that battery is not allowed for that box or board
+  - the dimensional packaging check says the battery does not physically fit
+
+The later dimensional read should eventually consider:
+- overall volume
+- width
+- length
+- height
+
+Important rule:
+- `Generation 3.5` should refine the `Generation 3` checker
+- it should not replace the earlier curated allowed-part truth
+- packaging math should strengthen the answer when ParaHook has enough geometry truth to do so honestly
+- later dimensional checks should read as a stronger lane layered on top of the earlier `Ricky Checker`, not as a rewrite of why the first rule-based answers exist
 
 ### Catalog North Star
 
@@ -216,6 +382,7 @@ Good later catalog families:
 - material or finish starter packs
 - lighting or environment presets built on top of HDRIs
 - reusable assemblies or kit parts
+- pre-built Onewheel base models the user can load into the model as starting points
 - curated external catalog integrations and linked `3D` model references
 - graph/document templates if the repo later wants a curated template lane
 
@@ -327,8 +494,13 @@ That site currently reads as a curated Onewheel library with explicit part colle
 
 Healthy `Generation 2` direction:
 - let `Catalog` represent those external curated collections as part of the ParaHook browse surface
+- intake the PubParts part list into ParaHook's own catalog-item shape instead of treating the PubParts website layout as the ParaHook runtime contract
 - keep the source identity explicit instead of flattening everything into one local-only manifest fiction
 - allow some entries to resolve to linked model pages or linked `3D` files rather than only repo paths
+- allow later user-triggered download of linked archives such as Dropbox ZIP files, followed by extraction and import handoff when a supported model format is actually present
+- distinguish linked shared folders from linked ZIP files instead of pretending every Dropbox link behaves the same way
+- let `Catalog` also carry pre-built Onewheel base models that the user can load into the model as a starting board configuration
+- organize imported or repo-backed parts under ParaHook systems that match real fitment truth instead of blindly mirroring one source site's platform buckets
 - keep downstream ownership honest if the user later opens, imports, previews, or adds one of those linked items
 
 Important rule:
@@ -343,8 +515,188 @@ Healthy product read:
 
 Healthy architecture read:
 - the catalog item contract should eventually be able to express both local asset sources and linked external sources
+- a PubParts source adapter should be able to map PubParts fields into ParaHook catalog fields instead of leaking PubParts-only naming directly into the rest of the app
 - the UI should be able to show where an item comes from
 - action language should stay honest about whether the user is previewing locally, opening a source page, importing a linked model, or adding a managed repo-backed asset to the project
+
+### Generation 2 Dropbox Intake Direction
+
+`Generation 2` should treat Dropbox links as two different intake shapes:
+- shared folder links
+- ZIP-file links
+
+Important rule:
+- ParaHook should not assume every Dropbox link can be handled the same way
+
+For shared folder links, the healthy direction is:
+- inspect the folder first
+- filter the available files by what ParaHook can import
+- let the user choose which file or files they want
+- download only the selected files when that is honestly possible
+
+For ZIP-file links, the healthy direction is:
+- treat the ZIP as one downloaded archive first
+- inspect the archive contents after download
+- classify the contents into:
+  - importable now
+  - unsupported for now
+  - support or reference files such as PDFs
+- let the user choose one, many, or all supported files for import
+
+Important rule:
+- ZIP-file links should use staged archive inspection
+- shared-folder links may later support inspect-first selective download
+- the user should still see unsupported files in the staged chooser so nothing disappears silently
+
+Healthy example:
+- one PubParts Dropbox ZIP may contain:
+  - two `.step` files
+  - one `.f3d` file
+  - one `.pdf`
+- ParaHook should show that:
+  - the `.step` files are importable now
+  - the `.f3d` file is not importable now
+  - the `.pdf` is a support/reference file
+- the user should then be able to choose which supported files to import
+
+### Generation 2 Platform Normalization Direction
+
+`Generation 2` should widen the Onewheel platform system so ParaHook can organize PubParts-style entries with a cleaner compatibility read.
+
+It should also widen the higher-level part organizer so ParaHook can sort parts by the system they really belong to, not only by one board family.
+
+The first major catalog systems should include:
+- `Platform`
+- `Wheel`
+- later `Hardware`
+
+The core platform families should include:
+- `ADV`
+- `GT`
+- `Pint`
+- `XR`
+- `XR Classic`
+
+Important mapping rule:
+- PubParts `Floatwheel` entries should map into ParaHook `ADV`
+
+Important canonical-family rule:
+- ParaHook should treat `GT` as the platform family
+- `GTS` should not become a separate top-level platform family by default
+
+Why:
+- `GT` and `GTS` share the same overall board shape for many catalog purposes
+- they use the same rails, box, screws, bumpers, footpads, and motor/axle shape
+- the main differences live in narrower areas such as electronics and the motor stator
+
+That means:
+- many parts that fit `GT` should read as broadly `GT`-family compatible
+- only the parts that truly differ should carry narrower `GTS`-specific compatibility notes
+
+The platform system should also allow sub-platforms.
+
+Example:
+- `ADV`
+  - `Pro`
+  - `Standard`
+
+Important rule:
+- platform family and sub-platform should be stored separately
+- a part may support one or more platform families
+- a part may support one or more sub-platforms when that distinction actually matters
+- if the distinction does not matter for a given part, the item should remain compatible at the broader family level instead of being forced into fake sub-platform precision
+
+Important specialization rule:
+- some parts will need narrower compatibility fields beyond platform family and sub-platform
+- for example, electronics or motor internals may need a more specific fitment distinction even when the rest of the board family is shared
+- that narrower fitment should refine the item metadata without forcing ParaHook to split one broadly shared board family into multiple fake top-level platforms
+
+Important compatibility rule:
+- most parts will work across more than one board family or sub-platform
+- compatibility will need to be defined per part instead of guessed from the source section name alone
+- cross-platform compatibility must be allowed explicitly
+
+Concrete example:
+- a `GT` footpad may also work with `XR Classic`
+- the catalog should therefore allow one item to carry both compatibility tags instead of making the user choose only one platform bucket
+
+Healthy storage direction:
+- keep source grouping separate from ParaHook compatibility truth
+- a PubParts source section may suggest a likely default platform family, but ParaHook should normalize final compatibility into explicit fields
+- sub-platforms should refine compatibility, not replace the broader platform family
+- narrow component-specific compatibility should remain separate from broad platform-family compatibility
+- the final item page should be able to show both broad family compatibility and narrower sub-platform notes when needed
+
+### Generation 2 Platform Versus Wheel System Direction
+
+`Generation 2` should make one additional organizer explicit:
+- not every part should live under a platform-family folder or platform-family browse branch
+
+Some parts primarily belong to the board platform structure.
+
+Examples:
+- rails
+- boxes
+- bumpers
+- footpads
+- axle blocks
+
+Some parts primarily belong to the wheel system instead.
+
+Examples:
+- motors
+- tires
+- later hubs and other wheel-side parts
+
+Important rule:
+- if a part can fit more than one board family and the real compatibility depends on bridge parts such as axle blocks, do not force that part into one platform bucket as if it only belongs there
+
+Concrete example:
+- a motor may fit an `XR`
+- that same motor may also fit a `GT` when the correct axle blocks are used
+- the catalog should therefore treat that motor as a `Wheel` part with explicit compatibility metadata instead of storing it as if it were an `XR`-only part
+
+Healthy organization read:
+- `Platform`
+  - parts mainly owned by board/frame/platform fitment
+- `Wheel`
+  - parts mainly owned by motor/tire/hub-side fitment
+
+This means:
+- `rails`, `boxes`, `bumpers`, `footpads`, and often `axle blocks` will usually read as `Platform` parts
+- `motors` and `tires` should usually read as `Wheel` parts
+- later metadata should describe which platform families, frame families, or adapter parts make a given wheel-side item compatible
+
+Important rule:
+- the top-level catalog system should follow the part's real fitment domain
+- compatibility metadata should then describe where that part can actually be used
+
+### Generation 2 Pre-Built Onewheel Direction
+
+`Generation 2` should also let `Catalog` carry a list of pre-built Onewheels that the user can load into the model.
+
+These should act as curated starting boards rather than only loose replacement parts.
+
+Healthy examples:
+- one pre-built `ADV`
+- one pre-built `GT`
+- one pre-built `Pint`
+- one pre-built `XR`
+- one pre-built `XR Classic`
+- later variants when a more specific starting board is genuinely useful
+
+Important rule:
+- a pre-built Onewheel entry is not the same thing as an individual part listing
+- it should load as a starting board or starting assembly into the model
+- later part browsing should still remain available on top of that loaded base
+
+Healthy product read:
+- parts help the user browse and swap individual components
+- pre-built boards help the user start from a known whole-board shape before making changes
+
+Healthy ownership read:
+- choosing a pre-built board from `Catalog` should load that board into the model through the normal downstream ownership seams
+- the catalog should still remain the chooser, not the long-term hidden owner of the loaded board
 
 ### What Must Stay True
 
@@ -387,6 +739,7 @@ It should eventually have explicit metadata such as:
 - source path or source link
 - load behavior
 - platform compatibility
+- sub-platform compatibility when relevant
 - part type
 - mount position when relevant
 - product name
@@ -405,6 +758,13 @@ Suggested first fields:
     - `['GT']`
     - `['XR', 'GT']`
     - `['Other']`
+- `subPlatformTags`
+  - examples:
+    - `['ADV-Pro']`
+    - `['ADV-Standard']`
+    - `['GTS-Electronics']`
+    - `['GTS-Stator']`
+    - empty when the part works at the broader platform-family level
 - `partType`
   - examples:
     - `Footpad`
@@ -435,6 +795,11 @@ That means:
   - shows parts compatible with either platform
 - `XR` plus `Footpads`
   - shows only `XR` parts that are also `Footpads`
+
+Important widening rule:
+- `Generation 1` may start with the simpler early platform groups
+- `Generation 2` should widen the compatibility model so the catalog can represent `ADV`, `GT`, `Pint`, `XR`, and `XR Classic`, plus later sub-platform and component-fitment distinctions where they are genuinely needed
+- `Generation 3` should use that widened compatibility model as the basis for actual compatibility checks instead of reopening the catalog shape from scratch
 
 #### 3. Load Actions Must Stay Honest By Asset Type
 
@@ -516,8 +881,12 @@ When `Catalog` is working well, the user should be able to say:
 - "I can browse the reusable assets that ship with this repo."
 - "I can also browse curated external catalog items when ParaHook chooses to integrate them."
 - "I can browse preloaded foothooks, shoes, and footpads in their own sections."
+- "I can choose a pre-built Onewheel from the catalog and load it into the model as a starting point."
 - "I can filter down to the family I want."
 - "I can filter by real Onewheel platform and part type without the system guessing from names."
+- "I can ask whether a part or part combination will work, and the catalog can answer clearly."
+- "I can open a Onewheel Builder, see the required board parts, and fill those slots from the catalog."
+- "I can understand when a sub-assembly such as a rear box is still missing required internals or when a part physically does not fit."
 - "I can browse a clean card grid without the catalog auto-loading everything."
 - "I can preview only the items I care about, and I can keep more than one preview open if I want."
 - "I can open an item page with a larger viewport, read the description, and then decide whether to add it to the project."
@@ -529,7 +898,8 @@ When `Catalog` is working well, the user should be able to say:
 The umbrella direction is now:
 - ParaHook should have a real `Catalog` workspace organized as explicit generations
 - `Generation 1` is the repo-backed curated browse-and-load catalog for preloaded foothooks, shoes, footpads, HDRIs, and similar stored references
-- `Generation 2` should widen that catalog to include curated external integrations such as `pubparts.xyz` and linked `3D` model entries more generally
+- `Generation 2` should widen that catalog to include curated external integrations such as `pubparts.xyz`, linked `3D` model entries more generally, broader platform-normalization rules, and pre-built Onewheel starting boards
+- `Generation 3` should turn the `Generation 2` compatibility groundwork into a real compatibility-check system that can tell the user whether a part or build combination should work
 - the catalog should remain a curated browse-and-load surface, not a second hidden content owner
 - reference-style assets should support a temporary preview step before commit and should only become Browser/project truth after explicit `Add To Project`
 - loaded items should become explicit downstream truth in Browser/project content, viewer environment state, or other honest owner seams depending on the asset type

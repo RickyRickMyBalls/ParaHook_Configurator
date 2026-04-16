@@ -37,9 +37,6 @@ import {
   WebGLRenderer,
 } from 'three'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import type { ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
@@ -68,11 +65,14 @@ import type {
   ViewerTransformTarget,
   VisibleGeometrySketchOverlayVm,
 } from '../app/viewerBridge'
-import { loadStepReferenceObject } from './stepReferenceLoader'
 import {
   extractReferencePartDescriptors,
   type ReferencePartDescriptor,
 } from './referencePartDescriptors'
+import {
+  disposeReferenceObjectTree,
+  loadReferenceAssetObject,
+} from './referenceAssetLoader'
 import { createViewerGeometryFromArtifactMesh } from './artifactMeshGeometry'
 import { resolveViewerPartPlacement } from './previewPartPlacement'
 import {
@@ -3362,67 +3362,11 @@ export class Viewer {
   }
 
   private async loadReferenceAssetObject(reference: ReferenceLoadableItem): Promise<Object3D> {
-    if (reference.fileType === 'glb') {
-      const loader = new GLTFLoader()
-      return new Promise<Object3D>((resolve, reject) => {
-        loader.load(
-          reference.assetPath,
-          (result) => resolve(result.scene),
-          undefined,
-          reject,
-        )
-      })
-    }
-
-    if (reference.fileType === 'obj') {
-      const loader = new OBJLoader()
-      return new Promise<Object3D>((resolve, reject) => {
-        loader.load(
-          reference.assetPath,
-          (object) => resolve(object),
-          undefined,
-          reject,
-        )
-      })
-    }
-
-    if (reference.fileType === 'stl') {
-      const loader = new STLLoader()
-      return new Promise<Object3D>((resolve, reject) => {
-        loader.load(
-          reference.assetPath,
-          (geometry) => {
-            const mesh = new Mesh(
-              geometry,
-              new MeshStandardMaterial({
-                color: '#7f8fae',
-                metalness: 0.08,
-                roughness: 0.86,
-              }),
-            )
-            resolve(mesh)
-          },
-          undefined,
-          reject,
-        )
-      })
-    }
-
-    return loadStepReferenceObject(reference)
+    return loadReferenceAssetObject(reference)
   }
 
   private disposeObjectTree(object: Object3D): void {
-    object.traverse((child) => {
-      if (!(child instanceof Mesh)) {
-        return
-      }
-      child.geometry.dispose()
-      if (Array.isArray(child.material)) {
-        child.material.forEach((material) => material.dispose())
-        return
-      }
-      child.material.dispose()
-    })
+    disposeReferenceObjectTree(object)
   }
 
   private refreshSelectionStyling(): void {

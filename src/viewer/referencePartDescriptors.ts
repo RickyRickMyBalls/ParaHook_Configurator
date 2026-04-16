@@ -15,9 +15,10 @@ const REFERENCE_GENERIC_NAME_PATTERNS = [
   /^step node$/i,
   /^step mesh \d+$/i,
   /^mesh(?:_\d+)?$/i,
+  /^part \d+$/i,
 ] as const
 
-const isMeaningfulPartLabel = (value: string | null | undefined): value is string => {
+export const isMeaningfulPartLabel = (value: string | null | undefined): value is string => {
   if (typeof value !== 'string') {
     return false
   }
