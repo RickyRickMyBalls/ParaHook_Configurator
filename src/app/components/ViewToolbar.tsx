@@ -90,6 +90,9 @@ const PERSPECTIVE_FOV_STEP_DEG = 1
 const MIN_CAMERA_CLIP_START = 0.01
 const MIN_CAMERA_CLIP_SPAN = 0.01
 const DEFAULT_CAMERA_CLIP_END_MAX = 1000
+const MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 50
+const MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 2000
+const CAMERA_SHORTCUT_TRANSITION_DURATION_STEP_MS = 10
 
 const numericValue = (value: string, fallback: number): number => {
   const parsed = Number(value)
@@ -105,6 +108,9 @@ const formatClipDistance = (value: number): string => {
   const precision = value >= 100 ? 0 : value >= 10 ? 1 : value >= 1 ? 2 : 3
   return Number(value.toFixed(precision)).toString()
 }
+
+const formatCameraShortcutTransitionDuration = (value: number): string =>
+  `${Math.round(value)} ms`
 
 const resolveClipDistanceStep = (value: number): number => {
   if (value >= 100) {
@@ -231,8 +237,14 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const parts = viewerTargetParts
 
   const globalView = useUiPrefsStore((state) => state.view)
+  const cameraShortcutTransitionDurationMs = useUiPrefsStore(
+    (state) => state.cameraShortcutTransitionDurationMs,
+  )
   const setView = useUiPrefsStore((state) => state.setView)
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
+  const setCameraShortcutTransitionDurationMs = useUiPrefsStore(
+    (state) => state.setCameraShortcutTransitionDurationMs,
+  )
   const selectLight = useUiPrefsStore((state) => state.selectLight)
   const addLight = useUiPrefsStore((state) => state.addLight)
   const deleteLight = useUiPrefsStore((state) => state.deleteLight)
@@ -649,6 +661,10 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     })
   }
 
+  const handleCameraShortcutTransitionDurationChange = (durationMs: number) => {
+    setCameraShortcutTransitionDurationMs(durationMs)
+  }
+
   const setGizmoModeValue = (mode: GizmoMode) => {
     setGizmoMode(mode)
     withViewer((viewer) => viewer.setGizmoMode(mode))
@@ -897,6 +913,15 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                   >
                     Orthographic
                   </button>
+                  <ParaSlider
+                    label="Transition"
+                    min={MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS}
+                    max={MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS}
+                    step={CAMERA_SHORTCUT_TRANSITION_DURATION_STEP_MS}
+                    value={cameraShortcutTransitionDurationMs}
+                    onChange={handleCameraShortcutTransitionDurationChange}
+                    formatValue={formatCameraShortcutTransitionDuration}
+                  />
                   <div className="CameraPresetGrid">
                     {cameraPresets.map((preset) => (
                       <button

@@ -4,7 +4,10 @@ import type {
   CameraClipRangeUpdate,
   CameraPose,
 } from '../viewer/scene/CameraController'
-import type { ReferenceTransformOverride } from './references/referenceManifest'
+import type {
+  ReferenceLoadableItem,
+  ReferenceTransformOverride,
+} from './references/referenceManifest'
 import type { ActiveReferenceTransformHandle } from './store/useAppStore'
 import type {
   SketchComponent,
@@ -17,6 +20,12 @@ import type {
 } from './spaghetti/store/useSpaghettiStore'
 
 export type CameraPreset = 'iso' | 'top' | 'front' | 'back' | 'left' | 'right'
+export type CameraTransitionOptions = {
+  animate?: boolean
+  durationMs?: number
+}
+export type CameraPresetOptions = CameraTransitionOptions
+export type FrameTargetOptions = CameraTransitionOptions
 export type GizmoMode = 'translate' | 'rotate' | 'scale'
 export type GizmoSpace = 'local' | 'world'
 export type SnapDirection = '+X' | '-X' | '+Y' | '-Y' | '+Z' | '-Z'
@@ -168,7 +177,7 @@ export interface ViewerApi {
   setOnCameraPoseChange?: (handler: ((pose: CameraPose) => void) | null) => void
   getRuntimeStats?: () => ViewerRuntimeStats
   setOnRuntimeStatsChange?: (handler: ((stats: ViewerRuntimeStats) => void) | null) => void
-  setCameraPreset: (preset: CameraPreset) => void
+  setCameraPreset: (preset: CameraPreset, options?: CameraPresetOptions) => void
   setProjectionMode: (mode: ProjectionMode) => void
   alignCameraToGeometrySketchPlane: () => void
   frameAll: () => void
@@ -176,9 +185,9 @@ export interface ViewerApi {
   frameGeometrySketch: () => void
   frameSelectedGeometrySketch: () => boolean
   framePrevious: () => void
-  frameSelected: (partId: string | null) => void
+  frameSelected: (partId: string | null, options?: FrameTargetOptions) => void
   frameSelectionSet: (partIds: string[], referenceIds: string[]) => boolean
-  frameReference: (referenceId: string) => void
+  frameReference: (referenceId: string, options?: FrameTargetOptions) => void
   snapCameraToDirection: (dir: SnapDirection) => void
   zoomCameraByWheelDelta: (deltaY: number) => void
   beginTemporaryPanDrag: (startClientX: number, startClientY: number) => void
@@ -257,6 +266,11 @@ export interface ViewerApi {
     label: string
     sourceMeshIndex: number
   }>
+  handoffExplodedReferenceChildren: (
+    wrapperReferenceId: string,
+    children: ReferenceLoadableItem[],
+    visible: boolean,
+  ) => string[]
   setOnReferenceTransformChange: (
     handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
   ) => void

@@ -5,18 +5,19 @@ import {
 } from './cameraShortcuts'
 
 describe('cameraShortcuts', () => {
-  it('resolves the current exact-shift viewer camera shortcut map', () => {
+  it('resolves the current exact viewer camera shortcut map', () => {
     for (const binding of viewerCameraShortcutBindings) {
       expect(
         resolveViewerCameraShortcutAction({
           key: binding.label,
           code: binding.code,
+          shiftKey: binding.shiftKey,
         }),
       ).toBe(binding.action)
     }
   })
 
-  it('does not resolve shortcuts without a matching numpad code and no extra modifiers', () => {
+  it('does not resolve shortcuts without the exact expected code and modifier shape', () => {
     expect(
       resolveViewerCameraShortcutAction({
         key: '5',
@@ -32,8 +33,15 @@ describe('cameraShortcuts', () => {
 
     expect(
       resolveViewerCameraShortcutAction({
-        key: '5',
-        code: 'Numpad5',
+        key: 'Z',
+        code: 'KeyZ',
+      }),
+    ).toBeNull()
+
+    expect(
+      resolveViewerCameraShortcutAction({
+        key: 'Z',
+        code: 'KeyZ',
         shiftKey: true,
         ctrlKey: true,
       }),
@@ -41,9 +49,8 @@ describe('cameraShortcuts', () => {
 
     expect(
       resolveViewerCameraShortcutAction({
-        key: '8',
-        code: 'Numpad8',
-        altKey: true,
+        key: '.',
+        code: 'NumpadDecimal',
       }),
     ).toBeNull()
 

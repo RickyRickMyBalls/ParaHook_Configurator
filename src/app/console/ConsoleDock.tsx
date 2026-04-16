@@ -11,7 +11,7 @@ import {
   getViewer,
 } from '../viewerBridge'
 import {
-  buildObjectPartKeys,
+  canReferenceItemExplode,
   resolveOwnedContentSelection,
   resolveReferenceIdsForWorkspaceTarget,
   resolveWorkspaceSelectedContentOwnerTarget,
@@ -74,6 +74,10 @@ import {
   resolveConsoleWorkspaceContextSync,
   type ConsoleStagedNavigationSession,
 } from './stagedNavigation'
+import {
+  resolveSelectedObjectPartKeyForZoom as resolveSelectedObjectPartKeyForZoomFromAppState,
+  resolveSelectedReferenceIdForZoom as resolveSelectedReferenceIdForZoomFromAppState,
+} from '../zoomObjectTarget'
 
 type ConsoleDockProps = {
   listLeftOffset?: number
@@ -752,6 +756,7 @@ const buildStagedNavigationContextFromStoreState = (
         canLoadModel: !item.isVisible || item.loadState === 'error' || item.loadState === 'unloaded',
         canDelete: item.sourceKind === 'imported',
         canHide: item.isVisible,
+        canExplode: canReferenceItemExplode(appState, item.referenceId),
       })),
     })),
     {
@@ -1244,39 +1249,11 @@ export function ConsoleDock({
   )
 
   const resolveSelectedReferenceIdForZoom = useCallback((): string | null => {
-    const appState = useAppStore.getState()
-    const selectedTarget = appState.workspaceSelection.selectedTarget
-    if (selectedTarget !== null) {
-      const resolvedReferenceIds = resolveReferenceIdsForWorkspaceTarget(appState, selectedTarget)
-      if (resolvedReferenceIds.length === 1) {
-        return resolvedReferenceIds[0]
-      }
-    }
-    return appState.referenceWorkspace.activeReferenceTransformSession?.referenceId ?? null
+    return resolveSelectedReferenceIdForZoomFromAppState(useAppStore.getState())
   }, [])
 
   const resolveSelectedObjectPartKeyForZoom = useCallback((): string | null => {
-    const appState = useAppStore.getState()
-    if (appState.selectedPartKey !== null) {
-      return appState.selectedPartKey
-    }
-    const explicitObjectTarget =
-      appState.workspaceSelection.explicitSelectedTargets.find(
-        (target) => target.kind === 'object',
-      ) ?? null
-    const selectedTarget =
-      appState.workspaceSelection.selectedTarget?.kind === 'object'
-        ? appState.workspaceSelection.selectedTarget
-        : explicitObjectTarget?.kind === 'object'
-          ? explicitObjectTarget
-          : null
-    if (selectedTarget !== null) {
-      const objectRecord = appState.projectContent.objectsById[selectedTarget.objectId]
-      if (objectRecord !== undefined) {
-        return buildObjectPartKeys(objectRecord)[0] ?? null
-      }
-    }
-    return appState.workspaceSelection.resolvedContentSelection?.partKeys[0] ?? null
+    return resolveSelectedObjectPartKeyForZoomFromAppState(useAppStore.getState())
   }, [])
 
   const resolveSelectionSetForZoom = useCallback(() => {

@@ -1262,3 +1262,279 @@
   border-color: var(--v15-panel-border-soft);
   background: rgba(255, 255, 255, 0.08);
 }
+
+.BrowserImportDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 6, 10, 0.52);
+}
+
+.BrowserImportDialog {
+  width: min(460px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(124, 160, 255, 0.24);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(22, 26, 34, 0.98), rgba(10, 12, 18, 0.98));
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(124, 160, 255, 0.08);
+  color: rgba(238, 242, 255, 0.96);
+}
+
+.BrowserImportDialogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.BrowserImportDialogEyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(144, 176, 255, 0.88);
+}
+
+.BrowserImportDialogTitle {
+  margin: 4px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.V15Panel button.BrowserImportDialogClose,
+.V15Panel button.BrowserImportDialogClose:hover,
+.V15Panel button.BrowserImportDialogAction,
+.V15Panel button.BrowserImportDialogAction:hover {
+  min-width: 32px;
+  border-radius: 8px;
+}
+
+.V15Panel button.BrowserImportDialogClose,
+.V15Panel button.BrowserImportDialogClose:hover {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(245, 247, 255, 0.94);
+}
+
+.V15Panel button.BrowserImportDialogClose:hover {
+  border-color: rgba(124, 160, 255, 0.36);
+  background: rgba(124, 160, 255, 0.12);
+}
+
+.BrowserImportDialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.BrowserImportDialogCopy {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(232, 237, 255, 0.88);
+}
+
+.BrowserImportDialogMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.BrowserImportDialogMeta--stacked {
+  gap: 8px;
+}
+
+.BrowserImportDialogMetaLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(164, 176, 208, 0.78);
+}
+
+.BrowserImportDialogTypeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.BrowserImportDialogTypeChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(124, 160, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(124, 160, 255, 0.08);
+  color: rgba(230, 237, 255, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.BrowserImportDialogBrowserRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.BrowserImportDialogBrowserRowCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.BrowserImportDialogBrowserRowHint {
+  font-size: 13px;
+  color: rgba(232, 237, 255, 0.88);
+}
+
+.BrowserImportDialogMetaValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(238, 242, 255, 0.94);
+}
+
+.BrowserImportDialogEmptyState {
+  padding: 10px 12px;
+  border: 1px dashed rgba(124, 160, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(124, 160, 255, 0.04);
+  color: rgba(232, 237, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.BrowserImportDialogStagedList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.BrowserImportDialogStagedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.BrowserImportDialogStagedRowMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.BrowserImportDialogStagedRowOrder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(124, 160, 255, 0.12);
+  color: rgba(240, 244, 255, 0.96);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.BrowserImportDialogStagedRowText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.BrowserImportDialogStagedRowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(238, 242, 255, 0.96);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.BrowserImportDialogStagedRowHint {
+  color: rgba(164, 176, 208, 0.82);
+  font-size: 11px;
+}
+
+.BrowserImportDialogStagedRowType {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(124, 160, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(124, 160, 255, 0.08);
+  color: rgba(230, 237, 255, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.BrowserImportDialogActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.V15Panel button.BrowserImportDialogBrowseButton,
+.V15Panel button.BrowserImportDialogBrowseButton:hover,
+.V15Panel button.BrowserImportDialogAction,
+.V15Panel button.BrowserImportDialogAction:hover {
+  min-width: 112px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(245, 247, 255, 0.94);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.V15Panel button.BrowserImportDialogBrowseButton:hover,
+.V15Panel button.BrowserImportDialogAction:hover {
+  border-color: rgba(124, 160, 255, 0.4);
+  background: rgba(124, 160, 255, 0.14);
+}
+
+.V15Panel button.BrowserImportDialogBrowseButton:disabled,
+.V15Panel button.BrowserImportDialogBrowseButton:hover:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}

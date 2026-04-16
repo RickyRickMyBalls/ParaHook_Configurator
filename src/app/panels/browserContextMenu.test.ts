@@ -268,6 +268,8 @@ const createDeps = () =>
     retryReferenceItemLoad: vi.fn(),
     setReferenceItemVisibility: vi.fn(),
     setPartVisibility: vi.fn(),
+    canExplodeImportedReferenceRow: vi.fn(() => false),
+    handleExplodeImportedReferenceRow: vi.fn(),
     handleRetryImportedReferenceRow: vi.fn(),
     handleRemoveImportedReferenceRow: vi.fn(),
     handleRemoveImportedReferenceRows: vi.fn(),
@@ -340,6 +342,24 @@ describe('buildBrowserContextMenuItems', () => {
     expect(removeItem?.label).toBe('Remove')
     expect(deps.handleRetryImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
     expect(deps.handleRemoveImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
+  })
+
+  it('adds Explode for eligible imported content-object rows and routes it through the explode seam', () => {
+    const deps = createDeps()
+    deps.canExplodeImportedReferenceRow.mockReturnValue(true)
+    const items = buildBrowserContextMenuItems({
+      ...importedContentObjectRow(),
+      isVisible: true,
+      referenceState: 'active',
+      errorMessage: null,
+    }, deps)
+    const explodeItem = items.find((item) => item.id === 'imported-object:explode')
+
+    explodeItem?.onSelect()
+
+    expect(explodeItem?.label).toBe('Explode')
+    expect(deps.canExplodeImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
+    expect(deps.handleExplodeImportedReferenceRow).toHaveBeenCalledWith('shoe-1')
   })
 
   it('uses grouped remove for imported reference rows when a deletable multi-select action is available', () => {

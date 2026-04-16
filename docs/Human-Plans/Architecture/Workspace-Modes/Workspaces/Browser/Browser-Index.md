@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+136. 2026-04-16 07:34:41: Split the planned `Browser-14 / Phase 9 - High-Part Explode Performance Optimization` follow-on into its own standalone future doc so the Browser-14 umbrella can stay family-level while the next large-explode optimization pass now has a dedicated implementation-prep planning surface
 135. 2026-04-16 00:25:02: Added `Browser-14 - Explicit Part Explosion Into Real Object Rows` as the next Browser parts-focused follow-on after the earlier part-row exposure and cleanup work, locking that explicit `Explode` on eligible reference-backed object rows should promote truthful child parts into sibling real object rows through a dedicated Browser-owned command instead of leaving those parts permanently trapped under one imported wrapper row
 134. 2026-04-15 23:05: Tightened the Browser `12.2.3` planning surface into implementation-prep shape after `12.2.2` landed, and refreshed the Browser family ladder so the `12.2` umbrella now reads Browser context-menu plus selected Console parity as already in place while keyboard hide parity remains the next queued slice
 133. 2026-04-15 22:34: Folded shipped `Browser-13 - Phase 1` and `Browser-13 - Phase 2` detail back into the `Browser-13 - UI Clean Polish And Cleanup` umbrella doc, corrected the Browser family ladder so `Phase 2` now reads as shipped, and marked that umbrella file as the canonical working planning surface for the Browser-13 cleanup ladder
@@ -3030,3 +3031,5 @@ Decision:
   - land the real per-part ownership conversion cleanly before widening the command surface further
 - standalone phase doc:
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`
+- standalone phase doc:
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Phase 9 - High-Part Explode Performance Optimization.md`

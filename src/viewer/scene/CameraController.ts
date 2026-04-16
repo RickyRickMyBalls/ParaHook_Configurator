@@ -83,6 +83,8 @@ export class CameraController {
     | {
         elapsed: number
         duration: number
+        fromOrthoViewHeight?: number
+        toOrthoViewHeight?: number
       }
     | null = null
   private temporaryOrbitDrag:
@@ -190,6 +192,22 @@ export class CameraController {
         easedT,
       )
       activeCamera.up.lerpVectors(this.transitionFromUp, this.transitionToUp, easedT).normalize()
+      if (
+        this.projectionMode === 'orthographic' &&
+        this.cameraTransition.fromOrthoViewHeight !== undefined &&
+        this.cameraTransition.toOrthoViewHeight !== undefined
+      ) {
+        this.orthoViewHeight = MathUtils.lerp(
+          this.cameraTransition.fromOrthoViewHeight,
+          this.cameraTransition.toOrthoViewHeight,
+          easedT,
+        )
+        this.updateOrthographicFrustum()
+      } else if (this.projectionMode === 'perspective' && this.clipRangeMode === 'auto') {
+        this.syncNearFarFromDistance(
+          Math.max(this.perspectiveCamera.position.distanceTo(this.controls.target), MIN_CAMERA_DISTANCE),
+        )
+      }
       activeCamera.lookAt(this.controls.target)
       activeCamera.updateProjectionMatrix()
       if (linearT >= 1) {
@@ -604,10 +622,30 @@ export class CameraController {
     this.controls.update()
   }
 
-  public frameBox(box3: Box3): void {
-    this.cameraTransition = null
-    if (box3.isEmpty()) {
+  public frameBox(
+    box3: Box3,
+    options?: {
+      animate?: boolean
+      durationMs?: number
+    },
+  ): void {
+    const nextPose = this.resolveFramePose(box3)
+    if (nextPose === null) {
       return
+    }
+    if (options?.animate === true) {
+      this.animateToPose(nextPose, {
+        durationMs: options.durationMs,
+      })
+      return
+    }
+    this.cameraTransition = null
+    this.applyPose(nextPose)
+  }
+
+  private resolveFramePose(box3: Box3): CameraPose | null {
+    if (box3.isEmpty()) {
+      return null
     }
 
     box3.getCenter(this.tmpCenter)
@@ -621,38 +659,65 @@ export class CameraController {
 
     const viewExtents = this.measureViewPlaneExtents(box3, this.tmpDirection, activeCamera.up)
     const nextDistance = Math.max(activeCamera.position.distanceTo(this.controls.target), 0.5)
-    this.controls.target.copy(this.tmpCenter)
-    activeCamera.position.copy(this.tmpCenter).addScaledVector(this.tmpDirection, nextDistance)
-    activeCamera.lookAt(this.controls.target)
 
     if (this.projectionMode === 'orthographic') {
-      this.orthoViewHeight = Math.max(
+      const nextOrthoViewHeight = Math.max(
         FIT_PADDING * Math.max(viewExtents.height, viewExtents.width / this.getAspect()),
         0.001,
       )
-      this.updateOrthographicFrustum()
-    } else {
-      const verticalFov = MathUtils.degToRad(this.perspectiveCamera.fov)
-      const fitHeightDistance = (viewExtents.height / 2) / Math.max(Math.tan(verticalFov / 2), 1e-6)
-      const fitWidthDistance =
-        (viewExtents.width / 2) /
-        Math.max(Math.tan(verticalFov / 2) * this.getAspect(), 1e-6)
-      const distance = Math.max(FIT_PADDING * Math.max(fitHeightDistance, fitWidthDistance), 0.5)
-      this.perspectiveCamera.position.copy(this.tmpCenter).addScaledVector(this.tmpDirection, distance)
-      this.syncNearFarFromDistance(distance)
-      this.perspectiveCamera.updateProjectionMatrix()
+      const clipRange = this.resolveClipRangeFromDistance(nextDistance)
+      return {
+        position: this.tmpCenter.clone().addScaledVector(this.tmpDirection, nextDistance),
+        target: this.tmpCenter.clone(),
+        up: activeCamera.up.clone().normalize(),
+        projectionMode: this.projectionMode,
+        perspectiveFovDeg: this.lastPerspectiveFovDeg,
+        orthoViewHeight: nextOrthoViewHeight,
+        clipRangeMode: clipRange.mode,
+        clipStart: clipRange.clipStart,
+        clipEnd: clipRange.clipEnd,
+      }
     }
-    this.controls.update()
+    const verticalFov = MathUtils.degToRad(this.perspectiveCamera.fov)
+    const fitHeightDistance = (viewExtents.height / 2) / Math.max(Math.tan(verticalFov / 2), 1e-6)
+    const fitWidthDistance =
+      (viewExtents.width / 2) /
+      Math.max(Math.tan(verticalFov / 2) * this.getAspect(), 1e-6)
+    const distance = Math.max(FIT_PADDING * Math.max(fitHeightDistance, fitWidthDistance), 0.5)
+    const clipRange = this.resolveClipRangeFromDistance(distance)
+    return {
+      position: this.tmpCenter.clone().addScaledVector(this.tmpDirection, distance),
+      target: this.tmpCenter.clone(),
+      up: activeCamera.up.clone().normalize(),
+      projectionMode: this.projectionMode,
+      perspectiveFovDeg: this.lastPerspectiveFovDeg,
+      orthoViewHeight: this.orthoViewHeight,
+      clipRangeMode: clipRange.mode,
+      clipStart: clipRange.clipStart,
+      clipEnd: clipRange.clipEnd,
+    }
   }
 
-  public frameAll(sceneRoot: Object3D): void {
+  public frameAll(
+    sceneRoot: Object3D,
+    options?: {
+      animate?: boolean
+      durationMs?: number
+    },
+  ): void {
     const bounds = new Box3().setFromObject(sceneRoot, true)
-    this.frameBox(bounds)
+    this.frameBox(bounds, options)
   }
 
-  public frameObject(obj: Object3D): void {
+  public frameObject(
+    obj: Object3D,
+    options?: {
+      animate?: boolean
+      durationMs?: number
+    },
+  ): void {
     const bounds = new Box3().setFromObject(obj, true)
-    this.frameBox(bounds)
+    this.frameBox(bounds, options)
   }
 
   public frameWindowClientRect(
@@ -768,7 +833,13 @@ export class CameraController {
     return this.tmpCenter.clone()
   }
 
-  public setPreset(preset: CameraPreset): void {
+  public setPreset(
+    preset: CameraPreset,
+    options?: {
+      animate?: boolean
+      durationMs?: number
+    },
+  ): void {
     const direction = new Vector3(1, 1, 1).normalize()
 
     switch (preset) {
@@ -791,6 +862,13 @@ export class CameraController {
       default:
         direction.set(1, 1, 1).normalize()
         break
+    }
+
+    if (options?.animate === true) {
+      this.animateToDirection(direction, {
+        durationMs: options.durationMs,
+      })
+      return
     }
 
     this.snapToDirection(direction)
@@ -951,6 +1029,8 @@ export class CameraController {
     this.cameraTransition = {
       elapsed: 0,
       duration: Math.max((options?.durationMs ?? 320) / 1000, 0.001),
+      fromOrthoViewHeight: this.orthoViewHeight,
+      toOrthoViewHeight: this.orthoViewHeight,
     }
   }
 
@@ -963,10 +1043,10 @@ export class CameraController {
     this.lastPerspectiveFovDeg = pose.perspectiveFovDeg
     this.perspectiveCamera.fov = this.lastPerspectiveFovDeg
     this.perspectiveCamera.updateProjectionMatrix()
-    this.orthoViewHeight = Math.max(pose.orthoViewHeight, 0.001)
     this.applyPoseClipRange(pose)
     this.setProjectionMode(pose.projectionMode)
     const activeCamera = this.getActiveCamera()
+    const transitionFromOrthoViewHeight = this.orthoViewHeight
     this.transitionFromPosition.copy(activeCamera.position)
     this.transitionFromTarget.copy(this.controls.target)
     this.transitionFromUp.copy(activeCamera.up)
@@ -976,6 +1056,8 @@ export class CameraController {
     this.cameraTransition = {
       elapsed: 0,
       duration: Math.max((options?.durationMs ?? 320) / 1000, 0.001),
+      fromOrthoViewHeight: transitionFromOrthoViewHeight,
+      toOrthoViewHeight: Math.max(pose.orthoViewHeight, 0.001),
     }
   }
 

@@ -400,6 +400,49 @@ describe('CameraController', () => {
     expect(pose.position.z).toBeLessThan(0)
   })
 
+  it('can animate a camera preset instead of snapping when requested', () => {
+    const { controller } = createController()
+    const animateSpy = vi.spyOn(controller, 'animateToDirection')
+    const snapSpy = vi.spyOn(controller, 'snapToDirection')
+
+    controller.setPreset('back', {
+      animate: true,
+      durationMs: 123,
+    })
+
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    expect(animateSpy.mock.calls[0]?.[0]).toMatchObject({
+      x: 0,
+      y: 0,
+      z: -1,
+    })
+    expect(animateSpy.mock.calls[0]?.[1]).toMatchObject({
+      durationMs: 123,
+    })
+    expect(snapSpy).not.toHaveBeenCalled()
+  })
+
+  it('replaces an in-flight animated preset transition when a newer preset is requested', () => {
+    const { controller } = createController()
+
+    controller.setPreset('front', {
+      animate: true,
+      durationMs: 1000,
+    })
+    controller.update(0.1)
+
+    controller.setPreset('left', {
+      animate: true,
+      durationMs: 1,
+    })
+    controller.update(1)
+
+    const pose = controller.getPose()
+    expect(pose.position.x).toBeLessThan(0)
+    expect(pose.position.y).toBeCloseTo(0, 6)
+    expect(pose.position.z).toBeCloseTo(0, 6)
+  })
+
   it('frames bounds correctly in orthographic mode', () => {
     const { controller, orthographicCamera } = createController()
     controller.setProjectionMode('orthographic')
@@ -411,6 +454,45 @@ describe('CameraController', () => {
     const orthoWidth = orthographicCamera.right - orthographicCamera.left
     expect(orthoWidth).toBeGreaterThanOrEqual(10)
     expect(orthoHeight).toBeGreaterThanOrEqual(4)
+  })
+
+  it('can animate object framing instead of snapping when requested', () => {
+    const { controller } = createController()
+    const animateSpy = vi.spyOn(controller, 'animateToPose')
+
+    const box = new Mesh(new BoxGeometry(10, 4, 2), new MeshBasicMaterial())
+    controller.frameObject(box, {
+      animate: true,
+      durationMs: 275,
+    })
+
+    expect(animateSpy).toHaveBeenCalledTimes(1)
+    expect(animateSpy.mock.calls[0]?.[1]).toMatchObject({
+      durationMs: 275,
+    })
+  })
+
+  it('interpolates orthographic zoom height during an animated object frame', () => {
+    const { controller, orthographicCamera } = createController()
+    controller.setProjectionMode('orthographic')
+    const box = new Mesh(new BoxGeometry(12, 8, 2), new MeshBasicMaterial())
+
+    const orthoHeightBefore = orthographicCamera.top - orthographicCamera.bottom
+
+    controller.frameObject(box, {
+      animate: true,
+      durationMs: 1000,
+    })
+    controller.update(0.5)
+
+    const orthoHeightMid = orthographicCamera.top - orthographicCamera.bottom
+    expect(orthoHeightMid).not.toBeCloseTo(orthoHeightBefore, 6)
+
+    controller.update(0.5)
+
+    const orthoHeightAfter = orthographicCamera.top - orthographicCamera.bottom
+    expect(orthoHeightAfter).toBeGreaterThanOrEqual(8)
+    expect(orthoHeightAfter).not.toBeCloseTo(orthoHeightBefore, 6)
   })
 
   it('stores projection metadata in camera poses and can animate back to an orthographic pose', () => {

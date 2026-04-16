@@ -50,6 +50,9 @@ export type ReferenceLoadableItem = {
   fileType: ReferenceFileType
   displayTransform?: ReferenceDisplayTransform
   transformOverride?: ReferenceTransformOverride | null
+  explodedFromReferenceId?: string | null
+  sourcePartKey?: string | null
+  sourceMeshIndex?: number | null
 }
 
 export const USER_REFERENCE_CATEGORY_ID = 'user-references' as const

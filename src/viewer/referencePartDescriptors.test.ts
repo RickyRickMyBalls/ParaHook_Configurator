@@ -23,4 +23,34 @@ describe('extractReferencePartDescriptors', () => {
 
     expect(extractReferencePartDescriptors('ref-1', root)).toEqual([])
   })
+
+  it('disambiguates duplicate meaningful part labels in stable source order', () => {
+    const root = new Group()
+    const firstBracketGroup = new Group()
+    firstBracketGroup.name = 'Bracket'
+    firstBracketGroup.add(new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial()))
+    const secondBracketGroup = new Group()
+    secondBracketGroup.name = 'Bracket'
+    secondBracketGroup.add(new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial()))
+    root.add(firstBracketGroup, secondBracketGroup)
+
+    expect(extractReferencePartDescriptors('ref-dup', root)).toEqual([
+      { partKey: 'reference-part:ref-dup:0', label: 'Bracket', sourceMeshIndex: 0 },
+      { partKey: 'reference-part:ref-dup:1', label: 'Bracket 2', sourceMeshIndex: 1 },
+    ])
+  })
+
+  it('falls back to deterministic Part N labels when the source names stay generic', () => {
+    const root = new Group()
+    const first = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial())
+    first.name = 'Mesh'
+    const second = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial())
+    second.name = 'Mesh_1'
+    root.add(first, second)
+
+    expect(extractReferencePartDescriptors('ref-flat', root)).toEqual([
+      { partKey: 'reference-part:ref-flat:0', label: 'Part 1', sourceMeshIndex: 0 },
+      { partKey: 'reference-part:ref-flat:1', label: 'Part 2', sourceMeshIndex: 1 },
+    ])
+  })
 })

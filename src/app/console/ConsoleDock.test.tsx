@@ -5624,7 +5624,10 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some((entry) => entry.text === 'Select > Content > Assembly 1 > Component 1 > Object 1 > Zoom'),
     ).toBe(true)
-    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:slot-a')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:output-entry-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Content > Assembly 1 > Component 1 > Object 1 > Choose next',
@@ -5889,7 +5892,7 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['graph-document-1:slot-a'], [])
+    expect(viewerFrameSelectionSet).toHaveBeenCalledWith(['graph-document-1:output-entry-1'], [])
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentAssemblySelected')
   })
 
@@ -5968,6 +5971,73 @@ describe('ConsoleDock', () => {
     ).toBeUndefined()
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Deleted shoe.glb'),
+    ).toBe(true)
+  })
+
+  it('executes explode from a selected explodable imported reference-object console session', async () => {
+    const { buildImportedReferenceRowId } = await import('../store/useAppStore')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    let importedReferenceId = ''
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      importedReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'explode-console.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:explode-console',
+      })
+      useAppStore.getState().setReferenceItemPartRows(importedReferenceId, [
+        {
+          partKey: `${importedReferenceId}:part-a`,
+          label: 'Part A',
+          sourceMeshIndex: 0,
+        },
+        {
+          partKey: `${importedReferenceId}:part-b`,
+          label: 'Part B',
+          sourceMeshIndex: 1,
+        },
+      ])
+      useAppStore.getState().setReferenceItemLoadState(importedReferenceId, 'loaded')
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'object',
+        objectId: buildImportedReferenceRowId(importedReferenceId),
+      })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
+    expect(
+      useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label),
+    ).toEqual(['ViewTransform', 'Move', 'Rotate', 'Scale', 'Explode', 'Hide', 'Delete', 'Zoom', 'Back'])
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Explode')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.importedReferencesById[importedReferenceId],
+    ).toBeUndefined()
+    expect(
+      Object.values(useAppStore.getState().referenceWorkspace.importedReferencesById)
+        .filter((reference) => reference.explodedFromReferenceId === importedReferenceId)
+        .map((reference) => reference.label),
+    ).toEqual(['Part A', 'Part B'])
+    expect(useAppStore.getState().workspaceSelection.selectedTarget).toBeNull()
+    expect(
+      useConsoleStore.getState().entries.some(
+        (entry) => entry.text === 'Exploded explode-console.glb',
+      ),
     ).toBe(true)
   })
 
@@ -6605,7 +6675,10 @@ describe('ConsoleDock', () => {
         .getState()
         .entries.some((entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom'),
     ).toBe(true)
-    expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1')
+    expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > References > Shoes > Shoe 1 > Choose next',
@@ -6653,7 +6726,10 @@ describe('ConsoleDock', () => {
         (entry) => entry.text === 'Select > References > Shoes > Shoe 1 > Zoom',
       ),
     ).toBe(true)
-    expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1')
+    expect(viewerFrameReference).toHaveBeenCalledWith('shoe:shoe-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('referenceSelected')
   })
 
@@ -11636,7 +11712,10 @@ describe('ConsoleDock', () => {
       form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
     })
 
-    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:slot-a')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:output-entry-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Select > Content > Object 1 > Choose next',
@@ -11717,7 +11796,10 @@ describe('ConsoleDock', () => {
         (entry) => entry.text === 'Select > Content > Object 1 > Zoom',
       ),
     ).toBe(true)
-    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:slot-a')
+    expect(viewerFrameSelected).toHaveBeenCalledWith('graph-document-1:output-entry-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(
       useConsoleStore.getState().entries.some(
         (entry) => entry.text === 'Zoom Object requires a selected part, object, or reference',

@@ -10,7 +10,11 @@ import {
   BrowserGraphDocumentsSection,
   BrowserOpenEditorsSection,
 } from './browserTreeSections'
-import { BrowserImportMenu, BrowserRowContextMenu } from './browserTreeMenus'
+import {
+  BrowserImportDialog,
+  BrowserImportMenu,
+  BrowserRowContextMenu,
+} from './browserTreeMenus'
 import { useBrowserPanelController } from './useBrowserPanelController'
 import type { BrowserPresentationMode } from '../workspace/workspaceShellTypes'
 
@@ -213,8 +217,15 @@ export function BrowserPanel({
       <BrowserImportMenu
         importMenu={overlay.importMenu}
         menuRef={overlay.importMenuRef}
+        onOpenImportFiles={overlay.onOpenImportFiles}
         onImportReferenceFile={overlay.onImportReferenceFile}
         style={overlay.importMenuStyle}
+      />
+      <BrowserImportDialog
+        draft={overlay.stagedImportDraft}
+        isBrowsing={overlay.isBrowsingImportFiles}
+        onBrowse={overlay.onBrowseImportFiles}
+        onClose={overlay.onCloseImportDialog}
       />
     </section>
   )

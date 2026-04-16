@@ -806,6 +806,8 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'References', 'Category', 'LoadAll')
     case 'reference.loadModel':
       return buildIdentity('Console', 'References', 'Item', 'LoadModel')
+    case 'reference.explode':
+      return buildIdentity('Console', 'References', 'Explode')
     case 'reference.transform.move':
       return buildIdentity('Console', 'References', 'Transform', 'Move')
     case 'reference.transform.rotate':

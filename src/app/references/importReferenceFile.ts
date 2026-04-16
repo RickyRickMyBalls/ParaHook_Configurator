@@ -40,6 +40,8 @@ export type ImportedReferenceFile = {
   objectUrl: string
 }
 
+export const SUPPORTED_REFERENCE_IMPORT_FILE_TYPES = ['step', 'stl', 'obj', 'glb'] as const
+
 export const REFERENCE_IMPORT_LABEL_BY_FILE_TYPE: Record<ReferenceFileType, string> = {
   step: 'Import .step',
   stl: 'Import .stl',
@@ -53,6 +55,10 @@ export const REFERENCE_IMPORT_ACCEPT_BY_FILE_TYPE: Record<ReferenceFileType, str
   obj: '.obj',
   glb: '.glb',
 }
+
+export const SUPPORTED_REFERENCE_IMPORT_ACCEPT = SUPPORTED_REFERENCE_IMPORT_FILE_TYPES.map(
+  (fileType) => REFERENCE_IMPORT_ACCEPT_BY_FILE_TYPE[fileType],
+).join(',')
 
 const getBrowserReferenceImportEnv = (): ReferenceImportEnv => {
   if (
@@ -109,6 +115,14 @@ const createImportedReferenceFile = (
 const getSelectedReferenceFiles = (input: InputLike): FileLike[] =>
   input.files === undefined || input.files === null ? [] : Array.from(input.files)
 
+const inferReferenceFileTypeFromName = (fileName: string): ReferenceFileType | null => {
+  const normalizedFileName = fileName.trim().toLowerCase()
+  const matchedFileType = SUPPORTED_REFERENCE_IMPORT_FILE_TYPES.find((fileType) =>
+    normalizedFileName.endsWith(`.${fileType}`),
+  )
+  return matchedFileType ?? null
+}
+
 const importReferenceFilesWithOptions = async (
   fileType: ReferenceFileType,
   env: ReferenceImportEnv,
@@ -164,4 +178,54 @@ export const importReferenceFileFromDisk = async (
     throw new Error('No reference file selected.')
   }
   return file
+}
+
+export const importSupportedReferenceFilesFromDisk = async (
+  env: ReferenceImportEnv = getBrowserReferenceImportEnv(),
+): Promise<ImportedReferenceFile[]> => {
+  const input = env.documentRef.createElement('input')
+  input.type = 'file'
+  input.accept = SUPPORTED_REFERENCE_IMPORT_ACCEPT
+  input.multiple = true
+
+  if (env.documentRef.body !== undefined) {
+    env.documentRef.body.appendChild(input as unknown as Node)
+  }
+
+  return new Promise<ImportedReferenceFile[]>((resolve, reject) => {
+    const cleanup = () => {
+      input.onchange = null
+      input.remove()
+    }
+
+    input.onchange = () => {
+      const files = getSelectedReferenceFiles(input)
+      if (files.length === 0) {
+        cleanup()
+        reject(new Error('No reference file selected.'))
+        return
+      }
+
+      try {
+        const importedFiles = files.map((file) => {
+          const fileType = inferReferenceFileTypeFromName(file.name ?? '')
+          if (fileType === null) {
+            throw new Error('Unsupported reference file type selected.')
+          }
+          return createImportedReferenceFile(file, fileType, env)
+        })
+        resolve(importedFiles)
+      } catch (error) {
+        reject(
+          error instanceof Error
+            ? error
+            : new Error('Failed to create workspace URLs for the imported references.'),
+        )
+      } finally {
+        cleanup()
+      }
+    }
+
+    input.click()
+  })
 }

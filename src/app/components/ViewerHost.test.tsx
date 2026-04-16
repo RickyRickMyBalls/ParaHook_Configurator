@@ -30,6 +30,7 @@ let viewerSetViewerTransformSession: ReturnType<typeof vi.fn>
 let viewerSetViewerTransformHistoryOverlay: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
 let viewerGetReferencePartDescriptors: ReturnType<typeof vi.fn>
+let viewerHandoffExplodedReferenceChildren: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
@@ -162,6 +163,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerSetReferenceTransformOverride(...args)
     public getReferencePartDescriptors = (...args: unknown[]) =>
       viewerGetReferencePartDescriptors(...args)
+    public handoffExplodedReferenceChildren = (...args: unknown[]) =>
+      viewerHandoffExplodedReferenceChildren(...args)
     public setOnReferenceTransformChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformChange(...args)
     public setOnReferenceTransformCommit = (...args: unknown[]) =>
@@ -517,6 +520,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetViewerTransformHistoryOverlay = vi.fn()
     viewerSetReferenceTransformOverride = vi.fn()
     viewerGetReferencePartDescriptors = vi.fn(() => [])
+    viewerHandoffExplodedReferenceChildren = vi.fn(() => [])
     viewerSetOnReferenceTransformChange = vi.fn()
     viewerSetOnReferenceTransformCommit = vi.fn()
     viewerSetOnReferenceTransformExit = vi.fn()
@@ -951,6 +955,155 @@ describe('ViewerHost reference loading', () => {
         sourceMeshIndex: 1,
       },
     ])
+  })
+
+  it('passes exploded reference provenance into viewer loads and keeps exploded child part rows empty', async () => {
+    const load = deferred<void>()
+    viewerEnsureReferenceLoaded.mockReturnValue(load.promise)
+    viewerGetReferencePartDescriptors.mockReturnValue([
+      { partKey: 'reference-part:child:0', label: 'Should Stay Hidden', sourceMeshIndex: 0 },
+    ])
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    const wrapperReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'wrapper.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:wrapper',
+    })
+    useAppStore.getState().setReferenceItemLoadState(wrapperReferenceId, 'loaded')
+    useAppStore.getState().setReferenceItemPartRows(wrapperReferenceId, [
+      {
+        partKey: 'reference-part:wrapper:0',
+        label: 'Upper',
+        sourceMeshIndex: 0,
+      },
+      {
+        partKey: 'reference-part:wrapper:1',
+        label: 'Sole',
+        sourceMeshIndex: 1,
+      },
+    ])
+    expect(useAppStore.getState().explodeImportedReference(wrapperReferenceId)).toBe(true)
+
+    const explodedChildReferenceId = useAppStore
+      .getState()
+      .referenceWorkspace.importedReferenceOrder.find(
+        (referenceId) =>
+          useAppStore.getState().referenceWorkspace.importedReferencesById[referenceId]
+            ?.explodedFromReferenceId === wrapperReferenceId,
+      )
+    expect(explodedChildReferenceId).not.toBeNull()
+
+    act(() => {
+      useAppStore.getState().toggleReferenceItemVisibility(explodedChildReferenceId!)
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({
+      referenceId: explodedChildReferenceId,
+      assetPath: 'blob:wrapper',
+      explodedFromReferenceId: wrapperReferenceId,
+      sourcePartKey: 'reference-part:wrapper:0',
+      sourceMeshIndex: 0,
+    })
+
+    await act(async () => {
+      load.resolve()
+      await load.promise
+    })
+
+    expect(
+      useAppStore.getState().referenceWorkspace.partRowsByReferenceId[explodedChildReferenceId!],
+    ).toEqual([])
+  })
+
+  it('keeps exploded children loaded and visible after splitting a wrapper that is already live in the viewer', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    const wrapperReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'wrapper.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:wrapper',
+    })
+
+    act(() => {
+      useAppStore.getState().setReferenceItemLoadState(wrapperReferenceId, 'loaded')
+      useAppStore.getState().setReferenceItemVisibility(wrapperReferenceId, true)
+      useAppStore.getState().setReferenceItemPartRows(wrapperReferenceId, [
+        {
+          partKey: 'reference-part:wrapper:0',
+          label: 'Upper',
+          sourceMeshIndex: 0,
+        },
+        {
+          partKey: 'reference-part:wrapper:1',
+          label: 'Sole',
+          sourceMeshIndex: 1,
+        },
+      ])
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(viewerSetReferenceVisible).toHaveBeenCalledWith(wrapperReferenceId, true)
+
+    viewerHandoffExplodedReferenceChildren.mockImplementation(
+      (
+        _wrapperReferenceId: string,
+        children: Array<{ referenceId: string }>,
+      ) => children.map((child) => child.referenceId),
+    )
+
+    await act(async () => {
+      expect(useAppStore.getState().explodeImportedReference(wrapperReferenceId)).toBe(true)
+    })
+
+    const state = useAppStore.getState()
+    const childReferenceIds = state.referenceWorkspace.importedReferenceOrder.filter(
+      (referenceId) =>
+        state.referenceWorkspace.importedReferencesById[referenceId]?.explodedFromReferenceId ===
+        wrapperReferenceId,
+    )
+
+    expect(viewerHandoffExplodedReferenceChildren).toHaveBeenCalledTimes(1)
+    expect(viewerHandoffExplodedReferenceChildren.mock.calls[0]?.[0]).toBe(wrapperReferenceId)
+    expect(viewerHandoffExplodedReferenceChildren.mock.calls[0]?.[1]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          explodedFromReferenceId: wrapperReferenceId,
+          sourcePartKey: 'reference-part:wrapper:0',
+          sourceMeshIndex: 0,
+        }),
+        expect.objectContaining({
+          explodedFromReferenceId: wrapperReferenceId,
+          sourcePartKey: 'reference-part:wrapper:1',
+          sourceMeshIndex: 1,
+        }),
+      ]),
+    )
+    expect(viewerHandoffExplodedReferenceChildren.mock.calls[0]?.[2]).toBe(true)
+    expect(viewerEnsureReferenceLoaded).not.toHaveBeenCalled()
+    expect(state.referenceWorkspace.loadStateById[childReferenceIds[0]!]).toBe('loaded')
+    expect(state.referenceWorkspace.loadStateById[childReferenceIds[1]!]).toBe('loaded')
+    expect(state.referenceWorkspace.visibilityById[childReferenceIds[0]!]).toBe(true)
+    expect(state.referenceWorkspace.visibilityById[childReferenceIds[1]!]).toBe(true)
   })
 
   it('keeps a failed STEP row retryable by clearing visibility on error and loading again after the next click', async () => {

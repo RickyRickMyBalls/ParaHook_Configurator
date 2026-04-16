@@ -236,8 +236,9 @@ describe('routeKeyboardInput', () => {
   it('routes active viewer camera shortcuts before flat console capture', () => {
     const result = routeKeyboardInput({
       event: {
-        key: '5',
-        code: 'Numpad5',
+        key: 'Z',
+        code: 'KeyZ',
+        shiftKey: true,
         target: null,
       },
       viewerCameraShortcutsEnabled: true,

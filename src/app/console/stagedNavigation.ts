@@ -55,6 +55,7 @@ export type ConsoleStagedNavigationContext = {
       canLoadModel: boolean
       canDelete?: boolean
       canHide?: boolean
+      canExplode?: boolean
     }>
   }>
   referenceTransformShellByReferenceId: Record<
@@ -196,6 +197,7 @@ export type ConsoleStagedNavigationSelection = {
   referenceCanLoadModel?: boolean
   referenceCanDelete?: boolean
   referenceCanHide?: boolean
+  referenceCanExplode?: boolean
   referenceZoomIds?: string[]
   multiSelectLabels?: string[]
   multiSelectCanDelete?: boolean
@@ -281,6 +283,7 @@ export type ConsoleStagedNavigationExecuteResult = {
     | 'reference.loadAll'
     | 'reference.category.loadAll'
     | 'reference.loadModel'
+    | 'reference.explode'
     | 'reference.delete'
     | 'reference.hide'
     | 'reference.unhideAll'
@@ -969,6 +972,13 @@ const DELETE_CHOICE: ConsoleStagedNavigationChoice = {
   kind: 'action',
 }
 
+const EXPLODE_CHOICE: ConsoleStagedNavigationChoice = {
+  canonicalToken: 'EXPLODE',
+  aliases: ['EXP'],
+  label: 'Explode',
+  kind: 'action',
+}
+
 const HIDE_CHOICE: ConsoleStagedNavigationChoice = {
   canonicalToken: 'HIDE',
   aliases: ['H'],
@@ -1578,6 +1588,7 @@ const buildReferenceSelectedChoices = (
   canLoadModel: boolean,
   canDelete: boolean,
   canHide: boolean,
+  canExplode: boolean,
 ): ConsoleStagedNavigationChoice[] => [
   ...(canLoadModel
     ? [
@@ -1590,6 +1601,7 @@ const buildReferenceSelectedChoices = (
         MOVE_CHOICE,
         ROTATE_CHOICE,
         SCALE_CHOICE,
+        ...(canExplode ? [EXPLODE_CHOICE] : []),
         ...(canHide ? [HIDE_CHOICE] : []),
         ...(canDelete ? [DELETE_CHOICE] : []),
         ROOT_ZOOM_CHOICE,
@@ -2294,6 +2306,7 @@ const createReferenceSelectedSession = (
   canLoadModel: boolean,
   canDelete: boolean,
   canHide: boolean,
+  canExplode: boolean,
   referenceCategoryId: string | null = null,
   referenceCategoryLabel: string | null = null,
 ): ConsoleStagedNavigationSession => ({
@@ -2311,8 +2324,14 @@ const createReferenceSelectedSession = (
     referenceCanLoadModel: canLoadModel,
     referenceCanDelete: canDelete,
     referenceCanHide: canHide,
+    referenceCanExplode: canExplode,
   },
-  validChoices: buildReferenceSelectedChoices(canLoadModel, canDelete, canHide),
+  validChoices: buildReferenceSelectedChoices(
+    canLoadModel,
+    canDelete,
+    canHide,
+    canExplode,
+  ),
 })
 
 const createReferenceTransformRootSession = (
@@ -2963,6 +2982,7 @@ export const resolveConsoleWorkspaceContextSync = (
           target.canLoadModel ?? false,
           target.canDelete ?? false,
           target.canHide ?? false,
+          target.canExplode ?? false,
           target.referenceCategoryId ?? null,
           target.referenceCategoryLabel ?? null,
         ),
@@ -3035,6 +3055,7 @@ export const resolveConsoleWorkspaceContextSync = (
         target.canLoadModel,
         target.canDelete ?? false,
         target.canHide ?? false,
+        target.canExplode ?? false,
         target.referenceCategoryId,
         target.referenceCategoryLabel,
       ),
@@ -3411,6 +3432,7 @@ export const createConsoleStagedNavigationContext = (
         canLoadModel: item.canLoadModel,
         canDelete: item.canDelete ?? false,
         canHide: item.canHide ?? false,
+        canExplode: item.canExplode ?? false,
       })),
     })),
     sketchDraw,
@@ -4243,6 +4265,7 @@ export const submitConsoleStagedNavigationToken = (
           session.selections.referenceCanLoadModel ?? false,
           session.selections.referenceCanDelete ?? false,
           session.selections.referenceCanHide ?? false,
+          session.selections.referenceCanExplode ?? false,
           session.selections.referenceCategoryId ?? null,
           session.selections.referenceCategoryId !== null ? (session.breadcrumb.at(-3) ?? null) : null,
         ),
@@ -6116,6 +6139,7 @@ export const submitConsoleStagedNavigationToken = (
           matchedItem?.canLoadModel ?? true,
           matchedItem?.canDelete ?? false,
           matchedItem?.canHide ?? false,
+          matchedItem?.canExplode ?? false,
           session.selections.referenceCategoryId ?? null,
           session.breadcrumb.at(-1) ?? null,
         ),
@@ -6201,6 +6225,7 @@ export const submitConsoleStagedNavigationToken = (
       session.selections.referenceCanLoadModel ?? false,
       session.selections.referenceCanDelete ?? false,
       session.selections.referenceCanHide ?? false,
+      session.selections.referenceCanExplode ?? false,
     )
     const matchedChoice =
       referenceChoices.find((choice) => matchesChoice(choice, normalizedToken)) ?? null
@@ -6267,6 +6292,7 @@ export const submitConsoleStagedNavigationToken = (
       Extract<
         ConsoleStagedNavigationExecuteResult['actionId'],
         | 'reference.loadModel'
+        | 'reference.explode'
         | 'reference.delete'
         | 'reference.hide'
         | 'reference.transform.move'
@@ -6275,6 +6301,7 @@ export const submitConsoleStagedNavigationToken = (
       >
     > = {
       'LOAD MODEL': 'reference.loadModel',
+      EXPLODE: 'reference.explode',
       DELETE: 'reference.delete',
       HIDE: 'reference.hide',
       MOVE: 'reference.transform.move',

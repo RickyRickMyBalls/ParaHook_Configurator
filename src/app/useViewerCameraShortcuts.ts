@@ -2,12 +2,14 @@ import { useEffect } from 'react'
 import { useConsoleStore } from './console/useConsoleStore'
 import { routeKeyboardInput } from './inputRouting'
 import { useAppStore } from './store/useAppStore'
+import { useUiPrefsStore } from './store/uiPrefsStore'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import type { WorkspaceViewportId } from './workspace/workspaceShellTypes'
 import { useSpaghettiStore } from './spaghetti/store/useSpaghettiStore'
 import { getViewer } from './viewerBridge'
 import { resolveViewerCameraShortcutAction } from './cameraShortcuts'
-import { setCameraPresetCommand } from './viewCommands'
+import { resolveZoomObjectTarget } from './zoomObjectTarget'
+import { frameReferenceCommand, frameSelectedCommand, setCameraPresetCommand } from './viewCommands'
 
 export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void {
   useEffect(() => {
@@ -48,25 +50,55 @@ export function useViewerCameraShortcuts(viewportId: WorkspaceViewportId): void 
         return
       }
 
-      event.preventDefault()
-      event.stopImmediatePropagation()
-
       switch (action) {
+        case 'zoom-object': {
+          const zoomTarget = resolveZoomObjectTarget(appState)
+          if (zoomTarget === null) {
+            return
+          }
+          const animationOptions = {
+            animate: true,
+            durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+          } as const
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          if (zoomTarget.kind === 'part') {
+            frameSelectedCommand(zoomTarget.partKey, viewportId, animationOptions)
+            return
+          }
+          frameReferenceCommand(zoomTarget.referenceId, viewportId, animationOptions)
+          return
+        }
         case 'preset-top':
-          setCameraPresetCommand('top', viewportId)
-          return
         case 'preset-front':
-          setCameraPresetCommand('front', viewportId)
-          return
         case 'preset-back':
-          setCameraPresetCommand('back', viewportId)
-          return
         case 'preset-left':
-          setCameraPresetCommand('left', viewportId)
+        case 'preset-right': {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          const animationOptions = {
+            animate: true,
+            durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+          } as const
+          if (action === 'preset-top') {
+            setCameraPresetCommand('top', viewportId, animationOptions)
+            return
+          }
+          if (action === 'preset-front') {
+            setCameraPresetCommand('front', viewportId, animationOptions)
+            return
+          }
+          if (action === 'preset-back') {
+            setCameraPresetCommand('back', viewportId, animationOptions)
+            return
+          }
+          if (action === 'preset-left') {
+            setCameraPresetCommand('left', viewportId, animationOptions)
+            return
+          }
+          setCameraPresetCommand('right', viewportId, animationOptions)
           return
-        case 'preset-right':
-          setCameraPresetCommand('right', viewportId)
-          return
+        }
       }
     }
 

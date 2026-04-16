@@ -13,11 +13,13 @@ export type ViewerCameraShortcutAction =
   | 'preset-back'
   | 'preset-left'
   | 'preset-right'
+  | 'zoom-object'
 
 export type ViewerCameraShortcutBinding = {
   action: ViewerCameraShortcutAction
   code: string
   label: string
+  shiftKey?: boolean
 }
 
 export const viewerCameraShortcutBindings: ViewerCameraShortcutBinding[] = [
@@ -46,25 +48,34 @@ export const viewerCameraShortcutBindings: ViewerCameraShortcutBinding[] = [
     code: 'Numpad6',
     label: 'Right',
   },
+  {
+    action: 'zoom-object',
+    code: 'KeyZ',
+    label: 'Zoom Object',
+    shiftKey: true,
+  },
 ]
 
-const actionByShortcutCode = new Map(
-  viewerCameraShortcutBindings.map((binding) => [binding.code, binding.action]),
-)
-
-const hasNoExtraModifiers = (event: CameraShortcutKeyboardLikeEvent): boolean =>
-  !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey
+const hasExpectedModifiers = (
+  event: CameraShortcutKeyboardLikeEvent,
+  binding: ViewerCameraShortcutBinding,
+): boolean =>
+  Boolean(event.shiftKey) === Boolean(binding.shiftKey) &&
+  !event.ctrlKey &&
+  !event.altKey &&
+  !event.metaKey
 
 export const resolveViewerCameraShortcutAction = (
   event: CameraShortcutKeyboardLikeEvent,
 ): ViewerCameraShortcutAction | null => {
-  if (!hasNoExtraModifiers(event)) {
-    return null
-  }
-
   if (typeof event.code !== 'string' || event.code.length === 0) {
     return null
   }
 
-  return actionByShortcutCode.get(event.code) ?? null
+  const binding = viewerCameraShortcutBindings.find((candidate) => candidate.code === event.code)
+  if (binding === undefined || !hasExpectedModifiers(event, binding)) {
+    return null
+  }
+
+  return binding.action
 }

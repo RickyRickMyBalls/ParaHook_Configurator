@@ -3,6 +3,8 @@ import {
   REFERENCE_IMPORT_ACCEPT_BY_FILE_TYPE,
   importReferenceFileFromDisk,
   importReferenceFilesFromDisk,
+  importSupportedReferenceFilesFromDisk,
+  SUPPORTED_REFERENCE_IMPORT_ACCEPT,
 } from './importReferenceFile'
 
 describe('importReferenceFileFromDisk', () => {
@@ -208,5 +210,88 @@ describe('importReferenceFilesFromDisk', () => {
     ])
 
     expect(input.multiple).toBeUndefined()
+  })
+})
+
+describe('importSupportedReferenceFilesFromDisk', () => {
+  it('accepts all supported reference types through one multi-file picker and infers each file type from its name', async () => {
+    const firstFile = Object.assign(new Blob(['shoe']), { name: 'shoe.step' })
+    const secondFile = Object.assign(new Blob(['shoe']), { name: 'shoe.GLB' })
+    const input = {
+      type: '',
+      accept: '',
+      multiple: undefined as boolean | undefined,
+      onchange: null as (() => void) | null,
+      files: [firstFile, secondFile],
+      click: () => {
+        input.onchange?.()
+      },
+      remove: vi.fn(),
+    }
+    const createObjectURL = vi
+      .fn()
+      .mockReturnValueOnce('blob:shoe-step')
+      .mockReturnValueOnce('blob:shoe-glb')
+
+    await expect(
+      importSupportedReferenceFilesFromDisk({
+        documentRef: {
+          createElement: () => input,
+          body: {
+            appendChild: () => undefined,
+          },
+        },
+        urlRef: {
+          createObjectURL,
+        },
+      }),
+    ).resolves.toEqual([
+      {
+        fileName: 'shoe.step',
+        fileType: 'step',
+        objectUrl: 'blob:shoe-step',
+      },
+      {
+        fileName: 'shoe.GLB',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-glb',
+      },
+    ])
+
+    expect(input.type).toBe('file')
+    expect(input.accept).toBe(SUPPORTED_REFERENCE_IMPORT_ACCEPT)
+    expect(input.multiple).toBe(true)
+    expect(input.remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects unsupported file extensions in the staged import picker', async () => {
+    const file = Object.assign(new Blob(['shoe']), { name: 'shoe.unsupported' })
+    const input = {
+      type: '',
+      accept: '',
+      multiple: undefined as boolean | undefined,
+      onchange: null as (() => void) | null,
+      files: [file],
+      click: () => {
+        input.onchange?.()
+      },
+      remove: vi.fn(),
+    }
+
+    await expect(
+      importSupportedReferenceFilesFromDisk({
+        documentRef: {
+          createElement: () => input,
+          body: {
+            appendChild: () => undefined,
+          },
+        },
+        urlRef: {
+          createObjectURL: vi.fn(),
+        },
+      }),
+    ).rejects.toThrow('Unsupported reference file type selected.')
+
+    expect(input.remove).toHaveBeenCalledTimes(1)
   })
 })

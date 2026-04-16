@@ -231,6 +231,42 @@ describe('ViewToolbar', () => {
     expect(frameAllCommandMock).toHaveBeenCalledWith('model-viewer-primary')
   })
 
+  it('renders a shared camera transition slider in Projection & Framing and syncs it to ui prefs', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const subsection = container.querySelector(
+      '.CameraProjectionFramingSubsection',
+    ) as HTMLDetailsElement | null
+    const increaseButton = container.querySelector(
+      'button[aria-label="Increase Transition"]',
+    ) as HTMLButtonElement | null
+    const valueButton = container.querySelector(
+      'button[aria-label="Edit Transition value"]',
+    ) as HTMLButtonElement | null
+
+    expect(subsection?.textContent).toContain('Transition')
+    expect(increaseButton).not.toBeNull()
+    expect(valueButton?.textContent).toBe('320 ms')
+    expect(useUiPrefsStore.getState().cameraShortcutTransitionDurationMs).toBe(320)
+
+    await act(async () => {
+      increaseButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().cameraShortcutTransitionDurationMs).toBe(330)
+    expect(valueButton?.textContent).toBe('330 ms')
+  })
+
   it('renders a perspective-only FOV slider in the camera section and keeps it synced to the viewer seam', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { setViewer } = await import('../viewerBridge')

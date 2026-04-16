@@ -65,6 +65,7 @@ import {
   type ReferenceTimelineMode,
   type ReferenceTimelineRange,
 } from '../references/referenceTimeline'
+import type { ImportedReferenceFile } from '../references/importReferenceFile'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
   selectViewportResultModeById,
@@ -251,6 +252,19 @@ export type ImportedReferenceRecord = {
   assetPath: string
   parentAssemblyId: string | null
   parentComponentId: string | null
+  explodedFromReferenceId: string | null
+  sourcePartKey: string | null
+  sourceMeshIndex: number | null
+}
+
+export type StagedImportDraftState = {
+  parentAssemblyId: string | null
+  parentComponentId: string | null
+  stagedFiles: StagedImportDraftFileRecord[]
+}
+
+export type StagedImportDraftFileRecord = ImportedReferenceFile & {
+  stagedFileId: string
 }
 
 export type ReferenceWorkspacePartVm = {
@@ -479,6 +493,7 @@ export type ReferenceWorkspaceState = {
   contentObjectTransformOverrideById: Record<string, ReferenceTransformOverride | null>
   transformHistoryByObjectId: Record<string, ReferenceTransformHistoryEntry[]>
   activeContentObjectTransformSession: ActiveContentObjectTransformSession | null
+  stagedImportDraft: StagedImportDraftState | null
   importedReferencesById: Record<string, ImportedReferenceRecord>
   importedReferenceOrder: string[]
   partRowsByReferenceId: Record<string, ReferenceWorkspacePartVm[]>
@@ -514,6 +529,9 @@ export type ReferenceWorkspaceBrowserItemVm = {
   transformOverride?: ReferenceTransformOverride | null
   parentAssemblyId?: string | null
   parentComponentId?: string | null
+  explodedFromReferenceId: string | null
+  sourcePartKey: string | null
+  sourceMeshIndex: number | null
   parts: ReferenceWorkspacePartVm[]
 }
 
@@ -773,6 +791,7 @@ export type ConsoleWorkspaceContextTarget =
       canLoadModel?: boolean
       canDelete?: boolean
       canHide?: boolean
+      canExplode?: boolean
       referenceCategoryId?: ReferenceCategoryId
       referenceCategoryLabel?: string
     }
@@ -801,6 +820,7 @@ export type ConsoleWorkspaceContextTarget =
       canLoadModel: boolean
       canDelete?: boolean
       canHide?: boolean
+      canExplode?: boolean
       referenceCategoryId: ReferenceCategoryId
       referenceCategoryLabel: string
     }
@@ -996,6 +1016,12 @@ export type AppState = {
   toggleReferenceCategoryVisibility: (categoryId: ReferenceCategoryId) => void
   toggleSketchVisibility: (rowId: string) => void
   setSketchVisibility: (rowId: string, visible: boolean) => void
+  openStagedImportDraft: (draft: {
+    parentAssemblyId?: string | null
+    parentComponentId?: string | null
+  }) => void
+  appendStagedImportDraftFiles: (files: ImportedReferenceFile[]) => void
+  closeStagedImportDraft: () => void
   addImportedReference: (reference: {
     fileName: string
     fileType: ReferenceFileType
@@ -1015,6 +1041,7 @@ export type AppState = {
   loadAllReferences: () => void
   loadReferenceCategory: (categoryId: ReferenceCategoryId) => void
   removeImportedReference: (referenceId: string) => void
+  explodeImportedReference: (referenceId: string) => boolean
   createProjectAssembly: () => string
   createProjectComponent: (parentAssemblyId: string) => string | null
   moveProjectContentOwner: (
@@ -1547,6 +1574,9 @@ const buildReferenceWorkspaceBrowserItemVm = (
     transformOverride: runtimeTraits.transformOverride,
     parentAssemblyId: item.parentAssemblyId,
     parentComponentId: item.parentComponentId,
+    explodedFromReferenceId: item.explodedFromReferenceId,
+    sourcePartKey: item.sourcePartKey,
+    sourceMeshIndex: item.sourceMeshIndex,
     parts: runtimeTraits.parts,
   }
 }
@@ -2114,6 +2144,35 @@ const removeRowIdFromAllContentOrders = (
   return mutated ? next : contentOrderByParentKey
 }
 
+const replaceOrderedRowId = (
+  orderedRowIds: readonly string[],
+  rowId: string,
+  replacementRowIds: readonly string[],
+): string[] => {
+  const index = orderedRowIds.indexOf(rowId)
+  if (index === -1) {
+    return [...orderedRowIds, ...replacementRowIds]
+  }
+  return [...orderedRowIds.slice(0, index), ...replacementRowIds, ...orderedRowIds.slice(index + 1)]
+}
+
+const shouldRevokeImportedReferenceAssetPath = (
+  referenceWorkspace: Pick<ReferenceWorkspaceState, 'importedReferencesById' | 'importedReferenceOrder'>,
+  referenceId: string,
+): boolean => {
+  const importedReference = referenceWorkspace.importedReferencesById[referenceId]
+  if (importedReference === undefined || importedReference.sourceKind !== 'imported') {
+    return false
+  }
+  return !referenceWorkspace.importedReferenceOrder.some((candidateReferenceId) => {
+    if (candidateReferenceId === referenceId) {
+      return false
+    }
+    const candidate = referenceWorkspace.importedReferencesById[candidateReferenceId]
+    return candidate?.sourceKind === 'imported' && candidate.assetPath === importedReference.assetPath
+  })
+}
+
 const areProjectContentContainerTargetsEqual = (
   left: ProjectContentContainerTarget | null,
   right: ProjectContentContainerTarget | null,
@@ -2497,6 +2556,7 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   contentObjectTransformOverrideById: {},
   transformHistoryByObjectId: {},
   activeContentObjectTransformSession: null,
+  stagedImportDraft: null,
   importedReferencesById: buildInitialReferenceRecords(),
   importedReferenceOrder: [...INITIAL_REFERENCE_RECORD_ORDER],
   partRowsByReferenceId: {},
@@ -2508,6 +2568,22 @@ const buildDefaultReferenceTransformOverride = (): ReferenceTransformOverride =>
   rotationDeg: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
 })
+
+const buildStagedImportDraftFileId = () => newId('staged-import-file')
+
+const revokeStagedImportDraftObjectUrls = (draft: StagedImportDraftState | null) => {
+  if (
+    draft === null ||
+    draft.stagedFiles.length === 0 ||
+    typeof URL === 'undefined' ||
+    typeof URL.revokeObjectURL !== 'function'
+  ) {
+    return
+  }
+  draft.stagedFiles.forEach((file) => {
+    URL.revokeObjectURL(file.objectUrl)
+  })
+}
 
 const cloneReferenceTransformSnapState = (
   value: ReferenceTransformSnapState = DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE,
@@ -3205,6 +3281,9 @@ const buildInitialReferenceRecords = (): Record<string, ImportedReferenceRecord>
         assetPath: resolveReferenceAssetPath(item.assetPath),
         parentAssemblyId: null,
         parentComponentId: null,
+        explodedFromReferenceId: null,
+        sourcePartKey: null,
+        sourceMeshIndex: null,
       } satisfies ImportedReferenceRecord,
     ]),
   )
@@ -5506,6 +5585,61 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     }))
   },
+  openStagedImportDraft: ({
+    parentAssemblyId = null,
+    parentComponentId = null,
+  }) => {
+    set((state) => {
+      revokeStagedImportDraftObjectUrls(state.referenceWorkspace.stagedImportDraft)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            parentAssemblyId,
+            parentComponentId,
+            stagedFiles: [],
+          },
+        },
+      }
+    })
+  },
+  appendStagedImportDraftFiles: (files) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null || files.length === 0) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...currentDraft,
+            stagedFiles: [
+              ...currentDraft.stagedFiles,
+              ...files.map((file) => ({
+                ...file,
+                stagedFileId: buildStagedImportDraftFileId(),
+              })),
+            ],
+          },
+        },
+      }
+    })
+  },
+  closeStagedImportDraft: () => {
+    set((state) => {
+      if (state.referenceWorkspace.stagedImportDraft === null) {
+        return state
+      }
+      revokeStagedImportDraftObjectUrls(state.referenceWorkspace.stagedImportDraft)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: null,
+        },
+      }
+    })
+  },
   addImportedReference: ({
     fileName,
     fileType,
@@ -5597,6 +5731,9 @@ export const useAppStore = create<AppState>((set, get) => ({
               assetPath: objectUrl,
               parentAssemblyId,
               parentComponentId,
+              explodedFromReferenceId: null,
+              sourcePartKey: null,
+              sourceMeshIndex: null,
             },
           },
           importedReferenceOrder: [...state.referenceWorkspace.importedReferenceOrder, referenceId],
@@ -5754,7 +5891,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         return state
       }
       const removedRowId = buildImportedReferenceRowId(referenceId)
-      if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      if (
+        shouldRevokeImportedReferenceAssetPath(state.referenceWorkspace, referenceId) &&
+        typeof URL !== 'undefined' &&
+        typeof URL.revokeObjectURL === 'function'
+      ) {
         URL.revokeObjectURL(importedReference.assetPath)
       }
       const nextImportedReferencesById = { ...state.referenceWorkspace.importedReferencesById }
@@ -5861,6 +6002,222 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+  },
+  explodeImportedReference: (referenceId) => {
+    const beforeState = get()
+    if (!canReferenceItemExplode(beforeState, referenceId)) {
+      return false
+    }
+
+    set((state) => {
+      const importedReference = state.referenceWorkspace.importedReferencesById[referenceId]
+      if (importedReference === undefined) {
+        return state
+      }
+      const partRows = state.referenceWorkspace.partRowsByReferenceId[referenceId] ?? []
+      if (partRows.length === 0) {
+        return state
+      }
+
+      const childReferenceIds = partRows.map(() => buildImportedReferenceId())
+      const childRowIds = childReferenceIds.map((childReferenceId) =>
+        buildImportedReferenceRowId(childReferenceId),
+      )
+      const removedRowId = buildImportedReferenceRowId(referenceId)
+      const nextImportedReferencesById = { ...state.referenceWorkspace.importedReferencesById }
+      delete nextImportedReferencesById[referenceId]
+      partRows.forEach((partRow, index) => {
+        const childReferenceId = childReferenceIds[index]!
+        nextImportedReferencesById[childReferenceId] = {
+          referenceId: childReferenceId,
+          sourceKind: importedReference.sourceKind,
+          categoryId: importedReference.categoryId,
+          label: partRow.label,
+          fileType: importedReference.fileType,
+          assetPath: importedReference.assetPath,
+          parentAssemblyId: importedReference.parentAssemblyId,
+          parentComponentId: importedReference.parentComponentId,
+          explodedFromReferenceId: referenceId,
+          sourcePartKey: partRow.partKey,
+          sourceMeshIndex: partRow.sourceMeshIndex,
+        }
+      })
+
+      const wrapperIndex = state.referenceWorkspace.importedReferenceOrder.indexOf(referenceId)
+      const nextImportedReferenceOrder =
+        wrapperIndex === -1
+          ? [...state.referenceWorkspace.importedReferenceOrder, ...childReferenceIds]
+          : [
+              ...state.referenceWorkspace.importedReferenceOrder.slice(0, wrapperIndex),
+              ...childReferenceIds,
+              ...state.referenceWorkspace.importedReferenceOrder.slice(wrapperIndex + 1),
+            ]
+
+      const nextVisibilityById = { ...state.referenceWorkspace.visibilityById }
+      delete nextVisibilityById[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextVisibilityById[childReferenceId] = false
+      })
+
+      const nextLoadStateById = { ...state.referenceWorkspace.loadStateById }
+      delete nextLoadStateById[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextLoadStateById[childReferenceId] = 'unloaded'
+      })
+
+      const nextErrorById = { ...state.referenceWorkspace.errorById }
+      delete nextErrorById[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextErrorById[childReferenceId] = null
+      })
+
+      const nextTransformOverrideById = { ...state.referenceWorkspace.transformOverrideById }
+      delete nextTransformOverrideById[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextTransformOverrideById[childReferenceId] = null
+      })
+
+      const nextChannelClampRangeByReferenceId = {
+        ...state.referenceWorkspace.channelClampRangeByReferenceId,
+      }
+      delete nextChannelClampRangeByReferenceId[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextChannelClampRangeByReferenceId[childReferenceId] = {
+          'move-x': getReferenceTimelineDefaultRange('move-x'),
+          'move-y': getReferenceTimelineDefaultRange('move-y'),
+          'move-z': getReferenceTimelineDefaultRange('move-z'),
+          'rotate-x': getReferenceTimelineDefaultRange('rotate-x'),
+          'rotate-y': getReferenceTimelineDefaultRange('rotate-y'),
+          'rotate-z': getReferenceTimelineDefaultRange('rotate-z'),
+          'scale-x': getReferenceTimelineDefaultRange('scale-x'),
+          'scale-y': getReferenceTimelineDefaultRange('scale-y'),
+          'scale-z': getReferenceTimelineDefaultRange('scale-z'),
+          'rotate-snap': getReferenceTimelineDefaultRange('rotate-snap'),
+        }
+      })
+
+      const nextTimelineModeByReferenceId = { ...state.referenceWorkspace.timelineModeByReferenceId }
+      delete nextTimelineModeByReferenceId[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextTimelineModeByReferenceId[childReferenceId] = {}
+      })
+
+      const nextTimelineConfigByReferenceId = {
+        ...state.referenceWorkspace.timelineConfigByReferenceId,
+      }
+      delete nextTimelineConfigByReferenceId[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextTimelineConfigByReferenceId[childReferenceId] = {}
+      })
+
+      const nextTransformSnapByReferenceId = {
+        ...state.referenceWorkspace.transformSnapByReferenceId,
+      }
+      delete nextTransformSnapByReferenceId[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextTransformSnapByReferenceId[childReferenceId] = cloneReferenceTransformSnapState()
+      })
+
+      const nextTransformHistoryByReferenceId = {
+        ...state.referenceWorkspace.transformHistoryByReferenceId,
+      }
+      delete nextTransformHistoryByReferenceId[referenceId]
+
+      const nextPartRowsByReferenceId = { ...state.referenceWorkspace.partRowsByReferenceId }
+      delete nextPartRowsByReferenceId[referenceId]
+      childReferenceIds.forEach((childReferenceId) => {
+        nextPartRowsByReferenceId[childReferenceId] = []
+      })
+
+      const parentTarget =
+        importedReference.parentComponentId !== null
+          ? ({ kind: 'component', componentId: importedReference.parentComponentId } as const)
+          : importedReference.parentAssemblyId !== null
+            ? ({ kind: 'assembly', assemblyId: importedReference.parentAssemblyId } as const)
+            : null
+      const baseContentOrderByParentKey = removeRowIdFromAllContentOrders(
+        state.referenceWorkspace.contentOrderByParentKey,
+        removedRowId,
+      )
+      const nextContentOrderByParentKey =
+        parentTarget === null
+          ? baseContentOrderByParentKey
+          : {
+              ...baseContentOrderByParentKey,
+              [buildContentParentOrderKey(parentTarget)]: replaceOrderedRowId(
+                resolveEffectiveContentOrderForParent(state, parentTarget),
+                removedRowId,
+                childRowIds,
+              ),
+            }
+
+      const nextSelectedTarget =
+        state.workspaceSelection.selectedTarget === null
+          ? null
+          : state.workspaceSelection.selectedTarget.kind === 'reference-item' &&
+              state.workspaceSelection.selectedTarget.referenceId === referenceId
+            ? null
+            : state.workspaceSelection.selectedTarget.kind === 'object' &&
+                state.workspaceSelection.selectedTarget.objectId === removedRowId
+              ? null
+              : state.workspaceSelection.selectedTarget
+      const nextExplicitSelectedTargets = state.workspaceSelection.explicitSelectedTargets.filter(
+        (selectedTarget) =>
+          !(
+            (selectedTarget.kind === 'reference-item' && selectedTarget.referenceId === referenceId) ||
+            (selectedTarget.kind === 'object' && selectedTarget.objectId === removedRowId)
+          ),
+      )
+      const nextSelectionAnchorTarget =
+        state.workspaceSelection.selectionAnchorTarget === null
+          ? null
+          : state.workspaceSelection.selectionAnchorTarget.kind === 'reference-item' &&
+              state.workspaceSelection.selectionAnchorTarget.referenceId === referenceId
+            ? null
+            : state.workspaceSelection.selectionAnchorTarget.kind === 'object' &&
+                state.workspaceSelection.selectionAnchorTarget.objectId === removedRowId
+              ? null
+              : state.workspaceSelection.selectionAnchorTarget
+      const nextResolvedContentSelection =
+        state.workspaceSelection.resolvedContentSelection == null ||
+        (state.workspaceSelection.resolvedContentSelection.rootRowId !== removedRowId &&
+          !state.workspaceSelection.resolvedContentSelection.groupedRowIds.includes(removedRowId))
+          ? state.workspaceSelection.resolvedContentSelection
+          : null
+
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          visibilityById: nextVisibilityById,
+          loadStateById: nextLoadStateById,
+          errorById: nextErrorById,
+          referenceLoadBatch: filterReferenceLoadBatch(
+            state.referenceWorkspace.referenceLoadBatch,
+            [referenceId],
+          ),
+          transformOverrideById: nextTransformOverrideById,
+          channelClampRangeByReferenceId: nextChannelClampRangeByReferenceId,
+          timelineModeByReferenceId: nextTimelineModeByReferenceId,
+          timelineConfigByReferenceId: nextTimelineConfigByReferenceId,
+          transformSnapByReferenceId: nextTransformSnapByReferenceId,
+          transformHistoryByReferenceId: nextTransformHistoryByReferenceId,
+          importedReferencesById: nextImportedReferencesById,
+          importedReferenceOrder: nextImportedReferenceOrder,
+          partRowsByReferenceId: nextPartRowsByReferenceId,
+          contentOrderByParentKey: nextContentOrderByParentKey,
+          ...clearActiveReferenceTransformIfMatches(state.referenceWorkspace, [referenceId]),
+        },
+        workspaceSelection: {
+          ...state.workspaceSelection,
+          selectedTarget: nextSelectedTarget,
+          explicitSelectedTargets: nextExplicitSelectedTargets,
+          selectionAnchorTarget: nextSelectionAnchorTarget,
+          resolvedContentSelection: nextResolvedContentSelection,
+        },
+      }
+    })
+
+    return true
   },
   createProjectAssembly: () => {
     const projectFileId = get().currentProject.projectFileId
@@ -9998,6 +10355,10 @@ export const selectConsoleWorkspaceContextTarget = (
           : !referenceRuntimeTraits?.isVisible && referenceRuntimeTraits?.loadState !== 'error',
       canDelete: importedReference?.sourceKind === 'imported',
       canHide: referenceRuntimeTraits?.isVisible ?? false,
+      canExplode:
+        resolvedReferenceId === null
+          ? undefined
+          : canReferenceItemExplode(state, resolvedReferenceId),
       referenceCategoryId: importedReference?.categoryId,
       referenceCategoryLabel,
     }
@@ -10029,6 +10390,7 @@ export const selectConsoleWorkspaceContextTarget = (
     canLoadModel: !referenceItem.isVisible && referenceItem.loadState !== 'error',
     canDelete: referenceItem.sourceKind === 'imported',
     canHide: referenceItem.isVisible,
+    canExplode: canReferenceItemExplode(state, referenceItem.referenceId),
     referenceCategoryId: referenceItem.categoryId,
     referenceCategoryLabel,
   }

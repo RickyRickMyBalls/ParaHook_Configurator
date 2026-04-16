@@ -572,6 +572,49 @@ describe('stagedNavigation', () => {
     })
   })
 
+  it('exposes explode for explodable selected references and executes it directly', () => {
+    const context = createConsoleStagedNavigationContext([], [
+      {
+        categoryId: 'user-references',
+        label: 'User References',
+        canLoadAll: false,
+        items: [
+          {
+            referenceId: 'imported-reference-1',
+            label: 'explodeable.glb',
+            canLoadModel: false,
+            canDelete: true,
+            canHide: true,
+            canExplode: true,
+          },
+        ],
+      },
+    ])
+    const referenceSession: ConsoleStagedNavigationSession = {
+      scopeId: 'referenceSelected',
+      breadcrumb: ['Select', 'References', 'User References', 'explodeable.glb'],
+      selections: {
+        graphDocumentId: null,
+        selectedNodeId: null,
+        sketchNodeId: null,
+        referenceId: 'imported-reference-1',
+        referenceCategoryId: 'user-references',
+        referenceCanLoadModel: false,
+        referenceCanDelete: true,
+        referenceCanHide: true,
+        referenceCanExplode: true,
+      },
+      validChoices: [],
+    }
+
+    const explodeResult = submitConsoleStagedNavigationToken(referenceSession, 'explode', context)
+    expect(explodeResult).toMatchObject({
+      kind: 'execute',
+      actionId: 'reference.explode',
+      breadcrumb: ['Select', 'References', 'User References', 'explodeable.glb', 'Explode'],
+    })
+  })
+
   it('exposes hide for hideable selected multi-select references and executes it directly', () => {
     const context = createConsoleStagedNavigationContext([])
     const multiSelectSession = {

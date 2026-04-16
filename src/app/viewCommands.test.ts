@@ -35,7 +35,7 @@ describe('viewCommands', () => {
     const frameReference = vi.fn()
     const setConsoleCameraMode = vi.fn()
 
-    setViewer({
+    setViewer('model-viewer-primary', {
       setCameraPreset,
       frameAll,
       frameExtents,
@@ -47,21 +47,41 @@ describe('viewCommands', () => {
     } as any)
 
     setCameraPresetCommand('top')
-    frameAllCommand()
+    setCameraPresetCommand('back', undefined, {
+      animate: true,
+      durationMs: 320,
+    })
+    frameAllCommand('model-viewer-primary')
     frameExtentsCommand()
     framePreviousCommand()
-    frameSelectedCommand('part:object-1')
+    frameSelectedCommand('part:object-1', 'model-viewer-primary', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(frameSelectedGeometrySketchCommand()).toBe(true)
-    frameReferenceCommand('shoe:shoe-1')
+    frameReferenceCommand('shoe:shoe-1', 'model-viewer-primary', {
+      animate: true,
+      durationMs: 320,
+    })
     setConsoleCameraModeCommand('orbit')
 
     expect(setCameraPreset).toHaveBeenCalledWith('top')
+    expect(setCameraPreset).toHaveBeenNthCalledWith(2, 'back', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(frameAll).toHaveBeenCalledTimes(1)
     expect(frameExtents).toHaveBeenCalledTimes(1)
     expect(framePrevious).toHaveBeenCalledTimes(1)
-    expect(frameSelected).toHaveBeenCalledWith('part:object-1')
+    expect(frameSelected).toHaveBeenCalledWith('part:object-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(frameSelectedGeometrySketch).toHaveBeenCalledTimes(1)
-    expect(frameReference).toHaveBeenCalledWith('shoe:shoe-1')
+    expect(frameReference).toHaveBeenCalledWith('shoe:shoe-1', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(setConsoleCameraMode).toHaveBeenCalledWith('orbit')
   })
 })

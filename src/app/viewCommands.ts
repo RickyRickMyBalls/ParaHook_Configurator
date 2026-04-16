@@ -4,6 +4,8 @@ import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import {
   getViewer,
   type CameraPreset,
+  type CameraPresetOptions,
+  type FrameTargetOptions,
 } from './viewerBridge'
 import type { WorkspaceViewportId } from './workspace/workspaceShellTypes'
 
@@ -23,8 +25,13 @@ export const setProjectionModeCommand = (
 export const setCameraPresetCommand = (
   preset: CameraPreset,
   viewportId?: WorkspaceViewportId,
+  options?: CameraPresetOptions,
 ): void => {
-  getViewer(viewportId)?.setCameraPreset(preset)
+  if (options === undefined) {
+    getViewer(viewportId)?.setCameraPreset(preset)
+    return
+  }
+  getViewer(viewportId)?.setCameraPreset(preset, options)
 }
 
 export const frameAllCommand = (viewportId?: WorkspaceViewportId): void => {
@@ -42,8 +49,9 @@ export const framePreviousCommand = (): void => {
 export const frameSelectedCommand = (
   partKey: string | null,
   viewportId?: WorkspaceViewportId,
+  options?: FrameTargetOptions,
 ): void => {
-  getViewer(viewportId)?.frameSelected(partKey)
+  getViewer(viewportId)?.frameSelected(partKey, options)
 }
 
 export const frameSelectionSetCommand = (
@@ -54,8 +62,12 @@ export const frameSelectionSetCommand = (
 export const frameSelectedGeometrySketchCommand = (): boolean =>
   getViewer()?.frameSelectedGeometrySketch() ?? false
 
-export const frameReferenceCommand = (referenceId: string): void => {
-  getViewer()?.frameReference(referenceId)
+export const frameReferenceCommand = (
+  referenceId: string,
+  viewportId?: WorkspaceViewportId,
+  options?: FrameTargetOptions,
+): void => {
+  getViewer(viewportId)?.frameReference(referenceId, options)
 }
 
 export const setConsoleCameraModeCommand = (

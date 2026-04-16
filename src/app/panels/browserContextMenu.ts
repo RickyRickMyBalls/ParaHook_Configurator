@@ -36,6 +36,8 @@ export type BrowserContextMenuBuilderDeps = {
   retryReferenceItemLoad: (referenceId: string) => void
   setReferenceItemVisibility: (referenceId: string, isVisible: boolean) => void
   setPartVisibility: (partKey: string, isVisible: boolean) => void
+  canExplodeImportedReferenceRow: (referenceId: string) => boolean
+  handleExplodeImportedReferenceRow: (referenceId: string) => void
   handleRetryImportedReferenceRow: (referenceId: string) => void
   handleRemoveImportedReferenceRow: (referenceId: string) => void
   handleRemoveImportedReferenceRows?: (referenceIds: string[]) => void
@@ -291,6 +293,17 @@ export const buildBrowserContextMenuItems = (
       row.rowKind === 'reference-item'
         ? row.state === 'error'
         : referenceBackedObjectRow?.referenceState === 'error'
+    if (
+      importedContentObjectRow !== null &&
+      deps.canExplodeImportedReferenceRow(referenceId)
+    ) {
+      items.push({
+        id: 'imported-object:explode',
+        label: 'Explode',
+        ariaLabel: `Explode ${row.label}`,
+        onSelect: () => deps.handleExplodeImportedReferenceRow(referenceId),
+      })
+    }
     if (isError) {
       items.push({
         id:

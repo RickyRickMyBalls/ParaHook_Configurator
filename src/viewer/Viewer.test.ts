@@ -20,6 +20,7 @@ const cameraControllerMocks = vi.hoisted(() => ({
     applyFlyLookDeltaUpright: ReturnType<typeof vi.fn>
     applyFlyRollDelta: ReturnType<typeof vi.fn>
     restoreFlyUpright: ReturnType<typeof vi.fn>
+    setPreset: ReturnType<typeof vi.fn>
     animateToDirection: ReturnType<typeof vi.fn>
     snapToDirection: ReturnType<typeof vi.fn>
     translateFly: ReturnType<typeof vi.fn>
@@ -28,6 +29,7 @@ const cameraControllerMocks = vi.hoisted(() => ({
     setPerspectiveFovDeg: ReturnType<typeof vi.fn>
     setCameraClipRange: ReturnType<typeof vi.fn>
     resetCameraClipRange: ReturnType<typeof vi.fn>
+    frameObject: ReturnType<typeof vi.fn>
   }>,
 }))
 
@@ -153,6 +155,7 @@ vi.mock('./scene/CameraController', async () => {
     public readonly translateFly = vi.fn()
     public readonly zoomByWheelDelta = vi.fn()
     public readonly update = vi.fn()
+    public readonly setPreset = vi.fn()
     public readonly animateToDirection = vi.fn()
     public readonly snapToDirection = vi.fn()
     public perspectiveFovDeg = 45
@@ -172,6 +175,7 @@ vi.mock('./scene/CameraController', async () => {
       this.clipStart = 0.1
       this.clipEnd = 1000
     })
+    public readonly frameObject = vi.fn()
 
     public constructor(
       perspectiveCamera: { position: ThreeVector3; up: ThreeVector3 },
@@ -191,12 +195,10 @@ vi.mock('./scene/CameraController', async () => {
     }
 
     public setProjectionMode(): void {}
-    public setPreset(): void {}
     public beginTemporaryPanDrag(): void {}
     public updateTemporaryPanDrag(): void {}
     public endTemporaryPanDrag(): void {}
     public frameBox(): void {}
-    public frameObject(): void {}
     public animateToPose(): void {}
     public applyPose(pose: {
       perspectiveFovDeg: number
@@ -562,6 +564,258 @@ describe('Viewer baseline replacement', () => {
     expect(baselineMeshNames).toHaveLength(1)
   })
 
+  it('loads exploded imported references as isolated single-part objects and stores no child part descriptors', async () => {
+    const { BoxGeometry, Group, Mesh, MeshStandardMaterial } = await import('three')
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const rawObject = new Group()
+    rawObject.name = 'Wrapper Root'
+
+    const upperMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    upperMesh.name = 'Upper'
+    const soleGroup = new Group()
+    soleGroup.name = 'Sole Group'
+    const soleMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    soleMesh.name = 'Sole'
+    soleGroup.add(soleMesh)
+    rawObject.add(upperMesh)
+    rawObject.add(soleGroup)
+
+    const loadReferenceAssetObject = vi.fn(async () => rawObject)
+    ;(viewer as unknown as { loadReferenceAssetObject: typeof loadReferenceAssetObject }).loadReferenceAssetObject =
+      loadReferenceAssetObject
+
+    await (viewer as unknown as {
+      ensureReferenceLoaded: (reference: {
+        referenceId: string
+        assetPath: string
+        fileType: 'glb'
+        explodedFromReferenceId: string
+        sourcePartKey: string
+        sourceMeshIndex: number
+      }) => Promise<void>
+    }).ensureReferenceLoaded({
+      referenceId: 'exploded-child',
+      assetPath: 'blob:wrapper',
+      fileType: 'glb',
+      explodedFromReferenceId: 'wrapper-reference',
+      sourcePartKey: 'reference-part:wrapper-reference:1',
+      sourceMeshIndex: 1,
+    })
+
+    expect(loadReferenceAssetObject).toHaveBeenCalledTimes(1)
+    expect((viewer as unknown as { getReferencePartDescriptors: (referenceId: string) => unknown[] }).getReferencePartDescriptors('exploded-child')).toEqual([])
+
+    const loadedPivot = (viewer as unknown as {
+      referenceObjects: Map<string, { traverse: (callback: (object: { name: string }) => void) => void }>
+    }).referenceObjects.get('exploded-child')
+    expect(loadedPivot).toBeDefined()
+
+    const meshNames: string[] = []
+    loadedPivot?.traverse((object) => {
+      if (object.name.length > 0) {
+        meshNames.push(object.name)
+      }
+    })
+
+    expect(meshNames).toContain('Sole')
+    expect(meshNames).not.toContain('Upper')
+  })
+
+  it('hands off exploded children from a live wrapper without reloading the source asset', async () => {
+    const { BoxGeometry, Group, Mesh, MeshStandardMaterial } = await import('three')
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const rawObject = new Group()
+    rawObject.name = 'Wrapper Root'
+    const upperMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    upperMesh.name = 'Upper'
+    const soleGroup = new Group()
+    soleGroup.name = 'Sole Group'
+    const soleMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    soleMesh.name = 'Sole'
+    soleGroup.add(soleMesh)
+    rawObject.add(upperMesh)
+    rawObject.add(soleGroup)
+
+    const loadReferenceAssetObject = vi.fn(async () => rawObject)
+    ;(viewer as unknown as { loadReferenceAssetObject: typeof loadReferenceAssetObject }).loadReferenceAssetObject =
+      loadReferenceAssetObject
+
+    await (viewer as unknown as {
+      ensureReferenceLoaded: (reference: {
+        referenceId: string
+        assetPath: string
+        fileType: 'glb'
+      }) => Promise<void>
+    }).ensureReferenceLoaded({
+      referenceId: 'wrapper-reference',
+      assetPath: 'blob:wrapper',
+      fileType: 'glb',
+    })
+    ;(viewer as unknown as { setReferenceVisible: (referenceId: string, visible: boolean) => void }).setReferenceVisible(
+      'wrapper-reference',
+      true,
+    )
+
+    const handedOffReferenceIds = (
+      viewer as unknown as {
+        handoffExplodedReferenceChildren: (
+          wrapperReferenceId: string,
+          children: Array<{
+            referenceId: string
+            assetPath: string
+            fileType: 'glb'
+            explodedFromReferenceId: string
+            sourcePartKey: string
+            sourceMeshIndex: number
+          }>,
+          visible: boolean,
+        ) => string[]
+      }
+    ).handoffExplodedReferenceChildren(
+      'wrapper-reference',
+      [
+        {
+          referenceId: 'exploded-upper',
+          assetPath: 'blob:wrapper',
+          fileType: 'glb',
+          explodedFromReferenceId: 'wrapper-reference',
+          sourcePartKey: 'reference-part:wrapper-reference:0',
+          sourceMeshIndex: 0,
+        },
+        {
+          referenceId: 'exploded-sole',
+          assetPath: 'blob:wrapper',
+          fileType: 'glb',
+          explodedFromReferenceId: 'wrapper-reference',
+          sourcePartKey: 'reference-part:wrapper-reference:1',
+          sourceMeshIndex: 1,
+        },
+      ],
+      true,
+    )
+
+    expect(handedOffReferenceIds).toEqual(['exploded-upper', 'exploded-sole'])
+    expect(loadReferenceAssetObject).toHaveBeenCalledTimes(1)
+    expect(
+      (viewer as unknown as { getReferencePartDescriptors: (referenceId: string) => unknown[] }).getReferencePartDescriptors(
+        'exploded-upper',
+      ),
+    ).toEqual([])
+    expect(
+      (viewer as unknown as { getReferencePartDescriptors: (referenceId: string) => unknown[] }).getReferencePartDescriptors(
+        'exploded-sole',
+      ),
+    ).toEqual([])
+
+    const upperObject = (viewer as unknown as {
+      referenceObjects: Map<string, { visible: boolean; traverse: (callback: (object: { name: string }) => void) => void }>
+    }).referenceObjects.get('exploded-upper')
+    const soleObject = (viewer as unknown as {
+      referenceObjects: Map<string, { visible: boolean; traverse: (callback: (object: { name: string }) => void) => void }>
+    }).referenceObjects.get('exploded-sole')
+    expect(upperObject?.visible).toBe(true)
+    expect(soleObject?.visible).toBe(true)
+
+    const upperNames: string[] = []
+    upperObject?.traverse((object) => {
+      if (object.name.length > 0) {
+        upperNames.push(object.name)
+      }
+    })
+    expect(upperNames).toContain('Upper')
+    expect(upperNames).not.toContain('Sole')
+
+    const soleNames: string[] = []
+    soleObject?.traverse((object) => {
+      if (object.name.length > 0) {
+        soleNames.push(object.name)
+      }
+    })
+    expect(soleNames).toContain('Sole')
+    expect(soleNames).not.toContain('Upper')
+  })
+
+  it('fails exploded reference loads when the stored source mesh index cannot be resolved', async () => {
+    const { BoxGeometry, Group, Mesh, MeshStandardMaterial } = await import('three')
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const rawObject = new Group()
+    const onlyMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    onlyMesh.name = 'Only Mesh'
+    rawObject.add(onlyMesh)
+
+    const loadReferenceAssetObject = vi.fn(async () => rawObject)
+    ;(viewer as unknown as { loadReferenceAssetObject: typeof loadReferenceAssetObject }).loadReferenceAssetObject =
+      loadReferenceAssetObject
+
+    await expect(
+      (viewer as unknown as {
+        ensureReferenceLoaded: (reference: {
+          referenceId: string
+          assetPath: string
+          fileType: 'glb'
+          explodedFromReferenceId: string
+          sourcePartKey: string
+          sourceMeshIndex: number
+        }) => Promise<void>
+      }).ensureReferenceLoaded({
+        referenceId: 'exploded-child',
+        assetPath: 'blob:wrapper',
+        fileType: 'glb',
+        explodedFromReferenceId: 'wrapper-reference',
+        sourcePartKey: 'reference-part:wrapper-reference:3',
+        sourceMeshIndex: 3,
+      }),
+    ).rejects.toThrow('Could not resolve exploded source mesh 3.')
+  })
+
   it('starts a temporary fly session on RMB, applies look deltas, moves while keys are held, and suppresses the release context menu', async () => {
     const { Viewer } = await import('./Viewer')
 
@@ -860,6 +1114,128 @@ describe('Viewer baseline replacement', () => {
     expect(controller.updateTemporaryOrbitDrag).toHaveBeenCalledWith(132, 155)
     expect(controller.endTemporaryOrbitDrag).toHaveBeenCalledTimes(1)
     expect(controller.animateToDirection).not.toHaveBeenCalled()
+  })
+
+  it('forwards animated preset options through the shared viewer camera seam without changing default preset callers', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    const cameraPresetViewer = viewer as unknown as {
+      setCameraPreset: (
+        preset: 'top' | 'front' | 'back' | 'left' | 'right' | 'iso',
+        options?: { animate?: boolean; durationMs?: number },
+      ) => void
+    }
+
+    cameraPresetViewer.setCameraPreset('top')
+    cameraPresetViewer.setCameraPreset('right', {
+      animate: true,
+      durationMs: 320,
+    })
+
+    expect(controller.setPreset).toHaveBeenNthCalledWith(1, 'top')
+    expect(controller.setPreset).toHaveBeenNthCalledWith(2, 'right', {
+      animate: true,
+      durationMs: 320,
+    })
+  })
+
+  it('forwards animated frame-selected options through the shared viewer framing seam', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { Mesh, BoxGeometry, MeshBasicMaterial } = await import('three')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    const frameViewer = viewer as unknown as {
+      partMeshes: Map<string, object>
+      frameSelected: (
+        partId: string | null,
+        options?: { animate?: boolean; durationMs?: number },
+      ) => void
+    }
+    frameViewer.partMeshes.set(
+      'part:object-1',
+      new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial()),
+    )
+
+    frameViewer.frameSelected('part:object-1', {
+      animate: true,
+      durationMs: 320,
+    })
+
+    expect(controller.frameObject).toHaveBeenCalledWith(expect.any(Mesh), {
+      animate: true,
+      durationMs: 320,
+    })
+  })
+
+  it('forwards animated frame-reference options through the shared viewer framing seam', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { Group } = await import('three')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const controller = cameraControllerMocks.instances[0]!
+    const frameViewer = viewer as unknown as {
+      referenceObjects: Map<string, object>
+      frameReference: (
+        referenceId: string,
+        options?: { animate?: boolean; durationMs?: number },
+      ) => void
+    }
+    frameViewer.referenceObjects.set('shoe:shoe-1', new Group())
+
+    frameViewer.frameReference('shoe:shoe-1', {
+      animate: true,
+      durationMs: 480,
+    })
+
+    expect(controller.frameObject).toHaveBeenCalledWith(expect.any(Group), {
+      animate: true,
+      durationMs: 480,
+    })
   })
 
   it('forwards axis-overlay shell interactions into the live gizmo helper', async () => {

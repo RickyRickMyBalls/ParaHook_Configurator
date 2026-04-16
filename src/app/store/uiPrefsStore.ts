@@ -24,6 +24,10 @@ const cloneLight = (light: LightSpec): LightSpec => ({
 
 const clonePreset = (preset: MaterialPreset): MaterialPreset => ({ ...preset })
 
+const MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 50
+const MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 2000
+const DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 320
+
 const cloneView = (view: ViewSettings): ViewSettings => ({
   ...view,
   axisOverlayStyle: {
@@ -173,6 +177,7 @@ const sanitizePreset = (preset: MaterialPreset): MaterialPreset => ({
 
 type UiPrefsState = {
   view: ViewSettings
+  cameraShortcutTransitionDurationMs: number
   sketchPlaneToolbarGhostPlaneScale: number
   sketchPlaneToolbarGizmoScale: number
   sketchPlaneToolbarTranslateSnapEnabled: boolean
@@ -190,6 +195,7 @@ type UiPrefsState = {
   sketchDrawPlinePointSymbolType: 'crosshair' | 'circle'
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
+  setCameraShortcutTransitionDurationMs: (value: number) => void
   setSketchPlaneToolbarGhostPlaneScale: (scale: number) => void
   setSketchPlaneToolbarGizmoScale: (scale: number) => void
   setSketchPlaneToolbarTranslateSnapEnabled: (enabled: boolean) => void
@@ -221,6 +227,7 @@ type UiPrefsState = {
 
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
+  cameraShortcutTransitionDurationMs: DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS,
   sketchPlaneToolbarGhostPlaneScale: 1,
   sketchPlaneToolbarGizmoScale: 1,
   sketchPlaneToolbarTranslateSnapEnabled: false,
@@ -241,6 +248,15 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setViewKey: (key, value) => {
     set({ view: { ...get().view, [key]: value } })
+  },
+  setCameraShortcutTransitionDurationMs: (value) => {
+    set({
+      cameraShortcutTransitionDurationMs: clamp(
+        value,
+        MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS,
+        MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS,
+      ),
+    })
   },
   setSketchPlaneToolbarGhostPlaneScale: (scale) => {
     set({ sketchPlaneToolbarGhostPlaneScale: clamp(scale, 0.4, 3) })

@@ -277,6 +277,14 @@ const buildCommittedInteractionBaselineSnapshot = (options: {
   }
 }
 
+const getLoadedReferencePartRows = (
+  item: ReturnType<typeof selectReferenceWorkspaceItems>[number],
+  viewer: Viewer,
+) =>
+  item.explodedFromReferenceId === null ? viewer.getReferencePartDescriptors(item.referenceId) : []
+
+type ReferenceWorkspaceItemVm = ReturnType<typeof selectReferenceWorkspaceItems>[number]
+
 type ViewerHostProps = {
   viewportId: WorkspaceViewportId
 }
@@ -886,7 +894,7 @@ export function ViewerHost(props: ViewerHostProps) {
     workspaceSelectedTarget,
   ])
   const [timelineNowMs, setTimelineNowMs] = useState(() => performance.now())
-  const previousReferenceIdsRef = useRef<string[]>([])
+  const previousReferenceItemsRef = useRef<Map<string, ReferenceWorkspaceItemVm>>(new Map())
   const activeViewerTransformSession = useMemo(() => {
     const activeSession = selectActiveViewerTransformSession(referenceWorkspace)
     if (activeSession === null) {
@@ -1454,14 +1462,66 @@ export function ViewerHost(props: ViewerHostProps) {
       return
     }
 
-    const currentReferenceIds = referenceWorkspaceItems.map((item) => item.referenceId)
-    const removedReferenceIds = previousReferenceIdsRef.current.filter(
-      (referenceId) => !currentReferenceIds.includes(referenceId),
+    const previousReferenceItems = previousReferenceItemsRef.current
+    for (const [wrapperReferenceId, previousWrapperItem] of previousReferenceItems.entries()) {
+      if (
+        referenceWorkspaceItemById.has(wrapperReferenceId) ||
+        previousWrapperItem.loadState !== 'loaded'
+      ) {
+        continue
+      }
+      const explodedChildren = referenceWorkspaceItems.filter(
+        (item) =>
+          item.explodedFromReferenceId === wrapperReferenceId && item.loadState === 'unloaded',
+      )
+      if (explodedChildren.length === 0) {
+        continue
+      }
+
+      const handedOffReferenceIds = new Set(
+        viewer.handoffExplodedReferenceChildren(
+          wrapperReferenceId,
+          explodedChildren,
+          previousWrapperItem.isVisible,
+        ),
+      )
+      if (handedOffReferenceIds.size === 0) {
+        continue
+      }
+
+      for (const child of explodedChildren) {
+        if (!handedOffReferenceIds.has(child.referenceId)) {
+          continue
+        }
+        setReferenceItemLoadState(child.referenceId, 'loaded')
+        setReferenceItemPartRows(child.referenceId, [])
+        setReferenceItemVisibility(child.referenceId, previousWrapperItem.isVisible)
+      }
+    }
+  }, [
+    referenceWorkspaceItemById,
+    referenceWorkspaceItems,
+    setReferenceItemLoadState,
+    setReferenceItemPartRows,
+    setReferenceItemVisibility,
+  ])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (viewer === null) {
+      return
+    }
+
+    const currentReferenceIds = new Set(referenceWorkspaceItems.map((item) => item.referenceId))
+    const removedReferenceIds = [...previousReferenceItemsRef.current.keys()].filter(
+      (referenceId) => !currentReferenceIds.has(referenceId),
     )
     removedReferenceIds.forEach((referenceId) => {
       viewer.removeReference(referenceId)
     })
-    previousReferenceIdsRef.current = currentReferenceIds
+    previousReferenceItemsRef.current = new Map(
+      referenceWorkspaceItems.map((item) => [item.referenceId, item] as const),
+    )
   }, [referenceWorkspaceItems])
 
   useEffect(() => {
@@ -1505,7 +1565,7 @@ export function ViewerHost(props: ViewerHostProps) {
             return
           }
           setReferenceItemLoadState(item.referenceId, 'loaded')
-          setReferenceItemPartRows(item.referenceId, viewer.getReferencePartDescriptors(item.referenceId))
+          setReferenceItemPartRows(item.referenceId, getLoadedReferencePartRows(item, viewer))
           appendConsoleEntry({
             layer: 'Browser',
             text: `Loaded Model: ${item.label}`,
@@ -1566,7 +1626,7 @@ export function ViewerHost(props: ViewerHostProps) {
           return
         }
         setReferenceItemLoadState(nextReferenceId, 'loaded')
-        setReferenceItemPartRows(nextReferenceId, viewer.getReferencePartDescriptors(nextReferenceId))
+        setReferenceItemPartRows(nextReferenceId, getLoadedReferencePartRows(nextItem, viewer))
         appendConsoleEntry({
           layer: 'Browser',
           text: `Loaded Model: ${nextItem.label}`,

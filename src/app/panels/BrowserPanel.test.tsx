@@ -9,6 +9,7 @@ let currentSpaghettiState: any
 let currentAppState: any
 let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
 let importReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
+let importSupportedReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
 let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
   viewerFrameSelectionSetMock: vi.fn(),
@@ -232,6 +233,21 @@ vi.mock('../spaghetti/store/useSpaghettiStore', () => ({
 
 vi.mock('../store/useAppStore', () => ({
   useAppStore: (selector: (state: any) => unknown) => selector(currentAppState),
+  canReferenceItemExplode: (state: any, referenceId: string) => {
+    const referenceRecord = state.referenceWorkspace?.importedReferencesById?.[referenceId]
+    if (referenceRecord === undefined) {
+      return false
+    }
+    const runtimeParts = state.referenceWorkspace?.partRowsByReferenceId?.[referenceId] ?? []
+    const loadState = state.referenceWorkspace?.loadStateById?.[referenceId] ?? 'unloaded'
+    return (
+      loadState === 'loaded' &&
+      runtimeParts.length > 0 &&
+      runtimeParts.every(
+        (part: any) => Number.isInteger(part.sourceMeshIndex) && part.sourceMeshIndex >= 0,
+      )
+    )
+  },
   REFERENCE_ROOT_ROW_ID: 'reference-root',
   buildImportedReferenceRowId: (referenceId: string) => `reference-item-row:${referenceId}`,
   buildReferenceCategoryRowId: (categoryId: string) => `reference-category-row:${categoryId}`,
@@ -373,8 +389,11 @@ vi.mock('../references/importReferenceFile', () => ({
     obj: 'Import .obj',
     glb: 'Import .glb',
   },
+  SUPPORTED_REFERENCE_IMPORT_FILE_TYPES: ['step', 'stl', 'obj', 'glb'],
   importReferenceFileFromDisk: (...args: unknown[]) => importReferenceFileFromDiskMock(...args),
   importReferenceFilesFromDisk: (...args: unknown[]) => importReferenceFilesFromDiskMock(...args),
+  importSupportedReferenceFilesFromDisk: (...args: unknown[]) =>
+    importSupportedReferenceFilesFromDiskMock(...args),
 }))
 
 vi.mock('../viewerBridge', () => ({
@@ -518,6 +537,11 @@ const referenceWorkspaceStateFromTree = (tree: ReferenceWorkspaceBrowserTreeVm) 
       category.items.map((item) => [item.referenceId, item.errorMessage] as const),
     ),
   ),
+  partRowsByReferenceId: Object.fromEntries(
+    tree.categories.flatMap((category) =>
+      category.items.map((item) => [item.referenceId, item.parts ?? []] as const),
+    ),
+  ),
   importedReferencesById: Object.fromEntries(
     tree.categories
       .flatMap((category) => category.items)
@@ -526,9 +550,16 @@ const referenceWorkspaceStateFromTree = (tree: ReferenceWorkspaceBrowserTreeVm) 
         item.referenceId,
         {
           referenceId: item.referenceId,
+          sourceKind: item.sourceKind,
           label: item.label,
+          categoryId: item.categoryId,
           fileType: item.fileType,
           assetPath: item.assetPath,
+          parentAssemblyId: item.parentAssemblyId ?? null,
+          parentComponentId: item.parentComponentId ?? null,
+          explodedFromReferenceId: item.explodedFromReferenceId ?? null,
+          sourcePartKey: item.sourcePartKey ?? null,
+          sourceMeshIndex: item.sourceMeshIndex ?? null,
         },
       ]),
   ),
@@ -536,8 +567,166 @@ const referenceWorkspaceStateFromTree = (tree: ReferenceWorkspaceBrowserTreeVm) 
     .flatMap((category) => category.items)
     .filter((item) => item.sourceKind === 'imported')
     .map((item) => item.referenceId),
+  stagedImportDraft: null,
+  transformOverrideById: {},
+  contentOrderByParentKey: {},
   referenceLoadBatch: null,
 })
+
+const buildExplodedImportedChildrenScenario = (options?: {
+  includeSecondAssembly?: boolean
+  selectedReferenceIds?: string[]
+}) => {
+  const includeSecondAssembly = options?.includeSecondAssembly ?? false
+  const selectedReferenceIds = options?.selectedReferenceIds ?? []
+  const referenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
+    rowId: 'reference-root',
+    label: 'References',
+    isExpanded: true,
+    categories: [
+      ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+      {
+        rowId: 'reference-category-row:user-references',
+        categoryId: 'user-references',
+        label: 'User References',
+        isExpanded: true,
+        itemCount: 2,
+        visibleItemCount: 2,
+        hasLoadingItem: false,
+        hasErrorItem: false,
+        emptyLabel: 'No imported references yet.',
+        items: [
+          {
+            rowId: 'reference-item-row:reference-import:child-1',
+            referenceId: 'reference-import:child-1',
+            sourceKind: 'imported',
+            label: 'Sole',
+            categoryId: 'user-references',
+            fileType: 'glb',
+            assetPath: 'blob:shoe-exploded',
+            isVisible: true,
+            loadState: 'loaded',
+            errorMessage: null,
+            parts: [],
+            parentAssemblyId: 'assembly-1',
+            explodedFromReferenceId: 'reference-import:wrapper-1',
+            sourcePartKey: 'reference-part:reference-import:wrapper-1:0',
+            sourceMeshIndex: 0,
+          },
+          {
+            rowId: 'reference-item-row:reference-import:child-2',
+            referenceId: 'reference-import:child-2',
+            sourceKind: 'imported',
+            label: 'Upper',
+            categoryId: 'user-references',
+            fileType: 'glb',
+            assetPath: 'blob:shoe-exploded',
+            isVisible: true,
+            loadState: 'loaded',
+            errorMessage: null,
+            parts: [],
+            parentAssemblyId: 'assembly-1',
+            explodedFromReferenceId: 'reference-import:wrapper-1',
+            sourcePartKey: 'reference-part:reference-import:wrapper-1:1',
+            sourceMeshIndex: 1,
+          },
+        ],
+      },
+    ],
+  }
+  const firstSelectedReferenceId = selectedReferenceIds[0] ?? null
+  const explicitSelectedTargets = selectedReferenceIds.map((referenceId) => ({
+    kind: 'object' as const,
+    objectId: `reference-item-row:${referenceId}`,
+  }))
+
+  return {
+    ...currentAppState,
+    projectContent: {
+      assembliesById: {
+        'assembly-1': {
+          assemblyId: 'assembly-1',
+          label: 'Assembly 1',
+          parentAssemblyId: null,
+          assemblySourceKind: 'authored',
+          childRowIds: [
+            'reference-item-row:reference-import:child-1',
+            'reference-item-row:reference-import:child-2',
+          ],
+        },
+        ...(includeSecondAssembly
+          ? {
+              'assembly-2': {
+                assemblyId: 'assembly-2',
+                label: 'Assembly 2',
+                parentAssemblyId: null,
+                assemblySourceKind: 'authored',
+                childRowIds: [],
+              },
+            }
+          : {}),
+      },
+      componentsById: {},
+      objectsById: {},
+    },
+    projectContentRows: [
+      {
+        rowId: 'assembly-1',
+        kind: 'assembly',
+        label: 'Assembly 1',
+        meta: '',
+        parentAssemblyId: null,
+        isVisible: true,
+        visibilityPartKeys: [],
+        buildState: 'done',
+        buildStateLabel: 'Built',
+        rebuildGraphDocumentIds: [],
+        statusLabel: 'Ready',
+        statusTone: 'ready',
+      },
+      ...(includeSecondAssembly
+        ? [
+            {
+              rowId: 'assembly-2',
+              kind: 'assembly',
+              label: 'Assembly 2',
+              meta: '',
+              parentAssemblyId: null,
+              isVisible: true,
+              visibilityPartKeys: [],
+              buildState: 'done',
+              buildStateLabel: 'Built',
+              rebuildGraphDocumentIds: [],
+              statusLabel: 'Ready',
+              statusTone: 'ready',
+            },
+          ]
+        : []),
+    ],
+    referenceWorkspaceTree,
+    referenceWorkspace: referenceWorkspaceStateFromTree(referenceWorkspaceTree),
+    workspaceSelection: {
+      ...currentAppState.workspaceSelection,
+      selectedTarget:
+        firstSelectedReferenceId === null
+          ? null
+          : {
+              kind: 'object',
+              objectId: `reference-item-row:${firstSelectedReferenceId}`,
+            },
+      explicitSelectedTargets,
+      selectionAnchorTarget:
+        firstSelectedReferenceId === null
+          ? null
+          : {
+              kind: 'object',
+              objectId: `reference-item-row:${firstSelectedReferenceId}`,
+            },
+      resolvedContentSelection: null,
+      activeSurface: 'browser',
+    },
+  }
+}
 
 const isMockExplicitSelectionTarget = (target: any): boolean =>
   target !== null &&
@@ -924,6 +1113,7 @@ describe('BrowserPanel', () => {
     viewerFrameSelectionSetMock.mockReset()
     importReferenceFileFromDiskMock = vi.fn()
     importReferenceFilesFromDiskMock = vi.fn()
+    importSupportedReferenceFilesFromDiskMock = vi.fn()
     mockRequestBrowserGraphDocumentBuild = vi.fn()
     currentSpaghettiState = {
       graphDocumentsById: {
@@ -1116,12 +1306,59 @@ describe('BrowserPanel', () => {
       setReferenceItemVisibility: vi.fn(),
       toggleReferenceCategoryVisibility: vi.fn(),
       toggleSketchVisibility: vi.fn(),
+      openStagedImportDraft: vi.fn((draft: { parentAssemblyId?: string | null; parentComponentId?: string | null }) => {
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              parentAssemblyId: draft.parentAssemblyId ?? null,
+              parentComponentId: draft.parentComponentId ?? null,
+              stagedFiles: [],
+            },
+          },
+        }
+      }),
+      appendStagedImportDraftFiles: vi.fn(
+        (files: Array<{ fileName: string; fileType: string; objectUrl: string }>) => {
+          const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+          if (currentDraft === null) {
+            return
+          }
+          currentAppState = {
+            ...currentAppState,
+            referenceWorkspace: {
+              ...currentAppState.referenceWorkspace,
+              stagedImportDraft: {
+                ...currentDraft,
+                stagedFiles: [
+                  ...currentDraft.stagedFiles,
+                  ...files.map((file, index) => ({
+                    ...file,
+                    stagedFileId: `staged-import-file:${currentDraft.stagedFiles.length + index + 1}`,
+                  })),
+                ],
+              },
+            },
+          }
+        },
+      ),
+      closeStagedImportDraft: vi.fn(() => {
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: null,
+          },
+        }
+      }),
       addImportedReference: vi.fn(() => 'reference-import:1'),
       retryReferenceItemLoad: vi.fn(),
       startReferenceLoadBatchForAll: vi.fn(),
       startReferenceLoadBatchForCategory: vi.fn(),
       loadAllReferences: vi.fn(),
       loadReferenceCategory: vi.fn(),
+      explodeImportedReference: vi.fn(() => true),
       removeImportedReference: vi.fn(),
       createProjectAssembly: vi.fn(() => 'assembly-authored-1'),
       createProjectComponent: vi.fn(() => 'component-authored-1'),
@@ -3840,7 +4077,158 @@ describe('BrowserPanel', () => {
     expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('footpads')
   })
 
-  it('opens the Content import menu from the header + button and imports a single accepted file type into the working hierarchy', async () => {
+  it('opens the staged Import Files dialog from the Content import menu and closes without changing project content', async () => {
+    ;({ root } = await renderBrowserPanel())
+
+    const importButton = findButtonByLabel('Import reference file')
+    expect(importButton).not.toBeNull()
+
+    await click(importButton!)
+    expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Import Reference')
+    expect(
+      Array.from(document.querySelectorAll('.BrowserTreeContextMenu button')).map((element) =>
+        element.textContent?.trim(),
+      ),
+    ).toMatchObject(['Import Files...', 'Import .step', 'Import .stl', 'Import .obj', 'Import .glb'])
+
+    await click(findButtonByLabel('Import Files...')!)
+
+    expect(currentAppState.openStagedImportDraft).toHaveBeenCalledWith({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+    expect(importReferenceFileFromDiskMock).not.toHaveBeenCalled()
+    expect(importReferenceFilesFromDiskMock).not.toHaveBeenCalled()
+    expect(importSupportedReferenceFilesFromDiskMock).not.toHaveBeenCalled()
+    expect(document.querySelector('.BrowserTreeContextMenu')).toBeNull()
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Import Files')
+
+    await click(findButtonByLabel('Cancel')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.closeStagedImportDraft).toHaveBeenCalled()
+    expect(currentAppState.referenceWorkspace.stagedImportDraft).toBeNull()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('shows supported staged import types and stages files through the dialog Browser intake without changing project content', async () => {
+    importSupportedReferenceFilesFromDiskMock.mockResolvedValue([
+      {
+        fileName: 'shoe.step',
+        fileType: 'step',
+        objectUrl: 'blob:shoe-step',
+      },
+      {
+        fileName: 'shoe.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-glb',
+      },
+    ])
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findButtonByLabel('Import reference file')!)
+    await click(findButtonByLabel('Import Files...')!)
+
+    const importDialog = document.querySelector('[role="dialog"]')
+    expect(importDialog?.textContent).toContain('.step')
+    expect(importDialog?.textContent).toContain('.stl')
+    expect(importDialog?.textContent).toContain('.obj')
+    expect(importDialog?.textContent).toContain('.glb')
+    expect(importDialog?.textContent).toContain('0 files staged in draft')
+    expect(importDialog?.textContent).toContain('No files staged yet.')
+    expect(document.querySelectorAll('.BrowserImportDialogStagedRow')).toHaveLength(0)
+
+    await click(findButtonByLabel('Browser')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(importSupportedReferenceFilesFromDiskMock).toHaveBeenCalledTimes(1)
+    expect(currentAppState.appendStagedImportDraftFiles).toHaveBeenCalledWith([
+      {
+        fileName: 'shoe.step',
+        fileType: 'step',
+        objectUrl: 'blob:shoe-step',
+      },
+      {
+        fileName: 'shoe.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shoe-glb',
+      },
+    ])
+    expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(2)
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('2 files staged in draft')
+    expect(
+      Array.from(document.querySelectorAll('.BrowserImportDialogStagedRowName')).map((element) =>
+        element.textContent?.trim(),
+      ),
+    ).toEqual(['shoe.step', 'shoe.glb'])
+    expect(
+      Array.from(document.querySelectorAll('.BrowserImportDialogStagedRowType')).map((element) =>
+        element.textContent?.trim(),
+      ),
+    ).toEqual(['.STEP', '.GLB'])
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('appends repeated staged Browser intake into the visible review list in stable order', async () => {
+    importSupportedReferenceFilesFromDiskMock
+      .mockResolvedValueOnce([
+        {
+          fileName: 'alpha.step',
+          fileType: 'step',
+          objectUrl: 'blob:alpha-step',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          fileName: 'beta.obj',
+          fileType: 'obj',
+          objectUrl: 'blob:beta-obj',
+        },
+        {
+          fileName: 'gamma.glb',
+          fileType: 'glb',
+          objectUrl: 'blob:gamma-glb',
+        },
+      ])
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findButtonByLabel('Import reference file')!)
+    await click(findButtonByLabel('Import Files...')!)
+
+    await click(findButtonByLabel('Browser')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await click(findButtonByLabel('Browser')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(importSupportedReferenceFilesFromDiskMock).toHaveBeenCalledTimes(2)
+    expect(
+      Array.from(document.querySelectorAll('.BrowserImportDialogStagedRowName')).map((element) =>
+        element.textContent?.trim(),
+      ),
+    ).toEqual(['alpha.step', 'beta.obj', 'gamma.glb'])
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain('3 files staged in draft')
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('opens the Content import menu from the header + button and still imports a single accepted file type into the working hierarchy from the direct compatibility rows', async () => {
     importReferenceFileFromDiskMock.mockResolvedValue({
       fileName: 'shoe.glb',
       fileType: 'glb',
@@ -3854,6 +4242,7 @@ describe('BrowserPanel', () => {
 
     await click(importButton!)
     expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('Import Reference')
+    expect(findButtonByLabel('Import Files...')).not.toBeNull()
     expect(findButtonByLabel('Import .step')).not.toBeNull()
     expect(findButtonByLabel('Import .glb')).not.toBeNull()
 
@@ -3969,6 +4358,188 @@ describe('BrowserPanel', () => {
 
     expect(currentAppState.beginReferenceTransformShell).toHaveBeenCalledWith(
       'footpad:pubpad-full-assembly',
+    )
+  })
+
+  it('shows Explode on imported parent object right-click and routes it through the explode seam', async () => {
+    currentAppState = {
+      ...currentAppState,
+      projectContent: {
+        assembliesById: {
+          'assembly-1': {
+            assemblyId: 'assembly-1',
+            label: 'Assembly 1',
+            parentAssemblyId: null,
+            assemblySourceKind: 'authored',
+            childRowIds: ['reference-item-row:reference-import:1'],
+          },
+        },
+        componentsById: {},
+        objectsById: {},
+      },
+      projectContentRows: [
+        {
+          rowId: 'assembly-1',
+          kind: 'assembly',
+          label: 'Assembly 1',
+          meta: '',
+          isVisible: true,
+          visibilityPartKeys: [],
+          buildState: 'done',
+          buildStateLabel: 'Built',
+          rebuildGraphDocumentIds: [],
+        },
+      ],
+      referenceWorkspaceTree: {
+        rowId: 'reference-root',
+        label: 'References',
+        isExpanded: true,
+        categories: [
+          ...emptyReferenceWorkspaceTree.categories.slice(0, 3),
+          {
+            rowId: 'reference-category-row:user-references',
+            categoryId: 'user-references',
+            label: 'User References',
+            isExpanded: true,
+            itemCount: 1,
+            visibleItemCount: 1,
+            hasLoadingItem: false,
+            hasErrorItem: false,
+            emptyLabel: 'No imported references yet.',
+            items: [
+              {
+                rowId: 'reference-item-row:reference-import:1',
+                referenceId: 'reference-import:1',
+                sourceKind: 'imported',
+                label: 'shoe.glb',
+                categoryId: 'user-references',
+                fileType: 'glb',
+                assetPath: 'blob:shoe-1',
+                isVisible: true,
+                loadState: 'loaded',
+                errorMessage: null,
+                parentAssemblyId: 'assembly-1',
+                parts: [
+                  {
+                    rowId: 'part-row:reference-import:1:sole',
+                    partKey: 'reference-import:1:sole',
+                    label: 'Sole',
+                    sourceMeshIndex: 0,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    }
+    currentAppState.referenceWorkspace = referenceWorkspaceStateFromTree(
+      currentAppState.referenceWorkspaceTree,
+    )
+
+    ;({ root } = await renderBrowserPanel())
+
+    const importedObjectRow = findRowMainByLabel('shoe.glb')
+    expect(importedObjectRow).not.toBeNull()
+
+    await contextMenu(importedObjectRow!)
+
+    expect(document.querySelector('.BrowserTreeContextMenuHeader')?.textContent).toBe('shoe.glb')
+    await click(findButtonByLabel('Explode')!)
+
+    expect(currentAppState.explodeImportedReference).toHaveBeenCalledWith('reference-import:1')
+  })
+
+  it('treats exploded imported children like ordinary object rows for selection and double-click frame', async () => {
+    currentAppState = buildExplodedImportedChildrenScenario()
+
+    ;({ root } = await renderBrowserPanel())
+
+    const explodedRow = findRowMainByLabel('Sole')
+    expect(explodedRow).not.toBeNull()
+
+    await click(explodedRow!)
+
+    expect(currentAppState.selectPart).toHaveBeenCalledWith(null)
+    expect(currentAppState.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: {
+        kind: 'object',
+        objectId: 'reference-item-row:reference-import:child-1',
+      },
+      explicitSelectedTargets: [
+        {
+          kind: 'object',
+          objectId: 'reference-item-row:reference-import:child-1',
+        },
+      ],
+      selectionAnchorTarget: {
+        kind: 'object',
+        objectId: 'reference-item-row:reference-import:child-1',
+      },
+    })
+    expect(currentAppState.requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+    expect(explodedRow?.getAttribute('aria-pressed')).toBe('true')
+
+    viewerFrameSelectionSetMock.mockReset()
+    await doubleClick(explodedRow!)
+
+    expect(viewerFrameSelectionSetMock).toHaveBeenCalledWith([], ['reference-import:child-1'])
+  })
+
+  it('applies exploded imported child hide across the eligible browser multi-selection', async () => {
+    currentAppState = buildExplodedImportedChildrenScenario({
+      selectedReferenceIds: ['reference-import:child-1'],
+    })
+
+    ;({ root } = await renderBrowserPanel())
+
+    await clickWithModifiers(findRowMainByLabel('Upper')!, { ctrlKey: true })
+    await click(findButtonByLabel('Hide Sole')!)
+
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenNthCalledWith(
+      1,
+      'reference-import:child-1',
+      false,
+    )
+    expect(currentAppState.setReferenceItemVisibility).toHaveBeenNthCalledWith(
+      2,
+      'reference-import:child-2',
+      false,
+    )
+  })
+
+  it('removes exploded imported children through the ordinary row-menu remove seam', async () => {
+    currentAppState = buildExplodedImportedChildrenScenario()
+
+    ;({ root } = await renderBrowserPanel())
+
+    await contextMenu(findRowMainByLabel('Sole')!)
+    await click(findButtonByLabel('Remove')!)
+
+    expect(currentAppState.removeImportedReference).toHaveBeenCalledWith('reference-import:child-1')
+  })
+
+  it('keeps exploded imported children draggable through the imported-reference owner-target seam', async () => {
+    currentAppState = buildExplodedImportedChildrenScenario({
+      includeSecondAssembly: true,
+      selectedReferenceIds: ['reference-import:child-1'],
+    })
+
+    ;({ root } = await renderBrowserPanel())
+
+    const sourceRow = findRowMainByLabel('Sole')?.closest('.BrowserTreeRow')
+    const targetRow = findRowMainByLabel('Assembly 2')?.closest('.BrowserTreeRow')
+    expect(sourceRow).not.toBeNull()
+    expect(targetRow).not.toBeNull()
+
+    mockRowRect(sourceRow!, 0)
+    mockRowRect(targetRow!, 48)
+
+    await dragRow(sourceRow!, targetRow!, 64)
+
+    expect(currentAppState.moveProjectContentOwner).toHaveBeenCalledWith(
+      { kind: 'imported-reference', referenceId: 'reference-import:child-1' },
+      { kind: 'assembly', assemblyId: 'assembly-2', position: 'into' },
     )
   })
 
@@ -6301,6 +6872,9 @@ describe('BrowserPanel', () => {
               errorMessage: null,
               parts: [],
               parentAssemblyId: 'assembly-1',
+              explodedFromReferenceId: null,
+              sourcePartKey: null,
+              sourceMeshIndex: null,
             },
             {
               rowId: 'reference-item-row:reference-import:2',
@@ -6315,6 +6889,9 @@ describe('BrowserPanel', () => {
               errorMessage: null,
               parts: [],
               parentAssemblyId: 'assembly-1',
+              explodedFromReferenceId: null,
+              sourcePartKey: null,
+              sourceMeshIndex: null,
             },
           ],
         },

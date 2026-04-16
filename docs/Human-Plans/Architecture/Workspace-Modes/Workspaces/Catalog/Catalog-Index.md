@@ -448,7 +448,7 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
   - [ ] `5. Honest Preview Versus Commit Ownership`
   - [ ] `6. Preview-Friendly Metadata`
   - [ ] `6A. Item Page As The Main Decision Surface`
-  - foundation target:
+  #### - foundation target:
     - make `Catalog` a real workspace mode
     - lock the store-page card language
     - lock the preview-versus-commit contract
@@ -460,13 +460,13 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
   - [ ] `4. Explicit Add-To-Project Commit`
   - [ ] `6. Preview-Friendly Metadata`
   - [ ] `6A. Item Page As The Main Decision Surface`
-  - implementation target:
+  #### - implementation target:
     - move the preloaded `foothooks`, `shoes`, and `footpads` into real curated catalog families
     - make `Add To Project` create explicit Browser/project content
     - land the first real item pages and preview behavior for those reference families
 ### `Catalog-3`
   - [ ] `5. Honest Preview Versus Commit Ownership`
-  - implementation target:
+  #### - implementation target:
     - onboard `HDRIs` with their own explicit apply path
     - keep HDRI preview or apply behavior honest against the earlier reference workflow
 ### `Catalog-4`

@@ -11,6 +11,7 @@ import { appendConsoleEntry } from '../console/useConsoleStore'
 import {
   importReferenceFileFromDisk,
   importReferenceFilesFromDisk,
+  importSupportedReferenceFilesFromDisk,
 } from '../references/importReferenceFile'
 import type { ReferenceFileType } from '../references/referenceManifest'
 import { getViewer } from '../viewerBridge'
@@ -22,6 +23,7 @@ import {
 } from '../spaghetti/store/useSpaghettiStore'
 import {
   buildImportedReferenceRowId,
+  canReferenceItemExplode,
   buildProjectSketchBrowserRowId,
   REFERENCE_ROOT_ROW_ID,
   resolveBrowserDraggableTargetDrop,
@@ -30,6 +32,7 @@ import {
   selectShouldSuppressBrowserGraphRuntimeOutput,
   type BrowserDraggableTarget,
   type ProjectContentOwnerTarget,
+  type StagedImportDraftState,
   type WorkspaceSelectedTarget,
   useAppStore,
 } from '../store/useAppStore'
@@ -89,6 +92,11 @@ type BrowserPanelControllerOutput = {
     importMenu: BrowserImportMenuState | null
     importMenuRef: React.RefObject<HTMLDivElement | null>
     importMenuStyle: { left: string; top: string } | undefined
+    stagedImportDraft: StagedImportDraftState | null
+    isBrowsingImportFiles: boolean
+    onOpenImportFiles: () => void
+    onBrowseImportFiles: () => void
+    onCloseImportDialog: () => void
     onImportReferenceFile: (fileType: ReferenceFileType) => void
   }
   bodyHandlers: {
@@ -180,12 +188,17 @@ export function useBrowserPanelController(
   )
   const toggleSketchVisibility = useAppStore((state) => state.toggleSketchVisibility)
   const setPartVisibility = useAppStore((state) => state.setPartVisibility)
+  const stagedImportDraft = useAppStore((state) => state.referenceWorkspace.stagedImportDraft)
+  const openStagedImportDraft = useAppStore((state) => state.openStagedImportDraft)
+  const appendStagedImportDraftFiles = useAppStore((state) => state.appendStagedImportDraftFiles)
+  const closeStagedImportDraft = useAppStore((state) => state.closeStagedImportDraft)
   const addImportedReference = useAppStore((state) => state.addImportedReference)
   const retryReferenceItemLoad = useAppStore((state) => state.retryReferenceItemLoad)
   const startReferenceLoadBatchForAll = useAppStore((state) => state.startReferenceLoadBatchForAll)
   const startReferenceLoadBatchForCategory = useAppStore(
     (state) => state.startReferenceLoadBatchForCategory,
   )
+  const explodeImportedReference = useAppStore((state) => state.explodeImportedReference)
   const removeImportedReference = useAppStore((state) => state.removeImportedReference)
   const createProjectAssembly = useAppStore((state) => state.createProjectAssembly)
   const createProjectComponent = useAppStore((state) => state.createProjectComponent)
@@ -220,6 +233,7 @@ export function useBrowserPanelController(
   const [contentDragState, setContentDragState] = useState<BrowserContentDragSession | null>(null)
   const [contextMenu, setContextMenu] = useState<BrowserRowContextMenuState | null>(null)
   const [importMenu, setImportMenu] = useState<BrowserImportMenuState | null>(null)
+  const [isBrowsingImportFiles, setIsBrowsingImportFiles] = useState(false)
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
   const importMenuRef = useRef<HTMLDivElement | null>(null)
   const contentRowElementsByIdRef = useRef(new Map<string, HTMLDivElement>())
@@ -772,6 +786,63 @@ export function useBrowserPanelController(
     )
   }, [])
 
+  const resolveImportLandingParent = useCallback(
+    (): {
+      parentAssemblyId: string | null
+      parentComponentId: string | null
+    } => {
+      if (workspaceSelectedTarget?.kind === 'component') {
+        return {
+          parentAssemblyId: null,
+          parentComponentId: workspaceSelectedTarget.componentId,
+        }
+      }
+
+      if (workspaceSelectedTarget?.kind === 'assembly') {
+        return {
+          parentAssemblyId: workspaceSelectedTarget.assemblyId,
+          parentComponentId: null,
+        }
+      }
+
+      if (workspaceSelectedTarget?.kind === 'object') {
+        const objectRow = projectContent?.objectsById?.[workspaceSelectedTarget.objectId] ?? null
+        if (objectRow !== null) {
+          if (objectRow.parentAssemblyId != null) {
+            return {
+              parentAssemblyId: objectRow.parentAssemblyId,
+              parentComponentId: null,
+            }
+          }
+          if (objectRow.parentComponentId !== null) {
+            return {
+              parentAssemblyId: null,
+              parentComponentId: objectRow.parentComponentId,
+            }
+          }
+        }
+      }
+
+      const fallbackAssemblyRow =
+        projectContentRows.find(
+          (row): row is Extract<typeof projectContentRows[number], { kind: 'assembly' }> =>
+            row.kind === 'assembly' &&
+            row.parentAssemblyId == null &&
+            row.rowId !== REFERENCE_ROOT_ROW_ID,
+        ) ?? null
+      return {
+        parentAssemblyId: fallbackAssemblyRow?.rowId ?? null,
+        parentComponentId: null,
+      }
+    },
+    [projectContent, projectContentRows, workspaceSelectedTarget],
+  )
+
+  const handleOpenImportFiles = useCallback(() => {
+    setImportMenu(null)
+    openStagedImportDraft(resolveImportLandingParent())
+  }, [openStagedImportDraft, resolveImportLandingParent])
+
   const handleCycleContentBuildPolicy = useCallback(() => {
     const rootAssemblyId = currentProject?.rootAssemblyId ?? null
     if (rootAssemblyId === null) {
@@ -785,59 +856,6 @@ export function useBrowserPanelController(
 
   const handleImportReferenceFile = useCallback(
     (fileType: ReferenceFileType) => {
-      const resolveImportLandingParent = (): {
-        parentAssemblyId: string | null
-        parentComponentId: string | null
-      } => {
-        if (workspaceSelectedTarget?.kind === 'component') {
-          return {
-            parentAssemblyId: null,
-            parentComponentId: workspaceSelectedTarget.componentId,
-          }
-        }
-
-        if (workspaceSelectedTarget?.kind === 'assembly') {
-          return {
-            parentAssemblyId: workspaceSelectedTarget.assemblyId,
-            parentComponentId: null,
-          }
-        }
-
-        if (workspaceSelectedTarget?.kind === 'object') {
-          const objectRow = projectContent?.objectsById?.[workspaceSelectedTarget.objectId] ?? null
-          if (objectRow !== null) {
-            if (objectRow.parentAssemblyId != null) {
-              return {
-                parentAssemblyId: objectRow.parentAssemblyId ?? null,
-                parentComponentId: null,
-              }
-            }
-            if (objectRow.parentComponentId !== null) {
-              const parentComponent =
-                projectContent?.componentsById?.[objectRow.parentComponentId] ?? null
-              if (parentComponent?.parentAssemblyId != null) {
-                return {
-                  parentAssemblyId: parentComponent.parentAssemblyId,
-                  parentComponentId: null,
-                }
-              }
-            }
-          }
-        }
-
-        const fallbackAssemblyRow =
-          projectContentRows.find(
-            (row): row is Extract<typeof projectContentRows[number], { kind: 'assembly' }> =>
-              row.kind === 'assembly' &&
-              row.parentAssemblyId == null &&
-              row.rowId !== REFERENCE_ROOT_ROW_ID,
-          ) ?? null
-        return {
-          parentAssemblyId: fallbackAssemblyRow?.rowId ?? null,
-          parentComponentId: null,
-        }
-      }
-
       setImportMenu(null)
       const landingParent = resolveImportLandingParent()
       const importPromise =
@@ -871,8 +889,50 @@ export function useBrowserPanelController(
           console.error(`Failed to import ${fileType.toUpperCase()} reference file.`, error)
         })
     },
-    [addImportedReference, projectContent, projectContentRows, workspaceSelectedTarget],
+    [addImportedReference, resolveImportLandingParent],
   )
+
+  const handleBrowseImportFiles = useCallback(() => {
+    if (stagedImportDraft === null || isBrowsingImportFiles) {
+      return
+    }
+
+    setIsBrowsingImportFiles(true)
+    void importSupportedReferenceFilesFromDisk()
+      .then((files) => {
+        appendStagedImportDraftFiles(files)
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.message === 'No reference file selected.') {
+          return
+        }
+        console.error('Failed to stage imported reference files.', error)
+      })
+      .finally(() => {
+        setIsBrowsingImportFiles(false)
+      })
+  }, [appendStagedImportDraftFiles, isBrowsingImportFiles, stagedImportDraft])
+
+  useEffect(() => {
+    if (stagedImportDraft === null) {
+      if (isBrowsingImportFiles) {
+        setIsBrowsingImportFiles(false)
+      }
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.key !== 'Escape') {
+        return
+      }
+      closeStagedImportDraft()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeStagedImportDraft, isBrowsingImportFiles, stagedImportDraft])
 
   useEffect(() => {
     if (contextMenu === null && importMenu === null) {
@@ -1383,6 +1443,31 @@ export function useBrowserPanelController(
     [appendBrowserEntry, closeBrowserOverlays, removeImportedReference, requestConsoleContextSync],
   )
 
+  const canExplodeImportedReferenceRow = useCallback(
+    (referenceId: string) => canReferenceItemExplode({ referenceWorkspace }, referenceId),
+    [referenceWorkspace],
+  )
+
+  const handleExplodeImportedReferenceRow = useCallback(
+    (referenceId: string) => {
+      closeBrowserOverlays()
+      if (!explodeImportedReference(referenceId)) {
+        return
+      }
+      setLocalSelectedBrowserRowId((current) =>
+        current === buildImportedReferenceRowId(referenceId) ? null : current,
+      )
+      requestConsoleContextSync('target-selection')
+      appendBrowserEntry(`Exploded imported reference ${referenceId}`)
+    },
+    [
+      appendBrowserEntry,
+      closeBrowserOverlays,
+      explodeImportedReference,
+      requestConsoleContextSync,
+    ],
+  )
+
   const getMultiSelectImportedReferenceDeleteAction = useCallback(
     (row: BrowserRenderableRowVm) => {
       if (
@@ -1704,6 +1789,8 @@ export function useBrowserPanelController(
         retryReferenceItemLoad,
         setReferenceItemVisibility,
         setPartVisibility,
+        canExplodeImportedReferenceRow,
+        handleExplodeImportedReferenceRow,
         handleRetryImportedReferenceRow,
         handleRemoveImportedReferenceRow,
         handleRemoveImportedReferenceRows,
@@ -1718,9 +1805,12 @@ export function useBrowserPanelController(
       appendBrowserEntry,
       clearBrowserContentBuildPolicy,
       clearBrowserGraphBuildPolicy,
+      canExplodeImportedReferenceRow,
       closeBrowserOverlays,
       createProjectAssembly,
       createProjectComponent,
+      explodeImportedReference,
+      handleExplodeImportedReferenceRow,
       handleRemoveImportedReferenceRow,
       handleRetryImportedReferenceRow,
       handleRowAction,
@@ -1924,8 +2014,13 @@ export function useBrowserPanelController(
       importMenu,
       importMenuRef,
       importMenuStyle,
-      onImportReferenceFile: handleImportReferenceFile,
-    },
+    stagedImportDraft,
+    isBrowsingImportFiles,
+    onOpenImportFiles: handleOpenImportFiles,
+    onBrowseImportFiles: handleBrowseImportFiles,
+    onCloseImportDialog: closeStagedImportDraft,
+    onImportReferenceFile: handleImportReferenceFile,
+  },
     bodyHandlers: {
       onBrowserBodyClick: handleBrowserBodyClick,
       onActivateBrowserSurface: handleActivateBrowserSurface,

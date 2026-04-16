@@ -775,6 +775,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             assetPath: 'references/imported/object.glb',
             parentAssemblyId: 'assembly-1',
             parentComponentId: null,
+            explodedFromReferenceId: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
           },
         },
         importedReferenceOrder: ['imported-reference-1'],
@@ -917,6 +920,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             assetPath: 'references/imported/object-a.glb',
             parentAssemblyId: 'assembly-1',
             parentComponentId: null,
+            explodedFromReferenceId: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
           },
           'imported-reference-2': {
             referenceId: 'imported-reference-2',
@@ -927,6 +933,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             assetPath: 'references/imported/object-b.glb',
             parentAssemblyId: 'assembly-1',
             parentComponentId: null,
+            explodedFromReferenceId: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
           },
         },
         importedReferenceOrder: ['imported-reference-1', 'imported-reference-2'],
@@ -1048,6 +1057,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             assetPath: 'references/imported/object-a.glb',
             parentAssemblyId: 'assembly-1',
             parentComponentId: null,
+            explodedFromReferenceId: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
           },
           'imported-reference-2': {
             referenceId: 'imported-reference-2',
@@ -1058,6 +1070,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             assetPath: 'references/imported/object-b.glb',
             parentAssemblyId: 'assembly-1',
             parentComponentId: null,
+            explodedFromReferenceId: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
           },
         },
         importedReferenceOrder: ['imported-reference-1', 'imported-reference-2'],
@@ -1319,6 +1334,62 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       kind: 'object',
       referenceId,
       canHide: false,
+      canLoadModel: true,
+    })
+  })
+
+  it('marks selected imported reference-object console targets as explodable only when the shared explode seam says they qualify', async () => {
+    const {
+      buildImportedReferenceRowId,
+      selectConsoleWorkspaceContextTarget,
+      useAppStore,
+    } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const referenceId = useAppStore.getState().addImportedReference({
+      fileName: 'explodeable.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:explodeable',
+    })
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'object',
+      objectId: buildImportedReferenceRowId(referenceId),
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      referenceId,
+      canExplode: false,
+    })
+
+    useAppStore.getState().setReferenceItemPartRows(referenceId, [
+      {
+        partKey: `${referenceId}:part-a`,
+        label: 'Part A',
+        sourceMeshIndex: 0,
+      },
+      {
+        partKey: `${referenceId}:part-b`,
+        label: 'Part B',
+        sourceMeshIndex: 1,
+      },
+    ])
+    useAppStore.getState().setReferenceItemLoadState(referenceId, 'loaded')
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      referenceId,
+      canExplode: true,
+    })
+
+    useAppStore.getState().setReferenceItemVisibility(referenceId, false)
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'object',
+      referenceId,
+      canExplode: true,
       canLoadModel: true,
     })
   })
@@ -7571,6 +7642,250 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       expect(remainingImportedCategory?.items).toEqual([
         expect.objectContaining({ referenceId: secondReferenceId }),
       ])
+    } finally {
+      globalThis.URL = originalUrl
+    }
+  })
+
+  it('does not explode an ineligible imported reference', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const referenceId = useAppStore.getState().addImportedReference({
+      fileName: 'shoe.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-ineligible',
+    })
+
+    const importedReferenceOrderBefore = [...useAppStore.getState().referenceWorkspace.importedReferenceOrder]
+
+    expect(useAppStore.getState().explodeImportedReference(referenceId)).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.importedReferenceOrder).toEqual(
+      importedReferenceOrderBefore,
+    )
+    expect(useAppStore.getState().referenceWorkspace.importedReferencesById[referenceId]).toMatchObject({
+      explodedFromReferenceId: null,
+      sourcePartKey: null,
+      sourceMeshIndex: null,
+    })
+  })
+
+  it('explodes one eligible imported wrapper into ordered per-part imported references under the same parent', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const assemblyId = useAppStore.getState().createProjectAssembly()
+    const beforeReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'before.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:before',
+      parentAssemblyId: assemblyId,
+    })
+    const wrapperReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'wrapper.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:wrapper',
+      parentAssemblyId: assemblyId,
+    })
+    const afterReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'after.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:after',
+      parentAssemblyId: assemblyId,
+    })
+
+    useAppStore.getState().setReferenceItemLoadState(wrapperReferenceId, 'loaded')
+    useAppStore.getState().setReferenceItemPartRows(wrapperReferenceId, [
+      {
+        partKey: 'reference-part:wrapper:0',
+        label: 'Upper',
+        sourceMeshIndex: 0,
+      },
+      {
+        partKey: 'reference-part:wrapper:1',
+        label: 'Sole',
+        sourceMeshIndex: 1,
+      },
+    ])
+
+    expect(useAppStore.getState().explodeImportedReference(wrapperReferenceId)).toBe(true)
+
+    const state = useAppStore.getState()
+    const childReferenceIds = state.referenceWorkspace.importedReferenceOrder.filter(
+      (referenceId) =>
+        state.referenceWorkspace.importedReferencesById[referenceId]?.explodedFromReferenceId ===
+        wrapperReferenceId,
+    )
+
+    expect(childReferenceIds).toHaveLength(2)
+    expect(state.referenceWorkspace.importedReferenceOrder).toEqual(
+      expect.arrayContaining([beforeReferenceId, afterReferenceId, ...childReferenceIds]),
+    )
+    expect(state.referenceWorkspace.importedReferenceOrder.indexOf(beforeReferenceId)).toBeLessThan(
+      state.referenceWorkspace.importedReferenceOrder.indexOf(childReferenceIds[0]!),
+    )
+    expect(state.referenceWorkspace.importedReferenceOrder.indexOf(childReferenceIds[1]!)).toBeLessThan(
+      state.referenceWorkspace.importedReferenceOrder.indexOf(afterReferenceId),
+    )
+    expect(state.referenceWorkspace.importedReferenceOrder).not.toContain(wrapperReferenceId)
+
+    expect(
+      state.referenceWorkspace.contentOrderByParentKey[`assembly:${assemblyId}`],
+    ).toEqual([
+      `reference-item-row:${beforeReferenceId}`,
+      `reference-item-row:${childReferenceIds[0]}`,
+      `reference-item-row:${childReferenceIds[1]}`,
+      `reference-item-row:${afterReferenceId}`,
+    ])
+
+    expect(state.referenceWorkspace.importedReferencesById[wrapperReferenceId]).toBeUndefined()
+    expect(state.referenceWorkspace.partRowsByReferenceId[wrapperReferenceId]).toBeUndefined()
+    expect(state.referenceWorkspace.visibilityById[wrapperReferenceId]).toBeUndefined()
+    expect(state.referenceWorkspace.loadStateById[wrapperReferenceId]).toBeUndefined()
+
+    expect(
+      childReferenceIds.map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]),
+    ).toEqual([
+      expect.objectContaining({
+        sourceKind: 'imported',
+        categoryId: 'user-references',
+        label: 'Upper',
+        fileType: 'glb',
+        assetPath: 'blob:wrapper',
+        parentAssemblyId: assemblyId,
+        parentComponentId: null,
+        explodedFromReferenceId: wrapperReferenceId,
+        sourcePartKey: 'reference-part:wrapper:0',
+        sourceMeshIndex: 0,
+      }),
+      expect.objectContaining({
+        sourceKind: 'imported',
+        categoryId: 'user-references',
+        label: 'Sole',
+        fileType: 'glb',
+        assetPath: 'blob:wrapper',
+        parentAssemblyId: assemblyId,
+        parentComponentId: null,
+        explodedFromReferenceId: wrapperReferenceId,
+        sourcePartKey: 'reference-part:wrapper:1',
+        sourceMeshIndex: 1,
+      }),
+    ])
+    expect(state.referenceWorkspace.visibilityById[childReferenceIds[0]!]).toBe(false)
+    expect(state.referenceWorkspace.visibilityById[childReferenceIds[1]!]).toBe(false)
+    expect(state.referenceWorkspace.loadStateById[childReferenceIds[0]!]).toBe('unloaded')
+    expect(state.referenceWorkspace.loadStateById[childReferenceIds[1]!]).toBe('unloaded')
+    expect(state.referenceWorkspace.partRowsByReferenceId[childReferenceIds[0]!]).toEqual([])
+    expect(state.referenceWorkspace.partRowsByReferenceId[childReferenceIds[1]!]).toEqual([])
+  })
+
+  it('keeps duplicate and fallback exploded child labels deterministic in truthful source order', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const wrapperReferenceId = useAppStore.getState().addImportedReference({
+      fileName: 'naming.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:naming',
+    })
+
+    useAppStore.getState().setReferenceItemLoadState(wrapperReferenceId, 'loaded')
+    useAppStore.getState().setReferenceItemPartRows(wrapperReferenceId, [
+      {
+        partKey: 'reference-part:naming:0',
+        label: 'Bracket',
+        sourceMeshIndex: 0,
+      },
+      {
+        partKey: 'reference-part:naming:1',
+        label: 'Bracket 2',
+        sourceMeshIndex: 1,
+      },
+      {
+        partKey: 'reference-part:naming:2',
+        label: 'Part 3',
+        sourceMeshIndex: 2,
+      },
+    ])
+
+    expect(useAppStore.getState().explodeImportedReference(wrapperReferenceId)).toBe(true)
+
+    const state = useAppStore.getState()
+    const childReferences = state.referenceWorkspace.importedReferenceOrder
+      .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId] ?? null)
+      .filter(
+        (
+          reference,
+        ): reference is NonNullable<typeof reference> =>
+          reference !== null && reference.explodedFromReferenceId === wrapperReferenceId,
+      )
+
+    expect(childReferences.map((reference) => reference.label)).toEqual([
+      'Bracket',
+      'Bracket 2',
+      'Part 3',
+    ])
+    expect(childReferences.map((reference) => reference.sourceMeshIndex)).toEqual([0, 1, 2])
+    expect(childReferences.map((reference) => reference.sourcePartKey)).toEqual([
+      'reference-part:naming:0',
+      'reference-part:naming:1',
+      'reference-part:naming:2',
+    ])
+  })
+
+  it('keeps shared imported asset paths alive until the last exploded child is removed', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const revokeObjectURL = vi.fn()
+    const originalUrl = globalThis.URL
+    globalThis.URL = ({
+      ...originalUrl,
+      revokeObjectURL,
+    } as unknown) as typeof URL
+
+    try {
+      const wrapperReferenceId = useAppStore.getState().addImportedReference({
+        fileName: 'shared.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:shared-wrapper',
+      })
+      useAppStore.getState().setReferenceItemLoadState(wrapperReferenceId, 'loaded')
+      useAppStore.getState().setReferenceItemPartRows(wrapperReferenceId, [
+        {
+          partKey: 'reference-part:shared:0',
+          label: 'Left',
+          sourceMeshIndex: 0,
+        },
+        {
+          partKey: 'reference-part:shared:1',
+          label: 'Right',
+          sourceMeshIndex: 1,
+        },
+      ])
+
+      expect(useAppStore.getState().explodeImportedReference(wrapperReferenceId)).toBe(true)
+
+      const childReferenceIds = useAppStore
+        .getState()
+        .referenceWorkspace.importedReferenceOrder.filter(
+          (referenceId) =>
+            useAppStore.getState().referenceWorkspace.importedReferencesById[referenceId]
+              ?.explodedFromReferenceId === wrapperReferenceId,
+        )
+
+      expect(childReferenceIds).toHaveLength(2)
+
+      useAppStore.getState().removeImportedReference(childReferenceIds[0]!)
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+
+      useAppStore.getState().removeImportedReference(childReferenceIds[1]!)
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:shared-wrapper')
     } finally {
       globalThis.URL = originalUrl
     }

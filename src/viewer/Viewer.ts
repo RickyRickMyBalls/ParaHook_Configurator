@@ -62,6 +62,8 @@ import type {
   GeometrySketchSnapTarget,
   SketchPlanePickOverlayVm,
   ViewerRuntimeStats,
+  CameraPresetOptions,
+  FrameTargetOptions,
   ViewerTransformSession,
   ViewerTransformTarget,
   VisibleGeometrySketchOverlayVm,
@@ -268,6 +270,17 @@ const fallbackPreset = (): MaterialPreset => ({
   opacity: 1,
   transparent: false,
 })
+
+type ExplodedReferenceLoadProvenance = {
+  explodedFromReferenceId: string
+  sourcePartKey: string
+  sourceMeshIndex: number
+}
+
+type LoadedReferenceObject = {
+  object: Object3D
+  partDescriptors: ReferencePartDescriptor[]
+}
 
 export type ViewerViewportRenderLayers = {
   baseParts: ViewerRenderablePart[]
@@ -1007,8 +1020,12 @@ export class Viewer {
     this.transformGizmo.setCamera(this.cameraController.getActiveCamera())
   }
 
-  public setCameraPreset(preset: CameraPreset): void {
-    this.cameraController.setPreset(preset)
+  public setCameraPreset(preset: CameraPreset, options?: CameraPresetOptions): void {
+    if (options === undefined) {
+      this.cameraController.setPreset(preset)
+      return
+    }
+    this.cameraController.setPreset(preset, options)
   }
 
   public alignCameraToGeometrySketchPlane(): void {
@@ -1061,14 +1078,14 @@ export class Viewer {
     }
 
     const loadPromise = this.loadReferenceObject(reference)
-        .then((object) => {
+        .then(({ object, partDescriptors }) => {
           if (this.removedReferenceIds.has(reference.referenceId)) {
             this.disposeObjectTree(object)
             return
           }
           this.referencePartDescriptorsByReferenceId.set(
             reference.referenceId,
-            extractReferencePartDescriptors(reference.referenceId, object),
+            partDescriptors,
           )
           object.name = reference.referenceId
           this.applyReferenceObjectDefaults(object)
@@ -1120,6 +1137,50 @@ export class Viewer {
 
   public getReferencePartDescriptors(referenceId: string): ReferencePartDescriptor[] {
     return [...(this.referencePartDescriptorsByReferenceId.get(referenceId) ?? [])]
+  }
+
+  public handoffExplodedReferenceChildren(
+    wrapperReferenceId: string,
+    children: ReferenceLoadableItem[],
+    visible: boolean,
+  ): string[] {
+    const wrapperObject = this.referenceObjects.get(wrapperReferenceId)
+    if (wrapperObject === undefined) {
+      return []
+    }
+
+    const handedOffReferenceIds: string[] = []
+    for (const child of children) {
+      if (this.referenceObjects.has(child.referenceId)) {
+        continue
+      }
+      const explodedProvenance = this.resolveExplodedReferenceLoadProvenance(child)
+      if (explodedProvenance === null) {
+        continue
+      }
+
+      const childObject = this.createExplodedReferenceHandoffObject(
+        child,
+        wrapperObject,
+        explodedProvenance.sourceMeshIndex,
+      )
+      this.referencePartDescriptorsByReferenceId.set(child.referenceId, [])
+      this.referenceObjects.set(child.referenceId, childObject)
+      if (visible) {
+        this.referenceGroup.add(childObject)
+        childObject.visible = true
+      }
+      handedOffReferenceIds.push(child.referenceId)
+    }
+
+    if (handedOffReferenceIds.length > 0) {
+      this.refreshReferenceHighlightStyling()
+      this.refreshGizmoAttachment()
+      this.syncReferenceTransformHistoryOverlay()
+      this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    }
+
+    return handedOffReferenceIds
   }
 
   public removeReference(referenceId: string): void {
@@ -1713,7 +1774,7 @@ export class Viewer {
     handler?.(this.getRuntimeStats())
   }
 
-  public frameSelected(partId: string | null): void {
+  public frameSelected(partId: string | null, options?: FrameTargetOptions): void {
     if (partId === null) {
       this.frameAll()
       return
@@ -1724,7 +1785,7 @@ export class Viewer {
       return
     }
     this.rememberCameraPose()
-    this.cameraController.frameObject(obj)
+    this.cameraController.frameObject(obj, options)
     appendConsoleEntry({
       layer: 'View',
       text: `Zoom selected: ${partId}`,
@@ -1776,14 +1837,14 @@ export class Viewer {
     return true
   }
 
-  public frameReference(referenceId: string): void {
+  public frameReference(referenceId: string, options?: FrameTargetOptions): void {
     const obj = this.referenceObjects.get(referenceId)
     if (obj === undefined) {
       this.frameAll()
       return
     }
     this.rememberCameraPose()
-    this.cameraController.frameObject(obj)
+    this.cameraController.frameObject(obj, options)
     appendConsoleEntry({
       layer: 'View',
       text: `Zoom reference: ${referenceId}`,
@@ -3027,6 +3088,141 @@ export class Viewer {
     }
   }
 
+  private resolveExplodedReferenceLoadProvenance(
+    reference: ReferenceLoadableItem,
+  ): ExplodedReferenceLoadProvenance | null {
+    const explodedFromReferenceId = reference.explodedFromReferenceId ?? null
+    const sourcePartKey = reference.sourcePartKey ?? null
+    const sourceMeshIndex = reference.sourceMeshIndex ?? null
+    const hasAnyExplodedField =
+      explodedFromReferenceId !== null || sourcePartKey !== null || sourceMeshIndex !== null
+
+    if (!hasAnyExplodedField) {
+      return null
+    }
+
+    if (
+      explodedFromReferenceId === null ||
+      sourcePartKey === null ||
+      sourceMeshIndex === null
+    ) {
+      throw new Error(
+        `Exploded reference "${reference.referenceId}" is missing valid source provenance.`,
+      )
+    }
+
+    if (
+      explodedFromReferenceId.length === 0 ||
+      sourcePartKey.length === 0 ||
+      !Number.isInteger(sourceMeshIndex) ||
+      sourceMeshIndex < 0
+    ) {
+      throw new Error(
+        `Exploded reference "${reference.referenceId}" is missing valid source provenance.`,
+      )
+    }
+
+    return {
+      explodedFromReferenceId,
+      sourcePartKey,
+      sourceMeshIndex,
+    }
+  }
+
+  private collectReferenceLeafMeshes(object: Object3D): Mesh[] {
+    const leafMeshes: Mesh[] = []
+    object.traverse((child) => {
+      if (!(child instanceof Mesh)) {
+        return
+      }
+      leafMeshes.push(child)
+    })
+    return leafMeshes
+  }
+
+  private isolateReferenceMeshByIndex(object: Object3D, sourceMeshIndex: number): Object3D {
+    const targetMesh = this.collectReferenceLeafMeshes(object)[sourceMeshIndex]
+    if (targetMesh === undefined) {
+      throw new Error(`Could not resolve exploded source mesh ${sourceMeshIndex}.`)
+    }
+
+    const branchNodes = new Set<Object3D>()
+    let current: Object3D | null = targetMesh
+    while (current !== null) {
+      branchNodes.add(current)
+      if (current === object) {
+        break
+      }
+      current = current.parent
+    }
+
+    if (!branchNodes.has(object)) {
+      throw new Error(`Could not resolve exploded source mesh ${sourceMeshIndex}.`)
+    }
+
+    const pruneToBranch = (node: Object3D): void => {
+      for (const child of [...node.children]) {
+        if (!branchNodes.has(child)) {
+          node.remove(child)
+          this.disposeObjectTree(child)
+          continue
+        }
+        pruneToBranch(child)
+      }
+    }
+
+    pruneToBranch(object)
+    return object
+  }
+
+  private createExplodedReferenceHandoffObject(
+    reference: ReferenceLoadableItem,
+    wrapperObject: Object3D,
+    sourceMeshIndex: number,
+  ): Object3D {
+    const clonedObject = this.cloneReferenceObjectForExplodeHandoff(wrapperObject)
+    clonedObject.name = reference.referenceId
+    clonedObject.userData.referenceId = reference.referenceId
+    const isolatedObject = this.isolateReferenceMeshByIndex(clonedObject, sourceMeshIndex)
+    this.applyReferenceObjectDefaults(isolatedObject)
+    return isolatedObject
+  }
+
+  private cloneReferenceObjectForExplodeHandoff(object: Object3D): Object3D {
+    const clonedObject = object.clone(true)
+    const selectionOverlays: Object3D[] = []
+    clonedObject.traverse((child) => {
+      if (child.userData.referenceSelectionOverlay === true) {
+        selectionOverlays.push(child)
+        return
+      }
+      if (child instanceof Mesh) {
+        child.geometry = child.geometry.clone()
+      }
+    })
+    for (const overlay of selectionOverlays) {
+      if (overlay.parent !== null) {
+        overlay.parent.remove(overlay)
+      }
+      this.disposeReferenceSelectionOverlay(overlay)
+    }
+    return clonedObject
+  }
+
+  private disposeReferenceSelectionOverlay(object: Object3D): void {
+    object.traverse((child) => {
+      if (!(child instanceof LineSegments)) {
+        return
+      }
+      child.geometry.dispose()
+      if (Array.isArray(child.material)) {
+        child.material.forEach((material) => material.dispose())
+      } else {
+        child.material.dispose()
+      }
+    })
+  }
+
   private createReferencePivot(reference: ReferenceLoadableItem, object: Object3D): Object3D {
     const transform = reference.displayTransform
     if (transform?.centerUnderPivot) {
@@ -3144,13 +3340,34 @@ export class Viewer {
     pivot.position.copy(center)
   }
 
-  private async loadReferenceObject(reference: ReferenceLoadableItem): Promise<Object3D> {
+  private async loadReferenceObject(reference: ReferenceLoadableItem): Promise<LoadedReferenceObject> {
+    const explodedProvenance = this.resolveExplodedReferenceLoadProvenance(reference)
+    const object = await this.loadReferenceAssetObject(reference)
+
+    if (explodedProvenance !== null) {
+      return {
+        object: this.createReferencePivot(
+          reference,
+          this.isolateReferenceMeshByIndex(object, explodedProvenance.sourceMeshIndex),
+        ),
+        partDescriptors: [],
+      }
+    }
+
+    const partDescriptors = extractReferencePartDescriptors(reference.referenceId, object)
+    return {
+      object: this.createReferencePivot(reference, object),
+      partDescriptors,
+    }
+  }
+
+  private async loadReferenceAssetObject(reference: ReferenceLoadableItem): Promise<Object3D> {
     if (reference.fileType === 'glb') {
       const loader = new GLTFLoader()
       return new Promise<Object3D>((resolve, reject) => {
         loader.load(
           reference.assetPath,
-          (result) => resolve(this.createReferencePivot(reference, result.scene)),
+          (result) => resolve(result.scene),
           undefined,
           reject,
         )
@@ -3162,7 +3379,7 @@ export class Viewer {
       return new Promise<Object3D>((resolve, reject) => {
         loader.load(
           reference.assetPath,
-          (object) => resolve(this.createReferencePivot(reference, object)),
+          (object) => resolve(object),
           undefined,
           reject,
         )
@@ -3183,7 +3400,7 @@ export class Viewer {
                 roughness: 0.86,
               }),
             )
-            resolve(this.createReferencePivot(reference, mesh))
+            resolve(mesh)
           },
           undefined,
           reject,
@@ -3191,8 +3408,7 @@ export class Viewer {
       })
     }
 
-    const object = await loadStepReferenceObject(reference)
-    return this.createReferencePivot(reference, object)
+    return loadStepReferenceObject(reference)
   }
 
   private disposeObjectTree(object: Object3D): void {

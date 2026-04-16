@@ -65,6 +65,486 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1373 -->
+### [1373] - 2026-04-16 09:23 - `Import-3 - Phase 3 - Staged File List And Multi-File Review`
+<!-- ENTRY 1373 -->
+HUMAN SUMMARY: `Implemented the third staged-import slice by turning the draft file count into a real visible staged review list, rendering one ordered row per staged file with file-name and file-type labels, and keeping repeated Browser intake append-only while project content still stays untouched.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around visible staged review rows only.
+- Reused the existing staged-import draft contract and in-dialog Browser intake path from Phase 2.
+- Did not widen into structure parsing, import-mode controls, units, or final commit behavior.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the `Import Files` dialog now renders an explicit empty staged-review state plus one ordered visible row per staged file.
+- Each staged row now shows the staged order, file name, and file-type label directly from the stored staged draft contract.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the new staged review area has its own row, badge, empty-state, and file-type styling without borrowing committed Browser row presentation.
+- Added focused proof in [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) that staged rows appear after browse intake, that file-type labels render correctly, and that repeated Browser intake appends into the review list in stable order.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+#### Behavior Changes
+- The staged `Import Files` dialog now shows a visible per-file review list instead of only a staged count.
+- Each staged row shows the file name and file type clearly.
+- Repeated Browser intake appends new staged files after the existing ones while project content remains unchanged.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1372 -->
+### [1372] - 2026-04-16 09:21 - `Build - Browser Import Fixture And Viewer Provenance Type Repairs`
+<!-- ENTRY 1372 -->
+HUMAN SUMMARY: `Repaired the broken production build by updating imported-reference test fixtures to match the newer provenance contract and tightening the viewer exploded-reference provenance typing, which restores a clean \`npm run build\` without changing the staged import behavior itself.`
+#### Scope / Constraints Honored
+- Kept the fix narrowly focused on the concrete build errors from `npm run build`.
+- Did not widen into new staged import behavior, Phase 3 work, or broader store behavior changes.
+- Limited the code repair to test fixtures plus one viewer typing cleanup.
+#### Summary of Implementation
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so grouped imported-reference fixture rows now include the required exploded-reference provenance fields.
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so imported-reference state fixtures now match the current `ImportedReferenceRecord` contract by carrying explicit null provenance fields.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so the type-only import list is valid again and the exploded-reference provenance resolver narrows null checks before returning a typed provenance object.
+#### Files Changed
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+#### Behavior Changes
+- `npm run build` now completes successfully again.
+- No user-facing staged import behavior changed in this repair pass.
+#### Verification Steps
+- `cmd /c npm.cmd run build`
+- `cmd /c npm.cmd exec vitest run src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts src/viewer/Viewer.test.ts`
+
+<!-- ENTRY 1371 -->
+### [1371] - 2026-04-16 09:06 - `Import-3 - Phase 2 - Supported Types And Browser Intake`
+<!-- ENTRY 1371 -->
+HUMAN SUMMARY: `Implemented the second staged-import slice by adding supported file-type display plus one in-dialog multi-type Browser intake path, widening the staged-import draft to hold selected files, and keeping all staged intake draft-only while the older direct import rows remain live as compatibility actions.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around supported-type display and staged Browser intake only.
+- Preserved the older direct `.step`, `.stl`, `.obj`, and `.glb` Browser menu rows as compatibility actions during this phase.
+- Did not widen into the visible staged-file review list, structure parsing, import-mode settings, units, or final commit behavior.
+#### Summary of Implementation
+- Updated [`src/app/references/importReferenceFile.ts`](./src/app/references/importReferenceFile.ts) so the staged import dialog can use one multi-type local picker that accepts supported `.step`, `.stl`, `.obj`, and `.glb` files and infers each staged file type from its selected filename.
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so `referenceWorkspace.stagedImportDraft` now owns staged file records, can append newly browsed files in stable draft order, and revokes draft object URLs when the staged dialog is replaced or closed.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so the `Import Files` dialog can browse for supported local files and route them into staged draft state instead of `addImportedReference(...)`.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx), [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx), and [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the dialog now shows supported type chips, one explicit `Browser` intake row, and a simple staged-file count without widening into the later per-file review list.
+- Added focused proof in [`src/app/references/importReferenceFile.test.ts`](./src/app/references/importReferenceFile.test.ts) and [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx).
+#### Files Changed
+- [`src/app/references/importReferenceFile.ts`](./src/app/references/importReferenceFile.ts)
+- [`src/app/references/importReferenceFile.test.ts`](./src/app/references/importReferenceFile.test.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+#### Behavior Changes
+- The staged `Import Files` dialog now advertises supported `.step`, `.stl`, `.obj`, and `.glb` file types directly in the window.
+- The dialog now has one explicit in-window `Browser` intake path that stages supported files into draft state instead of adding them straight into project content.
+- Closing the dialog still leaves project content unchanged, and the older direct import rows remain available in the Browser menu.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/references/importReferenceFile.test.ts src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1370 -->
+### [1370] - 2026-04-16 08:58 - `VR - Camera-7 Phase 3.2 - Animated Zoom To Object Through Shared Framing Seam`
+<!-- ENTRY 1370 -->
+HUMAN SUMMARY: `Shipped Camera-7 Phase 3.2 by widening the shared object and reference framing seam with explicit animation options, routing both active-viewer \`Shift+Z\` and Console Zoom Object through that animated path, and teaching orthographic object zoom to interpolate its zoom height instead of snapping.` 
+#### Scope / Constraints Honored
+- Kept the phase narrow around animated zoom-to-object through the existing shared framing seam.
+- Reused the already-shipped Camera-7 transition duration preference instead of adding new timing UI.
+- Did not widen into graph-canvas zoom, projection animation, or broader selection-set heuristics.
+#### Summary of Implementation
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) and [`src/app/viewCommands.ts`](./src/app/viewCommands.ts) so shared selected-object and reference framing can accept explicit animation options without changing unrelated snap callers.
+- Updated [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts) so active-viewer `Shift+Z` forwards `{ animate: true, durationMs }` using the shared Camera-7 transition duration from [`src/app/store/uiPrefsStore.ts`](./src/app/store/uiPrefsStore.ts).
+- Updated [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts) so Console `Zoom Object` forwards that same animated framing option shape through the shared command seam.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so `frameSelected(...)` and `frameReference(...)` pass animated framing options into the camera controller.
+- Updated [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so object framing resolves a destination pose and animates through `animateToPose(...)`, including orthographic view-height interpolation during the transition.
+- Added focused proof in [`src/app/viewCommands.test.ts`](./src/app/viewCommands.test.ts), [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx), [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts), and the relevant Console `Zoom Object` assertions in [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx).
+#### Files Changed
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/app/viewCommands.ts`](./src/app/viewCommands.ts)
+- [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts)
+- [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/app/viewCommands.test.ts`](./src/app/viewCommands.test.ts)
+- [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx)
+- [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md)
+#### Behavior Changes
+- `Shift+Z` now animates object or reference zoom through the shared framing seam instead of snapping.
+- Console `Zoom Object` now animates through that same shared seam too.
+- The shared Camera-7 transition duration slider now affects object zoom as well as standard-view transitions.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/viewCommands.test.ts src/app/useViewerCameraShortcuts.test.tsx src/viewer/Viewer.test.ts src/viewer/scene/CameraController.test.ts src/app/zoomObjectTarget.test.ts`
+- `cmd /c npx.cmd vitest run src/app/console/ConsoleDock.test.tsx -t "commits object-local zoom directly from a browser-selected object|commits reference-local zoom directly from a selected reference|frames a selected reference from reference-local z|uses the same object-local zoom branch for viewer-driven target sync as browser selection|frames a browser-selected object from object-local z even when selectedPartKey is null"`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1369 -->
+### [1369] - 2026-04-16 08:48 - `Import-3 - Phase 1 - Menu Entry And Floating Window Shell`
+<!-- ENTRY 1369 -->
+HUMAN SUMMARY: `Implemented the first staged-import slice by adding \`Import Files...\` as the new top Browser import action, opening a browser-owned transient import dialog backed by a minimal staged-import draft seam, and keeping the older direct file-type rows live underneath as compatibility actions while Phase 1 stops short of file intake or project commit behavior.`
+#### Scope / Constraints Honored
+- Kept the implementation narrow around the Phase 1 menu-entry and floating-shell cut only.
+- Preserved the existing direct `.step`, `.stl`, `.obj`, and `.glb` import actions as compatibility rows during this first staged-import slice.
+- Did not widen into file browsing inside the dialog, staged-file review, supported-type body copy, structure inspection, units, or `Add To Project`.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so `referenceWorkspace` now owns one minimal `stagedImportDraft` seam plus explicit open and close actions, carrying only resolved landing-parent truth for the new staged-import shell.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx), [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts), and [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) so the Browser `Import Reference` menu now surfaces `Import Files...` first, opens one browser-owned transient dialog, and keeps the older direct import rows working below it.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) to style the first staged-import dialog shell as a lightweight floating Browser-owned surface.
+- Added focused proof in [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) for both new Phase 1 truths: the staged dialog opens and closes without importing content, and the direct compatibility rows still import immediately.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md) so `Phase 1` is now marked implemented with its shipped result recorded.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+#### Behavior Changes
+- The Browser `Import Reference` menu now shows `Import Files...` as its first action.
+- Clicking `Import Files...` now opens a staged `Import Files` dialog instead of importing content immediately.
+- Closing the staged dialog leaves project content unchanged.
+- The older direct `.step`, `.stl`, `.obj`, and `.glb` import rows still import immediately during this compatibility phase.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/panels/BrowserPanel.test.tsx`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1368 -->
+### [1368] - 2026-04-16 08:38 - `VR - Camera-7 Phase 3.1 - Shift+Z Zoom Object Shortcut Revision`
+<!-- ENTRY 1368 -->
+HUMAN SUMMARY: `Revised the shipped Camera-7 Phase 3.1 zoom-object binding so the active viewer now uses \`Shift+Z\` instead of \`Numpad .\`, removing the NumLock overlap where the decimal key could alias to Delete or leak a literal period into console capture.`
+#### Scope / Constraints Honored
+- Kept the change narrow around the Phase 3.1 keyboard binding only.
+- Preserved the shared zoom-to-object resolver, viewport-aware reference framing seam, and existing console `Zoom Object` behavior.
+- Did not widen into animation behavior, duration control changes, or broader console routing redesign.
+#### Summary of Implementation
+- Updated [`src/app/cameraShortcuts.ts`](./src/app/cameraShortcuts.ts) so `Zoom Object` now resolves from `KeyboardEvent.code === 'KeyZ'` with an exact `shiftKey` requirement instead of `NumpadDecimal`.
+- Kept the active-viewer execution path in [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts) unchanged apart from the new shared shortcut resolution, so `Shift+Z` still enters the same selected-part or selected-reference framing seam.
+- Added focused proof in [`src/app/cameraShortcuts.test.ts`](./src/app/cameraShortcuts.test.ts), [`src/app/inputRouting.test.ts`](./src/app/inputRouting.test.ts), and [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx), including a regression check that the removed `NumpadDecimal` shortcut now stays dormant.
+- Updated [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md) so the current Camera-7 record reflects `Shift+Z` as the live Phase 3.1 binding.
+#### Files Changed
+- [`src/app/cameraShortcuts.ts`](./src/app/cameraShortcuts.ts)
+- [`src/app/cameraShortcuts.test.ts`](./src/app/cameraShortcuts.test.ts)
+- [`src/app/inputRouting.test.ts`](./src/app/inputRouting.test.ts)
+- [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx)
+- [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md)
+#### Behavior Changes
+- The active viewer now treats `Shift+Z` as `Zoom Object`.
+- `Numpad .` no longer acts as the Camera-7 zoom-object shortcut.
+- The NumLock-dependent `.` versus `Delete` overlap is removed from the Camera-7 shortcut path.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/cameraShortcuts.test.ts src/app/inputRouting.test.ts src/app/useViewerCameraShortcuts.test.tsx src/app/viewCommands.test.ts src/app/zoomObjectTarget.test.ts`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1367 -->
+### [1367] - 2026-04-16 07:56 - `VR - Camera-7 Phase 3.1 - Numpad Decimal Entry Into Shared Zoom To Object`
+<!-- ENTRY 1367 -->
+HUMAN SUMMARY: `Shipped Camera-7 Phase 3.1 by adding active-viewer \`Numpad .\` zoom-to-object, extracting one shared selected-target zoom resolver for both keyboard and Console Zoom Object, and widening shared reference framing so reference zoom stays viewport-aware under that same path.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around adding one new keyboard entry path into the existing shared zoom-to-object seam.
+- Reused the existing shared framing commands instead of inventing a shortcut-only zoom path.
+- Did not widen into animated zoom-to-object behavior, transition-slider adoption, graph-canvas zoom behavior, or broader zoom redesign.
+#### Summary of Implementation
+- Added [`src/app/zoomObjectTarget.ts`](./src/app/zoomObjectTarget.ts) so both the active-viewer shortcut hook and Console `Zoom Object` resolve targets in the same order: selected part, selected object to first object part, selected reference, then no target.
+- Updated [`src/app/cameraShortcuts.ts`](./src/app/cameraShortcuts.ts) to add the physical-numpad `NumpadDecimal` binding for `Zoom Object`.
+- Updated [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts) so the active viewer routes `Numpad .` into [`frameSelectedCommand(...)`](./src/app/viewCommands.ts) or [`frameReferenceCommand(...)`](./src/app/viewCommands.ts) through that shared resolver.
+- Updated [`src/app/viewCommands.ts`](./src/app/viewCommands.ts) so `frameReferenceCommand(...)` accepts an optional `viewportId`, keeping reference zoom on the same active-viewer ownership model as the shortcut.
+- Updated [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx) to reuse the extracted shared resolver instead of keeping a separate console-only selected-target zoom path.
+- Added focused proof in [`src/app/zoomObjectTarget.test.ts`](./src/app/zoomObjectTarget.test.ts), [`src/app/cameraShortcuts.test.ts`](./src/app/cameraShortcuts.test.ts), [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx), [`src/app/viewCommands.test.ts`](./src/app/viewCommands.test.ts), and the relevant shared-zoom assertions in [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx).
+#### Files Changed
+- [`src/app/zoomObjectTarget.ts`](./src/app/zoomObjectTarget.ts)
+- [`src/app/cameraShortcuts.ts`](./src/app/cameraShortcuts.ts)
+- [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts)
+- [`src/app/viewCommands.ts`](./src/app/viewCommands.ts)
+- [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx)
+- [`src/app/zoomObjectTarget.test.ts`](./src/app/zoomObjectTarget.test.ts)
+- [`src/app/cameraShortcuts.test.ts`](./src/app/cameraShortcuts.test.ts)
+- [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx)
+- [`src/app/viewCommands.test.ts`](./src/app/viewCommands.test.ts)
+- [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx)
+- [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md)
+#### Behavior Changes
+- The active viewer now treats physical `Numpad .` as `Zoom Object`.
+- `Numpad .` and Console `Zoom Object` now share one selected-target zoom resolution rule and stay aligned on which object part or reference gets framed.
+- Shared reference zoom can now target an explicit viewport when needed, keeping the camera move owned by the active viewer instead of a hidden global fallback.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/cameraShortcuts.test.ts src/app/zoomObjectTarget.test.ts src/app/useViewerCameraShortcuts.test.tsx src/app/viewCommands.test.ts`
+- `cmd /c npx.cmd vitest run src/app/console/ConsoleDock.test.tsx -t "commits object-local zoom directly from a browser-selected object|uses the same object-local zoom branch for viewer-driven target sync as browser selection|frames a browser-selected object from object-local z even when selectedPartKey is null|frames a selected assembly from assembly-local z > o"`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1366 -->
+### [1366] - 2026-04-16 07:43 - `VR - Camera-7 Phase 2.2 - View Toolbar Camera Transition Duration ParaSlider`
+<!-- ENTRY 1366 -->
+HUMAN SUMMARY: `Shipped Camera-7 Phase 2.2 by adding a shared Transition slider in View Toolbar > Camera > Projection & Framing and wiring the active-viewer standard-view numpad shortcuts to use that live duration instead of the old fixed 320ms constant.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around one shared duration control for the existing Camera-7 standard-view shortcut family.
+- Reused the Phase 2.1 animated camera-preset seam instead of widening into new camera runtime paths.
+- Did not widen into per-viewport persistence, projection timing, or zoom-to-object timing adoption.
+#### Summary of Implementation
+- Updated [`src/app/store/uiPrefsStore.ts`](./src/app/store/uiPrefsStore.ts) to add a shared `cameraShortcutTransitionDurationMs` preference with a clamped setter and a default of `320`.
+- Updated [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx) to render a `Transition` [`ParaSlider`](./src/app/components/ParaSlider.tsx) in `Camera > Projection & Framing`, formatted in milliseconds and backed by that shared pref.
+- Updated [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts) so the active-viewer `Numpad5` / `Numpad2` / `Numpad8` / `Numpad4` / `Numpad6` transitions read the current shared duration value when dispatching animated preset commands.
+- Added focused proof in [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx) and [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx), then updated [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md) to mark Phase 2.2 shipped.
+#### Files Changed
+- [`src/app/store/uiPrefsStore.ts`](./src/app/store/uiPrefsStore.ts)
+- [`src/app/components/ViewToolbar.tsx`](./src/app/components/ViewToolbar.tsx)
+- [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts)
+- [`src/app/components/ViewToolbar.test.tsx`](./src/app/components/ViewToolbar.test.tsx)
+- [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx)
+- [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md)
+#### Behavior Changes
+- `View Toolbar > Camera > Projection & Framing` now exposes a shared `Transition` slider for Camera-7 standard-view shortcut timing.
+- Active-viewer standard-view numpad shortcuts now animate using the current shared transition duration instead of always using `320ms`.
+#### Verification Steps
+- `cmd /c npm.cmd exec vitest run src/app/components/ViewToolbar.test.tsx src/app/useViewerCameraShortcuts.test.tsx`
+- `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1365 -->
+### [1365] - 2026-04-16 03:25 - `Browser-14 - Phase 8 - Preserve Loaded Runtime After Explode`
+<!-- ENTRY 1365 -->
+HUMAN SUMMARY: `Shipped Browser-14 Phase 8 by preserving live loaded runtime after explode, adding a viewer handoff seam that reuses the already-loaded wrapper object for exploded children so the split no longer drops into an immediate hidden unloaded state before users can keep working.`
+#### Scope / Constraints Honored
+- Kept the real Browser-14 explode ownership model intact: one wrapper still becomes many independent imported-reference children.
+- Preserved the existing truthful isolated child-load path as the fallback for restore, reload, and any explode without live wrapper runtime.
+- Kept the change narrow around immediate post-explode continuity instead of widening into a broader cache or import redesign.
+#### Summary of Implementation
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) and [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) so the viewer can now hand off exploded children directly from an already-loaded wrapper runtime without reloading the source asset first.
+- Updated [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so the host detects the wrapper-to-children explode swap, performs the live handoff before wrapper removal, and upgrades successfully handed-off children to `loaded` while preserving wrapper visibility.
+- Added focused proof in [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) and [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx), then updated [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) to mark Phase 8 shipped.
+#### Files Changed
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+#### Behavior Changes
+- Exploding a currently loaded eligible wrapper now keeps the resulting child objects loaded immediately through a live viewer handoff instead of forcing the first post-explode state to be hidden and unloaded.
+- Exploded children still use the original isolated single-part load path when the live wrapper runtime is unavailable.
+#### Verification Steps
+- `npx.cmd vitest run src/viewer/Viewer.test.ts -t "loads exploded imported references as isolated single-part objects and stores no child part descriptors|hands off exploded children from a live wrapper without reloading the source asset|fails exploded reference loads when the stored source mesh index cannot be resolved"`
+- `npx.cmd vitest run src/app/components/ViewerHost.test.tsx -t "passes exploded reference provenance into viewer loads and keeps exploded child part rows empty|keeps exploded children loaded and visible after splitting a wrapper that is already live in the viewer"`
+- `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1364 -->
+### [1364] - 2026-04-16 03:11 - `VR - Camera-7 Phase 2.1 - Animated Standard View Transitions`
+<!-- ENTRY 1364 -->
+HUMAN SUMMARY: `Shipped Camera-7 Phase 2.1 by widening the shared camera-preset seam with explicit animation options and routing the active-viewer numpad standard-view shortcuts through that animated path at a fixed 320ms duration instead of snapping instantly.`
+#### Scope / Constraints Honored
+- Kept the physical `Numpad5` / `Numpad2` / `Numpad8` / `Numpad4` / `Numpad6` shortcut map unchanged from Camera-7 Phase 1.
+- Implemented animation through the shared command, viewer, and controller preset seam instead of adding a shortcut-only branch.
+- Left toolbar duration UI, `Iso`, projection shortcuts, and frame commands for later phases.
+#### Summary of Implementation
+- Updated [`src/app/viewCommands.ts`](./src/app/viewCommands.ts) and [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) so camera preset calls can now carry explicit animation options through the shared viewer contract.
+- Updated [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts) so the active-viewer standard-view numpad shortcuts opt into animated presets with a fixed `320ms` duration.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) and [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts) so preset callers can choose animated transitions without silently changing the default snap behavior for existing callers.
+- Added focused proof in [`src/app/viewCommands.test.ts`](./src/app/viewCommands.test.ts), [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx), [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), and [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts), then updated [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md) to mark Phase 2.1 shipped.
+#### Files Changed
+- [`src/app/viewCommands.ts`](./src/app/viewCommands.ts)
+- [`src/app/viewCommands.test.ts`](./src/app/viewCommands.test.ts)
+- [`src/app/useViewerCameraShortcuts.ts`](./src/app/useViewerCameraShortcuts.ts)
+- [`src/app/useViewerCameraShortcuts.test.tsx`](./src/app/useViewerCameraShortcuts.test.tsx)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/viewer/scene/CameraController.ts`](./src/viewer/scene/CameraController.ts)
+- [`src/viewer/scene/CameraController.test.ts`](./src/viewer/scene/CameraController.test.ts)
+- [`docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase Camera-7 - Active Viewer Camera Control Shortcuts.md`](./docs/Human-Plans/Architecture/Camera-Controls/Future/Camera_Controls_Phase%20Camera-7%20-%20Active%20Viewer%20Camera%20Control%20Shortcuts.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The active viewer's standard-view numpad shortcuts now animate to `Top`, `Front`, `Back`, `Left`, and `Right` over `320ms` instead of snapping instantly.
+- Existing preset callers continue to snap unless they explicitly pass the new animation option through the shared preset seam.
+- A newer animated preset request now cleanly replaces any in-flight preset transition instead of stacking queued moves.
+#### Verification Steps
+- Passed `cmd /c npm.cmd test -- src/app/viewCommands.test.ts src/app/useViewerCameraShortcuts.test.tsx src/viewer/Viewer.test.ts src/viewer/scene/CameraController.test.ts`
+- Passed `cmd /c npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1363 -->
+### [1363] - 2026-04-16 03:04 - `BR - Browser-14 Phase 7 - Console Explode Entry`
+<!-- ENTRY 1363 -->
+HUMAN SUMMARY: `Shipped Browser-14 Phase 7 by exposing Console \`Explode\` for one eligible selected imported reference object, reusing the shared explode eligibility and mutation seams instead of inventing a second Console-only path.`
+#### Scope / Constraints Honored
+- Kept this pass selection-driven and narrow instead of widening into multi-select explode or broader freeform command-language parsing.
+- Reused the shipped `canReferenceItemExplode(...)` and `explodeImportedReference(...)` seams rather than duplicating explode logic inside the Console layer.
+- Kept ineligible, root, category, and part-target Console contexts out of scope for the new action.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so Console object targets can project `canExplode` through `selectConsoleWorkspaceContextTarget(...)` by reusing the shared explode-eligibility seam.
+- Updated [`src/app/console/stagedNavigation.ts`](./src/app/console/stagedNavigation.ts) to add the `Explode` choice and `reference.explode` action path for eligible selected reference sessions while keeping the existing selected-reference flow intact for ineligible targets.
+- Updated [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts) to execute the Console explode action through `explodeImportedReference(...)`, resync Console context, and emit the matching transcript entry.
+- Updated [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx) and [`src/app/console/radioCommandIdentity.ts`](./src/app/console/radioCommandIdentity.ts) so Console-built reference sessions inherit `canExplode` and the new staged execute action has a valid command identity.
+- Added focused proof in [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts), [`src/app/console/stagedNavigation.test.ts`](./src/app/console/stagedNavigation.test.ts), and [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx), then updated [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) to mark Phase 7 and Browser-14 fully shipped again.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`src/app/console/stagedNavigation.ts`](./src/app/console/stagedNavigation.ts)
+- [`src/app/console/stagedNavigation.test.ts`](./src/app/console/stagedNavigation.test.ts)
+- [`src/app/console/useConsoleInteraction.ts`](./src/app/console/useConsoleInteraction.ts)
+- [`src/app/console/ConsoleDock.tsx`](./src/app/console/ConsoleDock.tsx)
+- [`src/app/console/ConsoleDock.test.tsx`](./src/app/console/ConsoleDock.test.tsx)
+- [`src/app/console/radioCommandIdentity.ts`](./src/app/console/radioCommandIdentity.ts)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Console now surfaces `Explode` in the selected reference-object session only when the selected imported reference already has truthful explodable parts.
+- Submitting Console `Explode` now routes through the shared store explode mutation and clears the stale wrapper selection through the existing context-sync path after the wrapper is replaced.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/app/store/useAppStore.test.ts -t "marks selected imported reference-object console targets as explodable only when the shared explode seam says they qualify"`
+- Passed `npx.cmd vitest run src/app/console/stagedNavigation.test.ts -t "exposes explode for explodable selected references and executes it directly"`
+- Passed `npx.cmd vitest run src/app/console/ConsoleDock.test.tsx -t "executes explode from a selected explodable imported reference-object console session"`
+- Passed `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1362 -->
+### [1362] - 2026-04-16 02:37 - `BR - Browser-14 Phase 6 - Naming Cleanup And Focused Regression Proof`
+<!-- ENTRY 1362 -->
+HUMAN SUMMARY: `Finished Browser-14 by proving duplicate and fallback truthful part labels already stay deterministic through explode, and by tightening the final Browser-14 regression set across descriptor extraction, store explode conversion, isolated runtime load, Browser \`Explode\`, and exploded-child Browser parity.`
+#### Scope / Constraints Honored
+- Kept this pass cleanup-and-proof-only without widening Browser-14 into new UI or command surfaces.
+- Reused the existing truthful naming path instead of inventing a second exploded-object naming system.
+- Focused the verification on the shipped Browser-14 ladder rather than broad unrelated test coverage.
+#### Summary of Implementation
+- Extended [`src/viewer/referencePartDescriptors.test.ts`](./src/viewer/referencePartDescriptors.test.ts) with focused proof that duplicate meaningful labels are disambiguated deterministically and that generic-name fallbacks stay stable as `Part N`.
+- Extended [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) with focused explode proof that duplicate and fallback truthful part labels survive the explode mutation in truthful source order.
+- Confirmed the already-shipped runtime and Browser seams with the focused final Browser-14 verification set covering [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts), [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx), [`src/app/panels/browserContextMenu.test.ts`](./src/app/panels/browserContextMenu.test.ts), and [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx).
+- Updated [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) to mark Phase 6 and the full Browser-14 ladder shipped.
+#### Files Changed
+- [`src/viewer/referencePartDescriptors.test.ts`](./src/viewer/referencePartDescriptors.test.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Browser-14 naming now has explicit regression proof showing exploded-child labels remain deterministic for duplicate truthful labels and generic fallback labels.
+- No runtime behavior changed in this phase because the shipped naming path was already correct; this pass hardened trust in it.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/viewer/referencePartDescriptors.test.ts`
+- Passed `npx.cmd vitest run src/app/store/useAppStore.test.ts -t "explodes one eligible imported wrapper into ordered per-part imported references under the same parent|keeps duplicate and fallback exploded child labels deterministic in truthful source order|keeps shared imported asset paths alive until the last exploded child is removed"`
+- Passed `npx.cmd vitest run src/viewer/Viewer.test.ts -t "loads exploded imported references as isolated single-part objects and stores no child part descriptors|fails exploded reference loads when the stored source mesh index cannot be resolved"`
+- Passed `npx.cmd vitest run src/app/components/ViewerHost.test.tsx -t "passes exploded reference provenance into viewer loads and keeps exploded child part rows empty"`
+- Passed `npx.cmd vitest run src/app/panels/browserContextMenu.test.ts`
+- Passed `npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "treats exploded imported children like ordinary object rows for selection and double-click frame|applies exploded imported child hide across the eligible browser multi-selection|removes exploded imported children through the ordinary row-menu remove seam|keeps exploded imported children draggable through the imported-reference owner-target seam|shows Explode on imported parent object right-click and routes it through the explode seam"`
+- Passed `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1361 -->
+### [1361] - 2026-04-16 02:31 - `BR - Browser-14 Phase 5 - Independent Object Behavior Parity`
+<!-- ENTRY 1361 -->
+HUMAN SUMMARY: `Shipped Browser-14 Phase 5 by adding focused Browser-level proof that exploded imported children already behave like ordinary object rows for selection, frame, hide, remove, and drag or reparent flows, without needing a second exploded-only Browser interaction path.`
+#### Scope / Constraints Honored
+- Kept this pass limited to Browser-side parity proof for exploded imported children.
+- Preserved the existing shared object-row interaction seams instead of widening into Console parity or new exploded-only runtime branches.
+- Left naming cleanup and broader regression consolidation for Browser-14 Phase 6.
+#### Summary of Implementation
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) with one reusable exploded-imported-child scenario plus focused regression tests covering ordinary object-row selection, double-click frame, multi-select hide, row-menu remove, and drag or reparent behavior for exploded children.
+- Confirmed through the new Browser-level proof that the current imported-reference object seams already carry exploded imported children cleanly, so no additional Browser interaction branch was required in runtime code for this phase.
+- Updated [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) to mark Phase 5 and its wishlist items shipped.
+#### Files Changed
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Exploded imported children now have explicit regression coverage proving they behave like ordinary imported object rows across the supported first-pass Browser actions.
+- No runtime Browser interaction behavior needed to change in this phase because the shared object-row seams already provided the required parity.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "treats exploded imported children like ordinary object rows for selection and double-click frame|applies exploded imported child hide across the eligible browser multi-selection|removes exploded imported children through the ordinary row-menu remove seam|keeps exploded imported children draggable through the imported-reference owner-target seam|shows Explode on imported parent object right-click and routes it through the explode seam"`
+- Passed `npx.cmd vitest run src/app/panels/browserContextMenu.test.ts`
+- Passed `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1360 -->
+### [1360] - 2026-04-16 02:20 - `BR - Browser-14 Phase 4 - Browser Explode Entry And Wrapper Replacement`
+<!-- ENTRY 1360 -->
+HUMAN SUMMARY: `Shipped the first Browser-owned \`Explode\` entry by adding it to eligible imported parent-object right-click menus, routing that action into the real store explode mutation, and keeping flat or unloaded imports out of the menu through the shared eligibility seam.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the Browser context-menu and controller handoff for imported parent object rows.
+- Reused the shipped store-owned explode mutation and eligibility contract instead of inventing a second Browser-local detector or fake split path.
+- Left wider Console parity and later exploded-row behavior cleanup to the remaining Browser-14 phases.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserContextMenu.ts`](./src/app/panels/browserContextMenu.ts) so imported parent object rows can surface a new `Explode` menu item, but only when the backing imported reference passes the shared `canReferenceItemExplode(...)` gate.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so Browser right-click `Explode` routes through the real `explodeImportedReference(...)` store seam, clears stale wrapper-row selection after success, and records the action through the existing Browser console-entry path.
+- Extended [`src/app/panels/browserContextMenu.test.ts`](./src/app/panels/browserContextMenu.test.ts) and [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) with focused proof for the eligible imported-object menu entry and the visible parent `.glb` right-click flow.
+- Updated [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) to mark Phase 4 and its wishlist items shipped.
+#### Files Changed
+- [`src/app/panels/browserContextMenu.ts`](./src/app/panels/browserContextMenu.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/browserContextMenu.test.ts`](./src/app/panels/browserContextMenu.test.ts)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Imported parent object rows in Browser now expose `Explode` on right-click when their backing imported reference is loaded and has truthful explodable part rows.
+- Right-clicking an ineligible imported object still omits `Explode`, so flat or unloaded or errored imports do not present a fake split action.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/app/panels/browserContextMenu.test.ts`
+- Passed `npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "shows Explode on imported parent object right-click and routes it through the explode seam|shows Transform Object on reference item right-click and starts reference transform mode"`
+- Passed `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1359 -->
+### [1359] - 2026-04-16 02:11 - `BR - Browser-14 Phase 3 - Runtime Single-Part Load And Provenance`
+<!-- ENTRY 1359 -->
+HUMAN SUMMARY: `Shipped Browser-14 Phase 3 by teaching the viewer to load exploded imported children as truthful isolated source parts, threading explicit explode provenance through the reference load contract, and keeping those exploded children terminal so they no longer republish nested part rows after load.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the Phase 3 runtime and load-contract seams for exploded imported-reference children.
+- Preserved the ordinary full-wrapper reference load path instead of widening into a broader reference-runtime redesign.
+- Left Browser context-menu entry, Browser tree replacement, and later object-row parity deferred to the next Browser-14 phases.
+#### Summary of Implementation
+- Updated [`src/app/references/referenceManifest.ts`](./src/app/references/referenceManifest.ts) and [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so the reference load contract and projected Browser reference item VM now carry `explodedFromReferenceId`, `sourcePartKey`, and `sourceMeshIndex`, keeping the exploded-child provenance explicit end to end.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so `ensureReferenceLoaded(...)` now validates exploded-child provenance, keeps the ordinary full-wrapper path intact, and isolates the truthful target mesh by `sourceMeshIndex` for exploded imported children instead of rendering the whole wrapper object again.
+- Updated [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so exploded imported children write `[]` back into `partRowsByReferenceId` after load, preventing those terminal child objects from immediately surfacing a second nested part-row layer in Browser.
+- Extended [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) and [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) with focused proof for isolated exploded-child loading, the honest invalid-`sourceMeshIndex` failure path, and the provenance handoff from exploded store records into the viewer load seam.
+- Marked [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) shipped for `Phase 3`.
+#### Files Changed
+- [`src/app/references/referenceManifest.ts`](./src/app/references/referenceManifest.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Exploded imported-reference children now render one truthful isolated source part at runtime instead of loading the full wrapper reference object again.
+- Exploded imported-reference children now stay terminal in Browser-facing runtime state after load, so they no longer republish a nested child-part branch under themselves.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/viewer/Viewer.test.ts src/app/components/ViewerHost.test.tsx`
+- Passed `npx.cmd vitest run src/app/store/useAppStore.test.ts -t "projects shared reference runtime traits through workspace items and unified content rows|explodes one eligible imported wrapper into ordered per-part imported references under the same parent"`
+- Passed `npm.cmd exec tsc -- --noEmit`
+
+<!-- ENTRY 1358 -->
+### [1358] - 2026-04-16 01:36 - `BR - Browser-14 Phase 2 - Explode Mutation Creates Real Per-Part Object Records`
+<!-- ENTRY 1358 -->
+HUMAN SUMMARY: `Shipped Browser-14 Phase 2 by adding the store-owned wrapper-replacement mutation that converts one eligible imported reference into many per-part imported-reference records, preserving truthful order and per-part provenance while keeping shared imported asset paths alive across exploded children.`
+#### Scope / Constraints Honored
+- Kept this pass limited to the Phase 2 store mutation and shared imported-reference lifecycle.
+- Reused the existing imported-reference record family instead of inventing a new exploded object type.
+- Left Browser command entry, Browser tree replacement, and runtime isolated-part loading deferred to later Browser-14 phases.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so `ImportedReferenceRecord` now carries `explodedFromReferenceId`, `sourcePartKey`, and `sourceMeshIndex`, giving exploded children explicit per-part provenance without widening into a second record family.
+- Added the store-owned `explodeImportedReference(referenceId)` mutation in [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so one eligible wrapper reference is replaced by one imported-reference-backed child record per truthful stored part row, preserving source order in both `importedReferenceOrder` and parent `contentOrderByParentKey`.
+- Hardened imported-reference deletion in [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so `removeImportedReference(...)` only revokes an imported asset URL when no other imported reference still shares that `assetPath`, which keeps exploded imported children from breaking each other on delete.
+- Extended [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) with focused proof for the ineligible no-op path, truthful wrapper replacement under the same parent, and shared imported asset lifetime across exploded children.
+- Marked [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md) shipped for `Phase 2`.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-14 - Explicit Part Explosion Into Real Object Rows.md`](./docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase%20Browser-14%20-%20Explicit%20Part%20Explosion%20Into%20Real%20Object%20Rows.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Eligible imported references can now be converted into real per-part imported-reference records through `explodeImportedReference(...)`, with truthful part order and per-part provenance preserved in app state.
+- Removing one exploded imported child no longer revokes a shared imported `assetPath` while sibling exploded children still depend on it.
+#### Verification Steps
+- Passed `npx.cmd vitest run src/app/store/useAppStore.test.ts -t "does not explode an ineligible imported reference|explodes one eligible imported wrapper into ordered per-part imported references under the same parent|keeps shared imported asset paths alive until the last exploded child is removed|projects shared reference runtime traits through workspace items and unified content rows|adds imported references under User References, disambiguates duplicate labels, and removes them with true workspace cleanup"`
+- Passed `npm.cmd exec tsc -- --noEmit`
+- `npx.cmd vitest run src/app/store/useAppStore.test.ts` still reports the same 12 pre-existing unrelated failures outside the Browser-14 Phase 2 seam.
+
 <!-- ENTRY 1357 -->
 ### [1357] - 2026-04-16 01:14 - `VR - Phase Camera 7 - Active Viewer Camera Control Shortcuts`
 <!-- ENTRY 1357 -->

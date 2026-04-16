@@ -906,6 +906,41 @@ export function useConsoleInteraction(
     return false
   }, [])
 
+  const explodeSelectedReferenceTarget = useCallback((): boolean => {
+    const appState = useAppStore.getState()
+    const selectedConsoleTarget = selectConsoleWorkspaceContextTarget(appState)
+    if (
+      selectedConsoleTarget?.kind === 'object' &&
+      typeof selectedConsoleTarget.referenceId === 'string' &&
+      selectedConsoleTarget.canExplode === true
+    ) {
+      if (!appState.explodeImportedReference(selectedConsoleTarget.referenceId)) {
+        appendConsoleEntry({
+          layer: 'Browser',
+          text: 'Explode failed for the selected reference object',
+          source: 'console',
+          severity: 'warn',
+        })
+        return false
+      }
+      appState.requestConsoleContextSync('target-selection')
+      appendConsoleEntry({
+        layer: 'Browser',
+        text: `Exploded ${selectedConsoleTarget.label}`,
+        source: 'console',
+        severity: 'info',
+      })
+      return true
+    }
+    appendConsoleEntry({
+      layer: 'Browser',
+      text: 'Explode is not available for the selected reference object',
+      source: 'console',
+      severity: 'warn',
+    })
+    return false
+  }, [appendConsoleEntry])
+
   const setSelectedContentContainerVisibility = useCallback(
     ({
       assemblyId,
@@ -3202,6 +3237,20 @@ export function useConsoleInteraction(
             return
           }
           if (
+            stagedResult.actionId === 'reference.explode'
+          ) {
+            appendConsoleEntry({
+              layer: 'Commands',
+              text: formatStagedBreadcrumb(stagedResult.breadcrumb),
+              source: 'console',
+              severity: 'info',
+            })
+            if (explodeSelectedReferenceTarget()) {
+              requestRadioBurst(commandIdentity, 'enter')
+            }
+            return
+          }
+          if (
             stagedResult.actionId === 'reference.delete' ||
             stagedResult.actionId === 'reference.multiDelete'
           ) {
@@ -3329,12 +3378,16 @@ export function useConsoleInteraction(
                 return frameSelectionSetCommand(selectionSet.partKeys, selectionSet.referenceIds)
               }
               const selectedObjectPartKey = resolveSelectedObjectPartKeyForZoom()
+              const zoomAnimationOptions = {
+                animate: true,
+                durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+              } as const
               if (selectedObjectPartKey !== null) {
-                frameSelectedCommand(selectedObjectPartKey)
+                frameSelectedCommand(selectedObjectPartKey, undefined, zoomAnimationOptions)
                 return true
               }
               if (selectedReferenceId !== null) {
-                frameReferenceCommand(selectedReferenceId)
+                frameReferenceCommand(selectedReferenceId, undefined, zoomAnimationOptions)
                 return true
               }
               appendConsoleEntry({
@@ -4765,9 +4818,15 @@ export function useConsoleInteraction(
                 return
               }
             } else if (selectedObjectPartKey !== null) {
-              frameSelectedCommand(selectedObjectPartKey)
+              frameSelectedCommand(selectedObjectPartKey, undefined, {
+                animate: true,
+                durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+              })
             } else if (selectedReferenceId !== null) {
-              frameReferenceCommand(selectedReferenceId)
+              frameReferenceCommand(selectedReferenceId, undefined, {
+                animate: true,
+                durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+              })
             } else {
               appendConsoleEntry({
                 layer: 'Diagnostics',

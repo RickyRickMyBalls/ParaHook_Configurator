@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-16 10:32:00: Reorganized the `Catalog` vision into explicit generations by defining the entire existing repo-backed browse-and-load direction as `Generation 1`, then adding a first `Generation 2` widening lane for curated external catalog integration such as `pubparts.xyz` plus linked `3D` model entries that stay explicit and metadata-backed instead of collapsing `Catalog` into generic web search or user import
 5. 2026-04-15 23:57:42: Added the first explicit Onewheel-oriented filter-system direction to the `Catalog` vision, documenting that the early Catalog should use structured metadata for platform, part type, product name, and position instead of parsing display labels, and locking the first filter groups around `ADV`, `XR`, `GT`, `Other`, `Footpads`, `Bumpers`, `Rails`, `Motors`, and the `Other` sub-sections `FootHolds`, `Shoes`, and `Screw & Nuts`
 4. 2026-04-15 23:44:46: Updated the `Catalog` vision again to match the newer store-style browse flow, documenting that the main catalog surface should open with no previews loaded, that every item should render as a `1x1` card inside a filter-plus-grid store layout, that users should trigger previews only for the items they want and may keep multiple temporary previews open, and that clicking an item should open a larger item page whose primary responsibilities are the viewport, `Add To Project`, and the description
 3. 2026-04-15 23:25:36: Expanded the `Catalog` north-star to capture the first reference-family and action-flow direction more explicitly, documenting that the preloaded `foothooks`, `shoes`, and `footpads` should move into `Catalog` as distinct reference sections, that users should be able to `Load Preview` into a separate preview viewport before commit, and that `Add To Project` should hand the chosen asset into Browser or project truth plus the model viewport instead of leaving it catalog-local
@@ -15,6 +16,8 @@ This doc captures the long-range vision for the `Catalog` workspace in ParaHook.
 
 Use it to answer:
 - what the `Catalog` workspace is supposed to be for
+- what `generation` the `Catalog` vision is in today
+- what the next `Catalog` generation should add without weakening the current ownership rules
 - what kinds of reusable assets should belong in the catalog
 - how repo-backed catalog browsing should relate to Browser/project truth
 - how geometry references versus HDRIs should differ once the user loads them
@@ -80,7 +83,11 @@ This doc exists to keep the catalog on the narrow honest path between those two 
 
 ### Short Version
 
-`Catalog` should become ParaHook's curated browse-and-load workspace for repo-backed reusable assets.
+`Catalog` should be described as evolving through explicit generations.
+
+`Generation 1` is the current repo-backed curated browse-and-load workspace direction.
+
+`Generation 2` should widen that workspace so it can also integrate curated external catalog sources such as `pubparts.xyz` and support linked `3D` model entries more generally.
 
 It should also be treated as its own real workspace mode or surface inside the shared workspace system, not as a nested Browser panel or one-off overlay.
 
@@ -111,10 +118,73 @@ Important rule:
 - the catalog should help the user choose reusable assets
 - it should not become the hidden long-term owner of those assets once they are loaded
 
+### Catalog Generations
+
+The catalog should be described as evolving through explicit generations.
+
+The point of the generations is not branding.
+
+The point is to make it easy to say:
+- what the current vision already covers
+- what the next widening lane should add
+- what should wait for a later generation instead of being smuggled into the current one
+
+#### Generation 1 - Repo-Backed Curated Catalog
+
+`Generation 1` is the current catalog baseline.
+
+Everything else currently described in this doc should be read as `Generation 1` unless a later section explicitly says `Generation 2`.
+
+`Generation 1` means:
+- `Catalog` is a real workspace mode or split-pane surface
+- the first catalog families are repo-backed and curated
+- the first browse flow is store-like, filterable, and preview-first
+- `Load Preview` stays separate from `Add To Project`
+- load behavior stays honest by asset type
+- Browser, project truth, and viewer state remain the downstream owners after commit
+
+In short:
+
+`Generation 1` is the repo-backed, curated, explicit browse-and-load catalog.
+
+It is not yet the external-linked catalog.
+
+#### Generation 2 - External Catalog Integration And Linked 3D Model Entries
+
+`Generation 2` should widen `Catalog` from only repo-backed reusable assets into a curated workspace that can also surface selected external catalog sources and linked `3D` model entries.
+
+The first concrete proof target for this generation should be:
+- integrating `https://pubparts.xyz/` into `Catalog` as a curated external source
+
+This generation should make room for:
+- curated external catalog integrations
+- catalog entries whose main source is a link instead of only a repo-local asset path
+- linked `3D` model entries more generally, even when the model does not ship inside the ParaHook repo
+- explicit source metadata that says whether an item is repo-backed, externally linked, or later another source type
+
+The main promise of `Generation 2` is:
+- users can browse trusted external part libraries through the same `Catalog` workspace
+- ParaHook can represent `3D` model links explicitly instead of pretending every useful asset must already live in the repo
+- linked-source items remain curated, inspectable, and honest about where they come from
+- the catalog still does not become a generic search engine, hidden downloader, or arbitrary web browser
+
+Important rule:
+- `Generation 2` should add curated external source integration
+- it should not collapse `Catalog` into open-ended internet browsing or replace the separate user-import path
+
+Likely first `Generation 2` metadata additions:
+- source kind
+- source site or provider
+- external item page URL
+- linked model URL when relevant
+- attribution or source notes
+- any later open, import, or handoff action that matches the linked asset type honestly
+
 ### Catalog North Star
 
 The long-range target is a workspace that feels like a curated internal asset library:
 - repo-backed
+- later able to include curated external-linked sources
 - explicit
 - searchable
 - previewable
@@ -146,6 +216,7 @@ Good later catalog families:
 - material or finish starter packs
 - lighting or environment presets built on top of HDRIs
 - reusable assemblies or kit parts
+- curated external catalog integrations and linked `3D` model references
 - graph/document templates if the repo later wants a curated template lane
 
 Important rule:
@@ -246,11 +317,40 @@ Useful later supporting details may include:
 - dimensions
 - compatibility or usage notes
 
+### Generation 2 Direction
+
+`Generation 2` should extend the earlier store-like item model so `Catalog` can carry both repo-backed entries and curated external-linked entries without lying about the difference.
+
+The first proof case should be `pubparts.xyz`.
+
+That site currently reads as a curated Onewheel library with explicit part collections such as `Floatwheel`, `GT/GT-S`, `Pint/X/S`, `XR/Funwheel`, `XR Classic`, `Miscellaneous Items`, and `VESC Electronics`, plus supporting resource collections.
+
+Healthy `Generation 2` direction:
+- let `Catalog` represent those external curated collections as part of the ParaHook browse surface
+- keep the source identity explicit instead of flattening everything into one local-only manifest fiction
+- allow some entries to resolve to linked model pages or linked `3D` files rather than only repo paths
+- keep downstream ownership honest if the user later opens, imports, previews, or adds one of those linked items
+
+Important rule:
+- an external-linked catalog item should still be a curated catalog entry
+- it should not be treated as the same thing as arbitrary paste-a-URL intake
+
+Healthy product read:
+- `Generation 1`
+  - repo-backed curated catalog items
+- `Generation 2`
+  - repo-backed items plus curated external-linked catalog items
+
+Healthy architecture read:
+- the catalog item contract should eventually be able to express both local asset sources and linked external sources
+- the UI should be able to show where an item comes from
+- action language should stay honest about whether the user is previewing locally, opening a source page, importing a linked model, or adding a managed repo-backed asset to the project
+
 ### What Must Stay True
 
 #### 1. `Catalog` Must Stay Distinct From `Browser`
 
-`Catalog` is where the user finds reusable repo-backed assets.
+`Catalog` is where the user finds curated reusable assets.
 
 `Browser` is where project/content truth should remain explicit once something is actually in the working project.
 
@@ -284,7 +384,7 @@ It should eventually have explicit metadata such as:
 - family/category
 - tags
 - preview media
-- source path
+- source path or source link
 - load behavior
 - platform compatibility
 - part type
@@ -379,9 +479,11 @@ Important rule:
 - the catalog may be the source of a reusable asset
 - it should not be the hidden sole owner of the loaded result
 
-#### 5. Repo-Backed Reuse Must Stay Separate From User Import
+#### 5. Curated Catalog Reuse Must Stay Separate From User Import
 
-The catalog is for curated repo-backed reusable assets.
+`Generation 1` catalog entries are curated repo-backed reusable assets.
+
+`Generation 2` may widen that to include curated external-linked entries.
 
 That is different from:
 - user import from disk
@@ -389,7 +491,7 @@ That is different from:
 - one-off temporary files
 
 Important rule:
-- keep `repo-curated reusable asset` separate from `user imported file`
+- keep `curated catalog asset` separate from `user imported file`
 - those systems can feel adjacent without collapsing into one blurry intake path
 
 #### 6. HDRIs Must Stay Optional And Explicit
@@ -412,6 +514,7 @@ Important rule:
 
 When `Catalog` is working well, the user should be able to say:
 - "I can browse the reusable assets that ship with this repo."
+- "I can also browse curated external catalog items when ParaHook chooses to integrate them."
 - "I can browse preloaded foothooks, shoes, and footpads in their own sections."
 - "I can filter down to the family I want."
 - "I can filter by real Onewheel platform and part type without the system guessing from names."
@@ -424,8 +527,9 @@ When `Catalog` is working well, the user should be able to say:
 ### Summary
 
 The umbrella direction is now:
-- ParaHook should have a real `Catalog` workspace for repo-backed reusable assets
-- the first asset families should include preloaded foothooks, shoes, footpads, HDRIs, and similar stored references
+- ParaHook should have a real `Catalog` workspace organized as explicit generations
+- `Generation 1` is the repo-backed curated browse-and-load catalog for preloaded foothooks, shoes, footpads, HDRIs, and similar stored references
+- `Generation 2` should widen that catalog to include curated external integrations such as `pubparts.xyz` and linked `3D` model entries more generally
 - the catalog should remain a curated browse-and-load surface, not a second hidden content owner
 - reference-style assets should support a temporary preview step before commit and should only become Browser/project truth after explicit `Add To Project`
 - loaded items should become explicit downstream truth in Browser/project content, viewer environment state, or other honest owner seams depending on the asset type
