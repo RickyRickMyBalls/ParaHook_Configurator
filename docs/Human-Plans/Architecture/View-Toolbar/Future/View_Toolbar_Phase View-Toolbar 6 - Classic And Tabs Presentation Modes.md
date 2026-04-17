@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-04-17 18:51:52: Added `Phase 8 - Outside Tab Rail And Attached Shell Chrome` as a new standalone later planning lane, reopening `View-Toolbar 6` so the next `Tabs` shell cleanup now has one explicit home for moving the section rail outside the main toolbar box and making the active section chrome read like real attached tabs instead of interior buttons inside the panel shell
 12. 2026-04-15 08:41:00: Cleaned up the doc after implementation, marking `Phase 5`, `Phase 6`, and `Phase 7` complete, adding result/completion reads for each, and marking the parent `View-Toolbar 6` phase complete now that the shipped `Classic`, `Tabs`, remembered tab, polished vertical rail, and top-right cluster dock work are all landed
 11. 2026-04-15 08:19:00: Prepped `Phase 7 - Top-Right Dock Cluster For Gizmo And View Toolbar` for implementation by grounding it in the live `AxisWidget`, `RightDock`, and HUD offset seams, then locking the first cut to a viewport-local dock mode that preserves the current below-axis layout as a fallback while adding a new expanded top-right cluster mode with `gizmo | view toolbar` order
 10. 2026-04-15 08:05:00: Added `Phase 7 - Top-Right Dock Cluster For Gizmo And View Toolbar`, framing the next follow-on as a shared top-right cluster layout pass rooted in the existing `RightDock`, `RightPanelStack`, and viewport-HUD offset seams instead of a `ViewToolbar`-only hack
@@ -60,7 +61,7 @@ This phase does not cover:
 
 ## Doc Body
 
-## [x] - `View-Toolbar 6` - `Classic And Tabs Presentation Modes`
+## [ ] - `View-Toolbar 6` - `Classic And Tabs Presentation Modes`
 
 ### Header
 
@@ -85,6 +86,7 @@ At the end of this phase:
 - the current expanded `View` toolbar still exists as `Classic`
 - the user can switch the expanded toolbar into `Tabs`
 - `Tabs` uses a left-side rail for top-level sections and a single right content pane
+- in `Tabs`, the section rail sits outside the main toolbar box so the active section reads like attached tab chrome instead of an interior button strip
 - changing tabs only changes presentation, not meaning
 - the chosen presentation is remembered per viewport
 - the full toolbar still has one clear scroll owner instead of splitting into competing nested scroll boxes
@@ -1728,6 +1730,36 @@ Done when:
 
 - complete
 
+## [ ] Phase 8 - Outside Tab Rail And Attached Shell Chrome
+
+Purpose:
+- clean up the shipped `Tabs` shell so the section rail sits outside the main `View` toolbar box and reads like real attached tabs instead of interior buttons inside one panel grid
+
+This phase should:
+- keep the tab rail on the left
+- move the rail outside the main toolbar content box
+- make the active tab read as attached to the panel shell
+- keep current tab switching, active-tab persistence, and section ownership unchanged
+- preserve the current vertical bottom-up tab-label treatment unless a later doc explicitly changes it
+- keep the one-scroll-owner rule honest after the shell split
+
+Does not own by default:
+- new toolbar commands
+- new top-level sections
+- floating or docked host-mode changes
+- another presentation-mode rewrite
+
+Why next:
+- the shipped `Tabs` behavior is already functional, but the shell still reads like a vertical button strip inside the box rather than true tab chrome
+- the next honest cleanup step is therefore shell presentation, not command behavior
+
+Execution doc:
+- `View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md`
+
+### Completion Read
+
+- open
+
 ### Acceptance Shape
 
 This phase is done when:
@@ -1736,6 +1768,7 @@ This phase is done when:
 - the `View` subsection contains a `ParaSelect` for `Classic` versus `Tabs`
 - right-clicking the expanded toolbar exposes `Classic` and `Tabs`
 - the left tab rail selects which section body appears in one content area
+- in `Tabs`, the section rail sits outside the main toolbar box and the active section reads like attached tab chrome
 - all current top-level `View` toolbar sections work through the same underlying controls in both presentations
 - the choice of `Classic` versus `Tabs` is remembered per viewport
 - the active `Tabs` section is remembered per viewport with safe fallback to `camera`
@@ -1747,4 +1780,4 @@ This phase is done when:
 
 ### Completion Read
 
-- complete
+- open

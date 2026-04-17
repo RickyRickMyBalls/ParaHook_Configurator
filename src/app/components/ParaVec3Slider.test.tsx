@@ -25,7 +25,7 @@ describe('ParaVec3Slider', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders three capless axis tracks and forwards axis changes', async () => {
+  it('renders compact mode by default with three capless axis tracks and forwards axis changes', async () => {
     const handleAxisChange = vi.fn()
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -44,6 +44,8 @@ describe('ParaVec3Slider', () => {
       )
     })
 
+    expect(container.querySelector('.ParaVec3Slider')?.classList.contains('isCompact')).toBe(true)
+    expect(container.querySelector('.ParaVec3Slider')?.classList.contains('isStacked')).toBe(false)
     expect(container.querySelectorAll('.ParaVec3SliderAxis')).toHaveLength(3)
     expect(container.querySelectorAll('.ParaVec3Slider .ParaSliderCap')).toHaveLength(0)
     expect(container.querySelectorAll('.ParaVec3Slider .ParaSliderTrack')).toHaveLength(3)
@@ -81,5 +83,31 @@ describe('ParaVec3Slider', () => {
 
     expect(handleAxisChange).toHaveBeenCalled()
     expect(handleAxisChange.mock.calls[0]?.[0]).toBe('x')
+  })
+
+  it('renders stacked mode as three full row lanes while preserving capless axis behavior', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaVec3Slider
+          value={{ x: 1, y: 2, z: 3 }}
+          min={-10}
+          max={10}
+          step={0.5}
+          layout="stacked"
+          onChangeAxis={() => {}}
+          displayValue={(_axis, value) => value.toFixed(1)}
+        />,
+      )
+    })
+
+    expect(container.querySelector('.ParaVec3Slider')?.classList.contains('isStacked')).toBe(true)
+    expect(container.querySelector('.ParaVec3Slider')?.classList.contains('isCompact')).toBe(false)
+    expect(container.querySelectorAll('.ParaVec3SliderAxis')).toHaveLength(3)
+    expect(container.querySelectorAll('.ParaVec3Slider .ParaSliderCap')).toHaveLength(0)
+    expect(container.querySelectorAll('.ParaVec3Slider .ParaSliderTrack')).toHaveLength(3)
   })
 })

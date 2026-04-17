@@ -373,6 +373,88 @@ describe('StagedImportPreviewViewport', () => {
     expect(loadedObject.scale.z).toBeCloseTo(2.5)
   })
 
+  it('keeps the current camera distance on scale changes until zoom to fit is pressed explicitly', async () => {
+    const loadedObject = new Mesh(new BoxGeometry(10, 10, 10))
+    loadReferenceAssetObjectMock.mockResolvedValue(loadedObject)
+
+    await act(async () => {
+      root.render(
+        <StagedImportPreviewViewport
+          selectedFile={{
+            fileName: 'scaled.step',
+            fileType: 'step',
+            objectUrl: 'blob:scaled-step',
+            stagedFileId: 'staged-import-file:preview',
+            importMode: 'single-object',
+            upAxis: 'z-up',
+            scaleAlignment: 'current-size',
+            structureInspection: {
+              status: 'ready',
+              summary: {
+                hasMultipleObjects: false,
+                hasHierarchy: false,
+                hasParts: false,
+                labels: [],
+                partRows: [],
+              },
+              errorMessage: null,
+            },
+          }}
+        />,
+      )
+      await Promise.resolve()
+    })
+
+    const initialCamera = rendererRenderMock.mock.calls.at(-1)?.[1] as PerspectiveCamera | undefined
+    expect(initialCamera).toBeDefined()
+    const initialDistance = initialCamera!.position.length()
+
+    await act(async () => {
+      root.render(
+        <StagedImportPreviewViewport
+          selectedFile={{
+            fileName: 'scaled.step',
+            fileType: 'step',
+            objectUrl: 'blob:scaled-step',
+            stagedFileId: 'staged-import-file:preview',
+            importMode: 'single-object',
+            upAxis: 'z-up',
+            scaleAlignment: 'custom',
+            scaleMultiplier: 2.5,
+            structureInspection: {
+              status: 'ready',
+              summary: {
+                hasMultipleObjects: false,
+                hasHierarchy: false,
+                hasParts: false,
+                labels: [],
+                partRows: [],
+              },
+              errorMessage: null,
+            },
+          }}
+        />,
+      )
+    })
+
+    const scaledCamera = rendererRenderMock.mock.calls.at(-1)?.[1] as PerspectiveCamera | undefined
+    expect(scaledCamera).toBeDefined()
+    expect(scaledCamera!.position.length()).toBeCloseTo(initialDistance, 5)
+
+    const fitButton = container.querySelector(
+      'button[title="Zoom to fit preview"]',
+    ) as HTMLButtonElement | null
+    expect(fitButton).not.toBeNull()
+
+    await act(async () => {
+      fitButton?.click()
+    })
+
+    const refitCamera = rendererRenderMock.mock.calls.at(-1)?.[1] as PerspectiveCamera | undefined
+    expect(refitCamera).toBeDefined()
+    expect(refitCamera!.position.length()).toBeGreaterThan(initialDistance)
+  })
+
   it('updates the preview camera projection after divider-style resize changes the viewport aspect', async () => {
     loadReferenceAssetObjectMock.mockResolvedValue(new Object3D())
     const updateProjectionMatrixSpy = vi.spyOn(

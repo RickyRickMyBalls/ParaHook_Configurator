@@ -1700,6 +1700,10 @@ describe('AppShell', () => {
       '.DetachedViewerFloatingWindowQuickDock',
     ) as HTMLButtonElement | null
     expect(quickDockButton).not.toBeNull()
+    expect(quickDockButton?.getAttribute('aria-label')).toBe('Quick Dock')
+    expect(quickDockButton?.classList.contains('FloatingWindowHeaderAction')).toBe(true)
+    expect(quickDockButton?.querySelector('svg')).not.toBeNull()
+    expect(quickDockButton?.textContent?.trim()).toBe('')
 
     await act(async () => {
       quickDockButton?.click()
@@ -1997,6 +2001,10 @@ describe('AppShell', () => {
       '.DashboardFloatingWindowQuickDock',
     ) as HTMLButtonElement | null
     expect(quickDockButton).not.toBeNull()
+    expect(quickDockButton?.getAttribute('aria-label')).toBe('Quick Dock')
+    expect(quickDockButton?.classList.contains('FloatingWindowHeaderAction')).toBe(true)
+    expect(quickDockButton?.querySelector('svg')).not.toBeNull()
+    expect(quickDockButton?.textContent?.trim()).toBe('')
 
     await act(async () => {
       quickDockButton?.click()
@@ -2091,6 +2099,10 @@ describe('AppShell', () => {
       '.NotepadFloatingWindowQuickDock',
     ) as HTMLButtonElement | null
     expect(quickDockButton).not.toBeNull()
+    expect(quickDockButton?.getAttribute('aria-label')).toBe('Quick Dock')
+    expect(quickDockButton?.classList.contains('FloatingWindowHeaderAction')).toBe(true)
+    expect(quickDockButton?.querySelector('svg')).not.toBeNull()
+    expect(quickDockButton?.textContent?.trim()).toBe('')
 
     await act(async () => {
       quickDockButton?.click()

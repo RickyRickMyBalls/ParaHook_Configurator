@@ -42,29 +42,48 @@ const resolvePreviewSize = (canvas: HTMLCanvasElement) => {
   return { width, height }
 }
 
-const applyPreviewObjectStagedTransforms = (
+const applyPreviewObjectUpAxis = (
   object: Object3D,
-  file: Pick<StagedImportDraftFileRecord, 'upAxis' | 'scaleAlignment' | 'scaleMultiplier'>,
+  upAxis: Pick<StagedImportDraftFileRecord, 'upAxis'>['upAxis'],
 ) => {
-  const { upAxis } = file
   const rotationDeg = resolveStagedImportUpAxisRotationDeg(upAxis)
-  const scaleFactor = resolveStagedImportScaleMultiplier(file)
   object.rotation.set(
     MathUtils.degToRad(rotationDeg.x),
     MathUtils.degToRad(rotationDeg.y),
     MathUtils.degToRad(rotationDeg.z),
   )
+}
+
+const applyPreviewObjectScale = (
+  object: Object3D,
+  file: Pick<StagedImportDraftFileRecord, 'scaleAlignment' | 'scaleMultiplier'>,
+) => {
+  const scaleFactor = resolveStagedImportScaleMultiplier(file)
   object.scale.setScalar(scaleFactor)
+}
+
+const applyPreviewObjectStagedTransforms = (
+  object: Object3D,
+  file: Pick<StagedImportDraftFileRecord, 'upAxis' | 'scaleAlignment' | 'scaleMultiplier'>,
+) => {
+  applyPreviewObjectUpAxis(object, file.upAxis)
+  applyPreviewObjectScale(object, file)
   object.updateMatrixWorld(true)
 }
 
-export const framePreviewCameraToObject = (camera: PerspectiveCamera, object: Object3D) => {
+const resolvePreviewObjectBoundingSphere = (object: Object3D) => {
   const bounds = new Box3().setFromObject(object)
   const sphere = bounds.isEmpty()
     ? new Sphere(new Vector3(0, 0, 0), 0.5)
     : bounds.getBoundingSphere(new Sphere())
-  const center = sphere.center.clone()
-  const radius = Math.max(sphere.radius, 0.5)
+  return {
+    center: sphere.center.clone(),
+    radius: Math.max(sphere.radius, 0.5),
+  }
+}
+
+export const framePreviewCameraToObject = (camera: PerspectiveCamera, object: Object3D) => {
+  const { center, radius } = resolvePreviewObjectBoundingSphere(object)
   const viewDirection = new Vector3(1, 0.75, 1).normalize()
   const verticalHalfFov = MathUtils.degToRad(camera.fov) * 0.5
   const horizontalHalfFov = Math.atan(
@@ -82,6 +101,29 @@ export const framePreviewCameraToObject = (camera: PerspectiveCamera, object: Ob
   camera.lookAt(center)
   camera.updateProjectionMatrix()
   return center
+}
+
+const recenterPreviewCameraToObjectAtCurrentDistance = (
+  camera: PerspectiveCamera,
+  controls: OrbitControls,
+  object: Object3D,
+) => {
+  const { center, radius } = resolvePreviewObjectBoundingSphere(object)
+  const currentOffset = camera.position.clone().sub(controls.target)
+  if (currentOffset.lengthSq() === 0) {
+    currentOffset.copy(new Vector3(1, 0.75, 1).normalize().multiplyScalar(Math.max(radius * 2, 1)))
+  }
+
+  const currentDistance = Math.max(currentOffset.length(), 0.1)
+  camera.near = Math.max(radius / 100, 0.01)
+  camera.far = Math.max(currentDistance + radius * 12, radius * 24)
+  camera.position.copy(center).add(currentOffset)
+  camera.lookAt(center)
+  camera.updateProjectionMatrix()
+  controls.target.copy(center)
+  controls.minDistance = Math.max(camera.near * 10, 0.1)
+  controls.maxDistance = Math.max(camera.far * 0.5, controls.minDistance + 1)
+  controls.update()
 }
 
 const disposePreviewRenderer = (
@@ -103,6 +145,7 @@ export function StagedImportPreviewViewport(props: StagedImportPreviewViewportPr
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const fitPreviewRef = useRef<(() => void) | null>(null)
   const runtimeRef = useRef<{
+    camera: PerspectiveCamera | null
     renderer: WebGLRenderer | null
     rootObject: Object3D
     resizeObserver: ResizeObserver | null
@@ -165,6 +208,7 @@ export function StagedImportPreviewViewport(props: StagedImportPreviewViewportPr
 
         if (canvas === null || !canRenderPreviewViewport()) {
           runtimeRef.current = {
+            camera: null,
             renderer: null,
             rootObject: loadedObject,
             resizeObserver: null,
@@ -228,6 +272,7 @@ export function StagedImportPreviewViewport(props: StagedImportPreviewViewportPr
 
         fitPreviewRef.current = fitPreviewToObject
         runtimeRef.current = {
+          camera,
           renderer,
           rootObject: loadedObject,
           resizeObserver,
@@ -282,14 +327,30 @@ export function StagedImportPreviewViewport(props: StagedImportPreviewViewportPr
     if (runtime === null) {
       return
     }
-    applyPreviewObjectStagedTransforms(runtime.rootObject, selectedFile)
+    applyPreviewObjectUpAxis(runtime.rootObject, selectedFile.upAxis)
+    runtime.rootObject.updateMatrixWorld(true)
     runtime.fitPreviewToObject?.()
-  }, [
-    selectedFile?.stagedFileId,
-    selectedFile?.upAxis,
-    selectedFile?.scaleAlignment,
-    selectedFile?.scaleMultiplier,
-  ])
+  }, [selectedFile?.stagedFileId, selectedFile?.upAxis])
+
+  useEffect(() => {
+    if (selectedFile === null) {
+      return
+    }
+    const runtime = runtimeRef.current
+    if (runtime === null) {
+      return
+    }
+    applyPreviewObjectScale(runtime.rootObject, selectedFile)
+    runtime.rootObject.updateMatrixWorld(true)
+    if (runtime.camera !== null && runtime.controls !== null) {
+      recenterPreviewCameraToObjectAtCurrentDistance(
+        runtime.camera,
+        runtime.controls,
+        runtime.rootObject,
+      )
+    }
+    runtime.renderScene?.()
+  }, [selectedFile?.stagedFileId, selectedFile?.scaleAlignment, selectedFile?.scaleMultiplier])
 
   useEffect(() => {
     const runtime = runtimeRef.current

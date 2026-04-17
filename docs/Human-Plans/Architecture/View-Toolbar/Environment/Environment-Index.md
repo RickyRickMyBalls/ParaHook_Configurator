@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-04-17 15:35:10: Updated this environment-family index to check off the top-level `Environment-1` wishlist items that are now honestly shipped, and refreshed the current reality read so the umbrella checklist matches the landed brighter baseline-lighting work plus the still-open preset, Browser-light, HDRI, and grading follow-ons
 6. 2026-04-17 10:04:20: Updated this environment-family index so the active follow-on `Environment-1 / Phase 2c` pointer now reflects the new standalone wishlist-tracking doc shape, including its small internal phase ladder for para-style environment control migration, dedicated `Shadows` section work, and final visible ordering cleanup
 5. 2026-04-17 09:47:20: Added the standalone future plan doc `Future/Environment_Phase Environment-1 Phase 2c - Environment Section Organization Pass.md` and refreshed this environment-family index so the next active cleanup cut now has its own explicit planning home around visible toolbar organization, likely including a dedicated `Shadows` section, instead of staying embedded only inside the larger `Environment-1` ladder
 4. 2026-04-16 19:08:18: Collapsed the old five-phase environment ladder into two larger family phases, added the new standalone future doc `Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`, and rewrote the wishlist mapping plus phase summary so the first environment lane now covers the old baseline-lighting, visible-preset, Browser-light-control, and true HDRI/runtime work while the second lane stays focused on Photoshop-like grading plus persistence and workflow polish
@@ -127,18 +128,22 @@ Bad first-family ownership:
 
 ### Current Reality Read
 
-Current shipped viewer truth is still narrow:
+Current shipped viewer truth is no longer only the original thin baseline:
 - tone mapping and exposure already exist
 - one simple `Environment` preset surface already exists
 - direct light editing already exists
 - material presets already exist
+- the default viewer baseline now ships with brighter exposure plus stronger key, fill, and rim separation than the original dark scene
+- the first dedicated `Ground` section and floor runtime already exist
+- the visible environment-facing controls have already started moving onto the para-style surface through the shipped `Environment-1 / Phase 2c` internal cuts
 
-Current missing gap against the desired Blender-like read:
-- the default viewport is still too dark in the midtones
+Current remaining gap against the desired Blender-like read:
 - the background is still too close to black
-- the current default rig does not yet give strong fill or rim separation
 - the grid is still visually louder than the model in darker scenes
+- the preset model is still a thin `envPreset` surface instead of honest named preset truth with per-preset rig ownership
+- the environment-surface cleanup still needs the dedicated `Shadows` section plus final ordering cleanup
 - there is not yet a true HDRI-backed environment runtime
+- there is not yet any environment intensity or background-versus-lighting separation control
 - there is not yet a Photoshop-like post-grade slider family for contrast, highlights, shadows, whites, blacks, temperature, tint, or saturation
 - there is not yet any Browser-visible light-management surface for quickly helping model-viewport readability
 
@@ -152,12 +157,12 @@ Important current rule:
 Use the family phases to organize the current environment wishlist like this:
 
 ### `Environment-1`
-- [ ] `0. Brighter Default Scene`
+- [x] `0. Brighter Default Scene`
 - [ ] `1. Neutral Dark Gray Background`
-- [ ] `2. Better Default Key And Fill Balance`
-- [ ] `3. Rim Or Edge Separation For Dark Models`
+- [x] `2. Better Default Key And Fill Balance`
+- [x] `3. Rim Or Edge Separation For Dark Models`
 - [ ] `4. Softer, Less Dominant Grid`
-- [ ] `5. Better Default Read For Dark Materials`
+- [x] `5. Better Default Read For Dark Materials`
 - [ ] `6. Honest Environment Preset Language`
 - [ ] `7. Per-Preset Lighting Rig Definitions`
 - [ ] `8. Better Visible Scene Controls In The Environment Section`

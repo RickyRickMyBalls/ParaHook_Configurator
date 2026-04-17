@@ -3,6 +3,14 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-04-17 15:42:27: Implemented `Environment-1 / Phase 2c / Phase 3.1 - Selected-Light Tail Style Parity` by converting the remaining selected-light shadow-tail controls to `ParaSelect` and `ParaSlider`, restyling the adjacent `Position` and `Target` rows into one more intentional local tail treatment, adding focused proof for the tail branches, and advancing the next internal `Phase 2c` cut to `Phase 4`
+12. 2026-04-17 15:31:00: Prepped `Environment-1 / Phase 2c / Phase 3.1 - Selected-Light Tail Style Parity` for implementation by grounding the next cut in the live selected-light `VectorFieldGrid` tail, the remaining native shadow-tail controls, the unchanged `updateLight(...)` and `shadowSizes` seams, and the already-shipped selected-light branch proof while keeping dedicated `Shadows` section ownership deferred
+11. 2026-04-17 15:27:01: Added `Environment-1 / Phase 2c / Phase 3.1 - Selected-Light Tail Style Parity` as the next explicit follow-on after the shipped core selected-light migration, capturing that the selected-light editor still has native-styled `Position`, `Target`, and shadow-tail controls that should receive one honest style-alignment pass before the later dedicated `Shadows` section extraction
+10. 2026-04-17 15:10:06: Implemented `Environment-1 / Phase 2c / Phase 3 - Para Migration For Selected-Light Core Tuning` by converting the selected-light editor's core enabled, type, intensity, distance, decay, angle, and penumbra controls to `ParaSelect` and `ParaSlider`, adding focused branch-proof in `ViewToolbar.test.tsx`, and advancing the next internal `Phase 2c` cut to `Phase 4`
+9. 2026-04-17 15:00:01: Reformatted the standalone `Environment-1 / Phase 2c` wishlist section to match the current `Architecture Setup` default by replacing `Wishlist Tracking` with `Wishlist Organization`, adding a `High Level Goals` block, and mapping the smaller checklist items onto explicit per-phase organization blocks without changing the underlying `2c` scope
+8. 2026-04-17 14:54:27: Prepped `Environment-1 / Phase 2c / Phase 3 - Para Migration For Selected-Light Core Tuning` for implementation by grounding the next cut in the live selected-light editor branches, the existing `updateLight(...)` normalization seam, the type-default reset path, and the focused `ViewToolbar` proof surface while keeping name, color, vector, and shadow controls deferred
+7. 2026-04-17 14:33:16: Implemented `Environment-1 / Phase 2c / Phase 2 - Para Migration For Core Environment Controls` by replacing the top-of-section native `Environment` preset and add-light type selectors with `ParaSelect`, adding focused `ViewToolbar` proof that the shared `envPreset` seam and local add-light type flow still behave the same way, and advancing the next internal `Phase 2c` cut to `Phase 3`
+6. 2026-04-17 14:15:19: Prepped `Environment-1 / Phase 2c / Phase 2 - Para Migration For Core Environment Controls` for implementation by grounding the next cut in the live native `Environment` preset and add-light type controls, the existing shared `envPreset` mutation seam, the local `addLightType` toolbar state, the shipped `ParaSelect` surface, and the focused `ViewToolbar` proof path while keeping selected-light editor, tab-key, and dedicated `Shadows` section work deferred
 5. 2026-04-17 11:25:15: Implemented `Environment-1 / Phase 2c / Phase 1 - Para Migration For View-Level Environment Controls` by replacing the broad `View` section's native `Shadows`, `Tone Mapping`, and paired `Exposure` controls with `ParaSelect` and `ParaSlider`, adding focused `ViewToolbar` proof, and advancing the next internal `Phase 2c` cut to `Phase 2`
 4. 2026-04-17 11:21:08: Prepped `Environment-1 / Phase 2c / Phase 1 - Para Migration For View-Level Environment Controls` for implementation by grounding the first cut in the live native `View` controls, the shipped `ParaSelect` and `ParaSlider` seams, the existing `setViewKey` shared-state path, and the current focused toolbar proof surface while keeping tab persistence and dedicated `Shadows` section work deferred to later internal phases
 3. 2026-04-17 10:11:10: Reorganized this standalone `Environment-1 / Phase 2c` doc so its main `##` sections now read in the explicit order `Doc Header`, `Doc Body`, `Wishlist Tracking`, then the individual implementation phases, keeping the same `2c` scope while making the planning surface easier to scan
@@ -240,33 +248,70 @@ Minimum verification for this phase should cover:
 - the current controls still drive the same runtime behavior they did before
 - `Phase 3` can build preset truth on top of a cleaner environment-facing toolbar surface
 
-## Wishlist Tracking
+## Wishlist Organization
 
-Use this tracker to keep the para-style cleanup honest and scoped to the settings that are strong fits for `ParaSelect` and `ParaSlider`.
+Use this section to keep the para-style cleanup honest and scoped to the settings that are strong fits for `ParaSelect` and `ParaSlider`.
 
-### `Phase 2c`
+### High Level Goals
+
+- [ ] `HLG 1. Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [ ] `HLG 2. Give shadow-facing controls one explicit visible owner`
+- [ ] `HLG 3. Finish the para-style migration only for environment-facing controls that are honest fits for the shipped para surfaces`
+
+### Environment-1 / Phase 2c `Phase 1`
+
+- [x] HLG 1. `Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [x] `HLG 3. Finish the para-style migration only for environment-facing controls that are honest fits for the shipped para surfaces`
 - [x] `0. Global Shadows Toggle -> ParaSelect`
 - [x] `1. Tone Mapping -> ParaSelect`
 - [x] `2. Exposure -> ParaSlider`
-- [ ] `3. Environment Preset -> ParaSelect`
-- [ ] `4. Add Light Type -> ParaSelect`
-- [ ] `5. Selected Light Enabled -> ParaSelect`
-- [ ] `6. Selected Light Type -> ParaSelect`
-- [ ] `7. Selected Light Intensity -> ParaSlider`
-- [ ] `8. Selected Light Distance -> ParaSlider`
-- [ ] `9. Selected Light Decay -> ParaSlider`
-- [ ] `10. Selected Spot Angle -> ParaSlider`
-- [ ] `11. Selected Spot Penumbra -> ParaSlider`
-- [ ] `12. Dedicated Shadows Section`
-- [ ] `13. Per-Light Cast Shadow -> ParaSelect`
-- [ ] `14. Per-Light Shadow Bias -> ParaSlider`
-- [ ] `15. Per-Light Shadow Map -> ParaSelect`
-- implementation target:
-  - convert the remaining environment-facing native select, checkbox, and range or number controls that are honest fits for the shipped para components
-  - keep the cleanup on visible organization and control-surface consistency
-  - leave text fields, color fields, and vector triples out of this phase unless a new para input family is explicitly introduced later
 
-### Explicitly Not In This Tracker
+### Environment-1 / Phase 2c `Phase 2`
+
+- [x] `HLG 1. Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [x] `HLG 3. Finish the para-style migration only for environment-facing controls that are honest fits for the shipped para surfaces`
+- [x] `3. Environment Preset -> ParaSelect`
+- [x] `4. Add Light Type -> ParaSelect`
+
+### `Environment-1 / Phase 2c Phase 3`
+
+- [x] `HLG 1. Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [x] `HLG 3. Finish the para-style migration only for environment-facing controls that are honest fits for the shipped para surfaces`
+- [x] `5. Selected Light Enabled -> ParaSelect`
+- [x] `6. Selected Light Type -> ParaSelect`
+- [x] `7. Selected Light Intensity -> ParaSlider`
+- [x] `8. Selected Light Distance -> ParaSlider`
+- [x] `9. Selected Light Decay -> ParaSlider`
+- [x] `10. Selected Spot Angle -> ParaSlider`
+- [x] `11. Selected Spot Penumbra -> ParaSlider`
+
+### `Environment-1 / Phase 2c Phase 3.1`
+
+- [x] `HLG 1. Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [x] `HLG 3. Finish the para-style migration only for environment-facing controls that are honest fits for the shipped para surfaces`
+- [x] `12. Selected Light Position Tail Styling`
+- [x] `13. Selected Light Target Tail Styling`
+- [x] `14. Per-Light Cast Shadow -> ParaSelect`
+- [x] `15. Per-Light Shadow Bias -> ParaSlider`
+- [x] `16. Per-Light Shadow Map -> ParaSelect`
+
+### `Environment-1 / Phase 2c Phase 4`
+
+- [ ] `HLG 1. Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [ ] `HLG 2. Give shadow-facing controls one explicit visible owner`
+- [ ] `17. Dedicated Shadows Section`
+
+### `Environment-1 / Phase 2c Phase 5`
+
+- [ ] `HLG 1. Reorganize the environment-facing toolbar surface so it is easier to scan`
+- [ ] `Final visible order and wording cleanup`
+
+Implementation target:
+- convert the remaining environment-facing native select, checkbox, and range or number controls that are honest fits for the shipped para components
+- keep the cleanup on visible organization and control-surface consistency
+- leave text fields, color fields, and broader vector-editor standardization out of this phase unless a narrower selected-light tail pass explicitly owns the local exception
+
+### Explicitly Not In This Wishlist
 
 These are still native today, but they should not be forced into `Phase 2c` just to satisfy the para-style push:
 
@@ -277,16 +322,17 @@ These are still native today, but they should not be forced into `Phase 2c` just
   - light `Color`
   - material `Color`
   - material `Emissive`
-- vector triples such as:
-  - light `Position`
-  - light `Target`
+- broader vector-editor standardization outside the selected-light tail pass, such as:
+  - non-environment vector editors
+  - toolbar-wide vector input standardization
 - broader non-environment families such as:
   - `Snap`
   - `Materials`
 
 Reason:
 - the shipped repo already has `ParaSelect` and `ParaSlider`
-- it does not yet have a comparable para-style text, color, or vector editor family
+- it still does not have a comparable repo-wide para-style text, color, or vector editor family
+- `Phase 3.1` only widens selected-light `Position` and `Target` styling because those controls are part of the same remaining selected-light tail shown in the live editor
 - `Phase 2c` should stay environment-facing instead of turning into a toolbar-wide input-standardization rewrite
 
 ## [x] Phase 1 - Para Migration For View-Level Environment Controls
@@ -422,7 +468,7 @@ Current status:
 - the shipped cut stays inside the current `View` section and does not require workspace tab or persistence changes
 - `Phase 2 - Para Migration For Core Environment Controls` is now the next internal `Phase 2c` code cut
 
-## [ ] Phase 2 - Para Migration For Core Environment Controls
+## [x] Phase 2 - Para Migration For Core Environment Controls
 
 Purpose:
 - convert the simplest environment-owned controls to para-style surfaces without entering the full selected-light detail editor yet
@@ -445,7 +491,115 @@ Exact first code cut:
 2. Convert `Preset` and `Add Light Type` to `ParaSelect`
 3. Add focused toolbar proof for the updated visible contract
 
-## [ ] Phase 3 - Para Migration For Selected-Light Core Tuning
+### Implementation Spec
+
+### Code-Backed Read
+
+The shipped `Phase 2` cut stayed intentionally narrow and landed through the top of the existing `Environment` section plus the existing para-input surface:
+
+- `src/app/components/ViewToolbar.tsx`
+  - now renders the top of the `Environment` section with:
+    - `Preset` = `ParaSelect` bound to `view.envPreset`
+    - `Add Light Type` = `ParaSelect` bound to the local `addLightType` toolbar state
+    - a native `Light name` text input beside that type select
+  - kept the two target controls on the same separate but existing owner seams:
+    - `Preset` -> `setViewKey('envPreset', ...)`
+    - `Add Light Type` -> `setAddLightType(...)`
+  - keeps those controls above the raw light list and selected-light editor, which preserves the intended second para-migration boundary before the deeper light-editor work begins
+- `src/shared/viewSettingsTypes.ts`
+  - continued to own `envPreset` as the same thin shared environment preset contract:
+    - `none`
+    - `studio`
+  - remained structurally unchanged in this phase
+- `src/app/store/uiPrefsStore.ts`
+  - continued to own the shared top-level `view` state and existing `envPreset` mutation path without needing a new API
+- `src/app/components/ParaSelect.tsx`
+  - provided the shipped para-style select surface for both owned controls in this cut:
+    - `Preset`
+    - `Add Light Type`
+- `src/app/components/ViewToolbar.test.tsx`
+  - now includes focused proof that the para-style `Preset` control still drives the shared `envPreset` seam and that the para-style `Add Light Type` control still drives the local add-light flow
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspacePersistence.ts`
+  - remained unchanged because this cut still did not add a new top-level section key
+
+Main implication:
+- `Phase 2` landed at the very top of the current `Environment` section
+- it standardized `Preset` and `Add Light Type` into para-style controls
+- it did not widen into raw light-row restructuring, selected-light editor migration, or dedicated `Shadows` ownership
+
+### First Pass Decisions
+
+- keep `Phase 2` fully inside the existing `Environment` section
+- convert only the two explicit wishlist items owned by this cut:
+  - `Environment Preset`
+  - `Add Light Type`
+- keep `Light name` native in this phase
+- keep the same owner split underneath the new visible controls:
+  - `Preset` stays on the shared `setViewKey('envPreset', ...)` seam
+  - `Add Light Type` stays on the local `setAddLightType(...)` seam
+- do not move or redesign the raw light list in this phase
+- do not enter the selected-light editor in this phase
+- do not add a new toolbar section key in this phase
+
+### Likely Files
+
+- `src/app/components/ViewToolbar.tsx`
+- focused proof:
+  - `src/app/components/ViewToolbar.test.tsx`
+- expected no-change seams unless a small bug is discovered while wiring:
+  - `src/shared/viewSettingsTypes.ts`
+  - `src/app/store/uiPrefsStore.ts`
+  - `src/app/components/ParaSelect.tsx`
+  - `src/app/workspace/workspaceShellTypes.ts`
+  - `src/app/workspace/workspacePersistence.ts`
+- docs update targets after implementation:
+  - `docs/CHANGELOG.md`
+
+### No-Widening Rule
+
+- do not convert selected-light editor controls in `Phase 2`
+- do not move per-light shadow controls in `Phase 2`
+- do not add a dedicated `Shadows` section in `Phase 2`
+- do not change `ViewSettings` structure in `Phase 2`
+- do not change viewer runtime behavior in `Phase 2`
+- do not convert the `Light name` text field in `Phase 2`
+- do not redesign the raw light list or add-light action flow in `Phase 2`
+
+### Implementation Risks
+
+- widening a small top-of-section para migration into a larger `Environment` section re-layout
+- accidentally turning the local `Add Light Type` selector into shared environment truth when it is still just toolbar-local add-light state
+- touching the `Light name` input just because it sits beside the type selector even though text-entry migration is explicitly out of scope
+- widening into tab or persistence work even though no new section key is introduced in this phase
+
+### Verification Shape
+
+Minimum verification for this phase should cover:
+
+- the `Environment` section renders para-style controls for:
+  - `Preset`
+  - `Add Light Type`
+- changing the new `Preset` control still updates `useUiPrefsStore.getState().view.envPreset`
+- changing the new `Add Light Type` control still updates the local toolbar selection used by the add-light flow
+- the `Light name` input remains present and native
+- tabs-mode still exposes the same current section rail because no new section key was added
+
+### Done Shape
+
+`Phase 2` is done when:
+
+- the top of the `Environment` section no longer uses native select controls for `Preset` and `Add Light Type`
+- those controls match the shipped para style used elsewhere in the toolbar
+- the shared `envPreset` seam and local `addLightType` seam still behave the same way they did before
+- `Phase 3` can move into the selected-light editor without reopening the top-of-section control treatment
+
+Current status:
+- `Phase 2` is implemented
+- the shipped cut stays at the top of the current `Environment` section and does not require workspace tab or persistence changes
+- `Phase 3 - Para Migration For Selected-Light Core Tuning` is now the next internal `Phase 2c` code cut
+
+## [x] Phase 3 - Para Migration For Selected-Light Core Tuning
 
 Purpose:
 - convert the non-shadow selected-light controls that are honest fits for the current para component set
@@ -477,33 +631,328 @@ Exact first code cut:
 2. Convert the scalar and enum-like controls listed above to `ParaSelect` or `ParaSlider`
 3. Add focused toolbar proof for one representative light of each supported shape
 
-## [ ] Phase 4 - Dedicated Shadows Section And Shadow Para Controls
+### Implementation Spec
+
+### Code-Backed Read
+
+The shipped `Phase 3` cut stayed entirely inside the existing selected-light editor that renders after the raw light list and add-light row:
+
+- `src/app/components/ViewToolbar.tsx`
+  - now renders the selected-light editor with para-style controls for the core mode-like and scalar tuning owned by this phase:
+    - `Enabled` = `ParaSelect`
+    - `Type` = `ParaSelect`
+    - `Intensity` = `ParaSlider`
+    - `Distance` and `Decay` = `ParaSlider` when the selected type supports distance settings
+    - `Angle (deg)` and `Penumbra` = `ParaSlider` when the selected type is `spot`
+  - keeps these neighboring controls native exactly as scoped:
+    - `Name`
+    - `Color`
+    - `Position`
+    - `Target`
+    - shadow controls
+  - kept the selected-light editor on the same helper and mutation boundaries:
+    - `supportsPosition(...)`
+    - `supportsTarget(...)`
+    - `supportsDistance(...)`
+    - `supportsSpot(...)`
+    - `supportsShadow(...)`
+    - `getLightTypeDefaults(type)` when the selected-light `Type` changes
+- `src/app/store/uiPrefsStore.ts`
+  - continued to own the only mutation seam this phase needed:
+    - `updateLight(id, patch)`
+  - continued to normalize branch-only fields after every update:
+    - removes `position` when the new type does not support it
+    - removes `target` when the new type does not support it
+    - removes `distance` and `decay` when the new type does not support them
+    - removes `angleDeg` and `penumbra` when the new type is no longer `spot`
+    - removes shadow fields when the new type no longer supports shadows
+- `src/shared/viewSettingsTypes.ts`
+  - continued to define the same shared `LightType` and `LightSpec` contract without widening
+  - continued to ship a default light rig with representative selected-light shapes:
+    - `Key` = `directional`
+    - `Fill` = `hemisphere`
+    - `Rim` = `directional`
+- `src/app/components/ParaSelect.tsx`
+- `src/app/components/ParaSlider.tsx`
+  - provided the shipped para-style control surfaces for the selected-light core tuning without inventing new editor widgets
+- `src/app/components/ViewToolbar.test.tsx`
+  - now includes focused proof that the selected-light core para controls still drive the same selected light and that the `point`, `spot`, and non-distance branches still appear and disappear correctly
+
+Main implication:
+- `Phase 3` shipped as a UI-only migration on top of the same `updateLight(...)` path and existing type-helper branching
+- it standardized the selected-light editor's core scalar and mode-like controls without widening into vector, color, or shadow redesign
+
+### First Pass Decisions
+
+- keep `Phase 3` fully inside the existing selected-light editor
+- convert only the explicit owned controls in this phase:
+  - `Enabled` -> `ParaSelect`
+  - `Type` -> `ParaSelect`
+  - `Intensity` -> `ParaSlider`
+  - `Distance` -> `ParaSlider`
+  - `Decay` -> `ParaSlider`
+  - `Angle (deg)` -> `ParaSlider`
+  - `Penumbra` -> `ParaSlider`
+- collapse the current paired `Intensity` range-plus-number treatment into one `ParaSlider` instead of preserving two visible controls for the same field
+- keep the underlying mutation seams unchanged:
+  - type changes stay on `updateLight(selectedLight.id, { type, ...getLightTypeDefaults(type) })`
+  - scalar updates stay on `updateLight(selectedLight.id, { ... })`
+- keep these controls native in this phase:
+  - `Name`
+  - `Color`
+  - `Position`
+  - `Target`
+  - shadow controls
+- preserve the current branch rules instead of flattening the editor:
+  - `Distance` and `Decay` appear only for `point` and `spot`
+  - `Angle (deg)` and `Penumbra` appear only for `spot`
+
+### Likely Files
+
+- `src/app/components/ViewToolbar.tsx`
+- focused proof:
+  - `src/app/components/ViewToolbar.test.tsx`
+- expected no-change seams unless a small bug is discovered while wiring:
+  - `src/app/store/uiPrefsStore.ts`
+  - `src/shared/viewSettingsTypes.ts`
+  - `src/app/components/ParaSelect.tsx`
+  - `src/app/components/ParaSlider.tsx`
+  - `src/app/workspace/workspaceShellTypes.ts`
+  - `src/app/workspace/workspacePersistence.ts`
+- docs update targets after implementation:
+  - `docs/CHANGELOG.md`
+
+### No-Widening Rule
+
+- do not convert `Name` in `Phase 3`
+- do not convert `Color` in `Phase 3`
+- do not convert `Position` or `Target` vector editing in `Phase 3`
+- do not move shadow controls or add a dedicated `Shadows` section in `Phase 3`
+- do not change `LightSpec` shape or `updateLight(...)` normalization behavior in `Phase 3`
+- do not redesign the raw light list or add-light flow in `Phase 3`
+- do not add tab or persistence work in `Phase 3`
+
+### Implementation Risks
+
+- widening a focused selected-light para migration into a larger editor redesign just because all the controls sit in one panel
+- accidentally bypassing the existing type-change reset path and leaving stale branch-only fields on the wrong light shape
+- making `Intensity` less precise or less readable when collapsing the current paired range-plus-number pattern into one para slider
+- forgetting that `Distance`, `Decay`, `Angle`, and `Penumbra` only exist on some light types and therefore need proof that the para controls appear and disappear on the right branches
+- touching shadow controls while working near the same conditional editor block even though that ownership belongs to `Phase 4`
+
+### Verification Shape
+
+Minimum verification for this phase should cover:
+
+- the selected default light renders para-style controls for:
+  - `Enabled`
+  - `Type`
+  - `Intensity`
+- the selected-light editor still leaves these controls native:
+  - `Name`
+  - `Color`
+  - `Position`
+  - `Target`
+- changing `Enabled` through the new para control still updates `useUiPrefsStore.getState().view.lighting.lights`
+- changing `Type` through the new para control still rides the existing type-default reset path
+- switching the selected light to `point` shows para-style `Distance` and `Decay`
+- switching the selected light to `spot` shows para-style `Angle (deg)` and `Penumbra`
+- switching the selected light to a non-distance, non-spot type such as `ambient` or `hemisphere` hides those branch-only para controls cleanly
+
+### Done Shape
+
+`Phase 3` is done when:
+
+- the selected-light editor no longer uses native checkbox/select/range controls for the core mode-like and scalar tuning owned by this phase
+- the selected-light editor still keeps text, color, vector, and shadow controls on their current native surfaces
+- the current type-specific editor branches still appear and disappear correctly after type changes
+- `Phase 4` can move shadow ownership without reopening the selected-light core tuning treatment
+
+Current status:
+- `Phase 3` is implemented
+- the shipped cut stayed fully inside the selected-light editor and did not require shared state or persistence widening
+- `Phase 4 - Dedicated Shadows Section Ownership Cleanup` is now the next internal `Phase 2c` code cut
+
+## [x] Phase 3.1 - Selected-Light Tail Style Parity
 
 Purpose:
-- give all shadow-facing controls one explicit visible owner and finish the para-style migration for shadow settings
+- finish the remaining selected-light editor style cleanup after the shipped core-tuning migration so the tail of the panel no longer drops back to the older native look
 
 Owns:
-- `12. Dedicated Shadows Section`
-- `13. Per-Light Cast Shadow -> ParaSelect`
-- `14. Per-Light Shadow Bias -> ParaSlider`
-- `15. Per-Light Shadow Map -> ParaSelect`
+- `12. Selected Light Position Tail Styling`
+- `13. Selected Light Target Tail Styling`
+- `14. Per-Light Cast Shadow -> ParaSelect`
+- `15. Per-Light Shadow Bias -> ParaSlider`
+- `16. Per-Light Shadow Map -> ParaSelect`
+
+Does not own:
+- moving shadow controls into their final top-level section yet
+- text or color control replacement
+- repo-wide vector editor standardization
+
+This phase should:
+- restyle the remaining selected-light tail controls that still visually fall back to the older native treatment
+- keep:
+  - `Name`
+  - `Color`
+  native in this pass
+- bring the current `Position` and `Target` rows into one more intentional editor style without pretending there is already a reusable repo-wide para vector family
+- convert the still-native shadow-tail controls to the same para surfaces already used elsewhere:
+  - `Cast Shadow` -> `ParaSelect`
+  - `Shadow Bias` -> `ParaSlider`
+  - `Shadow Map` -> `ParaSelect`
+
+Exact first code cut:
+1. Re-read the bottom of the selected-light editor block in `src/app/components/ViewToolbar.tsx`
+2. Convert the shadow-tail controls to `ParaSelect` and `ParaSlider`
+3. Restyle the adjacent `Position` and `Target` rows so the selected-light tail reads as one intentional editor surface
+4. Add focused toolbar proof that the selected-light tail still drives the same light fields and keeps the current type-gated visibility
+
+### Implementation Spec
+
+### Code-Backed Read
+
+The shipped `Phase 3.1` cut finished the remaining selected-light editor tail styling after the shipped core-tuning migration:
+
+- `src/app/components/ViewToolbar.tsx`
+  - now renders the selected-light editor tail with:
+    - `Position` and `Target` as one more intentional local tail surface instead of the older loose `VectorFieldGrid` rows
+    - `Cast Shadow` = `ParaSelect`
+    - `Shadow Bias` = `ParaSlider`
+    - `Shadow Map` = `ParaSelect`
+  - kept those controls on the same selected-light owner seams:
+    - vector values still update through `updateLight(selectedLight.id, { position: ... })`
+    - vector values still update through `updateLight(selectedLight.id, { target: ... })`
+    - shadow values still update through `updateLight(selectedLight.id, { castShadow: ... })`
+    - shadow values still update through `updateLight(selectedLight.id, { shadowBias: ... })`
+    - shadow values still update through `updateLight(selectedLight.id, { shadowMapSize: ... })`
+  - kept `Shadow Map` on the same local option contract:
+    - `256`
+    - `512`
+    - `1024`
+    - `2048`
+  - kept the same type-helper visibility boundaries:
+    - `supportsPosition(...)`
+    - `supportsTarget(...)`
+    - `supportsShadow(...)`
+- `src/app/store/uiPrefsStore.ts`
+  - continued to own the same `updateLight(id, patch)` seam for all selected-light tail fields
+  - continued to normalize unsupported vector and shadow fields away when the selected light type changes
+- `src/app/theme/foundation/base.css`
+  - now gives the selected-light vector tail one local style treatment so the bottom of the editor reads like one continuous surface instead of switching back to the older native look
+- `src/app/components/ViewToolbar.test.tsx`
+  - now extends the selected-light proof surface to cover the tail migration:
+    - vector-tail rendering
+    - shadow-tail para controls
+    - preserved `shadowSizes` options
+    - preserved type-gated visibility through the existing branch changes
+
+Main implication:
+- the selected-light editor now reads as one continuous migrated surface from the top controls through the tail
+- `Phase 4` can focus on dedicated `Shadows` section ownership without mixing that move with leftover tail-style cleanup
+
+### First Pass Decisions
+
+- keep `Phase 3.1` fully inside the existing selected-light editor
+- convert only the remaining shadow-tail controls to para-style surfaces:
+  - `Cast Shadow`
+  - `Shadow Bias`
+  - `Shadow Map`
+- keep `Shadow Map` on the existing `shadowSizes` option list instead of widening the underlying shadow-size contract
+- treat `Position` and `Target` as a selected-light tail style-alignment pass, not as a claim that the repo now has a general para vector-input family
+- prefer one local selected-light tail styling treatment for `Position` and `Target` rather than introducing a new shared vector component family in this phase
+- keep the same underlying `updateLight(...)` mutation path for all selected-light tail fields
+- do not move the global `Shadows` control or selected-light shadow controls into a new top-level section in this phase
+
+### Likely Files
+
+- `src/app/components/ViewToolbar.tsx`
+- focused proof:
+  - `src/app/components/ViewToolbar.test.tsx`
+- expected no-change seams unless a small bug is discovered while wiring:
+  - `src/app/store/uiPrefsStore.ts`
+  - `src/shared/viewSettingsTypes.ts`
+  - `src/app/components/ParaSelect.tsx`
+  - `src/app/components/ParaSlider.tsx`
+  - `src/app/workspace/workspaceShellTypes.ts`
+  - `src/app/workspace/workspacePersistence.ts`
+- docs update targets after implementation:
+  - `docs/CHANGELOG.md`
+
+### No-Widening Rule
+
+- do not add the dedicated `Shadows` section in `Phase 3.1`
+- do not change `LightSpec` shape or `updateLight(...)` normalization behavior in `Phase 3.1`
+- do not convert `Name` or `Color` in `Phase 3.1`
+- do not widen into repo-wide vector input standardization in `Phase 3.1`
+- do not change viewer runtime behavior in `Phase 3.1`
+- do not add tab or persistence work in `Phase 3.1`
+
+### Implementation Risks
+
+- widening a small remaining editor-tail cleanup into a larger selected-light editor redesign
+- accidentally coupling shadow-tail restyling to the later `Shadows` section extraction and making the next phase harder to isolate
+- pretending `Position` and `Target` now have a reusable para-vector standard when this phase only needs local tail-style parity
+- breaking the current type-gated visibility for vector and shadow rows while restyling the bottom of the editor
+
+### Verification Shape
+
+Minimum verification for this phase should cover:
+
+- the selected-light editor tail no longer drops back to the older native visual treatment for:
+  - `Cast Shadow`
+  - `Shadow Bias`
+  - `Shadow Map`
+- the selected-light editor tail reads consistently for:
+  - `Position`
+  - `Target`
+- changing the new shadow-tail controls still updates `useUiPrefsStore.getState().view.lighting.lights`
+- the `Shadow Map` control still exposes the same size options:
+  - `256`
+  - `512`
+  - `1024`
+  - `2048`
+- `Position` and `Target` still render only for the supported light types after the tail restyle
+- shadow-tail controls still render only for the supported light types after the style migration
+- existing selected-light branch proof should only need extension, not replacement
+
+### Done Shape
+
+`Phase 3.1` is done when:
+
+- the selected-light editor tail reads like one continuous styled surface instead of ending in a native-looking block
+- shadow-tail controls have the same visible input language as the rest of the migrated selected-light editor
+- `Phase 4` can focus only on dedicated `Shadows` section ownership and section-key fallout
+
+Current status:
+- `Phase 3.1` is implemented
+- the shipped cut stayed fully inside the selected-light editor and kept the same `updateLight(...)` plus `shadowSizes` seams
+- `Phase 4 - Dedicated Shadows Section Ownership Cleanup` is now the next internal `Phase 2c` code cut
+
+## [ ] Phase 4 - Dedicated Shadows Section Ownership Cleanup
+
+Purpose:
+- give all shadow-facing controls one explicit visible owner after the remaining selected-light tail styling is finished
+
+Owns:
+- `17. Dedicated Shadows Section`
 
 Does not own:
 - new shadow behavior
 - new light types
 - new shared state
+- leftover shadow-tail style conversion already owned by `Phase 3.1`
 
 This phase should:
 - add one top-level `Shadows` section
 - move the global shadow control there
-- move the selected-light shadow controls there
+- move the already-restyled selected-light shadow controls there
 - update tabs and persistence only if the new top-level section key requires it
 
 Exact first code cut:
 1. Add the top-level `Shadows` section in the toolbar shell
-2. Move the current global and per-light shadow controls into that section
-3. Convert the per-light shadow controls to para-style surfaces
-4. Update toolbar section-key and persistence proof if the new section is added to tabs mode
+2. Move the current global and per-light shadow controls into that section without reopening their control treatment
+3. Update toolbar section-key and persistence proof if the new section is added to tabs mode
 
 ## [ ] Phase 5 - Final Environment-Surface Order And Wording Cleanup
 

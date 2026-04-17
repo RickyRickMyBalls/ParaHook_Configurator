@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+21. 2026-04-17: Implemented `Import-4 / Phase 7.5.7 - Preview Scale Visibility And Manual Refit` by splitting the staged preview transform response so scale-only updates now preserve the current camera distance while explicit bottom-right zoom-to-fit remains the recovery path, and added focused preview proof that scale changes no longer auto-refit the camera
+20. 2026-04-17: Prepped `Import-4 / Phase 7.5.7 - Preview Scale Visibility And Manual Refit` for implementation by grounding the next narrow preview-scale-visibility fix in the live staged-transform effect inside `StagedImportPreviewViewport.tsx`, the shipped explicit bottom-right zoom-to-fit owner, and the focused preview test seam so the next cut can stop post-scale auto-fit without widening into new controls, commit behavior, or preview persistence
+19. 2026-04-17: Added `Import-4 / Phase 7.5.7 - Preview Scale Visibility And Manual Refit` to capture the researched preview-scale visibility bug, grounding the issue in the shipped post-scale auto-fit behavior and planning the next narrow preview-local fix so scale changes stay visually obvious while the existing bottom-right zoom-to-fit action becomes the explicit recovery path when users scale too far
 18. 2026-04-17: Implemented `Import-4 / Phase 7.5.6 - Scale Multiplier Paraselect And Custom Sync` by adding one staged `Scale Multiplier` row under `Scale / Units`, making the numeric multiplier the staged scale source of truth with exact preset-to-label sync plus `Custom` off-preset, and preserving the shipped in-place preview scale update path through focused transform, preview, store, and Browser proof
 17. 2026-04-17: Prepped `Import-4 / Phase 7.5.6 - Scale Multiplier Paraselect And Custom Sync` for implementation by grounding the next staged-scale-control pass in the live `scaleAlignment` store seam, the current staged-card `Scale / Units` `ParaSelect`, and the shipped in-place preview-scaling runtime so the future multiplier row can become the explicit numeric scaling truth while preset units stay synced, `Custom` appears only off-preset, and exact multiplier `1` resolves to `mm`
 16. 2026-04-17: Added `Import-4 / Phase 7.5.6 - Scale Multiplier Paraselect And Custom Sync` as the next staged object-preview follow-up after the shipped `7.5.5` scale-truth work, extending this lane so the later scale-control pass now has an explicit home for a `Scale Multiplier` paraslider, preset sync with `Scale / Units`, `Custom` state when the multiplier leaves the preset set, and the locked rule that exact multiplier `1` should read as `mm` instead of `Current`
@@ -122,6 +125,14 @@ These wishlist mappings should be read as the planned `Import-4 / Phase 7.5` lad
 - [x] `6C. Sync Preset Scale Or Units Labels From Exact Multiplier Values`
 - [x] `6D. Switch Scale Or Units To Custom When The Multiplier Leaves The Preset Set`
 - [x] `6E. Prefer mm Over Current When The Multiplier Is Exactly 1`
+
+### `Import-4 Phase 7.5.7`
+- [x] `7. Preview Scale Visibility And Manual Refit`
+- [x] `7A. Stop Auto-Reframing The Preview After Scale Changes`
+- [x] `7B. Keep Scale Changes Visually Obvious In The Object Preview`
+- [x] `7C. Let Oversized Scale Values Push The Preview Into A Zoomed-In Read`
+- [x] `7D. Keep The Bottom-Right Zoom-To-Fit Action As The Explicit Recovery Path`
+- [x] `7E. Preserve Draft-Local Preview Ownership And In-Place Scale Updates`
 
 ## [x] `Import-4 Phase 7.5.1 - Object Preview Zoom-To-Fit`
 
@@ -955,3 +966,165 @@ Minimum verification for this subphase should cover:
   - staged dialog preset-to-multiplier and multiplier-to-`Custom` sync
   - in-place preview rescaling from explicit multiplier changes
   - accepted-transform override scale truth for custom multipliers
+
+## [x] `Import-4 Phase 7.5.7 - Preview Scale Visibility And Manual Refit`
+
+### Purpose
+
+- make the object preview show scale changes to the human eye instead of visually cancelling them through immediate post-scale auto-fit behavior
+
+### Goal
+
+- when the user increases the staged `Scale Multiplier`, the object preview should look larger on screen
+- when the user decreases the staged `Scale Multiplier`, the object preview should look smaller on screen
+- if the user scales too far up, the preview should become heavily zoomed into the object until the user uses the existing bottom-right zoom-to-fit action to recover the broader read
+
+### Read-Only Research
+
+- reported live runtime read before this implementation:
+  - `src/app/panels/StagedImportPreviewViewport.tsx`
+  - staged scale changes already rescale the loaded preview object directly through `applyPreviewObjectStagedTransforms(...)`
+  - after that in-place scale update, the preview immediately calls `runtime.fitPreviewToObject?.()`
+  - that fit pass recomputes the object bounds and moves the camera back out so the newly scaled object fits inside the viewport again
+- why the bug reads real to the user:
+  - the preview object is in fact getting bigger
+  - but the camera also moves farther away right after each scale change
+  - that makes the on-screen result read like the object barely changed size at all
+- current shipped planning mismatch:
+  - `Import-4 / Phase 7.5.5` explicitly chose to re-run fit after scale changes so the preview would stay readable
+  - that decision now appears too aggressive for the later explicit `Scale Multiplier` control because it hides the very size signal the user is trying to inspect
+
+### Locked Direction
+
+- keep this subphase preview-local:
+  - no commit-path changes
+  - no staged Browser ownership changes
+  - no import-setting redesign
+- keep in-place scale updates:
+  - do not reload the staged asset when only the scale changes
+- stop treating every scale change like an automatic zoom-to-fit request
+- preserve the existing explicit bottom-right zoom-to-fit affordance as the user-owned recovery action
+- keep the preview honest:
+  - bigger multiplier should look bigger
+  - smaller multiplier should look smaller
+  - too-large multiplier values may legitimately produce a zoomed-in cropped read until the user manually refits
+
+### Expected Implementation Shape
+
+- likely update `src/app/panels/StagedImportPreviewViewport.tsx`
+- likely update `src/app/panels/StagedImportPreviewViewport.test.tsx`
+- likely update `src/app/panels/BrowserPanel.test.tsx` only if staged-dialog proof should explicitly describe the new visible scale read and the unchanged bottom-right zoom-to-fit recovery path
+
+### Implementation-Prep Read
+
+- `src/app/panels/StagedImportPreviewViewport.tsx`
+  - already cleanly separates:
+    - applying staged transforms to the loaded object
+    - explicitly fitting the camera through `fitPreviewToObject(...)`
+  - the strongest live seam is the staged-transform effect that currently:
+    - applies `applyPreviewObjectStagedTransforms(runtime.rootObject, selectedFile)`
+    - then immediately calls `runtime.fitPreviewToObject?.()`
+  - is therefore the strongest seam for making scale changes update the object without automatically re-running the fit distance logic
+- the current preview already has one explicit bottom-right zoom-to-fit owner
+  - that means the product already has the correct manual recovery affordance once auto-refit is removed from the scale-change path
+- the current preview runtime already keeps the loaded asset alive during scale changes
+  - so the next honest move is to preserve that fast path while narrowing only the camera-response condition
+- `src/app/panels/StagedImportPreviewViewport.test.tsx`
+  - already proves:
+    - the preview object rescales in place
+    - the preview runtime stays alive during scale-only changes
+    - the zoom-to-fit affordance already exists as a separate explicit button owner
+  - is the strongest seam for proving the next narrower condition change:
+    - scale change updates the object without implicitly re-fitting the camera
+    - explicit zoom-to-fit still restores the fitted read afterward
+  - does not yet prove that the camera stays put on scale changes or that oversized values can produce the expected zoomed-in read until zoom-to-fit is pressed
+
+### First-Pass Decisions
+
+- keep auto-fit on:
+  - initial preview load
+  - explicit bottom-right zoom-to-fit clicks
+- do not auto-fit on:
+  - staged scale multiplier changes
+- keep the condition change narrow:
+  - `upAxis` changes may continue to use the existing truthful refit path in this pass
+  - only scale-driven preview updates should stop triggering automatic fit
+- if center correction is needed after scaling, prefer preserving the current camera distance while keeping the object centered rather than re-solving a new fit distance
+- preserve the shipped up-axis, resize, orbit, and grid behavior
+- keep the first fix narrow to scale-visibility truth:
+  - do not widen into new camera controls
+  - do not widen into persisted preview preferences
+  - do not rename or relocate the existing zoom-to-fit button here
+
+### Exact First Code Cut
+
+1. Audit the current post-scale preview-update effect in `src/app/panels/StagedImportPreviewViewport.tsx`.
+2. Keep applying staged scale changes directly to the loaded preview object.
+3. Narrow the current staged-transform effect so scale-only updates no longer call `runtime.fitPreviewToObject?.()` automatically.
+4. Preserve explicit zoom-to-fit behavior and the initial-load fit behavior exactly as shipped.
+5. If needed, keep the object centered after scaling without changing the current camera distance.
+6. Add focused proof that:
+   - larger multipliers make the object read larger on screen
+   - oversized values can produce a zoomed-in cropped preview
+   - the bottom-right zoom-to-fit action still restores the fitted read
+   - no asset reload happens when only scale changes
+
+### Likely Files
+
+- `src/app/panels/StagedImportPreviewViewport.tsx`
+- `src/app/panels/StagedImportPreviewViewport.test.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+
+### No-Widening Rule
+
+- do not widen into new import controls here
+- do not change commit behavior here
+- do not redesign the preview shell here
+- do not add more camera buttons here
+- do not widen into file-format-specific scale heuristics here
+
+### Implementation Risks
+
+- if scale changes alter the object bounds center materially, preserving camera distance without any target correction could make the preview feel offset
+- if the current effect split is handled too broadly, the change could accidentally stop the truthful auto-refit behavior that is still useful on initial load
+- proof should avoid fragile pixel-perfect assertions and instead validate the camera-response condition directly where possible
+
+### Checklist
+
+- [x] stop auto-refitting the camera after staged scale changes
+- [x] keep preview scale changes visually obvious to the human eye
+- [x] allow too-large scale values to produce a zoomed-in object read
+- [x] preserve the existing bottom-right zoom-to-fit action as the manual recovery path
+- [x] preserve in-place scale updates without asset reload
+- [x] preserve orbit, resize, up-axis truth, and optional grid behavior
+- [x] keep commit behavior unchanged
+- [x] add focused preview proof
+
+### Verification Shape
+
+Minimum verification for this subphase should cover:
+
+- load one staged object into the preview
+- increase the staged `Scale Multiplier` and confirm the object reads larger on screen without an automatic refit
+- increase the multiplier far enough that the object becomes heavily zoomed into or partially cropped
+- press the existing bottom-right zoom-to-fit action and confirm the broader fitted read returns
+- decrease the multiplier and confirm the object reads smaller on screen
+- confirm the loaded asset stays alive during scale changes
+- confirm orbit, resize, up-axis changes, and the optional grid still work afterward
+- confirm no staged import contract or commit behavior changes land as part of this pass
+
+### Done Shape
+
+- the object preview now makes scale changes visually obvious instead of hiding them through immediate camera refit
+- users can deliberately scale too far and then use the existing bottom-right zoom-to-fit action to recover
+- the preview remains fast, draft-local, and honest to the current staged scale multiplier
+
+### Implementation Notes
+
+- `src/app/panels/StagedImportPreviewViewport.tsx`
+  - now splits staged preview transform response so `upAxis` changes keep the existing truthful refit path while scale-only updates preserve the current camera distance
+  - now recenters the preview camera target after scale changes without turning those updates into an automatic zoom-to-fit request
+  - preserves the shipped explicit bottom-right zoom-to-fit owner as the manual recovery path when users want the larger scaled object framed again
+- `src/app/panels/StagedImportPreviewViewport.test.tsx`
+  - now proves scale-only updates keep the current camera distance until the explicit zoom-to-fit action is pressed
+  - keeps focused proof that the staged asset stays alive during scale changes and that manual zoom-to-fit still restores the broader framed read

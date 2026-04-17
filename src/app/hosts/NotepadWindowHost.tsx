@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { FloatingWindowQuickDockButton } from '../components/FloatingWindowQuickDockButton'
 import { NotepadSurface } from '../notepad/NotepadSurface'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import type { WorkspaceDetachedSlotSurfaceState } from '../workspace/workspaceShellTypes'
@@ -304,13 +305,10 @@ export function NotepadWindowHost(props: NotepadWindowHostProps) {
           }}
         >
           <span>Floating Notepad</span>
-          <button
-            type="button"
+          <FloatingWindowQuickDockButton
             className="NotepadFloatingWindowQuickDock"
             onClick={() => onQuickDock(surface.surfaceInstanceId)}
-          >
-            Quick Dock
-          </button>
+          />
         </div>
         <div style={{ position: 'relative', minHeight: 0 }}>
           <NotepadSurface surfaceInstanceId={surface.surfaceInstanceId} hostMode="floating" />

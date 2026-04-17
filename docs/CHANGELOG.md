@@ -65,6 +65,268 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1457 -->
+### [1457] - 2026-04-17 19:00 - `Build - Staged Import Preview Selector Strict-Null Repair`
+
+HUMAN SUMMARY: `The staged import preview selector now narrows its single-object inspection path honestly enough for strict TypeScript builds. Derived inspection part rows only resolve when the preview node has a real staged-file id and the staged file is in the ready inspection state, which clears the current build break without changing the staged preview behavior itself.`
+
+- Updated `src/app/panels/selectStagedImportPreviewRows.ts` to narrow `structureInspection` to the ready summary shape before reading `summary.partRows`, matching the stronger ready-state pattern already used in the staged import store.
+- Added an explicit `node.stagedFileId !== null` guard before resolving derived inspection rows and switched derived part row id construction to the resolved staged file id so the selector no longer passes a nullable value into the row-id builder.
+- Re-ran `npm.cmd run build` to confirm the strict-null selector repair clears the TypeScript gate and still allows the Vite production build to complete.
+
+<!-- ENTRY 1456 -->
+### [1456] - 2026-04-17 18:53 - `Import-4.7.6 - phase 6 - Highlighted Preview Row Remove Or Delete Actions`
+
+HUMAN SUMMARY: `The staged Preview Browser now has one explicit remove action for the current highlighted preview-row set, but that action stays honest about what it can delete. Only authored preview assemblies and components can be removed, and they dissolve in place so source-backed staged rows are preserved instead of being silently filtered out of the uploaded file.`
+
+- Updated `src/app/store/useAppStore.ts` to add one draft-owned `removeStagedImportPreviewOwners(...)` action that removes authored preview assemblies or components by dissolving the container and preserving its children under the same parent or the root.
+- Updated `src/app/panels/selectStagedImportPreviewRows.ts` to project explicit `canDeleteFromPreviewOrganization` truth so the Preview Browser does not have to infer removability from row appearance alone.
+- Updated `src/app/panels/useBrowserPanelController.ts` so the staged import dialog resolves the current highlighted preview-row set into one honest remove target, clears stale row highlight after removal, and keeps `L` preview-source truth separate from this maintenance path.
+- Updated `src/app/panels/browserTreeMenus.tsx`, `src/app/panels/BrowserPanel.tsx`, and `src/app/theme/surfaces/browser.css` so the Preview Browser header now exposes a compact `X` action beside `+A`, enabling it only when the highlighted set is truthfully removable.
+- Updated `src/app/panels/BrowserPanel.test.tsx` with focused proof that source-backed rows keep the new `X` disabled, authored preview assemblies dissolve while preserving staged-file rows, and authored components dissolve while preserving their child rows under the assembly.
+- Updated the owning `Import-4.7.6` phase doc to mark `phase 6` shipped and advance the next follow-up honestly.
+
+<!-- ENTRY 1455 -->
+### [1455] - 2026-04-17 18:24 - `Import-4.7.6 - phase 5.1 - Staged File Card Removal`
+
+HUMAN SUMMARY: `The left-column staged-file cards now have their own compact remove action, so users can drop an entire staged file directly from the staged list instead of only through later preview-browser maintenance flows. Removing a staged file now updates the draft and preview rows together, and if that file had been loaded into the object preview the right-column preview state is cleared honestly instead of showing stale source truth.`
+
+- Updated `src/app/store/useAppStore.ts` to expose one draft-owned `removeStagedImportDraftFile(...)` action that removes a whole staged file while re-syncing preview organization from the remaining staged files.
+- Updated `src/app/panels/useBrowserPanelController.ts` so the staged import dialog can trigger that whole-file removal and clear stale `stagedImportPreviewSelection` when the removed file had been feeding the right-column object preview.
+- Updated `src/app/panels/browserTreeMenus.tsx`, `src/app/panels/BrowserPanel.tsx`, and `src/app/theme/surfaces/browser.css` so each staged-file card now renders a compact top-right `X` action beside the preserved file-type pill.
+- Updated `src/app/panels/BrowserPanel.test.tsx` with focused proof that staged-file removal drops the whole file from the staged list, removes its Preview Browser rows, and clears loaded object-preview state honestly.
+- Updated the owning `Import-4.7.6` phase doc to mark `phase 5.1` shipped and advance the next follow-up honestly.
+
+<!-- ENTRY 1454 -->
+### [1454] - 2026-04-17 18:08 - `Import-4.7.6 - phase 5 - Preview Browser Multi-Select Organization`
+
+HUMAN SUMMARY: `The staged Preview Browser now supports its own local row highlighting and multi-select behavior without borrowing workspace selection or replacing the selected \`L\` button as the preview-source signal. Users can click to select one preview row, \`Ctrl\`-click to add or remove rows, and \`Shift\`-click to build a preview-row range, which sets up the later staged organization and remove/delete work without changing accepted import behavior.`
+
+- Updated `src/app/panels/useBrowserPanelController.ts` to add one staged-dialog-local preview-row selection owner plus anchor-backed click, `Ctrl`-click, and `Shift`-click selection behavior while keeping the existing staged-file preview-load owner and preview drag path intact.
+- Updated `src/app/panels/browserTreeMenus.tsx` and `src/app/panels/BrowserPanel.tsx` so preview rows now render `isSelected` and `isGroupedSelected` states from that local selection owner, while the `L` action remains the only active object-preview source signal.
+- Updated `src/app/panels/BrowserPanel.test.tsx` with focused proof that preview-row highlighting stays local to the staged import dialog, supports single/additive/range selection, and remains separate from the selected `L` action state.
+- Updated the owning `Import-4.7.6` phase doc to mark `phase 5` shipped and record the next follow-up honestly.
+
+<!-- ENTRY 1453 -->
+### [1453] - 2026-04-17 17:47 - `Import-4 / Phase 7.6.4 - Preview Source Button-Only Cleanup`
+
+HUMAN SUMMARY: `The staged Preview Browser now keeps active preview-source truth on the selected \`L\` button only instead of also highlighting the whole row. This cleanup aligns the shipped `7.6.4` behavior with the newer plan by reserving row highlight semantics for the later preview-browser selection work while preserving the same staged-file preview source ownership and object-preview behavior.`
+
+- Updated `src/app/panels/browserTreeMenus.tsx` so preview rows no longer present row-level active-preview state, while the compact `L` action still stays selected and labeled as the current object-preview source.
+- Updated `src/app/theme/surfaces/browser.css` to remove the preview-row active highlight treatment, leaving active preview-source styling on the `L` action only.
+- Updated `src/app/panels/BrowserPanel.test.tsx` so the focused Browser proof now confirms the row itself stays visually neutral while the `L` action alone communicates the active preview source across single-object and split-mode staged shapes.
+- Updated the owning `Import-4 / Phase 7.6` phase doc to record the cleanup and check off the preview-load-versus-row-highlight separation item now that the shipped behavior matches the updated plan.
+
+<!-- ENTRY 1452 -->
+### [1452] - 2026-04-17 17:38 - `PV3S - 1 / Phase 2.1 - Collapsed Vec3 Typography Refinement`
+
+HUMAN SUMMARY: `Collapsed vec3 fields now use calmer typography that matches the expanded ParaSlider read instead of the older heavier compact vec3 text treatment. This keeps the compact collapsed layout intact, but removes the overly bold and oversized-feeling collapsed \`X / Y / Z\` text inside the shared vec3 field surface.`
+
+- Updated `src/app/theme/foundation/base.css` so the compact `ParaVec3Slider` typography inside collapsed `ParaVec3Field` mode now uses the same `ParaSlider` text size and calmer label weight as the expanded row-slider read.
+- Kept the fix scoped to `.ParaVec3FieldCompact`, so existing compact vec3 callers outside the collapsed field surface do not get silently restyled.
+- Preserved the current compact-versus-stacked layout split, collapsed compact vec3 structure, and expanded stacked row behavior while only refining the collapsed text presentation.
+- Re-ran the focused vec3 and `ViewToolbar` proof surface to confirm the styling-only follow-up did not disturb the existing behavior seams.
+
+<!-- ENTRY 1451 -->
+### [1451] - 2026-04-17 17:30 - `Import-4 / Phase 7.6.4 - Active Preview Selection Truth In The Preview Browser`
+
+HUMAN SUMMARY: `The staged Preview Browser now shows which row is currently feeding the right-column object preview instead of making the user infer it from their last action. This lands Import-4 / Phase 7.6.4 by projecting selector-owned active-row truth from the existing dialog-local preview selection seam, keeping wrapper rows honest in single-object mode, allowing explicitly loaded split child rows to read as the active source, and avoiding any fake active state on owner-only or inspection-only rows.`
+
+- Updated `src/app/panels/selectStagedImportPreviewRows.ts` so preview rows now derive explicit active-preview truth from the existing staged preview selection, with a truthful single-row fallback for single-object files and explicit row-source matching for split-mode loads.
+- Updated `src/app/panels/useBrowserPanelController.ts` so the dialog-local preview selection keeps the same staged-file owner while carrying one additive source-row read when the middle-column Browser triggered the load.
+- Updated `src/app/panels/browserTreeMenus.tsx` and `src/app/theme/surfaces/browser.css` so the active preview source row now reads clearly in the Browser through an active row treatment and selected row-action state without widening the load behavior or changing the right-column preview runtime.
+- Expanded `src/app/panels/BrowserPanel.test.tsx` with focused proof that wrapper rows become active through staged-file selection, owner-only rows stay inactive after mode changes, split child rows become active when they triggered the row-level load action, and the same staged file does not redundantly reload just to update Browser sync truth.
+- Updated the owning `Import-4 / Phase 7.6` phase doc to mark `7.6.4` implemented and keep `7.6.5` as the next preview-browser follow-up.
+
+<!-- ENTRY 1450 -->
+### [1450] - 2026-04-17 17:25 - `PV3S - 1 / Phase 2.1 - Collapsed Compact Vec3 Surface Restoration`
+
+HUMAN SUMMARY: `Collapsed vec3 fields now use the compact \`ParaVec3Slider\` surface again instead of the temporary custom summary-pill row. This follow-up keeps the new stacked expanded mode from Phase 2.1, but restores the intended compact vec3 read in collapsed mode so the field once again transitions between compact vec3 editing and full row-slider editing rather than between two unrelated surfaces.`
+
+- Updated `src/app/components/ParaVec3Field.tsx` so collapsed field mode now renders `ParaVec3Slider layout="compact"` instead of the custom summary-cell markup, while keeping expanded mode on `layout="stacked"`.
+- Updated `src/app/theme/foundation/base.css` with the small `ParaVec3FieldCompact` wrapper seam needed for the restored compact vec3 surface.
+- Updated `src/app/components/ParaVec3Field.test.tsx` and `src/app/components/ViewToolbar.test.tsx` so the focused proof now expects compact vec3 sliders in collapsed mode and stacked row sliders only after expansion.
+- Kept the existing compact-versus-stacked `ParaVec3Slider` split intact, so existing compact callers still behave the same and expanded field mode still reads as three full row sliders.
+
+<!-- ENTRY 1449 -->
+### [1449] - 2026-04-17 17:19 - `PV3S - 1 / Phase 2.1 - Expanded Rows Layout For ParaVec3Field`
+
+HUMAN SUMMARY: `Expanded vec3 fields now open into three true row-style sliders instead of reusing the old compact three-box vec3 read. This lands PV3S - 1 / Phase 2.1 by adding a shared \`compact | stacked\` layout split to \`ParaVec3Slider\`, preserving compact mode for existing callers, and routing \`ParaVec3Field\` expanded mode onto the richer stacked layout in the View Toolbar proving ground.`
+
+- Updated `src/app/components/ParaVec3Slider.tsx` so the shared vec3 primitive now supports `layout="compact" | "stacked"`, keeps `compact` as the default for existing callers, and preserves the same axis order, formatting, callback flow, and capless slider behavior across both layouts.
+- Updated `src/app/components/ParaVec3Field.tsx` so expanded field mode now renders `ParaVec3Slider layout="stacked"` while collapsed mode keeps the same summary-row behavior.
+- Updated `src/app/theme/foundation/base.css` so compact-only spacing and reduced type sizing stay scoped to the compact vec3 layout, while stacked mode renders three full-width row lanes that read like true `ParaSlider` rows.
+- Expanded `src/app/components/ParaVec3Slider.test.tsx`, `src/app/components/ParaVec3Field.test.tsx`, and `src/app/components/ViewToolbar.test.tsx` with focused proof that compact callers remain compact by default, expanded vec3 fields now use stacked row layout, and the selected-light `Position` / `Target` edits still flow through the same existing `updateLight(...)` seam.
+
+<!-- ENTRY 1448 -->
+### [1448] - 2026-04-17 17:16 - `Import-4 / Phase 7.6.3 - Row-Level Load Into Object Preview`
+
+HUMAN SUMMARY: `The staged Preview Browser can now load truthful preview-target rows directly into the right-column object preview instead of forcing the user back to the left staged-file list for every preview load. This lands Import-4 / Phase 7.6.3 by adding explicit row-level preview-load source metadata to the preview selector, rendering a compact row action only on truthful preview-target rows, and reusing the existing dialog-local staged-file preview seam without widening into active-row state or fake part-level loads.`
+
+- Updated `src/app/panels/selectStagedImportPreviewRows.ts` so preview rows now carry explicit row-level preview-load metadata, allowing wrapper object rows and split child object rows to expose truthful load actions while assembly/component owners and nested inspection-only `part` rows stay non-loadable.
+- Updated `src/app/panels/browserTreeMenus.tsx` so the middle-column Preview Browser now renders a compact row-level `L` action only for rows that can truthfully load into the object preview, routing that action through the existing staged-file preview loader instead of inventing a second preview-selection owner.
+- Expanded `src/app/panels/BrowserPanel.test.tsx` with focused proof that wrapper object rows and split child object rows get row-level load actions, owner-only and inspect-only rows do not, and the new row action still drives the same right-column preview viewport load path.
+- Updated the owning `Import-4 / Phase 7.6` phase doc to mark `7.6.3` implemented and keep `7.6.4` as the next active follow-up for showing which source row currently feeds the object preview.
+
+<!-- ENTRY 1447 -->
+### [1447] - 2026-04-17 17:10 - `Import-4 / Phase 7.6.2 - Preview Target Token Cleanup`
+
+HUMAN SUMMARY: `The staged Preview Browser now shows the preview-truth marker as a compact inline token instead of a wide right-side pill, so the row stays visually tighter and easier to scan. This cleanup keeps the same 7.6.2 preview-target contract, shortens the visible marker to \`P / O / I\`, and preserves the full meaning through tooltip and accessible row labels.`
+
+- Updated `src/app/panels/browserTreeMenus.tsx` so the preview-target marker now renders inline with the row name and meta instead of as a separate right-justified full-text badge, while preserving the same selector-owned contract and keeping the row non-interactive.
+- Updated `src/app/theme/surfaces/browser.css` so the new inline marker reads like a compact button-style token, with a smaller fixed footprint that keeps the preview row on one tighter scan line.
+- Expanded `src/app/panels/BrowserPanel.test.tsx` so the Browser proof now checks the new `P / I / O` token text, the preserved full-title tooltip meaning, and the row `aria-label` truth for preview-target, inspection-only, and owner-only rows.
+
+<!-- ENTRY 1446 -->
+### [1446] - 2026-04-17 16:49 - `Import-4 / Phase 7.6.2 - Preview Browser Preview-Target Contract`
+
+HUMAN SUMMARY: `The staged Preview Browser now explicitly tells the user which rows can feed the right-column object preview before any row-level load action exists. This lands Import-4 / Phase 7.6.2 by adding one selector-owned preview-target contract, rendering visible non-interactive Preview target / Owner only / Inspect only badges in the preview tree, and keeping drag, commit, and preview-load behavior unchanged for the later follow-up phases.`
+
+- Updated `src/app/panels/selectStagedImportPreviewRows.ts` so the preview-row VM now carries one explicit `previewTargetKind` contract, marking wrapper and split object rows as direct preview targets, assembly and component rows as organization-only owners, and derived read-only nested `part` rows as inspection-only rows.
+- Updated `src/app/panels/browserTreeMenus.tsx` and `src/app/theme/surfaces/browser.css` so the staged Preview Browser visibly renders that contract through stable non-interactive row badges and matching row-treatment styling without introducing any `Load Into Object Preview` action yet.
+- Expanded `src/app/panels/BrowserPanel.test.tsx` with focused proof that `1 Object` wrapper rows read as `Preview target`, nested read-only `Part` rows read as `Inspect only`, split-mode owner rows read as `Owner only`, split child object rows read as `Preview target`, and no row-level load action lands as part of this contract-only pass.
+- Updated the owning `Import-4 / Phase 7.6` phase doc to mark `7.6.2` implemented and keep `7.6.3` as the next row-level object-preview follow-up.
+
+<!-- ENTRY 1445 -->
+### [1445] - 2026-04-17 16:44 - `PV3S - 1 / Phase 2 - Expandable Labeled Field Wrapper`
+
+HUMAN SUMMARY: `The vec3 family now has a shared labeled-field surface instead of leaving Position and Target box ownership inside the View Toolbar. This lands PV3S - 1 / Phase 2 by adding \`ParaVec3Field\` above the existing \`ParaVec3Slider\`, giving vec3 fields a collapsed `X / Y / Z` summary plus click-to-expand behavior, and moving the first proving-ground adoption onto that new shared owner.`
+
+- Added `src/app/components/ParaVec3Field.tsx` as a new shared wrapper above `ParaVec3Slider`, with one outer field box, one header toggle with `aria-expanded`, one collapsed three-cell `X / Y / Z` summary row, and the existing low-level `ParaVec3Slider` rendered only while expanded.
+- Updated `src/app/components/ViewToolbar.tsx` so the selected-light `Position` and `Target` editors now adopt `ParaVec3Field` directly, preserving the same `-300..300` bounds, `0.1` step, one-decimal formatting, `supportsPosition(...)` / `supportsTarget(...)` visibility rules, and `updateLight(...)` plus `updateVec3Axis(...)` mutation seam.
+- Updated `src/app/theme/foundation/base.css` with the new shared `ParaVec3Field` shell, header, summary-cell, and expanded-body styling while keeping `ParaVec3Slider` as the low-level expanded three-slider primitive.
+- Added focused proof in `src/app/components/ParaVec3Field.test.tsx` and updated `src/app/components/ViewToolbar.test.tsx` so the shared wrapper now proves collapsed-summary rendering, expand/collapse behavior, vec3 value flow, and the same selected-light vector plus shadow branch behavior in the first View Toolbar adoption.
+
+<!-- ENTRY 1444 -->
+### [1444] - 2026-04-17 16:36 - `Import-4 / Phase 7.6.1 - Parts In The Preview Browser For 1 Object Multi-Object Files`
+
+HUMAN SUMMARY: `The staged Preview Browser now shows truthful nested Part rows even when a multi-object file stays on the compatibility-wrapper 1 Object mode. This lands Import-4 / Phase 7.6.1 by deriving read-only inspection-only part rows under the wrapper object in the preview selector and tree, while keeping commit behavior unchanged and preserving Multiple Objects In 1 Component as the only stronger split-preview shape.`
+
+- Updated `src/app/panels/selectStagedImportPreviewRows.ts` so the preview-row selector can derive nested read-only `part` rows from truthful staged `structureInspection.summary.partRows` when a staged file stays on `single-object`, without widening the stored staged preview-organization graph.
+- Updated `src/app/panels/browserTreeMenus.tsx` and `src/app/panels/useBrowserPanelController.ts` so those derived preview `Part` rows render with their own preview-tree row kind and icon, use the existing part-row visual treatment, and stay non-draggable/non-owner rows inside the staged Preview Browser.
+- Expanded `src/app/panels/BrowserPanel.test.tsx` with focused proof that `1 Object` files now show nested preview `Part` rows under the wrapper object while `Multiple Objects In 1 Component` still upgrades the same file into the stronger component-plus-object split shape.
+- Updated the owning `Import-4 / Phase 7.6` phase doc to mark `7.6.1` implemented and keep `7.6.2` as the next preview-browser follow-up.
+
+<!-- ENTRY 1443 -->
+### [1443] - 2026-04-17 16:12 - `PV3S - 1 - Existing Component Enrichment`
+
+HUMAN SUMMARY: `The View Toolbar Environment panel now uses the shared \`ParaVec3Slider\` surface for selected-light Position and Target editing instead of the old native three-input vector rows. This lands the first PV3S proving-ground adoption by keeping the same wrapper cards, type-gated visibility, and \`updateLight(...)\` seam while proving that the existing shared vec3 component can carry real toolbar vector editing without widening into a broader editor redesign.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the selected-light `Position` and `Target` cards now render `ParaVec3Slider` with shared `min=-300`, `max=300`, and `step=0.1` bounds while preserving the same outer wrappers, titles, and `supportsPosition(...)` / `supportsTarget(...)` visibility rules.
+- Kept the vector edits on the same existing mutation path by continuing to route each axis change through `updateVec3Axis(...)` and `updateLight(selectedLight.id, { position: ... })` or `updateLight(selectedLight.id, { target: ... })`, with one-decimal display and edit precision for the first proving-ground cut.
+- Expanded `src/app/components/ViewToolbar.test.tsx` with focused proof that the selected-light vector rows now contain `ParaVec3Slider`, no longer render the old native axis-row structure, still update `position` and `target` through the shared light store seam, and still hide `Target` or both vector rows for unsupported light types.
+- Updated the owning `PV3S - 1` phase doc to record the first shipped proving-ground adoption and the current shipped View Toolbar vector-editing read.
+
+<!-- ENTRY 1442 -->
+### [1442] - 2026-04-17 15:42 - `Environment-1 - Phase 2c / Phase 3.1 - Selected-Light Tail Style Parity`
+
+HUMAN SUMMARY: `The selected-light editor tail now matches the rest of the migrated Environment controls instead of falling back to loose native rows at the bottom. This lands Environment-1 / Phase 2c / Phase 3.1 by converting the remaining shadow-tail controls to para-style surfaces, giving Position and Target one intentional local tail treatment, and preserving the same selected-light type branches ahead of the later dedicated Shadows-section move.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the selected-light tail now renders `Cast Shadow` and `Shadow Map` through `ParaSelect`, renders `Shadow Bias` through `ParaSlider`, and reshapes the `Position` and `Target` rows into a more intentional local editor-tail layout while keeping direct numeric entry.
+- Kept the selected-light tail on the same existing owner seams by leaving all vector and shadow updates on `updateLight(selectedLight.id, { ... })`, preserving the current `supportsPosition(...)`, `supportsTarget(...)`, and `supportsShadow(...)` visibility rules, and keeping `Shadow Map` on the existing `256 / 512 / 1024 / 2048` option list.
+- Expanded `src/app/components/ViewToolbar.test.tsx` with focused proof that the migrated tail updates vector and shadow values through the shared light seam, preserves the `Shadow Map` options, and still hides target plus shadow rows for unsupported light types.
+- Updated the owning `Environment-1 / Phase 2c` phase doc to mark `Phase 3.1` implemented, complete the remaining selected-light tail checklist items, and advance `Phase 4` as the next active code cut.
+
+<!-- ENTRY 1441 -->
+### [1441] - 2026-04-17 15:33 - `Import-4 / Phase 7.5.7 - Preview Scale Visibility And Manual Refit`
+
+HUMAN SUMMARY: `The staged object preview now keeps its current camera distance when the user changes the scale multiplier, so larger values read larger on screen instead of being visually cancelled by an immediate automatic refit. This lands Import-4 / Phase 7.5.7 by preserving the fast in-place preview-scale path, keeping the existing bottom-right zoom-to-fit button as the explicit recovery action, and proving the new camera-response rule in focused preview tests.`
+
+- Updated `src/app/panels/StagedImportPreviewViewport.tsx` so the staged preview no longer treats scale-only updates like an automatic zoom-to-fit request, while still keeping explicit zoom-to-fit and initial-load fit behavior intact.
+- Split the staged preview transform response into narrower up-axis and scale concerns, preserving the existing truthful refit behavior for orientation changes while making scale changes keep the current camera distance and recenter the target instead of re-solving a new fit distance.
+- Added focused proof in `src/app/panels/StagedImportPreviewViewport.test.tsx` that scale-only updates keep the camera distance stable until the user presses the explicit zoom-to-fit button, and that the broader fitted read still returns through that manual action.
+- Updated the owning `Import-4 / Phase 7.5` phase doc to mark `Phase 7.5.7` implemented and record the shipped preview-scale visibility behavior.
+
+<!-- ENTRY 1440 -->
+### [1440] - 2026-04-17 15:10 - `Environment-1 - Phase 2c / Phase 3 - Para Migration For Selected-Light Core Tuning`
+
+HUMAN SUMMARY: `The selected-light editor now uses para-style controls for the core enabled, type, intensity, distance, decay, angle, and penumbra tuning while leaving name, color, vector, and shadow editing on their current native surfaces. This lands Environment-1 / Phase 2c / Phase 3 by keeping the same selected-light mutation seam, preserving type-specific branch behavior, and proving the point, spot, and non-distance editor paths without widening into the later Shadows-section work.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the selected-light editor now renders `Enabled` and `Type` through `ParaSelect`, collapses the old paired intensity controls into one `ParaSlider`, and converts the `Distance`, `Decay`, `Angle (deg)`, and `Penumbra` branches to para-style sliders while keeping `Name`, `Color`, `Position`, `Target`, and shadow controls native.
+- Kept the selected-light editor on the same existing owner seams by leaving type changes on `updateLight(selectedLight.id, { type, ...getLightTypeDefaults(type) })`, leaving scalar edits on `updateLight(selectedLight.id, { ... })`, and relying on the existing `updateLight(...)` normalization behavior to clear branch-only fields when the selected type changes.
+- Added focused proof in `src/app/components/ViewToolbar.test.tsx` that the selected-light core controls now render as para surfaces, that the selected light still updates through the same shared state seam, and that `point`, `spot`, and `ambient` type changes show and hide the correct branch-only controls.
+- Updated the owning `Environment-1 / Phase 2c` phase doc to mark `Phase 3` implemented, complete the selected-light core-tuning wishlist items, and advance `Phase 4` as the next active code cut.
+
+<!-- ENTRY 1439 -->
+### [1439] - 2026-04-17 14:59 - `View-Toolbar 8 - Phase 5 - Floating Shell Chrome Theme Parity And Quick-Dock Styling`
+
+HUMAN SUMMARY: `Floating shell quick-dock actions now use the proper dark chrome and a compact dock icon instead of the old light browser-style text button. This lands View-Toolbar 8 / Phase 5 by introducing one shared floating-header quick-dock button owner, applying it across the real floating shell users, and proving the new affordance without reopening any floating-window behavior work.`
+
+- Added `src/app/components/FloatingWindowQuickDockButton.tsx` as the shared floating-shell header action for quick dock, giving the floating toolbar, dashboard, notepad, and detached model viewport the same icon-only affordance with explicit `aria-label` and tooltip semantics.
+- Updated `src/app/components/ViewToolbar.tsx`, `src/app/hosts/DashboardWindowHost.tsx`, `src/app/hosts/NotepadWindowHost.tsx`, and `src/app/AppShell.tsx` to replace the floating-shell `Quick Dock` text button with the shared icon button while keeping existing quick-dock behavior and host ownership unchanged.
+- Extended `src/app/theme/foundation/base.css` with an explicit `FloatingWindowHeaderAction` chrome contract so floating header actions no longer depend on the body-only `.V15Panel button` theme seam.
+- Expanded `src/app/components/ViewToolbar.test.tsx` and `src/app/AppShell.test.tsx` with focused proof that the floating quick-dock affordance now carries the shared themed class, accessible label, and icon-only rendering while the existing floating-shell quick-dock flows stay intact.
+
+<!-- ENTRY 1438 -->
+### [1438] - 2026-04-17 14:43 - `View-Toolbar 8 - Phase 4 - Persistence, Multi-Viewport Proof, And Cleanup`
+
+HUMAN SUMMARY: `The detachable floating View toolbar is now fully proven as a viewport-local feature across multiple viewports and workspace round-trips. This lands View-Toolbar 8 / Phase 4 by strengthening the final multi-viewport and persistence proof surfaces, confirming that one viewport can float while another stays docked and that quick dock plus persisted toolbar state remain scoped to the owning viewport without further production refactors.`
+
+- Expanded `src/app/components/ViewToolbar.test.tsx` with focused multi-viewport proof that one viewport can keep a floating toolbar while another stays docked, that their local toolbar state stays separated, and that quick-docking the floating toolbar does not disturb the other viewport.
+- Expanded `src/app/workspace/useWorkspaceStore.test.ts` with representative round-trip proof that floating and docked toolbar state survives serialize and normalize across multiple viewports with host mode, dock mode, active tab, and floating rect intact.
+- Confirmed through the proof pass that no production cleanup was required in `src/app/components/ViewToolbar.tsx` or `src/app/workspace/ViewportWorkspaceHost.tsx`, so the final phase closes through validation rather than feature or architecture widening.
+- Updated the owning `View-Toolbar 8` phase doc to mark `Phase 4` implemented, complete the remaining wishlist items, and record the detachable floating-window presentation lane as structurally complete.
+
+<!-- ENTRY 1437 -->
+### [1437] - 2026-04-17 14:38 - `View-Toolbar 8 - Phase 3.2 - Floating Shell Context Menu Parity`
+
+HUMAN SUMMARY: `The floating View toolbar now exposes the same right-click presentation menu as the docked toolbar. This lands View-Toolbar 8 / Phase 3.2 by reusing the existing menu-owner seam on the floating shell, keeping menu anchoring on the shared local coordinate path, and proving that floating right-click parity does not break drag, resize, or quick dock behavior.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the existing view-toolbar context menu is now rendered through one shared menu element reused by both docked and floating host modes, instead of leaving the floating shell without shell-level right-click parity.
+- Added shell-level `onContextMenu` handling to the floating toolbar window while preserving `shouldIgnoreViewToolbarShellContextMenu(...)`, so interactive controls inside the floating shell do not wrongly trigger the shell-level presentation menu.
+- Kept floating menu anchoring on the existing `openViewToolbarContextMenu(...)` coordinate path, which continues to resolve menu position relative to the floating window when the host mode is `floating`.
+- Expanded `src/app/components/ViewToolbar.test.tsx` with focused proof that right-click on the floating shell opens the same `Classic` and `Tabs` menu items, `Quick Dock` still stays interactive without opening the shell-level menu, and the toolbar remains in floating mode after the parity interaction.
+- Updated the owning `View-Toolbar 8` phase doc to mark `Phase 3.2` implemented, complete the floating context-menu wishlist items, and advance `Phase 4` as the next active code cut.
+
+<!-- ENTRY 1436 -->
+### [1436] - 2026-04-17 14:33 - `Environment-1 - Phase 2c / Phase 2 - Para Migration For Core Environment Controls`
+
+HUMAN SUMMARY: `The top of the Environment section now uses para-style controls for Preset and Add Light Type without changing the shared envPreset contract or the local add-light flow. This lands Environment-1 / Phase 2c / Phase 2 while keeping the Light name field, raw light list, selected-light editor, and dedicated Shadows-section work for later cuts.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the `Environment` section now renders `Preset` and `Add Light Type` through `ParaSelect`, keeping `Preset` on the existing shared `setViewKey('envPreset', ...)` path and `Add Light Type` on the existing local `setAddLightType(...)` toolbar state.
+- Kept the surrounding Environment ownership intentionally stable by leaving the `Light name` input native, preserving the raw light list and selected-light editor structure, and avoiding any tab-key, persistence, or runtime widening in this cut.
+- Added focused proof in `src/app/components/ViewToolbar.test.tsx` that the new para-style `Preset` control still updates shared `envPreset`, the new para-style `Add Light Type` control still drives the add-light flow, and the visible section contract remains intact.
+- Updated the owning `Environment-1 / Phase 2c` phase doc to mark `Phase 2` implemented, complete the two core environment-control wishlist items, and advance `Phase 3` as the next active code cut.
+
+<!-- ENTRY 1435 -->
+### [1435] - 2026-04-17 14:16 - `View-Toolbar 8 - Phase 3.1 - Floating Resize Handles, Clamp, And Minimums`
+
+HUMAN SUMMARY: `The floating View toolbar can now be resized from every side and corner while staying inside its owning viewport. This lands View-Toolbar 8 / Phase 3.1 by keeping resize on the same viewport-local floating-rect path as drag, enforcing minimum size and clamp behavior, and proving that drag and quick dock still work after the resize handles land.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the viewport-local floating shell now renders edge and corner resize handles, captures resize pointer ownership separately from titlebar drag, and keeps the shell geometry on the existing `viewToolbarFloatingRect` source of truth instead of widening into a second floating-window state path.
+- Added resize math that preserves anchored edges for west, north, and corner resize, enforces the floating toolbar minimum width and height, and keeps the resized shell clamped inside the owning viewport host.
+- Expanded `src/app/components/ViewToolbar.test.tsx` with focused proof that edge resize updates width while drag and quick dock still work afterward, and that north-west corner resize clamps safely while enforcing minimum size.
+- Updated the owning `View-Toolbar 8` phase doc to mark `Phase 3.1` implemented, complete the resize wishlist items, and advance `Phase 4` as the next active code cut.
+
+<!-- ENTRY 1434 -->
+### [1434] - 2026-04-17 14:03 - `View-Toolbar 8 - Phase 3 - Floating Shell, Drag, Clamp, And Quick Dock`
+
+HUMAN SUMMARY: `The View toolbar can now leave its docked position and behave like one viewport-local floating window. This lands View-Toolbar 8 / Phase 3 by reusing the shared toolbar body in a floating shell, letting the docked toolbar drag out into floating mode, clamping drag motion to the owning viewport, and adding a quick dock path back to the existing docked shell.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the toolbar now reads the viewport-local `viewToolbarHostMode` and `viewToolbarFloatingRect` groundwork from `Phase 1`, renders either the docked `RightDock` shell or one floating shell, and keeps the floating shell viewport-local instead of widening into a generic workspace surface.
+- Added docked-summary drag-out, floating titlebar drag, viewport clamp, default floating-rect seeding, and quick-dock return behavior while reusing the shared `ViewToolbarBody` extracted in `Phase 2` instead of forking toolbar content.
+- Expanded `src/app/components/ViewToolbar.test.tsx` with focused proof that the floating shell renders with live shared controls, the floating titlebar drag updates and clamps the rect, the docked toolbar can drag out into floating mode, and quick dock returns to the docked shell cleanly.
+- Updated the owning `View-Toolbar 8` phase doc to mark `Phase 3` implemented, mark the drag-and-floating wishlist items complete, and advance `Phase 4` as the next active code cut.
+
+<!-- ENTRY 1433 -->
+### [1433] - 2026-04-17 13:31 - `View-Toolbar 8 - Phase 2 - Shared Toolbar Body Extraction`
+
+HUMAN SUMMARY: `The docked View toolbar now mounts one shared body seam instead of owning the repeated tab-rail and section-wrapper tree inline. This lands View-Toolbar 8 / Phase 2 by extracting reusable body rendering inside \`ViewToolbar.tsx\` while keeping refs, height sync, context-menu ownership, and visible docked behavior unchanged ahead of the later floating-shell pass.`
+
+- Updated `src/app/components/ViewToolbar.tsx` to extract local `ViewToolbarBody` and `ViewToolbarSection` helpers that render the authoritative `viewToolbarSections` list for both classic and tabs presentation, while the outer docked shell keeps the existing refs, shell sizing, overflow handling, and context-menu behavior.
+- Added focused proof in `src/app/components/ViewToolbar.test.tsx` that classic mode still renders the same section order without a tab rail, while the existing tabs-mode and remount coverage continues to prove active-tab behavior, representative command routing, and per-viewport local state.
+- Updated the owning `View-Toolbar 8` phase doc to mark `Phase 2` implemented, mark the shared-body wishlist items complete, and advance `Phase 3` as the next active code cut.
+
+<!-- ENTRY 1432 -->
+### [1432] - 2026-04-17 13:08 - `View-Toolbar 8 - Phase 1 - Viewport-Local Host Mode And Floating Rect Groundwork`
+
+HUMAN SUMMARY: The workspace now has explicit viewport-local groundwork for a future floating `View` toolbar without changing the visible docked toolbar shell yet. This lands `View-Toolbar 8 / Phase 1` by adding toolbar host-mode and floating-rect state to the existing viewport-chrome contract, then proving that those new fields stay per-viewport and survive persistence round-trips.
+
+- Updated `src/app/workspace/workspaceShellTypes.ts` so `WorkspaceViewportLocalViewState` now owns `viewToolbarHostMode` plus `viewToolbarFloatingRect`, with defaults seeded through `createDefaultWorkspaceViewportLocalViewState()` as `docked` and `null`.
+- Updated `src/app/workspace/workspacePersistence.ts` so the existing viewport-chrome clone and normalize path now serializes, rounds, validates, and safely restores the new toolbar-local host-mode and floating-rect fields without widening into generic workspace-surface placement.
+- Added focused proof in `src/app/workspace/useWorkspaceStore.test.ts` that one viewport can hold floating-toolbar groundwork state without affecting another, valid floating-toolbar host data survives persistence round-trips, and invalid persisted host-mode or floating-rect values fall back safely.
+- Updated the owning `View-Toolbar 8` phase doc to mark `Phase 1` implemented, mark the first four groundwork wishlist items complete, and advance `Phase 2` as the next active code cut.
+
 <!-- ENTRY 1431 -->
 ### [1431] - 2026-04-17 11:25 - `Environment-1 - Phase 2c / Phase 1 - Para Migration For View-Level Environment Controls`
 

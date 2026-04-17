@@ -13,6 +13,7 @@ type ParaVec3SliderProps = {
   min: number
   max: number
   step: number
+  layout?: 'compact' | 'stacked'
   onChangeAxis: (axis: Vec3Axis, value: number) => void
   onActivate?: () => void
   onChangeEndAxis?: (axis: Vec3Axis, value: number) => void
@@ -29,6 +30,7 @@ export function ParaVec3Slider({
   min,
   max,
   step,
+  layout = 'compact',
   onChangeAxis,
   onActivate,
   onChangeEndAxis,
@@ -38,7 +40,7 @@ export function ParaVec3Slider({
   displayValue = (_axis, nextValue) => `${nextValue}`,
 }: ParaVec3SliderProps) {
   return (
-    <div className="ParaVec3Slider">
+    <div className={`ParaVec3Slider ${layout === 'stacked' ? 'isStacked' : 'isCompact'}`}>
       {axisOrder.map((axis) => (
         <div key={axis} className="ParaVec3SliderAxis">
           <ParaSlider

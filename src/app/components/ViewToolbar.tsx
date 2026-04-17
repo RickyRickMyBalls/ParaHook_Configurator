@@ -1,10 +1,20 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
 import type {
   GroundMaterialPresetId,
   LightSpec,
   LightType,
   MaterialPreset,
   MaterialPresetId,
+  Vec3,
 } from '../../shared/viewSettingsTypes'
 import {
   artifactToPartKeyStr,
@@ -42,8 +52,11 @@ import {
 } from './viewToolbarLayout'
 import { ParaSlider } from './ParaSlider'
 import { ParaSelect } from './ParaSelect'
+import { ParaVec3Field } from './ParaVec3Field'
+import { FloatingWindowQuickDockButton } from './FloatingWindowQuickDockButton'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import type {
+  WorkspaceFloatingRect,
   WorkspaceViewportId,
   WorkspaceViewToolbarDockMode,
   WorkspaceViewToolbarExpandedPresentationMode,
@@ -94,6 +107,18 @@ const toneMappingOptions = [
   { value: 'none', label: 'None' },
   { value: 'aces', label: 'ACES' },
 ]
+const envPresetOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'studio', label: 'Studio' },
+]
+const enabledOptions = [
+  { value: 'off', label: 'Off' },
+  { value: 'on', label: 'On' },
+]
+const shadowMapOptions = shadowSizes.map((size) => ({
+  value: `${size}`,
+  label: `${size}`,
+}))
 const groundMaterialOptions: Array<{ value: GroundMaterialPresetId; label: string }> = [
   { value: 'matte_dark', label: 'Matte Dark' },
   { value: 'matte_mid', label: 'Matte Mid' },
@@ -111,6 +136,41 @@ const DEFAULT_CAMERA_CLIP_END_MAX = 1000
 const MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 50
 const MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 2000
 const CAMERA_SHORTCUT_TRANSITION_DURATION_STEP_MS = 10
+const VIEW_TOOLBAR_FLOATING_EDGE_PADDING = 12
+const VIEW_TOOLBAR_FLOATING_MIN_WIDTH = 280
+const VIEW_TOOLBAR_FLOATING_MIN_HEIGHT = 180
+const VIEW_TOOLBAR_FLOATING_DEFAULT_HEIGHT = 360
+const VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT = 32
+const VIEW_TOOLBAR_DETACH_DRAG_THRESHOLD_PX = 8
+const VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS = 6
+const VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE = 14
+
+type ViewToolbarFloatingResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+
+const viewToolbarFloatingResizeDirections: ViewToolbarFloatingResizeDirection[] = [
+  'n',
+  's',
+  'e',
+  'w',
+  'ne',
+  'nw',
+  'se',
+  'sw',
+]
+
+const viewToolbarFloatingResizeCursorByDirection: Record<
+  ViewToolbarFloatingResizeDirection,
+  string
+> = {
+  n: 'ns-resize',
+  s: 'ns-resize',
+  e: 'ew-resize',
+  w: 'ew-resize',
+  ne: 'nesw-resize',
+  nw: 'nwse-resize',
+  se: 'nwse-resize',
+  sw: 'nesw-resize',
+}
 
 const numericValue = (value: string, fallback: number): number => {
   const parsed = Number(value)
@@ -132,6 +192,34 @@ const formatCameraShortcutTransitionDuration = (value: number): string =>
 
 const formatExposureValue = (value: number): string =>
   Number(value.toFixed(2)).toString()
+
+const formatLightIntensityValue = (value: number): string =>
+  Number(value.toFixed(2)).toString()
+
+const formatLightDistanceValue = (value: number): string =>
+  Number(value.toFixed(1)).toString()
+
+const formatLightDecayValue = (value: number): string =>
+  Number(value.toFixed(1)).toString()
+
+const formatLightAngleValue = (value: number): string =>
+  `${Math.round(value)} deg`
+
+const formatLightPenumbraValue = (value: number): string =>
+  Number(value.toFixed(2)).toString()
+
+const formatLightShadowBiasValue = (value: number): string =>
+  value.toFixed(4)
+
+const updateVec3Axis = (
+  value: Vec3 | undefined,
+  axis: 'x' | 'y' | 'z',
+  nextAxisValue: number,
+): Vec3 => ({
+  x: axis === 'x' ? nextAxisValue : value?.x ?? 0,
+  y: axis === 'y' ? nextAxisValue : value?.y ?? 0,
+  z: axis === 'z' ? nextAxisValue : value?.z ?? 0,
+})
 
 const resolveClipDistanceStep = (value: number): number => {
   if (value >= 100) {
@@ -159,6 +247,277 @@ type ViewToolbarSectionDefinition = {
   label: string
   className?: string
   renderBody: () => ReactNode
+}
+
+type ViewToolbarBodyProps = {
+  sections: ViewToolbarSectionDefinition[]
+  isTabsPresentation: boolean
+  activeTab: WorkspaceViewToolbarTabKey
+  onSelectTab: (tab: WorkspaceViewToolbarTabKey) => void
+}
+
+type ViewToolbarSectionProps = {
+  section: ViewToolbarSectionDefinition
+  isTabsPresentation: boolean
+  activeTab: WorkspaceViewToolbarTabKey
+}
+
+function ViewToolbarSection(props: ViewToolbarSectionProps) {
+  const { section, isTabsPresentation, activeTab } = props
+  const isActive = activeTab === section.key
+  const sectionClassName = ['ViewSection', section.className, 'ViewStyledSection']
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <details
+      className={sectionClassName}
+      data-view-toolbar-section={section.key}
+      data-tab-active={isActive ? 'true' : 'false'}
+      open={isTabsPresentation ? isActive : undefined}
+    >
+      <summary>{section.label}</summary>
+      {section.renderBody()}
+    </details>
+  )
+}
+
+function ViewToolbarBody(props: ViewToolbarBodyProps) {
+  const { sections, isTabsPresentation, activeTab, onSelectTab } = props
+
+  return (
+    <>
+      {isTabsPresentation ? (
+        <div className="ViewToolbarTabRail" role="tablist" aria-label="View toolbar sections">
+          {sections.map((section) => {
+            const isActive = activeTab === section.key
+            return (
+              <button
+                key={section.key}
+                type="button"
+                role="tab"
+                className={`ViewToolbarTabButton ${isActive ? 'isActive' : ''}`}
+                aria-selected={isActive}
+                aria-pressed={isActive}
+                data-view-toolbar-tab={section.key}
+                onClick={() => onSelectTab(section.key)}
+              >
+                <span className="ViewToolbarTabLabel">{section.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+      <div className={isTabsPresentation ? 'ViewToolbarTabContent' : undefined}>
+        {sections.map((section) => (
+          <ViewToolbarSection
+            key={section.key}
+            section={section}
+            isTabsPresentation={isTabsPresentation}
+            activeTab={activeTab}
+          />
+        ))}
+      </div>
+    </>
+  )
+}
+
+const clampViewToolbarFloatingRect = (
+  nextRect: WorkspaceFloatingRect,
+  viewportWidth: number,
+  viewportHeight: number,
+): WorkspaceFloatingRect => {
+  const width = Math.max(
+    VIEW_TOOLBAR_FLOATING_MIN_WIDTH,
+    Math.min(
+      Math.round(nextRect.width),
+      Math.max(VIEW_TOOLBAR_FLOATING_MIN_WIDTH, viewportWidth - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2),
+    ),
+  )
+  const height = Math.max(
+    VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+    Math.min(
+      Math.round(nextRect.height),
+      Math.max(VIEW_TOOLBAR_FLOATING_MIN_HEIGHT, viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2),
+    ),
+  )
+  const maxX = Math.max(
+    VIEW_TOOLBAR_FLOATING_EDGE_PADDING,
+    viewportWidth - width - VIEW_TOOLBAR_FLOATING_EDGE_PADDING,
+  )
+  const maxY = Math.max(
+    VIEW_TOOLBAR_FLOATING_EDGE_PADDING,
+    viewportHeight - height - VIEW_TOOLBAR_FLOATING_EDGE_PADDING,
+  )
+
+  return {
+    x: Math.max(VIEW_TOOLBAR_FLOATING_EDGE_PADDING, Math.min(Math.round(nextRect.x), maxX)),
+    y: Math.max(VIEW_TOOLBAR_FLOATING_EDGE_PADDING, Math.min(Math.round(nextRect.y), maxY)),
+    width,
+    height,
+  }
+}
+
+const createDefaultViewToolbarFloatingRect = (
+  viewportWidth: number,
+  viewportHeight: number,
+  preferredWidth: number,
+  preferredHeight: number,
+): WorkspaceFloatingRect =>
+  clampViewToolbarFloatingRect(
+    {
+      x: viewportWidth - preferredWidth - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
+      y: VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
+      width: preferredWidth,
+      height: preferredHeight,
+    },
+    viewportWidth,
+    viewportHeight,
+  )
+
+const resizeViewToolbarFloatingRect = (
+  anchorRect: WorkspaceFloatingRect,
+  direction: ViewToolbarFloatingResizeDirection,
+  deltaX: number,
+  deltaY: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): WorkspaceFloatingRect => {
+  const viewportMaxWidth = Math.max(
+    VIEW_TOOLBAR_FLOATING_MIN_WIDTH,
+    viewportWidth - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
+  )
+  const viewportMaxHeight = Math.max(
+    VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+    viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
+  )
+  let left = anchorRect.x
+  let top = anchorRect.y
+  let right = anchorRect.x + anchorRect.width
+  let bottom = anchorRect.y + anchorRect.height
+
+  if (direction.includes('w')) {
+    left += deltaX
+    left = Math.max(VIEW_TOOLBAR_FLOATING_EDGE_PADDING, left)
+    left = Math.min(left, right - VIEW_TOOLBAR_FLOATING_MIN_WIDTH)
+    left = Math.max(left, right - viewportMaxWidth)
+  }
+
+  if (direction.includes('e')) {
+    right += deltaX
+    right = Math.min(viewportWidth - VIEW_TOOLBAR_FLOATING_EDGE_PADDING, right)
+    right = Math.max(right, left + VIEW_TOOLBAR_FLOATING_MIN_WIDTH)
+    right = Math.min(right, left + viewportMaxWidth)
+  }
+
+  if (direction.includes('n')) {
+    top += deltaY
+    top = Math.max(VIEW_TOOLBAR_FLOATING_EDGE_PADDING, top)
+    top = Math.min(top, bottom - VIEW_TOOLBAR_FLOATING_MIN_HEIGHT)
+    top = Math.max(top, bottom - viewportMaxHeight)
+  }
+
+  if (direction.includes('s')) {
+    bottom += deltaY
+    bottom = Math.min(viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING, bottom)
+    bottom = Math.max(bottom, top + VIEW_TOOLBAR_FLOATING_MIN_HEIGHT)
+    bottom = Math.min(bottom, top + viewportMaxHeight)
+  }
+
+  return clampViewToolbarFloatingRect(
+    {
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+    },
+    viewportWidth,
+    viewportHeight,
+  )
+}
+
+const resolveViewToolbarFloatingResizeHandleStyle = (
+  direction: ViewToolbarFloatingResizeDirection,
+) => {
+  const edgeInset = VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE
+  const baseStyle = {
+    position: 'absolute' as const,
+    zIndex: 2,
+    touchAction: 'none' as const,
+    userSelect: 'none' as const,
+    WebkitUserSelect: 'none' as const,
+    background: 'transparent',
+    cursor: viewToolbarFloatingResizeCursorByDirection[direction],
+  }
+
+  if (direction === 'n') {
+    return {
+      ...baseStyle,
+      left: `${edgeInset}px`,
+      right: `${edgeInset}px`,
+      top: '0',
+      height: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
+    }
+  }
+  if (direction === 's') {
+    return {
+      ...baseStyle,
+      left: `${edgeInset}px`,
+      right: `${edgeInset}px`,
+      bottom: '0',
+      height: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
+    }
+  }
+  if (direction === 'e') {
+    return {
+      ...baseStyle,
+      top: `${edgeInset}px`,
+      bottom: `${edgeInset}px`,
+      right: '0',
+      width: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
+    }
+  }
+  if (direction === 'w') {
+    return {
+      ...baseStyle,
+      top: `${edgeInset}px`,
+      bottom: `${edgeInset}px`,
+      left: '0',
+      width: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
+    }
+  }
+
+  return {
+    ...baseStyle,
+    width: `${VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE}px`,
+    height: `${VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE}px`,
+    ...(direction.includes('n') ? { top: '0' } : { bottom: '0' }),
+    ...(direction.includes('w') ? { left: '0' } : { right: '0' }),
+  }
+}
+
+const resolveViewToolbarViewportHostElement = (
+  viewportId: WorkspaceViewportId | undefined,
+  anchorElement: Element | null,
+): HTMLElement | null => {
+  const closestHost = anchorElement?.closest('.ViewportWorkspaceHost, .ViewportFrameBody')
+  if (closestHost instanceof HTMLElement) {
+    return closestHost
+  }
+  if (viewportId !== undefined) {
+    const escapedViewportId =
+      typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+        ? CSS.escape(viewportId)
+        : viewportId
+    const viewportHost = document.querySelector(
+      `.ViewportWorkspaceHost[data-workspace-viewport-id="${escapedViewportId}"]`,
+    )
+    if (viewportHost instanceof HTMLElement) {
+      return viewportHost
+    }
+  }
+  const frameBody = document.querySelector('.ViewportFrameBody')
+  return frameBody instanceof HTMLElement ? frameBody : null
 }
 
 const getLightTypeDefaults = (type: LightType): Partial<LightSpec> => {
@@ -250,9 +609,30 @@ type ViewToolbarProps = {
 
 export function ViewToolbar(props: ViewToolbarProps = {}) {
   const { viewportId } = props
+  const rightDockRef = useRef<HTMLElement | null>(null)
   const rightPanelStackRef = useRef<HTMLDivElement | null>(null)
   const viewToolbarRootRef = useRef<HTMLDetailsElement | null>(null)
   const viewToolbarPanelRef = useRef<HTMLDivElement | null>(null)
+  const viewToolbarFloatingWindowRef = useRef<HTMLDivElement | null>(null)
+  const pendingViewToolbarDetachRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+  } | null>(null)
+  const viewToolbarFloatingDragStateRef = useRef<{
+    pointerId: number
+    pointerOffsetX: number
+    pointerOffsetY: number
+    width: number
+    height: number
+  } | null>(null)
+  const viewToolbarFloatingResizeStateRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    direction: ViewToolbarFloatingResizeDirection
+    anchorRect: WorkspaceFloatingRect
+  } | null>(null)
   const viewerTargetParts = useSpaghettiStore(selectViewerTargetGraphAcceptedBuildOutputs)
   const selectedPartKey = useAppStore((state) => state.selectedPartKey)
   const parts = viewerTargetParts
@@ -299,7 +679,9 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const viewToolbarExpandedAxisWidgetSize = localViewState?.viewToolbarExpandedAxisWidgetSize ?? null
   const viewToolbarExpandedPresentationMode =
     localViewState?.viewToolbarExpandedPresentationMode ?? 'classic'
+  const viewToolbarHostMode = localViewState?.viewToolbarHostMode ?? 'docked'
   const viewToolbarDockMode = localViewState?.viewToolbarDockMode ?? 'below-axis'
+  const viewToolbarFloatingRect = localViewState?.viewToolbarFloatingRect ?? null
   const viewToolbarActiveTab = localViewState?.viewToolbarActiveTab ?? 'camera'
 
   const [gizmoEnabled, setGizmoEnabled] = useState(false)
@@ -582,11 +964,23 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     })
   }
 
+  const setViewToolbarFloatingRectState = (rect: WorkspaceFloatingRect | null) => {
+    if (viewportId === undefined) {
+      return
+    }
+    setViewportLocalViewState(viewportId, {
+      viewToolbarFloatingRect: rect,
+    })
+  }
+
   const openViewToolbarContextMenu = (clientX: number, clientY: number) => {
-    const rightDockRect = rightPanelStackRef.current?.parentElement?.getBoundingClientRect()
+    const menuContainerRect =
+      (viewToolbarHostMode === 'floating'
+        ? viewToolbarFloatingWindowRef.current?.getBoundingClientRect()
+        : rightPanelStackRef.current?.parentElement?.getBoundingClientRect()) ?? null
     setViewToolbarContextMenu({
-      x: rightDockRect === undefined ? clientX : clientX - rightDockRect.left,
-      y: rightDockRect === undefined ? clientY : clientY - rightDockRect.top,
+      x: menuContainerRect === null ? clientX : clientX - menuContainerRect.left,
+      y: menuContainerRect === null ? clientY : clientY - menuContainerRect.top,
     })
   }
 
@@ -709,6 +1103,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     ? viewToolbarExpandedAxisWidgetSize ?? DEFAULT_EXPANDED_AXIS_WIDGET_SIZE
     : viewToolbarCompactAxisWidgetSize ?? COMPACT_AXIS_WIDGET_SIZE
   const rightDockWidth = resolveRightDockWidth(resolvedAxisWidgetSize)
+  const isViewToolbarFloating = viewToolbarHostMode === 'floating'
   const effectiveViewToolbarDockMode =
     viewToolbarDockMode === 'top-right-cluster' && viewToolbarOpen
       ? 'top-right-cluster'
@@ -723,7 +1118,200 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         : dockedConsoleCollapsedReserve
   const viewToolbarBottomContentPadding = 12
 
+  const resolveViewToolbarViewportRect = (): DOMRect | null => {
+    const viewportHostElement = resolveViewToolbarViewportHostElement(
+      viewportId,
+      viewToolbarFloatingWindowRef.current ?? rightDockRef.current ?? viewToolbarRootRef.current,
+    )
+    return viewportHostElement?.getBoundingClientRect() ?? null
+  }
+
+  const resolveDefaultViewToolbarFloatingRect = (): WorkspaceFloatingRect => {
+    const viewportRect = resolveViewToolbarViewportRect()
+    const dockedToolbarRect = viewToolbarRootRef.current?.getBoundingClientRect() ?? null
+    const preferredWidth = dockedToolbarRect?.width ?? rightDockWidth
+    const preferredHeight = Math.max(
+      dockedToolbarRect?.height ?? 0,
+      Math.round(viewToolbarUsedHeight ?? VIEW_TOOLBAR_FLOATING_DEFAULT_HEIGHT),
+    )
+    if (viewportRect === null) {
+      return {
+        x: VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
+        y: VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
+        width: Math.max(VIEW_TOOLBAR_FLOATING_MIN_WIDTH, Math.round(preferredWidth)),
+        height: Math.max(VIEW_TOOLBAR_FLOATING_MIN_HEIGHT, preferredHeight),
+      }
+    }
+    return createDefaultViewToolbarFloatingRect(
+      Math.max(1, Math.round(viewportRect.width)),
+      Math.max(1, Math.round(viewportRect.height)),
+      preferredWidth,
+      preferredHeight,
+    )
+  }
+
+  const resolvedViewToolbarFloatingRect = viewToolbarFloatingRect ?? resolveDefaultViewToolbarFloatingRect()
+
+  useEffect(() => {
+    if (!isViewToolbarFloating || viewToolbarFloatingRect !== null) {
+      return
+    }
+    if (viewportId === undefined) {
+      return
+    }
+    setViewportLocalViewState(viewportId, {
+      viewToolbarOpen: true,
+      viewToolbarFloatingRect: resolvedViewToolbarFloatingRect,
+    })
+  }, [
+    isViewToolbarFloating,
+    resolvedViewToolbarFloatingRect,
+    setViewportLocalViewState,
+    viewToolbarFloatingRect,
+    viewportId,
+  ])
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const pendingDetach = pendingViewToolbarDetachRef.current
+      if (
+        pendingDetach !== null &&
+        pendingDetach.pointerId === event.pointerId &&
+        viewportId !== undefined
+      ) {
+        const deltaX = event.clientX - pendingDetach.startX
+        const deltaY = event.clientY - pendingDetach.startY
+        if (Math.hypot(deltaX, deltaY) >= VIEW_TOOLBAR_DETACH_DRAG_THRESHOLD_PX) {
+          const viewportRect = resolveViewToolbarViewportRect()
+          const dockedToolbarRect = viewToolbarRootRef.current?.getBoundingClientRect() ?? null
+          if (viewportRect !== null && dockedToolbarRect !== null) {
+            const nextWidth = Math.round(dockedToolbarRect.width)
+            const nextHeight = Math.max(
+              Math.round(dockedToolbarRect.height),
+              Math.round(viewToolbarUsedHeight ?? VIEW_TOOLBAR_FLOATING_DEFAULT_HEIGHT),
+            )
+            const pointerOffsetX = Math.max(
+              0,
+              Math.min(
+                Math.round(event.clientX - dockedToolbarRect.left),
+                Math.max(0, nextWidth - VIEW_TOOLBAR_FLOATING_EDGE_PADDING),
+              ),
+            )
+            const pointerOffsetY = Math.max(
+              0,
+              Math.min(
+                Math.round(event.clientY - dockedToolbarRect.top),
+                VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT - 1,
+              ),
+            )
+            const nextRect = clampViewToolbarFloatingRect(
+              {
+                x: event.clientX - viewportRect.left - pointerOffsetX,
+                y: event.clientY - viewportRect.top - pointerOffsetY,
+                width: nextWidth,
+                height: nextHeight,
+              },
+              Math.max(1, Math.round(viewportRect.width)),
+              Math.max(1, Math.round(viewportRect.height)),
+            )
+            viewToolbarFloatingDragStateRef.current = {
+              pointerId: event.pointerId,
+              pointerOffsetX,
+              pointerOffsetY,
+              width: nextRect.width,
+              height: nextRect.height,
+            }
+            setViewportLocalViewState(viewportId, {
+              viewToolbarHostMode: 'floating',
+              viewToolbarOpen: true,
+              viewToolbarFloatingRect: nextRect,
+            })
+          }
+          pendingViewToolbarDetachRef.current = null
+        }
+        return
+      }
+
+      const floatingResizeState = viewToolbarFloatingResizeStateRef.current
+      if (
+        floatingResizeState !== null &&
+        floatingResizeState.pointerId === event.pointerId &&
+        viewportId !== undefined
+      ) {
+        const viewportRect = resolveViewToolbarViewportRect()
+        if (viewportRect === null) {
+          return
+        }
+        const nextRect = resizeViewToolbarFloatingRect(
+          floatingResizeState.anchorRect,
+          floatingResizeState.direction,
+          event.clientX - floatingResizeState.startX,
+          event.clientY - floatingResizeState.startY,
+          Math.max(1, Math.round(viewportRect.width)),
+          Math.max(1, Math.round(viewportRect.height)),
+        )
+        setViewToolbarFloatingRectState(nextRect)
+        return
+      }
+
+      const floatingDragState = viewToolbarFloatingDragStateRef.current
+      if (
+        floatingDragState === null ||
+        floatingDragState.pointerId !== event.pointerId ||
+        viewportId === undefined
+      ) {
+        return
+      }
+      const viewportRect = resolveViewToolbarViewportRect()
+      if (viewportRect === null) {
+        return
+      }
+      const nextRect = clampViewToolbarFloatingRect(
+        {
+          x: event.clientX - viewportRect.left - floatingDragState.pointerOffsetX,
+          y: event.clientY - viewportRect.top - floatingDragState.pointerOffsetY,
+          width: floatingDragState.width,
+          height: floatingDragState.height,
+        },
+        Math.max(1, Math.round(viewportRect.width)),
+        Math.max(1, Math.round(viewportRect.height)),
+      )
+      setViewToolbarFloatingRectState(nextRect)
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (
+        pendingViewToolbarDetachRef.current !== null &&
+        pendingViewToolbarDetachRef.current.pointerId === event.pointerId
+      ) {
+        pendingViewToolbarDetachRef.current = null
+      }
+      if (
+        viewToolbarFloatingDragStateRef.current !== null &&
+        viewToolbarFloatingDragStateRef.current.pointerId === event.pointerId
+      ) {
+        viewToolbarFloatingDragStateRef.current = null
+      }
+      if (
+        viewToolbarFloatingResizeStateRef.current !== null &&
+        viewToolbarFloatingResizeStateRef.current.pointerId === event.pointerId
+      ) {
+        viewToolbarFloatingResizeStateRef.current = null
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [setViewportLocalViewState, viewportId, viewToolbarUsedHeight])
+
   useLayoutEffect(() => {
+    if (isViewToolbarFloating) {
+      return
+    }
     const stackElement = rightPanelStackRef.current
     const toolbarElement = viewToolbarRootRef.current
     const panelElement = viewToolbarPanelRef.current
@@ -830,6 +1418,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     }
   }, [
     dockedConsoleReserve,
+    isViewToolbarFloating,
     rightDockWidth,
     viewToolbarActiveTab,
     viewToolbarExpandedPresentationMode,
@@ -1289,20 +1878,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       label: 'Environment',
       renderBody: () => (
         <>
-          <div className="MiniFieldGrid">
-            <label>
-              Preset
-              <select
-                value={view.envPreset}
-                onChange={(event) =>
-                  setViewKey('envPreset', event.target.value as typeof view.envPreset)
-                }
-              >
-                <option value="none">None</option>
-                <option value="studio">Studio</option>
-              </select>
-            </label>
-          </div>
+          <ParaSelect
+            label="Preset"
+            value={view.envPreset}
+            options={envPresetOptions}
+            onChange={(value) => setViewKey('envPreset', value as typeof view.envPreset)}
+          />
 
           <div className="V15SectionLabel">Lighting</div>
           <div className="ItemList">
@@ -1341,16 +1922,15 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
           </div>
 
           <div className="InlineEditorRow">
-            <select
+            <ParaSelect
+              label="Add Light Type"
               value={addLightType}
-              onChange={(event) => setAddLightType(event.target.value as LightType)}
-            >
-              {lightTypes.map((type) => (
-                <option key={type} value={type}>
-                  {lightTypeLabel(type)}
-                </option>
-              ))}
-            </select>
+              options={lightTypes.map((type) => ({
+                value: type,
+                label: lightTypeLabel(type),
+              }))}
+              onChange={(value) => setAddLightType(value as LightType)}
+            />
             <input
               type="text"
               placeholder="Light name"
@@ -1375,16 +1955,14 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
           {selectedLight === null ? null : (
             <div className="EditorPanel">
               <div className="MiniFieldGrid">
-                <label>
-                  Enabled
-                  <input
-                    type="checkbox"
-                    checked={selectedLight.enabled}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, { enabled: event.target.checked })
-                    }
-                  />
-                </label>
+                <ParaSelect
+                  label="Enabled"
+                  value={selectedLight.enabled ? 'on' : 'off'}
+                  options={enabledOptions}
+                  onChange={(value) =>
+                    updateLight(selectedLight.id, { enabled: value === 'on' })
+                  }
+                />
                 <label>
                   Name
                   <input
@@ -1393,25 +1971,21 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     onChange={(event) => updateLight(selectedLight.id, { name: event.target.value })}
                   />
                 </label>
-                <label>
-                  Type
-                  <select
-                    value={selectedLight.type}
-                    onChange={(event) => {
-                      const type = event.target.value as LightType
-                      updateLight(selectedLight.id, {
-                        type,
-                        ...getLightTypeDefaults(type),
-                      })
-                    }}
-                  >
-                    {lightTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {lightTypeLabel(type)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <ParaSelect
+                  label="Type"
+                  value={selectedLight.type}
+                  options={lightTypes.map((type) => ({
+                    value: type,
+                    label: lightTypeLabel(type),
+                  }))}
+                  onChange={(value) => {
+                    const type = value as LightType
+                    updateLight(selectedLight.id, {
+                      type,
+                      ...getLightTypeDefaults(type),
+                    })
+                  }}
+                />
                 <label>
                   Color
                   <input
@@ -1420,228 +1994,126 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                     onChange={(event) => updateLight(selectedLight.id, { color: event.target.value })}
                   />
                 </label>
-                <label>
-                  Intensity
-                  <input
-                    type="range"
-                    min={0}
-                    max={8}
-                    step={0.05}
-                    value={selectedLight.intensity}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, { intensity: Number(event.target.value) })
-                    }
-                  />
-                </label>
-                <label>
-                  Intensity Value
-                  <input
-                    type="number"
-                    min={0}
-                    max={8}
-                    step={0.05}
-                    value={selectedLight.intensity}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, { intensity: Number(event.target.value) })
-                    }
-                  />
-                </label>
+                <ParaSlider
+                  label="Intensity"
+                  min={0}
+                  max={8}
+                  step={0.05}
+                  value={selectedLight.intensity}
+                  onChange={(value) => updateLight(selectedLight.id, { intensity: value })}
+                  formatValue={formatLightIntensityValue}
+                />
               </div>
 
               {supportsPosition(selectedLight.type) ? (
-                <div className="VectorFieldGrid">
-                  <span>Position</span>
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={selectedLight.position?.x ?? 0}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, {
-                        position: {
-                          x: Number(event.target.value),
-                          y: selectedLight.position?.y ?? 0,
-                          z: selectedLight.position?.z ?? 0,
-                        },
-                      })
-                    }
-                  />
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={selectedLight.position?.y ?? 0}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, {
-                        position: {
-                          x: selectedLight.position?.x ?? 0,
-                          y: Number(event.target.value),
-                          z: selectedLight.position?.z ?? 0,
-                        },
-                      })
-                    }
-                  />
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={selectedLight.position?.z ?? 0}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, {
-                        position: {
-                          x: selectedLight.position?.x ?? 0,
-                          y: selectedLight.position?.y ?? 0,
-                          z: Number(event.target.value),
-                        },
-                      })
-                    }
-                  />
-                </div>
+                <ParaVec3Field
+                  className="SelectedLightVectorField"
+                  label="Position"
+                  value={selectedLight.position ?? { x: 0, y: 0, z: 0 }}
+                  min={-300}
+                  max={300}
+                  step={0.1}
+                  onChangeAxis={(axis, value) =>
+                    updateLight(selectedLight.id, {
+                      position: updateVec3Axis(selectedLight.position, axis, value),
+                    })
+                  }
+                  formatValue={(_axis, value) => value.toFixed(1)}
+                  displayValue={(_axis, value) => value.toFixed(1)}
+                />
               ) : null}
 
               {supportsTarget(selectedLight.type) ? (
-                <div className="VectorFieldGrid">
-                  <span>Target</span>
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={selectedLight.target?.x ?? 0}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, {
-                        target: {
-                          x: Number(event.target.value),
-                          y: selectedLight.target?.y ?? 0,
-                          z: selectedLight.target?.z ?? 0,
-                        },
-                      })
-                    }
-                  />
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={selectedLight.target?.y ?? 0}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, {
-                        target: {
-                          x: selectedLight.target?.x ?? 0,
-                          y: Number(event.target.value),
-                          z: selectedLight.target?.z ?? 0,
-                        },
-                      })
-                    }
-                  />
-                  <input
-                    type="number"
-                    step={0.1}
-                    value={selectedLight.target?.z ?? 0}
-                    onChange={(event) =>
-                      updateLight(selectedLight.id, {
-                        target: {
-                          x: selectedLight.target?.x ?? 0,
-                          y: selectedLight.target?.y ?? 0,
-                          z: Number(event.target.value),
-                        },
-                      })
-                    }
-                  />
-                </div>
+                <ParaVec3Field
+                  className="SelectedLightVectorField"
+                  label="Target"
+                  value={selectedLight.target ?? { x: 0, y: 0, z: 0 }}
+                  min={-300}
+                  max={300}
+                  step={0.1}
+                  onChangeAxis={(axis, value) =>
+                    updateLight(selectedLight.id, {
+                      target: updateVec3Axis(selectedLight.target, axis, value),
+                    })
+                  }
+                  formatValue={(_axis, value) => value.toFixed(1)}
+                  displayValue={(_axis, value) => value.toFixed(1)}
+                />
               ) : null}
 
               {supportsDistance(selectedLight.type) ? (
                 <div className="MiniFieldGrid">
-                  <label>
-                    Distance
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={selectedLight.distance ?? 0}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { distance: Number(event.target.value) })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Decay
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={selectedLight.decay ?? 2}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { decay: Number(event.target.value) })
-                      }
-                    />
-                  </label>
+                  <ParaSlider
+                    label="Distance"
+                    min={0}
+                    max={50}
+                    step={0.1}
+                    value={selectedLight.distance ?? 0}
+                    onChange={(value) => updateLight(selectedLight.id, { distance: value })}
+                    formatValue={formatLightDistanceValue}
+                  />
+                  <ParaSlider
+                    label="Decay"
+                    min={0}
+                    max={8}
+                    step={0.1}
+                    value={selectedLight.decay ?? 2}
+                    onChange={(value) => updateLight(selectedLight.id, { decay: value })}
+                    formatValue={formatLightDecayValue}
+                  />
                 </div>
               ) : null}
 
               {supportsSpot(selectedLight.type) ? (
                 <div className="MiniFieldGrid">
-                  <label>
-                    Angle (deg)
-                    <input
-                      type="number"
-                      min={0}
-                      max={89}
-                      step={1}
-                      value={selectedLight.angleDeg ?? 35}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { angleDeg: Number(event.target.value) })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Penumbra
-                    <input
-                      type="number"
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      value={selectedLight.penumbra ?? 0.2}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { penumbra: Number(event.target.value) })
-                      }
-                    />
-                  </label>
+                  <ParaSlider
+                    label="Angle (deg)"
+                    min={0}
+                    max={89}
+                    step={1}
+                    value={selectedLight.angleDeg ?? 35}
+                    onChange={(value) => updateLight(selectedLight.id, { angleDeg: value })}
+                    formatValue={formatLightAngleValue}
+                  />
+                  <ParaSlider
+                    label="Penumbra"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={selectedLight.penumbra ?? 0.2}
+                    onChange={(value) => updateLight(selectedLight.id, { penumbra: value })}
+                    formatValue={formatLightPenumbraValue}
+                  />
                 </div>
               ) : null}
 
               {supportsShadow(selectedLight.type) ? (
                 <div className="MiniFieldGrid">
-                  <label>
-                    Cast Shadow
-                    <input
-                      type="checkbox"
-                      checked={selectedLight.castShadow ?? false}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { castShadow: event.target.checked })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Shadow Bias
-                    <input
-                      type="number"
-                      step={0.0001}
-                      value={selectedLight.shadowBias ?? -0.0003}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { shadowBias: Number(event.target.value) })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Shadow Map
-                    <select
-                      value={selectedLight.shadowMapSize ?? 1024}
-                      onChange={(event) =>
-                        updateLight(selectedLight.id, { shadowMapSize: Number(event.target.value) })
-                      }
-                    >
-                      {shadowSizes.map((size) => (
-                        <option key={size} value={size}>
-                          {size}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <ParaSelect
+                    label="Cast Shadow"
+                    value={selectedLight.castShadow ? 'on' : 'off'}
+                    options={enabledOptions}
+                    onChange={(value) =>
+                      updateLight(selectedLight.id, { castShadow: value === 'on' })
+                    }
+                  />
+                  <ParaSlider
+                    label="Shadow Bias"
+                    min={-0.01}
+                    max={0.01}
+                    step={0.0001}
+                    value={selectedLight.shadowBias ?? -0.0003}
+                    onChange={(value) => updateLight(selectedLight.id, { shadowBias: value })}
+                    formatValue={formatLightShadowBiasValue}
+                  />
+                  <ParaSelect
+                    label="Shadow Map"
+                    value={`${selectedLight.shadowMapSize ?? 1024}`}
+                    options={shadowMapOptions}
+                    onChange={(value) =>
+                      updateLight(selectedLight.id, { shadowMapSize: Number(value) })
+                    }
+                  />
                 </div>
               ) : null}
             </div>
@@ -1881,11 +2353,221 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     ? viewToolbarActiveTab
     : 'camera'
 
+  const handleDockedViewToolbarSummaryPointerDown = (
+    event: ReactPointerEvent<HTMLElement>,
+  ) => {
+    if (event.button !== 0 || viewportId === undefined) {
+      return
+    }
+    if (event.target instanceof Element && event.target.closest('button') !== null) {
+      return
+    }
+    event.preventDefault()
+    pendingViewToolbarDetachRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+    }
+  }
+
+  const handleViewToolbarToggleClick = (event: ReactMouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    pendingViewToolbarDetachRef.current = null
+    if (viewportId !== undefined) {
+      setViewportLocalViewState(viewportId, {
+        viewToolbarOpen: !viewToolbarOpen,
+      })
+    }
+  }
+
+  const handleFloatingViewToolbarHeaderPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (event.button !== 0) {
+      return
+    }
+    if (event.target instanceof Element && event.target.closest('button') !== null) {
+      return
+    }
+    const floatingWindowRect = viewToolbarFloatingWindowRef.current?.getBoundingClientRect() ?? null
+    if (floatingWindowRect === null) {
+      return
+    }
+    viewToolbarFloatingDragStateRef.current = {
+      pointerId: event.pointerId,
+      pointerOffsetX: Math.round(event.clientX - floatingWindowRect.left),
+      pointerOffsetY: Math.round(event.clientY - floatingWindowRect.top),
+      width: Math.round(floatingWindowRect.width),
+      height: Math.round(floatingWindowRect.height),
+    }
+    event.preventDefault()
+  }
+
+  const handleFloatingViewToolbarResizeHandlePointerDown = (
+    direction: ViewToolbarFloatingResizeDirection,
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (event.button !== 0) {
+      return
+    }
+    viewToolbarFloatingDragStateRef.current = null
+    viewToolbarFloatingResizeStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      direction,
+      anchorRect: resolvedViewToolbarFloatingRect,
+    }
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  const handleQuickDockViewToolbar = () => {
+    if (viewportId === undefined) {
+      return
+    }
+    viewToolbarFloatingDragStateRef.current = null
+    viewToolbarFloatingResizeStateRef.current = null
+    setViewportLocalViewState(viewportId, {
+      viewToolbarHostMode: 'docked',
+    })
+  }
+
+  const viewToolbarContextMenuElement = (
+    <SpaghettiContextMenu
+      open={viewToolbarContextMenu !== null}
+      x={viewToolbarContextMenu?.x ?? 0}
+      y={viewToolbarContextMenu?.y ?? 0}
+      onClose={() => setViewToolbarContextMenu(null)}
+      containerClassName="ViewToolbarContextMenu"
+      items={[
+        {
+          id: 'view-toolbar-presentation-classic',
+          label: 'Classic',
+          disabled: viewToolbarExpandedPresentationMode === 'classic',
+          onSelect: () => {
+            setViewToolbarExpandedPresentationMode('classic')
+            setViewToolbarContextMenu(null)
+          },
+        },
+        {
+          id: 'view-toolbar-presentation-tabs',
+          label: 'Tabs',
+          disabled: viewToolbarExpandedPresentationMode === 'tabs',
+          onSelect: () => {
+            setViewToolbarExpandedPresentationMode('tabs')
+            setViewToolbarContextMenu(null)
+          },
+        },
+      ]}
+    />
+  )
+
+  if (isViewToolbarFloating) {
+    return (
+      <div
+        className="ViewToolbarFloatingWindow"
+        ref={viewToolbarFloatingWindowRef}
+        data-workspace-viewport-id={viewportId}
+        data-view-toolbar-host-mode="floating"
+        onContextMenu={(event) => {
+          if (!viewToolbarOpen || shouldIgnoreViewToolbarShellContextMenu(event.target)) {
+            return
+          }
+          event.preventDefault()
+          event.stopPropagation()
+          openViewToolbarContextMenu(event.clientX, event.clientY)
+        }}
+        style={{
+          position: 'absolute',
+          left: `${resolvedViewToolbarFloatingRect.x}px`,
+          top: `${resolvedViewToolbarFloatingRect.y}px`,
+          width: `${resolvedViewToolbarFloatingRect.width}px`,
+          height: `${resolvedViewToolbarFloatingRect.height}px`,
+          zIndex: 19,
+          display: 'grid',
+          gridTemplateRows: `${VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT}px minmax(0, 1fr)`,
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          background: 'rgba(8, 11, 17, 0.96)',
+          boxShadow: '0 18px 44px rgba(0, 0, 0, 0.4)',
+        }}
+      >
+        {viewToolbarFloatingResizeDirections.map((direction) => (
+          <div
+            key={direction}
+            aria-hidden="true"
+            className={`ViewToolbarFloatingResizeHandle ViewToolbarFloatingResizeHandle--${direction}`}
+            data-view-toolbar-resize-handle={direction}
+            onPointerDown={(event) =>
+              handleFloatingViewToolbarResizeHandlePointerDown(direction, event)
+            }
+            style={resolveViewToolbarFloatingResizeHandleStyle(direction)}
+          />
+        ))}
+        <div
+          className="ViewToolbarFloatingWindowHeader"
+          onPointerDown={handleFloatingViewToolbarHeaderPointerDown}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            padding: '0 10px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.04)',
+            color: 'rgba(241,244,255,0.94)',
+            cursor: 'grab',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+        >
+          <span>View</span>
+          <FloatingWindowQuickDockButton
+            className="ViewToolbarFloatingWindowQuickDock"
+            onClick={handleQuickDockViewToolbar}
+          />
+        </div>
+        <div
+          className="V15Panel ViewToolbarRoot ViewToolbarFloatingWindowBody"
+          data-scrollable="true"
+          style={{
+            maxHeight: '100%',
+            height: '100%',
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+        >
+          <div
+            className={`ViewToolbarPanel ${isTabsPresentation ? 'ViewToolbarPanel--tabs' : ''}`}
+            data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
+            style={{
+              marginTop: 0,
+              padding: `12px 12px ${viewToolbarBottomContentPadding}px`,
+            }}
+          >
+            <ViewToolbarBody
+              sections={viewToolbarSections}
+              isTabsPresentation={isTabsPresentation}
+              activeTab={resolvedViewToolbarActiveTab}
+              onSelectTab={setViewToolbarActiveTab}
+            />
+          </div>
+        </div>
+        {viewToolbarContextMenuElement}
+      </div>
+    )
+  }
+
   return (
     <aside
+      ref={rightDockRef}
       className={`RightDock ${viewToolbarOpen ? 'isExpanded' : 'isCompact'}`}
       data-workspace-viewport-id={viewportId}
       data-view-toolbar-dock-mode={effectiveViewToolbarDockMode}
+      data-view-toolbar-host-mode="docked"
       style={{
         width: `${rightDockWidth}px`,
         minWidth: `${rightDockWidth}px`,
@@ -1921,14 +2603,8 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         >
           <summary
             className="V15PanelTitle ViewToolbarToggle"
-            onClick={(event) => {
-              event.preventDefault()
-              if (viewportId !== undefined) {
-                setViewportLocalViewState(viewportId, {
-                  viewToolbarOpen: !viewToolbarOpen,
-                })
-              }
-            }}
+            onPointerDown={handleDockedViewToolbarSummaryPointerDown}
+            onClick={handleViewToolbarToggleClick}
           >
             View
           </summary>
@@ -1937,146 +2613,14 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             ref={viewToolbarPanelRef}
             data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
           >
-          {isTabsPresentation ? (
-              <div className="ViewToolbarTabRail" role="tablist" aria-label="View toolbar sections">
-                {viewToolbarSections.map((section) => {
-                  const isActive = resolvedViewToolbarActiveTab === section.key
-                  return (
-                    <button
-                      key={section.key}
-                      type="button"
-                      role="tab"
-                      className={`ViewToolbarTabButton ${isActive ? 'isActive' : ''}`}
-                      aria-selected={isActive}
-                      aria-pressed={isActive}
-                      data-view-toolbar-tab={section.key}
-                      onClick={() => setViewToolbarActiveTab(section.key)}
-                    >
-                      <span className="ViewToolbarTabLabel">{section.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-          ) : null}
-          <div className={isTabsPresentation ? 'ViewToolbarTabContent' : undefined}>
-          <details
-            className="ViewSection CameraSection ViewStyledSection"
-            data-view-toolbar-section="camera"
-            data-tab-active={resolvedViewToolbarActiveTab === 'camera' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'camera' : undefined}
-          >
-            <summary>Camera</summary>
-            {viewToolbarSections[0].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection FlyModeSection ViewStyledSection"
-            data-view-toolbar-section="fly-mode"
-            data-tab-active={resolvedViewToolbarActiveTab === 'fly-mode' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'fly-mode' : undefined}
-          >
-            <summary>Fly Mode</summary>
-            {viewToolbarSections[1].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection TransformSection ViewStyledSection"
-            data-view-toolbar-section="transform"
-            data-tab-active={resolvedViewToolbarActiveTab === 'transform' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'transform' : undefined}
-          >
-            <summary>Transform</summary>
-            {viewToolbarSections[2].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection SnapSection ViewStyledSection"
-            data-view-toolbar-section="snap"
-            data-tab-active={resolvedViewToolbarActiveTab === 'snap' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'snap' : undefined}
-          >
-            <summary>Snap</summary>
-            {viewToolbarSections[3].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection GizmoSection ViewStyledSection"
-            data-view-toolbar-section="gizmo"
-            data-tab-active={resolvedViewToolbarActiveTab === 'gizmo' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'gizmo' : undefined}
-          >
-            <summary>Gizmo</summary>
-            {viewToolbarSections[4].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection ViewStyledSection"
-            data-view-toolbar-section="view"
-            data-tab-active={resolvedViewToolbarActiveTab === 'view' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'view' : undefined}
-          >
-            <summary>View</summary>
-            {viewToolbarSections[5].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection ViewStyledSection"
-            data-view-toolbar-section="environment"
-            data-tab-active={resolvedViewToolbarActiveTab === 'environment' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'environment' : undefined}
-          >
-            <summary>Environment</summary>
-            {viewToolbarSections[6].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection ViewStyledSection"
-            data-view-toolbar-section="ground"
-            data-tab-active={resolvedViewToolbarActiveTab === 'ground' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'ground' : undefined}
-          >
-            <summary>Ground</summary>
-            {viewToolbarSections[7].renderBody()}
-          </details>
-
-          <details
-            className="ViewSection ViewStyledSection"
-            data-view-toolbar-section="materials"
-            data-tab-active={resolvedViewToolbarActiveTab === 'materials' ? 'true' : 'false'}
-            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'materials' : undefined}
-          >
-            <summary>Materials</summary>
-            {viewToolbarSections[8].renderBody()}
-          </details>
+            <ViewToolbarBody
+              sections={viewToolbarSections}
+              isTabsPresentation={isTabsPresentation}
+              activeTab={resolvedViewToolbarActiveTab}
+              onSelectTab={setViewToolbarActiveTab}
+            />
           </div>
-          </div>
-          <SpaghettiContextMenu
-            open={viewToolbarContextMenu !== null}
-            x={viewToolbarContextMenu?.x ?? 0}
-            y={viewToolbarContextMenu?.y ?? 0}
-            onClose={() => setViewToolbarContextMenu(null)}
-            containerClassName="ViewToolbarContextMenu"
-            items={[
-              {
-                id: 'view-toolbar-presentation-classic',
-                label: 'Classic',
-                disabled: viewToolbarExpandedPresentationMode === 'classic',
-                onSelect: () => {
-                  setViewToolbarExpandedPresentationMode('classic')
-                  setViewToolbarContextMenu(null)
-                },
-              },
-              {
-                id: 'view-toolbar-presentation-tabs',
-                label: 'Tabs',
-                disabled: viewToolbarExpandedPresentationMode === 'tabs',
-                onSelect: () => {
-                  setViewToolbarExpandedPresentationMode('tabs')
-                  setViewToolbarContextMenu(null)
-                },
-              },
-            ]}
-          />
+          {viewToolbarContextMenuElement}
         </details>
       </div>
     </aside>

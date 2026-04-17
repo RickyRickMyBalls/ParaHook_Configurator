@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { ConsoleDock } from './console/ConsoleDock'
+import { FloatingWindowQuickDockButton } from './components/FloatingWindowQuickDockButton'
 import {
   readPersistedDashboardState,
   writePersistedDashboardState,
@@ -971,15 +972,12 @@ export function AppShell() {
           }}
         >
           <span>Floating Model Viewport</span>
-          <button
-            type="button"
+          <FloatingWindowQuickDockButton
             className="DetachedViewerFloatingWindowQuickDock"
             onClick={() => {
               redockDetachedSurface(surface.surfaceInstanceId)
             }}
-          >
-            Quick Dock
-          </button>
+          />
         </div>
         <div style={{ position: 'relative', minHeight: 0 }}>
           <ViewportWorkspaceHost

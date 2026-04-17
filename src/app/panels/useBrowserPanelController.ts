@@ -73,6 +73,7 @@ import {
 } from './selectBrowserTreeRows'
 import {
   selectStagedImportPreviewRows,
+  type StagedImportPreviewSelectionState,
   type StagedImportPreviewRowVm,
 } from './selectStagedImportPreviewRows'
 import type { BrowserTreeRowHandlers } from './browserTreeRowPresenter'
@@ -105,13 +106,15 @@ type BrowserPanelControllerOutput = {
     importMenuStyle: { left: string; top: string } | undefined
     stagedImportDraft: StagedImportDraftState | null
     stagedImportCommitResult: StagedImportCommitResult | null
-    stagedImportPreviewSelection: { stagedFileId: string } | null
+    stagedImportPreviewSelection: StagedImportPreviewSelectionState | null
     stagedImportColumnWidths: {
       leftPercent: number
       middlePercent: number
       rightPercent: number
     }
     stagedImportPreviewRows: StagedImportPreviewRowVm[]
+    stagedImportPreviewSelectedRowId: string | null
+    stagedImportPreviewSelectedRowIds: string[]
     isBrowsingImportFiles: boolean
     onOpenImportFiles: () => void
     onBrowseImportFiles: () => void
@@ -125,7 +128,15 @@ type BrowserPanelControllerOutput = {
       stagedFileId: string,
       scaleMultiplier: number,
     ) => void
-    onLoadStagedImportPreview: (stagedFileId: string) => void
+    onRemoveStagedImportFile: (stagedFileId: string) => void
+    onLoadStagedImportPreview: (stagedFileId: string, sourceRowId?: string | null) => void
+    onSelectStagedImportPreviewRow: (
+      row: StagedImportPreviewRowVm,
+      modifiers?: {
+        ctrlKey: boolean
+        shiftKey: boolean
+      },
+    ) => void
     onStartStagedImportColumnResize: (
       divider: 'left-middle' | 'middle-right',
       event: ReactPointerEvent<HTMLButtonElement>,
@@ -133,6 +144,8 @@ type BrowserPanelControllerOutput = {
     ) => void
     onSetStagedImportPutAcceptedInNewAssembly: (enabled: boolean) => void
     onCreateStagedImportPreviewAssembly: () => void
+    canRemoveSelectedPreviewRows: boolean
+    onRemoveSelectedPreviewRows: () => void
     onCreateStagedImportPreviewComponent: (assemblyId: string) => void
     registerStagedImportPreviewRowElement: (rowId: string) => (element: HTMLDivElement | null) => void
     onStagedImportPreviewRowPointerDown: (
@@ -161,6 +174,12 @@ type StagedImportColumnWidths = {
   leftPercent: number
   middlePercent: number
   rightPercent: number
+}
+
+type StagedImportPreviewRowSelectionState = {
+  selectedRowId: string | null
+  explicitSelectedRowIds: string[]
+  selectionAnchorRowId: string | null
 }
 
 const defaultStagedImportColumnWidths: StagedImportColumnWidths = {
@@ -299,11 +318,15 @@ export function useBrowserPanelController(
   const stagedImportDraft = useAppStore((state) => state.referenceWorkspace.stagedImportDraft)
   const openStagedImportDraft = useAppStore((state) => state.openStagedImportDraft)
   const appendStagedImportDraftFiles = useAppStore((state) => state.appendStagedImportDraftFiles)
+  const removeStagedImportDraftFile = useAppStore((state) => state.removeStagedImportDraftFile)
   const createStagedImportPreviewAssembly = useAppStore(
     (state) => state.createStagedImportPreviewAssembly,
   )
   const createStagedImportPreviewComponent = useAppStore(
     (state) => state.createStagedImportPreviewComponent,
+  )
+  const removeStagedImportPreviewOwners = useAppStore(
+    (state) => state.removeStagedImportPreviewOwners,
   )
   const moveStagedImportPreviewOwner = useAppStore((state) => state.moveStagedImportPreviewOwner)
   const setStagedImportFileMode = useAppStore((state) => state.setStagedImportFileMode)
@@ -372,9 +395,14 @@ export function useBrowserPanelController(
   const [isBrowsingImportFiles, setIsBrowsingImportFiles] = useState(false)
   const [stagedImportCommitResult, setStagedImportCommitResult] =
     useState<StagedImportCommitResult | null>(null)
-  const [stagedImportPreviewSelection, setStagedImportPreviewSelection] = useState<{
-    stagedFileId: string
-  } | null>(null)
+  const [stagedImportPreviewSelection, setStagedImportPreviewSelection] =
+    useState<StagedImportPreviewSelectionState | null>(null)
+  const [stagedImportPreviewRowSelection, setStagedImportPreviewRowSelection] =
+    useState<StagedImportPreviewRowSelectionState>({
+      selectedRowId: null,
+      explicitSelectedRowIds: [],
+      selectionAnchorRowId: null,
+    })
   const [stagedImportColumnWidths, setStagedImportColumnWidths] = useState(
     defaultStagedImportColumnWidths,
   )
@@ -410,9 +438,66 @@ export function useBrowserPanelController(
   )
 
   const stagedImportPreviewRows = useMemo(
-    () => selectStagedImportPreviewRows(stagedImportDraft),
-    [stagedImportDraft],
+    () => selectStagedImportPreviewRows(stagedImportDraft, stagedImportPreviewSelection),
+    [stagedImportDraft, stagedImportPreviewSelection],
   )
+
+  useEffect(() => {
+    const validRowIds = new Set(stagedImportPreviewRows.map((row) => row.rowId))
+    setStagedImportPreviewRowSelection((current) => {
+      const explicitSelectedRowIds = current.explicitSelectedRowIds.filter((rowId) =>
+        validRowIds.has(rowId),
+      )
+      const selectedRowId =
+        current.selectedRowId !== null && validRowIds.has(current.selectedRowId)
+          ? current.selectedRowId
+          : explicitSelectedRowIds.at(-1) ?? null
+      const normalizedExplicitSelectedRowIds =
+        selectedRowId === null
+          ? []
+          : explicitSelectedRowIds.length > 0
+            ? explicitSelectedRowIds
+            : [selectedRowId]
+      const selectionAnchorRowId =
+        current.selectionAnchorRowId !== null && validRowIds.has(current.selectionAnchorRowId)
+          ? current.selectionAnchorRowId
+          : normalizedExplicitSelectedRowIds[0] ?? null
+
+      if (
+        current.selectedRowId === selectedRowId &&
+        current.selectionAnchorRowId === selectionAnchorRowId &&
+        current.explicitSelectedRowIds.length === normalizedExplicitSelectedRowIds.length &&
+        current.explicitSelectedRowIds.every(
+          (rowId, index) => rowId === normalizedExplicitSelectedRowIds[index],
+        )
+      ) {
+        return current
+      }
+
+      return {
+        selectedRowId,
+        explicitSelectedRowIds: normalizedExplicitSelectedRowIds,
+        selectionAnchorRowId,
+      }
+    })
+  }, [stagedImportPreviewRows])
+
+  const selectedStagedImportPreviewRows = useMemo(() => {
+    const selectedRowIds =
+      stagedImportPreviewRowSelection.explicitSelectedRowIds.length > 0
+        ? stagedImportPreviewRowSelection.explicitSelectedRowIds
+        : stagedImportPreviewRowSelection.selectedRowId !== null
+          ? [stagedImportPreviewRowSelection.selectedRowId]
+          : []
+    const rowById = new Map(stagedImportPreviewRows.map((row) => [row.rowId, row] as const))
+    return selectedRowIds
+      .map((rowId) => rowById.get(rowId) ?? null)
+      .filter((row): row is StagedImportPreviewRowVm => row !== null)
+  }, [stagedImportPreviewRowSelection, stagedImportPreviewRows])
+
+  const canRemoveSelectedPreviewRows =
+    selectedStagedImportPreviewRows.length > 0 &&
+    selectedStagedImportPreviewRows.every((row) => row.canDeleteFromPreviewOrganization)
 
   const contentRootBuildPolicy = useMemo<BrowserBuildPolicy>(() => {
     const rootAssemblyId = currentProject?.rootAssemblyId ?? null
@@ -865,6 +950,9 @@ export function useBrowserPanelController(
       if (row === null) {
         return null
       }
+      if (row.rowKind === 'part') {
+        return null
+      }
       return row.rowKind === 'assembly'
         ? { kind: 'assembly', assemblyId: row.rowId }
         : row.rowKind === 'component'
@@ -1188,14 +1276,107 @@ export function useBrowserPanelController(
   )
 
   const handleLoadStagedImportPreview = useCallback(
+    (stagedFileId: string, sourceRowId: string | null = null) => {
+      const stagedFile = resolveStagedDraftFile(stagedFileId)
+      if (stagedFile === null) {
+        return
+      }
+      setStagedImportPreviewSelection({ stagedFileId, sourceRowId })
+    },
+    [resolveStagedDraftFile],
+  )
+
+  const handleRemoveStagedImportFile = useCallback(
     (stagedFileId: string) => {
       const stagedFile = resolveStagedDraftFile(stagedFileId)
       if (stagedFile === null) {
         return
       }
-      setStagedImportPreviewSelection({ stagedFileId })
+      if (!removeStagedImportDraftFile(stagedFileId)) {
+        return
+      }
+      setStagedImportCommitResult(null)
+      if (stagedImportPreviewSelection?.stagedFileId === stagedFileId) {
+        setStagedImportPreviewSelection(null)
+      }
     },
-    [resolveStagedDraftFile],
+    [removeStagedImportDraftFile, resolveStagedDraftFile, stagedImportPreviewSelection],
+  )
+
+  const handleSelectStagedImportPreviewRow = useCallback(
+    (
+      row: StagedImportPreviewRowVm,
+      modifiers: {
+        ctrlKey: boolean
+        shiftKey: boolean
+      } = { ctrlKey: false, shiftKey: false },
+    ) => {
+      setStagedImportPreviewRowSelection((current) => {
+        const currentSelectedRowIds =
+          current.explicitSelectedRowIds.length > 0
+            ? current.explicitSelectedRowIds
+            : current.selectedRowId !== null
+              ? [current.selectedRowId]
+              : []
+
+        if (modifiers.shiftKey) {
+          const anchorRowId =
+            current.selectionAnchorRowId ?? current.selectedRowId ?? row.rowId
+          const anchorIndex = stagedImportPreviewRows.findIndex(
+            (candidate) => candidate.rowId === anchorRowId,
+          )
+          const clickedIndex = stagedImportPreviewRows.findIndex(
+            (candidate) => candidate.rowId === row.rowId,
+          )
+
+          if (anchorIndex !== -1 && clickedIndex !== -1) {
+            const explicitSelectedRowIds = stagedImportPreviewRows
+              .slice(Math.min(anchorIndex, clickedIndex), Math.max(anchorIndex, clickedIndex) + 1)
+              .map((candidate) => candidate.rowId)
+
+            return {
+              selectedRowId: row.rowId,
+              explicitSelectedRowIds,
+              selectionAnchorRowId: anchorRowId,
+            }
+          }
+        }
+
+        if (modifiers.ctrlKey) {
+          const isAlreadySelected = currentSelectedRowIds.includes(row.rowId)
+          if (!isAlreadySelected) {
+            return {
+              selectedRowId: row.rowId,
+              explicitSelectedRowIds: [...currentSelectedRowIds, row.rowId],
+              selectionAnchorRowId: row.rowId,
+            }
+          }
+
+          const explicitSelectedRowIds = currentSelectedRowIds.filter(
+            (rowId) => rowId !== row.rowId,
+          )
+          const selectedRowId =
+            current.selectedRowId !== null &&
+            current.selectedRowId !== row.rowId &&
+            explicitSelectedRowIds.includes(current.selectedRowId)
+              ? current.selectedRowId
+              : explicitSelectedRowIds.at(-1) ?? null
+
+          return {
+            selectedRowId,
+            explicitSelectedRowIds,
+            selectionAnchorRowId: row.rowId,
+          }
+        }
+
+        return {
+          selectedRowId: row.rowId,
+          explicitSelectedRowIds: [row.rowId],
+          selectionAnchorRowId: row.rowId,
+        }
+      })
+    },
+    [stagedImportPreviewRows],
   )
 
   const handleStartStagedImportColumnResize = useCallback(
@@ -1261,6 +1442,24 @@ export function useBrowserPanelController(
     createStagedImportPreviewAssembly()
   }, [createStagedImportPreviewAssembly])
 
+  const handleRemoveSelectedPreviewRows = useCallback(() => {
+    if (!canRemoveSelectedPreviewRows) {
+      return
+    }
+    if (!removeStagedImportPreviewOwners(selectedStagedImportPreviewRows.map((row) => row.rowId))) {
+      return
+    }
+    setStagedImportPreviewRowSelection({
+      selectedRowId: null,
+      explicitSelectedRowIds: [],
+      selectionAnchorRowId: null,
+    })
+  }, [
+    canRemoveSelectedPreviewRows,
+    removeStagedImportPreviewOwners,
+    selectedStagedImportPreviewRows,
+  ])
+
   const handleCreateStagedImportPreviewComponent = useCallback(
     (assemblyId: string) => {
       createStagedImportPreviewComponent(assemblyId)
@@ -1288,7 +1487,14 @@ export function useBrowserPanelController(
 
   const handleCloseImportDialog = useCallback(() => {
     setStagedImportCommitResult(null)
+    setStagedImportPreviewSelection(null)
+    setStagedImportPreviewRowSelection({
+      selectedRowId: null,
+      explicitSelectedRowIds: [],
+      selectionAnchorRowId: null,
+    })
     setStagedImportColumnWidths(defaultStagedImportColumnWidths)
+    setStagedImportPreviewDragState(null)
     closeStagedImportDraft()
   }, [closeStagedImportDraft])
 
@@ -1297,6 +1503,11 @@ export function useBrowserPanelController(
       stagedImportInspectionIdsRef.current.clear()
       setStagedImportCommitResult(null)
       setStagedImportPreviewSelection(null)
+      setStagedImportPreviewRowSelection({
+        selectedRowId: null,
+        explicitSelectedRowIds: [],
+        selectionAnchorRowId: null,
+      })
       setStagedImportColumnWidths(defaultStagedImportColumnWidths)
       return
     }
@@ -1376,6 +1587,9 @@ export function useBrowserPanelController(
       if (event.button !== 0) {
         return
       }
+      if (event.ctrlKey || event.shiftKey || event.metaKey) {
+        return
+      }
       const draggedTarget = resolveStagedImportPreviewOwnerTargetFromRowId(row.rowId)
       if (draggedTarget === null) {
         return
@@ -1398,7 +1612,7 @@ export function useBrowserPanelController(
 
   const getStagedImportPreviewRowDragState = useCallback(
     (row: StagedImportPreviewRowVm) => ({
-      draggable: true,
+      draggable: row.rowKind !== 'part',
       isDragging:
         stagedImportPreviewDragState?.draggedRowIds.includes(row.rowId) === true &&
         stagedImportPreviewDragState.phase === 'active',
@@ -2658,6 +2872,8 @@ export function useBrowserPanelController(
       stagedImportPreviewSelection,
       stagedImportColumnWidths,
       stagedImportPreviewRows,
+      stagedImportPreviewSelectedRowId: stagedImportPreviewRowSelection.selectedRowId,
+      stagedImportPreviewSelectedRowIds: stagedImportPreviewRowSelection.explicitSelectedRowIds,
       isBrowsingImportFiles,
       onOpenImportFiles: handleOpenImportFiles,
       onBrowseImportFiles: handleBrowseImportFiles,
@@ -2665,10 +2881,14 @@ export function useBrowserPanelController(
       onSetStagedImportFileUpAxis: handleSetStagedImportFileUpAxis,
       onSetStagedImportFileScaleAlignment: handleSetStagedImportFileScaleAlignment,
       onSetStagedImportFileScaleMultiplier: handleSetStagedImportFileScaleMultiplier,
+      onRemoveStagedImportFile: handleRemoveStagedImportFile,
       onLoadStagedImportPreview: handleLoadStagedImportPreview,
+      onSelectStagedImportPreviewRow: handleSelectStagedImportPreviewRow,
       onStartStagedImportColumnResize: handleStartStagedImportColumnResize,
       onSetStagedImportPutAcceptedInNewAssembly: handleSetStagedImportPutAcceptedInNewAssembly,
       onCreateStagedImportPreviewAssembly: handleCreateStagedImportPreviewAssembly,
+      canRemoveSelectedPreviewRows,
+      onRemoveSelectedPreviewRows: handleRemoveSelectedPreviewRows,
       onCreateStagedImportPreviewComponent: handleCreateStagedImportPreviewComponent,
       registerStagedImportPreviewRowElement,
       onStagedImportPreviewRowPointerDown: handleStagedImportPreviewRowPointerDragStartCandidate,

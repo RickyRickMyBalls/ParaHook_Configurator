@@ -26,6 +26,7 @@ Canonical direction and docs-structure references:
 - `docs/Vision.md`
 - `docs/Human-Plans/roadmap/Vision-roadmap.md`
 - `docs/Human-Plans/Architecture/`
+- `docs/Human-Plans/Architecture/Architecture Setup.md`
 - `docs/Doc-Index.md`
 - `docs/Agents/Implementation-Behavior.md`
 - `docs/Phase-Plans/00_Phase-Setup.md`
@@ -115,6 +116,9 @@ Before making product, UX, architecture, naming, ownership, or workflow-structur
 The main planning home for product, workspace, and system families lives in:
 - `docs/Human-Plans/Architecture/`
 
+The default setup/format guide for that newer planning area lives in:
+- `docs/Human-Plans/Architecture/Architecture Setup.md`
+
 Use that area when:
 - reading or revising a family vision
 - creating or revising a family index
@@ -151,6 +155,16 @@ Important planning rules:
 - use generations for major readiness or widening boundaries
 - use phases for the ordered implementation ladder inside a family or generation
 - keep prep-only work honest instead of presenting it as already-started implementation
+- use `docs/Human-Plans/Architecture/Architecture Setup.md` as the default structure guide for new or revised family indexes and standalone future docs in this newer planning area unless a narrower family doc already sets the local pattern
+- when a new idea is broad enough, start with one `*-Vision.md` doc, then compress it into the family index plus one standalone future phase doc
+- standalone future docs in `docs/Human-Plans/Architecture/` should default to the top-level `##` order:
+  - `## Doc Header`
+  - `## Doc Body`
+  - `## Wishlist Organization`
+  - `## [ ] \`Family-Phase\` - \`Phase N - <Title>\``
+- `## Wishlist Organization` should separate the user-provided wishlist into a `### High Level Goals` block and then use `### \`Family-Phase Phase N\`` blocks for the smaller checklist breakdown
+- only add an `HLG` item to a phase block when that phase really advances that high-level goal
+- break future docs into Codex-sized top-level family-phase slices instead of hiding the real ladder inside one large `Doc Body`
 
 ## Phase Docs Rule
 
@@ -162,6 +176,15 @@ Use that file when:
 - adding or revising family phase-plan structure
 - checking phase-plan lifecycle rules
 - checking checklist marker meanings
+
+The default setup/format guide for the newer `docs/Human-Plans/Architecture/` planning area lives in:
+- `docs/Human-Plans/Architecture/Architecture Setup.md`
+
+Use that file when:
+- deciding the default folder/index/future-doc structure for architecture families
+- deciding the normal standalone future-doc shape under `docs/Human-Plans/Architecture/`
+- translating a new architecture idea into the newer family-index plus `Future/` planning pattern
+- deciding how `Wishlist Organization` and `High Level Goals` should be structured in standalone architecture future docs
 
 The active architecture-family planning home lives in:
 - `docs/Human-Plans/Architecture/`
@@ -179,6 +202,8 @@ Current phase-plan workspace:
 - family docs such as `docs/Phase-Plans/14_DOC - Phase-Plans.md` hold prefix-level planning/history
 
 If phase-system instructions in another file conflict with `docs/Phase-Plans/00_Phase-Setup.md`, prefer `00_Phase-Setup.md`.
+
+If the question is about newer `docs/Human-Plans/Architecture/` doc structure or standalone future-doc format rather than repo-wide phase naming, prefer `docs/Human-Plans/Architecture/Architecture Setup.md`.
 
 If a narrower family doc under `docs/Human-Plans/Architecture/` exists and does not conflict with vision or canonical phase-system rules, prefer that family doc as the planning truth for that family.
 

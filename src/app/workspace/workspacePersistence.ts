@@ -27,6 +27,7 @@ import {
   type WorkspaceLayoutNode,
   type WorkspaceLayoutNodeId,
   type PersistedWorkspaceLayout,
+  type WorkspaceFloatingRect,
   type WorkspacePopoutSurfaceState,
   type WorkspaceSurfaceKind,
   type WorkspaceSurfacePlacementState,
@@ -68,6 +69,35 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const roundNumber = (value: number, fallback: number): number =>
   Number.isFinite(value) ? Math.round(value) : fallback
+
+const cloneWorkspaceFloatingRect = (rect: WorkspaceFloatingRect): WorkspaceFloatingRect => ({
+  x: roundNumber(rect.x, 16),
+  y: roundNumber(rect.y, 96),
+  width: roundNumber(rect.width, 320),
+  height: roundNumber(rect.height, 560),
+})
+
+const normalizeWorkspaceFloatingRect = (value: unknown): WorkspaceFloatingRect | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const x = Number(value.x)
+  const y = Number(value.y)
+  const width = Number(value.width)
+  const height = Number(value.height)
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+    return null
+  }
+  if (width <= 0 || height <= 0) {
+    return null
+  }
+  return {
+    x: roundNumber(x, 16),
+    y: roundNumber(y, 96),
+    width: roundNumber(width, 320),
+    height: roundNumber(height, 560),
+  }
+}
 
 const cloneBrowserShellState = (browserShell: BrowserShellState): BrowserShellState => ({
   presentationMode:
@@ -186,6 +216,14 @@ const cloneViewportChromeState = (
     localViewState: {
       ...baseChrome.localViewState,
       ...(chrome.localViewState ?? {}),
+      viewToolbarHostMode:
+        chrome.localViewState?.viewToolbarHostMode === 'floating' ? 'floating' : 'docked',
+      viewToolbarFloatingRect:
+        chrome.localViewState?.viewToolbarFloatingRect === null
+          ? null
+          : chrome.localViewState?.viewToolbarFloatingRect === undefined
+            ? baseChrome.localViewState.viewToolbarFloatingRect
+            : cloneWorkspaceFloatingRect(chrome.localViewState.viewToolbarFloatingRect),
     },
   }
 }
@@ -312,10 +350,25 @@ const normalizeViewportChromeRecord = (
         : localViewState?.viewToolbarExpandedPresentationMode === 'classic'
           ? { viewToolbarExpandedPresentationMode: 'classic' as const }
           : {}),
+      ...(localViewState?.viewToolbarHostMode === 'floating'
+        ? { viewToolbarHostMode: 'floating' as const }
+        : localViewState?.viewToolbarHostMode === 'docked'
+          ? { viewToolbarHostMode: 'docked' as const }
+          : {}),
       ...(localViewState?.viewToolbarDockMode === 'top-right-cluster'
         ? { viewToolbarDockMode: 'top-right-cluster' as const }
         : localViewState?.viewToolbarDockMode === 'below-axis'
           ? { viewToolbarDockMode: 'below-axis' as const }
+          : {}),
+      ...(localViewState?.viewToolbarFloatingRect === null
+        ? { viewToolbarFloatingRect: null }
+        : localViewState?.viewToolbarFloatingRect !== undefined
+          ? (() => {
+              const floatingRect = normalizeWorkspaceFloatingRect(
+                localViewState.viewToolbarFloatingRect,
+              )
+              return floatingRect === null ? {} : { viewToolbarFloatingRect: floatingRect }
+            })()
           : {}),
       ...(localViewState?.viewToolbarActiveTab === 'camera' ||
       localViewState?.viewToolbarActiveTab === 'fly-mode' ||

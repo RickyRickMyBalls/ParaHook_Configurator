@@ -191,6 +191,7 @@ export type WorkspaceViewportChromeState = {
 
 export type WorkspaceViewportResultMode = 'auto' | 'draft' | 'final'
 export type WorkspaceViewToolbarExpandedPresentationMode = 'classic' | 'tabs'
+export type WorkspaceViewToolbarHostMode = 'docked' | 'floating'
 export type WorkspaceViewToolbarDockMode = 'below-axis' | 'top-right-cluster'
 export type WorkspaceViewToolbarTabKey =
   | 'camera'
@@ -208,7 +209,9 @@ export type WorkspaceViewportLocalViewState = {
   axisOverlayEnabled: boolean
   viewToolbarOpen: boolean
   viewToolbarExpandedPresentationMode: WorkspaceViewToolbarExpandedPresentationMode
+  viewToolbarHostMode: WorkspaceViewToolbarHostMode
   viewToolbarDockMode: WorkspaceViewToolbarDockMode
+  viewToolbarFloatingRect: WorkspaceFloatingRect | null
   viewToolbarActiveTab: WorkspaceViewToolbarTabKey
   viewToolbarCompactAxisWidgetSize: number | null
   viewToolbarExpandedAxisWidgetSize: number | null
@@ -359,7 +362,9 @@ export const createDefaultWorkspaceViewportLocalViewState =
     axisOverlayEnabled: DEFAULT_VIEW_SETTINGS.axisOverlayEnabled,
     viewToolbarOpen: false,
     viewToolbarExpandedPresentationMode: 'classic',
+    viewToolbarHostMode: 'docked',
     viewToolbarDockMode: 'below-axis',
+    viewToolbarFloatingRect: null,
     viewToolbarActiveTab: 'camera',
     viewToolbarCompactAxisWidgetSize: null,
     viewToolbarExpandedAxisWidgetSize: null,

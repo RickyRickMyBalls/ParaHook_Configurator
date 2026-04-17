@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+29. 2026-04-17 14:57:36: Refreshed this roadmap against the live `Browser`, `View Toolbar`, and `Worker Vision` family docs, marking the shipped `Browser-13` cleanup slices, the now-landed `View-Toolbar 1`, `View-Toolbar 7`, `View-Toolbar 8 Phase 1` through `Phase 4`, and `Worker-Vision-3 Phase 6` through `Phase 9`, while expanding the `View Toolbar` family read past the stale older four-cut ladder
 28. 2026-04-13 15:00: Refreshed this roadmap against the live `Cleanup`, `Build Path`, and `Viewport Runtime Inspector` family indexes, adding the previously missing `Cleanup` and `Viewport Runtime Inspector` families, marking the now-shipped `Cleanup 1` through `Cleanup 10` ladder plus shipped `VRI-1` through `VRI-3.5` slices, and tightening the `Build Path` source-doc read around the new dedicated vision doc and the real lowercase `build-path-index.md` entrypoint
 27. 2026-04-10 09:25: Refreshed this roadmap against the live changelog plus the current Browser, Workspace, Worker, Model-Viewport, Sketch, and Extrude family docs, marking the newly shipped `Browser-12`, `Sketch-1`, `Extrude-4` through `Extrude-7`, `Worker Vision Phase 1` and `Phase 2`, and the latest `Worker-Vision-3` internal phases while replacing the stale `Workspace 7.5-7` through `7.5-11` ladder with the real open `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, and `Workspace 7.5-17` follow-ons
 26. 2026-04-01 18:03: Promoted `Build Path` out of the catch-all open-family list into the main `### Suggested Working Order`, placing it after the current workspace cleanup ladder, later `AppShell` cleanup, and `Edit History` groundwork while also tightening the family read so it now describes a scrub-friendly derived CAD-command diff surface rather than a second undo/history system
@@ -151,14 +152,17 @@ Source doc:
 Current read:
 - `Browser` is much larger than the older `1` through `7` read this roadmap was still carrying
 - the family now has shipped work through:
-  - `Browser-12`
-- the remaining open Browser work is no longer just one cleanup bucket:
+  - `Browser-13`
+- the remaining open Browser work is now spread across:
   - `Browser-7`
   - `Browser-8`
   - `Browser-9`
   - `Browser-10`
   - `Browser-11`
   - `Browser-12.1`
+  - `Browser-12.2`
+  - `Browser-13`
+  - `Browser-14`
 - several of those umbrellas already contain shipped subphases, so the roadmap should keep both the umbrella phase and the landed child cuts visible
 
 ### [x] Browser-1 - Build Policy Icon Surface
@@ -209,6 +213,17 @@ Current read:
 ### [x] Browser-11.5 - Cross-Parent First-Drop Ordering Parity
 ### [x] Browser-12 - Part Row Surface Cleanup And Usability Polish
 ### [ ] Browser-12.1 - Real STEP Import Row Progress
+### [ ] Browser-12.2 - Explicit Assembly And Component Visibility Control
+### [ ] Browser-12.2.1 - Browser Context Menu Hide And Show Parity For Authored Containers
+### [ ] Browser-12.2.2 - Selected Authored Container Console Hide And Show Parity
+### [ ] Browser-12.2.3 - Selected Authored Container Keyboard Hide Parity
+### [ ] Browser-13 - UI Clean Polish And Cleanup
+### [x] Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow
+### [x] Browser-13 - Phase 2 - Re-Adjustable Docked And Floating Browser Size
+### [x] Browser-13 - Phase 2.1 - Docked Browser Width Uses The Shared Left Rail Resize Seam
+### [x] Browser-13 - Phase 2.2 - Floating Browser Window Resize Affordances
+### [x] Browser-13 - Phase 2.3 - Reachable Shared Right-Edge Dock Resize Seam
+### [ ] Browser-14 - Explicit Part Explosion Into Real Object Rows
 
 ## [~] Console
 ### Info
@@ -444,25 +459,56 @@ Current read:
 ### [x] [5.0H-4] Camera Console Commands
 ### [ ] [5.0H-5] Shared View Input Owner Model
 
-## [ ] View Toolbar
+## [~] View Toolbar
 ### Info
 
 Source doc:
 - `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`
 
 Current read:
-- the `View Toolbar` family has a real ladder, but it is still entirely future-facing
-- the family is currently organized around four open cuts:
-  - shared command dispatch plus projection entry
-  - projection surface plus lens controls
-  - grid/background/core view state
-  - gizmo/helper/legacy feel follow-ons
+- the `View Toolbar` family is no longer entirely future-facing
+- the live family read now includes:
+  - `View-Toolbar 1`
+    - shipped
+  - `View-Toolbar 2`
+    - open
+  - `View-Toolbar 3`
+    - open
+  - `View-Toolbar 4`
+    - open
+  - `View-Toolbar 5`
+    - open umbrella with `Phase 1` through `Phase 5` shipped and `Phase 6` still open
+  - `View-Toolbar 6`
+    - open
+  - `View-Toolbar 7`
+    - shipped
+  - `View-Toolbar 8`
+    - open umbrella with `Phase 1` through `Phase 4` shipped and `Phase 5` now queued
 - this is the main architecture home for explicit camera/view controls, not low-level gesture ownership
 
-### [ ] [5.0I-1] Shared View Command Dispatch And Projection Console Entry
-### [ ] [5.0I-2] Projection Surface, ParaSelect, And Lens Controls
-### [ ] [5.0I-3] Grid, Background, And Core View State
-### [ ] [5.0I-4] Gizmo, Helpers, And Legacy Feel Follow-Ons
+### [x] View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry (`[5.0I-1]`)
+### [ ] View-Toolbar 2 - Projection Surface, ParaSelect, And Lens Controls (`[5.0I-2]`)
+### [ ] View-Toolbar 3 - Grid, Background, And Core View State (`[5.0I-3]`)
+### [ ] View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons (`[5.0I-4]`)
+### [ ] View-Toolbar 5 - UI Polish And Surface Clarity
+### [x] View-Toolbar 5 - Phase 1 - Toolbar Scroll Ownership And Viewport Clamp
+### [x] View-Toolbar 5 - Phase 1b - Used-Height Clamp And Console-Bar Reserve
+### [x] View-Toolbar 5 - Phase 1c - Collapse Remeasure Loop And Immediate Height Settle
+### [x] View-Toolbar 5 - Phase 2 - Transform Subsection Split And Gizmo Scope Cleanup
+### [x] View-Toolbar 5 - Phase 3 - Snap Subsection Split
+### [x] View-Toolbar 5 - Phase 4 - Immediate Section-Collapse Height Snap
+### [x] View-Toolbar 5 - Phase 5 - Browser Read-Only Subsection Density Match
+### [ ] View-Toolbar 5 - Phase 6 - Exact Browser Read-Only Subsection Spacing Parity
+### [ ] View-Toolbar 6 - Classic And Tabs Presentation Modes
+### [x] View-Toolbar 7 - Camera Controls Enrichment
+### [ ] View-Toolbar 8 - Detachable Floating Window Presentation
+### [x] View-Toolbar 8 - Phase 1 - Viewport-Local Host Mode And Floating Rect Groundwork
+### [x] View-Toolbar 8 - Phase 2 - Shared Toolbar Body Extraction
+### [x] View-Toolbar 8 - Phase 3 - Floating Shell, Drag, Clamp, And Quick Dock
+### [x] View-Toolbar 8 - Phase 3.1 - Floating Resize Handles, Clamp, And Minimums
+### [x] View-Toolbar 8 - Phase 3.2 - Floating Shell Context Menu Parity
+### [x] View-Toolbar 8 - Phase 4 - Persistence, Multi-Viewport Proof, And Cleanup
+### [ ] View-Toolbar 8 - Phase 5 - Floating Shell Chrome Theme Parity And Quick-Dock Styling
 
 ## [~] Workspace Modes
 ### Info
@@ -695,7 +741,7 @@ Current read:
   - `Worker Vision Phase 2`
     - shipped
   - `Worker Vision Phase 3`
-    - open umbrella with `Worker-Vision-3 Phase 1` through `Phase 5` shipped and `Phase 6` still open
+    - open umbrella with `Worker-Vision-3 Phase 1` through `Phase 9` shipped and `Phase 10` now open
   - `Worker Vision Phase 4`
     - open
   - `Worker Vision Phase 5`
@@ -709,7 +755,11 @@ Current read:
 ### [x] Worker-Vision-3 Phase 3 - Release, Settle, And Explicit Authoritative Trigger Flow
 ### [x] Worker-Vision-3 Phase 4 - Accepted Draft Versus Authoritative Promotion Rules
 ### [x] Worker-Vision-3 Phase 5 - Hardening And Family Handoff
-### [ ] Worker-Vision-3 Phase 6 - Display Preference Versus Build Policy Cleanup
+### [x] Worker-Vision-3 Phase 6 - Display Preference Versus Build Policy Cleanup
+### [x] Worker-Vision-3 Phase 7 - Auto Draft Visibility And Final Swap Cleanup
+### [x] Worker-Vision-3 Phase 8 - Viewport Result Layering And Relevance Presentation
+### [x] Worker-Vision-3 Phase 9 - Held Authoritative Preview Presentation
+### [ ] Worker-Vision-3 Phase 10 - UI-Only Graph Revision Versus Geometry Build Revision Split
 ### [ ] Worker Vision Phase 4 - Shared Runtime Publication For Browser, Console, And Viewport Runtime Inspector
 ### [ ] Worker Vision Phase 5 - Export And Long-Lived Runtime Reuse Over Accepted Authoritative Truth
 
@@ -826,11 +876,30 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Model-Viewport 1`
 - [x] `Model-Viewport 1.1`
 
-#### [ ] - 5 - View Toolbar
-- [ ] `View Toolbar 1` (`[5.0I-1]`)
+#### [~] - 5 - View Toolbar
+- [x] `View Toolbar 1` (`[5.0I-1]`)
 - [ ] `View Toolbar 2` (`[5.0I-2]`)
 - [ ] `View Toolbar 3` (`[5.0I-3]`)
 - [ ] `View Toolbar 4` (`[5.0I-4]`)
+- [ ] `View Toolbar 5`
+- [x] `View Toolbar 5 Phase 1`
+- [x] `View Toolbar 5 Phase 1b`
+- [x] `View Toolbar 5 Phase 1c`
+- [x] `View Toolbar 5 Phase 2`
+- [x] `View Toolbar 5 Phase 3`
+- [x] `View Toolbar 5 Phase 4`
+- [x] `View Toolbar 5 Phase 5`
+- [ ] `View Toolbar 5 Phase 6`
+- [ ] `View Toolbar 6`
+- [x] `View Toolbar 7`
+- [ ] `View Toolbar 8`
+- [x] `View Toolbar 8 Phase 1`
+- [x] `View Toolbar 8 Phase 2`
+- [x] `View Toolbar 8 Phase 3`
+- [x] `View Toolbar 8 Phase 3.1`
+- [x] `View Toolbar 8 Phase 3.2`
+- [x] `View Toolbar 8 Phase 4`
+- [ ] `View Toolbar 8 Phase 5`
 
 #### [ ] - 6 - Sketch
 - [x] `Sketch-1`
@@ -892,7 +961,11 @@ Keep shipped items visible when they are part of a family that was previously st
 - [x] `Worker-Vision-3 Phase 3`
 - [x] `Worker-Vision-3 Phase 4`
 - [x] `Worker-Vision-3 Phase 5`
-- [ ] `Worker-Vision-3 Phase 6`
+- [x] `Worker-Vision-3 Phase 6`
+- [x] `Worker-Vision-3 Phase 7`
+- [x] `Worker-Vision-3 Phase 8`
+- [x] `Worker-Vision-3 Phase 9`
+- [ ] `Worker-Vision-3 Phase 10`
 - [ ] `Worker Vision 4`
 - [ ] `Worker Vision 5`
 
@@ -930,6 +1003,9 @@ Keep shipped items visible when they are part of a family that was previously st
 - [ ] `Browser 10`
 - [ ] `Browser 11`
 - [ ] `Browser 12.1`
+- [ ] `Browser 12.2`
+- [ ] `Browser 13`
+- [ ] `Browser 14`
 - [~] `Console 4.1I`
 - [ ] `Camera Controls 5` (`[5.0H-5]`)
 - [ ] `Radio 8`
@@ -1030,18 +1106,42 @@ Keep shipped items visible when they are part of a family that was previously st
 91. [x] `Worker-Vision-3 Phase 3`
 92. [x] `Worker-Vision-3 Phase 4`
 93. [x] `Worker-Vision-3 Phase 5`
-94. [x] `Cleanup 1`
-95. [x] `Cleanup 2`
-96. [x] `Cleanup 3`
-97. [x] `Cleanup 4`
-98. [x] `Cleanup 4A`
-99. [x] `Cleanup 5`
-100. [x] `Cleanup 6`
-101. [x] `Cleanup 7`
-102. [x] `Cleanup 8`
-103. [x] `Cleanup 8A`
-104. [x] `Cleanup 9`
-105. [x] `Cleanup 10`
+94. [x] `Worker-Vision-3 Phase 6`
+95. [x] `Worker-Vision-3 Phase 7`
+96. [x] `Worker-Vision-3 Phase 8`
+97. [x] `Worker-Vision-3 Phase 9`
+98. [x] `Browser 13 Phase 1`
+99. [x] `Browser 13 Phase 2`
+100. [x] `Browser 13 Phase 2.1`
+101. [x] `Browser 13 Phase 2.2`
+102. [x] `Browser 13 Phase 2.3`
+103. [x] `View Toolbar 1` (`[5.0I-1]`)
+104. [x] `View Toolbar 5 Phase 1`
+105. [x] `View Toolbar 5 Phase 1b`
+106. [x] `View Toolbar 5 Phase 1c`
+107. [x] `View Toolbar 5 Phase 2`
+108. [x] `View Toolbar 5 Phase 3`
+109. [x] `View Toolbar 5 Phase 4`
+110. [x] `View Toolbar 5 Phase 5`
+111. [x] `View Toolbar 7`
+112. [x] `View Toolbar 8 Phase 1`
+113. [x] `View Toolbar 8 Phase 2`
+114. [x] `View Toolbar 8 Phase 3`
+115. [x] `View Toolbar 8 Phase 3.1`
+116. [x] `View Toolbar 8 Phase 3.2`
+117. [x] `View Toolbar 8 Phase 4`
+118. [x] `Cleanup 1`
+119. [x] `Cleanup 2`
+120. [x] `Cleanup 3`
+121. [x] `Cleanup 4`
+122. [x] `Cleanup 4A`
+123. [x] `Cleanup 5`
+124. [x] `Cleanup 6`
+125. [x] `Cleanup 7`
+126. [x] `Cleanup 8`
+127. [x] `Cleanup 8A`
+128. [x] `Cleanup 9`
+129. [x] `Cleanup 10`
 
 ## Next Cleanup
 
@@ -1049,6 +1149,7 @@ The likely next maintenance pass for this file is:
 - add more family notes only when a source architecture doc gains a real new phase
 - avoid inventing roadmap-only phase ids that do not exist in the family source docs
 - keep the newer `Worker Vision`, `Model Viewport`, `Sketch-1/2`, and `Extrude-6/7` ladders synced from their native family docs instead of leaving them changelog-only
+- keep the newer `Browser-13`, `View-Toolbar 5/7/8`, and later `Worker-Vision-3` slices synced from their native family docs now that those ladders are landing in smaller shipped internal cuts
 - keep the newer `Cleanup` and `Viewport Runtime Inspector` ladders synced from their native family indexes now that both families have real shipped/open phase trees
 - keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own
 - let `Build Path` stay marked as an umbrella concept family until its first standalone execution phase exists, while keeping the new vision doc and the umbrella index read aligned

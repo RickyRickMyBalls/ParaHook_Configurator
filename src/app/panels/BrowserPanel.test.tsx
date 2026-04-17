@@ -146,6 +146,18 @@ const normalizeMockPreviewOrder = (orderedIds: string[] | undefined, defaultIds:
   return normalized
 }
 
+const replaceOrderedRowId = (
+  orderedRowIds: readonly string[],
+  rowId: string,
+  replacementRowIds: readonly string[],
+) => {
+  const index = orderedRowIds.indexOf(rowId)
+  if (index === -1) {
+    return [...orderedRowIds, ...replacementRowIds]
+  }
+  return [...orderedRowIds.slice(0, index), ...replacementRowIds, ...orderedRowIds.slice(index + 1)]
+}
+
 const syncMockStagedImportPreviewOrganization = (draft: any) => {
   const currentPreview = draft.previewOrganization ?? buildEmptyMockStagedImportPreviewOrganization()
   const nextNodesById: Record<string, any> = {}
@@ -254,6 +266,82 @@ const syncMockStagedImportPreviewOrganization = (draft: any) => {
       sortByRank(childrenByParentId.get(null) ?? []),
     ),
     childNodeIdsByParentId: nextChildNodeIdsByParentId,
+  }
+}
+
+const isMockPreviewRemovableOwnerNode = (node: any) =>
+  node?.sourceKind === 'authored' &&
+  (node?.nodeKind === 'assembly' || node?.nodeKind === 'component')
+
+const removeMockStagedImportPreviewOwners = (draft: any, nodeIds: string[]) => {
+  const nextNodesById = Object.fromEntries(
+    Object.entries(draft.previewOrganization.nodesById ?? {}).map(([nodeId, node]) => [
+      nodeId,
+      { ...(node as object) },
+    ]),
+  ) as Record<string, any>
+  const nextChildNodeIdsByParentId = Object.fromEntries(
+    Object.entries(draft.previewOrganization.childNodeIdsByParentId ?? {}).map(
+      ([parentNodeId, childNodeIds]) => [parentNodeId, [...(childNodeIds as string[])]] as const,
+    ),
+  ) as Record<string, string[]>
+  let nextRootNodeIds = [...(draft.previewOrganization.rootNodeIds ?? [])]
+  let removed = false
+
+  const removableNodeIds = [...new Set(nodeIds)].filter((nodeId) =>
+    isMockPreviewRemovableOwnerNode(nextNodesById[nodeId]),
+  )
+
+  removableNodeIds.forEach((nodeId) => {
+    const node = nextNodesById[nodeId]
+    if (!isMockPreviewRemovableOwnerNode(node)) {
+      return
+    }
+
+    const childNodeIds = [...(nextChildNodeIdsByParentId[nodeId] ?? [])]
+    childNodeIds.forEach((childNodeId) => {
+      const childNode = nextNodesById[childNodeId]
+      if (childNode !== undefined) {
+        childNode.parentNodeId = node.parentNodeId ?? null
+      }
+    })
+
+    if (node.parentNodeId == null) {
+      nextRootNodeIds = replaceOrderedRowId(nextRootNodeIds, nodeId, childNodeIds)
+    } else {
+      const reorderedParentChildren = replaceOrderedRowId(
+        nextChildNodeIdsByParentId[node.parentNodeId] ?? [],
+        nodeId,
+        childNodeIds,
+      )
+      if (reorderedParentChildren.length > 0) {
+        nextChildNodeIdsByParentId[node.parentNodeId] = reorderedParentChildren
+      } else {
+        delete nextChildNodeIdsByParentId[node.parentNodeId]
+      }
+    }
+
+    delete nextChildNodeIdsByParentId[nodeId]
+    delete nextNodesById[nodeId]
+    removed = true
+  })
+
+  if (!removed) {
+    return null
+  }
+
+  const nextDraft = {
+    ...draft,
+    previewOrganization: {
+      nodesById: nextNodesById,
+      rootNodeIds: nextRootNodeIds,
+      childNodeIdsByParentId: nextChildNodeIdsByParentId,
+    },
+  }
+
+  return {
+    ...nextDraft,
+    previewOrganization: syncMockStagedImportPreviewOrganization(nextDraft),
   }
 }
 
@@ -1385,6 +1473,66 @@ const findRowMainByLabel = (label: string) =>
     element.textContent?.includes(label),
   ) ?? null
 
+const getPreviewBrowserTree = () =>
+  document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+
+const findPreviewBrowserRow = (label: string) =>
+  Array.from(getPreviewBrowserTree()?.querySelectorAll('.BrowserTreeRow') ?? []).find((element) =>
+    element.textContent?.includes(label),
+  ) as HTMLElement | undefined
+
+const findPreviewBrowserRowMain = (label: string) =>
+  findPreviewBrowserRow(label)?.querySelector('.BrowserTreeRowMain') as HTMLButtonElement | null
+
+const findPreviewBrowserRowAction = (label: string) =>
+  findPreviewBrowserRow(label)?.querySelector(
+    '.BrowserImportDialogPreviewRowAction',
+  ) as HTMLButtonElement | null
+
+const clickPreviewRowWithModifiers = async (
+  element: Element,
+  options: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+) => {
+  const row = element.closest('.BrowserTreeRow') ?? element
+  ensureRowRect(row)
+  const rect = (row as HTMLElement).getBoundingClientRect()
+  await act(async () => {
+    element.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        pointerId: 1,
+        clientX: rect.left + 16,
+        clientY: rect.top + 16,
+        ctrlKey: options.ctrlKey ?? false,
+        shiftKey: options.shiftKey ?? false,
+      }),
+    )
+  })
+  await act(async () => {
+    window.dispatchEvent(
+      new PointerEvent('pointerup', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        clientX: rect.left + 16,
+        clientY: rect.top + 16,
+      }),
+    )
+  })
+  await act(async () => {
+    element.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: options.ctrlKey ?? false,
+        shiftKey: options.shiftKey ?? false,
+      }),
+    )
+  })
+}
+
 describe('BrowserPanel', () => {
   let root: Root | null = null
   let container: HTMLDivElement | null = null
@@ -1656,6 +1804,33 @@ describe('BrowserPanel', () => {
           }
         },
       ),
+      removeStagedImportDraftFile: vi.fn((stagedFileId: string) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return false
+        }
+        const remainingStagedFiles = currentDraft.stagedFiles.filter(
+          (file: any) => file.stagedFileId !== stagedFileId,
+        )
+        if (remainingStagedFiles.length === currentDraft.stagedFiles.length) {
+          return false
+        }
+        const nextDraft = {
+          ...currentDraft,
+          stagedFiles: remainingStagedFiles,
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...nextDraft,
+              previewOrganization: syncMockStagedImportPreviewOrganization(nextDraft),
+            },
+          },
+        }
+        return true
+      }),
       createStagedImportPreviewAssembly: vi.fn(() => {
         const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
         if (currentDraft === null) {
@@ -1753,6 +1928,24 @@ describe('BrowserPanel', () => {
           },
         }
         return componentId
+      }),
+      removeStagedImportPreviewOwners: vi.fn((nodeIds: string[]) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return false
+        }
+        const nextDraft = removeMockStagedImportPreviewOwners(currentDraft, nodeIds)
+        if (nextDraft === null) {
+          return false
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: nextDraft,
+          },
+        }
+        return true
       }),
       beginStagedImportFileStructureInspection: vi.fn((stagedFileId: string) => {
         const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
@@ -5888,10 +6081,16 @@ describe('BrowserPanel', () => {
     expect(document.body.textContent).toContain('Flat file')
     const getPreviewTree = () =>
       document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    const findPreviewTreeRow = (label: string) =>
+      Array.from(getPreviewTree()?.querySelectorAll('.BrowserTreeRow') ?? []).find((element) =>
+        element.textContent?.includes(label),
+      ) as HTMLElement | undefined
     expect(getPreviewTree()?.textContent).toContain('structured.glb')
     expect(getPreviewTree()?.textContent).toContain('flat.step')
-    expect(getPreviewTree()?.textContent).not.toContain('Body')
-    expect(getPreviewTree()?.textContent).not.toContain('Upper')
+    expect(getPreviewTree()?.textContent).toContain('Body')
+    expect(getPreviewTree()?.textContent).toContain('Upper')
+    expect(findPreviewTreeRow('structured.glb')?.className).toContain('BrowserTreeRow--object')
+    expect(findPreviewTreeRow('Body')?.className).toContain('BrowserTreeRow--part')
     addToProjectButton = findButtonByLabel('Add staged imports to project')
     expect(addToProjectButton?.hasAttribute('disabled')).toBe(false)
     expect(addToProjectButton?.getAttribute('title')).toBe('Add staged imports to project content.')
@@ -5918,6 +6117,8 @@ describe('BrowserPanel', () => {
     expect(currentAppState.setStagedImportPutAcceptedInNewAssembly).toHaveBeenCalledWith(true)
     expect(getPreviewTree()?.textContent).toContain('Body')
     expect(getPreviewTree()?.textContent).toContain('Upper')
+    expect(findPreviewTreeRow('structured.glb')?.className).toContain('BrowserTreeRow--component')
+    expect(findPreviewTreeRow('Body')?.className).toContain('BrowserTreeRow--object')
     expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
     expect(currentAppState.closeStagedImportDraft).not.toHaveBeenCalled()
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
@@ -6602,6 +6803,108 @@ describe('BrowserPanel', () => {
     expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
   })
 
+  it('removes one staged file from the left-column card and clears preview state if that file was loaded', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'previewable.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:previewable-stl',
+              stagedFileId: 'staged-import-file:preview',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:structured',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:structured:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:structured:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const viewportShell = () =>
+      document.querySelector('.BrowserImportDialogViewportShell') as HTMLElement | null
+
+    expect(findButtonByLabel('Remove previewable.stl from staged import')).not.toBeNull()
+    expect(findButtonByLabel('Remove structured.step from staged import')).not.toBeNull()
+    expect(document.body.textContent).toContain('previewable.stl')
+    expect(document.body.textContent).toContain('structured.step')
+    expect(findPreviewBrowserRow('previewable.stl')).not.toBeNull()
+    expect(findPreviewBrowserRow('structured.step')).not.toBeNull()
+
+    await click(findButtonByLabel('Load previewable.stl into preview viewport')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(viewportShell()?.textContent).toContain('Preview loaded for previewable.stl.')
+
+    await click(findButtonByLabel('Remove previewable.stl from staged import')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.removeStagedImportDraftFile).toHaveBeenCalledWith(
+      'staged-import-file:preview',
+    )
+    expect(document.body.textContent).not.toContain('previewable.stl')
+    expect(document.body.textContent).toContain('structured.step')
+    expect(findPreviewBrowserRow('previewable.stl')).toBeUndefined()
+    expect(findPreviewBrowserRow('structured.step')).not.toBeNull()
+    expect(viewportShell()?.textContent).toContain('No staged object is loaded yet.')
+    expect(findButtonByLabel('Load structured.step into preview viewport')).not.toBeNull()
+  })
+
   it('keeps the full staged object preview lane stable across load, orbit-ready messaging, local divider resize, and reset after reopen', async () => {
     currentAppState = {
       ...currentAppState,
@@ -6785,7 +7088,7 @@ describe('BrowserPanel', () => {
     )
   })
 
-  it('shows a preview Browser surface and expands truthful split rows when the staged mode switches to multiple objects', async () => {
+  it('shows truthful nested preview parts for 1 Object files and still expands the stronger split shape when the staged mode switches to multiple objects', async () => {
     currentAppState = {
       ...currentAppState,
       referenceWorkspace: {
@@ -6852,9 +7155,18 @@ describe('BrowserPanel', () => {
     ;({ root } = await renderBrowserPanel())
 
     const getPreviewTree = () => document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    const findPreviewTreeRow = (label: string) =>
+      Array.from(getPreviewTree()?.querySelectorAll('.BrowserTreeRow') ?? []).find((element) =>
+        element.textContent?.includes(label),
+      ) as HTMLElement | undefined
+
     expect(getPreviewTree()?.textContent).toContain('flat.stl')
     expect(getPreviewTree()?.textContent).toContain('structured.step')
-    expect(getPreviewTree()?.textContent).not.toContain('Body')
+    expect(getPreviewTree()?.textContent).toContain('Body')
+    expect(getPreviewTree()?.textContent).toContain('Upper')
+    expect(findPreviewTreeRow('structured.step')?.className).toContain('BrowserTreeRow--object')
+    expect(findPreviewTreeRow('Body')?.className).toContain('BrowserTreeRow--part')
+    expect(findPreviewTreeRow('Body')?.className).toContain('BrowserTreeRow--depth-1')
 
     const structuredRow = Array.from(
       document.querySelectorAll('.BrowserImportDialogStagedRow'),
@@ -6872,12 +7184,549 @@ describe('BrowserPanel', () => {
 
     expect(getPreviewTree()?.textContent).toContain('Body')
     expect(getPreviewTree()?.textContent).toContain('Upper')
-    expect(
-      Array.from(getPreviewTree()?.querySelectorAll('.BrowserTreeRow') ?? []).find((element) =>
-        element.textContent?.includes('Body'),
-      )?.className,
-    ).toContain('BrowserTreeRow--depth-1')
+    expect(findPreviewTreeRow('structured.step')?.className).toContain('BrowserTreeRow--component')
+    expect(findPreviewTreeRow('Body')?.className).toContain('BrowserTreeRow--object')
+    expect(findPreviewTreeRow('Body')?.className).toContain('BrowserTreeRow--depth-1')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('keeps the active preview source truthful in the Browser while row-level preview loading stays compact', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:1:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:1:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const getPreviewTree = () =>
+      document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    const findPreviewTreeRow = (label: string) =>
+      Array.from(getPreviewTree()?.querySelectorAll('.BrowserTreeRow') ?? []).find((element) =>
+        element.textContent?.includes(label),
+      ) as HTMLElement | undefined
+    const findPreviewTreeRowAction = (label: string) =>
+      findPreviewTreeRow(label)?.querySelector(
+        '.BrowserImportDialogPreviewRowAction',
+      ) as HTMLButtonElement | null
+    const resolvePreviewTokenText = (label: string) =>
+      findPreviewTreeRow(label)?.querySelector('.BrowserImportDialogPreviewTargetToken')?.textContent
+    const resolvePreviewTokenTitle = (label: string) =>
+      findPreviewTreeRow(label)
+        ?.querySelector('.BrowserImportDialogPreviewTargetToken')
+        ?.getAttribute('title')
+    const resolvePreviewRowAriaLabel = (label: string) =>
+      findPreviewTreeRow(label)?.querySelector('.BrowserTreeRowMain')?.getAttribute('aria-label')
+
+    expect(resolvePreviewTokenText('structured.step')).toBe('P')
+    expect(resolvePreviewTokenTitle('structured.step')).toBe('Preview target')
+    expect(resolvePreviewRowAriaLabel('structured.step')).toBe('structured.step (Preview target)')
+    expect(resolvePreviewTokenText('Body')).toBe('I')
+    expect(resolvePreviewTokenTitle('Body')).toBe('Inspect only')
+    expect(resolvePreviewRowAriaLabel('Body')).toBe('Body (Inspect only)')
+    expect(findPreviewTreeRowAction('structured.step')?.getAttribute('aria-label')).toBe(
+      'Load structured.step into object preview',
+    )
+    expect(findPreviewTreeRowAction('Body')).toBeNull()
+
+    await click(findPreviewTreeRowAction('structured.step')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(resolvePreviewRowAriaLabel('structured.step')).toBe('structured.step (Preview target)')
+    expect(findPreviewTreeRowAction('structured.step')?.getAttribute('aria-label')).toBe(
+      'structured.step is currently loaded into object preview',
+    )
+    expect(findPreviewTreeRowAction('structured.step')?.getAttribute('aria-pressed')).toBe('true')
+    expect(loadReferenceAssetObjectMock).toHaveBeenNthCalledWith(1, {
+      fileType: 'step',
+      assetPath: 'blob:structured-step',
+    })
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledTimes(1)
+
+    const importModeTrack = document.querySelector(
+      '.BrowserImportDialogStagedRow button.ParaSelectTrackButton[aria-label="Import As"]',
+    ) as HTMLButtonElement | null
+    expect(importModeTrack).not.toBeNull()
+
+    await click(importModeTrack!)
+    await click(findButtonByLabel('Multiple Objects In 1 Component')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(resolvePreviewTokenText('structured.step')).toBe('O')
+    expect(resolvePreviewTokenTitle('structured.step')).toBe('Owner only')
+    expect(resolvePreviewRowAriaLabel('structured.step')).toBe('structured.step (Owner only)')
+    expect(resolvePreviewTokenText('Body')).toBe('P')
+    expect(resolvePreviewTokenTitle('Body')).toBe('Preview target')
+    expect(resolvePreviewRowAriaLabel('Body')).toBe('Body (Preview target)')
+    expect(findPreviewTreeRowAction('structured.step')).toBeNull()
+    expect(findPreviewTreeRowAction('Body')?.getAttribute('aria-label')).toBe(
+      'Load Body into object preview',
+    )
+
+    await click(findPreviewTreeRowAction('Body')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledTimes(1)
+    expect(resolvePreviewRowAriaLabel('Body')).toBe('Body (Preview target)')
+    expect(findPreviewTreeRowAction('Body')?.getAttribute('aria-label')).toBe(
+      'Body is currently loaded into object preview',
+    )
+    expect(findPreviewTreeRowAction('Body')?.getAttribute('aria-pressed')).toBe('true')
+    expect(
+      (
+        document.querySelector('.BrowserImportDialogViewportShell') as HTMLElement | null
+      )?.textContent,
+    ).toContain('Preview loaded for structured.step.')
+  })
+
+  it('highlights preview rows through click, ctrl-click, and shift-click without mutating workspace selection', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:1:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:1:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const bodyRowMain = findPreviewBrowserRowMain('Body')
+    const upperRowMain = findPreviewBrowserRowMain('Upper')
+    const fileRowMain = findPreviewBrowserRowMain('structured.step')
+    expect(bodyRowMain).not.toBeNull()
+    expect(upperRowMain).not.toBeNull()
+    expect(fileRowMain).not.toBeNull()
+
+    await clickPreviewRowWithModifiers(bodyRowMain!)
+
+    expect(findPreviewBrowserRow('Body')?.classList.contains('isSelected')).toBe(true)
+    expect(findPreviewBrowserRow('Upper')?.classList.contains('isSelected')).toBe(false)
+    expect(findPreviewBrowserRow('structured.step')?.classList.contains('isSelected')).toBe(false)
+    expect(bodyRowMain?.getAttribute('aria-pressed')).toBe('true')
+
+    await clickPreviewRowWithModifiers(upperRowMain!, { ctrlKey: true })
+
+    expect(findPreviewBrowserRow('Upper')?.classList.contains('isSelected')).toBe(true)
+    expect(findPreviewBrowserRow('Body')?.classList.contains('isGroupedSelected')).toBe(true)
+    expect(findPreviewBrowserRow('Body')?.classList.contains('isSelected')).toBe(false)
+    expect(upperRowMain?.getAttribute('aria-pressed')).toBe('true')
+    expect(bodyRowMain?.getAttribute('aria-pressed')).toBe('true')
+
+    await clickPreviewRowWithModifiers(fileRowMain!)
+    await clickPreviewRowWithModifiers(upperRowMain!, { shiftKey: true })
+
+    expect(findPreviewBrowserRow('structured.step')?.classList.contains('isGroupedSelected')).toBe(
+      true,
+    )
+    expect(findPreviewBrowserRow('Body')?.classList.contains('isGroupedSelected')).toBe(true)
+    expect(findPreviewBrowserRow('Upper')?.classList.contains('isSelected')).toBe(true)
+    expect(currentAppState.setWorkspaceSelectedTarget).not.toHaveBeenCalled()
+    expect(currentAppState.setWorkspaceExplicitSelection).not.toHaveBeenCalled()
+  })
+
+  it('keeps preview-row highlight separate from the selected L action state', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:1:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:1:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const bodyRowMain = findPreviewBrowserRowMain('Body')
+    const fileRowAction = findPreviewBrowserRowAction('structured.step')
+    expect(bodyRowMain).not.toBeNull()
+    expect(fileRowAction).not.toBeNull()
+
+    await clickPreviewRowWithModifiers(bodyRowMain!)
+    await click(fileRowAction!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(findPreviewBrowserRow('Body')?.classList.contains('isSelected')).toBe(true)
+    expect(findPreviewBrowserRow('structured.step')?.classList.contains('isSelected')).toBe(false)
+    expect(findPreviewBrowserRowAction('structured.step')?.getAttribute('aria-pressed')).toBe('true')
+    expect(bodyRowMain?.getAttribute('aria-pressed')).toBe('true')
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the preview delete action disabled for selected source-backed rows', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    await renderBrowserPanel()
+
+    const fileRowMain = findPreviewBrowserRowMain('flat.stl')
+    const removeButton = findButtonByLabel('Remove selected preview rows')
+    expect(fileRowMain).not.toBeNull()
+    expect(removeButton).not.toBeNull()
+
+    await clickPreviewRowWithModifiers(fileRowMain!)
+
+    expect(removeButton?.hasAttribute('disabled')).toBe(true)
+    expect(currentAppState.removeStagedImportPreviewOwners).not.toHaveBeenCalled()
+  })
+
+  it('removes a selected authored preview assembly by dissolving it and preserving its source-backed child rows', async () => {
+    const stagedFileId = 'staged-import-file:1'
+    const assemblyId = 'staged-import-preview-assembly:seed'
+    const fileNodeId = buildMockPreviewFileObjectNodeId(stagedFileId)
+    const seededDraft = {
+      parentAssemblyId: null,
+      parentComponentId: null,
+      stagedFiles: [
+        {
+          fileName: 'flat.stl',
+          fileType: 'stl',
+          objectUrl: 'blob:flat-stl',
+          stagedFileId,
+          importMode: 'single-object',
+          structureInspection: {
+            status: 'ready',
+            summary: {
+              hasMultipleObjects: false,
+              hasHierarchy: false,
+              hasParts: false,
+              labels: [],
+              partRows: [],
+            },
+            errorMessage: null,
+          },
+        },
+      ],
+      previewOrganization: {
+        nodesById: {
+          [fileNodeId]: {
+            nodeId: fileNodeId,
+            nodeKind: 'object',
+            sourceKind: 'staged-file',
+            label: 'flat.stl',
+            parentNodeId: assemblyId,
+            stagedFileId,
+            fileType: 'stl',
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+          [assemblyId]: {
+            nodeId: assemblyId,
+            nodeKind: 'assembly',
+            sourceKind: 'authored',
+            label: 'Assembly 1',
+            parentNodeId: null,
+            stagedFileId: null,
+            fileType: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+        },
+        rootNodeIds: [assemblyId],
+        childNodeIdsByParentId: {
+          [assemblyId]: [fileNodeId],
+        },
+      },
+    }
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          ...seededDraft,
+          previewOrganization: syncMockStagedImportPreviewOrganization(seededDraft),
+        },
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const assemblyRowMain = findPreviewBrowserRowMain('Assembly 1')
+    const removeButton = findButtonByLabel('Remove selected preview rows')
+    expect(assemblyRowMain).not.toBeNull()
+    expect(removeButton).not.toBeNull()
+
+    await clickPreviewRowWithModifiers(assemblyRowMain!)
+    expect(removeButton?.hasAttribute('disabled')).toBe(false)
+
+    await click(removeButton!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.removeStagedImportPreviewOwners).toHaveBeenCalledWith([assemblyId])
+    expect(findPreviewBrowserRow('Assembly 1')).toBeUndefined()
+    expect(findPreviewBrowserRow('flat.stl')?.classList.contains('BrowserTreeRow--depth-0')).toBe(true)
+    expect(findButtonByLabel('Remove selected preview rows')?.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('removes a selected authored preview component by dissolving it and preserving its child row under the assembly', async () => {
+    const stagedFileId = 'staged-import-file:1'
+    const assemblyId = 'staged-import-preview-assembly:seed'
+    const componentId = 'staged-import-preview-component:seed'
+    const fileNodeId = buildMockPreviewFileObjectNodeId(stagedFileId)
+    const seededDraft = {
+      parentAssemblyId: null,
+      parentComponentId: null,
+      stagedFiles: [
+        {
+          fileName: 'flat.stl',
+          fileType: 'stl',
+          objectUrl: 'blob:flat-stl',
+          stagedFileId,
+          importMode: 'single-object',
+          structureInspection: {
+            status: 'ready',
+            summary: {
+              hasMultipleObjects: false,
+              hasHierarchy: false,
+              hasParts: false,
+              labels: [],
+              partRows: [],
+            },
+            errorMessage: null,
+          },
+        },
+      ],
+      previewOrganization: {
+        nodesById: {
+          [fileNodeId]: {
+            nodeId: fileNodeId,
+            nodeKind: 'object',
+            sourceKind: 'staged-file',
+            label: 'flat.stl',
+            parentNodeId: componentId,
+            stagedFileId,
+            fileType: 'stl',
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+          [assemblyId]: {
+            nodeId: assemblyId,
+            nodeKind: 'assembly',
+            sourceKind: 'authored',
+            label: 'Assembly 1',
+            parentNodeId: null,
+            stagedFileId: null,
+            fileType: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+          [componentId]: {
+            nodeId: componentId,
+            nodeKind: 'component',
+            sourceKind: 'authored',
+            label: 'Component 1',
+            parentNodeId: assemblyId,
+            stagedFileId: null,
+            fileType: null,
+            sourcePartKey: null,
+            sourceMeshIndex: null,
+          },
+        },
+        rootNodeIds: [assemblyId],
+        childNodeIdsByParentId: {
+          [assemblyId]: [componentId],
+          [componentId]: [fileNodeId],
+        },
+      },
+    }
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          ...seededDraft,
+          previewOrganization: syncMockStagedImportPreviewOrganization(seededDraft),
+        },
+      },
+    }
+
+    ;({ root } = await renderBrowserPanel())
+
+    const componentRowMain = findPreviewBrowserRowMain('Component 1')
+    const removeButton = findButtonByLabel('Remove selected preview rows')
+    expect(componentRowMain).not.toBeNull()
+    expect(removeButton).not.toBeNull()
+
+    await clickPreviewRowWithModifiers(componentRowMain!)
+    expect(removeButton?.hasAttribute('disabled')).toBe(false)
+
+    await click(removeButton!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.removeStagedImportPreviewOwners).toHaveBeenCalledWith([componentId])
+    expect(findPreviewBrowserRow('Assembly 1')).not.toBeUndefined()
+    expect(findPreviewBrowserRow('Component 1')).toBeUndefined()
+    expect(findPreviewBrowserRow('flat.stl')?.classList.contains('BrowserTreeRow--depth-1')).toBe(true)
+    expect(findButtonByLabel('Remove selected preview rows')?.hasAttribute('disabled')).toBe(true)
   })
 
   it('shows legal preview drop feedback and keeps preview organization draft-only when moving staged rows into a draft component', async () => {

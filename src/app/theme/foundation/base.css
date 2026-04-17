@@ -1040,11 +1040,20 @@ button.TitleStatusInspectorInfoButton:hover {
 }
 
 .ParaVec3Slider {
+  width: 100%;
+  min-width: 0;
+}
+
+.ParaVec3Slider.isCompact {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  width: 100%;
-  min-width: 0;
+}
+
+.ParaVec3Slider.isStacked {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
 }
 
 .ParaVec2Slider {
@@ -1063,7 +1072,7 @@ button.TitleStatusInspectorInfoButton:hover {
   min-width: 0;
 }
 
-.ParaVec3SliderAxis .ParaSliderContent {
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderContent {
   gap: 4px;
   padding: 0 6px;
 }
@@ -1073,10 +1082,10 @@ button.TitleStatusInspectorInfoButton:hover {
   padding: 0 6px;
 }
 
-.ParaVec3SliderAxis .ParaSliderLabel,
-.ParaVec3SliderAxis .ParaSliderValue,
-.ParaVec3SliderAxis .ParaSliderValueInput,
-.ParaVec3SliderAxis button.ParaSliderValueButton {
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderLabel,
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValue,
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValueInput,
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis button.ParaSliderValueButton {
   font-size: calc(var(--sp-window-font-size) - 2px);
 }
 
@@ -1087,7 +1096,7 @@ button.TitleStatusInspectorInfoButton:hover {
   font-size: calc(var(--sp-window-font-size) - 2px);
 }
 
-.ParaVec3SliderAxis .ParaSliderLabel {
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderLabel {
   font-weight: 800;
 }
 
@@ -1095,12 +1104,134 @@ button.TitleStatusInspectorInfoButton:hover {
   font-weight: 800;
 }
 
-.ParaVec3SliderAxis .ParaSliderValue,
-.ParaVec3SliderAxis .ParaSliderValueInput,
-.ParaVec3SliderAxis button.ParaSliderValueButton {
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValue,
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValueInput,
+.ParaVec3Slider.isCompact .ParaVec3SliderAxis button.ParaSliderValueButton {
   min-width: 0;
   width: auto;
   padding: 0;
+}
+
+.ParaVec3Field {
+  margin-top: 6px;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ParaVec3Field.isExpanded {
+  gap: 6px;
+}
+
+.ParaVec3FieldHeader {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  color: inherit;
+}
+
+.ParaVec3FieldHeader:hover,
+.ParaVec3FieldHeader:focus-visible {
+  background: transparent;
+}
+
+.ParaVec3FieldHeader:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.3);
+  border-radius: 8px;
+}
+
+.ParaVec3FieldLabel {
+  font-size: 12px;
+  color: var(--v15-text-dim);
+}
+
+.ParaVec3FieldToggle {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgba(214, 223, 240, 0.72);
+}
+
+.ParaVec3FieldSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ParaVec3FieldSummaryCell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--sp-window-toolbar-bg) 86%, white 5%);
+}
+
+.ParaVec3FieldSummaryAxis {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(230, 236, 248, 0.94);
+}
+
+.ParaVec3FieldSummaryValue {
+  min-width: 0;
+  font-size: calc(var(--sp-window-font-size) - 1px);
+  font-family: var(--sp-window-font-family);
+  line-height: 1;
+  color: rgba(238, 242, 255, 0.86);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ParaVec3FieldBody {
+  min-width: 0;
+}
+
+.ParaVec3FieldCompact {
+  min-width: 0;
+}
+
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderContent {
+  gap: 10px;
+  padding: 0 var(--sp-window-pad-x);
+}
+
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderLabel,
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValue,
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValueInput,
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis button.ParaSliderValueButton {
+  font-size: calc(var(--sp-window-font-size) - 1px);
+}
+
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderLabel {
+  font-weight: 400;
+}
+
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValue,
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis .ParaSliderValueInput,
+.ParaVec3FieldCompact .ParaVec3Slider.isCompact .ParaVec3SliderAxis button.ParaSliderValueButton {
+  min-width: 52px;
+  width: auto;
+  padding: 0 4px;
 }
 
 .ParaVec2SliderAxis .ParaSliderValue,
@@ -1652,6 +1783,50 @@ button.ParaSelectMenuAction:hover {
   padding: 5px 7px;
 }
 
+.SelectedLightVectorField {
+  margin-top: 6px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--v15-panel-border-soft);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.SelectedLightVectorFieldTitle {
+  font-size: 12px;
+  color: var(--v15-text-dim);
+}
+
+.SelectedLightVectorFieldInputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.SelectedLightVectorFieldAxis {
+  display: grid;
+  gap: 4px;
+}
+
+.SelectedLightVectorFieldAxis span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(214, 223, 240, 0.72);
+}
+
+.SelectedLightVectorFieldAxis input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--v15-panel-border-soft);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--v15-text);
+  padding: 6px 8px;
+}
+
 .AssignmentRow {
   display: grid;
   grid-template-columns: minmax(96px, 1fr) minmax(120px, 1fr) auto;
@@ -2139,6 +2314,46 @@ button.ParaSelectMenuAction:hover {
   font-weight: 800;
   letter-spacing: 0.04em;
   cursor: pointer;
+}
+
+button.FloatingWindowHeaderAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(29, 34, 45, 0.98), rgba(14, 17, 24, 0.98));
+  color: rgba(241, 244, 255, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 20px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  appearance: none;
+}
+
+button.FloatingWindowHeaderAction:hover {
+  background: linear-gradient(180deg, rgba(39, 46, 61, 0.98), rgba(18, 22, 31, 0.98));
+  border-color: rgba(126, 154, 255, 0.34);
+}
+
+button.FloatingWindowHeaderAction:focus-visible {
+  outline: 2px solid rgba(126, 154, 255, 0.7);
+  outline-offset: 2px;
+}
+
+button.FloatingWindowHeaderAction:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.FloatingWindowHeaderActionIcon {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 .DashboardSurfaceCreateButton:hover,

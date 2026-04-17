@@ -271,7 +271,14 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
       viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarHostMode: 'floating',
       viewToolbarDockMode: 'top-right-cluster',
+      viewToolbarFloatingRect: {
+        x: 33,
+        y: 44,
+        width: 280,
+        height: 420,
+      },
       viewToolbarActiveTab: 'materials',
       viewToolbarCompactAxisWidgetSize: 112,
       viewportResultMode: 'draft',
@@ -284,7 +291,9 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         axisOverlayEnabled: true,
         viewToolbarOpen: false,
         viewToolbarExpandedPresentationMode: 'classic',
+        viewToolbarHostMode: 'docked',
         viewToolbarDockMode: 'below-axis',
+        viewToolbarFloatingRect: null,
         viewToolbarActiveTab: 'camera',
         viewportResultMode: 'auto',
       }),
@@ -295,7 +304,14 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
         viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarHostMode: 'floating',
         viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarFloatingRect: {
+          x: 33,
+          y: 44,
+          width: 280,
+          height: 420,
+        },
         viewToolbarActiveTab: 'materials',
         viewToolbarCompactAxisWidgetSize: 112,
         viewportResultMode: 'draft',
@@ -394,7 +410,14 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       axisOverlayEnabled: false,
       viewToolbarOpen: true,
       viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarHostMode: 'floating',
       viewToolbarDockMode: 'top-right-cluster',
+      viewToolbarFloatingRect: {
+        x: 51,
+        y: 63,
+        width: 301,
+        height: 444,
+      },
       viewToolbarActiveTab: 'view',
       viewToolbarCompactAxisWidgetSize: 112,
       viewportResultMode: 'draft',
@@ -427,7 +450,14 @@ describe('useWorkspaceStore viewport slot foundation', () => {
         axisOverlayEnabled: false,
         viewToolbarOpen: true,
         viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarHostMode: 'floating',
         viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarFloatingRect: {
+          x: 51,
+          y: 63,
+          width: 301,
+          height: 444,
+        },
         viewToolbarActiveTab: 'view',
         viewToolbarCompactAxisWidgetSize: 112,
         viewportResultMode: 'draft',
@@ -445,9 +475,85 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     )
   })
 
-  it('falls back invalid persisted toolbar tabs to camera', () => {
+  it('round-trips representative floating and docked toolbar state across multiple viewports', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'modelViewer',
+      surfaceInstanceId: 'model-viewer-workspace-slot-2',
+    })
+    useWorkspaceStore.getState().ensureViewportChrome('model-viewer-workspace-slot-2')
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarHostMode: 'floating',
+      viewToolbarDockMode: 'below-axis',
+      viewToolbarFloatingRect: {
+        x: 119,
+        y: 47,
+        width: 322,
+        height: 358,
+      },
+      viewToolbarActiveTab: 'materials',
+    })
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-workspace-slot-2', {
+      projectionMode: 'orthographic',
+      axisOverlayEnabled: false,
+      viewToolbarOpen: true,
+      viewToolbarExpandedPresentationMode: 'classic',
+      viewToolbarHostMode: 'docked',
+      viewToolbarDockMode: 'top-right-cluster',
+      viewToolbarFloatingRect: {
+        x: 41,
+        y: 55,
+        width: 280,
+        height: 420,
+      },
+      viewToolbarActiveTab: 'view',
+      viewportResultMode: 'draft',
+    })
+
     const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
-    const corrupted = {
+    const normalized = normalizePersistedWorkspaceLayout(serialized)
+
+    expect(normalized?.viewportChromeById['model-viewer-primary']?.localViewState).toEqual(
+      expect.objectContaining({
+        viewToolbarOpen: true,
+        viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarHostMode: 'floating',
+        viewToolbarDockMode: 'below-axis',
+        viewToolbarFloatingRect: {
+          x: 119,
+          y: 47,
+          width: 322,
+          height: 358,
+        },
+        viewToolbarActiveTab: 'materials',
+      }),
+    )
+    expect(
+      normalized?.viewportChromeById['model-viewer-workspace-slot-2']?.localViewState,
+    ).toEqual(
+      expect.objectContaining({
+        projectionMode: 'orthographic',
+        axisOverlayEnabled: false,
+        viewToolbarOpen: true,
+        viewToolbarExpandedPresentationMode: 'classic',
+        viewToolbarHostMode: 'docked',
+        viewToolbarDockMode: 'top-right-cluster',
+        viewToolbarFloatingRect: {
+          x: 41,
+          y: 55,
+          width: 280,
+          height: 420,
+        },
+        viewToolbarActiveTab: 'view',
+        viewportResultMode: 'draft',
+      }),
+    )
+  })
+
+  it('falls back invalid persisted toolbar tabs and floating host data to safe defaults', () => {
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const corrupted: unknown = {
       ...serialized,
       viewportChromeById: {
         ...serialized.viewportChromeById,
@@ -456,7 +562,14 @@ describe('useWorkspaceStore viewport slot foundation', () => {
           localViewState: {
             ...serialized.viewportChromeById['model-viewer-primary']?.localViewState,
             viewToolbarExpandedPresentationMode: 'tabs' as const,
+            viewToolbarHostMode: 'bad-host',
             viewToolbarDockMode: 'bad-dock',
+            viewToolbarFloatingRect: {
+              x: 'bad-x',
+              y: 40,
+              width: -1,
+              height: 280,
+            },
             viewToolbarActiveTab: 'bad-tab',
           },
         },
@@ -468,8 +581,47 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(normalized?.viewportChromeById['model-viewer-primary']?.localViewState).toEqual(
       expect.objectContaining({
         viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarHostMode: 'docked',
         viewToolbarDockMode: 'below-axis',
+        viewToolbarFloatingRect: null,
         viewToolbarActiveTab: 'camera',
+      }),
+    )
+  })
+
+  it('rounds and preserves valid persisted floating toolbar host data', () => {
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const floated: unknown = {
+      ...serialized,
+      viewportChromeById: {
+        ...serialized.viewportChromeById,
+        'model-viewer-primary': {
+          ...serialized.viewportChromeById['model-viewer-primary'],
+          localViewState: {
+            ...serialized.viewportChromeById['model-viewer-primary']?.localViewState,
+            viewToolbarHostMode: 'floating' as const,
+            viewToolbarFloatingRect: {
+              x: 21.4,
+              y: 82.6,
+              width: 319.5,
+              height: 401.2,
+            },
+          },
+        },
+      },
+    }
+
+    const normalized = normalizePersistedWorkspaceLayout(floated)
+
+    expect(normalized?.viewportChromeById['model-viewer-primary']?.localViewState).toEqual(
+      expect.objectContaining({
+        viewToolbarHostMode: 'floating',
+        viewToolbarFloatingRect: {
+          x: 21,
+          y: 83,
+          width: 320,
+          height: 401,
+        },
       }),
     )
   })

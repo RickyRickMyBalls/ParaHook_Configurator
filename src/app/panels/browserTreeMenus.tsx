@@ -16,7 +16,10 @@ import type {
   StagedImportDraftState,
 } from '../store/useAppStore'
 import type { BrowserContextMenuItem } from './browserContextMenu'
-import type { StagedImportPreviewRowVm } from './selectStagedImportPreviewRows'
+import type {
+  StagedImportPreviewRowVm,
+  StagedImportPreviewSelectionState,
+} from './selectStagedImportPreviewRows'
 import type { BrowserRenderableRowVm } from './selectBrowserTreeRows'
 import { StagedImportPreviewViewport } from './StagedImportPreviewViewport'
 import { ParaSelect } from '../components/ParaSelect'
@@ -141,13 +144,15 @@ export function BrowserImportMenu(props: BrowserImportMenuProps) {
 type BrowserImportDialogProps = {
   draft: StagedImportDraftState | null
   commitResult: StagedImportCommitResult | null
-  previewSelection: { stagedFileId: string } | null
+  previewSelection: StagedImportPreviewSelectionState | null
   columnWidths: {
     leftPercent: number
     middlePercent: number
     rightPercent: number
   }
   previewRows: StagedImportPreviewRowVm[]
+  previewSelectedRowId: string | null
+  previewSelectedRowIds: string[]
   isBrowsing: boolean
   onBrowse: () => void
   onSetImportMode: (stagedFileId: string, importMode: StagedImportMode) => void
@@ -157,7 +162,15 @@ type BrowserImportDialogProps = {
     scaleAlignment: StagedImportScaleAlignment,
   ) => void
   onSetScaleMultiplier: (stagedFileId: string, scaleMultiplier: number) => void
-  onLoadPreview: (stagedFileId: string) => void
+  onRemoveStagedFile: (stagedFileId: string) => void
+  onLoadPreview: (stagedFileId: string, sourceRowId?: string | null) => void
+  onSelectPreviewRow: (
+    row: StagedImportPreviewRowVm,
+    modifiers?: {
+      ctrlKey: boolean
+      shiftKey: boolean
+    },
+  ) => void
   onStartColumnResize: (
     divider: 'left-middle' | 'middle-right',
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -165,6 +178,8 @@ type BrowserImportDialogProps = {
   ) => void
   onSetPutAcceptedInNewAssembly: (enabled: boolean) => void
   onCreatePreviewAssembly: () => void
+  canRemoveSelectedPreviewRows: boolean
+  onRemoveSelectedPreviewRows: () => void
   onCreatePreviewComponent: (assemblyId: string) => void
   registerPreviewRowElement: (rowId: string) => (element: HTMLDivElement | null) => void
   onPreviewRowPointerDown: (
@@ -256,12 +271,44 @@ const formatStagedImportScaleMultiplier = (scaleMultiplier: number): string => {
 }
 
 const resolvePreviewRowIconLabel = (row: StagedImportPreviewRowVm): string =>
-  row.rowKind === 'assembly' ? 'A' : row.rowKind === 'component' ? 'C' : 'O'
+  row.rowKind === 'assembly'
+    ? 'A'
+    : row.rowKind === 'component'
+      ? 'C'
+      : row.rowKind === 'part'
+        ? 'P'
+        : 'O'
+
+const resolvePreviewTargetLabel = (row: StagedImportPreviewRowVm): string =>
+  row.previewTargetKind === 'preview-target'
+    ? 'Preview target'
+    : row.previewTargetKind === 'inspection-only'
+      ? 'Inspect only'
+      : 'Owner only'
+
+const resolvePreviewTargetToken = (row: StagedImportPreviewRowVm): string =>
+  row.previewTargetKind === 'preview-target'
+    ? 'P'
+    : row.previewTargetKind === 'inspection-only'
+      ? 'I'
+      : 'O'
 
 function BrowserImportPreviewTree(props: {
   rows: StagedImportPreviewRowVm[]
+  selectedRowId: string | null
+  selectedRowIds: string[]
   onCreatePreviewAssembly: () => void
+  canRemoveSelectedPreviewRows: boolean
+  onRemoveSelectedPreviewRows: () => void
   onCreatePreviewComponent: (assemblyId: string) => void
+  onLoadPreviewRow: (stagedFileId: string, sourceRowId?: string | null) => void
+  onSelectPreviewRow: (
+    row: StagedImportPreviewRowVm,
+    modifiers?: {
+      ctrlKey: boolean
+      shiftKey: boolean
+    },
+  ) => void
   registerPreviewRowElement: (rowId: string) => (element: HTMLDivElement | null) => void
   onPreviewRowPointerDown: (
     row: StagedImportPreviewRowVm,
@@ -277,8 +324,14 @@ function BrowserImportPreviewTree(props: {
 }) {
   const {
     rows,
+    selectedRowId,
+    selectedRowIds,
     onCreatePreviewAssembly,
+    canRemoveSelectedPreviewRows,
+    onRemoveSelectedPreviewRows,
     onCreatePreviewComponent,
+    onLoadPreviewRow,
+    onSelectPreviewRow,
     registerPreviewRowElement,
     onPreviewRowPointerDown,
     getPreviewRowDragState,
@@ -293,15 +346,27 @@ function BrowserImportPreviewTree(props: {
             Preview only. Organize staged rows into components or assemblies before acceptance.
           </span>
         </div>
-        <button
-          type="button"
-          className="BrowserTreeSummaryAction BrowserImportDialogPreviewAction"
-          onClick={onCreatePreviewAssembly}
-          aria-label="New preview assembly"
-          title="New preview assembly"
-        >
-          +A
-        </button>
+        <div className="BrowserImportDialogPreviewHeaderActions">
+          <button
+            type="button"
+            className="BrowserTreeSummaryAction BrowserImportDialogPreviewAction"
+            onClick={onCreatePreviewAssembly}
+            aria-label="New preview assembly"
+            title="New preview assembly"
+          >
+            +A
+          </button>
+          <button
+            type="button"
+            className="BrowserTreeSummaryAction BrowserImportDialogPreviewAction"
+            onClick={onRemoveSelectedPreviewRows}
+            aria-label="Remove selected preview rows"
+            title="Remove selected preview rows"
+            disabled={!canRemoveSelectedPreviewRows}
+          >
+            X
+          </button>
+        </div>
       </div>
       <div
         className="BrowserImportDialogPreviewTreeScrollRegion"
@@ -320,10 +385,16 @@ function BrowserImportPreviewTree(props: {
           >
             {rows.map((row) => {
               const dragState = getPreviewRowDragState(row)
+              const previewTargetLabel = resolvePreviewTargetLabel(row)
+              const isSelected = row.rowId === selectedRowId
+              const isGroupedSelected = !isSelected && selectedRowIds.includes(row.rowId)
               const rowClassName = [
                 'BrowserTreeRow',
                 `BrowserTreeRow--${row.rowKind}`,
                 `BrowserTreeRow--depth-${row.depth}`,
+                `BrowserTreeRow--preview-${row.previewTargetKind}`,
+                isSelected ? 'isSelected' : '',
+                isGroupedSelected ? 'isGroupedSelected' : '',
                 dragState.draggable ? 'isDraggable' : '',
                 dragState.isDragging ? 'isDragging' : '',
                 dragState.isPendingDrag ? 'isPendingDrag' : '',
@@ -361,9 +432,16 @@ function BrowserImportPreviewTree(props: {
                   </div>
                   <button
                     type="button"
-                    className="BrowserTreeRowMain isContentRow"
+                    className={`BrowserTreeRowMain ${row.rowKind === 'part' ? 'isPartRow' : 'isContentRow'}`}
                     onPointerDown={(event) => onPreviewRowPointerDown(row, event)}
-                    aria-label={row.label}
+                    onClick={(event) =>
+                      onSelectPreviewRow(row, {
+                        ctrlKey: event.ctrlKey || event.metaKey,
+                        shiftKey: event.shiftKey,
+                      })
+                    }
+                    aria-label={`${row.label} (${previewTargetLabel})`}
+                    aria-pressed={isSelected || isGroupedSelected}
                   >
                     <div className="BrowserTreeRowSurface BrowserContentStateBar BrowserContentStateBar--done">
                       <span className="BrowserTreeRowText">
@@ -371,10 +449,36 @@ function BrowserImportPreviewTree(props: {
                         {row.meta.length > 0 ? (
                           <span className="BrowserTreeRowMeta">{row.meta}</span>
                         ) : null}
+                        <span
+                          className={`BrowserImportDialogPreviewTargetToken BrowserImportDialogPreviewTargetToken--${row.previewTargetKind}`}
+                          title={previewTargetLabel}
+                          aria-hidden="true"
+                        >
+                          {resolvePreviewTargetToken(row)}
+                        </span>
                       </span>
                     </div>
                   </button>
-                  {row.canCreateComponent ? (
+                  {row.canLoadIntoObjectPreview && row.previewLoadStagedFileId !== null ? (
+                    <button
+                      type="button"
+                      className={`BrowserTreeSummaryAction BrowserImportDialogPreviewRowAction ${row.isActivePreviewSelection ? 'isSelected' : ''}`}
+                      onClick={() => onLoadPreviewRow(row.previewLoadStagedFileId!, row.rowId)}
+                      aria-label={
+                        row.isActivePreviewSelection
+                          ? `${row.label} is currently loaded into object preview`
+                          : `Load ${row.label} into object preview`
+                      }
+                      title={
+                        row.isActivePreviewSelection
+                          ? `${row.label} is currently loaded into object preview`
+                          : `Load ${row.label} into object preview`
+                      }
+                      aria-pressed={row.isActivePreviewSelection}
+                    >
+                      L
+                    </button>
+                  ) : row.canCreateComponent ? (
                     <button
                       type="button"
                       className="BrowserTreeSummaryAction BrowserImportDialogPreviewRowAction"
@@ -443,8 +547,8 @@ const renderStagedImportStructureSummary = (
     scaleAlignment: StagedImportScaleAlignment,
   ) => void,
   onSetScaleMultiplier: (stagedFileId: string, scaleMultiplier: number) => void,
-  previewSelection: { stagedFileId: string } | null,
-  onLoadPreview: (stagedFileId: string) => void,
+  previewSelection: StagedImportPreviewSelectionState | null,
+  onLoadPreview: (stagedFileId: string, sourceRowId?: string | null) => void,
 ) => {
   const inspection = file.structureInspection
   const selectedUpAxis = file.upAxis ?? 'z-up'
@@ -774,16 +878,22 @@ export function BrowserImportDialog(props: BrowserImportDialogProps) {
     previewSelection,
     columnWidths,
     previewRows,
+    previewSelectedRowId,
+    previewSelectedRowIds,
     isBrowsing,
     onBrowse,
     onSetImportMode,
     onSetUpAxis,
     onSetScaleAlignment,
     onSetScaleMultiplier,
+    onRemoveStagedFile,
     onLoadPreview,
+    onSelectPreviewRow,
     onStartColumnResize,
     onSetPutAcceptedInNewAssembly,
     onCreatePreviewAssembly,
+    canRemoveSelectedPreviewRows,
+    onRemoveSelectedPreviewRows,
     onCreatePreviewComponent,
     registerPreviewRowElement,
     onPreviewRowPointerDown,
@@ -892,9 +1002,20 @@ export function BrowserImportDialog(props: BrowserImportDialogProps) {
                               <span className="BrowserImportDialogStagedRowOrder">{index + 1}</span>
                               <span className="BrowserImportDialogStagedRowName">{file.fileName}</span>
                             </div>
-                            <span className="BrowserImportDialogStagedRowType">
-                              {resolveStagedImportFileTypeLabel(file.fileType)}
-                            </span>
+                            <div className="BrowserImportDialogStagedRowHeaderActions">
+                              <span className="BrowserImportDialogStagedRowType">
+                                {resolveStagedImportFileTypeLabel(file.fileType)}
+                              </span>
+                              <button
+                                type="button"
+                                className="BrowserTreeSummaryAction BrowserImportDialogStagedRowRemoveAction"
+                                onClick={() => onRemoveStagedFile(file.stagedFileId)}
+                                aria-label={`Remove ${file.fileName} from staged import`}
+                                title={`Remove ${file.fileName} from staged import`}
+                              >
+                                X
+                              </button>
+                            </div>
                           </div>
                           <div className="BrowserImportDialogStagedRowBody">
                             <div className="BrowserImportDialogStagedRowText">
@@ -960,8 +1081,14 @@ export function BrowserImportDialog(props: BrowserImportDialogProps) {
             <div className="BrowserImportDialogMiddleColumn">
               <BrowserImportPreviewTree
                 rows={previewRows}
+                selectedRowId={previewSelectedRowId}
+                selectedRowIds={previewSelectedRowIds}
                 onCreatePreviewAssembly={onCreatePreviewAssembly}
+                canRemoveSelectedPreviewRows={canRemoveSelectedPreviewRows}
+                onRemoveSelectedPreviewRows={onRemoveSelectedPreviewRows}
                 onCreatePreviewComponent={onCreatePreviewComponent}
+                onLoadPreviewRow={onLoadPreview}
+                onSelectPreviewRow={onSelectPreviewRow}
                 registerPreviewRowElement={registerPreviewRowElement}
                 onPreviewRowPointerDown={onPreviewRowPointerDown}
                 getPreviewRowDragState={getPreviewRowDragState}

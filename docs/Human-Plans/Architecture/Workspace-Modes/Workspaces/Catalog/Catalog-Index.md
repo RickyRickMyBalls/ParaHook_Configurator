@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+13. 2026-04-17 18:13:42: Added a dedicated `Generation 1 Vision` section so this index now acts as the more specific Gen 1 planning umbrella under the broader `Catalog-Vision.md`, tying the detailed `Catalog-1` through `Catalog-5` phase ladder back to one explicit Gen 1 browse, preview, commit, HDRI, metadata, and recall direction
 12. 2026-04-16 17:10:00: Tightened the `Catalog` family read again so `Generation 0` now explicitly includes moving the preloaded reference models out of `Browser`, clarifying that `foothooks`, `shoes`, and `footpads` should stop appearing as default Browser-resident content during cleanup and should instead arrive later as optional add-in families the user can choose
 11. 2026-04-16 16:55:23: Reframed the `Catalog` family index so it now stays honest that the family has not started yet, adding the new `Catalog-Gen0-Index.md` planning surface for cleanup-and-prep work before the first real family phase, clarifying that `Catalog-1` through `Catalog-5` now read as the planned `Generation 1` ladder rather than the current state, and preserving `Catalog-Gen2-Index.md` as the later widening surface
 10. 2026-04-16 12:31:00: Expanded the early `Catalog` family read to include an `Imports` area for previously uploaded items already known to ParaHook, clarifying that this belongs in the early catalog baseline as a reuse surface while import intake itself still belongs to the separate import system, and adding a matching wishlist-tracking item under the earlier `Catalog-1` lane
@@ -111,6 +112,71 @@ Important current planning read:
 - the current `Generation 0` prep should explicitly remove the old Browser-resident preloaded reference-model baseline
 - the older `Catalog-1` through `Catalog-5` ladder now reads as the planned `Generation 1` family or foundation lane, not the current state
 - the newer widening work that now belongs to explicit `Generation 2` should be tracked in `Catalog-Gen2-Index.md` instead of being forced into the older phase ladder
+
+### Generation 1 Vision
+
+Use this section as the more specific `Generation 1` read for the `Catalog` family.
+
+`Catalog-Vision.md` stays the kickoff idea and broad family north star.
+
+This index should now carry the more detailed `Generation 1` vision that the `Catalog-1` through `Catalog-5` ladder is expected to deliver.
+
+The healthy `Generation 1` read is:
+- ParaHook gains one real repo-backed `Catalog` workspace after the `Generation 0` cleanup is complete
+- the user can browse a lightweight card-grid catalog instead of inheriting preloaded reference content in `Browser`
+- `foothooks`, `shoes`, and `footpads` return only as intentional optional catalog families instead of default Browser-resident content
+- `Catalog` also includes an `Imports` area for items ParaHook already knows about after import intake, so the user can place another copy later without making `Catalog` the import owner
+- the main browse flow is preview-first and store-like rather than auto-loaded or filesystem-like
+- the user can open an item page that acts as the main decision surface for a selected entry
+- `Load Preview` stays temporary and separate from `Add To Project`
+- multiple temporary previews may remain open when the user wants to compare items
+- `Add To Project` makes the chosen reference become explicit Browser or project truth instead of leaving it catalog-local
+- `HDRIs` remain in the catalog, but keep their own explicit viewer or environment apply path instead of pretending to be geometry content
+- the catalog grows through stronger tags, metadata, search, and richer reference notes without reopening the earlier ownership split
+- later `Generation 1` follow-through keeps catalog item identity and recall honest after load without turning `Catalog` into the hidden runtime owner
+
+What this `Generation 1` vision should feel like:
+- a real split-pane workspace surface, not a Browser subsection or one-off overlay
+- a curated internal library, not raw folder walking or arbitrary internet intake
+- a clean `1x1` card-grid browse surface with no auto-loaded previews
+- explicit item-family sections for the first reference families plus `HDRIs`
+- one larger item page whose primary responsibilities are the preview viewport, the description, and the honest action for that asset type
+- a preview flow that supports comparison without silently committing content
+- a commit flow that hands the selected result into the correct downstream owner
+
+What this `Generation 1` vision should not require yet:
+- curated external-source intake such as `pubparts.xyz`
+- linked-model or linked-archive entries as first-class catalog items
+- the richer `Platform` versus `Wheel` versus later `Power` and `Fasteners` organization as required baseline scope
+- the later pre-built board catalog lane
+- the `Ricky Checker`, the later `Onewheel Builder`, or dimensional fit math
+
+The detailed `Generation 1` ladder should be read like this:
+
+- `Catalog-1`
+  - foundation and workspace onboarding
+  - the first catalog-item contract
+  - the first visible shell direction
+  - the card-grid, `Imports`, preview-versus-commit, and item-page baseline
+- `Catalog-2`
+  - the first real reference-family onboarding for `foothooks`, `shoes`, and `footpads`
+  - explicit preview and `Add To Project` behavior for those reference families
+- `Catalog-3`
+  - `HDRI` onboarding through an explicit environment apply path that stays separate from reference loading
+- `Catalog-4`
+  - richer search, tags, metadata, better reference notes, and catalog scale-up
+- `Catalog-5`
+  - recall, rebind, item identity follow-through, and later comparison or remembered-catalog behavior where it is actually needed
+
+Important rule:
+- this `Generation 1` vision is the detailed family umbrella for the early catalog
+- later docs should implement against this ladder without quietly pulling `Generation 2` widening into the baseline
+
+Important boundary rule:
+- if a question is about the broad catalog family, use `Catalog-Vision.md`
+- if a question is about what `Generation 1` is supposed to deliver through the detailed phase ladder, use this index
+- if a question is about the current cleanup band before the family starts, use `Catalog-Gen0-Index.md`
+- if a question is about the later widening lane, use `Catalog-Gen2-Index.md`
 
 ### Why This Doc Exists
 

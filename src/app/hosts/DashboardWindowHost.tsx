@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { FloatingWindowQuickDockButton } from '../components/FloatingWindowQuickDockButton'
 import { DashboardSurface } from '../workspace/DashboardSurface'
 import { useWorkspaceChildWindow } from '../workspace/useWorkspaceChildWindow'
 import type { WorkspaceDetachedSlotSurfaceState } from '../workspace/workspaceShellTypes'
@@ -337,13 +338,10 @@ export function DashboardWindowHost(props: DashboardWindowHostProps) {
               }}
             >
               <span>Floating Dashboard</span>
-              <button
-                type="button"
+              <FloatingWindowQuickDockButton
                 className="DashboardFloatingWindowQuickDock"
                 onClick={() => onQuickDock(surface.surfaceInstanceId)}
-              >
-                Quick Dock
-              </button>
+              />
             </div>
             <div style={{ position: 'relative', minHeight: 0 }}>
               <DashboardSurface

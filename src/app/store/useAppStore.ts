@@ -1110,8 +1110,10 @@ export type AppState = {
     parentComponentId?: string | null
   }) => void
   appendStagedImportDraftFiles: (files: ImportedReferenceFile[]) => void
+  removeStagedImportDraftFile: (stagedFileId: string) => boolean
   createStagedImportPreviewAssembly: () => string | null
   createStagedImportPreviewComponent: (parentAssemblyId: string) => string | null
+  removeStagedImportPreviewOwners: (nodeIds: string[]) => boolean
   moveStagedImportPreviewOwner: (
     draggedTarget: ProjectContentOwnerTarget,
     dropTarget: ProjectContentOwnerDropTarget,
@@ -2326,6 +2328,14 @@ const resolveStagedImportPreviewOwnerRecord = (
     draggable: true,
   }
 }
+
+const isRemovableStagedImportPreviewOwnerNode = (
+  node: StagedImportPreviewNodeRecord | null | undefined,
+): node is StagedImportPreviewNodeRecord & {
+  nodeKind: 'assembly' | 'component'
+  sourceKind: 'authored'
+} =>
+  (node?.nodeKind === 'assembly' || node?.nodeKind === 'component') && node.sourceKind === 'authored'
 
 const selectStagedImportPreviewAssemblyDescendantIds = (
   previewOrganization: StagedImportPreviewOrganizationState,
@@ -6246,6 +6256,44 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  removeStagedImportDraftFile: (stagedFileId) => {
+    const currentDraft = get().referenceWorkspace.stagedImportDraft
+    if (currentDraft === null) {
+      return false
+    }
+    if (!currentDraft.stagedFiles.some((file) => file.stagedFileId === stagedFileId)) {
+      return false
+    }
+
+    set((state) => {
+      const draft = state.referenceWorkspace.stagedImportDraft
+      if (draft === null) {
+        return state
+      }
+      const remainingStagedFiles = draft.stagedFiles.filter(
+        (file) => file.stagedFileId !== stagedFileId,
+      )
+      if (remainingStagedFiles.length === draft.stagedFiles.length) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...draft,
+            stagedFiles: remainingStagedFiles,
+            previewOrganization: pruneEmptyStagedImportPreviewAuthoredNodes(
+              syncStagedImportPreviewOrganizationState(
+                remainingStagedFiles,
+                draft.previewOrganization,
+              ),
+            ),
+          },
+        },
+      }
+    })
+    return true
+  },
   createStagedImportPreviewAssembly: () => {
     const currentDraft = get().referenceWorkspace.stagedImportDraft
     if (currentDraft === null) {
@@ -6359,6 +6407,94 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
     return componentId
+  },
+  removeStagedImportPreviewOwners: (nodeIds) => {
+    const currentDraft = get().referenceWorkspace.stagedImportDraft
+    if (currentDraft === null) {
+      return false
+    }
+
+    const removableNodeIds = dedupeOrderedRowIds(nodeIds).filter((nodeId) =>
+      isRemovableStagedImportPreviewOwnerNode(currentDraft.previewOrganization.nodesById[nodeId]),
+    )
+    if (removableNodeIds.length === 0) {
+      return false
+    }
+
+    let removed = false
+    set((state) => {
+      const draft = state.referenceWorkspace.stagedImportDraft
+      if (draft === null) {
+        return state
+      }
+
+      const nextNodesById: Record<string, StagedImportPreviewNodeRecord> = Object.fromEntries(
+        Object.entries(draft.previewOrganization.nodesById).map(([nodeId, node]) => [
+          nodeId,
+          { ...node },
+        ]),
+      )
+      const nextChildNodeIdsByParentId: Record<string, string[]> = Object.fromEntries(
+        Object.entries(draft.previewOrganization.childNodeIdsByParentId).map(
+          ([parentNodeId, childNodeIds]) => [parentNodeId, [...childNodeIds]] as const,
+        ),
+      )
+      let nextRootNodeIds = [...draft.previewOrganization.rootNodeIds]
+
+      removableNodeIds.forEach((nodeId) => {
+        const node = nextNodesById[nodeId]
+        if (!isRemovableStagedImportPreviewOwnerNode(node)) {
+          return
+        }
+
+        const parentNodeId = node.parentNodeId
+        const childNodeIds = [...(nextChildNodeIdsByParentId[nodeId] ?? [])]
+        childNodeIds.forEach((childNodeId) => {
+          const childNode = nextNodesById[childNodeId]
+          if (childNode !== undefined) {
+            childNode.parentNodeId = parentNodeId
+          }
+        })
+
+        if (parentNodeId === null) {
+          nextRootNodeIds = replaceOrderedRowId(nextRootNodeIds, nodeId, childNodeIds)
+        } else {
+          const reorderedParentChildren = replaceOrderedRowId(
+            nextChildNodeIdsByParentId[parentNodeId] ?? [],
+            nodeId,
+            childNodeIds,
+          )
+          if (reorderedParentChildren.length > 0) {
+            nextChildNodeIdsByParentId[parentNodeId] = reorderedParentChildren
+          } else {
+            delete nextChildNodeIdsByParentId[parentNodeId]
+          }
+        }
+
+        delete nextChildNodeIdsByParentId[nodeId]
+        delete nextNodesById[nodeId]
+        removed = true
+      })
+
+      if (!removed) {
+        return state
+      }
+
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: {
+            ...draft,
+            previewOrganization: syncStagedImportPreviewOrganizationState(draft.stagedFiles, {
+              nodesById: nextNodesById,
+              rootNodeIds: nextRootNodeIds,
+              childNodeIdsByParentId: nextChildNodeIdsByParentId,
+            }),
+          },
+        },
+      }
+    })
+    return removed
   },
   moveStagedImportPreviewOwner: (draggedTarget, dropTarget) => {
     const currentDraft = get().referenceWorkspace.stagedImportDraft

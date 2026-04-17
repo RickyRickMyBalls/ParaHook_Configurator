@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+33. 2026-04-17 18:51:52: Added standalone `Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md`, refreshed `View-Toolbar 6`, and kept this umbrella family aligned with the reopened tabs-cleanup lane so the next shell polish now has one explicit planning home for moving the section rail outside the main toolbar box and making the active section chrome read like real attached tabs
+32. 2026-04-17 11:58:05: Added standalone `Future/View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`, extended the family ladder with `View-Toolbar 8`, and refreshed this umbrella family so the next layout follow-on now explicitly treats drag-out floating as a viewport-local presentation and shell-hosting phase that reuses workspace window patterns without turning the toolbar into a separate command owner
 31. 2026-04-16 18:43:12: Added `Environment/Environment-Index.md` and refreshed this umbrella family so `View-Toolbar` now points at a dedicated `Environment` subfamily home for visible lighting, scene-atmosphere, and environment-preset planning while keeping HDRI asset browsing with `Catalog` and deeper runtime ownership outside the toolbar family
 30. 2026-04-15 11:51:13: Marked `View-Toolbar 7` complete again in this umbrella family after the shipped `Phase 7` regrouping pass added one collapsible lower `Projection & Framing` subsection to the `Camera` section, keeping the clip controls above it while preserving the existing command seams
 29. 2026-04-15 11:39:24: Prepped `View-Toolbar 7 / Phase 7` for implementation by grounding the regrouping pass in the current flat `CameraToolbar` stack, the existing toolbar-local nested-`details` height-sync seam, and the likely `viewport-overlay.css` styling touchpoints so the next slice can land as one small collapsible-subsection implementation
@@ -133,7 +135,9 @@ Use this folder like this:
   - `View_Toolbar_Phase View-Toolbar 4 - Gizmo, Helpers, And Legacy Feel Follow-Ons.md`
   - `View_Toolbar_Phase View-Toolbar 5 - UI Polish And Surface Clarity.md`
   - `View_Toolbar_Phase View-Toolbar 6 - Classic And Tabs Presentation Modes.md`
+  - `View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md`
   - `View_Toolbar_Phase View-Toolbar 7 - Camera Controls Enrichment.md`
+  - `View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`
 - `Shipped/`
   - later shipped records if the family grows into multiple implemented cuts
 
@@ -146,6 +150,7 @@ Current roadmap home:
 - `[View-Toolbar 5] UI Polish And Surface Clarity`
 - `[View-Toolbar 6] Classic And Tabs Presentation Modes`
 - `[View-Toolbar 7] Camera Controls Enrichment`
+- `[View-Toolbar 8] Detachable Floating Window Presentation`
 
 ### Cross-Doc Boundaries
 
@@ -163,6 +168,9 @@ Canonical ownership should stay split like this:
   - explicit camera/view controls the user can see and click
   - layout/grouping of those controls
   - persisted view-state controls that belong to the active viewport/viewer
+- `Workspace-Modes`
+  - reusable host-mode and floating-window shell behavior
+  - viewport-local placement and persistence rules for detachable viewport chrome
 - `Gizmo` planning
   - `Gizmo/Gizmo-Vision.md`
   - transform-manipulator quality bar plus the split between transform handles and view helpers
@@ -177,6 +185,7 @@ Canonical ownership should stay split like this:
 
 Important rule:
 - do not let the toolbar invent separate behavior paths for commands that should also exist in the console
+- do not let the toolbar invent a second bespoke floating-window system when the workspace family already owns reusable drag, clamp, host-mode, and persistence patterns
 
 ### Core Direction
 
@@ -434,6 +443,7 @@ Current family read:
 - `View-Toolbar 5` is open
 - `View-Toolbar 6` is open
 - `View-Toolbar 7` is complete
+- `View-Toolbar 8` is open
 
 Evidence for the completed read:
 - the standalone phase doc [`Future/View_Toolbar_Phase View-Toolbar 1 - Shared View Command Dispatch And Projection Console Entry.md`](./Future/View_Toolbar_Phase%20View-Toolbar%201%20-%20Shared%20View%20Command%20Dispatch%20And%20Projection%20Console%20Entry.md) is marked `## [x]`
@@ -582,6 +592,9 @@ Phase rule:
 - do not overload the shared `collapsed / essentials / expanded` density language with this feature
 - do not duplicate section behavior into parallel `Classic`-only versus `Tabs`-only command trees
 
+Current follow-on execution doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md`](./Future/View_Toolbar_Phase%20View-Toolbar%206%20Phase%208%20-%20Outside%20Tab%20Rail%20And%20Attached%20Shell%20Chrome.md)
+
 Completion read:
 - open
 
@@ -615,6 +628,36 @@ Phase rule:
 
 Completion read:
 - complete
+
+## [ ] View-Toolbar 8 - Detachable Floating Window Presentation
+
+Standalone phase doc:
+- [`Future/View_Toolbar_Phase View-Toolbar 8 - Detachable Floating Window Presentation.md`](./Future/View_Toolbar_Phase%20View-Toolbar%208%20-%20Detachable%20Floating%20Window%20Presentation.md)
+
+Goal:
+- let the `View` toolbar leave its docked top-right home and behave like one draggable floating window for the active model viewport without forking command behavior or inventing a second hidden toolbar owner
+
+This phase should:
+- keep the docked toolbar as the default and honest fallback
+- add one viewport-local host-mode seam such as:
+  - `docked`
+  - `floating`
+- persist one viewport-local floating rect for the detached toolbar window
+- reuse the existing workspace floating-window shell pattern for drag, clamp, and quick-dock behavior
+- keep the actual toolbar sections and controls on one shared body so docked and floating presentation stay behavior-identical
+- keep the floating toolbar attached to its owning viewport instead of turning it into one app-global singleton
+
+Phase rule:
+- do not promote the toolbar into a full generic `WorkspaceSurfaceKind` in this first cut
+- do not overload `viewToolbarDockMode` with floating semantics
+- do not duplicate the toolbar JSX into separate docked versus floating command trees
+
+Architectural suggestion:
+- treat this as `View-Toolbar` owning the content and `Workspace-Modes` lending the shell template
+- model it as viewport-local chrome that can borrow a floating host presentation, not as a new slot-swappable workspace surface
+
+Completion read:
+- open
 
 ### Open Questions
 
@@ -650,6 +693,23 @@ Current tension:
 #### Suggestion
 
 Keep the toolbar control family generic, but let the live values reflect sketch-owned aligned-grid state when a sketch session is active instead of inventing a second sketch-only grid toolbar.
+
+#### [ ] `q4` Should a floating `View` toolbar become a full workspace surface kind?
+
+Current tension:
+- the workspace family already has honest slotted/floating/popout surface kinds
+- the current `View` toolbar is still viewport-local chrome mounted under the model viewport host
+
+#### Suggestion
+
+No for the first detachable phase.
+
+Keep the toolbar viewport-local and add one floating host-mode presentation plus a persisted rect inside viewport-local chrome state.
+
+Reason:
+- the toolbar is still subordinate to one active viewport's camera and helper state
+- forcing it into `WorkspaceSurfaceKind` too early would widen the work into slot menus, surface catalog, split rules, and popout semantics the user did not ask for
+- the app already has cleaner floating-window shell templates that can be borrowed without pretending the toolbar is the same class of surface as `Browser`, `Console`, or `Dashboard`
 
 ### Done Means
 
