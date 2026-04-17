@@ -200,6 +200,7 @@ export type WorkspaceViewToolbarTabKey =
   | 'gizmo'
   | 'view'
   | 'environment'
+  | 'ground'
   | 'materials'
 
 export type WorkspaceViewportLocalViewState = {

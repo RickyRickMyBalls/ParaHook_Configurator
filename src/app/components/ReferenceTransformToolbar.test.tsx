@@ -775,8 +775,8 @@ describe('ReferenceTransformToolbar', () => {
       root?.render(<ReferenceTransformToolbar />)
       useConsoleStore.getState().setConsolePromptSession({
         kind: 'reference-transform.axis',
-        breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Viewer Transform', 'Move', 'Move X'],
-        label: 'Select > References > Shoes > Shoe 1 > Viewer Transform > Move > Move X',
+        breadcrumb: ['Select', 'References', 'Wearable', 'Shoe 1', 'Viewer Transform', 'Move', 'Move X'],
+        label: 'Select > References > Wearable > Shoe 1 > Viewer Transform > Move > Move X',
         prefill: '0',
         returnSession: useConsoleStore.getState().stagedNavigationSession!,
         mode: 'translate',

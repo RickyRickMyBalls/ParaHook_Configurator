@@ -16,6 +16,11 @@ type ParaSliderProps = {
   min: number
   max: number
   step: number
+  trackMin?: number
+  trackMax?: number
+  trackStep?: number
+  valueToTrackValue?: (value: number) => number
+  trackValueToValue?: (trackValue: number) => number
   onChange: (value: number) => void
   allowWrap?: boolean
   showContinuousDragPreview?: boolean
@@ -87,6 +92,11 @@ export function ParaSlider({
   min,
   max,
   step,
+  trackMin,
+  trackMax,
+  trackStep,
+  valueToTrackValue,
+  trackValueToValue,
   onChange,
   allowWrap = false,
   showContinuousDragPreview = false,
@@ -114,48 +124,81 @@ export function ParaSlider({
   const [clampMinInput, setClampMinInput] = useState('')
   const [clampMaxInput, setClampMaxInput] = useState('')
   const [dragPreviewValue, setDragPreviewValue] = useState<number | null>(null)
+  const usesCustomTrackMapping =
+    trackMin !== undefined ||
+    trackMax !== undefined ||
+    trackStep !== undefined ||
+    valueToTrackValue !== undefined ||
+    trackValueToValue !== undefined
+  const resolveTrackValue = valueToTrackValue ?? ((nextValue: number) => nextValue)
+  const resolveValueFromTrack = trackValueToValue ?? ((nextTrackValue: number) => nextTrackValue)
+  const effectiveTrackMin = trackMin ?? min
+  const effectiveTrackMax = trackMax ?? max
+  const effectiveTrackStep = trackStep ?? step
   const normalizedValue = allowWrap ? wrapValue(value, min, max) : clampValue(value, min, max)
+  const normalizedTrackValue =
+    allowWrap && !isEditingClamp
+      ? wrapValue(resolveTrackValue(normalizedValue), effectiveTrackMin, effectiveTrackMax)
+      : clampValue(resolveTrackValue(normalizedValue), effectiveTrackMin, effectiveTrackMax)
   const normalizedDisplayedTrackValue =
     displayedTrackValue === undefined
-      ? normalizedValue
-      : allowWrap
-        ? wrapValue(displayedTrackValue, min, max)
-        : clampValue(displayedTrackValue, min, max)
+      ? normalizedTrackValue
+      : allowWrap && !isEditingClamp
+        ? wrapValue(resolveTrackValue(displayedTrackValue), effectiveTrackMin, effectiveTrackMax)
+        : clampValue(resolveTrackValue(displayedTrackValue), effectiveTrackMin, effectiveTrackMax)
   const displayedValue = dragPreviewValue ?? normalizedDisplayedTrackValue
   const normalizedClampMin = normalizeValue(clampMin ?? min, min, max, step)
   const normalizedClampMax = normalizeValue(clampMax ?? max, min, max, step)
   const effectiveClampMin = Math.min(normalizedClampMin, normalizedClampMax)
   const effectiveClampMax = Math.max(normalizedClampMin, normalizedClampMax)
+  const effectiveTrackClampMin = isEditingClamp
+    ? effectiveClampMin
+    : clampValue(resolveTrackValue(effectiveClampMin), effectiveTrackMin, effectiveTrackMax)
+  const effectiveTrackClampMax = isEditingClamp
+    ? effectiveClampMax
+    : clampValue(resolveTrackValue(effectiveClampMax), effectiveTrackMin, effectiveTrackMax)
   const displayedFillPercent = useMemo(() => {
-    if (effectiveClampMax <= effectiveClampMin || displayedValue <= effectiveClampMin) {
+    if (effectiveTrackClampMax <= effectiveTrackClampMin || displayedValue <= effectiveTrackClampMin) {
       return 0
     }
-    return ((displayedValue - effectiveClampMin) / (effectiveClampMax - effectiveClampMin)) * 100
-  }, [displayedValue, effectiveClampMax, effectiveClampMin])
+    return (
+      ((displayedValue - effectiveTrackClampMin) /
+        (effectiveTrackClampMax - effectiveTrackClampMin)) *
+      100
+    )
+  }, [displayedValue, effectiveTrackClampMax, effectiveTrackClampMin])
   const clampStartPercent = useMemo(() => {
-    if (max <= min) {
+    if (effectiveTrackMax <= effectiveTrackMin) {
       return 0
     }
-    return ((effectiveClampMin - min) / (max - min)) * 100
-  }, [effectiveClampMin, max, min])
+    return ((effectiveTrackClampMin - effectiveTrackMin) / (effectiveTrackMax - effectiveTrackMin)) * 100
+  }, [effectiveTrackClampMin, effectiveTrackMax, effectiveTrackMin])
   const clampWidthPercent = useMemo(() => {
-    if (max <= min) {
+    if (effectiveTrackMax <= effectiveTrackMin) {
       return 0
     }
-    return ((effectiveClampMax - effectiveClampMin) / (max - min)) * 100
-  }, [effectiveClampMax, effectiveClampMin, max, min])
+    return (
+      ((effectiveTrackClampMax - effectiveTrackClampMin) /
+        (effectiveTrackMax - effectiveTrackMin)) *
+      100
+    )
+  }, [effectiveTrackClampMax, effectiveTrackClampMin, effectiveTrackMax, effectiveTrackMin])
   const valuePercent = useMemo(() => {
-    if (max <= min) {
+    if (effectiveTrackMax <= effectiveTrackMin) {
       return 0
     }
-    return ((displayedValue - min) / (max - min)) * 100
-  }, [displayedValue, max, min])
+    return ((displayedValue - effectiveTrackMin) / (effectiveTrackMax - effectiveTrackMin)) * 100
+  }, [displayedValue, effectiveTrackMax, effectiveTrackMin])
   const normalizedValuePercent = useMemo(() => {
-    if (effectiveClampMax <= effectiveClampMin) {
+    if (effectiveTrackClampMax <= effectiveTrackClampMin) {
       return 0
     }
-    return ((normalizedValue - effectiveClampMin) / (effectiveClampMax - effectiveClampMin)) * 100
-  }, [effectiveClampMax, effectiveClampMin, normalizedValue])
+    return (
+      ((normalizedTrackValue - effectiveTrackClampMin) /
+        (effectiveTrackClampMax - effectiveTrackClampMin)) *
+      100
+    )
+  }, [effectiveTrackClampMax, effectiveTrackClampMin, normalizedTrackValue])
   const inputPrecision = useMemo(() => inferStepPrecision(step), [step])
   const editableValueText = useMemo(() => normalizedValue.toFixed(inputPrecision), [inputPrecision, normalizedValue])
   const editableClampMinText = useMemo(
@@ -204,18 +247,20 @@ export function ParaSlider({
       return null
     }
     const ratio = clamp((clientX - rect.left) / rect.width, 0, 1)
-    return isEditingClamp
-      ? clamp(
-          normalizeValue(min + ratio * (max - min), min, max, step),
-          effectiveClampMin,
-          effectiveClampMax,
-        )
-      : normalizeValue(
-          effectiveClampMin + ratio * (effectiveClampMax - effectiveClampMin),
-          effectiveClampMin,
-          effectiveClampMax,
-          step,
-        )
+    if (isEditingClamp) {
+      return clamp(
+        normalizeValue(min + ratio * (max - min), min, max, step),
+        effectiveClampMin,
+        effectiveClampMax,
+      )
+    }
+    const nextTrackValue = normalizeValue(
+      effectiveTrackClampMin + ratio * (effectiveTrackClampMax - effectiveTrackClampMin),
+      effectiveTrackClampMin,
+      effectiveTrackClampMax,
+      effectiveTrackStep,
+    )
+    return normalizeValue(resolveValueFromTrack(nextTrackValue), min, max, step)
   }
 
   const updateFromClientX = (clientX: number): number | null => {
@@ -240,24 +285,31 @@ export function ParaSlider({
     if (rect.width <= 0) {
       return null
     }
-    const activeRangeMin = isEditingClamp ? min : effectiveClampMin
-    const activeRangeMax = isEditingClamp ? max : effectiveClampMax
+    const activeRangeMin = isEditingClamp ? min : effectiveTrackClampMin
+    const activeRangeMax = isEditingClamp ? max : effectiveTrackClampMax
     const dragDivisor = useFineAdjustment ? 10 : 1
-    const activeStep = useFineAdjustment ? fineStep : step
+    const activeStep = useFineAdjustment ? fineStep : isEditingClamp ? step : effectiveTrackStep
+    const currentTrackValue = isEditingClamp
+      ? currentValue
+      : clampValue(resolveTrackValue(currentValue), activeRangeMin, activeRangeMax)
     const rawDeltaValue =
-      currentValue + ((deltaClientX / rect.width) * (activeRangeMax - activeRangeMin)) / dragDivisor
-    const deltaValue = rawDeltaValue - currentValue
+      currentTrackValue +
+      ((deltaClientX / rect.width) * (activeRangeMax - activeRangeMin)) / dragDivisor
+    const deltaValue = rawDeltaValue - currentTrackValue
     const snappedDeltaValue =
       activeStep > 0
         ? Number((Math.round(deltaValue / activeStep) * activeStep).toFixed(4))
         : Number(deltaValue.toFixed(4))
-    const nextQuantizedValue = Number((currentValue + snappedDeltaValue).toFixed(4))
+    const nextQuantizedValue = Number((currentTrackValue + snappedDeltaValue).toFixed(4))
     const nextValue =
       allowWrap && !isEditingClamp
         ? wrapValue(nextQuantizedValue, activeRangeMin, activeRangeMax)
-        : clamp(nextQuantizedValue, effectiveClampMin, effectiveClampMax)
-    onChange(nextValue)
-    return nextValue
+        : clamp(nextQuantizedValue, activeRangeMin, activeRangeMax)
+    const resolvedValue = isEditingClamp || !usesCustomTrackMapping
+      ? nextValue
+      : normalizeValue(resolveValueFromTrack(nextValue), min, max, step)
+    onChange(resolvedValue)
+    return resolvedValue
   }
 
   const updateWrappedPreviewFromDrag = (

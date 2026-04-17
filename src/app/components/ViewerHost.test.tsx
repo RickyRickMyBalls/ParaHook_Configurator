@@ -31,6 +31,7 @@ let viewerSetViewerTransformHistoryOverlay: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformOverride: ReturnType<typeof vi.fn>
 let viewerGetReferencePartDescriptors: ReturnType<typeof vi.fn>
 let viewerHandoffExplodedReferenceChildren: ReturnType<typeof vi.fn>
+let viewerHandoffDirectPartBackedReferenceChildren: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformChange: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformCommit: ReturnType<typeof vi.fn>
 let viewerSetOnReferenceTransformExit: ReturnType<typeof vi.fn>
@@ -165,6 +166,8 @@ vi.mock('../../viewer/Viewer', () => ({
       viewerGetReferencePartDescriptors(...args)
     public handoffExplodedReferenceChildren = (...args: unknown[]) =>
       viewerHandoffExplodedReferenceChildren(...args)
+    public handoffDirectPartBackedReferenceChildren = (...args: unknown[]) =>
+      viewerHandoffDirectPartBackedReferenceChildren(...args)
     public setOnReferenceTransformChange = (...args: unknown[]) =>
       viewerSetOnReferenceTransformChange(...args)
     public setOnReferenceTransformCommit = (...args: unknown[]) =>
@@ -521,6 +524,7 @@ describe('ViewerHost reference loading', () => {
     viewerSetReferenceTransformOverride = vi.fn()
     viewerGetReferencePartDescriptors = vi.fn(() => [])
     viewerHandoffExplodedReferenceChildren = vi.fn(() => [])
+    viewerHandoffDirectPartBackedReferenceChildren = vi.fn(() => [])
     viewerSetOnReferenceTransformChange = vi.fn()
     viewerSetOnReferenceTransformCommit = vi.fn()
     viewerSetOnReferenceTransformExit = vi.fn()
@@ -1104,6 +1108,140 @@ describe('ViewerHost reference loading', () => {
     expect(state.referenceWorkspace.loadStateById[childReferenceIds[1]!]).toBe('loaded')
     expect(state.referenceWorkspace.visibilityById[childReferenceIds[0]!]).toBe(true)
     expect(state.referenceWorkspace.visibilityById[childReferenceIds[1]!]).toBe(true)
+  })
+
+  it('hands off unloaded direct split siblings from one loaded group source without falling back to repeated child loads', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.setState((state) => ({
+      ...state,
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        importedReferencesById: {
+          ...state.referenceWorkspace.importedReferencesById,
+          'split-child-a': {
+            referenceId: 'split-child-a',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Split Child A',
+            fileType: 'glb',
+            assetPath: 'blob:shared-split-glb',
+            parentAssemblyId: null,
+            parentComponentId: 'component-split',
+            directPartSourceKind: 'split-import-child',
+            directPartSourceGroupId: 'direct-part-source-group:1',
+            explodedFromReferenceId: null,
+            sourcePartKey: 'reference-part:shared:0',
+            sourceMeshIndex: 0,
+          },
+          'split-child-b': {
+            referenceId: 'split-child-b',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Split Child B',
+            fileType: 'glb',
+            assetPath: 'blob:shared-split-glb',
+            parentAssemblyId: null,
+            parentComponentId: 'component-split',
+            directPartSourceKind: 'split-import-child',
+            directPartSourceGroupId: 'direct-part-source-group:1',
+            explodedFromReferenceId: null,
+            sourcePartKey: 'reference-part:shared:1',
+            sourceMeshIndex: 1,
+          },
+          'split-child-c': {
+            referenceId: 'split-child-c',
+            sourceKind: 'imported',
+            categoryId: 'user-references',
+            label: 'Split Child C',
+            fileType: 'glb',
+            assetPath: 'blob:shared-split-glb',
+            parentAssemblyId: null,
+            parentComponentId: 'component-split',
+            directPartSourceKind: 'split-import-child',
+            directPartSourceGroupId: 'direct-part-source-group:1',
+            explodedFromReferenceId: null,
+            sourcePartKey: 'reference-part:shared:0',
+            sourceMeshIndex: 0,
+          },
+        },
+        importedReferenceOrder: ['split-child-a', 'split-child-b', 'split-child-c'],
+        visibilityById: {
+          ...state.referenceWorkspace.visibilityById,
+          'split-child-a': true,
+          'split-child-b': true,
+          'split-child-c': true,
+        },
+        loadStateById: {
+          ...state.referenceWorkspace.loadStateById,
+          'split-child-a': 'loaded',
+          'split-child-b': 'unloaded',
+          'split-child-c': 'unloaded',
+        },
+        errorById: {
+          ...state.referenceWorkspace.errorById,
+          'split-child-a': null,
+          'split-child-b': null,
+          'split-child-c': null,
+        },
+        partRowsByReferenceId: {
+          ...state.referenceWorkspace.partRowsByReferenceId,
+          'split-child-a': [],
+          'split-child-b': [],
+          'split-child-c': [],
+        },
+      },
+    }))
+
+    viewerHandoffDirectPartBackedReferenceChildren.mockImplementation(
+      (_groupId: string, children: Array<{ referenceId: string }>) =>
+        children.map((child) => child.referenceId),
+    )
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(viewerHandoffDirectPartBackedReferenceChildren).toHaveBeenCalledTimes(1)
+    expect(viewerHandoffDirectPartBackedReferenceChildren.mock.calls[0]?.[0]).toBe(
+      'direct-part-source-group:1',
+    )
+    expect(viewerHandoffDirectPartBackedReferenceChildren.mock.calls[0]?.[1]).toEqual([
+      expect.objectContaining({
+        referenceId: 'split-child-b',
+        directPartSourceKind: 'split-import-child',
+        directPartSourceGroupId: 'direct-part-source-group:1',
+        sourcePartKey: 'reference-part:shared:1',
+        sourceMeshIndex: 1,
+      }),
+      expect.objectContaining({
+        referenceId: 'split-child-c',
+        directPartSourceKind: 'split-import-child',
+        directPartSourceGroupId: 'direct-part-source-group:1',
+        sourcePartKey: 'reference-part:shared:0',
+        sourceMeshIndex: 0,
+      }),
+    ])
+    expect(viewerHandoffDirectPartBackedReferenceChildren.mock.calls[0]?.[2]).toBe(true)
+    expect(viewerEnsureReferenceLoaded).not.toHaveBeenCalled()
+    expect(useAppStore.getState().referenceWorkspace.loadStateById['split-child-b']).toBe('loaded')
+    expect(useAppStore.getState().referenceWorkspace.loadStateById['split-child-c']).toBe('loaded')
+    expect(useAppStore.getState().referenceWorkspace.partRowsByReferenceId['split-child-b']).toEqual(
+      [],
+    )
+    expect(useAppStore.getState().referenceWorkspace.partRowsByReferenceId['split-child-c']).toEqual(
+      [],
+    )
   })
 
   it('keeps a failed STEP row retryable by clearing visibility on error and loading again after the next click', async () => {

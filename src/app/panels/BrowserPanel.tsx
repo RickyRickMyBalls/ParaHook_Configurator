@@ -223,12 +223,18 @@ export function BrowserPanel({
       />
       <BrowserImportDialog
         draft={overlay.stagedImportDraft}
+        commitResult={overlay.stagedImportCommitResult}
+        previewSelection={overlay.stagedImportPreviewSelection}
+        columnWidths={overlay.stagedImportColumnWidths}
         previewRows={overlay.stagedImportPreviewRows}
         isBrowsing={overlay.isBrowsingImportFiles}
         onBrowse={overlay.onBrowseImportFiles}
         onSetImportMode={overlay.onSetStagedImportFileMode}
         onSetUpAxis={overlay.onSetStagedImportFileUpAxis}
         onSetScaleAlignment={overlay.onSetStagedImportFileScaleAlignment}
+        onSetScaleMultiplier={overlay.onSetStagedImportFileScaleMultiplier}
+        onLoadPreview={overlay.onLoadStagedImportPreview}
+        onStartColumnResize={overlay.onStartStagedImportColumnResize}
         onSetPutAcceptedInNewAssembly={overlay.onSetStagedImportPutAcceptedInNewAssembly}
         onCreatePreviewAssembly={overlay.onCreateStagedImportPreviewAssembly}
         onCreatePreviewComponent={overlay.onCreateStagedImportPreviewComponent}

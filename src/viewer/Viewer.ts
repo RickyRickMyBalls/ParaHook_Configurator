@@ -25,6 +25,7 @@ import {
   Object3D,
   OrthographicCamera,
   PCFSoftShadowMap,
+  PlaneGeometry,
   PerspectiveCamera,
   PointLight,
   Points,
@@ -40,14 +41,18 @@ import type { TransformControlsMode } from 'three/examples/jsm/controls/Transfor
 import type { ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
+  type GroundMaterialPresetId,
   type LightSpec,
   type LightType,
   type MaterialPreset,
   type ProjectionMode,
   type ViewSettings,
 } from '../shared/viewSettingsTypes'
-import type { ReferenceLoadableItem } from '../app/references/referenceManifest'
-import type { ReferenceTransformOverride } from '../app/references/referenceManifest'
+import type {
+  DirectPartBackedReferenceLoadKind,
+  ReferenceLoadableItem,
+  ReferenceTransformOverride,
+} from '../app/references/referenceManifest'
 import type { ActiveReferenceTransformHandle } from '../app/store/useAppStore'
 import { appendConsoleEntry } from '../app/console/useConsoleStore'
 import { isEditableTarget, routeKeyboardInput } from '../app/inputRouting'
@@ -159,6 +164,7 @@ const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
 const GRID_MAJOR_STEP = 10
 const GRID_DOUBLE_MAJOR_STEP = 50
+const GROUND_SIZE = 1000
 const DEFAULT_FLY_CAMERA_MOVE_SPEED_UNITS_PER_SEC = 4
 const FLY_CAMERA_BOOST_MULTIPLIER = 3
 const DEFAULT_FLY_CAMERA_ROLL_RADIANS_PER_SEC = Math.PI * 0.75
@@ -240,6 +246,9 @@ const createGridLayer = (
 
 const cloneViewSettings = (settings: ViewSettings): ViewSettings => ({
   ...settings,
+  ground: {
+    ...settings.ground,
+  },
   axisOverlayStyle: {
     ...settings.axisOverlayStyle,
   },
@@ -271,8 +280,52 @@ const fallbackPreset = (): MaterialPreset => ({
   transparent: false,
 })
 
+const groundMaterialPreset = (
+  presetId: GroundMaterialPresetId,
+): Pick<MaterialPreset, 'color' | 'metalness' | 'roughness' | 'emissive' | 'emissiveIntensity' | 'opacity' | 'transparent'> => {
+  if (presetId === 'matte_dark') {
+    return {
+      color: '#2c313b',
+      metalness: 0.02,
+      roughness: 0.86,
+      emissive: '#000000',
+      emissiveIntensity: 0,
+      opacity: 1,
+      transparent: false,
+    }
+  }
+
+  if (presetId === 'glossy_studio') {
+    return {
+      color: '#777f8d',
+      metalness: 0.04,
+      roughness: 0.26,
+      emissive: '#000000',
+      emissiveIntensity: 0,
+      opacity: 1,
+      transparent: false,
+    }
+  }
+
+  return {
+    color: '#4c5562',
+    metalness: 0.02,
+    roughness: 0.64,
+    emissive: '#000000',
+    emissiveIntensity: 0,
+    opacity: 1,
+    transparent: false,
+  }
+}
+
 type ExplodedReferenceLoadProvenance = {
   explodedFromReferenceId: string
+  sourcePartKey: string
+  sourceMeshIndex: number
+}
+
+type DirectPartBackedReferenceLoadProvenance = {
+  directPartSourceKind: DirectPartBackedReferenceLoadKind
   sourcePartKey: string
   sourceMeshIndex: number
 }
@@ -337,6 +390,8 @@ export class Viewer {
   private readonly geometrySketchOverlayGroup: Group
   private readonly visibleGeometrySketchOverlayGroup: Group
   private readonly gridGroup: Group
+  private readonly groundPlane: Mesh
+  private readonly groundPlaneMaterial: MeshStandardMaterial
   private readonly minorGridHelper: LineSegments
   private readonly majorGridHelper: LineSegments
   private readonly doubleMajorGridHelper: LineSegments
@@ -381,6 +436,9 @@ export class Viewer {
   private readonly referenceGroup: Group
   private readonly referenceObjects = new Map<string, Object3D>()
   private readonly referencePartDescriptorsByReferenceId = new Map<string, ReferencePartDescriptor[]>()
+  private readonly directPartSourceObjectsByGroupId = new Map<string, Object3D>()
+  private readonly directPartReferenceIdsByGroupId = new Map<string, Set<string>>()
+  private readonly directPartSourceGroupIdByReferenceId = new Map<string, string>()
   private readonly referenceLoadPromises = new Map<string, Promise<void>>()
   private readonly removedReferenceIds = new Set<string>()
   private activeReferenceTransformReferenceId: string | null = null
@@ -595,6 +653,26 @@ export class Viewer {
     this.workspaceSelectionOverlayBox.style.boxSizing = 'border-box'
     this.workspaceSelectionOverlayRoot.appendChild(this.workspaceSelectionOverlayBox)
     this.container.appendChild(this.workspaceSelectionOverlayRoot)
+
+    this.groundPlaneMaterial = new MeshStandardMaterial()
+    this.groundPlaneMaterial.polygonOffset = true
+    this.groundPlaneMaterial.polygonOffsetFactor = 1
+    this.groundPlaneMaterial.polygonOffsetUnits = 1
+    this.applyPresetToMaterial(this.groundPlaneMaterial, {
+      id: 'ground_runtime',
+      name: 'Ground Runtime',
+      ...groundMaterialPreset(DEFAULT_VIEW_SETTINGS.ground.materialPresetId),
+    })
+    this.groundPlane = new Mesh(
+      new PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
+      this.groundPlaneMaterial,
+    )
+    this.groundPlane.rotation.x = -Math.PI / 2
+    this.groundPlane.visible = DEFAULT_VIEW_SETTINGS.ground.enabled
+    this.groundPlane.castShadow = false
+    this.groundPlane.receiveShadow = true
+    this.groundPlane.position.y = DEFAULT_VIEW_SETTINGS.ground.height
+    this.scene.add(this.groundPlane)
 
     this.gridGroup = new Group()
     this.minorGridHelper = createGridLayer(
@@ -1001,6 +1079,7 @@ export class Viewer {
       settings.envPreset === 'studio' ? STUDIO_BACKGROUND : DEFAULT_BACKGROUND,
     )
 
+    this.applyGroundSettings(settings.ground)
     this.setAxisOverlayEnabled(settings.axisOverlayEnabled)
     this.axisGizmo?.setStyle(settings.axisOverlayStyle)
     this.applyLights(settings.lighting.lights)
@@ -1183,6 +1262,54 @@ export class Viewer {
     return handedOffReferenceIds
   }
 
+  public handoffDirectPartBackedReferenceChildren(
+    directPartSourceGroupId: string,
+    children: ReferenceLoadableItem[],
+    visible: boolean,
+  ): string[] {
+    const sourceObject = this.directPartSourceObjectsByGroupId.get(directPartSourceGroupId)
+    if (sourceObject === undefined) {
+      return []
+    }
+
+    const handedOffReferenceIds: string[] = []
+    for (const child of children) {
+      if (this.referenceObjects.has(child.referenceId)) {
+        continue
+      }
+      const directPartProvenance = this.resolveDirectPartBackedReferenceLoadProvenance(child)
+      if (
+        directPartProvenance === null ||
+        child.directPartSourceGroupId !== directPartSourceGroupId
+      ) {
+        continue
+      }
+
+      const childObject = this.createExplodedReferenceHandoffObject(
+        child,
+        sourceObject,
+        directPartProvenance.sourceMeshIndex,
+      )
+      this.referencePartDescriptorsByReferenceId.set(child.referenceId, [])
+      this.referenceObjects.set(child.referenceId, childObject)
+      this.registerDirectPartSourceReference(child.referenceId, directPartSourceGroupId)
+      if (visible) {
+        this.referenceGroup.add(childObject)
+        childObject.visible = true
+      }
+      handedOffReferenceIds.push(child.referenceId)
+    }
+
+    if (handedOffReferenceIds.length > 0) {
+      this.refreshReferenceHighlightStyling()
+      this.refreshGizmoAttachment()
+      this.syncReferenceTransformHistoryOverlay()
+      this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    }
+
+    return handedOffReferenceIds
+  }
+
   public removeReference(referenceId: string): void {
     this.removedReferenceIds.add(referenceId)
     if (this.activeReferenceTransformReferenceId === referenceId) {
@@ -1204,6 +1331,7 @@ export class Viewer {
     this.disposeObjectTree(object)
     this.referenceObjects.delete(referenceId)
     this.referencePartDescriptorsByReferenceId.delete(referenceId)
+    this.unregisterDirectPartSourceReference(referenceId)
     this.referenceSelectionOutlines.delete(referenceId)
     this.refreshReferenceHighlightStyling()
     this.refreshGizmoAttachment()
@@ -2643,6 +2771,9 @@ export class Viewer {
     this.clearAllLights()
     this.clearGeometrySketchOverlayGroup(this.geometrySketchOverlayGroup)
     this.clearGeometrySketchOverlayGroup(this.visibleGeometrySketchOverlayGroup)
+    this.groundPlane.geometry.dispose()
+    this.groundPlaneMaterial.dispose()
+    this.scene.remove(this.groundPlane)
 
     for (const material of this.materialCacheByPresetId.values()) {
       material.dispose()
@@ -2855,6 +2986,18 @@ export class Viewer {
     material.side = DoubleSide
     material.wireframe = this.currentViewSettings.wireframe
     material.needsUpdate = true
+  }
+
+  private applyGroundSettings(settings: ViewSettings['ground']): void {
+    this.groundPlane.visible = settings.enabled
+    this.groundPlane.position.y = settings.height
+    this.applyPresetToMaterial(this.groundPlaneMaterial, {
+      id: `ground_${settings.materialPresetId}`,
+      name: 'Ground',
+      ...groundMaterialPreset(settings.materialPresetId),
+    })
+    this.groundPlane.castShadow = false
+    this.groundPlane.receiveShadow = true
   }
 
   private createLayerMaterial(
@@ -3129,6 +3272,35 @@ export class Viewer {
     }
   }
 
+  private resolveDirectPartBackedReferenceLoadProvenance(
+    reference: ReferenceLoadableItem,
+  ): DirectPartBackedReferenceLoadProvenance | null {
+    const directPartSourceKind = reference.directPartSourceKind ?? null
+    if (directPartSourceKind === null) {
+      return null
+    }
+
+    const sourcePartKey = reference.sourcePartKey ?? null
+    const sourceMeshIndex = reference.sourceMeshIndex ?? null
+    if (sourcePartKey === null || sourceMeshIndex === null) {
+      throw new Error(
+        `Direct part-backed reference "${reference.referenceId}" is missing valid source provenance.`,
+      )
+    }
+
+    if (sourcePartKey.length === 0 || !Number.isInteger(sourceMeshIndex) || sourceMeshIndex < 0) {
+      throw new Error(
+        `Direct part-backed reference "${reference.referenceId}" is missing valid source provenance.`,
+      )
+    }
+
+    return {
+      directPartSourceKind,
+      sourcePartKey,
+      sourceMeshIndex,
+    }
+  }
+
   private collectReferenceLeafMeshes(object: Object3D): Mesh[] {
     const leafMeshes: Mesh[] = []
     object.traverse((child) => {
@@ -3341,6 +3513,26 @@ export class Viewer {
   }
 
   private async loadReferenceObject(reference: ReferenceLoadableItem): Promise<LoadedReferenceObject> {
+    const directPartProvenance = this.resolveDirectPartBackedReferenceLoadProvenance(reference)
+    if (directPartProvenance !== null) {
+      const object = await this.loadReferenceAssetObject(reference)
+      const directPartSourceGroupId = reference.directPartSourceGroupId ?? null
+      if (directPartSourceGroupId !== null) {
+        this.directPartSourceObjectsByGroupId.set(
+          directPartSourceGroupId,
+          this.cloneReferenceObjectForExplodeHandoff(object),
+        )
+        this.registerDirectPartSourceReference(reference.referenceId, directPartSourceGroupId)
+      }
+      return {
+        object: this.createReferencePivot(
+          reference,
+          this.isolateReferenceMeshByIndex(object, directPartProvenance.sourceMeshIndex),
+        ),
+        partDescriptors: [],
+      }
+    }
+
     const explodedProvenance = this.resolveExplodedReferenceLoadProvenance(reference)
     const object = await this.loadReferenceAssetObject(reference)
 
@@ -3363,6 +3555,35 @@ export class Viewer {
 
   private async loadReferenceAssetObject(reference: ReferenceLoadableItem): Promise<Object3D> {
     return loadReferenceAssetObject(reference)
+  }
+
+  private registerDirectPartSourceReference(referenceId: string, groupId: string): void {
+    this.directPartSourceGroupIdByReferenceId.set(referenceId, groupId)
+    const groupReferenceIds = this.directPartReferenceIdsByGroupId.get(groupId) ?? new Set<string>()
+    groupReferenceIds.add(referenceId)
+    this.directPartReferenceIdsByGroupId.set(groupId, groupReferenceIds)
+  }
+
+  private unregisterDirectPartSourceReference(referenceId: string): void {
+    const groupId = this.directPartSourceGroupIdByReferenceId.get(referenceId)
+    if (groupId === undefined) {
+      return
+    }
+    this.directPartSourceGroupIdByReferenceId.delete(referenceId)
+    const groupReferenceIds = this.directPartReferenceIdsByGroupId.get(groupId)
+    if (groupReferenceIds === undefined) {
+      return
+    }
+    groupReferenceIds.delete(referenceId)
+    if (groupReferenceIds.size > 0) {
+      return
+    }
+    this.directPartReferenceIdsByGroupId.delete(groupId)
+    const sourceObject = this.directPartSourceObjectsByGroupId.get(groupId)
+    if (sourceObject !== undefined) {
+      this.disposeObjectTree(sourceObject)
+      this.directPartSourceObjectsByGroupId.delete(groupId)
+    }
   }
 
   private disposeObjectTree(object: Object3D): void {

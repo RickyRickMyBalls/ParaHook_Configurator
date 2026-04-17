@@ -42,25 +42,25 @@ Do not use it for:
 ## Recent Weekly Read
 
 <div class="calendar-week-strip">
-  <div class="calendar-week-card phase-workspace-foundation">
-    <strong>Apr 9</strong>
-    <p>Viewport runtime inspector and the first three Worker Vision lanes landed together.</p>
-  </div>
-  <div class="calendar-week-card phase-parity">
-    <strong>Apr 10</strong>
-    <p>Worker Vision 3 expanded across draft/final gating, presentation controls, and extrude collection rows.</p>
-  </div>
-  <div class="calendar-week-card phase-transform">
-    <strong>Apr 11</strong>
-    <p>OutputPreview-1 and the extrude canvas row stack converged into managed shells and row cleanup.</p>
-  </div>
-  <div class="calendar-week-card phase-build-fix">
-    <strong>Apr 12</strong>
-    <p>Output Preview proofs, Bug 18 repair, and Cleanup 1 through 5 all landed in one consolidation sprint.</p>
-  </div>
   <div class="calendar-week-card phase-build-fix">
     <strong>Apr 13</strong>
     <p>Cleanup 6 and Cleanup 7 narrowed accepted-result and console command ownership seams.</p>
+  </div>
+  <div class="calendar-week-card phase-parity">
+    <strong>Apr 14</strong>
+    <p>View Toolbar 5, Gizmo 2 and 3, Fly-Mode 1, and camera follow-ups converged into one dense viewport-control sprint.</p>
+  </div>
+  <div class="calendar-week-card phase-split-polish">
+    <strong>Apr 15</strong>
+    <p>View-Toolbar 7 introduced camera FOV and clip controls while Browser-13 finished its overflow and resize seams.</p>
+  </div>
+  <div class="calendar-week-card phase-browser">
+    <strong>Apr 16</strong>
+    <p>Import-3 and Import-4 accelerated into staged intake, preview-browser organization, hierarchy cards, and object-preview tooling.</p>
+  </div>
+  <div class="calendar-week-card phase-browser">
+    <strong>Apr 17</strong>
+    <p>Scale Multiplier follow-ups landed beside the first Environment-1 baseline lighting and cleanup pass.</p>
   </div>
 </div>
 
@@ -73,7 +73,7 @@ Do not use it for:
   <div class="month-header">
     <div>
       <h3>April 2026</h3>
-      <p>From Workspace 7.5 parity closeout into dashboard, worker vision, output preview, and the first big cleanup hardening sprint.</p>
+      <p>From Workspace 7.5 parity closeout into dashboard, worker vision, output preview, cleanup, view-toolbar camera and gizmo work, and the staged import plus environment sprint.</p>
     </div>
   </div>
 
@@ -221,17 +221,45 @@ Do not use it for:
       <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
       <div class="day-tag">Cleanup closeout</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">14</div>
+    <div class="day phase-parity" data-target="april-14">
+      <div class="day-head"><div class="day-number">14</div><div class="day-title">Gizmo & Fly</div></div>
+      <ul class="day-bullets">
+        <li>View Toolbar 5 and 5.1</li>
+        <li>Gizmo 2-3 sweep</li>
+        <li>Fly camera and worker fixes</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+19794</span> <span class="day-diff-minus">-981</span></div>
+      <div class="day-tag">Viewport controls and camera sweep</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">15</div>
+    <div class="day phase-split-polish" data-target="april-15">
+      <div class="day-head"><div class="day-number">15</div><div class="day-title">Camera & Resize</div></div>
+      <ul class="day-bullets">
+        <li>ViewToolbar 7</li>
+        <li>Free-cam fixes</li>
+        <li>Browser 13 resize seam</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+3882</span> <span class="day-diff-minus">-130</span></div>
+      <div class="day-tag">Camera controls and browser resize polish</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">16</div>
+    <div class="day phase-browser" data-target="april-16">
+      <div class="day-head"><div class="day-number">16</div><div class="day-title">Import Sprint</div></div>
+      <ul class="day-bullets">
+        <li>Import-3 closeout</li>
+        <li>Import-4 staged window and preview</li>
+        <li>Browser-14 explode and hierarchy passes</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-plus">+36170</span> <span class="day-diff-minus">-1703</span></div>
+      <div class="day-tag">Import window and staged preview buildout</div>
     </div>
-    <div class="day empty">
-      <div class="day-number">17</div>
+    <div class="day phase-browser" data-target="april-17">
+      <div class="day-head"><div class="day-number">17</div><div class="day-title">Scale & Environment</div></div>
+      <ul class="day-bullets">
+        <li>Import 7.5.5-7.5.6</li>
+        <li>Environment 1 baseline repair</li>
+        <li>Lighting cleanup follow-up</li>
+      </ul>
+      <div class="day-diff"><span class="day-diff-neutral">git none</span></div>
+      <div class="day-tag">Import scale controls and environment baseline</div>
     </div>
     <div class="day empty">
       <div class="day-number">18</div>
@@ -865,6 +893,9 @@ Do not use it for:
   </details>
   </details>
 
+  <details class="calendar-week-details">
+  <summary>Week of April 12-18</summary>
+
   <details class="calendar-day-details" id="april-12">
   <summary>April 12 - Sunday</summary>
   <ul>
@@ -941,6 +972,230 @@ Do not use it for:
       <li>`Cleanup 6 - Phase 3 - App Project Accepted Publication Handoff Narrowing`</li>
     </ul>
   </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-14">
+  <summary>April 14 - Tuesday</summary>
+  <ul>
+    <li>Drove the view-toolbar lane through bottom-clearance ownership, section collapse behavior, and transform-versus-snap subsection separation so the panel settled cleanly against the viewport and console</li>
+    <li>Carried the gizmo lane from connected cage and snap-safety through animated camera snapping, hover feedback, hover-space orbiting, resize behavior, and tighter shell cleanup</li>
+    <li>Finished the fly-camera sweep with true mode separation, pointer-lock look, HUD compaction, and worker or auto-draft preview stability follow-ups around repeated commits and slider release handling</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 3 commits, +19794 / -981.</div>
+  <ul class="calendar-commit-list">
+    <li>`5ec0faf` View toolbar & gizmo</li>
+    <li>`81bf65d` Fly camera</li>
+    <li>`0c5c261` fuck it its a fpv sim now</li>
+  </ul>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (58)</summary>
+    <ul class="calendar-commit-list">
+      <li>`VT - Fly-Mode 1 Phase 6 - Fly Mode Type Split: Drone And Free Cam`</li>
+      <li>`VT - View Toolbar Para Text And Arrows To 5px`</li>
+      <li>`VT - View Toolbar Para Text Middle Ground Size`</li>
+      <li>`VT - View Toolbar Para Text Rollback From 50 Percent`</li>
+      <li>`VT - View Toolbar Para Select Text Size Fix`</li>
+      <li>`VT - View Toolbar Para Control Text To 50 Percent`</li>
+      <li>`VT - View Toolbar Smaller Para Control Text`</li>
+      <li>`VT - Fly-Mode 1 Phase 5 - Fly Mode Activate Select And Always-On Option`</li>
+      <li>`VR - Model Viewport Bottom Console Bar Reserve`</li>
+      <li>`VT - Fly-Mode 1 Phase 4 - View Toolbar Fly Mode Subsection And Roll Speed Control`</li>
+      <li>`VR - View Toolbar Bottom Clearance Follow-Up 2`</li>
+      <li>`VR - View Toolbar Bottom Clearance Follow-Up`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 4 Follow-Up - Fix Internal Panel Offset Overcount`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 4 Follow-Up - Restore Truthful Collapse Wake-Up`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 4 - Immediate Section-Collapse Height Snap`</li>
+      <li>`VT - Build And Strict Typing Cleanup Follow-Up`</li>
+      <li>`VT - Gizmo Viewport Resize Cap Increase`</li>
+      <li>`VT - Gizmo Phase 10 Overlay Shell Orbit Drag Follow-Up`</li>
+      <li>`VT - Phase Gizmo 2 Phase 10 - Orbit The Model Viewport From Gizmo Hover Space`</li>
+      <li>`VT - Gizmo Default Line Opacity Follow-Up`</li>
+      <li>`VT - Gizmo Viewport Shadowless Shell Follow-Up`</li>
+      <li>`VT - Gizmo Viewport Dolly Default And Borderless Shell Follow-Up`</li>
+      <li>`VT - Phase Gizmo Compact Viewport Resize Handle In Collapsed Mode`</li>
+      <li>`VT - Phase Gizmo 2 Phase 9 - Gizmo Viewport Camera Dolly And Default Framing`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 3 - Snap Subsection Split`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 2 - Transform Subsection Split And Gizmo Scope Cleanup`</li>
+      <li>`VT - Phase Gizmo 2 Phase 8 - Snap-Line Hover Transparency And Highlight Feedback`</li>
+      <li>`VT - Phase Gizmo 2 Phase 7 Follow-Up - Gizmo Viewport Background Mode`</li>
+      <li>`VT - Phase Gizmo 2 Phase 7 - v15 Style Controls For Orientation Helper`</li>
+      <li>`VR - Phase View-Toolbar 5 Follow-Up - Scrollbar Only At Real Height Clamp`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 1c Follow-Up - Restore Root Height Read And Subsection Reflow`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 1c - Collapse Remeasure Loop And Immediate Height Settle`</li>
+      <li>`VT - Phase Gizmo 2 Phase 6 - Animated Camera Snapping From Orientation Targets`</li>
+      <li>`VT - Phase Gizmo 3 - Immediate Resize Without Dock Or Widget Lag`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 1b - Used-Height Clamp And Console-Bar Reserve`</li>
+      <li>`VT - Phase Gizmo 2 Phase 5 - Dense Connector Mesh And Lower Opacity`</li>
+      <li>`VR - Phase View-Toolbar 5 Phase 1 - Toolbar Scroll Ownership And Viewport Clamp`</li>
+      <li>`VT - Phase Gizmo 2 Phase 4 - Snap-Safety And Interaction Proofs`</li>
+      <li>`VT - Phase Gizmo 2 Phase 3 - Complete Connected Cage Read`</li>
+      <li>`VT - Phase Gizmo 2 Phase 2 - First Non-Pickable Connector Layer`</li>
+      <li>`VR - Phase View-Toolbar 5.1 - Model Viewport Bottom Clamp`</li>
+      <li>`VR - Phase View-Toolbar 5.1 - Viewport-Bottom Content Padding`</li>
+      <li>`VR - Phase View-Toolbar 5.1 - Bottom Console Clearance`</li>
+      <li>`VR - Phase View-Toolbar 5.1 - Whole Toolbar Scroll Ownership Correction`</li>
+      <li>`VR - Phase View-Toolbar 5.1 - View Section Scrollbar Visibility Fix`</li>
+      <li>`VR - Phase View-Toolbar 5.1 - Inner Scroll Surface Ownership`</li>
+      <li>`VR - Phase Camera 6.3.7d - Reduce Fly Speed HUD Arrow Glyph Size`</li>
+      <li>`VR - Phase Camera 6.3.7c - Compact Fly Speed HUD Slider`</li>
+      <li>`VR - Phase Camera 6.3.7b - Restore Exact Y-Up On Fly Exit`</li>
+      <li>`VR - Phase Camera 6.3.8 - Pointer Lock Fly Look`</li>
+      <li>`VR - Phase Camera 6.3.7 - True Fly Camera Mode Separation`</li>
+      <li>`WK - Phase Worker 10 Phase 5 - Repair Complex Parallel Preview Locality And Settled Sibling Completeness`</li>
+      <li>`WK - Phase Worker 10 Phase 4 - Prove Complex Parallel Preview Locality`</li>
+      <li>`WK - AutoDraftFinal Phase 9.3 - Clear Stale Baseline Meshes On Layer Replacement`</li>
+      <li>`WK - AutoDraftFinal Phase 9.2 - Repeated-Commit Viewer Regression`</li>
+      <li>`WK - Viewport Slider Release Interaction Contract Fix`</li>
+      <li>`WK - AutoDraftFinal Phase 8.5 - Auto Live Read-Through Proof And Verification`</li>
+      <li>`WK - AutoDraftFinal Phase 8.4 - End Comparison On Pointer Release`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-15">
+  <summary>April 15 - Wednesday</summary>
+  <ul>
+    <li>Shifted from fly-mode fixes into the new View-Toolbar 7 camera lane, landing perspective FOV, authored clip range, para sliders, wording cleanup, projection proof, and camera subsection grouping</li>
+    <li>Tightened free-cam defaults with upright yaw and default fly-mode type behavior so the camera tooling felt more predictable after the April 14 fly-mode split</li>
+    <li>Closed the day on Browser-13 overflow and resize work so long object lists can scroll and both docked and floating browser widths have a reachable shared resize seam</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 2 commits, +3882 / -130.</div>
+  <ul class="calendar-commit-list">
+    <li>`9e5478c` fly mode/free cam</li>
+    <li>`5175971` free cam test</li>
+  </ul>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (16)</summary>
+    <ul class="calendar-commit-list">
+      <li>`BR - Browser-13 Phase 2.3 - Reachable Docked Resize Seam`</li>
+      <li>`BR - Browser-13 Phase 2.2 - Floating Resize Affordances`</li>
+      <li>`BR - Browser-13 Phase 2.1 - Shared Dock Width Proof`</li>
+      <li>`VT - View-Toolbar 7 Phase 7 - Camera Subsection Grouping And Framing Split`</li>
+      <li>`VT - View-Toolbar 7 Phase 6 - Projection Toggle Sync Proof And Stop`</li>
+      <li>`VT - View-Toolbar 7 Phase 5 - Value Language, Defaults, And Small Safety Polish`</li>
+      <li>`VT - View-Toolbar 7 Phase 4 - Clip Start And Clip End ParaSliders`</li>
+      <li>`VT - View-Toolbar 7 Phase 3 - Authored Clip Range Runtime Contract`</li>
+      <li>`VT - View-Toolbar 7 Phase 2 - Camera Section FOV ParaSlider`</li>
+      <li>`VT - View-Toolbar 7 Phase 1 - Perspective FOV Viewer Contract`</li>
+      <li>`VT - View-Toolbar 5 Phase 5 - Browser Read-Only Subsection Density Match`</li>
+      <li>`VT - Free Cam Default Fly Mode Type`</li>
+      <li>`VT - Free Cam Upright Yaw Fix`</li>
+      <li>`BRW - Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow`</li>
+      <li>`BRW - Browser-13 - Phase 1 - Unsplit Left Dock Constraint Follow-Up`</li>
+      <li>`BRW - Browser-13 - Phase 2.3 - Shared Dock Resize Seam Chrome Cleanup`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-16">
+  <summary>April 16 - Thursday</summary>
+  <ul>
+    <li>Turned Browser-14 into a full explode-aware lane with stable part identity, real per-part runtime records, wrapper replacement, console entry, parity cleanup, and preserved loaded runtime behavior</li>
+    <li>Advanced Camera-7 and Import-3 together so animated standard-view and zoom-to-object controls met a full staged import window with intake, review, structure inspection, settings, placement, commit, and cleanup</li>
+    <li>Spent the rest of the sprint on Import-4, building the staged per-file feedback flow, partial-result session messaging, third-column object preview, hierarchy tree rendering, staged settings conversion, parts-list cleanup, and the first preview follow-ups through zoom-to-fit, resize repair, up-axis truth, and the 300x300 grid toggle</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: 3 commits, +36170 / -1703.</div>
+  <ul class="calendar-commit-list">
+    <li>`9aa3d39` Import 3 - import file stage window</li>
+    <li>`f673d01` Catlog part 1</li>
+    <li>`796335f` Batch importer and other view stuff</li>
+  </ul>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (65)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Import-4 - Phase 7.5.4 - 300x300 Preview Grid Toggle`</li>
+      <li>`Import-4 - Phase 7.5.3 - Up-Axis Preview Truth Snappy Follow-Up`</li>
+      <li>`Import-4 - Phase 7.5.3 - Up-Axis Preview Truth`</li>
+      <li>`Import-4 - Phase 7.5.1 - Object Preview Zoom-To-Fit Aspect-Aware Follow-Up`</li>
+      <li>`Import-4 - Phase 7.5.2 - Object Preview Resize-Adjust Bug Repair`</li>
+      <li>`Import-4 - Phase 7.5.1 - Object Preview Zoom-To-Fit`</li>
+      <li>`Import-4 - Phase 7.4.4 - True Tree Connector And Root-Line Fidelity`</li>
+      <li>`Import-4 - Phase 7.4.3 - Badge Truth And Helper-Copy Enrichment`</li>
+      <li>`Import-4 - Phase 7.4.2 - Hierarchy Tree Header Follow-Up`</li>
+      <li>`Import-4 - Phase 7.4.2 - Hierarchy Tree Scroll Follow-Up`</li>
+      <li>`Import-4 - Phase 7.4.2 - Hierarchy Tree Rendering`</li>
+      <li>`Import-4 - Phase 7.4.1 - Hierarchy Summary Contract`</li>
+      <li>`Import-4 - Phase 7.3 - Real ParaSelect Follow-Up`</li>
+      <li>`Import-4 - Phase 7.3 - Staged Settings Paraselect Conversion`</li>
+      <li>`Import-4 - Phase 7.1 - Parts List Highlight Row Follow-Up`</li>
+      <li>`Import-4 - Phase 7.2 - Staged File Card Re-Organization`</li>
+      <li>`Import-4 - Phase 7.1 - Parts Summary List Bottom-Edge Resize`</li>
+      <li>`Import-4 - Phase 7.1 - Parts Summary List Overflow Cap`</li>
+      <li>`Import-4 - Phase 7.1 - Parts Summary List Cleanup`</li>
+      <li>`Import-4 - Phase 6.4 - Cleanup And Regression Proof`</li>
+      <li>`Import-4 - Phase 6.3 - Orbit Interaction And Divider Resizing`</li>
+      <li>`Import-4 - Phase 6.2 - Load Into Preview Viewport Action And Preview Rendering`</li>
+      <li>`Import-4 - Phase 6.1 - Preview Selection Contract And Third-Column Shell`</li>
+      <li>`Import-4 - Phase 4 - Dialog Recovery And Session Messaging`</li>
+      <li>`Import-4 - Phase 3 - Add-To-Project Partial Result Contract`</li>
+      <li>`Import-4 - Phase 2 - Per-File Staged Inspection Feedback`</li>
+      <li>`Import-4 - Phase 0.1.4 - Regression Proof And Narrow Cleanup`</li>
+      <li>`Import-4 - Phase 0.2.3 - Focused Performance Proof And Narrow Cleanup`</li>
+      <li>`Import-4 - Phase 0.2.2 - Split-Child Derivation Handoff`</li>
+      <li>`Import-4 - Phase 0.2.1 - Shared Source Load Ownership For Direct Split Children`</li>
+      <li>`Import-4 - Phase 0.1.3 - Commit Path Wiring For Multiple Objects In 1 Component`</li>
+      <li>`Import-4 - Phase 0.1.2 - Part-Backed Child Load Contract`</li>
+      <li>`Import-4 - Phase 0.1.1 - Current Split-Import Failure Proof`</li>
+      <li>`Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`</li>
+      <li>`Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`</li>
+      <li>`Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`</li>
+      <li>`Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`</li>
+      <li>`Import-3 - Phase 12 - Post-Accept Imported Reference Load Failure Research And Fix`</li>
+      <li>`Import-3 - Phase 11 - Narrow Cleanup And Regression Pass`</li>
+      <li>`Import-3 - Phase 10 - Add-To-Project Commit Path`</li>
+      <li>`Import-3 - Phase 9 - New Assembly Placement Option`</li>
+      <li>`Import-3 - Phase 8 - Scale And Units Alignment`</li>
+      <li>`Import-3 - Phase 7 - Up-Axis Settings`</li>
+      <li>`Import-3 - Phase 6 - Preview Browser Organization Before Commit`</li>
+      <li>`Import-3 - Phase 5 - Structured Import Mode Choice`</li>
+      <li>`Import-3 - Phase 4 - Pre-Add Structure Inspection Contract`</li>
+      <li>`Import-3 - Phase 3B - Staged File List Polish Pass`</li>
+      <li>`Import-3 - Phase 3 - Staged File List And Multi-File Review`</li>
+      <li>`Build - Browser Import Fixture And Viewer Provenance Type Repairs`</li>
+      <li>`Import-3 - Phase 2 - Supported Types And Browser Intake`</li>
+      <li>`VR - Camera-7 Phase 3.2 - Animated Zoom To Object Through Shared Framing Seam`</li>
+      <li>`Import-3 - Phase 1 - Menu Entry And Floating Window Shell`</li>
+      <li>`VR - Camera-7 Phase 3.1 - Shift+Z Zoom Object Shortcut Revision`</li>
+      <li>`VR - Camera-7 Phase 3.1 - Numpad Decimal Entry Into Shared Zoom To Object`</li>
+      <li>`VR - Camera-7 Phase 2.2 - View Toolbar Camera Transition Duration ParaSlider`</li>
+      <li>`Browser-14 - Phase 8 - Preserve Loaded Runtime After Explode`</li>
+      <li>`VR - Camera-7 Phase 2.1 - Animated Standard View Transitions`</li>
+      <li>`BR - Browser-14 Phase 7 - Console Explode Entry`</li>
+      <li>`BR - Browser-14 Phase 6 - Naming Cleanup And Focused Regression Proof`</li>
+      <li>`BR - Browser-14 Phase 5 - Independent Object Behavior Parity`</li>
+      <li>`BR - Browser-14 Phase 4 - Browser Explode Entry And Wrapper Replacement`</li>
+      <li>`BR - Browser-14 Phase 3 - Runtime Single-Part Load And Provenance`</li>
+      <li>`BR - Browser-14 Phase 2 - Explode Mutation Creates Real Per-Part Object Records`</li>
+      <li>`VR - Phase Camera 7 - Active Viewer Camera Control Shortcuts`</li>
+      <li>`BR - Browser-14 Phase 1 - Stable Part Identity And Explode Contract`</li>
+    </ul>
+  </details>
+  </details>
+
+  <details class="calendar-day-details" id="april-17">
+  <summary>April 17 - Friday</summary>
+  <ul>
+    <li>Followed the Import-4 preview work with Phase 7.5.5 and 7.5.6 so staged scale changes now update in place and the new Scale Multiplier row owns truthful numeric scale, proper slider arrows, matching ParaSelect styling, and a segmented low-end-friendly curve</li>
+    <li>Opened the first environment lane by shipping the default lighting baseline repair, then restoring the original darker background colors and grid opacity values while keeping the readability-focused exposure and light-rig work</li>
+    <li>Finished with Environment-1 Phase 2b so the default rig now uses a cleaner key-fill-rim balance without widening into presets or new toolbar state</li>
+  </ul>
+  <div class="calendar-day-git">Git diff: no repo commit found for this day in this checkout.</div>
+  <details>
+    <summary>Landed phases from CHANGELOG.md (9)</summary>
+    <ul class="calendar-commit-list">
+      <li>`Environment-1 - Phase 2b - Default Lighting Cleanup And Balance Polish`</li>
+      <li>`Environment-1 - Phase 2 - Restore Original Grid Opacities`</li>
+      <li>`Environment-1 - Phase 2 - Restore Original Background Colors`</li>
+      <li>`Environment-1 - Phase 2 - Ship The Default Lighting Baseline Repair`</li>
+      <li>`Import-4 - Phase 7.5.6 - Segmented Scale Multiplier Slider Curve`</li>
+      <li>`Import-4 - Phase 7.5.6 - Scale Multiplier Match Up Axis ParaSelect Style`</li>
+      <li>`Import-4 - Phase 7.5.6 - Scale Multiplier Proper ParaSlider Arrows`</li>
+      <li>`Import-4 - Phase 7.5.6 - Scale Multiplier Paraselect And Custom Sync`</li>
+      <li>`Import-4 - Phase 7.5.5 - Scale Preview Truth And Snappy In-Place Scale Updates`</li>
+    </ul>
+  </details>
+  </details>
+
   </details>
 
   </details>

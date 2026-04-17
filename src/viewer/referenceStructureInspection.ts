@@ -11,6 +11,13 @@ import {
 } from './referenceAssetLoader'
 
 const MAX_PREVIEW_LABELS = 4
+const MAX_HIERARCHY_ROWS = 24
+const MAX_HIERARCHY_DEPTH = 4
+
+export type ImportedReferenceHierarchyRow = {
+  label: string
+  children: ImportedReferenceHierarchyRow[]
+}
 
 export type ImportedReferenceStructureInspectionSummary = {
   hasMultipleObjects: boolean
@@ -18,6 +25,7 @@ export type ImportedReferenceStructureInspectionSummary = {
   hasParts: boolean
   labels: string[]
   partRows: ReferencePartDescriptor[]
+  hierarchyRows?: ImportedReferenceHierarchyRow[]
 }
 
 const collectObjectStructureStats = (
@@ -82,6 +90,42 @@ const combineMeaningfulLabels = (...lists: string[][]): string[] => {
   return labels
 }
 
+const collectMeaningfulHierarchyRows = (
+  object: Object3D,
+  depth = 0,
+  state: { remainingRows: number } = { remainingRows: MAX_HIERARCHY_ROWS },
+): ImportedReferenceHierarchyRow[] => {
+  if (depth >= MAX_HIERARCHY_DEPTH || state.remainingRows <= 0) {
+    return []
+  }
+
+  const rows: ImportedReferenceHierarchyRow[] = []
+
+  for (const child of object.children) {
+    if (state.remainingRows <= 0) {
+      break
+    }
+
+    const childRows = collectMeaningfulHierarchyRows(child, depth + 1, state)
+    const label = child.name?.trim()
+
+    if (isMeaningfulPartLabel(label)) {
+      rows.push({
+        label,
+        children: childRows,
+      })
+      state.remainingRows -= 1
+      continue
+    }
+
+    if (childRows.length > 0) {
+      rows.push(...childRows)
+    }
+  }
+
+  return rows
+}
+
 export const inspectImportedReferenceFileStructure = async (
   referenceId: string,
   file: Pick<ImportedReferenceFile, 'fileType' | 'objectUrl'>,
@@ -94,6 +138,7 @@ export const inspectImportedReferenceFileStructure = async (
   try {
     const partDescriptors = extractReferencePartDescriptors(referenceId, object)
     const structureStats = collectObjectStructureStats(object)
+    const hierarchyRows = collectMeaningfulHierarchyRows(object)
     return {
       ...structureStats,
       hasParts: partDescriptors.length > 0,
@@ -102,6 +147,7 @@ export const inspectImportedReferenceFileStructure = async (
         partDescriptors.map((descriptor) => descriptor.label),
       ),
       partRows: partDescriptors,
+      hierarchyRows,
     }
   } finally {
     disposeReferenceObjectTree(object)

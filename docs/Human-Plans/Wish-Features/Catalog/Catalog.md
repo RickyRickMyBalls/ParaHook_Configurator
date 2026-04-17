@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-04-16 17:10:00: Tightened the wishlist read so the old preloaded `foothooks`, `shoes`, and `footpads` no longer read as default Browser-resident content, adding an explicit `Catalog-Gen0` prep step to remove those preloaded reference models from `Browser` first and reframing the later catalog families as optional add-ins the user can choose intentionally
 4. 2026-04-16 00:08:43: Expanded the Catalog wishlist again to add the higher-level `System` organizer for Onewheel parts, documenting that the catalog should first distinguish `Platform` versus `Wheel` and later `Hardware`, and capturing the new wheel-side examples for motors and tires so those items can use type-specific fitment metadata without being forced into platform-only filtering
 3. 2026-04-15 23:57:42: Added the first explicit Onewheel-part filter wishlist section, documenting the structured filter model for `ADV`, `XR`, `GT`, `Other`, the first part-type filters `Footpads`, `Bumpers`, `Rails`, and `Motors`, the `Other` sub-sections `FootHolds`, `Shoes`, and `Screw & Nuts`, and the recommendation that names like `XR_Footpad_Kush-Wide_Front` should be represented by structured metadata fields instead of parsed display strings
 2. 2026-04-15 23:44:46: Expanded the `Catalog` wishlist shape around the newer store-page interaction model, documenting that the grid should use one `1x1` card per item with no previews auto-loaded, that previews should be user-triggered and allow multiple temporary previewed items, and that clicking a card should open an item page whose primary responsibilities are the larger viewport, `Add To Project`, and the description
@@ -14,7 +15,7 @@ This doc defines the broader wishlist direction for `Catalog`.
 
 Use it to answer:
 - what larger `Catalog` product ideas are worth capturing before they all become implementation phases
-- how the preloaded reference families should feel inside the catalog
+- how the later optional reference families should feel inside the catalog
 - how preview and commit should differ
 - which wishlist items belong to which `Catalog` architecture phase
 - what later follow-ons may be worth adding after the first foundation lands
@@ -24,7 +25,7 @@ Use it to answer:
 The `Catalog` workspace now has a real architecture home under `Workspace Modes`.
 
 But there is still value in one looser feature-capture surface where we can record:
-- how the first preloaded asset families should feel
+- how the first later optional asset families should feel
 - which actions should exist from the user's point of view
 - which later Catalog upgrades feel worth saving without overcommitting implementation detail too early
 
@@ -34,12 +35,13 @@ This doc exists to hold that wider product shape.
 
 ### Short Version
 
-`Catalog` should become the user-facing home for the repo's preloaded reusable references and later other curated assets.
+`Catalog` should become the user-facing home for the repo's later optional reusable references and later other curated assets.
 
 The first strong target is:
-- move the preloaded `Foothooks`
-- move the preloaded `Shoes`
-- move the preloaded `Footpads`
+- remove the current preloaded reference models from `Browser` during `Catalog-Gen0`
+- later let the user add `Foothooks`
+- later let the user add `Shoes`
+- later let the user add `Footpads`
 - later add `HDRIs`
 
 The core user flow should be:
@@ -82,8 +84,8 @@ Useful first card content:
 
 #### [ ] 1. Move The Current Preloaded References Into Catalog
 
-- the current preloaded `foothooks`, `shoes`, and `footpads` should stop feeling like scattered preload behavior
-- they should become explicit curated `Catalog` entries instead
+- the current preloaded `foothooks`, `shoes`, and `footpads` should first stop feeling like scattered `Browser` preload behavior
+- later they should become explicit curated `Catalog` entries instead
 - the user should be able to browse them from one real workspace surface
 
 #### [ ] 2. Separate Sections For Reference Families
@@ -273,12 +275,16 @@ Important rule:
 
 Use this mapping to keep wishlist items organized by the phase where they are expected to become real:
 
+- `Catalog-Gen0`
+  - remove the current preloaded reference models from the default `Browser` baseline
+  - stop starting the user with `foothooks`, `shoes`, and `footpads` already acting like implied Browser content
+  - prepare those reference families to return later as intentional optional add-ins
 - `Catalog-1`
   - make `Catalog` a real workspace mode
   - define the catalog item contract
   - define sections, store-page card language, preview-versus-commit workflow, and the structured filter contract
 - `Catalog-2`
-  - move the current preloaded `foothooks`, `shoes`, and `footpads` into real curated catalog families
+  - onboard `foothooks`, `shoes`, and `footpads` as later optional curated catalog families after the old Browser preload is gone
   - make `Add To Project` create explicit Browser/project content
   - land the first real item pages and preview behavior for those reference families
 - `Catalog-3`
@@ -311,7 +317,8 @@ These are worth saving, but they should stay behind the first reference-family w
 ### Summary
 
 The wishlist direction is:
-- move the current preloaded `foothooks`, `shoes`, and `footpads` into `Catalog`
+- remove the current preloaded `foothooks`, `shoes`, and `footpads` from the default `Browser` baseline first
+- later let the user add `foothooks`, `shoes`, and `footpads` through `Catalog`
 - organize them into clear reference-family sections
 - show them through a `1x1` card grid with no auto-loaded previews on entry
 - let the user `Load Preview` into separate temporary preview viewports only when they ask for it

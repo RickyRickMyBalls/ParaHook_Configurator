@@ -1270,15 +1270,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 100px 24px;
   background: rgba(4, 6, 10, 0.52);
 }
 
 .BrowserImportDialog {
-  width: min(460px, calc(100vw - 48px));
+  width: min(1280px, calc(100vw - 48px));
+  max-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
   padding: 18px;
   border: 1px solid rgba(124, 160, 255, 0.24);
   border-radius: 16px;
@@ -1336,8 +1338,11 @@
 
 .BrowserImportDialogBody {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .BrowserImportDialogCopy {
@@ -1345,6 +1350,96 @@
   font-size: 13px;
   line-height: 1.5;
   color: rgba(232, 237, 255, 0.88);
+}
+
+.BrowserImportDialogContent {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns:
+    minmax(0, calc((100% - 88px) * var(--browser-import-left-column-share, 0.44)))
+    12px
+    minmax(0, calc((100% - 88px) * var(--browser-import-middle-column-share, 0.31)))
+    12px
+    minmax(0, calc((100% - 88px) * var(--browser-import-right-column-share, 0.25)));
+  align-items: stretch;
+  gap: 16px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.BrowserImportDialogLeftColumn,
+.BrowserImportDialogMiddleColumn,
+.BrowserImportDialogRightColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.V15Panel button.BrowserImportDialogResizeBar,
+.V15Panel button.BrowserImportDialogResizeBar:hover {
+  min-width: 12px;
+  width: 12px;
+  height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: col-resize;
+}
+
+.V15Panel button.BrowserImportDialogResizeBar:hover {
+  background: rgba(124, 160, 255, 0.12);
+}
+
+.BrowserImportDialogResizeBarGrip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(124, 160, 255, 0.22),
+      rgba(124, 160, 255, 0.08)
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(124, 160, 255, 0.12),
+    0 0 0 1px rgba(10, 12, 18, 0.18);
+}
+
+.BrowserImportDialogLeftScrollRegion {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 160, 255, 0.42) rgba(8, 10, 14, 0.18);
+  padding-right: 4px;
+}
+
+.BrowserImportDialogLeftScrollRegion::-webkit-scrollbar {
+  width: 10px;
+}
+
+.BrowserImportDialogLeftScrollRegion::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.18);
+  border-radius: 999px;
+}
+
+.BrowserImportDialogLeftScrollRegion::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(8, 10, 14, 0.18);
+  border-radius: 999px;
+  background: rgba(124, 160, 255, 0.42);
+}
+
+.BrowserImportDialogLeftScrollRegion::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 160, 255, 0.58);
 }
 
 .BrowserImportDialogMeta {
@@ -1413,6 +1508,38 @@
   color: rgba(232, 237, 255, 0.88);
 }
 
+.BrowserImportDialogCommitSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 199, 145, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 199, 145, 0.07);
+}
+
+.BrowserImportDialogCommitSummaryHeader,
+.BrowserImportDialogCommitFailureHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.BrowserImportDialogCommitSummaryTitle,
+.BrowserImportDialogCommitFailureTitle {
+  color: rgba(255, 240, 226, 0.96);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.BrowserImportDialogCommitSummaryBody,
+.BrowserImportDialogCommitFailureHelper {
+  color: rgba(255, 228, 204, 0.9);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .BrowserImportDialogMetaValue {
   font-size: 13px;
   font-weight: 700;
@@ -1444,50 +1571,35 @@
   list-style: none;
 }
 
-.BrowserImportDialogStagedListScrollRegion {
-  max-height: min(280px, 42vh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(124, 160, 255, 0.42) rgba(8, 10, 14, 0.18);
-  padding-right: 4px;
-}
-
-.BrowserImportDialogStagedListScrollRegion::-webkit-scrollbar {
-  width: 10px;
-}
-
-.BrowserImportDialogStagedListScrollRegion::-webkit-scrollbar-track {
-  background: rgba(8, 10, 14, 0.18);
-  border-radius: 999px;
-}
-
-.BrowserImportDialogStagedListScrollRegion::-webkit-scrollbar-thumb {
-  border: 2px solid rgba(8, 10, 14, 0.18);
-  border-radius: 999px;
-  background: rgba(124, 160, 255, 0.42);
-}
-
-.BrowserImportDialogStagedListScrollRegion::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 160, 255, 0.58);
-}
-
 .BrowserImportDialogStagedRow {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
 }
 
-.BrowserImportDialogStagedRowMain {
+.BrowserImportDialogStagedRowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.BrowserImportDialogStagedRowHeaderMain {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.BrowserImportDialogStagedRowBody {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
@@ -1510,9 +1622,11 @@
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  width: 100%;
 }
 
 .BrowserImportDialogStagedRowName {
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1538,6 +1652,166 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.BrowserImportDialogStructureHelper {
+  color: rgba(182, 193, 223, 0.82);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.BrowserImportDialogStructureSelectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  min-height: 56px;
+  height: 100px;
+  max-height: 240px;
+  overflow-y: auto;
+  resize: vertical;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(8, 10, 14, 0.62);
+  list-style: none;
+}
+
+.BrowserImportDialogStructureSelectionRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.BrowserImportDialogStructureSelectionRow.isSelected {
+  border-color: rgba(124, 160, 255, 0.24);
+  background: rgba(124, 160, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.08);
+}
+
+.BrowserImportDialogStructureSelectionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(236, 241, 255, 0.92);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.BrowserImportDialogHierarchyTreeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.BrowserImportDialogHierarchyTreeTitle {
+  color: rgba(182, 193, 223, 0.86);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.BrowserImportDialogHierarchyTreeScrollRegion {
+  min-width: 0;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.BrowserImportDialogHierarchyTreeList {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  list-style: none;
+}
+
+.BrowserImportDialogHierarchyTreeList[data-depth='0'] {
+  gap: 8px;
+}
+
+.BrowserImportDialogHierarchyTreeList[data-depth='1'],
+.BrowserImportDialogHierarchyTreeList[data-depth='2'],
+.BrowserImportDialogHierarchyTreeList[data-depth='3'],
+.BrowserImportDialogHierarchyTreeList[data-depth='4'] {
+  margin-left: 6px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(124, 160, 255, 0.18);
+}
+
+.BrowserImportDialogHierarchyTreeItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.BrowserImportDialogHierarchyTreeRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.BrowserImportDialogHierarchyTreeList[data-depth='1']
+  > .BrowserImportDialogHierarchyTreeItem
+  > .BrowserImportDialogHierarchyTreeRow::before,
+.BrowserImportDialogHierarchyTreeList[data-depth='2']
+  > .BrowserImportDialogHierarchyTreeItem
+  > .BrowserImportDialogHierarchyTreeRow::before,
+.BrowserImportDialogHierarchyTreeList[data-depth='3']
+  > .BrowserImportDialogHierarchyTreeItem
+  > .BrowserImportDialogHierarchyTreeRow::before,
+.BrowserImportDialogHierarchyTreeList[data-depth='4']
+  > .BrowserImportDialogHierarchyTreeItem
+  > .BrowserImportDialogHierarchyTreeRow::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  width: 14px;
+  height: 1px;
+  background: rgba(124, 160, 255, 0.24);
+  transform: translateY(-50%);
+}
+
+.BrowserImportDialogHierarchyTreeNode {
+  width: 5px;
+  min-width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(124, 160, 255, 0.52);
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.18);
+}
+
+.BrowserImportDialogHierarchyTreeItem[data-has-children='true']
+  > .BrowserImportDialogHierarchyTreeRow
+  .BrowserImportDialogHierarchyTreeNode {
+  background: rgba(148, 186, 255, 0.72);
+  box-shadow: 0 0 0 1px rgba(124, 160, 255, 0.28);
+}
+
+.BrowserImportDialogHierarchyTreeLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(232, 237, 255, 0.88);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .BrowserImportDialogStructureBadge,
@@ -1570,6 +1844,45 @@
   color: rgba(255, 223, 223, 0.96);
 }
 
+.BrowserImportDialogStructureFailure {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 145, 145, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 145, 145, 0.05);
+}
+
+.BrowserImportDialogStructureFailureHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.BrowserImportDialogStructureFailureTitle {
+  color: rgba(255, 232, 232, 0.96);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.BrowserImportDialogStructureFailureHelper {
+  color: rgba(255, 223, 223, 0.92);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.BrowserImportDialogCommitFailure {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 199, 145, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 199, 145, 0.05);
+}
+
 .BrowserImportDialogStructureLabelChip {
   max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1592,6 +1905,39 @@
   gap: 6px;
 }
 
+.BrowserImportDialogImportModeGroup--paraselect .ParaSelect {
+  width: 100%;
+}
+
+.BrowserImportDialogImportModeGroup--slider .ParaSlider {
+  width: 100%;
+}
+
+.BrowserImportDialogImportModeGroup--slider button.ParaSliderCap {
+  height: 30px;
+}
+
+.BrowserImportDialogImportModeGroup--slider .ParaSliderTrack {
+  height: 30px;
+}
+
+.BrowserImportDialogImportModeGroup--slider .ParaSliderFill,
+.BrowserImportDialogImportModeGroup--slider .ParaSliderValueMarker {
+  top: 4px;
+  bottom: 4px;
+}
+
+.BrowserImportDialogImportModeGroup--slider .ParaSliderContent {
+  gap: 12px;
+}
+
+.BrowserImportDialogImportModeGroup--slider .ParaSliderLabel,
+.BrowserImportDialogImportModeGroup--slider .ParaSliderValue,
+.BrowserImportDialogImportModeGroup--slider .ParaSliderValueInput,
+.BrowserImportDialogImportModeGroup--slider button.ParaSliderValueButton {
+  font-size: var(--sp-window-font-size);
+}
+
 .BrowserImportDialogImportModeLabel {
   color: rgba(164, 176, 208, 0.82);
   font-size: 10px;
@@ -1604,6 +1950,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
 }
 
 .V15Panel button.BrowserImportDialogImportModeButton,
@@ -1646,7 +1993,6 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
-  margin-top: 2px;
 }
 
 .BrowserImportDialogPreviewHeader {
@@ -1654,6 +2000,163 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.BrowserImportDialogPreviewColumn {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.BrowserImportDialogViewportColumn {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.BrowserImportDialogViewportHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.BrowserImportDialogViewportShell {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top, rgba(124, 160, 255, 0.08), transparent 54%),
+    rgba(10, 12, 18, 0.42);
+  overflow: hidden;
+}
+
+.BrowserImportDialogViewportCanvasFrame {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.BrowserImportDialogViewportCanvasShell {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.BrowserImportDialogViewportCanvas {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 220px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at top, rgba(124, 160, 255, 0.12), transparent 52%),
+    linear-gradient(180deg, rgba(14, 17, 24, 0.92), rgba(8, 10, 14, 0.96));
+  cursor: grab;
+}
+
+.BrowserImportDialogViewportCanvas:active {
+  cursor: grabbing;
+}
+
+.BrowserImportDialogViewportActionStack {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.V15Panel button.BrowserImportDialogViewportOverlayButton,
+.V15Panel button.BrowserImportDialogViewportOverlayButton:hover {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid rgba(124, 160, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.82);
+  color: rgba(236, 242, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.V15Panel button.BrowserImportDialogViewportOverlayButton:hover {
+  border-color: rgba(124, 160, 255, 0.38);
+  background: rgba(18, 22, 32, 0.92);
+}
+
+.V15Panel button.BrowserImportDialogViewportOverlayButton[aria-pressed='true'],
+.V15Panel button.BrowserImportDialogViewportOverlayButton[aria-pressed='true']:hover {
+  border-color: rgba(124, 160, 255, 0.5);
+  background: rgba(124, 160, 255, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(124, 160, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+.V15Panel button.BrowserImportDialogViewportOverlayButton:disabled,
+.V15Panel button.BrowserImportDialogViewportOverlayButton:hover:disabled {
+  opacity: 0.54;
+  cursor: default;
+}
+
+.BrowserImportDialogViewportOverlayIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.BrowserImportDialogViewportStatus {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-height: 0;
+}
+
+.BrowserImportDialogViewportEmptyState {
+  max-width: 260px;
+  color: rgba(180, 190, 218, 0.82);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.BrowserImportDialogViewportReadyCopy,
+.BrowserImportDialogViewportErrorCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.BrowserImportDialogViewportReadyState,
+.BrowserImportDialogViewportErrorTitle {
+  color: rgba(238, 242, 255, 0.96);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.BrowserImportDialogViewportHint {
+  color: rgba(180, 190, 218, 0.82);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .BrowserImportDialogPreviewHeaderCopy {
@@ -1680,10 +2183,41 @@
   flex: 0 0 auto;
 }
 
+.BrowserImportDialogPreviewTreeScrollRegion {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 160, 255, 0.42) rgba(8, 10, 14, 0.18);
+  padding-right: 4px;
+}
+
+.BrowserImportDialogPreviewTreeScrollRegion::-webkit-scrollbar {
+  width: 10px;
+}
+
+.BrowserImportDialogPreviewTreeScrollRegion::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.18);
+  border-radius: 999px;
+}
+
+.BrowserImportDialogPreviewTreeScrollRegion::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(8, 10, 14, 0.18);
+  border-radius: 999px;
+  background: rgba(124, 160, 255, 0.42);
+}
+
+.BrowserImportDialogPreviewTreeScrollRegion::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 160, 255, 0.58);
+}
+
 .BrowserImportDialogPreviewTree {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-height: 100%;
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
@@ -1727,6 +2261,7 @@
 
 .BrowserImportDialogActions {
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-end;
   gap: 10px;
 }
@@ -1764,4 +2299,24 @@
 .V15Panel button.BrowserImportDialogAction:hover:disabled {
   cursor: wait;
   opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .BrowserImportDialog {
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 200px);
+  }
+
+  .BrowserImportDialogContent {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .BrowserImportDialogResizeBar {
+    display: none;
+  }
+
+  .BrowserImportDialogPreviewColumn,
+  .BrowserImportDialogViewportColumn {
+    min-height: 280px;
+  }
 }

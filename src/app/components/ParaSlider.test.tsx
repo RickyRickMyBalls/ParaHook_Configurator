@@ -3,6 +3,13 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  resolveStagedScaleMultiplierFromTrackValue,
+  resolveStagedScaleMultiplierTrackValue,
+  STAGED_SCALE_MULTIPLIER_TRACK_MAX,
+  STAGED_SCALE_MULTIPLIER_TRACK_MIN,
+  STAGED_SCALE_MULTIPLIER_TRACK_STEP,
+} from '../panels/stagedScaleMultiplierCurve'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true
@@ -562,5 +569,69 @@ describe('ParaSlider', () => {
 
     expect(fill?.style.width).toBe('60%')
     expect(valueButton?.textContent?.trim()).toBe('0')
+  })
+
+  it('can map track interaction through a custom value curve while keeping the authored value readable', async () => {
+    const handleChange = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        <ParaSlider
+          label="Scale Multiplier"
+          min={0.1}
+          max={1000}
+          step={0.1}
+          trackMin={STAGED_SCALE_MULTIPLIER_TRACK_MIN}
+          trackMax={STAGED_SCALE_MULTIPLIER_TRACK_MAX}
+          trackStep={STAGED_SCALE_MULTIPLIER_TRACK_STEP}
+          valueToTrackValue={resolveStagedScaleMultiplierTrackValue}
+          trackValueToValue={resolveStagedScaleMultiplierFromTrackValue}
+          value={10}
+          onChange={handleChange}
+        />,
+      )
+    })
+
+    const track = container.querySelector('.ParaSliderTrack') as HTMLDivElement | null
+    const fill = container.querySelector('.ParaSliderFill') as HTMLDivElement | null
+    const valueButton = container.querySelector(
+      'button[aria-label="Edit Scale Multiplier value"]',
+    ) as HTMLButtonElement | null
+
+    expect(track).not.toBeNull()
+    expect(fill?.style.width).toContain('33.695')
+    expect(valueButton?.textContent?.trim()).toBe('10')
+
+    Object.defineProperty(track, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 100,
+        height: 30,
+        right: 100,
+        bottom: 30,
+        x: 0,
+        y: 0,
+        toJSON: () => '',
+      }),
+    })
+
+    await act(async () => {
+      track?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 50,
+        }),
+      )
+      window.dispatchEvent(new PointerEvent('pointerup', {}))
+    })
+
+    expect(handleChange).toHaveBeenLastCalledWith(25)
   })
 })

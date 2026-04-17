@@ -1173,7 +1173,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(selectWorkspaceSelectedContentOwnerTarget(useAppStore.getState())).toMatchObject({
       ownerKind: 'component',
       ownerId: buildReferenceCategoryRowId('shoes'),
-      ownerLabel: 'Shoes',
+      ownerLabel: 'Wearable',
       parentOwnerId: REFERENCE_ROOT_ROW_ID,
       parentOwnerKind: 'assembly',
       supportsRename: false,
@@ -1182,7 +1182,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
       kind: 'component',
       componentId: buildReferenceCategoryRowId('shoes'),
-      label: 'Shoes',
+      label: 'Wearable',
       canRename: false,
       canDelete: false,
     })
@@ -9019,15 +9019,114 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const importedReferenceCountBefore =
       useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
 
-    const committedAnchorRowId = useAppStore.getState().commitStagedImportDraft()
+    const committedResult = useAppStore.getState().commitStagedImportDraft()
     const state = useAppStore.getState()
 
-    expect(committedAnchorRowId).toBeNull()
+    expect(committedResult).toBeNull()
     expect(state.referenceWorkspace.stagedImportDraft).not.toBeNull()
     expect(state.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(0)
     expect(state.referenceWorkspace.importedReferenceOrder).toHaveLength(
       importedReferenceCountBefore,
     )
+  })
+
+  it('keeps accepted staged import blob URLs alive when the draft closes and only revokes them after the last imported owner is removed', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const revokeObjectURL = vi.fn()
+    const originalUrl = globalThis.URL
+    globalThis.URL = ({
+      ...originalUrl,
+      revokeObjectURL,
+    } as unknown) as typeof URL
+
+    try {
+      useAppStore.getState().openStagedImportDraft({
+        parentAssemblyId: null,
+        parentComponentId: null,
+      })
+      useAppStore.getState().appendStagedImportDraftFiles([
+        {
+          fileName: 'accepted.glb',
+          fileType: 'glb',
+          objectUrl: 'blob:accepted-glb',
+        },
+      ])
+
+      const stagedFileId =
+        useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.stagedFileId ?? null
+      expect(stagedFileId).toBeTruthy()
+
+      useAppStore.getState().resolveStagedImportFileStructureInspection(stagedFileId!, {
+        hasMultipleObjects: false,
+        hasHierarchy: false,
+        hasParts: false,
+        labels: [],
+        partRows: [],
+      })
+
+      const commitResult = useAppStore.getState().commitStagedImportDraft()
+      expect(commitResult).toMatchObject({
+        status: 'success',
+        committedReferenceCount: 1,
+      })
+
+      const committedReferenceId =
+        useAppStore.getState().referenceWorkspace.importedReferenceOrder.find((referenceId) => {
+          const reference = useAppStore.getState().referenceWorkspace.importedReferencesById[referenceId]
+          return reference?.assetPath === 'blob:accepted-glb'
+        }) ?? null
+      expect(committedReferenceId).toBeTruthy()
+
+      useAppStore.getState().closeStagedImportDraft()
+
+      expect(useAppStore.getState().referenceWorkspace.stagedImportDraft).toBeNull()
+      expect(revokeObjectURL).not.toHaveBeenCalledWith('blob:accepted-glb')
+
+      useAppStore.getState().removeImportedReference(committedReferenceId!)
+
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:accepted-glb')
+    } finally {
+      globalThis.URL = originalUrl
+    }
+  })
+
+  it('still revokes abandoned staged import blob URLs when the draft closes without acceptance', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    const revokeObjectURL = vi.fn()
+    const originalUrl = globalThis.URL
+    globalThis.URL = ({
+      ...originalUrl,
+      revokeObjectURL,
+    } as unknown) as typeof URL
+
+    try {
+      useAppStore.getState().openStagedImportDraft({
+        parentAssemblyId: null,
+        parentComponentId: null,
+      })
+      useAppStore.getState().appendStagedImportDraftFiles([
+        {
+          fileName: 'abandoned.glb',
+          fileType: 'glb',
+          objectUrl: 'blob:abandoned-glb',
+        },
+      ])
+
+      useAppStore.getState().closeStagedImportDraft()
+
+      expect(useAppStore.getState().referenceWorkspace.stagedImportDraft).toBeNull()
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:abandoned-glb')
+    } finally {
+      globalThis.URL = originalUrl
+    }
   })
 
   it('commits staged single-object imports only when accepted and stores the chosen import transform truth', async () => {
@@ -9051,6 +9150,13 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.stagedFileId ?? null
     expect(stagedFileId).toBeTruthy()
 
+    useAppStore.getState().resolveStagedImportFileStructureInspection(stagedFileId!, {
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
+    })
     useAppStore.getState().setStagedImportFileUpAxis(stagedFileId!, 'y-up')
     useAppStore.getState().setStagedImportFileScaleAlignment(stagedFileId!, 'centimeters')
     useAppStore.getState().setStagedImportPutAcceptedInNewAssembly(true)
@@ -9058,10 +9164,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const importedReferenceCountBefore =
       useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
 
-    const committedAnchorRowId = useAppStore.getState().commitStagedImportDraft()
+    const commitResult = useAppStore.getState().commitStagedImportDraft()
     const state = useAppStore.getState()
 
-    expect(committedAnchorRowId).toBeTruthy()
+    expect(commitResult).toMatchObject({
+      status: 'success',
+      committedReferenceCount: 1,
+    })
+    expect(commitResult?.anchorRowId).toBeTruthy()
     expect(state.referenceWorkspace.importedReferenceOrder).toHaveLength(
       importedReferenceCountBefore + 1,
     )
@@ -9091,7 +9201,62 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(state.referenceWorkspace.stagedImportDraft).not.toBeNull()
   })
 
-  it('commits reviewed multi-object staged imports through the preview organization without flattening them', async () => {
+  it('commits custom staged scale multipliers through the accepted transform override', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    useAppStore.getState().appendStagedImportDraftFiles([
+      {
+        fileName: 'custom-scale.step',
+        fileType: 'step',
+        objectUrl: 'blob:custom-scale-step',
+      },
+    ])
+
+    const stagedFileId =
+      useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.stagedFileId ?? null
+    expect(stagedFileId).toBeTruthy()
+
+    useAppStore.getState().resolveStagedImportFileStructureInspection(stagedFileId!, {
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
+    })
+    useAppStore.getState().setStagedImportFileScaleMultiplier(stagedFileId!, 2.5)
+
+    expect(
+      useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0],
+    ).toMatchObject({
+      scaleAlignment: 'custom',
+      scaleMultiplier: 2.5,
+    })
+
+    const commitResult = useAppStore.getState().commitStagedImportDraft()
+    const state = useAppStore.getState()
+
+    expect(commitResult).toMatchObject({
+      status: 'success',
+      committedReferenceCount: 1,
+    })
+
+    const committedReference =
+      state.referenceWorkspace.importedReferenceOrder
+        .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]!)
+        .find((reference) => reference.assetPath === 'blob:custom-scale-step') ?? null
+    expect(committedReference).toBeTruthy()
+    expect(
+      state.referenceWorkspace.transformOverrideById[committedReference!.referenceId],
+    ).toMatchObject({ scale: { x: 2.5, y: 2.5, z: 2.5 } })
+  })
+
+  it('commits reviewed multi-object staged glb imports with one shared direct source group and without exploded provenance', async () => {
     const { buildImportedReferenceRowId, useAppStore } = await import('./useAppStore')
 
     useAppStore.setState(useAppStore.getInitialState(), true)
@@ -9103,9 +9268,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
     useAppStore.getState().appendStagedImportDraftFiles([
       {
-        fileName: 'structured.step',
-        fileType: 'step',
-        objectUrl: 'blob:structured-step',
+        fileName: 'structured.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:structured-glb',
       },
       {
         fileName: 'flat.glb',
@@ -9139,6 +9304,13 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           sourceMeshIndex: 1,
         },
       ],
+    })
+    useAppStore.getState().resolveStagedImportFileStructureInspection(flatFileId!, {
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
     })
     useAppStore.getState().setStagedImportFileMode(
       structuredFileId!,
@@ -9190,10 +9362,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       ),
     ).toBe(true)
 
-    const committedAnchorRowId = useAppStore.getState().commitStagedImportDraft()
+    const commitResult = useAppStore.getState().commitStagedImportDraft()
     const state = useAppStore.getState()
 
-    expect(committedAnchorRowId).toBeTruthy()
+    expect(commitResult).toMatchObject({
+      status: 'success',
+      committedReferenceCount: 3,
+    })
+    expect(commitResult?.anchorRowId).toBeTruthy()
 
     const committedPreviewAssembly = Object.values(state.projectContent.assembliesById).find(
       (assembly) =>
@@ -9204,7 +9380,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const committedSplitComponent = Object.values(state.projectContent.componentsById).find(
       (component) =>
         component.parentAssemblyId === committedPreviewAssembly?.assemblyId &&
-        component.label === 'structured.step',
+        component.label === 'structured.glb',
     )
     expect(committedSplitComponent).toBeTruthy()
 
@@ -9227,6 +9403,18 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       'reference-part:structured:1',
     ])
     expect(splitReferences.map((reference) => reference.sourceMeshIndex)).toEqual([0, 1])
+    expect(splitReferences.map((reference) => reference.directPartSourceKind)).toEqual([
+      'split-import-child',
+      'split-import-child',
+    ])
+    const splitDirectSourceGroupIds = splitReferences.map(
+      (reference) => reference.directPartSourceGroupId,
+    )
+    expect(splitDirectSourceGroupIds[0]).toBeTruthy()
+    expect(splitDirectSourceGroupIds[0]).toBe(splitDirectSourceGroupIds[1])
+    expect(splitReferences.map((reference) => reference.explodedFromReferenceId)).toEqual([null, null])
+    expect(flatReference?.directPartSourceKind).toBeNull()
+    expect(flatReference?.directPartSourceGroupId).toBeNull()
     expect(state.referenceWorkspace.transformOverrideById[splitReferences[0]!.referenceId]).toMatchObject(
       {
         rotationDeg: { x: 0, y: -90, z: 0 },
@@ -9246,6 +9434,89 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         `component:${committedSplitComponent!.componentId}`
       ],
     ).toEqual(splitReferences.map((reference) => buildImportedReferenceRowId(reference.referenceId)))
+  })
+
+  it('reports partial staged acceptance per file and keeps only failed files staged for recovery', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    useAppStore.getState().appendStagedImportDraftFiles([
+      {
+        fileName: 'accepted.step',
+        fileType: 'step',
+        objectUrl: 'blob:accepted-step',
+      },
+      {
+        fileName: 'broken.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:broken-glb',
+      },
+    ])
+
+    const draft = useAppStore.getState().referenceWorkspace.stagedImportDraft
+    const acceptedFileId = draft?.stagedFiles[0]?.stagedFileId ?? null
+    const brokenFileId = draft?.stagedFiles[1]?.stagedFileId ?? null
+    expect(acceptedFileId).toBeTruthy()
+    expect(brokenFileId).toBeTruthy()
+
+    useAppStore.getState().resolveStagedImportFileStructureInspection(acceptedFileId!, {
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
+    })
+    useAppStore
+      .getState()
+      .failStagedImportFileStructureInspection(brokenFileId!, 'Could not inspect broken.glb.')
+
+    const importedReferenceCountBefore =
+      useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
+
+    const commitResult = useAppStore.getState().commitStagedImportDraft()
+    const state = useAppStore.getState()
+
+    expect(commitResult).toMatchObject({
+      status: 'partial',
+      committedReferenceCount: 1,
+    })
+    expect(commitResult?.anchorRowId).toBeTruthy()
+    expect(commitResult?.fileResults).toEqual([
+      expect.objectContaining({
+        stagedFileId: acceptedFileId,
+        fileName: 'accepted.step',
+        outcome: 'committed',
+      }),
+      expect.objectContaining({
+        stagedFileId: brokenFileId,
+        fileName: 'broken.glb',
+        outcome: 'failed',
+        errorMessage: 'Could not inspect broken.glb.',
+      }),
+    ])
+    expect(state.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore + 1,
+    )
+    expect(
+      state.referenceWorkspace.importedReferenceOrder
+        .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]!)
+        .some((reference) => reference.assetPath === 'blob:accepted-step'),
+    ).toBe(true)
+    expect(
+      state.referenceWorkspace.importedReferenceOrder
+        .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]!)
+        .some((reference) => reference.assetPath === 'blob:broken-glb'),
+    ).toBe(false)
+    expect(state.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(1)
+    expect(state.referenceWorkspace.stagedImportDraft?.stagedFiles[0]).toMatchObject({
+      stagedFileId: brokenFileId,
+      fileName: 'broken.glb',
+    })
   })
 })
 

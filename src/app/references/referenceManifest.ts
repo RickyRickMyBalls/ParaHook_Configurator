@@ -2,6 +2,7 @@ export type ManifestReferenceCategoryId = 'footpads' | 'shoes' | 'premade-footho
 export type ReferenceCategoryId = ManifestReferenceCategoryId | 'user-references'
 export type ReferenceFileType = 'obj' | 'glb' | 'stl' | 'step'
 export type ReferenceSourceKind = 'manifest' | 'imported'
+export type DirectPartBackedReferenceLoadKind = 'split-import-child'
 
 export type ReferenceManifestCategory = {
   categoryId: ManifestReferenceCategoryId
@@ -50,6 +51,8 @@ export type ReferenceLoadableItem = {
   fileType: ReferenceFileType
   displayTransform?: ReferenceDisplayTransform
   transformOverride?: ReferenceTransformOverride | null
+  directPartSourceKind?: DirectPartBackedReferenceLoadKind | null
+  directPartSourceGroupId?: string | null
   explodedFromReferenceId?: string | null
   sourcePartKey?: string | null
   sourceMeshIndex?: number | null
@@ -75,7 +78,7 @@ export const REFERENCE_MANIFEST_CATEGORIES: ReferenceManifestCategory[] = [
   },
   {
     categoryId: 'shoes',
-    label: 'Shoes',
+    label: 'Wearable',
   },
   {
     categoryId: 'premade-foothooks',

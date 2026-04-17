@@ -3,6 +3,7 @@ export type EnvPreset = 'none' | 'studio'
 export type ProjectionMode = 'perspective' | 'orthographic'
 export type AxisOverlayLabelSize = 'small' | 'medium' | 'large'
 export type AxisOverlayBackgroundMode = 'none' | 'blur'
+export type GroundMaterialPresetId = 'matte_dark' | 'matte_mid' | 'glossy_studio'
 
 export type LightType = 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient'
 
@@ -53,6 +54,12 @@ export type MaterialPreset = {
 
 export type PartMaterialMap = Record<string, MaterialPresetId>
 
+export type GroundSettings = {
+  enabled: boolean
+  height: number
+  materialPresetId: GroundMaterialPresetId
+}
+
 export type ViewSettings = {
   projectionMode: ProjectionMode
   orbitEnabled: boolean
@@ -63,6 +70,7 @@ export type ViewSettings = {
   toneMapping: ToneMappingMode
   exposure: number
   envPreset: EnvPreset
+  ground: GroundSettings
   axisOverlayEnabled: boolean
   axisOverlayStyle: AxisOverlayStyleSettings
   lighting: {
@@ -143,8 +151,13 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
   shadowsEnabled: true,
   wireframe: false,
   toneMapping: 'aces',
-  exposure: 1,
+  exposure: 1.15,
   envPreset: 'none',
+  ground: {
+    enabled: false,
+    height: 0,
+    materialPresetId: 'matte_mid',
+  },
   axisOverlayEnabled: true,
   axisOverlayStyle: DEFAULT_AXIS_OVERLAY_STYLE_SETTINGS,
   lighting: {
@@ -155,10 +168,10 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
         name: 'Key',
         type: 'directional',
         enabled: true,
-        color: '#ffffff',
-        intensity: 1.5,
-        position: { x: 6, y: 8, z: 6 },
-        target: { x: 0, y: 0, z: 0 },
+        color: '#fff2e6',
+        intensity: 1.85,
+        position: { x: 11, y: 13, z: 8 },
+        target: { x: 0, y: 0.5, z: 0 },
         castShadow: true,
         shadowBias: -0.0005,
         shadowMapSize: 1024,
@@ -168,8 +181,19 @@ export const DEFAULT_VIEW_SETTINGS: ViewSettings = {
         name: 'Fill',
         type: 'hemisphere',
         enabled: true,
-        color: '#ffffff',
-        intensity: 0.6,
+        color: '#eef3ff',
+        intensity: 0.95,
+      },
+      {
+        id: 'rim',
+        name: 'Rim',
+        type: 'directional',
+        enabled: true,
+        color: '#e7ecff',
+        intensity: 0.42,
+        position: { x: -11, y: 7, z: -9 },
+        target: { x: 0, y: 0.75, z: 0 },
+        castShadow: false,
       },
     ],
   },

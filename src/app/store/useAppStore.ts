@@ -48,13 +48,19 @@ import {
   USER_REFERENCE_CATEGORY_ID,
   USER_REFERENCE_CATEGORY_LABEL,
   resolveReferenceAssetPath,
+  type DirectPartBackedReferenceLoadKind,
   type ReferenceCategoryId,
   type ReferenceTransformOverride,
-  type ReferenceTransformVector3,
   type ReferenceFileType,
   type ReferenceManifestItem,
   type ReferenceSourceKind,
 } from '../references/referenceManifest'
+import {
+  resolveStagedImportScaleAlignmentFromMultiplier,
+  resolveStagedImportScaleAlignmentFactor,
+  resolveStagedImportScaleMultiplier,
+  resolveStagedImportUpAxisRotationDeg,
+} from '../references/stagedImportTransforms'
 import {
   DEFAULT_REFERENCE_ROTATE_SNAP,
   buildReferenceTimelineConfig,
@@ -254,6 +260,8 @@ export type ImportedReferenceRecord = {
   assetPath: string
   parentAssemblyId: string | null
   parentComponentId: string | null
+  directPartSourceKind?: DirectPartBackedReferenceLoadKind | null
+  directPartSourceGroupId?: string | null
   explodedFromReferenceId: string | null
   sourcePartKey: string | null
   sourceMeshIndex: number | null
@@ -275,6 +283,7 @@ export type StagedImportScaleAlignment =
   | 'centimeters'
   | 'meters'
   | 'inches'
+  | 'custom'
 
 export type StagedImportPreviewNodeKind = 'assembly' | 'component' | 'object'
 
@@ -318,7 +327,31 @@ export type StagedImportDraftFileRecord = ImportedReferenceFile & {
   importMode: StagedImportMode
   upAxis: StagedImportUpAxis
   scaleAlignment: StagedImportScaleAlignment
+  scaleMultiplier?: number
   structureInspection: StagedImportStructureInspectionState
+}
+
+export type StagedImportCommitFileResult =
+  | {
+      stagedFileId: string
+      fileName: string
+      outcome: 'committed'
+      anchorRowId: string | null
+      errorMessage: null
+    }
+  | {
+      stagedFileId: string
+      fileName: string
+      outcome: 'failed'
+      anchorRowId: null
+      errorMessage: string
+    }
+
+export type StagedImportCommitResult = {
+  status: 'success' | 'partial' | 'failed'
+  anchorRowId: string | null
+  committedReferenceCount: number
+  fileResults: StagedImportCommitFileResult[]
 }
 
 export type ReferenceWorkspacePartVm = {
@@ -583,6 +616,8 @@ export type ReferenceWorkspaceBrowserItemVm = {
   transformOverride?: ReferenceTransformOverride | null
   parentAssemblyId?: string | null
   parentComponentId?: string | null
+  directPartSourceKind?: DirectPartBackedReferenceLoadKind | null
+  directPartSourceGroupId?: string | null
   explodedFromReferenceId: string | null
   sourcePartKey: string | null
   sourceMeshIndex: number | null
@@ -1087,8 +1122,9 @@ export type AppState = {
     stagedFileId: string,
     scaleAlignment: StagedImportScaleAlignment,
   ) => void
+  setStagedImportFileScaleMultiplier: (stagedFileId: string, scaleMultiplier: number) => void
   setStagedImportPutAcceptedInNewAssembly: (enabled: boolean) => void
-  commitStagedImportDraft: () => string | null
+  commitStagedImportDraft: () => StagedImportCommitResult | null
   beginStagedImportFileStructureInspection: (stagedFileId: string) => void
   resolveStagedImportFileStructureInspection: (
     stagedFileId: string,
@@ -1648,6 +1684,8 @@ const buildReferenceWorkspaceBrowserItemVm = (
     transformOverride: runtimeTraits.transformOverride,
     parentAssemblyId: item.parentAssemblyId,
     parentComponentId: item.parentComponentId,
+    directPartSourceKind: item.directPartSourceKind ?? null,
+    directPartSourceGroupId: item.directPartSourceGroupId ?? null,
     explodedFromReferenceId: item.explodedFromReferenceId,
     sourcePartKey: item.sourcePartKey,
     sourceMeshIndex: item.sourceMeshIndex,
@@ -2756,38 +2794,11 @@ const DEFAULT_STAGED_IMPORT_MODE: StagedImportMode = 'single-object'
 const DEFAULT_STAGED_IMPORT_UP_AXIS: StagedImportUpAxis = 'z-up'
 const DEFAULT_STAGED_IMPORT_SCALE_ALIGNMENT: StagedImportScaleAlignment = 'current-size'
 
-export const resolveStagedImportScaleAlignmentFactor = (
-  scaleAlignment: StagedImportScaleAlignment,
-): number => {
-  switch (scaleAlignment) {
-    case 'millimeters':
-      return 1
-    case 'centimeters':
-      return 10
-    case 'meters':
-      return 1000
-    case 'inches':
-      return 25.4
-    case 'current-size':
-    default:
-      return 1
-  }
-}
-
-const resolveStagedImportUpAxisRotationDeg = (
-  upAxis: StagedImportUpAxis,
-): ReferenceTransformVector3 =>
-  upAxis === 'z-up'
-    ? { x: 0, y: 0, z: 0 }
-    : upAxis === 'y-up'
-      ? { x: 90, y: 0, z: 0 }
-      : { x: 0, y: -90, z: 0 }
-
 const resolveStagedImportAcceptedTransformOverride = (
-  file: Pick<StagedImportDraftFileRecord, 'upAxis' | 'scaleAlignment'>,
+  file: Pick<StagedImportDraftFileRecord, 'upAxis' | 'scaleAlignment' | 'scaleMultiplier'>,
 ): ReferenceTransformOverride | null => {
   const rotationDeg = resolveStagedImportUpAxisRotationDeg(file.upAxis)
-  const scaleFactor = resolveStagedImportScaleAlignmentFactor(file.scaleAlignment)
+  const scaleFactor = resolveStagedImportScaleMultiplier(file)
   const hasRotation =
     rotationDeg.x !== 0 || rotationDeg.y !== 0 || rotationDeg.z !== 0
   const hasScale = scaleFactor !== 1
@@ -3066,6 +3077,66 @@ export const canStagedImportFileUseMultipleObjects = (
 ): boolean =>
   file.structureInspection.status === 'ready' && file.structureInspection.summary.hasParts
 
+const canCommitStagedImportDraftFile = (
+  file: Pick<StagedImportDraftFileRecord, 'structureInspection'>,
+): file is Pick<StagedImportDraftFileRecord, 'structureInspection'> & {
+  structureInspection: Extract<StagedImportStructureInspectionState, { status: 'ready' }>
+} => file.structureInspection.status === 'ready'
+
+const buildStagedImportDraftFileCommitFailureMessage = (
+  file: Pick<StagedImportDraftFileRecord, 'structureInspection'>,
+): string => {
+  if (file.structureInspection.status === 'error') {
+    return file.structureInspection.errorMessage
+  }
+  return 'Structure inspection is still pending.'
+}
+
+const pruneEmptyStagedImportPreviewAuthoredNodes = (
+  previewOrganization: StagedImportPreviewOrganizationState,
+): StagedImportPreviewOrganizationState => {
+  const hasRetainedDescendantByNodeId = new Map<string, boolean>()
+
+  const hasRetainedDescendant = (nodeId: string): boolean => {
+    const cached = hasRetainedDescendantByNodeId.get(nodeId)
+    if (cached !== undefined) {
+      return cached
+    }
+    const node = previewOrganization.nodesById[nodeId]
+    if (node === undefined) {
+      hasRetainedDescendantByNodeId.set(nodeId, false)
+      return false
+    }
+    if (node.sourceKind !== 'authored') {
+      hasRetainedDescendantByNodeId.set(nodeId, true)
+      return true
+    }
+    const childNodeIds = previewOrganization.childNodeIdsByParentId[nodeId] ?? []
+    const retained = childNodeIds.some((childNodeId) => hasRetainedDescendant(childNodeId))
+    hasRetainedDescendantByNodeId.set(nodeId, retained)
+    return retained
+  }
+
+  const retainedNodeIds = new Set(
+    Object.keys(previewOrganization.nodesById).filter((nodeId) => hasRetainedDescendant(nodeId)),
+  )
+  return {
+    nodesById: Object.fromEntries(
+      Object.entries(previewOrganization.nodesById).filter(([nodeId]) => retainedNodeIds.has(nodeId)),
+    ),
+    rootNodeIds: previewOrganization.rootNodeIds.filter((nodeId) => retainedNodeIds.has(nodeId)),
+    childNodeIdsByParentId: Object.fromEntries(
+      Object.entries(previewOrganization.childNodeIdsByParentId)
+        .filter(([parentNodeId]) => retainedNodeIds.has(parentNodeId))
+        .map(([parentNodeId, childNodeIds]) => [
+          parentNodeId,
+          childNodeIds.filter((childNodeId) => retainedNodeIds.has(childNodeId)),
+        ])
+        .filter(([, childNodeIds]) => childNodeIds.length > 0),
+    ),
+  }
+}
+
 const updateStagedImportDraftFileRecord = (
   draft: StagedImportDraftState,
   stagedFileId: string,
@@ -3088,7 +3159,10 @@ const updateStagedImportDraftFileRecord = (
     : null
 }
 
-const revokeStagedImportDraftObjectUrls = (draft: StagedImportDraftState | null) => {
+const revokeStagedImportDraftObjectUrls = (
+  draft: StagedImportDraftState | null,
+  referenceWorkspace?: Pick<ReferenceWorkspaceState, 'importedReferencesById' | 'importedReferenceOrder'>,
+) => {
   if (
     draft === null ||
     draft.stagedFiles.length === 0 ||
@@ -3098,6 +3172,17 @@ const revokeStagedImportDraftObjectUrls = (draft: StagedImportDraftState | null)
     return
   }
   draft.stagedFiles.forEach((file) => {
+    if (
+      referenceWorkspace?.importedReferenceOrder.some((referenceId) => {
+        const importedReference = referenceWorkspace.importedReferencesById[referenceId]
+        return (
+          importedReference?.sourceKind === 'imported' &&
+          importedReference.assetPath === file.objectUrl
+        )
+      }) === true
+    ) {
+      return
+    }
     URL.revokeObjectURL(file.objectUrl)
   })
 }
@@ -3785,6 +3870,9 @@ const applyReferenceTransformTimelineDeltas = (
 const buildImportedReferenceId = (): string =>
   `${IMPORTED_REFERENCE_ROW_ID_PREFIX}:${newId('imported-reference')}`
 
+const buildDirectPartSourceGroupId = (): string =>
+  `direct-part-source-group:${newId('direct-part-source-group')}`
+
 const buildInitialReferenceRecords = (): Record<string, ImportedReferenceRecord> =>
   Object.fromEntries(
     REFERENCE_MANIFEST_ITEMS.map((item) => [
@@ -3798,6 +3886,8 @@ const buildInitialReferenceRecords = (): Record<string, ImportedReferenceRecord>
         assetPath: resolveReferenceAssetPath(item.assetPath),
         parentAssemblyId: null,
         parentComponentId: null,
+        directPartSourceKind: null,
+        directPartSourceGroupId: null,
         explodedFromReferenceId: null,
         sourcePartKey: null,
         sourceMeshIndex: null,
@@ -6107,7 +6197,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     parentComponentId = null,
   }) => {
     set((state) => {
-      revokeStagedImportDraftObjectUrls(state.referenceWorkspace.stagedImportDraft)
+      revokeStagedImportDraftObjectUrls(
+        state.referenceWorkspace.stagedImportDraft,
+        state.referenceWorkspace,
+      )
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -6134,6 +6227,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         importMode: DEFAULT_STAGED_IMPORT_MODE,
         upAxis: DEFAULT_STAGED_IMPORT_UP_AXIS,
         scaleAlignment: DEFAULT_STAGED_IMPORT_SCALE_ALIGNMENT,
+        scaleMultiplier: resolveStagedImportScaleAlignmentFactor(DEFAULT_STAGED_IMPORT_SCALE_ALIGNMENT),
         structureInspection: buildInitialStagedImportStructureInspectionState(),
       }))
       const nextStagedFiles = [...currentDraft.stagedFiles, ...nextFiles]
@@ -6484,13 +6578,57 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (currentDraft === null) {
         return state
       }
+      if (scaleAlignment === 'custom') {
+        return state
+      }
       const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
-        if (file.scaleAlignment === scaleAlignment) {
+        const nextScaleMultiplier = resolveStagedImportScaleAlignmentFactor(scaleAlignment)
+        if (
+          file.scaleAlignment === scaleAlignment &&
+          resolveStagedImportScaleMultiplier(file) === nextScaleMultiplier
+        ) {
           return file
         }
         return {
           ...file,
           scaleAlignment,
+          scaleMultiplier: nextScaleMultiplier,
+        }
+      })
+      if (nextDraft === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          stagedImportDraft: nextDraft,
+        },
+      }
+    })
+  },
+  setStagedImportFileScaleMultiplier: (stagedFileId, scaleMultiplier) => {
+    set((state) => {
+      const currentDraft = state.referenceWorkspace.stagedImportDraft
+      if (currentDraft === null) {
+        return state
+      }
+      if (!Number.isFinite(scaleMultiplier) || scaleMultiplier <= 0) {
+        return state
+      }
+      const nextDraft = updateStagedImportDraftFileRecord(currentDraft, stagedFileId, (file) => {
+        const nextScaleMultiplier = Number(scaleMultiplier.toFixed(4))
+        const nextScaleAlignment =
+          resolveStagedImportScaleAlignmentFromMultiplier(nextScaleMultiplier)
+        if (
+          file.scaleAlignment === nextScaleAlignment &&
+          resolveStagedImportScaleMultiplier(file) === nextScaleMultiplier
+        ) {
+          return file
+        }
+        return {
+          ...file,
+          scaleAlignment: nextScaleAlignment,
+          scaleMultiplier: nextScaleMultiplier,
         }
       })
       if (nextDraft === null) {
@@ -6527,8 +6665,54 @@ export const useAppStore = create<AppState>((set, get) => ({
       return null
     }
 
+    type PendingFileCommitState = {
+      stagedFileId: string
+      fileName: string
+      outcome: 'pending' | 'committed' | 'failed'
+      anchorRowId: string | null
+      errorMessage: string | null
+    }
+
     let committedAnchorRowId: string | null = null
     let committedReferenceCount = 0
+    const pendingFileResults = new Map<string, PendingFileCommitState>(
+      currentDraft.stagedFiles.map((file) => [
+        file.stagedFileId,
+        {
+          stagedFileId: file.stagedFileId,
+          fileName: file.fileName,
+          outcome: 'pending',
+          anchorRowId: null,
+          errorMessage: null,
+        },
+      ]),
+    )
+
+    const markFileFailed = (file: StagedImportDraftFileRecord, errorMessage: string) => {
+      const currentResult = pendingFileResults.get(file.stagedFileId)
+      if (currentResult === undefined || currentResult.outcome === 'committed') {
+        return
+      }
+      pendingFileResults.set(file.stagedFileId, {
+        ...currentResult,
+        outcome: 'failed',
+        anchorRowId: null,
+        errorMessage,
+      })
+    }
+
+    const markFileCommitted = (file: StagedImportDraftFileRecord, anchorRowId: string | null) => {
+      const currentResult = pendingFileResults.get(file.stagedFileId)
+      if (currentResult === undefined || currentResult.outcome === 'committed') {
+        return
+      }
+      pendingFileResults.set(file.stagedFileId, {
+        ...currentResult,
+        outcome: 'committed',
+        anchorRowId,
+        errorMessage: null,
+      })
+    }
 
     set((state) => {
       const draft = state.referenceWorkspace.stagedImportDraft
@@ -6543,6 +6727,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       const stagedFileById = new Map(
         draft.stagedFiles.map((file) => [file.stagedFileId, file] as const),
       )
+      const directPartSourceGroupIdsByStagedFileId: Record<string, string> = {}
+
+      draft.stagedFiles.forEach((file) => {
+        if (!canCommitStagedImportDraftFile(file)) {
+          markFileFailed(file, buildStagedImportDraftFileCommitFailureMessage(file))
+        }
+      })
 
       const nextProjectContent: ProjectContentState = {
         assembliesById: { ...state.projectContent.assembliesById },
@@ -6656,6 +6847,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       }): string => {
         const referenceId = buildImportedReferenceId()
         const transformOverride = resolveStagedImportAcceptedTransformOverride(options.file)
+        const isDirectPartBackedChild =
+          options.sourcePartKey !== null && options.sourceMeshIndex !== null
+        const directPartSourceGroupId =
+          isDirectPartBackedChild && options.file.fileType === 'glb'
+            ? directPartSourceGroupIdsByStagedFileId[options.file.stagedFileId] ??
+              buildDirectPartSourceGroupId()
+            : null
+        if (directPartSourceGroupId !== null) {
+          directPartSourceGroupIdsByStagedFileId[options.file.stagedFileId] = directPartSourceGroupId
+        }
         nextReferenceWorkspace.visibilityById[referenceId] = true
         nextReferenceWorkspace.loadStateById[referenceId] = 'unloaded'
         nextReferenceWorkspace.errorById[referenceId] = null
@@ -6691,6 +6892,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             options.parentTarget?.kind === 'component'
               ? options.parentTarget.componentId
               : null,
+          directPartSourceKind: isDirectPartBackedChild ? 'split-import-child' : null,
+          directPartSourceGroupId,
           explodedFromReferenceId: null,
           sourcePartKey: options.sourcePartKey,
           sourceMeshIndex: options.sourceMeshIndex,
@@ -6703,6 +6906,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         committedReferenceCount += 1
         const rowId = buildImportedReferenceRowId(referenceId)
         setCommittedAnchorRowId(rowId)
+        markFileCommitted(options.file, rowId)
         return rowId
       }
 
@@ -6727,10 +6931,41 @@ export const useAppStore = create<AppState>((set, get) => ({
         )
       }
 
+      const nodeHasCommittableDescendantById = new Map<string, boolean>()
+      const nodeHasCommittableDescendant = (nodeId: string): boolean => {
+        const cached = nodeHasCommittableDescendantById.get(nodeId)
+        if (cached !== undefined) {
+          return cached
+        }
+        const node = previewOrganization.nodesById[nodeId]
+        if (node === undefined) {
+          nodeHasCommittableDescendantById.set(nodeId, false)
+          return false
+        }
+        if (node.nodeKind === 'object') {
+          const stagedFile =
+            node.stagedFileId === null ? null : stagedFileById.get(node.stagedFileId) ?? null
+          const result =
+            stagedFile !== null &&
+            canCommitStagedImportDraftFile(stagedFile) &&
+            pendingFileResults.get(stagedFile.stagedFileId)?.outcome !== 'failed'
+          nodeHasCommittableDescendantById.set(nodeId, result)
+          return result
+        }
+        const result = readOrderedNodeIds(node.nodeId).some((childNodeId) =>
+          nodeHasCommittableDescendant(childNodeId),
+        )
+        nodeHasCommittableDescendantById.set(nodeId, result)
+        return result
+      }
+
       const commitNodeTree = (
         nodeId: string,
         parentTarget: ProjectContentContainerTarget | null,
       ): string | null => {
+        if (!nodeHasCommittableDescendant(nodeId)) {
+          return null
+        }
         const node = previewOrganization.nodesById[nodeId]
         if (node === undefined) {
           return null
@@ -6738,7 +6973,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const stagedFile =
           node.stagedFileId === null ? null : stagedFileById.get(node.stagedFileId) ?? null
         if (node.nodeKind === 'object') {
-          if (stagedFile === null) {
+          if (stagedFile === null || !canCommitStagedImportDraftFile(stagedFile)) {
             return null
           }
           return createCommittedImportedReference({
@@ -6789,7 +7024,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         return assemblyId
       }
 
-      const rootNodeIds = readOrderedNodeIds(null)
+      const rootNodeIds = readOrderedNodeIds(null).filter((nodeId) =>
+        nodeHasCommittableDescendant(nodeId),
+      )
       const hasRootOwnerNodes = rootNodeIds.some((nodeId) => {
         const node = previewOrganization.nodesById[nodeId]
         return node?.nodeKind === 'assembly' || node?.nodeKind === 'component'
@@ -6800,15 +7037,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       let rootCommitTarget: ProjectContentContainerTarget | null = null
 
-      if (draft.putAcceptedImportsInNewAssembly) {
+      if (rootNodeIds.length > 0 && draft.putAcceptedImportsInNewAssembly) {
         const assemblyId = createCommittedAssembly(buildNextAssemblyLabel(), null)
         rootCommitTarget = { kind: 'assembly', assemblyId }
-      } else if (draft.parentAssemblyId !== null) {
+      } else if (rootNodeIds.length > 0 && draft.parentAssemblyId !== null) {
         rootCommitTarget = {
           kind: 'assembly',
           assemblyId: draft.parentAssemblyId,
         }
-      } else if (draft.parentComponentId !== null) {
+      } else if (rootNodeIds.length > 0 && draft.parentComponentId !== null) {
         if (hasRootOwnerNodes) {
           const parentAssemblyId =
             nextProjectContent.componentsById[draft.parentComponentId]?.parentAssemblyId ?? null
@@ -6827,7 +7064,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             componentId: draft.parentComponentId,
           }
         }
-      } else if (hasRootComponentNodes) {
+      } else if (rootNodeIds.length > 0 && hasRootComponentNodes) {
         const assemblyId = createCommittedAssembly(buildNextAssemblyLabel(), null)
         rootCommitTarget = { kind: 'assembly', assemblyId }
       }
@@ -6844,9 +7081,33 @@ export const useAppStore = create<AppState>((set, get) => ({
         ] = dedupeOrderedRowIds([...rootExistingOrder, ...committedRootRowIds])
       }
 
+      draft.stagedFiles.forEach((file) => {
+        const fileResult = pendingFileResults.get(file.stagedFileId)
+        if (fileResult?.outcome === 'pending') {
+          markFileFailed(file, 'Could not resolve a valid commit target for this staged file.')
+        }
+      })
+
       if (committedReferenceCount === 0) {
         return state
       }
+
+      const remainingStagedFiles = draft.stagedFiles.filter(
+        (file) => pendingFileResults.get(file.stagedFileId)?.outcome !== 'committed',
+      )
+      nextReferenceWorkspace.stagedImportDraft =
+        remainingStagedFiles.length === draft.stagedFiles.length
+          ? draft
+          : {
+              ...draft,
+              stagedFiles: remainingStagedFiles,
+              previewOrganization: pruneEmptyStagedImportPreviewAuthoredNodes(
+                syncStagedImportPreviewOrganizationState(
+                  remainingStagedFiles,
+                  draft.previewOrganization,
+                ),
+              ),
+            }
 
       return {
         projectContent: nextProjectContent,
@@ -6854,21 +7115,59 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
 
-    if (committedReferenceCount === 0) {
-      return null
+    const fileResults = currentDraft.stagedFiles.map((file) => {
+      const result = pendingFileResults.get(file.stagedFileId)
+      if (result === undefined || result.outcome === 'pending') {
+        return {
+          stagedFileId: file.stagedFileId,
+          fileName: file.fileName,
+          outcome: 'failed',
+          anchorRowId: null,
+          errorMessage: 'Could not resolve a staged import commit result.',
+        } satisfies StagedImportCommitFileResult
+      }
+      if (result.outcome === 'committed') {
+        return {
+          stagedFileId: result.stagedFileId,
+          fileName: result.fileName,
+          outcome: 'committed',
+          anchorRowId: result.anchorRowId,
+          errorMessage: null,
+        } satisfies StagedImportCommitFileResult
+      }
+      return {
+        stagedFileId: result.stagedFileId,
+        fileName: result.fileName,
+        outcome: 'failed',
+        anchorRowId: null,
+        errorMessage: result.errorMessage ?? 'Could not commit this staged import.',
+      } satisfies StagedImportCommitFileResult
+    })
+    const failedFileCount = fileResults.filter((result) => result.outcome === 'failed').length
+
+    if (committedReferenceCount > 0) {
+      appendConsoleEntry({
+        layer: 'Browser',
+        text:
+          committedReferenceCount === 1
+            ? 'Added 1 staged import to project.'
+            : `Added ${committedReferenceCount} staged imports to project.`,
+        source: 'browser',
+        severity: 'info',
+      })
     }
 
-    appendConsoleEntry({
-      layer: 'Browser',
-      text:
-        committedReferenceCount === 1
-          ? 'Added 1 staged import to project.'
-          : `Added ${committedReferenceCount} staged imports to project.`,
-      source: 'browser',
-      severity: 'info',
-    })
-
-    return committedAnchorRowId
+    return {
+      status:
+        committedReferenceCount === 0
+          ? 'failed'
+          : failedFileCount > 0
+            ? 'partial'
+            : 'success',
+      anchorRowId: committedAnchorRowId,
+      committedReferenceCount,
+      fileResults,
+    }
   },
   beginStagedImportFileStructureInspection: (stagedFileId) => {
     set((state) => {
@@ -6982,7 +7281,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (state.referenceWorkspace.stagedImportDraft === null) {
         return state
       }
-      revokeStagedImportDraftObjectUrls(state.referenceWorkspace.stagedImportDraft)
+      revokeStagedImportDraftObjectUrls(
+        state.referenceWorkspace.stagedImportDraft,
+        state.referenceWorkspace,
+      )
       return {
         referenceWorkspace: {
           ...state.referenceWorkspace,
@@ -7082,6 +7384,8 @@ export const useAppStore = create<AppState>((set, get) => ({
               assetPath: objectUrl,
               parentAssemblyId,
               parentComponentId,
+              directPartSourceKind: null,
+              directPartSourceGroupId: null,
               explodedFromReferenceId: null,
               sourcePartKey: null,
               sourceMeshIndex: null,
@@ -7388,6 +7692,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           assetPath: importedReference.assetPath,
           parentAssemblyId: importedReference.parentAssemblyId,
           parentComponentId: importedReference.parentComponentId,
+          directPartSourceKind: null,
+          directPartSourceGroupId: null,
           explodedFromReferenceId: referenceId,
           sourcePartKey: partRow.partKey,
           sourceMeshIndex: partRow.sourceMeshIndex,

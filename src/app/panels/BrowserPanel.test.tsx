@@ -4,6 +4,10 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReferenceWorkspaceBrowserTreeVm } from '../store/useAppStore'
+import {
+  resolveStagedImportScaleAlignmentFactor,
+  resolveStagedImportScaleAlignmentFromMultiplier,
+} from '../references/stagedImportTransforms'
 
 let currentSpaghettiState: any
 let currentAppState: any
@@ -11,6 +15,8 @@ let importReferenceFileFromDiskMock: ReturnType<typeof vi.fn>
 let importReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
 let importSupportedReferenceFilesFromDiskMock: ReturnType<typeof vi.fn>
 let inspectImportedReferenceFileStructureMock: ReturnType<typeof vi.fn>
+let loadReferenceAssetObjectMock: ReturnType<typeof vi.fn>
+let disposeReferenceObjectTreeMock: ReturnType<typeof vi.fn>
 let mockRequestBrowserGraphDocumentBuild: ReturnType<typeof vi.fn>
 const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
   viewerFrameSelectionSetMock: vi.fn(),
@@ -665,6 +671,11 @@ vi.mock('../../viewer/referenceStructureInspection', () => ({
     inspectImportedReferenceFileStructureMock(...args),
 }))
 
+vi.mock('../../viewer/referenceAssetLoader', () => ({
+  loadReferenceAssetObject: (...args: unknown[]) => loadReferenceAssetObjectMock(...args),
+  disposeReferenceObjectTree: (...args: unknown[]) => disposeReferenceObjectTreeMock(...args),
+}))
+
 vi.mock('../viewerBridge', () => ({
   getViewer: () => ({
     frameSelectionSet: viewerFrameSelectionSetMock,
@@ -750,7 +761,7 @@ const emptyReferenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
     {
       rowId: 'reference-category-row:shoes',
       categoryId: 'shoes',
-      label: 'Shoes',
+      label: 'Wearable',
       isExpanded: true,
       itemCount: 0,
       visibleItemCount: 0,
@@ -1383,6 +1394,17 @@ describe('BrowserPanel', () => {
     importReferenceFileFromDiskMock = vi.fn()
     importReferenceFilesFromDiskMock = vi.fn()
     importSupportedReferenceFilesFromDiskMock = vi.fn()
+    loadReferenceAssetObjectMock = vi.fn().mockResolvedValue({
+      traverse: vi.fn(),
+      rotation: {
+        set: vi.fn(),
+      },
+      scale: {
+        setScalar: vi.fn(),
+      },
+      updateMatrixWorld: vi.fn(),
+    })
+    disposeReferenceObjectTreeMock = vi.fn()
     inspectImportedReferenceFileStructureMock = vi.fn().mockResolvedValue({
       hasMultipleObjects: false,
       hasHierarchy: false,
@@ -1613,6 +1635,7 @@ describe('BrowserPanel', () => {
                 importMode: 'single-object',
                 upAxis: 'z-up',
                 scaleAlignment: 'current-size',
+                scaleMultiplier: resolveStagedImportScaleAlignmentFactor('current-size'),
                 structureInspection: {
                   status: 'idle',
                   summary: null,
@@ -1870,6 +1893,9 @@ describe('BrowserPanel', () => {
         if (currentDraft === null) {
           return
         }
+        if (scaleAlignment === 'custom') {
+          return
+        }
         currentAppState = {
           ...currentAppState,
           referenceWorkspace: {
@@ -1881,6 +1907,31 @@ describe('BrowserPanel', () => {
                   ? {
                       ...file,
                       scaleAlignment,
+                      scaleMultiplier: resolveStagedImportScaleAlignmentFactor(scaleAlignment as any),
+                    }
+                  : file,
+              ),
+            },
+          },
+        }
+      }),
+      setStagedImportFileScaleMultiplier: vi.fn((stagedFileId: string, scaleMultiplier: number) => {
+        const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
+        if (currentDraft === null) {
+          return
+        }
+        currentAppState = {
+          ...currentAppState,
+          referenceWorkspace: {
+            ...currentAppState.referenceWorkspace,
+            stagedImportDraft: {
+              ...currentDraft,
+              stagedFiles: currentDraft.stagedFiles.map((file: any) =>
+                file.stagedFileId === stagedFileId
+                  ? {
+                      ...file,
+                      scaleAlignment: resolveStagedImportScaleAlignmentFromMultiplier(scaleMultiplier),
+                      scaleMultiplier,
                     }
                   : file,
               ),
@@ -1912,10 +1963,63 @@ describe('BrowserPanel', () => {
         const nextImportedReferencesById = {
           ...currentAppState.referenceWorkspace.importedReferencesById,
         }
-        const nextImportedReferenceOrder = [
+        const importedReferenceOrderBefore = [
           ...currentAppState.referenceWorkspace.importedReferenceOrder,
         ]
+        const nextImportedReferenceOrder = [...importedReferenceOrderBefore]
+        const fileResults = currentDraft.stagedFiles.map((file: any) => {
+          if (file.structureInspection?.status !== 'ready') {
+            return {
+              stagedFileId: file.stagedFileId,
+              fileName: file.fileName,
+              outcome: 'failed',
+              anchorRowId: null,
+              errorMessage:
+                file.structureInspection?.status === 'error'
+                  ? file.structureInspection.errorMessage
+                  : 'Structure inspection is still pending.',
+            }
+          }
+          return {
+            stagedFileId: file.stagedFileId,
+            fileName: file.fileName,
+            outcome: 'committed',
+            anchorRowId: null,
+            errorMessage: null,
+          }
+        })
         currentDraft.stagedFiles.forEach((file: any) => {
+          if (file.structureInspection?.status !== 'ready') {
+            return
+          }
+          const committedParentAssemblyId =
+            currentDraft.putAcceptedImportsInNewAssembly || currentDraft.parentAssemblyId !== null
+              ? currentDraft.parentAssemblyId ?? 'assembly-committed-1'
+              : null
+          const splitPartRows = file.structureInspection?.summary?.partRows ?? []
+          if (file.importMode === 'multiple-objects-in-component' && splitPartRows.length > 0) {
+            const committedParentComponentId = `component:${file.stagedFileId}`
+            splitPartRows.forEach((partRow: any, index: number) => {
+              const referenceId = `committed:${file.stagedFileId}:${index + 1}`
+              nextImportedReferencesById[referenceId] = {
+                referenceId,
+                sourceKind: 'imported',
+                categoryId: 'user-references',
+                label: partRow.label,
+                fileType: file.fileType,
+                assetPath: file.objectUrl,
+                parentAssemblyId: committedParentAssemblyId,
+                parentComponentId: committedParentComponentId,
+                directPartSourceKind: 'split-import-child',
+                directPartSourceGroupId: `direct-part-source-group:${file.stagedFileId}`,
+                explodedFromReferenceId: null,
+                sourcePartKey: partRow.partKey,
+                sourceMeshIndex: partRow.sourceMeshIndex,
+              }
+              nextImportedReferenceOrder.push(referenceId)
+            })
+            return
+          }
           const referenceId = `committed:${file.stagedFileId}`
           nextImportedReferencesById[referenceId] = {
             referenceId,
@@ -1924,26 +2028,55 @@ describe('BrowserPanel', () => {
             label: file.fileName,
             fileType: file.fileType,
             assetPath: file.objectUrl,
-            parentAssemblyId:
-              currentDraft.putAcceptedImportsInNewAssembly || currentDraft.parentAssemblyId !== null
-                ? currentDraft.parentAssemblyId ?? 'assembly-committed-1'
-                : null,
+            parentAssemblyId: committedParentAssemblyId,
             parentComponentId: currentDraft.parentComponentId ?? null,
+            directPartSourceKind: null,
+            directPartSourceGroupId: null,
             explodedFromReferenceId: null,
             sourcePartKey: null,
             sourceMeshIndex: null,
           }
           nextImportedReferenceOrder.push(referenceId)
         })
+        const committedReferenceIds = nextImportedReferenceOrder.slice(importedReferenceOrderBefore.length)
+        const anchorRowId = committedReferenceIds[0] ?? null
+        const remainingFailedFiles = currentDraft.stagedFiles.filter(
+          (file: any) =>
+            fileResults.find((result: any) => result.stagedFileId === file.stagedFileId)?.outcome ===
+            'failed',
+        )
         currentAppState = {
           ...currentAppState,
           referenceWorkspace: {
             ...currentAppState.referenceWorkspace,
             importedReferencesById: nextImportedReferencesById,
             importedReferenceOrder: nextImportedReferenceOrder,
+            stagedImportDraft:
+              remainingFailedFiles.length > 0
+                ? {
+                    ...currentDraft,
+                    stagedFiles: remainingFailedFiles,
+                    previewOrganization: syncMockStagedImportPreviewOrganization({
+                      ...currentDraft,
+                      stagedFiles: remainingFailedFiles,
+                    }),
+                  }
+                : currentDraft,
           },
         }
-        return `reference-item-row:committed:${currentDraft.stagedFiles[0]!.stagedFileId}`
+        const committedReferenceCount = committedReferenceIds.length
+        return {
+          status:
+            committedReferenceCount === 0
+              ? 'failed'
+              : remainingFailedFiles.length > 0
+                ? 'partial'
+                : 'success',
+          anchorRowId:
+            anchorRowId === null ? null : `reference-item-row:${anchorRowId}`,
+          committedReferenceCount,
+          fileResults,
+        }
       }),
       moveStagedImportPreviewOwner: vi.fn((draggedTarget: any, dropTarget: any) => {
         const currentDraft = currentAppState.referenceWorkspace.stagedImportDraft
@@ -4646,7 +4779,7 @@ describe('BrowserPanel', () => {
           {
             rowId: 'reference-category-row:shoes',
             categoryId: 'shoes',
-            label: 'Shoes',
+            label: 'Wearable',
             isExpanded: false,
             itemCount: 1,
             visibleItemCount: 1,
@@ -4683,7 +4816,7 @@ describe('BrowserPanel', () => {
     expect(container?.textContent).not.toContain('No loadable references yet.')
     expect(findRowMainByLabel('Footpads')).not.toBeNull()
     expect(findRowMainByLabel('PubPad Full Assembly')).not.toBeNull()
-    expect(findRowMainByLabel('Shoes')).not.toBeNull()
+    expect(findRowMainByLabel('Wearable')).not.toBeNull()
     expect(findRowMainByLabel('Shoe 1')).toBeNull()
     const footpadsVisibilityButton =
       findButtonByLabel('Hide Footpads') ?? findButtonByLabel('Show Footpads')
@@ -4697,7 +4830,7 @@ describe('BrowserPanel', () => {
     await click(footpadsVisibilityButton!)
     expect(currentAppState.toggleReferenceCategoryVisibility).toHaveBeenCalledWith('footpads')
 
-    await click(findButtonByLabel('Expand Shoes children')!)
+    await click(findButtonByLabel('Expand Wearable children')!)
     expect(currentAppState.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('shoes')
 
     await click(findRowMainByLabel('PubPad Full Assembly')!)
@@ -4891,7 +5024,7 @@ describe('BrowserPanel', () => {
     expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(2)
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('2 files staged in draft')
     expect(
-      document.querySelector('[role="region"][aria-label="Staged import file list"]'),
+      document.querySelector('[role="region"][aria-label="Staged import settings"]'),
     ).not.toBeNull()
     expect(
       Array.from(document.querySelectorAll('.BrowserImportDialogStagedRowName')).map((element) =>
@@ -4952,7 +5085,7 @@ describe('BrowserPanel', () => {
       ),
     ).toEqual(['alpha.step', 'beta.obj', 'gamma.glb'])
     expect(
-      document.querySelector('[role="region"][aria-label="Staged import file list"]'),
+      document.querySelector('[role="region"][aria-label="Staged import settings"]'),
     ).not.toBeNull()
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('3 files staged in draft')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
@@ -5062,8 +5195,26 @@ describe('BrowserPanel', () => {
     expect(stagedRows[0]?.textContent).toContain('Multiple objects')
     expect(stagedRows[0]?.textContent).toContain('Hierarchy')
     expect(stagedRows[0]?.textContent).toContain('Parts')
-    expect(stagedRows[0]?.textContent).toContain('Body')
-    expect(stagedRows[0]?.textContent).toContain('Upper')
+    const selectionList = stagedRows[0]?.querySelector(
+      '.BrowserImportDialogStructureSelectionList',
+    ) as HTMLElement | null
+    const selectionRows = Array.from(
+      stagedRows[0]?.querySelectorAll('.BrowserImportDialogStructureSelectionRow') ?? [],
+    ) as HTMLElement[]
+    expect(selectionList?.getAttribute('aria-label')).toBe('Detected parts for shoe.step')
+    expect(selectionRows).toHaveLength(2)
+    expect(
+      stagedRows[0]?.querySelector('.BrowserImportDialogStructureSelectionMarker'),
+    ).toBeNull()
+    expect(selectionRows.every((row) => row.classList.contains('isSelected'))).toBe(true)
+    expect(
+      selectionRows.map((row) =>
+        row.querySelector('.BrowserImportDialogStructureSelectionLabel')?.textContent?.trim(),
+      ),
+    ).toEqual(['Body', 'Upper'])
+    expect(
+      stagedRows[0]?.querySelector('.BrowserImportDialogStructureLabels'),
+    ).toBeNull()
     expect(stagedRows[1]?.textContent).toContain('Flat file')
     expect(stagedRows[1]?.textContent).not.toContain('Hierarchy')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
@@ -5134,6 +5285,12 @@ describe('BrowserPanel', () => {
       'Structure unavailable',
     )
     expect(document.querySelector('.BrowserImportDialogStagedRow')?.textContent).toContain(
+      'Inspection failed',
+    )
+    expect(document.querySelector('.BrowserImportDialogStagedRow')?.textContent).toContain(
+      'ParaHook could not read this file\'s structure before commit.',
+    )
+    expect(document.querySelector('.BrowserImportDialogStagedRow')?.textContent).toContain(
       'Could not inspect staged file.',
     )
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
@@ -5188,12 +5345,19 @@ describe('BrowserPanel', () => {
     ;({ root } = await renderBrowserPanel())
 
     const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
-    expect(stagedRow?.textContent).toContain('1 Object')
-    expect(stagedRow?.textContent).toContain('Multiple Objects In 1 Component')
-    expect(
-      document.querySelector('button.BrowserImportDialogImportModeButton.isSelected')?.textContent,
-    ).toContain('1 Object')
+    expect(stagedRow?.textContent).not.toContain('Inspection failed')
+    const importModeTrack = stagedRow?.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Import As"]',
+    ) as HTMLButtonElement | null
+    expect(importModeTrack?.textContent).toContain('1 Object')
 
+    await click(importModeTrack!)
+    expect(
+      stagedRow?.querySelector('.ParaSelectMenu[aria-label="Import As options"]')?.textContent,
+    ).toContain('1 Object')
+    expect(
+      stagedRow?.querySelector('.ParaSelectMenu[aria-label="Import As options"]')?.textContent,
+    ).toContain('Multiple Objects In 1 Component')
     await click(findButtonByLabel('Multiple Objects In 1 Component')!)
     await act(async () => {
       root!.render(<BrowserPanel />)
@@ -5207,7 +5371,7 @@ describe('BrowserPanel', () => {
       currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.importMode,
     ).toBe('multiple-objects-in-component')
     expect(
-      document.querySelector('button.BrowserImportDialogImportModeButton.isSelected')?.textContent,
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Import As"]')?.textContent,
     ).toContain('Multiple Objects In 1 Component')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
   })
@@ -5250,8 +5414,13 @@ describe('BrowserPanel', () => {
     ;({ root } = await renderBrowserPanel())
 
     const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
-    expect(stagedRow?.textContent).toContain('1 Object')
-    expect(stagedRow?.textContent).not.toContain('Multiple Objects In 1 Component')
+    const importModeSelect = stagedRow?.querySelector(
+      '.ParaSelectNative[aria-label="Import As"]',
+    ) as HTMLSelectElement | null
+    expect(importModeSelect?.value).toBe('single-object')
+    expect(Array.from(importModeSelect?.options ?? []).map((option) => option.textContent?.trim())).toEqual([
+      '1 Object',
+    ])
 
     await act(async () => {
       root!.render(<BrowserPanel />)
@@ -5301,16 +5470,22 @@ describe('BrowserPanel', () => {
     ;({ root } = await renderBrowserPanel())
 
     const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
-    expect(stagedRow?.textContent).toContain('Z Up')
-    expect(stagedRow?.textContent).toContain('Y Up')
-    expect(stagedRow?.textContent).toContain('X Up')
+    const upAxisSelect = stagedRow?.querySelector(
+      '.ParaSelectNative[aria-label="Up Axis"]',
+    ) as HTMLSelectElement | null
+    expect(Array.from(upAxisSelect?.options ?? []).map((option) => option.textContent?.trim())).toEqual([
+      'Z Up',
+      'Y Up',
+      'X Up',
+    ])
+    expect(
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Up Axis"]')?.textContent,
+    ).toContain('Z Up')
 
-    const selectedButtons = Array.from(
-      document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'),
-    )
-    expect(selectedButtons.map((button) => button.textContent?.trim())).toContain('Z Up')
-
-    await click(findButtonByLabel('Y Up')!)
+    const nextUpAxisButton = stagedRow?.querySelector(
+      'button.ParaSelectCap--right[aria-label="Next Up Axis"]',
+    ) as HTMLButtonElement | null
+    await click(nextUpAxisButton!)
     await act(async () => {
       root!.render(<BrowserPanel />)
     })
@@ -5321,14 +5496,12 @@ describe('BrowserPanel', () => {
     )
     expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.upAxis).toBe('y-up')
     expect(
-      Array.from(document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'))
-        .map((button) => button.textContent?.trim())
-        .includes('Y Up'),
-    ).toBe(true)
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Up Axis"]')?.textContent,
+    ).toContain('Y Up')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
   })
 
-  it('shows explicit scale or units choices and keeps staged size-alignment changes draft-only', async () => {
+  it('keeps staged Scale / Units and Scale Multiplier synchronized through the shared staged card controls', async () => {
     currentAppState = {
       ...currentAppState,
       referenceWorkspace: {
@@ -5369,17 +5542,33 @@ describe('BrowserPanel', () => {
     ;({ root } = await renderBrowserPanel())
 
     const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
-    expect(stagedRow?.textContent).toContain('Current')
-    expect(stagedRow?.textContent).toContain('mm')
-    expect(stagedRow?.textContent).toContain('cm')
-    expect(stagedRow?.textContent).toContain('m')
-    expect(stagedRow?.textContent).toContain('in')
+    const scaleSelect = stagedRow?.querySelector(
+      '.ParaSelectNative[aria-label="Scale / Units"]',
+    ) as HTMLSelectElement | null
+    expect(Array.from(scaleSelect?.options ?? []).map((option) => option.textContent?.trim())).toEqual([
+      'Current',
+      'mm',
+      'cm',
+      'm',
+      'in',
+      'Custom',
+    ])
+    expect(
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Scale / Units"]')?.textContent,
+    ).toContain('mm')
+    expect(
+      stagedRow?.querySelector('.ParaSliderTrack[aria-label="Scale Multiplier"]')?.getAttribute(
+        'aria-valuetext',
+      ),
+    ).toBe('1')
 
-    const selectedButtons = Array.from(
-      document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'),
-    )
-    expect(selectedButtons.map((button) => button.textContent?.trim())).toContain('Current')
-
+    const scaleTrack = stagedRow?.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Scale / Units"]',
+    ) as HTMLButtonElement | null
+    await click(scaleTrack!)
+    expect(
+      stagedRow?.querySelector('.ParaSelectMenu[aria-label="Scale / Units options"]')?.textContent,
+    ).toContain('cm')
     await click(findButtonByLabel('cm')!)
     await act(async () => {
       root!.render(<BrowserPanel />)
@@ -5393,10 +5582,176 @@ describe('BrowserPanel', () => {
       currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.scaleAlignment,
     ).toBe('centimeters')
     expect(
-      Array.from(document.querySelectorAll('button.BrowserImportDialogImportModeButton.isSelected'))
-        .map((button) => button.textContent?.trim())
-        .includes('cm'),
-    ).toBe(true)
+      currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.scaleMultiplier,
+    ).toBe(10)
+    expect(
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Scale / Units"]')?.textContent,
+    ).toContain('cm')
+    expect(
+      stagedRow?.querySelector('.ParaSliderTrack[aria-label="Scale Multiplier"]')?.getAttribute(
+        'aria-valuetext',
+      ),
+    ).toBe('10')
+
+    const scaleMultiplierButton = stagedRow?.querySelector(
+      'button.ParaSliderValueButton[aria-label="Edit Scale Multiplier value"]',
+    ) as HTMLButtonElement | null
+    await click(scaleMultiplierButton!)
+
+    const scaleMultiplierInput = stagedRow?.querySelector(
+      'input.ParaSliderValueInput[aria-label="Edit Scale Multiplier value"]',
+    ) as HTMLInputElement | null
+    expect(scaleMultiplierInput).not.toBeNull()
+
+    await act(async () => {
+      scaleMultiplierInput!.value = '2.5'
+      scaleMultiplierInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      scaleMultiplierInput!.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await act(async () => {
+      scaleMultiplierInput!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+      )
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileScaleMultiplier.mock.calls.at(-1)).toEqual([
+      'staged-import-file:1',
+      2.5,
+    ])
+    expect(
+      currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.scaleAlignment,
+    ).toBe('custom')
+    expect(
+      currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.scaleMultiplier,
+    ).toBe(2.5)
+    expect(
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Scale / Units"]')?.textContent,
+    ).toContain('Custom')
+    expect(
+      stagedRow?.querySelector('.ParaSliderTrack[aria-label="Scale Multiplier"]')?.getAttribute(
+        'aria-valuetext',
+      ),
+    ).toBe('2.5')
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+  })
+
+  it('renders the main staged settings groups through the shared ParaSelect control without changing staged behavior', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'structured.step',
+              fileType: 'step',
+              objectUrl: 'blob:structured-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'multiple-objects-in-component',
+              upAxis: 'y-up',
+              scaleAlignment: 'centimeters',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Body', 'Upper'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:1:0',
+                      label: 'Body',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:1:1',
+                      label: 'Upper',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const stagedRow = document.querySelector('.BrowserImportDialogStagedRow')
+    const paraSelects = Array.from(stagedRow?.querySelectorAll('.ParaSelect') ?? []) as HTMLElement[]
+    expect(paraSelects).toHaveLength(3)
+    expect(
+      paraSelects.map(
+        (select) =>
+          select.querySelector('.ParaSelectTrackButton')?.getAttribute('aria-label') ??
+          select.querySelector('.ParaSelectNative')?.getAttribute('aria-label'),
+      ),
+    ).toEqual([
+      'Import As',
+      'Up Axis',
+      'Scale / Units',
+    ])
+    expect(
+      paraSelects.map(
+        (select) => select.querySelector('.ParaSelectLabel')?.textContent?.trim(),
+      ),
+    ).toEqual(['Import As', 'Up Axis', 'Scale / Units'])
+    expect(
+      paraSelects.map(
+        (select) => select.querySelector('.ParaSelectValue')?.textContent?.trim(),
+      ),
+    ).toEqual([
+      expect.stringContaining('Multiple Objects In 1 Component'),
+      expect.stringContaining('Y Up'),
+      expect.stringContaining('cm'),
+    ])
+    expect(
+      stagedRow?.querySelector('.ParaSliderTrack[aria-label="Scale Multiplier"]')?.getAttribute(
+        'aria-valuetext',
+      ),
+    ).toBe('10')
+    expect(stagedRow?.querySelector('.BrowserImportDialogImportModeGroup')).not.toBeNull()
+    expect(stagedRow?.querySelector('.BrowserImportDialogParaselect')).toBeNull()
+    expect(
+      stagedRow?.querySelectorAll('.ParaSelectCap[aria-label^="Previous"]').length,
+    ).toBe(3)
+    expect(
+      stagedRow?.querySelectorAll('.ParaSelectCap[aria-label^="Next"]').length,
+    ).toBe(3)
+    expect(
+      stagedRow?.querySelector('button.ParaSliderCap--left[aria-label="Decrease Scale Multiplier"]'),
+    ).not.toBeNull()
+    expect(
+      stagedRow?.querySelector('button.ParaSliderCap--right[aria-label="Increase Scale Multiplier"]'),
+    ).not.toBeNull()
+    expect(stagedRow?.querySelector('.BrowserImportDialogImportModeGroup--slider .ParaSlider.isCapless')).toBeNull()
+
+    const previousUpAxisButton = stagedRow?.querySelector(
+      'button.ParaSelectCap--left[aria-label="Previous Up Axis"]',
+    ) as HTMLButtonElement | null
+    await click(previousUpAxisButton!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.setStagedImportFileUpAxis).toHaveBeenCalledWith(
+      'staged-import-file:1',
+      'z-up',
+    )
+    expect(
+      stagedRow?.querySelector('button.ParaSelectTrackButton[aria-label="Up Axis"]')?.textContent,
+    ).toContain('Z Up')
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
   })
 
@@ -5444,17 +5799,17 @@ describe('BrowserPanel', () => {
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
   })
 
-  it('keeps the full staged import journey draft-only until Add To Project is explicitly accepted', async () => {
+  it('keeps the repaired Multiple Objects In 1 Component journey truthful before commit and commits split glb children without falling back to the old broken shape', async () => {
     importSupportedReferenceFilesFromDiskMock.mockResolvedValue([
       {
-        fileName: 'structured.step',
-        fileType: 'step',
-        objectUrl: 'blob:structured-step',
+        fileName: 'structured.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:structured-glb',
       },
       {
-        fileName: 'flat.glb',
-        fileType: 'glb',
-        objectUrl: 'blob:flat-glb',
+        fileName: 'flat.step',
+        fileType: 'step',
+        objectUrl: 'blob:flat-step',
       },
     ])
     inspectImportedReferenceFileStructureMock
@@ -5515,14 +5870,14 @@ describe('BrowserPanel', () => {
 
     expect(currentAppState.appendStagedImportDraftFiles).toHaveBeenCalledWith([
       {
-        fileName: 'structured.step',
-        fileType: 'step',
-        objectUrl: 'blob:structured-step',
+        fileName: 'structured.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:structured-glb',
       },
       {
-        fileName: 'flat.glb',
-        fileType: 'glb',
-        objectUrl: 'blob:flat-glb',
+        fileName: 'flat.step',
+        fileType: 'step',
+        objectUrl: 'blob:flat-step',
       },
     ])
     expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(2)
@@ -5531,10 +5886,25 @@ describe('BrowserPanel', () => {
     expect(document.body.textContent).toContain('Hierarchy')
     expect(document.body.textContent).toContain('Parts')
     expect(document.body.textContent).toContain('Flat file')
+    const getPreviewTree = () =>
+      document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    expect(getPreviewTree()?.textContent).toContain('structured.glb')
+    expect(getPreviewTree()?.textContent).toContain('flat.step')
+    expect(getPreviewTree()?.textContent).not.toContain('Body')
+    expect(getPreviewTree()?.textContent).not.toContain('Upper')
     addToProjectButton = findButtonByLabel('Add staged imports to project')
     expect(addToProjectButton?.hasAttribute('disabled')).toBe(false)
     expect(addToProjectButton?.getAttribute('title')).toBe('Add staged imports to project content.')
 
+    const structuredRow = Array.from(
+      document.querySelectorAll('.BrowserImportDialogStagedRow'),
+    ).find((element) => element.textContent?.includes('structured.glb')) as HTMLElement | undefined
+    const importModeTrack = structuredRow?.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Import As"]',
+    ) as HTMLButtonElement | null
+    expect(importModeTrack).not.toBeNull()
+
+    await click(importModeTrack!)
     await click(findButtonByLabel('Multiple Objects In 1 Component')!)
     await click(findButtonByLabel('Put Accepted Imports In New Assembly')!)
     await act(async () => {
@@ -5546,6 +5916,8 @@ describe('BrowserPanel', () => {
       'multiple-objects-in-component',
     )
     expect(currentAppState.setStagedImportPutAcceptedInNewAssembly).toHaveBeenCalledWith(true)
+    expect(getPreviewTree()?.textContent).toContain('Body')
+    expect(getPreviewTree()?.textContent).toContain('Upper')
     expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
     expect(currentAppState.closeStagedImportDraft).not.toHaveBeenCalled()
     expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
@@ -5562,14 +5934,855 @@ describe('BrowserPanel', () => {
     expect(currentAppState.commitStagedImportDraft).toHaveBeenCalledTimes(1)
     expect(currentAppState.closeStagedImportDraft).toHaveBeenCalledTimes(1)
     expect(currentAppState.referenceWorkspace.importedReferenceOrder).toHaveLength(
-      importedReferenceCountBefore + 2,
+      importedReferenceCountBefore + 3,
     )
+    const committedReferences = Object.values(
+      currentAppState.referenceWorkspace.importedReferencesById,
+    ) as any[]
+    const committedSplitReferences = committedReferences.filter(
+      (reference) => reference.assetPath === 'blob:structured-glb',
+    )
+    const committedFlatReference =
+      committedReferences.find((reference) => reference.assetPath === 'blob:flat-step') ?? null
+    expect(committedSplitReferences).toHaveLength(2)
+    expect(committedSplitReferences.map((reference) => reference.label)).toEqual(['Body', 'Upper'])
+    expect(committedSplitReferences.map((reference) => reference.sourcePartKey)).toEqual([
+      'reference-part:staged-import-file:1:0',
+      'reference-part:staged-import-file:1:1',
+    ])
+    expect(committedSplitReferences.map((reference) => reference.sourceMeshIndex)).toEqual([0, 1])
+    expect(committedSplitReferences.map((reference) => reference.directPartSourceKind)).toEqual([
+      'split-import-child',
+      'split-import-child',
+    ])
+    expect(committedSplitReferences.map((reference) => reference.directPartSourceGroupId)).toEqual([
+      'direct-part-source-group:staged-import-file:1',
+      'direct-part-source-group:staged-import-file:1',
+    ])
     expect(
-      Object.values(currentAppState.referenceWorkspace.importedReferencesById).map(
-        (reference: any) => reference.assetPath,
-      ),
-    ).toEqual(expect.arrayContaining(['blob:structured-step', 'blob:flat-glb']))
+      new Set(committedSplitReferences.map((reference) => reference.parentComponentId)).size,
+    ).toBe(1)
+    expect(committedSplitReferences.map((reference) => reference.explodedFromReferenceId)).toEqual([
+      null,
+      null,
+    ])
+    expect(committedFlatReference).toMatchObject({
+      assetPath: 'blob:flat-step',
+      directPartSourceKind: null,
+      directPartSourceGroupId: null,
+      sourcePartKey: null,
+      sourceMeshIndex: null,
+    })
     expect(currentAppState.referenceWorkspace.stagedImportDraft).toBeNull()
+  })
+
+  it('keeps the staged import dialog open after a partial Add To Project result so only failed files remain staged', async () => {
+    importSupportedReferenceFilesFromDiskMock.mockResolvedValue([
+      {
+        fileName: 'accepted.step',
+        fileType: 'step',
+        objectUrl: 'blob:accepted-step',
+      },
+      {
+        fileName: 'broken.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:broken-glb',
+      },
+    ])
+    inspectImportedReferenceFileStructureMock
+      .mockResolvedValueOnce({
+        hasMultipleObjects: false,
+        hasHierarchy: false,
+        hasParts: false,
+        labels: [],
+        partRows: [],
+      })
+      .mockRejectedValueOnce(new Error('Could not inspect broken.glb.'))
+
+    const importedReferenceCountBefore =
+      currentAppState.referenceWorkspace.importedReferenceOrder.length
+
+    ;({ root } = await renderBrowserPanel())
+
+    await click(findButtonByLabel('Import reference file')!)
+    await click(findButtonByLabel('Import Files...')!)
+    await click(findButtonByLabel('Browser')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(document.body.textContent).toContain('accepted.step')
+    expect(document.body.textContent).toContain('broken.glb')
+    expect(document.body.textContent).toContain('Inspection failed')
+
+    await click(findButtonByLabel('Add staged imports to project')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(currentAppState.commitStagedImportDraft).toHaveBeenCalledTimes(1)
+    expect(currentAppState.closeStagedImportDraft).not.toHaveBeenCalled()
+    expect(currentAppState.referenceWorkspace.importedReferenceOrder).toHaveLength(
+      importedReferenceCountBefore + 1,
+    )
+    expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles).toHaveLength(1)
+    expect(currentAppState.referenceWorkspace.stagedImportDraft?.stagedFiles[0]).toMatchObject({
+      fileName: 'broken.glb',
+    })
+    expect(document.body.textContent).toContain('Add To Project partially succeeded')
+    expect(document.body.textContent).toContain('1 file was added to project. 1 file remains staged for review or retry.')
+    expect(document.body.textContent).toContain('Acceptance failed')
+    expect(document.body.textContent).toContain('This file remains staged for review or retry.')
+    expect(findButtonByLabel('Add staged imports to project')?.textContent).toContain(
+      'Try Add To Project Again',
+    )
+    expect(document.body.textContent).toContain('1 file staged in draft')
+  })
+
+  it('renders one left settings scroll region plus dedicated preview Browser and object preview columns and keeps actions below the content area', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const dialogContent = document.querySelector('.BrowserImportDialogContent') as HTMLElement | null
+    const dialogBody = document.querySelector('.BrowserImportDialogBody') as HTMLElement | null
+    const leftColumn = document.querySelector('.BrowserImportDialogLeftColumn') as HTMLElement | null
+    const leftScrollRegion = document.querySelector(
+      '.BrowserImportDialogLeftScrollRegion',
+    ) as HTMLElement | null
+    const middleColumn = document.querySelector('.BrowserImportDialogMiddleColumn') as HTMLElement | null
+    const rightColumn = document.querySelector('.BrowserImportDialogRightColumn') as HTMLElement | null
+    const previewColumn = document.querySelector(
+      '.BrowserImportDialogPreviewColumn',
+    ) as HTMLElement | null
+    const previewScrollRegion = document.querySelector(
+      '.BrowserImportDialogPreviewTreeScrollRegion',
+    ) as HTMLElement | null
+    const previewTree = document.querySelector('.BrowserImportDialogPreviewTree') as HTMLElement | null
+    const resizeBars = Array.from(
+      document.querySelectorAll('.BrowserImportDialogResizeBar'),
+    ) as HTMLButtonElement[]
+    const viewportShell = document.querySelector(
+      '.BrowserImportDialogViewportShell',
+    ) as HTMLElement | null
+    const stagedListScrollRegion = document.querySelector(
+      '.BrowserImportDialogStagedListScrollRegion',
+    ) as HTMLElement | null
+    const stagedFileList = document.querySelector('.BrowserImportDialogStagedList') as HTMLElement | null
+    const actionRow = document.querySelector('.BrowserImportDialogActions') as HTMLElement | null
+    const addToProjectButton = findButtonByLabel('Add staged imports to project')
+
+    expect(dialogContent).not.toBeNull()
+    expect(dialogBody).not.toBeNull()
+    expect(leftColumn).not.toBeNull()
+    expect(leftScrollRegion).not.toBeNull()
+    expect(middleColumn).not.toBeNull()
+    expect(rightColumn).not.toBeNull()
+    expect(previewColumn).not.toBeNull()
+    expect(viewportShell).not.toBeNull()
+    expect(resizeBars).toHaveLength(2)
+    expect(leftScrollRegion?.getAttribute('role')).toBe('region')
+    expect(leftScrollRegion?.getAttribute('aria-label')).toBe('Staged import settings')
+    expect(previewScrollRegion?.getAttribute('role')).toBe('region')
+    expect(previewScrollRegion?.getAttribute('aria-label')).toBe('Staged import preview scroll area')
+    expect(viewportShell?.getAttribute('role')).toBe('region')
+    expect(viewportShell?.getAttribute('aria-label')).toBe('Staged object preview viewport')
+    expect(previewTree?.textContent).toContain('flat.stl')
+    expect(viewportShell?.textContent).toContain('No staged object is loaded yet.')
+    expect(leftColumn?.contains(leftScrollRegion!)).toBe(true)
+    expect(leftScrollRegion?.contains(stagedFileList!)).toBe(true)
+    expect(stagedListScrollRegion).toBeNull()
+    expect(middleColumn?.contains(previewColumn!)).toBe(true)
+    expect(rightColumn?.contains(viewportShell!)).toBe(true)
+    expect(previewScrollRegion?.contains(previewTree!)).toBe(true)
+    expect(leftColumn?.contains(previewTree!)).toBe(false)
+    expect(middleColumn?.contains(viewportShell!)).toBe(false)
+    expect(dialogBody?.contains(actionRow!)).toBe(false)
+    expect(dialogContent?.contains(addToProjectButton!)).toBe(false)
+    expect(actionRow?.contains(addToProjectButton!)).toBe(true)
+  })
+
+  it('renders staged file cards with one title row and one full-width body section', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'ADV3.glb',
+              fileType: 'glb',
+              objectUrl: 'blob:adv3-glb',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: false,
+                  hasParts: true,
+                  labels: ['adv_2_v2_adv_2_v2_Body11002', 'adv_2_v2_adv_2_v2_Body13002'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:1:0',
+                      label: 'adv_2_v2_adv_2_v2_Body11002',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:1:1',
+                      label: 'adv_2_v2_adv_2_v2_Body13002',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const stagedRow = document.querySelector('.BrowserImportDialogStagedRow') as HTMLElement | null
+    const header = stagedRow?.querySelector('.BrowserImportDialogStagedRowHeader') as HTMLElement | null
+    const headerMain = stagedRow?.querySelector(
+      '.BrowserImportDialogStagedRowHeaderMain',
+    ) as HTMLElement | null
+    const body = stagedRow?.querySelector('.BrowserImportDialogStagedRowBody') as HTMLElement | null
+    const order = stagedRow?.querySelector('.BrowserImportDialogStagedRowOrder') as HTMLElement | null
+    const name = stagedRow?.querySelector('.BrowserImportDialogStagedRowName') as HTMLElement | null
+    const type = stagedRow?.querySelector('.BrowserImportDialogStagedRowType') as HTMLElement | null
+    const summary = stagedRow?.querySelector('.BrowserImportDialogStructureSummary') as HTMLElement | null
+    const selectionList = stagedRow?.querySelector(
+      '.BrowserImportDialogStructureSelectionList',
+    ) as HTMLElement | null
+
+    expect(header).not.toBeNull()
+    expect(headerMain).not.toBeNull()
+    expect(body).not.toBeNull()
+    expect(order?.textContent?.trim()).toBe('1')
+    expect(name?.textContent?.trim()).toBe('ADV3.glb')
+    expect(type?.textContent?.trim()).toBe('.GLB')
+    expect(headerMain?.contains(order!)).toBe(true)
+    expect(headerMain?.contains(name!)).toBe(true)
+    expect(header?.contains(type!)).toBe(true)
+    expect(body?.contains(summary!)).toBe(true)
+    expect(body?.contains(selectionList!)).toBe(true)
+    expect(header?.contains(selectionList!)).toBe(false)
+  })
+
+  it('renders a read-only hierarchy tree only when staged hierarchy rows truthfully exist and keeps it distinct from the parts list', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'hub.step',
+              fileType: 'step',
+              objectUrl: 'blob:hub-step',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: false,
+                  labels: ['FusionComponent'],
+                  partRows: [],
+                  hierarchyRows: [
+                    {
+                      label: 'FusionComponent',
+                      children: [{ label: 'HubBody', children: [] }],
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+            {
+              fileName: 'assembly.glb',
+              fileType: 'glb',
+              objectUrl: 'blob:assembly-glb',
+              stagedFileId: 'staged-import-file:2',
+              importMode: 'multiple-objects-in-component',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: true,
+                  hasHierarchy: true,
+                  hasParts: true,
+                  labels: ['Assembly', 'Body11002', 'Body13002'],
+                  partRows: [
+                    {
+                      partKey: 'reference-part:staged-import-file:2:0',
+                      label: 'Body11002',
+                      sourceMeshIndex: 0,
+                    },
+                    {
+                      partKey: 'reference-part:staged-import-file:2:1',
+                      label: 'Body13002',
+                      sourceMeshIndex: 1,
+                    },
+                  ],
+                  hierarchyRows: [
+                    {
+                      label: 'Assembly',
+                      children: [
+                        { label: 'Body11002', children: [] },
+                        { label: 'Body13002', children: [] },
+                      ],
+                    },
+                  ],
+                },
+                errorMessage: null,
+              },
+            },
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:3',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    await renderBrowserPanel()
+
+    const stagedRows = Array.from(document.querySelectorAll('.BrowserImportDialogStagedRow'))
+    const findStagedRowByText = (text: string) =>
+      stagedRows.find((row) => row.textContent?.includes(text)) as HTMLElement | undefined
+
+    const hubRow = findStagedRowByText('hub.step')
+    const splitRow = findStagedRowByText('assembly.glb')
+    const flatRow = findStagedRowByText('flat.stl')
+
+    const hubTree = hubRow?.querySelector('.BrowserImportDialogHierarchyTreeBlock') as HTMLElement | null
+    const splitTree = splitRow?.querySelector('.BrowserImportDialogHierarchyTreeBlock') as HTMLElement | null
+    const splitPartsList = splitRow?.querySelector(
+      '.BrowserImportDialogStructureSelectionList',
+    ) as HTMLElement | null
+    const flatTree = flatRow?.querySelector('.BrowserImportDialogHierarchyTreeBlock') as HTMLElement | null
+    const hubScrollRegion = hubRow?.querySelector(
+      '.BrowserImportDialogHierarchyTreeScrollRegion',
+    ) as HTMLElement | null
+    const hubHelper = hubRow?.querySelector('.BrowserImportDialogStructureHelper') as HTMLElement | null
+    const splitHelper = splitRow?.querySelector('.BrowserImportDialogStructureHelper') as HTMLElement | null
+    const hubRootList = hubRow?.querySelector(
+      '.BrowserImportDialogHierarchyTreeList[data-depth="0"]',
+    ) as HTMLElement | null
+    const hubNestedList = hubRow?.querySelector(
+      '.BrowserImportDialogHierarchyTreeList[data-depth="1"]',
+    ) as HTMLElement | null
+    const hubRootItem = hubRow?.querySelector(
+      '.BrowserImportDialogHierarchyTreeItem[data-depth="0"]',
+    ) as HTMLElement | null
+
+    expect(hubRow?.textContent).toContain('Structured file')
+    expect(hubRow?.textContent).toContain('Hierarchy')
+    expect(hubRow?.textContent).not.toContain('Multiple objects')
+    expect(hubHelper?.textContent).toContain('Structured hierarchy detected. No split parts detected.')
+    expect(hubTree?.textContent).toContain('Hierarchy Tree')
+    expect(hubTree?.textContent).toContain('FusionComponent')
+    expect(hubTree?.textContent).toContain('HubBody')
+    expect(hubTree?.contains(hubScrollRegion!)).toBe(true)
+    expect(hubScrollRegion?.contains(hubRootList!)).toBe(true)
+    expect(hubNestedList).not.toBeNull()
+    expect(hubRootItem?.getAttribute('data-has-children')).toBe('true')
+    expect(hubRow?.querySelector('.BrowserImportDialogStructureSelectionList')).toBeNull()
+
+    expect(splitRow?.textContent).toContain('Multiple objects')
+    expect(splitRow?.textContent).toContain('Hierarchy')
+    expect(splitRow?.textContent).toContain('Parts')
+    expect(splitRow?.textContent).not.toContain('Structured file')
+    expect(splitHelper).toBeNull()
+    expect(splitTree?.textContent).toContain('Assembly')
+    expect(splitTree?.textContent).toContain('Body11002')
+    expect(splitTree?.textContent).toContain('Body13002')
+    expect(splitPartsList?.textContent).toContain('Body11002')
+    expect(splitPartsList?.textContent).toContain('Body13002')
+
+    expect(flatTree).toBeNull()
+  })
+
+  it('keeps divider resizing local to the open staged import dialog and resets widths after closing', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const getDialogContent = () =>
+      document.querySelector('.BrowserImportDialogContent') as HTMLElement | null
+    const getResizeBars = () =>
+      Array.from(document.querySelectorAll('.BrowserImportDialogResizeBar')) as HTMLButtonElement[]
+
+    Object.defineProperty(getDialogContent()!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 1200,
+        bottom: 600,
+        width: 1200,
+        height: 600,
+        toJSON: () => ({}),
+      }),
+    })
+
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-left-column-share')).toBe(
+      '0.44',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-middle-column-share')).toBe(
+      '0.31',
+    )
+
+    await act(async () => {
+      getResizeBars()[0]?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 440,
+        }),
+      )
+    })
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 560,
+        }),
+      )
+    })
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 560,
+        }),
+      )
+    })
+
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-left-column-share')).toBe(
+      '0.5',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-middle-column-share')).toBe(
+      '0.25',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-right-column-share')).toBe(
+      '0.25',
+    )
+
+    await click(findButtonByLabel('Cancel')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'flat.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:flat-stl',
+              stagedFileId: 'staged-import-file:1',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-left-column-share')).toBe(
+      '0.44',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-middle-column-share')).toBe(
+      '0.31',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-right-column-share')).toBe(
+      '0.25',
+    )
+  })
+
+  it('loads one staged file into the object preview viewport without mutating project content', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'previewable.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:previewable-stl',
+              stagedFileId: 'staged-import-file:preview',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const viewportShell = () =>
+      document.querySelector('.BrowserImportDialogViewportShell') as HTMLElement | null
+    const zoomToFitButton = () =>
+      findButtonByLabel('Zoom previewable.stl to fit the preview viewport')
+
+    expect(viewportShell()?.textContent).toContain('No staged object is loaded yet.')
+    expect(zoomToFitButton()).toBeNull()
+
+    await click(findButtonByLabel('Load previewable.stl into preview viewport')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledWith({
+      fileType: 'stl',
+      assetPath: 'blob:previewable-stl',
+    })
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledTimes(1)
+    expect(viewportShell()?.textContent).toContain('Preview loaded for previewable.stl.')
+    expect(viewportShell()?.textContent).toContain(
+      'Rendering is unavailable in this environment, but the staged object loaded successfully.',
+    )
+    expect(zoomToFitButton()).not.toBeNull()
+
+    await click(zoomToFitButton()!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledTimes(1)
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+    expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
+  })
+
+  it('keeps the full staged object preview lane stable across load, orbit-ready messaging, local divider resize, and reset after reopen', async () => {
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'previewable.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:previewable-stl',
+              stagedFileId: 'staged-import-file:preview',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    ;({ root } = await renderBrowserPanel())
+
+    const getDialogContent = () =>
+      document.querySelector('.BrowserImportDialogContent') as HTMLElement | null
+    const getViewportShell = () =>
+      document.querySelector('.BrowserImportDialogViewportShell') as HTMLElement | null
+    const getResizeBars = () =>
+      Array.from(document.querySelectorAll('.BrowserImportDialogResizeBar')) as HTMLButtonElement[]
+
+    expect(document.body.textContent).toContain('Preview Browser')
+    expect(document.body.textContent).toContain('Object Preview')
+    expect(document.body.textContent).toContain(
+      'Draft-local preview viewport. Load one staged object here to inspect and orbit it before commit.',
+    )
+    expect(getViewportShell()?.textContent).toContain(
+      'Use Load Into Preview Viewport on a staged file to inspect and orbit it here before commit.',
+    )
+
+    Object.defineProperty(getDialogContent()!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 1200,
+        bottom: 600,
+        width: 1200,
+        height: 600,
+        toJSON: () => ({}),
+      }),
+    })
+
+    await click(findButtonByLabel('Load previewable.stl into preview viewport')!)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(loadReferenceAssetObjectMock).toHaveBeenCalledWith({
+      fileType: 'stl',
+      assetPath: 'blob:previewable-stl',
+    })
+    expect(getViewportShell()?.textContent).toContain('Preview loaded for previewable.stl.')
+    expect(getViewportShell()?.textContent).toContain(
+      'Rendering is unavailable in this environment, but the staged object loaded successfully.',
+    )
+    expect(currentAppState.addImportedReference).not.toHaveBeenCalled()
+    expect(currentAppState.commitStagedImportDraft).not.toHaveBeenCalled()
+
+    await act(async () => {
+      getResizeBars()[1]?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: 820,
+        }),
+      )
+    })
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointermove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 700,
+        }),
+      )
+    })
+    await act(async () => {
+      window.dispatchEvent(
+        new PointerEvent('pointerup', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 700,
+        }),
+      )
+    })
+
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-left-column-share')).toBe(
+      '0.4',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-middle-column-share')).toBe(
+      '0.25',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-right-column-share')).toBe(
+      '0.35',
+    )
+
+    await click(findButtonByLabel('Cancel')!)
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    currentAppState = {
+      ...currentAppState,
+      referenceWorkspace: {
+        ...currentAppState.referenceWorkspace,
+        stagedImportDraft: {
+          parentAssemblyId: null,
+          parentComponentId: null,
+          stagedFiles: [
+            {
+              fileName: 'previewable.stl',
+              fileType: 'stl',
+              objectUrl: 'blob:previewable-stl',
+              stagedFileId: 'staged-import-file:preview',
+              importMode: 'single-object',
+              structureInspection: {
+                status: 'ready',
+                summary: {
+                  hasMultipleObjects: false,
+                  hasHierarchy: false,
+                  hasParts: false,
+                  labels: [],
+                  partRows: [],
+                },
+                errorMessage: null,
+              },
+            },
+          ],
+          previewOrganization: buildEmptyMockStagedImportPreviewOrganization(),
+        },
+      },
+    }
+    currentAppState.referenceWorkspace.stagedImportDraft.previewOrganization =
+      syncMockStagedImportPreviewOrganization(currentAppState.referenceWorkspace.stagedImportDraft)
+
+    await act(async () => {
+      root!.render(<BrowserPanel />)
+    })
+
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-left-column-share')).toBe(
+      '0.44',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-middle-column-share')).toBe(
+      '0.31',
+    )
+    expect(getDialogContent()?.style.getPropertyValue('--browser-import-right-column-share')).toBe(
+      '0.25',
+    )
+    expect(getViewportShell()?.textContent).toContain(
+      'Use Load Into Preview Viewport on a staged file to inspect and orbit it here before commit.',
+    )
   })
 
   it('shows a preview Browser surface and expands truthful split rows when the staged mode switches to multiple objects', async () => {
@@ -5643,6 +6856,15 @@ describe('BrowserPanel', () => {
     expect(getPreviewTree()?.textContent).toContain('structured.step')
     expect(getPreviewTree()?.textContent).not.toContain('Body')
 
+    const structuredRow = Array.from(
+      document.querySelectorAll('.BrowserImportDialogStagedRow'),
+    ).find((element) => element.textContent?.includes('structured.step')) as HTMLElement | undefined
+    const importModeTrack = structuredRow?.querySelector(
+      'button.ParaSelectTrackButton[aria-label="Import As"]',
+    ) as HTMLButtonElement | null
+    expect(importModeTrack).not.toBeNull()
+
+    await click(importModeTrack!)
     await click(findButtonByLabel('Multiple Objects In 1 Component')!)
     await act(async () => {
       root!.render(<BrowserPanel />)
@@ -6506,7 +7728,7 @@ describe('BrowserPanel', () => {
           {
             rowId: 'reference-category-row:shoes',
             categoryId: 'shoes',
-            label: 'Shoes',
+            label: 'Wearable',
             isExpanded: true,
             itemCount: 1,
             visibleItemCount: 0,
@@ -6856,7 +8078,7 @@ describe('BrowserPanel', () => {
         {
           rowId: 'reference-category-row:shoes',
           kind: 'component',
-          label: 'Shoes',
+          label: 'Wearable',
           meta: '0 items',
           parentAssemblyId: 'reference-root',
           isVisible: false,
@@ -8878,7 +10100,7 @@ describe('BrowserPanel', () => {
 
     ;({ root } = await renderBrowserPanel())
 
-    const sourceRow = findRowMainByLabel('Shoes')
+    const sourceRow = findRowMainByLabel('Wearable')
     const targetRow = findRowMainByLabel('Assembly 1')
     expect(sourceRow).not.toBeNull()
     expect(targetRow).not.toBeNull()

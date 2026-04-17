@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+18. 2026-04-16 17:10:00: Tightened the generational read again so `Generation 0` now explicitly removes the current preloaded reference models from `Browser`, clarifying that `foothooks`, `shoes`, and `footpads` should stop acting like default Browser-resident content during cleanup and should later return only as intentional optional add-ins
+17. 2026-04-16 16:55:23: Reframed the catalog vision so it stays honest that the `Catalog` family has not started yet, adding an explicit `Generation 0` cleanup-and-prep read ahead of the later repo-backed catalog build, changing the current-state language so `Generation 1` now reads as the first real family generation instead of the active one, and aligning the vision with the new `Catalog-Gen0-Index.md` planning surface
+16. 2026-04-16 12:31:00: Expanded `Generation 1` to include an `Imports` area inside `Catalog`, documenting that the early catalog may show user-uploaded items that already entered ParaHook so the user can place another copy into the model after deleting one, while still keeping import intake itself owned by the separate import system
+15. 2026-04-16 12:23:00: Tightened `Generation 1` now that `Generation 2` and `Generation 3` are more concrete, making explicit that the baseline catalog is intentionally repo-backed, simpler, and metadata-light compared with the later external intake, richer fitment normalization, builder, and compatibility-check lanes
 14. 2026-04-16 12:10:00: Expanded `Generation 2` linked-source intake again by documenting the Dropbox shared-link split more explicitly, clarifying that some PubParts links point to shared folders while others point to ZIP files, that shared folders may eventually support inspect-first selective download, and that ZIP-file links should use staged archive inspection so ParaHook can filter supported versus unsupported files and let the user choose which importable files to bring in
 13. 2026-04-16 11:44:00: Named the first `Generation 3` rule-based compatibility layer the `Ricky Checker`, making explicit that this initial true/false fitment read is manually curated by Ricky and may still say a combination is possible even before later dimensional proof work exists
 12. 2026-04-16 11:37:00: Expanded `Generation 3` compatibility again so it now explicitly covers pre-programmed allowed-part rules, builder-owned sub-part requirements such as a rear box needing battery, BMS, and supporting wiring or electronics, and a later `Generation 3.5` direction for dimensional packaging checks such as comparing battery size against rear-box volume and width/length/height constraints
@@ -62,6 +66,10 @@ Do not use it for:
   - catalog family umbrella and phased planning surface
   - useful for execution order, boundary rules, and future standalone `Catalog` docs
 
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+  - current cleanup-and-prep planning surface before the first real `Catalog` family phase starts
+  - useful for honest `Generation 0` tracking and keeping prep distinct from `Generation 1`
+
 - `docs/Human-Plans/Wish-Features/Catalog/Catalog.md`
   - broader product-shape and follow-on wishlist surface
   - useful for tracking larger Catalog feature ideas and mapping them to later `Catalog` phases
@@ -93,7 +101,11 @@ This doc exists to keep the catalog on the narrow honest path between those two 
 
 `Catalog` should be described as evolving through explicit generations.
 
-`Generation 1` is the current repo-backed curated browse-and-load workspace direction.
+`Generation 0` is the current cleanup-and-prep state because the family has not started yet.
+
+That cleanup should first remove the old preloaded reference-model behavior from `Browser`.
+
+`Generation 1` is the first real repo-backed curated browse-and-load workspace direction after that prep.
 
 `Generation 2` should widen that workspace so it can also integrate curated external catalog sources such as `pubparts.xyz` and support linked `3D` model entries more generally.
 
@@ -141,19 +153,82 @@ The point is to make it easy to say:
 - what the next widening lane should add
 - what should wait for a later generation instead of being smuggled into the current one
 
+#### Generation 0 - Cleanup And Prep Before Catalog Family Start
+
+`Generation 0` is the current state because the `Catalog` family has not started yet.
+
+This generation is prep only.
+
+It should be used to:
+- inventory where catalog-like behavior already leaks through preloaded references, `HDRI` handling, Browser-adjacent seams, or shell touchpoints
+- clean up ownership boundaries before the real workspace family starts
+- move the preloaded reference models out of `Browser`
+- prepare the first curated asset and metadata baseline
+- lock what should count as the actual `Generation 1` start
+
+What `Generation 0` does well:
+- keeps the docs honest about current status
+- gives cleanup work one explicit home instead of mixing it into the first runtime phase
+- removes the misleading Browser-resident default reference-model baseline before later optional add-ins arrive
+- reduces the risk that `Catalog-1` starts by rediscovering drift instead of building the family
+
+What `Generation 0` does not yet do:
+- ship a real `Catalog` workspace surface
+- ship the first manifest runtime
+- ship preview or commit behavior
+- ship the repo-backed browse-and-load baseline itself
+
+Important rule:
+- `Generation 0` is not a partial `Generation 1`
+- if the work starts adding a real `Catalog` surface, manifest runtime, preview flow, or asset loading path, that work belongs to `Generation 1`
+
+In short:
+
+`Generation 0` is the cleanup-and-prep band before the first real catalog build starts.
+
+That includes removing the current Browser preload for reference models so later add-ins stay intentional.
+
 #### Generation 1 - Repo-Backed Curated Catalog
 
-`Generation 1` is the current catalog baseline.
+`Generation 1` is the first real catalog baseline after `Generation 0` cleanup and prep.
 
-Everything else currently described in this doc should be read as `Generation 1` unless a later section explicitly says `Generation 2`.
+Unless a later section explicitly says `Generation 2` or `Generation 3`, the intended first real browse-and-load behavior described in this doc should be read as `Generation 1`.
 
 `Generation 1` means:
 - `Catalog` is a real workspace mode or split-pane surface
 - the first catalog families are repo-backed and curated
+- `foothooks`, `shoes`, and `footpads` return only as intentional optional add-ins, not as default Browser-resident preload
+- `Catalog` may also expose an `Imports` area for user-uploaded items that already entered ParaHook
 - the first browse flow is store-like, filterable, and preview-first
 - `Load Preview` stays separate from `Add To Project`
 - load behavior stays honest by asset type
 - Browser, project truth, and viewer state remain the downstream owners after commit
+
+What `Generation 1` does well:
+- gives ParaHook one real curated catalog workspace
+- makes repo-backed assets browseable without hidden ownership
+- lets the user add later optional reference families only when they actually want them
+- gives the user one place to find previously uploaded items they can place again
+- keeps preview-versus-commit honest
+- supports a simpler first-pass metadata and filter read for the earliest catalog families
+
+What `Generation 1` does not yet do:
+- intake curated external sources such as `pubparts.xyz`
+- treat linked models and linked archives as first-class catalog entries
+- require the richer `Platform` versus `Wheel` versus later `Power` and `Fasteners` organization
+- carry the later pre-built Onewheel board direction as a required baseline feature
+- run the `Ricky Checker` or any other true/false compatibility checker
+- host the later `Onewheel Builder`
+- perform dimensional fit or packaging math
+
+Important rule:
+- `Generation 1` should stay intentionally simpler than the later generations
+- it should not be treated as incomplete just because it does not already contain the external-source, builder, or compatibility-check behavior that belongs later
+
+Important `Generation 1` imports rule:
+- the `Imports` area should be a reuse and recall surface for items already uploaded into ParaHook
+- it should not redefine the import pipeline itself
+- import intake still belongs to the import or user-file system, while `Catalog` may surface the already-known imported items as reusable entries
 
 In short:
 
@@ -371,11 +446,14 @@ not as:
 
 The catalog should start with repo-backed reusable assets that the user may want to bring into a working session repeatedly.
 
+`Generation 1` may also include an `Imports` area that lists user-uploaded items already known to ParaHook.
+
 Good first catalog families:
 - foothooks
 - shoes
 - footpads
 - HDRIs
+- imported user items that the user may want to place again after deleting one from the model
 - other reusable references or sample parts stored in the repo
 
 Good later catalog families:
@@ -393,6 +471,7 @@ Important rule:
 Important first migration read:
 - the current preloaded `foothooks`, `shoes`, and `footpads` should move into `Catalog`
 - those should be presented as distinct reference sections instead of staying scattered as ad hoc preload behavior
+- the user should also be able to find previously uploaded imported items in an `Imports` area without treating those items as repo-curated assets
 
 ### First Onewheel Filter Direction
 
@@ -850,6 +929,8 @@ Important rule:
 
 `Generation 2` may widen that to include curated external-linked entries.
 
+`Generation 1` may also surface imported items through an `Imports` area once those items are already inside ParaHook.
+
 That is different from:
 - user import from disk
 - arbitrary external references
@@ -858,6 +939,11 @@ That is different from:
 Important rule:
 - keep `curated catalog asset` separate from `user imported file`
 - those systems can feel adjacent without collapsing into one blurry intake path
+
+Important supporting rule:
+- showing imported items in `Catalog` after intake is not the same thing as making `Catalog` own the import flow
+- import intake still starts in the import system
+- `Catalog` only becomes a later reuse surface for items ParaHook already knows about
 
 #### 6. HDRIs Must Stay Optional And Explicit
 
@@ -872,6 +958,9 @@ Important rule:
 
 The first catalog targets may lean toward hooks, shoes, footpads, and HDRIs, but the workspace should not hard-code itself into only one product-specific grouping forever.
 
+Important current-state rule:
+- before those reference families become selectable catalog entries, `Generation 0` should remove them from the default `Browser` baseline
+
 Important rule:
 - keep the catalog generic enough that later reusable reference families, presets, and template-like assets can fit without a full workspace rewrite
 
@@ -879,8 +968,9 @@ Important rule:
 
 When `Catalog` is working well, the user should be able to say:
 - "I can browse the reusable assets that ship with this repo."
+- "I can also find previously uploaded imported items in an `Imports` area and place another copy if I deleted one."
 - "I can also browse curated external catalog items when ParaHook chooses to integrate them."
-- "I can browse preloaded foothooks, shoes, and footpads in their own sections."
+- "I can add foothooks, shoes, and footpads later if I want them, instead of starting with them already sitting in Browser."
 - "I can choose a pre-built Onewheel from the catalog and load it into the model as a starting point."
 - "I can filter down to the family I want."
 - "I can filter by real Onewheel platform and part type without the system guessing from names."
@@ -897,7 +987,10 @@ When `Catalog` is working well, the user should be able to say:
 
 The umbrella direction is now:
 - ParaHook should have a real `Catalog` workspace organized as explicit generations
-- `Generation 1` is the repo-backed curated browse-and-load catalog for preloaded foothooks, shoes, footpads, HDRIs, and similar stored references
+- `Generation 0` is the current cleanup-and-prep state because the family has not started yet
+- `Generation 0` should remove the current Browser-resident preload for reference models such as foothooks, shoes, and footpads
+- `Generation 1` is the first real repo-backed curated browse-and-load catalog for later optional foothooks, shoes, footpads, `HDRIs`, and similar stored references
+- `Generation 1` may also include an `Imports` area for previously uploaded items that are already inside ParaHook, without making `Catalog` own import intake
 - `Generation 2` should widen that catalog to include curated external integrations such as `pubparts.xyz`, linked `3D` model entries more generally, broader platform-normalization rules, and pre-built Onewheel starting boards
 - `Generation 3` should turn the `Generation 2` compatibility groundwork into a real compatibility-check system that can tell the user whether a part or build combination should work
 - the catalog should remain a curated browse-and-load surface, not a second hidden content owner

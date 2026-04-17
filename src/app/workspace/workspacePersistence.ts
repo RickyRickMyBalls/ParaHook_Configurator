@@ -324,6 +324,7 @@ const normalizeViewportChromeRecord = (
       localViewState?.viewToolbarActiveTab === 'gizmo' ||
       localViewState?.viewToolbarActiveTab === 'view' ||
       localViewState?.viewToolbarActiveTab === 'environment' ||
+      localViewState?.viewToolbarActiveTab === 'ground' ||
       localViewState?.viewToolbarActiveTab === 'materials'
         ? { viewToolbarActiveTab: localViewState.viewToolbarActiveTab }
         : {}),

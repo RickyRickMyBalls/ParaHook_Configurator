@@ -474,6 +474,33 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     )
   })
 
+  it('preserves the persisted ground toolbar tab as a valid local viewport state value', () => {
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const grounded = {
+      ...serialized,
+      viewportChromeById: {
+        ...serialized.viewportChromeById,
+        'model-viewer-primary': {
+          ...serialized.viewportChromeById['model-viewer-primary'],
+          localViewState: {
+            ...serialized.viewportChromeById['model-viewer-primary']?.localViewState,
+            viewToolbarExpandedPresentationMode: 'tabs' as const,
+            viewToolbarActiveTab: 'ground' as const,
+          },
+        },
+      },
+    }
+
+    const normalized = normalizePersistedWorkspaceLayout(grounded)
+
+    expect(normalized?.viewportChromeById['model-viewer-primary']?.localViewState).toEqual(
+      expect.objectContaining({
+        viewToolbarExpandedPresentationMode: 'tabs',
+        viewToolbarActiveTab: 'ground',
+      }),
+    )
+  })
+
   it('detaches, redocks, and persists a dashboard slot like any other shared workspace surface', () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
       surfaceKind: 'dashboard',

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type {
+  GroundMaterialPresetId,
   LightSpec,
   LightType,
   MaterialPreset,
@@ -81,6 +82,23 @@ const viewToolbarDockModeOptions = [
   { value: 'below-axis', label: 'Below Axis' },
   { value: 'top-right-cluster', label: 'Top Right Cluster' },
 ]
+const groundEnabledOptions = [
+  { value: 'off', label: 'Off' },
+  { value: 'on', label: 'On' },
+]
+const shadowsEnabledOptions = [
+  { value: 'off', label: 'Off' },
+  { value: 'on', label: 'On' },
+]
+const toneMappingOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'aces', label: 'ACES' },
+]
+const groundMaterialOptions: Array<{ value: GroundMaterialPresetId; label: string }> = [
+  { value: 'matte_dark', label: 'Matte Dark' },
+  { value: 'matte_mid', label: 'Matte Mid' },
+  { value: 'glossy_studio', label: 'Glossy Studio' },
+]
 const MIN_FLY_ROLL_SPEED_RADIANS_PER_SEC = 0
 const MAX_FLY_ROLL_SPEED_RADIANS_PER_SEC = Math.PI * 2
 const FLY_ROLL_SPEED_STEP_RADIANS_PER_SEC = 0.05
@@ -111,6 +129,9 @@ const formatClipDistance = (value: number): string => {
 
 const formatCameraShortcutTransitionDuration = (value: number): string =>
   `${Math.round(value)} ms`
+
+const formatExposureValue = (value: number): string =>
+  Number(value.toFixed(2)).toString()
 
 const resolveClipDistanceStep = (value: number): number => {
   if (value >= 100) {
@@ -312,6 +333,14 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     () => view.lighting.lights.find((light) => light.id === view.lighting.selectedLightId) ?? null,
     [view.lighting.lights, view.lighting.selectedLightId],
   )
+  const setGround = (patch: Partial<typeof view.ground>) => {
+    setView({
+      ground: {
+        ...view.ground,
+        ...patch,
+      },
+    })
+  }
 
   const selectedPreset = useMemo<MaterialPreset | null>(() => {
     return (
@@ -1209,14 +1238,6 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             <label>
               <input
                 type="checkbox"
-                checked={view.shadowsEnabled}
-                onChange={(event) => setViewKey('shadowsEnabled', event.target.checked)}
-              />
-              Shadows
-            </label>
-            <label>
-              <input
-                type="checkbox"
                 checked={view.wireframe}
                 onChange={(event) => setViewKey('wireframe', event.target.checked)}
               />
@@ -1239,42 +1260,27 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               Axis Overlay
             </label>
           </div>
-          <div className="MiniFieldGrid">
-            <label>
-              Tone Mapping
-              <select
-                value={view.toneMapping}
-                onChange={(event) =>
-                  setViewKey('toneMapping', event.target.value as typeof view.toneMapping)
-                }
-              >
-                <option value="none">None</option>
-                <option value="aces">ACES</option>
-              </select>
-            </label>
-            <label>
-              Exposure
-              <input
-                type="range"
-                min={0}
-                max={2}
-                step={0.05}
-                value={view.exposure}
-                onChange={(event) => setViewKey('exposure', Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Exposure Value
-              <input
-                type="number"
-                min={0}
-                max={2}
-                step={0.05}
-                value={view.exposure}
-                onChange={(event) => setViewKey('exposure', Number(event.target.value))}
-              />
-            </label>
-          </div>
+          <ParaSelect
+            label="Shadows"
+            value={view.shadowsEnabled ? 'on' : 'off'}
+            options={shadowsEnabledOptions}
+            onChange={(value) => setViewKey('shadowsEnabled', value === 'on')}
+          />
+          <ParaSelect
+            label="Tone Mapping"
+            value={view.toneMapping}
+            options={toneMappingOptions}
+            onChange={(value) => setViewKey('toneMapping', value as typeof view.toneMapping)}
+          />
+          <ParaSlider
+            label="Exposure"
+            value={view.exposure}
+            min={0}
+            max={2}
+            step={0.05}
+            formatValue={formatExposureValue}
+            onChange={(value) => setViewKey('exposure', value)}
+          />
         </>
       ),
     },
@@ -1644,6 +1650,35 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       ),
     },
     {
+      key: 'ground',
+      label: 'Ground',
+      renderBody: () => (
+        <>
+          <ParaSelect
+            label="Ground"
+            value={view.ground.enabled ? 'on' : 'off'}
+            options={groundEnabledOptions}
+            onChange={(value) => setGround({ enabled: value === 'on' })}
+          />
+          <ParaSlider
+            label="Ground Height"
+            value={view.ground.height}
+            min={-25}
+            max={25}
+            step={0.5}
+            formatValue={(value) => value.toFixed(1)}
+            onChange={(value) => setGround({ height: value })}
+          />
+          <ParaSelect
+            label="Material"
+            value={view.ground.materialPresetId}
+            options={groundMaterialOptions}
+            onChange={(value) => setGround({ materialPresetId: value as GroundMaterialPresetId })}
+          />
+        </>
+      ),
+    },
+    {
       key: 'materials',
       label: 'Materials',
       renderBody: () => (
@@ -1996,12 +2031,22 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
 
           <details
             className="ViewSection ViewStyledSection"
+            data-view-toolbar-section="ground"
+            data-tab-active={resolvedViewToolbarActiveTab === 'ground' ? 'true' : 'false'}
+            open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'ground' : undefined}
+          >
+            <summary>Ground</summary>
+            {viewToolbarSections[7].renderBody()}
+          </details>
+
+          <details
+            className="ViewSection ViewStyledSection"
             data-view-toolbar-section="materials"
             data-tab-active={resolvedViewToolbarActiveTab === 'materials' ? 'true' : 'false'}
             open={isTabsPresentation ? resolvedViewToolbarActiveTab === 'materials' : undefined}
           >
             <summary>Materials</summary>
-            {viewToolbarSections[7].renderBody()}
+            {viewToolbarSections[8].renderBody()}
           </details>
           </div>
           </div>

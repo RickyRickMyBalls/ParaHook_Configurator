@@ -271,6 +271,11 @@ export interface ViewerApi {
     children: ReferenceLoadableItem[],
     visible: boolean,
   ) => string[]
+  handoffDirectPartBackedReferenceChildren: (
+    directPartSourceGroupId: string,
+    children: ReferenceLoadableItem[],
+    visible: boolean,
+  ) => string[]
   setOnReferenceTransformChange: (
     handler: ((referenceId: string, transform: ReferenceTransformOverride) => void) | null,
   ) => void

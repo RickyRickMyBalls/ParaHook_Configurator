@@ -25,6 +25,7 @@ Canonical tracking files:
 Canonical direction and docs-structure references:
 - `docs/Vision.md`
 - `docs/Human-Plans/roadmap/Vision-roadmap.md`
+- `docs/Human-Plans/Architecture/`
 - `docs/Doc-Index.md`
 - `docs/Agents/Implementation-Behavior.md`
 - `docs/Phase-Plans/00_Phase-Setup.md`
@@ -109,9 +110,51 @@ Before making product, UX, architecture, naming, ownership, or workflow-structur
 - prefer the vision over local convenience unless the user explicitly directs otherwise
 - preserve the long-range direction captured under `What Must Stay True`
 
+## Architecture Family Planning Rule
+
+The main planning home for product, workspace, and system families lives in:
+- `docs/Human-Plans/Architecture/`
+
+Use that area when:
+- reading or revising a family vision
+- creating or revising a family index
+- organizing wishlist items into generations or phases
+- creating standalone future execution docs
+- moving completed family work into shipped records
+- checking adjacent-family ownership boundaries
+
+Preferred family planning flow:
+1. Start with the family vision and capture the full desired direction without dropping wishlist items.
+2. Create or revise the family index so the wishlist is organized into explicit generations or phases instead of one flat idea list.
+3. When a family needs pre-start cleanup or a major widening boundary, use an explicit generation planning surface such as `Generation 0`, `Generation 2`, or another clearly named generation index.
+4. For each phase that is close enough to build, create one standalone future execution doc with clear scope, boundary rules, implementation direction, and acceptance read.
+5. Implement against the owning phase doc, then validate against the wishlist items and intended phase outcome.
+6. If the implemented phase does not fully achieve the intended wishlist items, create a new follow-on phase or sub-phase instead of silently checking the wishlist item off.
+
+Catalog-style family structure should usually look like:
+- `*-Vision.md`
+  - north-star and what must stay true
+- `*-Index.md`
+  - umbrella family index
+  - family structure
+  - wishlist organization into generations or phases
+- optional generation indexes such as `*-Gen0-Index.md`
+  - cleanup, prep, or widening lanes that should not be confused with the first main implementation phase
+- `Future/`
+  - standalone implementation-ready phase docs
+- `Shipped/`
+  - completed family records
+
+Important planning rules:
+- preserve wishlist items when reorganizing them into phases
+- prefer the family docs under `docs/Human-Plans/Architecture/` over scattered planning notes when a real family home already exists
+- use generations for major readiness or widening boundaries
+- use phases for the ordered implementation ladder inside a family or generation
+- keep prep-only work honest instead of presenting it as already-started implementation
+
 ## Phase Docs Rule
 
-The phase-system source of truth lives in:
+The repo-wide canonical phase-system source of truth lives in:
 - `docs/Phase-Plans/00_Phase-Setup.md`
 
 Use that file when:
@@ -120,6 +163,15 @@ Use that file when:
 - checking phase-plan lifecycle rules
 - checking checklist marker meanings
 
+The active architecture-family planning home lives in:
+- `docs/Human-Plans/Architecture/`
+
+Use the family docs there when:
+- the real planning home for a family already exists there
+- the user is shaping wishlist, vision, generations, or family-phase order
+- creating or revising family indexes, future docs, or shipped records
+- checking how one family should stay separated from neighboring architecture families
+
 Current phase-plan workspace:
 - `docs/Phase-Plans/Tasks/Future/` = planned, not started
 - `docs/Phase-Plans/Tasks/` = active
@@ -127,6 +179,8 @@ Current phase-plan workspace:
 - family docs such as `docs/Phase-Plans/14_DOC - Phase-Plans.md` hold prefix-level planning/history
 
 If phase-system instructions in another file conflict with `docs/Phase-Plans/00_Phase-Setup.md`, prefer `00_Phase-Setup.md`.
+
+If a narrower family doc under `docs/Human-Plans/Architecture/` exists and does not conflict with vision or canonical phase-system rules, prefer that family doc as the planning truth for that family.
 
 Active task implementation rule:
 - when Codex implements code-changing work from a task doc in `docs/Phase-Plans/Tasks/`, that work must receive a proper permanent `docs/CHANGELOG.md` entry in the same change set

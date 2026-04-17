@@ -34,6 +34,7 @@ import {
   selectReferenceWorkspaceBrowserTree,
   selectShouldSuppressBrowserGraphRuntimeOutput,
   type StagedImportMode,
+  type StagedImportCommitResult,
   type StagedImportScaleAlignment,
   type StagedImportUpAxis,
   type BrowserDraggableTarget,
@@ -103,6 +104,13 @@ type BrowserPanelControllerOutput = {
     importMenuRef: React.RefObject<HTMLDivElement | null>
     importMenuStyle: { left: string; top: string } | undefined
     stagedImportDraft: StagedImportDraftState | null
+    stagedImportCommitResult: StagedImportCommitResult | null
+    stagedImportPreviewSelection: { stagedFileId: string } | null
+    stagedImportColumnWidths: {
+      leftPercent: number
+      middlePercent: number
+      rightPercent: number
+    }
     stagedImportPreviewRows: StagedImportPreviewRowVm[]
     isBrowsingImportFiles: boolean
     onOpenImportFiles: () => void
@@ -112,6 +120,16 @@ type BrowserPanelControllerOutput = {
     onSetStagedImportFileScaleAlignment: (
       stagedFileId: string,
       scaleAlignment: StagedImportScaleAlignment,
+    ) => void
+    onSetStagedImportFileScaleMultiplier: (
+      stagedFileId: string,
+      scaleMultiplier: number,
+    ) => void
+    onLoadStagedImportPreview: (stagedFileId: string) => void
+    onStartStagedImportColumnResize: (
+      divider: 'left-middle' | 'middle-right',
+      event: ReactPointerEvent<HTMLButtonElement>,
+      dialogWidth: number,
     ) => void
     onSetStagedImportPutAcceptedInNewAssembly: (enabled: boolean) => void
     onCreateStagedImportPreviewAssembly: () => void
@@ -136,6 +154,63 @@ type BrowserPanelControllerOutput = {
     onBrowserBodyClick: (event: ReactMouseEvent<HTMLDivElement>) => void
     onActivateBrowserSurface: () => void
     closeBrowserOverlays: () => void
+  }
+}
+
+type StagedImportColumnWidths = {
+  leftPercent: number
+  middlePercent: number
+  rightPercent: number
+}
+
+const defaultStagedImportColumnWidths: StagedImportColumnWidths = {
+  leftPercent: 44,
+  middlePercent: 31,
+  rightPercent: 25,
+}
+
+const clampStagedImportColumnWidths = (
+  widths: StagedImportColumnWidths,
+  dialogWidth: number,
+) => {
+  const safeDialogWidth = Math.max(dialogWidth, 960)
+  const minLeft = (320 / safeDialogWidth) * 100
+  const minMiddle = (300 / safeDialogWidth) * 100
+  const minRight = (280 / safeDialogWidth) * 100
+
+  let leftPercent = widths.leftPercent
+  let middlePercent = widths.middlePercent
+  let rightPercent = widths.rightPercent
+
+  if (leftPercent < minLeft) {
+    const delta = minLeft - leftPercent
+    leftPercent += delta
+    middlePercent = Math.max(minMiddle, middlePercent - delta)
+  }
+
+  if (rightPercent < minRight) {
+    const delta = minRight - rightPercent
+    rightPercent += delta
+    middlePercent = Math.max(minMiddle, middlePercent - delta)
+  }
+
+  if (middlePercent < minMiddle) {
+    const deficit = minMiddle - middlePercent
+    middlePercent += deficit
+    if (leftPercent - deficit >= minLeft) {
+      leftPercent -= deficit
+    } else {
+      const leftDelta = Math.max(0, leftPercent - minLeft)
+      leftPercent -= leftDelta
+      rightPercent = Math.max(minRight, rightPercent - (deficit - leftDelta))
+    }
+  }
+
+  const total = leftPercent + middlePercent + rightPercent
+  return {
+    leftPercent: (leftPercent / total) * 100,
+    middlePercent: (middlePercent / total) * 100,
+    rightPercent: (rightPercent / total) * 100,
   }
 }
 
@@ -236,6 +311,9 @@ export function useBrowserPanelController(
   const setStagedImportFileScaleAlignment = useAppStore(
     (state) => state.setStagedImportFileScaleAlignment,
   )
+  const setStagedImportFileScaleMultiplier = useAppStore(
+    (state) => state.setStagedImportFileScaleMultiplier,
+  )
   const setStagedImportPutAcceptedInNewAssembly = useAppStore(
     (state) => state.setStagedImportPutAcceptedInNewAssembly,
   )
@@ -292,6 +370,14 @@ export function useBrowserPanelController(
   const [contextMenu, setContextMenu] = useState<BrowserRowContextMenuState | null>(null)
   const [importMenu, setImportMenu] = useState<BrowserImportMenuState | null>(null)
   const [isBrowsingImportFiles, setIsBrowsingImportFiles] = useState(false)
+  const [stagedImportCommitResult, setStagedImportCommitResult] =
+    useState<StagedImportCommitResult | null>(null)
+  const [stagedImportPreviewSelection, setStagedImportPreviewSelection] = useState<{
+    stagedFileId: string
+  } | null>(null)
+  const [stagedImportColumnWidths, setStagedImportColumnWidths] = useState(
+    defaultStagedImportColumnWidths,
+  )
   const [stagedImportPreviewDragState, setStagedImportPreviewDragState] =
     useState<BrowserContentDragSession | null>(null)
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
@@ -969,6 +1055,8 @@ export function useBrowserPanelController(
 
   const handleOpenImportFiles = useCallback(() => {
     setImportMenu(null)
+    setStagedImportCommitResult(null)
+    setStagedImportColumnWidths(defaultStagedImportColumnWidths)
     openStagedImportDraft(resolveImportLandingParent())
   }, [openStagedImportDraft, resolveImportLandingParent])
 
@@ -1026,6 +1114,7 @@ export function useBrowserPanelController(
       return
     }
 
+    setStagedImportCommitResult(null)
     setIsBrowsingImportFiles(true)
     void importSupportedReferenceFilesFromDisk()
       .then((files) => {
@@ -1087,6 +1176,77 @@ export function useBrowserPanelController(
     [resolveStagedDraftFile, setStagedImportFileScaleAlignment],
   )
 
+  const handleSetStagedImportFileScaleMultiplier = useCallback(
+    (stagedFileId: string, scaleMultiplier: number) => {
+      const stagedFile = resolveStagedDraftFile(stagedFileId)
+      if (stagedFile === null) {
+        return
+      }
+      setStagedImportFileScaleMultiplier(stagedFileId, scaleMultiplier)
+    },
+    [resolveStagedDraftFile, setStagedImportFileScaleMultiplier],
+  )
+
+  const handleLoadStagedImportPreview = useCallback(
+    (stagedFileId: string) => {
+      const stagedFile = resolveStagedDraftFile(stagedFileId)
+      if (stagedFile === null) {
+        return
+      }
+      setStagedImportPreviewSelection({ stagedFileId })
+    },
+    [resolveStagedDraftFile],
+  )
+
+  const handleStartStagedImportColumnResize = useCallback(
+    (
+      divider: 'left-middle' | 'middle-right',
+      event: ReactPointerEvent<HTMLButtonElement>,
+      dialogWidth: number,
+    ) => {
+      if (event.button !== 0) {
+        return
+      }
+
+      const safeDialogWidth = Math.max(dialogWidth, 960)
+      const startClientX = event.clientX
+      const startWidths = stagedImportColumnWidths
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const deltaPercent = ((moveEvent.clientX - startClientX) / safeDialogWidth) * 100
+        const nextWidths =
+          divider === 'left-middle'
+            ? clampStagedImportColumnWidths(
+                {
+                  leftPercent: startWidths.leftPercent + deltaPercent,
+                  middlePercent: startWidths.middlePercent - deltaPercent,
+                  rightPercent: startWidths.rightPercent,
+                },
+                safeDialogWidth,
+              )
+            : clampStagedImportColumnWidths(
+                {
+                  leftPercent: startWidths.leftPercent,
+                  middlePercent: startWidths.middlePercent + deltaPercent,
+                  rightPercent: startWidths.rightPercent - deltaPercent,
+                },
+                safeDialogWidth,
+              )
+        setStagedImportColumnWidths(nextWidths)
+      }
+
+      const handlePointerUp = () => {
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerup', handlePointerUp)
+      }
+
+      window.addEventListener('pointermove', handlePointerMove)
+      window.addEventListener('pointerup', handlePointerUp)
+      event.preventDefault()
+    },
+    [stagedImportColumnWidths],
+  )
+
   const handleSetStagedImportPutAcceptedInNewAssembly = useCallback(
     (enabled: boolean) => {
       if (stagedImportDraft === null) {
@@ -1112,18 +1272,42 @@ export function useBrowserPanelController(
     if (stagedImportDraft === null || stagedImportDraft.stagedFiles.length === 0) {
       return
     }
-    const committedRowId = commitStagedImportDraft()
-    if (committedRowId === null) {
+    const commitResult = commitStagedImportDraft()
+    if (commitResult === null) {
       return
     }
-    setLocalSelectedBrowserRowId(committedRowId)
-    closeStagedImportDraft()
+    setStagedImportCommitResult(commitResult.status === 'success' ? null : commitResult)
+    if (commitResult.anchorRowId !== null) {
+      setLocalSelectedBrowserRowId(commitResult.anchorRowId)
+    }
+    if (commitResult.status === 'success') {
+      setStagedImportCommitResult(null)
+      closeStagedImportDraft()
+    }
   }, [closeStagedImportDraft, commitStagedImportDraft, stagedImportDraft])
+
+  const handleCloseImportDialog = useCallback(() => {
+    setStagedImportCommitResult(null)
+    setStagedImportColumnWidths(defaultStagedImportColumnWidths)
+    closeStagedImportDraft()
+  }, [closeStagedImportDraft])
 
   useEffect(() => {
     if (stagedImportDraft === null) {
       stagedImportInspectionIdsRef.current.clear()
+      setStagedImportCommitResult(null)
+      setStagedImportPreviewSelection(null)
+      setStagedImportColumnWidths(defaultStagedImportColumnWidths)
       return
+    }
+
+    if (
+      stagedImportPreviewSelection !== null &&
+      !stagedImportDraft.stagedFiles.some(
+        (file) => file.stagedFileId === stagedImportPreviewSelection.stagedFileId,
+      )
+    ) {
+      setStagedImportPreviewSelection(null)
     }
 
     for (const file of stagedImportDraft.stagedFiles) {
@@ -1155,6 +1339,7 @@ export function useBrowserPanelController(
     failStagedImportFileStructureInspection,
     resolveStagedImportFileStructureInspection,
     stagedImportDraft,
+    stagedImportPreviewSelection,
   ])
 
   useEffect(() => {
@@ -2469,6 +2654,9 @@ export function useBrowserPanelController(
       importMenuRef,
       importMenuStyle,
       stagedImportDraft,
+      stagedImportCommitResult,
+      stagedImportPreviewSelection,
+      stagedImportColumnWidths,
       stagedImportPreviewRows,
       isBrowsingImportFiles,
       onOpenImportFiles: handleOpenImportFiles,
@@ -2476,6 +2664,9 @@ export function useBrowserPanelController(
       onSetStagedImportFileMode: handleSetStagedImportFileMode,
       onSetStagedImportFileUpAxis: handleSetStagedImportFileUpAxis,
       onSetStagedImportFileScaleAlignment: handleSetStagedImportFileScaleAlignment,
+      onSetStagedImportFileScaleMultiplier: handleSetStagedImportFileScaleMultiplier,
+      onLoadStagedImportPreview: handleLoadStagedImportPreview,
+      onStartStagedImportColumnResize: handleStartStagedImportColumnResize,
       onSetStagedImportPutAcceptedInNewAssembly: handleSetStagedImportPutAcceptedInNewAssembly,
       onCreateStagedImportPreviewAssembly: handleCreateStagedImportPreviewAssembly,
       onCreateStagedImportPreviewComponent: handleCreateStagedImportPreviewComponent,
@@ -2483,7 +2674,7 @@ export function useBrowserPanelController(
       onStagedImportPreviewRowPointerDown: handleStagedImportPreviewRowPointerDragStartCandidate,
       getStagedImportPreviewRowDragState,
       onCommitStagedImportDraft: handleCommitStagedImportDraft,
-      onCloseImportDialog: closeStagedImportDraft,
+      onCloseImportDialog: handleCloseImportDialog,
       onImportReferenceFile: handleImportReferenceFile,
     },
     bodyHandlers: {

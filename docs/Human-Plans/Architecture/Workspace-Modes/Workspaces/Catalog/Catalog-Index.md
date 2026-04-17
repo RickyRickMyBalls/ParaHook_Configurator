@@ -3,6 +3,10 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-04-16 17:10:00: Tightened the `Catalog` family read again so `Generation 0` now explicitly includes moving the preloaded reference models out of `Browser`, clarifying that `foothooks`, `shoes`, and `footpads` should stop appearing as default Browser-resident content during cleanup and should instead arrive later as optional add-in families the user can choose
+11. 2026-04-16 16:55:23: Reframed the `Catalog` family index so it now stays honest that the family has not started yet, adding the new `Catalog-Gen0-Index.md` planning surface for cleanup-and-prep work before the first real family phase, clarifying that `Catalog-1` through `Catalog-5` now read as the planned `Generation 1` ladder rather than the current state, and preserving `Catalog-Gen2-Index.md` as the later widening surface
+10. 2026-04-16 12:31:00: Expanded the early `Catalog` family read to include an `Imports` area for previously uploaded items already known to ParaHook, clarifying that this belongs in the early catalog baseline as a reuse surface while import intake itself still belongs to the separate import system, and adding a matching wishlist-tracking item under the earlier `Catalog-1` lane
+9. 2026-04-16 12:23:00: Updated the main `Catalog` family index now that explicit catalog generations exist, adding the new `Catalog-Gen2-Index.md` planning surface to the family structure and clarifying that the older `Catalog-1` through `Catalog-5` ladder remains useful as the earlier family or foundation lane while the newer `Generation 2` widening work has its own focused tracking surface
 8. 2026-04-16 00:08:43: Expanded the Catalog filter-system direction again by adding a higher-level `System` organizer above platform-specific filtering, documenting that Onewheel parts should first be grouped into `Platform`, `Wheel`, and later `Hardware`, and clarifying that wheel-side items such as motors and tires may use type-specific fitment metadata instead of always depending on platform compatibility tags
 7. 2026-04-15 23:57:42: Added the first explicit Onewheel-part filter section to the `Catalog` family index, documenting the structured filter direction for platform compatibility, part type, product name, and mount position, and locking the first filter groups around `ADV`, `XR`, `GT`, `Other`, plus `Footpads`, `Bumpers`, `Rails`, `Motors`, and the `Other` sub-sections `FootHolds`, `Shoes`, and `Screw & Nuts`
 6. 2026-04-15 23:46:59: Expanded the `## Wishlist Tracking` section so it now mirrors the full dedicated `Wish-Features/Catalog/Catalog.md` item list instead of only summarizing phase themes, mapping every current Catalog wishlist item into the `Catalog-1` through `Catalog-5` ladder so those wishes can be tracked against the phase where they are expected to land
@@ -22,6 +26,8 @@ Use it to answer:
 - how `Catalog` should differ from `Browser`, import, and viewer-only toggles
 - what the visible catalog surface should look like
 - what future standalone `Catalog` docs should branch into
+- where the current `Generation 0` planning surface lives
+- where the newer `Generation 2` planning surface lives
 
 ### Scope
 
@@ -48,6 +54,12 @@ Use this folder like this:
   - umbrella planning index
   - family summary
   - future routing surface
+- `Catalog-Gen0-Index.md`
+  - focused cleanup-and-prep surface for the current `Generation 0`
+  - useful for drift inventory, ownership cleanup, metadata prep, and locking the `Generation 1` start boundary
+- `Catalog-Gen2-Index.md`
+  - focused wishlist and lane-tracking surface for `Generation 2`
+  - useful for PubParts intake, linked-model intake, platform normalization, system organization, and pre-built board onboarding
 - `docs/Human-Plans/Wish-Features/Catalog/Catalog.md`
   - broader product-shape and follow-on wishlist surface
   - phase-mapping home for larger `Catalog` wishes
@@ -62,11 +74,19 @@ Use this folder like this:
 
 ParaHook should gain one real `Catalog` workspace where the user can browse reusable assets stored in the repo and load them intentionally.
 
+The family is still in `Generation 0` today because the real `Catalog` family has not started yet.
+
+The immediate `Generation 0` cleanup read is:
+- move the preloaded reference models out of `Browser`
+- stop starting the user with browser-resident `foothooks`, `shoes`, and `footpads`
+- let those reference families become later optional add-ins instead
+
 The first intended catalog families are:
 - foothooks
 - shoes
 - footpads
 - HDRIs
+- an `Imports` area for user-uploaded items already inside ParaHook
 - other later reusable reference families
 
 That workspace should:
@@ -74,6 +94,7 @@ That workspace should:
 - feel like a curated internal library
 - expose categories, previews, and details
 - make load/apply actions explicit
+- let the user find imported items they already uploaded so they can place another one after deleting it from the model
 - let the user keep the model visible by splitting the model viewport and turning the new non-primary pane into `Catalog`
 - let the user `Load Preview` into a separate preview viewport before commit
 - let the user choose `Add To Project` when the selected reference should become Browser/project truth
@@ -83,6 +104,13 @@ That workspace should:
   - later types use their own downstream owner seams
 
 It should feel like a real reusable-asset workspace, not a one-off file picker or hidden debug menu.
+
+Important current planning read:
+- this main index still works as the umbrella family home
+- the current prep and cleanup work belongs in `Catalog-Gen0-Index.md`
+- the current `Generation 0` prep should explicitly remove the old Browser-resident preloaded reference-model baseline
+- the older `Catalog-1` through `Catalog-5` ladder now reads as the planned `Generation 1` family or foundation lane, not the current state
+- the newer widening work that now belongs to explicit `Generation 2` should be tracked in `Catalog-Gen2-Index.md` instead of being forced into the older phase ladder
 
 ### Why This Doc Exists
 
@@ -102,6 +130,7 @@ Canonical ownership should stay split like this:
 
 - `Catalog`
   - browse repo-backed reusable assets
+  - surface previously imported items for reuse after intake
   - show categories, tags, previews, and item details
   - trigger explicit load/apply actions
 - `Browser`
@@ -115,6 +144,8 @@ Canonical ownership should stay split like this:
 
 Important rule:
 - do not let the catalog workspace become the hidden owner of loaded content or viewer state after the user has already chosen the asset
+- showing already-imported items in `Catalog` is acceptable as a reuse surface
+- but the original import intake flow should still remain import-system-owned
 
 ### Core Direction
 
@@ -124,6 +155,7 @@ Expected first-pass responsibilities:
 - open a visible catalog workspace
 - behave like a true workspace-mode target when a non-primary split pane changes surface kind
 - organize entries into useful asset families
+- show an `Imports` area for user-uploaded items that ParaHook already knows about
 - preview what an item is before load
 - show enough metadata to understand the item
 - let the user load/apply it explicitly
@@ -436,10 +468,13 @@ Important rule:
 
 ## Wishlist Tracking
 
+These wishlist mappings should be read as the planned `Generation 1` ladder after the `Generation 0` cleanup-and-prep work is complete.
+
 Use the family phases to organize the dedicated Catalog wishlist items like this:
 
 ### `Catalog-1`
   - [ ] `0. Lightweight Card Grid`
+  - [ ] `0A. Imports Area For Previously Uploaded Items`
   - [ ] `2. Separate Sections For Reference Families`
   - [ ] `3. Preview In A Separate Viewport`
   - [ ] `3A. No Auto-Loaded Previews`
@@ -451,6 +486,7 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
   #### - foundation target:
     - make `Catalog` a real workspace mode
     - lock the store-page card language
+    - add an `Imports` area for items already uploaded into ParaHook without moving import intake into `Catalog`
     - lock the preview-versus-commit contract
     - lock the item-page responsibilities
 ### `Catalog-2`
@@ -461,7 +497,7 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
   - [ ] `6. Preview-Friendly Metadata`
   - [ ] `6A. Item Page As The Main Decision Surface`
   #### - implementation target:
-    - move the preloaded `foothooks`, `shoes`, and `footpads` into real curated catalog families
+    - onboard `foothooks`, `shoes`, and `footpads` as later optional curated catalog families after `Generation 0` removes the old Browser preload baseline
     - make `Add To Project` create explicit Browser/project content
     - land the first real item pages and preview behavior for those reference families
 ### `Catalog-3`
@@ -516,12 +552,12 @@ Current source doc:
 
 ### Purpose
 
-Onboard the first geometry/reference-style catalog families such as hooks, shoes, footpads, and similar stored parts through honest downstream project/content load behavior.
+Onboard the first geometry/reference-style catalog families such as hooks, shoes, footpads, and similar stored parts through honest downstream project/content load behavior after the old Browser-resident preload behavior is gone.
 
 ### Owns
 
 - the first real curated reference asset families in the catalog
-- moving the current preloaded `foothooks`, `shoes`, and `footpads` into those real curated families
+- onboarding `foothooks`, `shoes`, and `footpads` as later optional curated families instead of default Browser-resident content
 - explicit asset metadata needed to browse and distinguish those families
 - honest preview-plus-commit behavior where `Load Preview` is temporary and `Add To Project` makes the chosen asset become explicit project/reference content
 - the rule that loaded reference items should become visible through normal downstream content systems instead of staying catalog-local
@@ -594,8 +630,12 @@ Decide how loaded catalog items should be remembered or referenced across projec
 ### Summary
 
 The umbrella direction is now:
+- the `Catalog` family is still in `Generation 0` cleanup and prep today because the first real family phase has not started yet
+- `Catalog-Gen0-Index.md` is the focused planning surface for that prep-only work
+- `Generation 0` should move the preloaded reference models out of `Browser` so the user no longer starts with shoes, footpads, and foothooks as implied default content
 - ParaHook should have one real `Catalog` workspace for repo-backed reusable assets
-- the first named families should include hooks, shoes, footpads, HDRIs, and later similar reusable stored assets
+- the early baseline may also include an `Imports` area for user-uploaded items already known to ParaHook
+- the first named families should still include hooks, shoes, footpads, HDRIs, and later similar reusable stored assets, but those reference families should arrive later as explicit optional add-ins
 - the surface should support categories, previews, details, and explicit load/apply actions
 - the catalog should stay distinct from Browser/project truth, user import, and viewer-owned environment state even when those downstream systems consume catalog items after the user chooses them
-- the first actual implementation lane should start with workspace foundation plus the catalog-item contract, so later asset-family phases can grow through new focused seams instead of widening existing files
+- the first actual implementation lane should still start with workspace foundation plus the catalog-item contract, but that now reads as the beginning of `Generation 1` after the `Generation 0` cleanup-and-prep work is complete

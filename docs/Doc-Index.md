@@ -4,6 +4,10 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+252. 2026-04-16 21:05:38: Added `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-6 - GLB Scene Metadata, Materials, And Content Fidelity.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Import/Import-Vision.md` plus `Import-Index.md` so `Generation 1` now reads as STEP-first through `Import-5` and then `.glb` enrichment through `Import-6`, and updated the `Import` subtree listing so the new GLB-specific future lane is discoverable beside the existing STEP and staged-import docs
+251. 2026-04-16 20:12:39: Added `docs/Human-Plans/Architecture/Import/Import-Vision.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Import/Import-Index.md`, `docs/Human-Plans/Architecture/Import/Import-3-Vision.md`, and `docs/Human-Plans/Architecture/Import/B-rep/B-rep-Vision.md` so the import family now reads through one master generational vision, renamed the live `Import-5` future doc to the canonical non-`OLD` filename, and updated the `Import` subtree listing so the current future, shipped, and companion B-rep import docs are discoverable from this map
+250. 2026-04-16 19:08:18: Added `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md` so the environment family now uses a two-phase ladder with one larger standalone `Environment-1` execution doc, and updated the `View-Toolbar` subtree listing so the new environment future lane is discoverable beside the environment umbrella index
+249. 2026-04-16 18:43:12: Added `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md` so the umbrella family now points at the new `Environment` subfamily, and updated the `View-Toolbar` subtree listing so visible lighting and environment planning is discoverable beside `Gizmo`, `Fly-Mode`, and the main future phase ladder
 248. 2026-04-15 23:25:36: Added `docs/Human-Plans/Wish-Features/Catalog/Catalog.md` to the docs map, added a direct Catalog pointer from `docs/Human-Plans/Wish-Features/WISHLIST.md`, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md` plus `Catalog-Index.md` so they now capture the preloaded `foothooks` / `shoes` / `footpads` migration direction and the `Load Preview` versus `Add To Project` workflow, and extended the `Wish-Features` subtree so the new Catalog branch is discoverable beside `Collaberate`
 247. 2026-04-15 20:24:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md` so the new family now hands forward into an explicit foundation/setup phase, and updated the `Catalog` subtree listing so the first clean workspace-onboarding lane is discoverable beside the new vision and family index
 246. 2026-04-15 20:24:35: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the workspace umbrella now lists `Catalog` as a real workspace-global surface with its own planning home, and updated the `Workspace-Modes/Workspaces` subtree listing so the new catalog family is discoverable beside the existing Browser, Export, and Model-Viewport homes
@@ -784,11 +788,33 @@ Rule notes:
             - `Shipped/Camera_Controls_Phase Camera-4 - Camera Console Commands.md`
 #### -------Edit-History
             - `Edit-History-Index.md`
+#### -------Import
+            - `Import/Import-Vision.md`
+            - `Import/Import-Index.md`
+            - `Import/Import-3-Vision.md`
+        ##### ------------B-rep
+            - `Import/B-rep/B-rep-Vision.md`
+        ##### ------------Future
+            - `Import/Future/Import_Phase Import-2 - Batch Import Parity For Supported Reference Types.md`
+            - `Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`
+            - `Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`
+            - `Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`
+            - `Import/Future/Import_Phase Import-4 Phase 6 - Object Preview Viewport And Resizable Three-Column Layout.md`
+            - `Import/Future/Import 5 - Phases.md`
+            - `Import/Future/Import_Phase Import-5 - STEP Import Metadata, Units, And Loader Fidelity.md`
+            - `Import/Future/Import_Phase Import-6 - GLB Scene Metadata, Materials, And Content Fidelity.md`
+        ##### ------------Shipped
+            - `Import/Shipped/Import_Phase Import-1 - Multi-OBJ Batch Import.md`
+            - `Import/Shipped/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`
 #### -------View-Toolbar
             - `ThreeViewier.md`
             - `View-Toolbar-Index.md`
         ##### ------------Gizmo
             - `Gizmo/Gizmo-Vision.md`
+        ##### ------------Environment
+            - `Environment/Environment-Index.md`
+        ###### -------------Future
+            - `Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
         ##### ------------Fly-Mode
             - `Fly-Mode/Fly-Mode-Vision.md`
             - `Fly-Mode/Fly-Mode-Gen2-Index.md`

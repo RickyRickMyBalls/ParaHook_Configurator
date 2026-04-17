@@ -3,6 +3,9 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-16: Updated the relationship pointer to the master `Import-Vision.md` again so this staged-import-window north star now reads as part of the broader `Generation 0` import foundation after the family generation collapse
+5. 2026-04-16: Added a relationship pointer to the new `Import-Vision.md` master doc so this staged-import-window north star now reads as the `Generation 1` sub-vision inside the broader import family instead of as a stand-alone umbrella
+4. 2026-04-16: Updated the `Import-3` relationship pointer to the shipped phase record after the staged import-window lane fully landed, so this vision doc now points at the completed execution history instead of the removed `Future/` path
 3. 2026-04-16: Expanded the `Import-3` vision so the staged import dialog now explicitly includes a preview-style Browser organization surface, documenting that users should be able to organize staged import objects through rows plus drag-and-drop into components or sub-assemblies before `Add To Project` commits the reviewed structure into real project content
 2. 2026-04-16: Locked the staged import menu label to `Import Files...`, replacing the earlier open naming recommendation so the `Import-3` vision now treats that Browser `+` menu entry as the chosen working label instead of leaving `Import Dialog` versus `Import Files...` undecided
 1. 2026-04-16: Added this dedicated `Import-3` vision doc to capture the staged import-window north star, documenting that the Browser `+` import flow should gain one new dialog-entry option, that imported `.step`, `.stl`, `.obj`, and `.glb` files should first land in a floating import window for structure and orientation review, and that users should explicitly choose browse intake, import mode, up-axis, scale or units alignment, and optional `New Assembly` placement before `Add To Project`
@@ -33,13 +36,17 @@ Do not use it for:
   - deeper product and architecture north star
   - useful for checking that import remains a real workspace capability instead of a one-off product-specific shortcut
 
+- `docs/Human-Plans/Architecture/Import/Import-Vision.md`
+  - master import-family north star
+  - useful for how this staged-import-window direction fits as one shipped reviewed-import baseline inside the broader `Generation 0` import foundation before the later `.step`-specific fidelity generation widens the family
+
 - `docs/Human-Plans/Architecture/Import/Import-Index.md`
   - umbrella import-family direction
   - useful for the current family boundaries and how `Import-3` fits after `Import-2`
 
-- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`
-  - the phased planning surface for `Import-3`
-  - useful for the wishlist ladder and later implementation slicing
+- `docs/Human-Plans/Architecture/Import/Shipped/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`
+  - the shipped phase record for `Import-3`
+  - useful for the completed wishlist ladder, implementation history, and final verification shape
 
 ## Doc Body
 

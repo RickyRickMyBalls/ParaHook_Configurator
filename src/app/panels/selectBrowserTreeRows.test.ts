@@ -106,7 +106,7 @@ const emptyReferenceWorkspaceTree: ReferenceWorkspaceBrowserTreeVm = {
     {
       rowId: 'reference-category-row:shoes',
       categoryId: 'shoes',
-      label: 'Shoes',
+      label: 'Wearable',
       isExpanded: true,
       itemCount: 0,
       visibleItemCount: 0,
@@ -1548,7 +1548,7 @@ describe('selectBrowserTreeRows', () => {
         referenceCategoryContentRow({
           rowId: 'reference-category-row:shoes',
           categoryId: 'shoes',
-          label: 'Shoes',
+          label: 'Wearable',
           itemCount: 1,
           isVisible: true,
           emptyLabel: 'No loadable references yet.',
@@ -1756,7 +1756,7 @@ describe('selectBrowserTreeRows', () => {
         referenceCategoryContentRow({
           rowId: 'reference-category-row:shoes',
           categoryId: 'shoes',
-          label: 'Shoes',
+          label: 'Wearable',
           itemCount: 2,
           isVisible: true,
           emptyLabel: 'No loadable references yet.',

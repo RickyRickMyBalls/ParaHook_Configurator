@@ -167,12 +167,12 @@ describe('ConsoleBar', () => {
     useConsoleStore.setState({
       consolePromptSession: {
         kind: 'reference-transform.axis',
-        breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform', 'Move', 'Move X'],
-        label: 'Select > References > Shoes > Shoe 1 > Transform > Move > Move X',
+        breadcrumb: ['Select', 'References', 'Wearable', 'Shoe 1', 'Transform', 'Move', 'Move X'],
+        label: 'Select > References > Wearable > Shoe 1 > Transform > Move > Move X',
         prefill: '12',
         returnSession: {
           scopeId: 'referenceTransformRoot',
-          breadcrumb: ['Select', 'References', 'Shoes', 'Shoe 1', 'Transform'],
+          breadcrumb: ['Select', 'References', 'Wearable', 'Shoe 1', 'Transform'],
           selections: {
             graphDocumentId: null,
             selectedNodeId: null,

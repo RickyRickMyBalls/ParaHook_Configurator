@@ -767,6 +767,150 @@ describe('Viewer baseline replacement', () => {
     expect(soleNames).not.toContain('Upper')
   })
 
+  it('hands off direct split children from one loaded group source and keeps the shared asset load to one parse across siblings', async () => {
+    const { BoxGeometry, Group, Mesh, MeshStandardMaterial } = await import('three')
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const rawObject = new Group()
+    rawObject.name = 'Shared Root'
+    const upperMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    upperMesh.name = 'Upper'
+    const soleGroup = new Group()
+    soleGroup.name = 'Sole Group'
+    const soleMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    soleMesh.name = 'Sole'
+    soleGroup.add(soleMesh)
+    rawObject.add(upperMesh)
+    rawObject.add(soleGroup)
+
+    const loadReferenceAssetObject = vi.fn(async () => rawObject)
+    ;(viewer as unknown as { loadReferenceAssetObject: typeof loadReferenceAssetObject }).loadReferenceAssetObject =
+      loadReferenceAssetObject
+
+    await (viewer as unknown as {
+      ensureReferenceLoaded: (reference: {
+        referenceId: string
+        assetPath: string
+        fileType: 'glb'
+        directPartSourceKind: 'split-import-child'
+        directPartSourceGroupId: string
+        sourcePartKey: string
+        sourceMeshIndex: number
+      }) => Promise<void>
+    }).ensureReferenceLoaded({
+      referenceId: 'split-child-a',
+      assetPath: 'blob:shared-glb',
+      fileType: 'glb',
+      directPartSourceKind: 'split-import-child',
+      directPartSourceGroupId: 'direct-part-source-group:1',
+      sourcePartKey: 'reference-part:shared:0',
+      sourceMeshIndex: 0,
+    })
+    ;(viewer as unknown as { setReferenceVisible: (referenceId: string, visible: boolean) => void }).setReferenceVisible(
+      'split-child-a',
+      true,
+    )
+
+    const handedOffReferenceIds = (
+      viewer as unknown as {
+        handoffDirectPartBackedReferenceChildren: (
+          directPartSourceGroupId: string,
+          children: Array<{
+            referenceId: string
+            assetPath: string
+            fileType: 'glb'
+            directPartSourceKind: 'split-import-child'
+            directPartSourceGroupId: string
+            sourcePartKey: string
+            sourceMeshIndex: number
+          }>,
+          visible: boolean,
+        ) => string[]
+      }
+    ).handoffDirectPartBackedReferenceChildren(
+      'direct-part-source-group:1',
+      [
+        {
+          referenceId: 'split-child-b',
+          assetPath: 'blob:shared-glb',
+          fileType: 'glb',
+          directPartSourceKind: 'split-import-child',
+          directPartSourceGroupId: 'direct-part-source-group:1',
+          sourcePartKey: 'reference-part:shared:1',
+          sourceMeshIndex: 1,
+        },
+        {
+          referenceId: 'split-child-c',
+          assetPath: 'blob:shared-glb',
+          fileType: 'glb',
+          directPartSourceKind: 'split-import-child',
+          directPartSourceGroupId: 'direct-part-source-group:1',
+          sourcePartKey: 'reference-part:shared:0',
+          sourceMeshIndex: 0,
+        },
+      ],
+      true,
+    )
+
+    expect(handedOffReferenceIds).toEqual(['split-child-b', 'split-child-c'])
+    expect(loadReferenceAssetObject).toHaveBeenCalledTimes(1)
+    expect(
+      (viewer as unknown as { getReferencePartDescriptors: (referenceId: string) => unknown[] }).getReferencePartDescriptors(
+        'split-child-b',
+      ),
+    ).toEqual([])
+    expect(
+      (viewer as unknown as { getReferencePartDescriptors: (referenceId: string) => unknown[] }).getReferencePartDescriptors(
+        'split-child-c',
+      ),
+    ).toEqual([])
+
+    const splitChildBObject = (viewer as unknown as {
+      referenceObjects: Map<string, { visible: boolean; traverse: (callback: (object: { name: string }) => void) => void }>
+    }).referenceObjects.get('split-child-b')
+    const splitChildCObject = (viewer as unknown as {
+      referenceObjects: Map<string, { visible: boolean; traverse: (callback: (object: { name: string }) => void) => void }>
+    }).referenceObjects.get('split-child-c')
+    expect(splitChildBObject?.visible).toBe(true)
+    expect(splitChildCObject?.visible).toBe(true)
+    expect(splitChildBObject).toBeDefined()
+    expect(splitChildCObject).toBeDefined()
+    expect(splitChildBObject).not.toBe(splitChildCObject)
+
+    const splitChildBNames: string[] = []
+    splitChildBObject?.traverse((object) => {
+      if (object.name.length > 0) {
+        splitChildBNames.push(object.name)
+      }
+    })
+    expect(splitChildBNames).toContain('Sole')
+    expect(splitChildBNames).not.toContain('Upper')
+
+    const splitChildCNames: string[] = []
+    splitChildCObject?.traverse((object) => {
+      if (object.name.length > 0) {
+        splitChildCNames.push(object.name)
+      }
+    })
+    expect(splitChildCNames).toContain('Upper')
+    expect(splitChildCNames).not.toContain('Sole')
+  })
+
   it('fails exploded reference loads when the stored source mesh index cannot be resolved', async () => {
     const { BoxGeometry, Group, Mesh, MeshStandardMaterial } = await import('three')
     const { Viewer } = await import('./Viewer')
@@ -814,6 +958,126 @@ describe('Viewer baseline replacement', () => {
         sourceMeshIndex: 3,
       }),
     ).rejects.toThrow('Could not resolve exploded source mesh 3.')
+  })
+
+  it('loads direct part-backed child references without exploded provenance through the split-import load contract', async () => {
+    const { BoxGeometry, Group, Mesh, MeshStandardMaterial } = await import('three')
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const rawObject = new Group()
+    rawObject.name = 'Shared Root'
+    const upperMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    upperMesh.name = 'Upper'
+    const soleGroup = new Group()
+    soleGroup.name = 'Sole Group'
+    const soleMesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial())
+    soleMesh.name = 'Sole'
+    soleGroup.add(soleMesh)
+    rawObject.add(upperMesh)
+    rawObject.add(soleGroup)
+
+    const loadReferenceAssetObject = vi.fn(async () => rawObject)
+    ;(viewer as unknown as { loadReferenceAssetObject: typeof loadReferenceAssetObject }).loadReferenceAssetObject =
+      loadReferenceAssetObject
+
+    await (viewer as unknown as {
+      ensureReferenceLoaded: (reference: {
+        referenceId: string
+        assetPath: string
+        fileType: 'glb'
+        directPartSourceKind: 'split-import-child'
+        sourcePartKey: string
+        sourceMeshIndex: number
+      }) => Promise<void>
+    }).ensureReferenceLoaded({
+      referenceId: 'split-child',
+      assetPath: 'blob:shared-glb',
+      fileType: 'glb',
+      directPartSourceKind: 'split-import-child',
+      sourcePartKey: 'reference-part:shared:1',
+      sourceMeshIndex: 1,
+    })
+
+    expect(loadReferenceAssetObject).toHaveBeenCalledTimes(1)
+    expect(
+      (viewer as unknown as { getReferencePartDescriptors: (referenceId: string) => unknown[] }).getReferencePartDescriptors(
+        'split-child',
+      ),
+    ).toEqual([])
+
+    const loadedPivot = (viewer as unknown as {
+      referenceObjects: Map<string, { traverse: (callback: (object: { name: string }) => void) => void }>
+    }).referenceObjects.get('split-child')
+    expect(loadedPivot).toBeDefined()
+
+    const meshNames: string[] = []
+    loadedPivot?.traverse((object) => {
+      if (object.name.length > 0) {
+        meshNames.push(object.name)
+      }
+    })
+
+    expect(meshNames).toContain('Sole')
+    expect(meshNames).not.toContain('Upper')
+  })
+
+  it('still rejects part-backed child fields without direct or exploded provenance', async () => {
+    const { Viewer } = await import('./Viewer')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const loadReferenceAssetObject = vi.fn(async () => {
+      throw new Error('should not attempt asset load for invalid provenance')
+    })
+    ;(viewer as unknown as { loadReferenceAssetObject: typeof loadReferenceAssetObject }).loadReferenceAssetObject =
+      loadReferenceAssetObject
+
+    await expect(
+      (viewer as unknown as {
+        ensureReferenceLoaded: (reference: {
+          referenceId: string
+          assetPath: string
+          fileType: 'glb'
+          sourcePartKey: string
+          sourceMeshIndex: number
+        }) => Promise<void>
+      }).ensureReferenceLoaded({
+        referenceId: 'split-child',
+        assetPath: 'blob:shared-glb',
+        fileType: 'glb',
+        sourcePartKey: 'reference-part:shared:0',
+        sourceMeshIndex: 0,
+      }),
+    ).rejects.toThrow('Exploded reference "split-child" is missing valid source provenance.')
+    expect(loadReferenceAssetObject).not.toHaveBeenCalled()
   })
 
   it('starts a temporary fly session on RMB, applies look deltas, moves while keys are held, and suppresses the release context menu', async () => {
@@ -1339,6 +1603,132 @@ describe('Viewer baseline replacement', () => {
       backgroundOpacity: 0,
       labelSize: 'large',
     })
+  })
+
+  it('applies the retuned default environment baseline through the existing runtime seams', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    expect(DEFAULT_VIEW_SETTINGS.exposure).toBe(1.15)
+    expect(DEFAULT_VIEW_SETTINGS.lighting.lights.map((light) => light.id)).toEqual([
+      'key',
+      'fill',
+      'rim',
+    ])
+    expect(DEFAULT_VIEW_SETTINGS.lighting.lights[0]).toMatchObject({
+      color: '#fff2e6',
+      intensity: 1.85,
+      position: { x: 11, y: 13, z: 8 },
+      target: { x: 0, y: 0.5, z: 0 },
+    })
+    expect(DEFAULT_VIEW_SETTINGS.lighting.lights[1]).toMatchObject({
+      color: '#eef3ff',
+      intensity: 0.95,
+    })
+    expect(DEFAULT_VIEW_SETTINGS.lighting.lights[2]).toMatchObject({
+      intensity: 0.42,
+      position: { x: -11, y: 7, z: -9 },
+      target: { x: 0, y: 0.75, z: 0 },
+    })
+
+    const runtime = viewer as unknown as {
+      renderer: { toneMappingExposure: number }
+      scene: { background: { getHexString: () => string } | null }
+      lightsById: Map<string, { intensity: number }>
+      minorGridHelper: { material: { opacity: number } }
+      majorGridHelper: { material: { opacity: number } }
+      doubleMajorGridHelper: { material: { opacity: number } }
+    }
+
+    expect(runtime.renderer.toneMappingExposure).toBe(DEFAULT_VIEW_SETTINGS.exposure)
+    expect(runtime.scene.background?.getHexString()).toBe('0b0b0f')
+    expect([...runtime.lightsById.keys()]).toEqual(['key', 'fill', 'rim'])
+    expect(runtime.lightsById.get('rim')?.intensity).toBe(0.42)
+    expect(runtime.minorGridHelper.material.opacity).toBe(0.1)
+    expect(runtime.majorGridHelper.material.opacity).toBe(0.3)
+    expect(runtime.doubleMajorGridHelper.material.opacity).toBe(1)
+  })
+
+  it('creates a hidden ground plane by default and applies ground visibility, height, and material through the shared view seam', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      groundPlane: {
+        visible: boolean
+        position: { y: number }
+        castShadow: boolean
+        receiveShadow: boolean
+        material: {
+          color: { getHexString: () => string }
+          roughness: number
+          metalness: number
+        }
+      }
+      minorGridHelper: { material: { opacity: number } }
+      scene: { background: { getHexString: () => string } | null }
+    }
+
+    expect(DEFAULT_VIEW_SETTINGS.ground).toEqual({
+      enabled: false,
+      height: 0,
+      materialPresetId: 'matte_mid',
+    })
+    expect(runtime.groundPlane.visible).toBe(false)
+    expect(runtime.groundPlane.position.y).toBe(0)
+    expect(runtime.groundPlane.castShadow).toBe(false)
+    expect(runtime.groundPlane.receiveShadow).toBe(true)
+    expect(runtime.groundPlane.material.color.getHexString()).toBe('4c5562')
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      ground: {
+        enabled: true,
+        height: 4.5,
+        materialPresetId: 'glossy_studio',
+      },
+    })
+
+    expect(runtime.groundPlane.visible).toBe(true)
+    expect(runtime.groundPlane.position.y).toBe(4.5)
+    expect(runtime.groundPlane.castShadow).toBe(false)
+    expect(runtime.groundPlane.receiveShadow).toBe(true)
+    expect(runtime.groundPlane.material.color.getHexString()).toBe('777f8d')
+    expect(runtime.groundPlane.material.roughness).toBe(0.26)
+    expect(runtime.groundPlane.material.metalness).toBe(0.04)
+    expect(runtime.minorGridHelper.material.opacity).toBe(0.1)
+    expect(runtime.scene.background?.getHexString()).toBe('0b0b0f')
   })
 
   it('uses an explicit base fly speed value and keeps boost multiplicative on top of it', async () => {

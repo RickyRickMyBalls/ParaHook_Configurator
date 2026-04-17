@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+31. 2026-04-16 18:43:12: Added `Environment/Environment-Index.md` and refreshed this umbrella family so `View-Toolbar` now points at a dedicated `Environment` subfamily home for visible lighting, scene-atmosphere, and environment-preset planning while keeping HDRI asset browsing with `Catalog` and deeper runtime ownership outside the toolbar family
 30. 2026-04-15 11:51:13: Marked `View-Toolbar 7` complete again in this umbrella family after the shipped `Phase 7` regrouping pass added one collapsible lower `Projection & Framing` subsection to the `Camera` section, keeping the clip controls above it while preserving the existing command seams
 29. 2026-04-15 11:39:24: Prepped `View-Toolbar 7 / Phase 7` for implementation by grounding the regrouping pass in the current flat `CameraToolbar` stack, the existing toolbar-local nested-`details` height-sync seam, and the likely `viewport-overlay.css` styling touchpoints so the next slice can land as one small collapsible-subsection implementation
 28. 2026-04-15 11:27:04: Reopened `View-Toolbar 7` in this umbrella family and added a new `Phase 7` follow-on so the current `Camera` section can be regrouped more clearly, with the projection and framing actions moving into their own lower subsection beneath the clip controls without widening into broader camera-surface changes
@@ -115,6 +116,9 @@ Use this folder like this:
 - `Gizmo/`
   - stable gizmo direction docs
   - `Gizmo-Vision.md`
+- `Environment/`
+  - environment and lighting planning docs
+  - `Environment-Index.md`
 - `Fly-Mode/`
   - forward-only fly-mode UI planning docs
   - `Fly-Mode-Vision.md`
@@ -162,6 +166,9 @@ Canonical ownership should stay split like this:
 - `Gizmo` planning
   - `Gizmo/Gizmo-Vision.md`
   - transform-manipulator quality bar plus the split between transform handles and view helpers
+- `Environment` planning
+  - `Environment/Environment-Index.md`
+  - visible lighting, atmosphere, and environment-preset direction for the `View` toolbar
 - `Fly-Mode` planning
   - `Fly-Mode/Fly-Mode-Vision.md`
   - `Fly-Mode/Fly-Mode-Gen2-Index.md`

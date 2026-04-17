@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-16 12:14:00: Expanded the `Generation 2` wishlist tracking again so external-link intake now distinguishes Dropbox shared-folder links from ZIP-file links, adding explicit tracking items for inspect-first folder intake, staged ZIP inspection, supported-versus-unsupported file classification, and user choice over which supported files to import
 1. 2026-04-16 11:55:00: Added this dedicated `Catalog-Gen2-Index.md` planning surface so the newer `Generation 2` catalog direction has one focused home for wishlist tracking around PubParts intake, linked `3D` model entries, Onewheel platform normalization, system-level part organization, and pre-built board onboarding before those lanes split into narrower implementation phases
 
 ### Purpose
@@ -94,55 +95,60 @@ Use the `Generation 2` lanes to organize the current wishlist like this:
 ### `Catalog-Gen2-2` - Linked Models And Archive Handoff
   - [ ] `G2-6. Linked 3D Model Entries`
   - [ ] `G2-7. Linked Archive URL Metadata`
-  - [ ] `G2-8. User-Triggered Archive Download`
-  - [ ] `G2-9. Archive Extraction Handoff`
-  - [ ] `G2-10. Import-Only-When-Supported`
+  - [ ] `G2-8. Dropbox Shared Folder Intake`
+  - [ ] `G2-9. Dropbox ZIP Intake`
+  - [ ] `G2-10. User-Triggered Archive Download`
+  - [ ] `G2-11. Archive Extraction Handoff`
+  - [ ] `G2-12. Supported Versus Unsupported File Classification`
+  - [ ] `G2-13. Import-Only-When-Supported`
+  - [ ] `G2-14. User Choice Of Which Supported Files To Import`
   #### - lane target:
     - allow item entries whose source is a link instead of only a repo-local asset path
     - support later Dropbox ZIP style handoff honestly
+    - distinguish inspect-first shared-folder intake from staged ZIP intake
     - keep `open source`, `download`, `import`, and `add to project` as distinct actions
 
 ### `Catalog-Gen2-3` - Platform And Fitment Normalization
-  - [ ] `G2-11. Canonical Platform Families`
-  - [ ] `G2-12. Floatwheel To ADV Mapping`
-  - [ ] `G2-13. GT Family Versus GTS Fitment Rules`
-  - [ ] `G2-14. XR Classic As Its Own Platform`
-  - [ ] `G2-15. Sub-Platform Tags`
-  - [ ] `G2-16. Cross-Platform Compatibility Tags`
-  - [ ] `G2-17. Narrow Component Fitment Notes`
+  - [ ] `G2-15. Canonical Platform Families`
+  - [ ] `G2-16. Floatwheel To ADV Mapping`
+  - [ ] `G2-17. GT Family Versus GTS Fitment Rules`
+  - [ ] `G2-18. XR Classic As Its Own Platform`
+  - [ ] `G2-19. Sub-Platform Tags`
+  - [ ] `G2-20. Cross-Platform Compatibility Tags`
+  - [ ] `G2-21. Narrow Component Fitment Notes`
   #### - lane target:
     - normalize platform truth for `ADV`, `GT`, `Pint`, `XR`, and `XR Classic`
     - keep `GT` as the broad family while allowing narrower `GTS`-specific fitment where needed
     - let one part be compatible with more than one platform family when that is actually true
 
 ### `Catalog-Gen2-4` - System-Level Part Organization
-  - [ ] `G2-18. Platform Versus Wheel Organizer`
-  - [ ] `G2-19. Platform-Owned Part Types`
-  - [ ] `G2-20. Wheel-Owned Part Types`
-  - [ ] `G2-21. Later Power Organizer`
-  - [ ] `G2-22. Later Fasteners Organizer`
+  - [ ] `G2-22. Platform Versus Wheel Organizer`
+  - [ ] `G2-23. Platform-Owned Part Types`
+  - [ ] `G2-24. Wheel-Owned Part Types`
+  - [ ] `G2-25. Later Power Organizer`
+  - [ ] `G2-26. Later Fasteners Organizer`
   #### - lane target:
     - organize parts by real fitment domain instead of flattening everything into one platform bucket
     - keep `motors` and `tires` out of fake single-platform ownership when they really cross board families
     - leave room for later `Power` and `Fasteners` growth without forcing them into the wrong lane
 
 ### `Catalog-Gen2-5` - Pre-Built Onewheel Boards
-  - [ ] `G2-23. Pre-Built Board Entries`
-  - [ ] `G2-24. ADV Starting Board`
-  - [ ] `G2-25. GT Starting Board`
-  - [ ] `G2-26. Pint Starting Board`
-  - [ ] `G2-27. XR Starting Board`
-  - [ ] `G2-28. XR Classic Starting Board`
-  - [ ] `G2-29. Load Into Model As Starting Configuration`
+  - [ ] `G2-27. Pre-Built Board Entries`
+  - [ ] `G2-28. ADV Starting Board`
+  - [ ] `G2-29. GT Starting Board`
+  - [ ] `G2-30. Pint Starting Board`
+  - [ ] `G2-31. XR Starting Board`
+  - [ ] `G2-32. XR Classic Starting Board`
+  - [ ] `G2-33. Load Into Model As Starting Configuration`
   #### - lane target:
     - let the catalog carry full starting boards in addition to loose parts
     - keep those entries honest as starting assemblies, not only reference parts
 
 ### `Catalog-Gen2-6` - Metadata Groundwork For Later Builder And Compatibility
-  - [ ] `G2-30. Part-To-Part Allowed Metadata`
-  - [ ] `G2-31. Builder-Slot-Friendly Item Fields`
-  - [ ] `G2-32. Sub-Assembly Metadata`
-  - [ ] `G2-33. Rear Box Supporting-Part Metadata`
+  - [ ] `G2-34. Part-To-Part Allowed Metadata`
+  - [ ] `G2-35. Builder-Slot-Friendly Item Fields`
+  - [ ] `G2-36. Sub-Assembly Metadata`
+  - [ ] `G2-37. Rear Box Supporting-Part Metadata`
   #### - lane target:
     - lay the metadata groundwork that later `Generation 3` builder and compatibility work will depend on
     - stop at metadata and curation truth instead of trying to ship the whole checker here
@@ -178,8 +184,12 @@ Let `Generation 2` entries point at linked models or linked archives honestly, w
 
 - linked model URLs
 - linked archive URLs
+- Dropbox shared-folder intake direction
+- Dropbox ZIP intake direction
 - user-triggered download direction
 - extraction and import handoff direction
+- staged supported-versus-unsupported file classification
+- user choice over which supported files to import
 
 ### Does Not Own
 

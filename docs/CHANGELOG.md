@@ -65,6 +65,1039 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1431 -->
+### [1431] - 2026-04-17 11:25 - `Environment-1 - Phase 2c / Phase 1 - Para Migration For View-Level Environment Controls`
+
+HUMAN SUMMARY: The broad `View` section now uses para-style controls for the global `Shadows` toggle, `Tone Mapping`, and `Exposure` without changing the underlying environment state or viewer behavior. This ships the first internal `Phase 2c` cleanup cut as a narrow control-surface migration before the deeper `Environment` and `Shadows` reorganization work.
+
+- Updated `src/app/components/ViewToolbar.tsx` so the broad `View` section now renders `Shadows` and `Tone Mapping` through `ParaSelect` plus `Exposure` through `ParaSlider`, retiring the older checkbox, native select, and paired range-plus-number treatment while keeping the same `setViewKey(...)` shared-state path.
+- Added focused proof in `src/app/components/ViewToolbar.test.tsx` that the new para-style `Shadows`, `Tone Mapping`, and `Exposure` controls still drive `useUiPrefsStore` through the same shared `view` seam and do not change the existing tabs rail contract.
+- Updated the owning `Environment-1 / Phase 2c` planning doc to mark internal `Phase 1` complete, mark the first three wishlist items shipped, and advance the next internal cut to `Phase 2`.
+
+<!-- ENTRY 1430 -->
+### [1430] - 2026-04-17 02:14 - `Environment-1 - Phase 2d - Ground Section, Ground Plane, And Floor Material`
+
+HUMAN SUMMARY: The model viewer now has a dedicated `Ground` toolbar section and a first visible studio floor runtime that can be turned on or off, raised or lowered, and switched between a small fixed set of floor materials. This lands as a standalone ground-lane pass without reopening the environment preset model or replacing the existing grid.
+
+- Extended the shared view state with a narrow `ground` contract in `src/shared/viewSettingsTypes.ts`, then wired that state through `src/app/store/uiPrefsStore.ts`, the toolbar tab union in `src/app/workspace/workspaceShellTypes.ts`, and workspace persistence validation in `src/app/workspace/workspacePersistence.ts`.
+- Added a dedicated `Ground` section in `src/app/components/ViewToolbar.tsx` with `ParaSelect` visibility and material controls plus a `ParaSlider` height control, and added focused proof in `src/app/components/ViewToolbar.test.tsx` and `src/app/workspace/useWorkspaceStore.test.ts`.
+- Implemented one viewer-owned floor mesh in `src/viewer/Viewer.ts` that stays separate from the grid, receives shadows, follows the shared ground visibility and height state, and swaps between fixed neutral studio floor materials, with focused runtime proof in `src/viewer/Viewer.test.ts`.
+
+<!-- ENTRY 1429 -->
+### [1429] - 2026-04-17 01:54 - `Environment-1 - Phase 2b - Default Lighting Cleanup And Balance Polish`
+
+HUMAN SUMMARY: The default environment rig now gets a quick cleanup pass aimed at larger dark models without reopening the background, grid, or preset contract. This widens and warms the key, slightly strengthens and neutralizes the fill, and softens the rim so long low-profile objects read more clearly through the same existing light seam.
+
+- Retuned `DEFAULT_VIEW_SETTINGS.lighting.lights` in `src/shared/viewSettingsTypes.ts` so the shipped `key` now sits higher and farther out with a warmer tone, the `fill` is slightly stronger and more neutral, and the `rim` is softer and pushed farther off-axis while staying inside the existing `LightSpec` model.
+- Updated the focused `src/viewer/Viewer.test.ts` environment-baseline proof to match the new default key, fill, and rim truth through the same existing viewer runtime seam.
+- Updated the owning environment phase doc to mark `Phase 2b` implemented and advance the next active cut to `Phase 3` without widening into new presets, new settings, Browser work, or HDRI runtime.
+
+<!-- ENTRY 1428 -->
+### [1428] - 2026-04-17 01:49 - `Environment-1 - Phase 2 - Restore Original Grid Opacities`
+
+HUMAN SUMMARY: The Phase 2 readability repair now keeps its brighter exposure and stronger light rig while restoring the grid to the original pre-Phase-2 opacity values. This is a narrow follow-up that only reverts the grid-intensity part of the baseline change and does not add any new settings or UI.
+
+- Restored the minor, major, and double-major grid opacities in `src/viewer/Viewer.ts` to their original pre-Phase-2 values while leaving the shipped exposure and light-rig changes intact.
+- Updated the focused `src/viewer/Viewer.test.ts` environment-baseline proof to match the restored grid opacities through the same existing runtime seam.
+- Updated the owning environment phase doc to record that the grid was later restored on request while the rest of the shipped baseline-readability repair remains in place.
+
+<!-- ENTRY 1427 -->
+### [1427] - 2026-04-17 01:40 - `Environment-1 - Phase 2 - Restore Original Background Colors`
+
+HUMAN SUMMARY: The Phase 2 readability repair now keeps its brighter exposure, stronger light rig, and quieter grid while restoring the default background colors to the original darker values. This is a narrow follow-up on the shipped environment baseline and does not add any new environment settings or UI.
+
+- Restored `DEFAULT_BACKGROUND` and `STUDIO_BACKGROUND` in `src/viewer/Viewer.ts` to their original darker values while leaving the shipped Phase 2 exposure, light-rig, and grid-intensity changes intact.
+- Updated the focused `src/viewer/Viewer.test.ts` environment-baseline proof to match the restored default background output through the same existing runtime seam.
+- Updated the owning environment phase doc to record that the background colors were later restored on request while the rest of the baseline-readability repair remains shipped.
+
+<!-- ENTRY 1426 -->
+### [1426] - 2026-04-17 01:35 - `Environment-1 - Phase 2 - Ship The Default Lighting Baseline Repair`
+
+HUMAN SUMMARY: The default model viewport now starts from a brighter, more readable baseline without adding any new environment controls or widening the state model. This retunes the shipped default exposure, adds a narrow rim-separation light, lightens the baseline background, and quiets the grid so dark models read more clearly before any manual adjustment.
+
+- Retuned `DEFAULT_VIEW_SETTINGS` in `src/shared/viewSettingsTypes.ts` so the default environment baseline stays on the existing `aces` / `envPreset` / `lighting.lights` contract while shipping a brighter exposure, a stronger key-plus-fill balance, and one narrow default rim light through the existing `LightSpec` model.
+- Retuned `src/viewer/Viewer.ts` baseline runtime constants so the default background now lands on a lighter neutral dark-gray range and the minor, major, and double-major grid layers all render at materially quieter opacities through the same existing `scene.background` and grid-helper seams.
+- Added focused `src/viewer/Viewer.test.ts` proof that the default exposure, background, light IDs, rim-light presence, and grid opacities all flow through the current viewer runtime without introducing new settings or UI growth.
+
+<!-- ENTRY 1425 -->
+### [1425] - 2026-04-17 01:09 - `Import-4 - Phase 7.5.6 - Segmented Scale Multiplier Slider Curve`
+
+HUMAN SUMMARY: The staged `Scale Multiplier` slider now uses a segmented response curve so the low end gets much finer control without giving up the higher range. The first quarter of the track now covers roughly `0.1 -> 2`, the second quarter covers `2 -> 25`, and the upper half covers `25 -> 1000`, while direct numeric entry and stored multiplier values remain truthful.
+
+- Added a staged scale-multiplier curve helper and wired the Browser row to use a non-linear track mapping so `0-25%`, `25-50%`, and `50-100%` of the slider each control progressively larger multiplier spans.
+- Extended the shared `ParaSlider` with an optional track-mapping seam so the slider can render and drag in one domain while still reading, editing, and reporting real authored values in another.
+- Added focused proof for the segmented curve math, the mapped slider interaction, the Browser staged control path, and the accepted-transform override seam, while keeping the preview and commit behavior aligned with the same stored multiplier value.
+
+<!-- ENTRY 1424 -->
+### [1424] - 2026-04-17 01:00 - `Import-4 - Phase 7.5.6 - Scale Multiplier Match Up Axis ParaSelect Style`
+
+HUMAN SUMMARY: The staged `Scale Multiplier` control now visually matches the `Up Axis` para-select more closely inside the Browser import dialog. Its slider row uses the same taller cap-and-track height, spacing, and text scale so it reads like a sibling control instead of a denser toolbar slider.
+
+- Added Browser-scoped `ParaSlider` overrides so the staged `Scale Multiplier` row uses the same `30px` cap and track height, inner spacing, fill inset, and text sizing rhythm as the `Up Axis` para-select.
+- Tightened Browser proof to keep the staged slider out of the capless variant while preserving the arrow-cap structure introduced in the previous follow-up.
+
+<!-- ENTRY 1423 -->
+### [1423] - 2026-04-17 00:57 - `Import-4 - Phase 7.5.6 - Scale Multiplier Proper ParaSlider Arrows`
+
+HUMAN SUMMARY: The staged `Scale Multiplier` control now uses the full para-slider shape with left and right arrow caps instead of the capless variant. That keeps the staged scale control visually and behaviorally aligned with the rest of the para-style controls in the import dialog.
+
+- Removed the capless override from the staged `Scale Multiplier` row so the imported scale control now renders the standard `ParaSlider` arrow buttons.
+- Tightened Browser proof to assert the `Decrease Scale Multiplier` and `Increase Scale Multiplier` arrow caps are present on the staged card.
+
+<!-- ENTRY 1422 -->
+### [1422] - 2026-04-17 00:40 - `Import-4 - Phase 7.5.6 - Scale Multiplier Paraselect And Custom Sync`
+
+HUMAN SUMMARY: The staged import dialog now exposes a numeric `Scale Multiplier` directly under `Scale / Units` and treats that multiplier as the real scale source of truth. Preset labels stay synced from exact multiplier values, off-preset values read as `Custom`, exact `1` resolves to `mm`, and the already-loaded object preview still rescales in place without reloading.
+
+- Added one explicit staged `scaleMultiplier` owner plus shared exact-value mapping helpers so staged files, accepted transform overrides, and the preview runtime all read the same numeric scale truth.
+- Updated the staged Browser card to render a `Scale Multiplier` `ParaSlider` under `Scale / Units`, keep preset picks and numeric edits synchronized bidirectionally, and expose `Custom` only when the multiplier leaves the locked preset set.
+- Preserved the shipped preview fast path by applying explicit multiplier changes in place on the already-loaded preview object, and added focused proof across transform helpers, Browser staged controls, preview runtime behavior, and accepted-transform override commits.
+
+<!-- ENTRY 1421 -->
+### [1421] - 2026-04-17 00:07 - `Import-4 - Phase 7.5.5 - Scale Preview Truth And Snappy In-Place Scale Updates`
+
+HUMAN SUMMARY: The staged object preview now reflects `Current`, `mm`, `cm`, `m`, and `in` scale settings without reloading the asset. Scale changes reuse the same canonical mapping as accepted import transforms and now update the loaded preview object in place before refitting the camera.
+
+- Moved staged scale-factor meaning into the shared staged-transform helper so preview output and accepted import transforms use the same canonical `Scale / Units` mapping.
+- Updated the staged preview runtime to apply scale directly on the already-loaded preview object, keeping `scaleAlignment` changes out of the asset-load effect and refitting the camera after in-place updates.
+- Added focused proof for the canonical scale mapping and for in-place preview rescaling without extra asset loads or runtime teardown.
+
+<!-- ENTRY 1420 -->
+### [1420] - 2026-04-16 23:55 - `Import-4 - Phase 7.5.4 - 300x300 Preview Grid Toggle`
+
+HUMAN SUMMARY: The staged object preview now has a bottom-right grid toggle stacked above zoom-to-fit. It adds a lightweight preview-local `300 x 300` reference grid without reloading the staged asset or changing import behavior.
+
+- Added one preview-local `300 x 300` `GridHelper` to the staged object preview runtime and surfaced it through a small bottom-right overlay button stacked above the shipped zoom-to-fit control.
+- Kept the grid toggle completely local to the preview viewport, so enabling or disabling it does not reload the object, affect commit behavior, or change staged import ownership.
+- Added focused preview tests to prove the grid toggle appears with the preview controls, toggles the grid helper on and off, and does not trigger extra asset loads.
+
+<!-- ENTRY 1419 -->
+### [1419] - 2026-04-16 23:31 - `Import-4 - Phase 7.5.3 - Up-Axis Preview Truth Snappy Follow-Up`
+<!-- ENTRY 1419 -->
+HUMAN SUMMARY: `Tightened the staged object preview again so changing \`Up Axis\` now rotates the already-loaded preview object in place instead of tearing down and reloading the full preview runtime, making the preview feel much snappier.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up on the shipped `Import-4 / Phase 7.5.3` preview-local orientation pass with no commit-path, accepted-transform, or preview Browser ownership changes.
+- Preserved the canonical staged up-axis meaning and the shipped zoom-to-fit, orbit, and resize behavior.
+- Fixed only the preview-runtime reload behavior for `Up Axis` changes without widening into grid work, scale work, or controller-level ownership changes.
+#### Summary of Implementation
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so file-identity changes still reload the preview, but pure `upAxis` changes now reuse the already-loaded preview object and apply the new rotation in place.
+- Kept the shared staged up-axis meaning from [`src/app/references/stagedImportTransforms.ts`](./src/app/references/stagedImportTransforms.ts), while splitting the preview runtime into a file-load path and a lighter in-place orientation-update path.
+- Extended [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx) so it now proves `Up Axis` changes do not call `loadReferenceAssetObject(...)` again and do not dispose the existing preview runtime before rotating the loaded object.
+#### Files Changed
+- [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx)
+- [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.5 - Object Preview Follow-Up And Preview-Output Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.5%20-%20Object%20Preview%20Follow-Up%20And%20Preview-Output%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Changing the staged `Up Axis` setting no longer reloads the staged object preview when the previewed file itself has not changed.
+- The preview still updates truthfully, but it now does so by rotating the already-loaded object in place.
+#### Verification Steps
+- `npx vitest run src/app/panels/StagedImportPreviewViewport.test.tsx`
+- `npm run build`
+
+<!-- ENTRY 1418 -->
+### [1418] - 2026-04-16 23:31 - `Import-4 - Phase 7.5.3 - Up-Axis Preview Truth`
+<!-- ENTRY 1418 -->
+HUMAN SUMMARY: `Made the staged object preview honor the current \`Up Axis\` choice so the preview now visibly reflects \`Z Up\`, \`Y Up\`, and \`X Up\` before commit using the same canonical rotation meaning as the accepted import path.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.5.3` preview-local pass with no commit-path, accepted-transform, or preview Browser ownership changes.
+- Reused the existing staged up-axis meaning instead of inventing a preview-only interpretation.
+- Preserved the shipped zoom-to-fit, orbit, and resize behavior while making the preview output truthful to the selected staged setting.
+#### Summary of Implementation
+- Added [`src/app/references/stagedImportTransforms.ts`](./src/app/references/stagedImportTransforms.ts) so the canonical staged `Up Axis` rotation mapping now lives in one shared helper used by both accepted-transform logic and preview output.
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so the loaded preview object is rotated according to the current staged `upAxis` before framing, zoom-to-fit, and orbit behavior run.
+- Added focused proof in [`src/app/references/stagedImportTransforms.test.ts`](./src/app/references/stagedImportTransforms.test.ts) and extended [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx) so the shared axis mapping and preview-object orientation are both locked down.
+#### Files Changed
+- [`src/app/references/stagedImportTransforms.ts`](./src/app/references/stagedImportTransforms.ts)
+- [`src/app/references/stagedImportTransforms.test.ts`](./src/app/references/stagedImportTransforms.test.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx)
+- [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.5 - Object Preview Follow-Up And Preview-Output Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.5%20-%20Object%20Preview%20Follow-Up%20And%20Preview-Output%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The object preview now visibly changes orientation when the staged `Up Axis` setting changes, instead of leaving the preview object in one fixed orientation regardless of the selected axis.
+#### Verification Steps
+- `npx vitest run src/app/references/stagedImportTransforms.test.ts src/app/panels/StagedImportPreviewViewport.test.tsx`
+- `npm run build`
+
+<!-- ENTRY 1417 -->
+### [1417] - 2026-04-16 23:18 - `Import-4 - Phase 7.5.1 - Object Preview Zoom-To-Fit Aspect-Aware Follow-Up`
+<!-- ENTRY 1417 -->
+HUMAN SUMMARY: `Tightened the staged object preview zoom-to-fit action so it now frames against the current preview window aspect instead of resetting to one fixed-distance heuristic, which restores truthful fit behavior after the preview column is resized.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up on the shipped `Import-4 / Phase 7.5.1` preview-local fit affordance with no commit-path, import contract, or preview Browser ownership changes.
+- Preserved the shipped bottom-right magnifying-glass affordance, the existing orbit ownership, and the separate `7.5.2` resize-projection repair.
+- Added focused proof at the framing-helper seam instead of widening into broader Browser integration.
+#### Summary of Implementation
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so zoom-to-fit now computes camera distance from the object bounding sphere, current preview aspect, and limiting camera FOV instead of one fixed `maxDimension` multiplier.
+- Also updated the live fit path to refresh `camera.aspect` from the current preview canvas size before applying the fit, so manual zoom-to-fit stays truthful even after the preview column width changes.
+- Extended [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx) with a focused proof that the same object is framed farther away in a narrower preview window, locking the new aspect-aware fit contract.
+#### Files Changed
+- [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx)
+- [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.5 - Object Preview Follow-Up And Preview-Output Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.5%20-%20Object%20Preview%20Follow-Up%20And%20Preview-Output%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Clicking the staged object preview zoom-to-fit button now uses the current preview window shape, so fit behavior remains meaningful after the preview column is narrowed or widened.
+#### Verification Steps
+- `npx vitest run src/app/panels/StagedImportPreviewViewport.test.tsx`
+- `npm run build`
+
+<!-- ENTRY 1416 -->
+### [1416] - 2026-04-16 23:08 - `Import-4 - Phase 7.5.2 - Object Preview Resize-Adjust Bug Repair`
+<!-- ENTRY 1416 -->
+HUMAN SUMMARY: `Repaired the staged object preview resize path so divider-driven width changes refresh the camera projection before draw, preventing the loaded preview object from stretching when the preview column is resized.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.5.2` preview-local repair with no staged import contract, commit-path, or preview Browser ownership changes.
+- Preserved the shipped zoom-to-fit and orbit behavior instead of widening into preview camera redesign.
+- Added focused proof at the preview-runtime seam instead of broadening the Browser integration harness.
+#### Summary of Implementation
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so the preview camera now refreshes its projection matrix whenever the resize path updates the viewport aspect, keeping the rendered object mathematically aligned with divider-driven size changes.
+- Added [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx) with a focused mocked-WebGL proof that the resize observer path reruns the projection update after the preview aspect changes.
+- Marked `Import-4 / Phase 7.5.2` shipped in the owning preview follow-up plan doc and recorded the same change set in the doc log.
+#### Files Changed
+- [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx)
+- [`src/app/panels/StagedImportPreviewViewport.test.tsx`](./src/app/panels/StagedImportPreviewViewport.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.5 - Object Preview Follow-Up And Preview-Output Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.5%20-%20Object%20Preview%20Follow-Up%20And%20Preview-Output%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Resizing the divider between the preview Browser and the object preview column no longer leaves the loaded preview object visually stretched from a stale camera projection.
+#### Verification Steps
+- `npx vitest run src/app/panels/StagedImportPreviewViewport.test.tsx`
+- `npm run build`
+
+<!-- ENTRY 1415 -->
+### [1415] - 2026-04-16 22:55 - `Import-4 - Phase 7.5.1 - Object Preview Zoom-To-Fit`
+<!-- ENTRY 1415 -->
+HUMAN SUMMARY: `Added a bottom-right magnifying-glass zoom-to-fit action inside the staged object preview so loaded preview objects can be reframed cleanly without affecting any import or commit behavior.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.5.1` preview-local pass with no commit-path, staged Browser, or import-result changes.
+- Reused the live preview framing seam instead of introducing a second camera-ownership path.
+- Kept the new affordance inside the existing preview viewport shell and only surfaced it when a staged object is actually loaded.
+#### Summary of Implementation
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so the preview viewport now exposes a bottom-right magnifying-glass zoom-to-fit action that reuses the existing camera-framing logic for the currently loaded staged object.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) with a preview-canvas shell and the small bottom-right overlay button treatment.
+- Tightened [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so it proves the button is absent before load, appears after preview load, and stays draft-local without triggering extra import-side work.
+#### Files Changed
+- [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.5 - Object Preview Follow-Up And Preview-Output Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.5%20-%20Object%20Preview%20Follow-Up%20And%20Preview-Output%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Loaded staged preview objects now have a bottom-right magnifying-glass action that refits the object to the preview window.
+- The action stays local to the staged preview viewport and does not change import settings, staged Browser state, or commit behavior.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "loads one staged file into the object preview viewport without mutating project content|keeps the full staged object preview lane stable across load, orbit-ready messaging, local divider resize, and reset after reopen"`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1414 -->
+### [1414] - 2026-04-16 22:42 - `Import-4 - Phase 7.4.4 - True Tree Connector And Root-Line Fidelity`
+<!-- ENTRY 1414 -->
+HUMAN SUMMARY: `Refined the staged hierarchy tree so it reads more like a rooted tree, with clearer branch connectors back toward parent levels while keeping the same hierarchy data, title, and scroll-region ownership.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.4.4` visual-fidelity pass with no hierarchy contract changes, no copy changes, and no import behavior changes.
+- Stayed CSS-first and added only tiny hierarchy-item hooks where the existing nested tree DOM needed them.
+- Preserved the shipped `Hierarchy Tree` title placement, `100px` scroll region, and the distinct parts-list treatment.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so hierarchy items now expose small rooted-tree hooks (`data-depth` and `data-has-children`) without widening the summary structure.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the staged hierarchy tree now has clearer vertical continuation, horizontal branch connectors into child rows, and slightly stronger anchors for branch-owning rows.
+- Tightened [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so it proves the tree still renders through the same scroll-region-backed summary seam and stays distinct from the parts list.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.4 - Read-Only Hierarchy Tree Enrichment.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Staged hierarchy trees now read more like true rooted trees, with clearer visual lines back toward parent levels.
+- The same hierarchy tree still stays inside the existing scroll region and remains distinct from the split-parts list.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "renders a read-only hierarchy tree only when staged hierarchy rows truthfully exist and keeps it distinct from the parts list|shows honest staged structure summaries per file without changing project content"`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1413 -->
+### [1413] - 2026-04-16 22:31 - `Import-4 - Phase 7.4.3 - Badge Truth And Helper-Copy Enrichment`
+<!-- ENTRY 1413 -->
+HUMAN SUMMARY: `Tightened hierarchy-bearing staged files from the over-broad \`Multiple objects\` read to a clearer \`Structured file\` plus one compact helper line, while keeping true split-ready files on the stronger multi-object read.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.4.3` truth-and-copy pass inside the existing staged structure-summary block.
+- Did not change the hierarchy summary contract, hierarchy-tree rendering behavior, import behavior, or staged settings behavior.
+- Preserved the stronger split-ready wording for files that truthfully expose `partRows`.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so hierarchy-bearing files without split parts now read as `Structured file` instead of `Multiple objects`, and now show one compact helper line: `Structured hierarchy detected. No split parts detected.`
+- Kept true split-ready files on the stronger `Multiple objects`, `Hierarchy`, and `Parts` read, and retired the leftover flat label-chip fallback under split-part rows so the parts list remains the only rich list in that case.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) for the new helper-line treatment and tightened [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove the new structured-versus-split-ready wording truth.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.4 - Read-Only Hierarchy Tree Enrichment.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Hierarchy-bearing staged files without split parts now read as `Structured file` and explicitly say that no split parts were detected.
+- Split-ready files still read as `Multiple objects`, `Hierarchy`, and `Parts`, and no longer duplicate that read with a flat label-chip fallback under the parts list.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "renders a read-only hierarchy tree only when staged hierarchy rows truthfully exist and keeps it distinct from the parts list|shows honest staged structure summaries per file without changing project content|partial Add To Project result"`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1412 -->
+### [1412] - 2026-04-16 22:25 - `Import-4 - Phase 7.4.2 - Hierarchy Tree Header Follow-Up`
+<!-- ENTRY 1412 -->
+HUMAN SUMMARY: `Moved the staged hierarchy tree title outside the scroll region so only the nested tree content scrolls inside the \`100px\` box, keeping the heading fixed and easier to scan.` 
+#### Scope / Constraints Honored
+- Kept this as a tiny presentation-only follow-up on the shipped `Import-4 / Phase 7.4.2` hierarchy tree treatment.
+- Changed only the hierarchy-tree markup and CSS containment split; no hierarchy contract, badge copy, or import behavior changed.
+- Preserved the existing `100px` capped scroll behavior for dense tree content.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) to wrap the nested tree content in its own dedicated scroll region below the fixed `Hierarchy Tree` label.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the `100px` max-height and local overflow now apply only to the tree-content region rather than the whole labeled block.
+- Recorded the shipped follow-up in the owning [`Import-4 Phase 7.4`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md) doc.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.4 - Read-Only Hierarchy Tree Enrichment.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- The `Hierarchy Tree` title now remains visible above the scrollable area while only the nested tree content scrolls.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1411 -->
+### [1411] - 2026-04-16 22:24 - `Import-4 - Phase 7.4.2 - Hierarchy Tree Scroll Follow-Up`
+<!-- ENTRY 1411 -->
+HUMAN SUMMARY: `Capped the new staged hierarchy tree at \`100px\` tall and added a local scrollbar so dense structured files stay contained inside the staged card without changing hierarchy meaning or import behavior.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow visual containment follow-up on the shipped `Import-4 / Phase 7.4.2` hierarchy tree treatment.
+- Changed only the hierarchy-tree block styling; no structure contract, badge wording, or import behavior changed.
+- Preserved the existing staged-card layout and the separate shipped parts-list treatment.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the staged hierarchy tree block now has a `100px` max height with local vertical scrolling.
+- Recorded the shipped follow-up in the owning [`Import-4 Phase 7.4`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md) doc.
+#### Files Changed
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.4 - Read-Only Hierarchy Tree Enrichment.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Dense staged hierarchy trees now scroll inside their own block instead of growing unbounded inside the staged file card.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1410 -->
+### [1410] - 2026-04-16 22:21 - `Import-4 - Phase 7.4.2 - Hierarchy Tree Rendering`
+<!-- ENTRY 1410 -->
+HUMAN SUMMARY: `Rendered the new staged \`hierarchyRows\` seam as a compact read-only tree inside hierarchy-bearing file cards so structured files can now explain internal named structure without losing the separate split-parts treatment.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.4.2` UI-only pass with no import behavior, preview behavior, or commit-path changes.
+- Rendered the tree inside the existing staged structure-summary owner instead of creating a second competing structure section.
+- Preserved the shipped `7.1` parts-list treatment so split-ready files can still show their parts list distinctly from the new hierarchy tree.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) to render a compact nested read-only hierarchy tree directly from `summary.hierarchyRows` inside the live staged structure-summary block.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) with compact hierarchy-tree styling that reads as structural context instead of as another selectable list.
+- Added focused Browser proof in [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) that hierarchy-only files render the tree, split-ready files can render both the tree and the parts list, and flat files do not render the tree.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.4 - Read-Only Hierarchy Tree Enrichment.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes
+- Hierarchy-bearing staged files now show a compact read-only tree inside the staged file card when `hierarchyRows` truthfully exist.
+- Split-ready files can now show both the shipped parts list and the new hierarchy tree without collapsing one meaning into the other.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "renders a read-only hierarchy tree only when staged hierarchy rows truthfully exist and keeps it distinct from the parts list|renders staged file cards with one title row and one full-width body section"`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1409 -->
+### [1409] - 2026-04-16 22:12 - `Import-4 - Phase 7.4.1 - Hierarchy Summary Contract`
+<!-- ENTRY 1409 -->
+HUMAN SUMMARY: `Extended staged structure inspection with a compact read-only \`hierarchyRows\` contract so structured files can later explain named internal hierarchy without collapsing that meaning into split-ready part rows.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow `Import-4 / Phase 7.4.1` contract-only pass without rendering the tree in the staged dialog yet.
+- Preserved the existing staged structure booleans, flat labels, and split-part descriptors while adding an additive hierarchy seam.
+- Reused the existing meaningful-name filter so the first hierarchy contract does not invent a second conflicting definition of loader-noise labels.
+#### Summary of Implementation
+- Updated [`src/viewer/referenceStructureInspection.ts`](./src/viewer/referenceStructureInspection.ts) so staged structure inspection now returns a compact additive `hierarchyRows` tree built from the loaded object graph.
+- Reused the existing meaningful-name filter from [`src/viewer/referencePartDescriptors.ts`](./src/viewer/referencePartDescriptors.ts) so generic wrapper labels like `STEP Node` and `STEP Mesh N` are filtered out where possible.
+- Added focused proof in [`src/viewer/referenceStructureInspection.test.ts`](./src/viewer/referenceStructureInspection.test.ts) that structured hierarchy-bearing single-object files and structured split-ready files both produce truthful, distinct summary data.
+#### Files Changed
+- [`src/viewer/referenceStructureInspection.ts`](./src/viewer/referenceStructureInspection.ts)
+- [`src/viewer/referenceStructureInspection.test.ts`](./src/viewer/referenceStructureInspection.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7.4 - Read-Only Hierarchy Tree Enrichment.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207.4%20-%20Read-Only%20Hierarchy%20Tree%20Enrichment.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Staged structure inspection summaries now carry additive `hierarchyRows` data for hierarchy-bearing files, ready for later staged-card rendering work.
+- Split-ready `partRows` remain a distinct contract, so hierarchy-bearing files no longer need to overload the split-parts meaning just to explain internal structure later.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/viewer/referenceStructureInspection.test.ts`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1408 -->
+### [1408] - 2026-04-16 22:02 - `Import-4 - Phase 7.3 - Real ParaSelect Follow-Up`
+<!-- ENTRY 1408 -->
+HUMAN SUMMARY: `Replaced the earlier faux staged-settings grouping with the app's real shared \`ParaSelect\` control, so \`Import As\`, \`Up Axis\`, and \`Scale / Units\` now actually use left and right arrows plus a dropdown track.` 
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up to shipped `Import-4 / Phase 7.3` without changing staged state ownership, import behavior, preview behavior, or commit behavior.
+- Reused the repo's shared `ParaSelect` control instead of inventing another staged-card-local approximation.
+- Preserved the neighboring non-paraselect staged actions by restoring narrow button styling only where those buttons still remain in use.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the staged file card now uses the shared [`ParaSelect`](./src/app/components/ParaSelect.tsx) control for `Import As`, `Up Axis`, and `Scale / Units`, with custom-menu dropdown behavior and chevron endcaps.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) to remove the earlier faux paraselect residue while restoring narrow button styling for the staged dialog actions that still legitimately use `BrowserImportDialogImportModeButton`.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the staged-settings proof now checks the real `ParaSelect` track, caps, menu options, and draft-only behavior instead of the old selected-pill markup.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207%20-%20UI%20Cleanup%20And%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Staged file cards now present `Import As`, `Up Axis`, and `Scale / Units` through the same shared control family used elsewhere in the app, including previous and next caps and a dropdown track.
+- The available options and selected staged values remain the same, but the interaction model now matches the rest of ParaHook's actual paraselect behavior.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "shared ParaSelect control|shows both import mode choices|keeps flat staged files honest|shows explicit Z Up|shows explicit scale or units|renders staged file cards with one title row"`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1407 -->
+### [1407] - 2026-04-16 21:54 - `Import-4 - Phase 7.3 - Staged Settings Paraselect Conversion`
+<!-- ENTRY 1407 -->
+HUMAN SUMMARY: `Turned the staged file card controls for \`Import As\`, \`Up Axis\`, and \`Scale / Units\` into one consistent compact paraselect treatment while preserving the same staged options, selected-state truth, and draft-only behavior.`
+#### Scope / Constraints Honored
+- Kept this as a narrow UI-only `Import-4 / Phase 7.3` pass without changing staged state ownership, commit behavior, preview behavior, or the available option sets.
+- Preserved the existing staged setter wiring and the same truth around when `Multiple Objects In 1 Component` is available.
+- Left the neighboring `Object Preview` action outside the conversion so the paraselect pass stayed focused on the three main staged settings groups.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so `Import As`, `Up Axis`, and `Scale / Units` now render through one shared staged-card-local paraselect pattern with a selected-value header and the same option buttons inside.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so those three settings now read as compact paraselect surfaces instead of repeated loose button rows, while keeping selected state and hover behavior readable inside the reorganized staged file card.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the BrowserPanel proof now explicitly checks the new paraselect structure and confirms the staged setting changes still update draft state without changing import behavior.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207%20-%20UI%20Cleanup%20And%20Polish.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Behavior Changes (if any)
+- Staged file cards now show `Import As`, `Up Axis`, and `Scale / Units` through one consistent compact paraselect surface with a visible selected value for each group.
+- The same option buttons still drive the same staged setters, so staged import behavior remains unchanged while the settings read becomes denser and more intentional.
+#### Verification Steps
+- Ran `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "compact paraselect surfaces|shows both import mode choices|shows explicit Z Up|shows explicit scale or units|renders staged file cards with one title row"`
+- Ran `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1406 -->
+### [1406] - 2026-04-16 21:22 - `Import-4 - Phase 7.1 - Parts List Highlight Row Follow-Up`
+<!-- ENTRY 1406 -->
+HUMAN SUMMARY: `Shifted the staged parts list away from checkbox visuals by removing the marker, darkening the list box, and using highlighted rows to imply future on/off state instead.`
+#### Scope / Constraints Honored
+- Kept this as a narrow visual follow-up to the shipped `7.1` work without changing staged import, preview, or commit behavior.
+- Preserved the same truthful part rows and ordering while only changing how on/off state is visually implied.
+- Kept the list presentation future-facing without claiming that real part include or exclude behavior already exists.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so staged part rows no longer render the inert checkbox marker and instead rely on row highlight state alone.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the parts list box is darker, the rows use highlight styling to imply selected/on state, and the earlier local-scroll plus bottom-edge resize behavior stays intact.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the staged structure-summary proof now confirms the checkbox marker is gone and the rows render in the highlighted state.
+#### Files Changed
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- The staged parts list now uses highlighted rows on a darker list surface instead of separate checkbox markers.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "shows honest staged structure summaries per file without changing project content"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1405 -->
+### [1405] - 2026-04-16 21:18 - `Import-4 - Phase 7.2 - Staged File Card Re-Organization`
+<!-- ENTRY 1405 -->
+HUMAN SUMMARY: `Reorganized staged file cards so the file number, title, and type badge now live in one shared header row while the structure summary, parts list, settings, and preview action all use one full-width body underneath.`
+#### Scope / Constraints Honored
+- Kept this pass layout-and-presentation only by avoiding any changes to staged structure-summary data, preview behavior, settings behavior, or commit behavior.
+- Preserved the shipped `7.1` parts selection-list treatment while giving it the full body width underneath the new staged-card header row.
+- Avoided widening into later density or spacing cleanup beyond the header-versus-body reflow itself.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so each staged file card now renders through one explicit header row containing the staged file number, file title, and file type badge, with the structure summary and settings content moved into one full-width body below.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so staged cards now use a true column layout with a shared header row and full-width body section instead of the old implied left-content-right column read.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the staged-card proof now asserts the new title-row structure and confirms the `7.1` parts selection list still renders inside the full-width body.
+#### Files Changed
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Staged file cards now read as one header row plus one full-width body instead of three competing columns.
+- The staged parts selection list and later settings groups now get the full card width underneath the header.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "renders staged file cards with one title row and one full-width body section|shows honest staged structure summaries per file without changing project content"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1404 -->
+### [1404] - 2026-04-16 21:06 - `Import-4 - Phase 7.1 - Parts Summary List Bottom-Edge Resize`
+<!-- ENTRY 1404 -->
+HUMAN SUMMARY: `Made the new staged parts selection list resizable from the bottom edge so dense split-file cards can start at 100px tall, keep local scrolling, and still be expanded during review when the user wants more part rows visible at once.`
+#### Scope / Constraints Honored
+- Kept this as a narrow Phase `7.1` follow-up without changing any staged import, preview, or commit behavior.
+- Preserved the same truthful part list content and ordering while only adjusting the list container sizing behavior.
+- Kept overflow local to the part list so the rest of the staged file card and dialog structure remain unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the staged part selection list now uses a default `height: 100px`, keeps local vertical scrolling, and exposes `resize: vertical` so the user can drag the bottom edge to reveal more part rows during review.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207%20-%20UI%20Cleanup%20And%20Polish.md) so the shipped `7.1` record now captures the bottom-edge resize follow-up in its doc history and implementation notes.
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Dense staged part lists now open at `100px` tall, scroll locally, and can be resized from the bottom edge during review.
+#### Verification Steps
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1403 -->
+### [1403] - 2026-04-16 21:04 - `Import-4 - Phase 7.1 - Parts Summary List Overflow Cap`
+<!-- ENTRY 1403 -->
+HUMAN SUMMARY: `Tightened the new staged parts selection list so dense split-file cards stay readable by capping the list at 100px tall and letting it scroll locally when more parts are present.`
+#### Scope / Constraints Honored
+- Kept this as a narrow follow-up to the shipped `7.1` UI cleanup without changing any staged import, preview, or commit behavior.
+- Preserved the same truthful part labels and ordering while only adjusting the list container overflow behavior.
+- Kept the scrollbar local to the parts list so the rest of the staged file card and dialog layout stay unchanged.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the staged part selection list now uses `max-height: 100px` with local vertical scrolling when the detected part rows overflow.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%207%20-%20UI%20Cleanup%20And%20Polish.md) so the shipped `7.1` record now captures the overflow-cap follow-up in its doc history and implementation notes.
+#### Files Changed
+- `src/app/theme/surfaces/browser.css`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Dense staged part lists now scroll inside a `100px`-tall region instead of growing indefinitely inside the staged file card.
+#### Verification Steps
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1402 -->
+### [1402] - 2026-04-16 21:00 - `Import-4 - Phase 7.1 - Parts Summary List Cleanup`
+<!-- ENTRY 1402 -->
+HUMAN SUMMARY: `Polished the staged import file card by replacing the old split-part chip pile with a compact checkbox-style selection list that keeps the same truthful part order, reads like future selectable rows, and stays presentation-only for now.`
+#### Scope / Constraints Honored
+- Kept this phase presentation-only by avoiding any changes to staged structure inspection, import mode behavior, preview behavior, or commit behavior.
+- Preserved the same truthful part labels and ordering already provided by the staged structure summary.
+- Kept the new selection-list treatment inert so it reads like future selectable parts without claiming that include or exclude import behavior already exists.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so staged files with truthful part rows now render those parts through a dedicated selection-list block driven by `summary.partRows` instead of the old generic label-chip group.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the part rows now read as compact checkbox-like selection entries inside the staged file card while staying visually dense enough for large split files.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the staged structure-summary proof now asserts the new selection-list markup, preserved part order, and retirement of the old part-label chip group for split-ready staged files.
+#### Files Changed
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 7 - UI Cleanup And Polish.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Split-ready staged files now show their detected parts through a checkbox-style selection list instead of the old chip pile.
+- The new part list stays presentation-only and does not yet affect what gets imported.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "shows honest staged structure summaries per file without changing project content"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1401 -->
+### [1401] - 2026-04-16 20:26 - `Import-4 - Phase 6.4 - Cleanup And Regression Proof`
+<!-- ENTRY 1401 -->
+HUMAN SUMMARY: `Closed out the staged import object-preview lane by tightening the shipped preview copy around its draft-local orbitable surface and adding one integrated Browser proof that covers preview loading, three-column shell ownership, local divider resizing, and reset-after-reopen behavior.`
+#### Scope / Constraints Honored
+- Kept this pass cleanup-and-proof-only by avoiding any new preview actions, persisted divider widths, persisted preview camera state, or widened viewer/runtime ownership.
+- Preserved the current staged preview rendering contract from `6.2` and `6.3`, only tightening copy so it matches the already-shipped orbitable draft-local viewport truth.
+- Kept the closeout proof inside the existing BrowserPanel suite instead of creating a second renderer-specific test family.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the object-preview header now explicitly says the staged object can be inspected and orbited in the draft-local viewport before commit.
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so the idle viewport copy now matches the shipped `Load Into Preview Viewport` action wording and the later orbit-enabled preview behavior.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so one integrated closeout proof now covers the three-column shell, preview loading, truthful ready-state fallback copy in the non-WebGL test environment, local divider drag, and reset to the default width shares after reopening the dialog.
+#### Files Changed
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/panels/StagedImportPreviewViewport.tsx`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 6 - Object Preview Viewport And Resizable Three-Column Layout.md`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- The object-preview column copy now explicitly reflects the shipped orbitable, draft-local staged preview behavior.
+- The preview lane now has one integrated Browser regression proof that covers the full shipped three-column object-preview journey.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "dedicated preview Browser and object preview columns|loads one staged file into the object preview viewport|keeps divider resizing local to the open staged import dialog|keeps the full staged object preview lane stable across load, orbit-ready messaging, local divider resize, and reset after reopen"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1400 -->
+### [1400] - 2026-04-16 20:18 - `Import-4 - Phase 6.3 - Orbit Interaction And Divider Resizing`
+<!-- ENTRY 1400 -->
+HUMAN SUMMARY: `Made the staged import preview viewport inspectable and the three-column shell adjustable by adding local orbit controls on the preview canvas plus two draggable divider bars that rebalance the dialog columns without persisting any new layout or camera state.`
+#### Scope / Constraints Honored
+- Kept all new interaction local to the open staged import dialog by avoiding any persisted divider widths, persisted preview camera state, or new store-owned preview runtime.
+- Preserved the current staged preview loading contract from `6.2` and only widened this phase into interaction on top of the already-loaded preview canvas.
+- Kept the main workspace viewer completely separate so preview orbit stays inside the dialog-local object preview surface.
+#### Summary of Implementation
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so the staged import overlay now owns one local three-column width model plus pointer-driven divider resize handlers, and resets those widths when the staged dialog closes.
+- Updated [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) and [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the staged import dialog now renders two explicit resize bars between the left settings, middle preview Browser, and right object preview columns, and feeds local width shares into the content shell.
+- Updated [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) so loaded staged preview objects now use `OrbitControls` on the dialog-local preview canvas while keeping the interaction and camera framing scoped to that preview surface only.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the three-column shell consumes local width-share variables without overflowing the dialog, the divider bars read as real resize affordances, and the preview canvas advertises grab/grabbing cursor behavior.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the focused Browser proof now covers divider presence, local resize behavior, and the reset-to-default width behavior after closing and reopening the staged import dialog.
+#### Files Changed
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/panels/StagedImportPreviewViewport.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 6 - Object Preview Viewport And Resizable Three-Column Layout.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- The object preview canvas now supports local orbit interaction for loaded staged objects.
+- The staged import dialog now exposes two draggable divider bars so the three working columns can be rebalanced while the dialog is open.
+- Divider widths reset to the default three-column layout when the staged import dialog closes.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "dedicated preview Browser and object preview columns|loads one staged file into the object preview viewport|keeps divider resizing local to the open staged import dialog"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1399 -->
+### [1399] - 2026-04-16 20:05 - `Import-4 - Phase 6.2 - Load Into Preview Viewport Action And Preview Rendering`
+<!-- ENTRY 1399 -->
+HUMAN SUMMARY: `Turned the staged import dialog’s new Object Preview column into a real draft-local preview surface by adding explicit staged-file load actions, wiring one dialog-local preview selection, and rendering the selected staged object with truthful empty, loading, ready, and failed states without widening into orbit or divider work yet.`
+#### Scope / Constraints Honored
+- Kept this phase preview-load-and-render only by deferring orbit controls, divider resizing, persisted preview state, and any main-workspace viewer integration.
+- Preserved draft-local ownership so previewing a staged file does not mutate project content, commit staged files, or introduce a new store-owned preview runtime.
+- Reused the existing staged asset loader instead of inventing a second import-preview loader contract.
+#### Summary of Implementation
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts), [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx), and [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so staged-file rows now expose `Load Into Preview Viewport`, the dialog keeps one selected staged file id locally, and the right-column shell renders the chosen staged file through the new dialog-local preview surface.
+- Added [`src/app/panels/StagedImportPreviewViewport.tsx`](./src/app/panels/StagedImportPreviewViewport.tsx) as a narrow dialog-local preview renderer that reuses [`src/viewer/referenceAssetLoader.ts`](./src/viewer/referenceAssetLoader.ts) to load staged assets, shows truthful empty/loading/ready/error states, and draws one framed static preview when WebGL is available while falling back to a readable loaded-state message in non-rendering environments like BrowserPanel tests.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the preview column now has a real canvas frame and status copy surface instead of the old placeholder-only shell.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to mock the staged asset loader and prove one staged file can be loaded into the preview viewport without committing or mutating the staged session.
+#### Files Changed
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/panels/StagedImportPreviewViewport.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 6 - Object Preview Viewport And Resizable Three-Column Layout.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- Staged-file rows now expose `Load Into Preview Viewport`.
+- The right-side `Object Preview` column can now load one staged object and show a truthful preview lifecycle before commit.
+- Previewing a staged file remains draft-local and does not add anything to project content.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "loads one staged file into the object preview viewport|dedicated preview Browser and object preview columns|Multiple Objects In 1 Component journey"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1398 -->
+### [1398] - 2026-04-16 19:55 - `Import-4 - Phase 6.1 - Preview Selection Contract And Third-Column Shell`
+<!-- ENTRY 1398 -->
+HUMAN SUMMARY: `Expanded the staged import dialog into a three-column shell by adding one dialog-local preview selection owner, preserving the existing settings and preview Browser surfaces, and landing a placeholder object preview viewport column without widening into real staged-object rendering yet.`
+#### Scope / Constraints Honored
+- Kept this phase contract-and-layout only by avoiding any real object preview rendering, orbit interaction, divider resizing, or new store-owned preview runtime.
+- Preserved the existing left staged-settings owner, the middle preview Browser owner, and the bottom action-row placement while only adding the new right-column shell.
+- Kept the preview selection local to the open staged import dialog instead of widening the staged draft contract in the store.
+#### Summary of Implementation
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so the staged import overlay now carries one dialog-local `stagedImportPreviewSelection` value that clears when the staged draft closes or when the selected file leaves the current draft.
+- Updated [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) and [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the staged import dialog now renders a three-column content shell with the existing settings stack on the left, the preview Browser in the middle, and a new placeholder `Object Preview` viewport card on the right.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) to widen the staged import dialog, define the new middle and viewport column shells, and keep the constrained-body plus action-row layout intact with the existing narrow-width single-column fallback.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the Browser proof now asserts the three-column shell, the placeholder preview viewport region, the preserved preview Browser placement, and the action row staying below the content shell.
+#### Files Changed
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/browserTreeMenus.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 6 - Object Preview Viewport And Resizable Three-Column Layout.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+#### Behavior Changes
+- The staged import dialog now has a third working column titled `Object Preview`, but it is still a placeholder surface that announces real preview loading will arrive in the next phase.
+- The existing preview Browser now lives in the middle column, and the action row remains outside the content shell below all three working columns.
+#### Verification Steps
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "dedicated preview Browser and object preview columns"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "Multiple Objects In 1 Component journey|partial Add To Project result|dedicated preview Browser and object preview columns"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1397 -->
+### [1397] - 2026-04-16 19:13 - `Import-4 - Phase 4 - Dialog Recovery And Session Messaging`
+<!-- ENTRY 1397 -->
+HUMAN SUMMARY: `Made mixed-result Add To Project attempts read clearly inside the staged import dialog by keeping the dialog open, showing one compact partial-result summary, and marking remaining staged files as recoverable post-accept failures while preserving the calm full-success close path.`
+#### Scope / Constraints Honored
+- Kept the dialog as the primary staged-session owner and did not widen the staged store contract again.
+- Kept Browser and Console secondary by solving the recovery read inside the dialog instead of introducing a second transcript or a generic import job system.
+- Preserved the existing full-success path so successful acceptance still closes the dialog normally.
+#### Summary of Implementation
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so the controller now remembers the latest partial or failed staged acceptance result while the dialog stays open, clears that recovery state when the draft is reopened, closed, or restaged, and still clears straight through the existing full-success close path.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the staged import dialog now renders one compact mixed-result summary block, marks remaining staged rows with a row-local recoverable acceptance-failure treatment, and changes the visible primary action text to `Try Add To Project Again` when the dialog remains open after a failed or partial attempt.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) to style the mixed-result summary and row-local recovery blocks so they read clearly without overpowering the rest of the staged settings surface.
+- Updated [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx) and [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the new recovery state is passed into the dialog and the Browser proof now covers the visible partial-result summary, the row-local recovery messaging, and the honest retry-oriented primary action.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) to mark `Phase 4` implemented and record the delivered dialog recovery and messaging result.
+#### Files Changed
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.tsx`](./src/app/panels/BrowserPanel.tsx)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "partial Add To Project result|Multiple Objects In 1 Component journey"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "reports partial staged acceptance per file and keeps only failed files staged for recovery|commits reviewed multi-object staged glb imports with one shared direct source group and without exploded provenance|commits staged single-object imports only when accepted and stores the chosen import transform truth"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1396 -->
+### [1396] - 2026-04-16 18:50 - `Import-4 - Phase 3 - Add-To-Project Partial Result Contract`
+<!-- ENTRY 1396 -->
+HUMAN SUMMARY: `Gave staged Add To Project one honest per-file result contract so mixed-result acceptance can commit the good files, leave only failed files staged for recovery, and keep the dialog open until the later recovery phase decides how to summarize that result.`
+#### Scope / Constraints Honored
+- Kept this phase contract-first by widening the staged acceptance result shape without adding final dialog summary copy or broader recovery controls.
+- Preserved already successful accepted content instead of rolling back clean commits to fake an all-or-nothing result.
+- Kept the ownership in the store and limited the controller change to the compile-safe close-or-stay-open adaptation needed by the new contract.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so `commitStagedImportDraft()` now returns one structured per-file result contract, marks staged files with unresolved or failed structure inspection as failed acceptance entries, skips empty container commits for failed subtrees, and keeps only failed staged files in the draft after a mixed-result acceptance.
+- Updated [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts) so the import dialog now closes only on full staged success, while still selecting the committed anchor row when one exists.
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) to prove the new empty, full-success, and mixed-result staged acceptance shapes, including the partial case where one file commits and the failed file remains staged for later recovery.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the BrowserPanel proof now covers the repaired full-success path under the new contract and the controller behavior that keeps the staged dialog open after a partial acceptance result.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) to mark `Phase 3` implemented and record the delivered partial-result contract outcome.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/panels/useBrowserPanelController.ts`](./src/app/panels/useBrowserPanelController.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "returns null and keeps the draft open when Add To Project is attempted with no staged files|keeps accepted staged import blob URLs alive when the draft closes and only revokes them after the last imported owner is removed|commits staged single-object imports only when accepted and stores the chosen import transform truth|commits reviewed multi-object staged glb imports with one shared direct source group and without exploded provenance|reports partial staged acceptance per file and keeps only failed files staged for recovery"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "Multiple Objects In 1 Component journey|partial Add To Project result"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1395 -->
+### [1395] - 2026-04-16 18:21 - `Import-4 - Phase 2 - Per-File Staged Inspection Feedback`
+<!-- ENTRY 1395 -->
+HUMAN SUMMARY: `Improved the staged import dialog’s per-file inspection failure read so failed rows now explain the pre-commit problem more clearly, keep the raw inspection error visible, and stay distinct from both loading and successful structure-summary rows.`
+#### Scope / Constraints Honored
+- Kept this phase pre-commit-only and did not change staged acceptance, partial-result handling, or dialog recovery behavior.
+- Reused the existing `structureInspection.status` owner model instead of adding new staged state or a second failure contract.
+- Kept the structure summary honest by preserving `Reading structure...` for loading rows, preserving successful badge-and-label summaries for ready rows, and avoiding any fake structure read when inspection really failed.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so staged inspection failures now render a dedicated row-local failure block with:
+  - `Inspection failed`
+  - `Structure unavailable`
+  - helper copy explaining the file could not be inspected before commit and remains staged
+  - the raw thrown inspection message
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) to style the richer staged inspection failure treatment so it reads clearly without competing with the rest of the import settings.
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove the richer staged inspection failure treatment is rendered, the raw thrown message stays visible, successful rows do not receive the failure treatment, and the BrowserPanel suite still passes on the current left-column scroll-owner structure.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) to mark `Phase 2` implemented and record the delivered staged inspection feedback result.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1394 -->
+### [1394] - 2026-04-16 18:09 - `Import-4 - Phase 0.1.4 - Regression Proof And Narrow Cleanup`
+<!-- ENTRY 1394 -->
+HUMAN SUMMARY: `Closed out the split-import repair lane by tightening the staged import journey proof around the repaired .glb multi-object flow, so the test now explicitly covers truthful preview rows before commit, committed direct split child rows after Add To Project, and unchanged neighboring 1 Object behavior.`
+#### Scope / Constraints Honored
+- Kept this phase proof-and-closeout-only and did not add new import behavior, new runtime contract fields, or broader viewer cleanup.
+- Focused the closeout on the repaired staged `.glb` split-import journey instead of widening into the separate `0.2` performance lane.
+- Left the older explode path and the unchanged `1 Object` path explicit and intact.
+#### Summary of Implementation
+- Updated [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) so the strongest staged import Browser journey proof now uses the repaired `.glb` split-import case and explicitly asserts truthful preview rows before commit.
+- Tightened that same Browser journey proof so after `Add To Project` it now explicitly asserts committed split child rows keep truthful `sourcePartKey` plus `sourceMeshIndex`, emit `directPartSourceKind: 'split-import-child'`, share one `directPartSourceGroupId`, keep `explodedFromReferenceId: null`, and leave the neighboring flat accepted row on the unchanged `1 Object` shape.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md) to mark `Phase 0.1.4` implemented and close out `Import-4 Phase 0.1` as fully shipped.
+#### Files Changed
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "keeps the repaired Multiple Objects In 1 Component journey truthful before commit and commits split glb children without falling back to the old broken shape"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1393 -->
+### [1393] - 2026-04-16 17:32 - `Import-4 - Phase 0.2.3 - Focused Performance Proof And Narrow Cleanup`
+<!-- ENTRY 1393 -->
+HUMAN SUMMARY: `Locked the split-import performance optimization with stronger proof that one shared .glb source load can derive multiple child rows without repeated parses, and trimmed the last duplicated direct split group-id branch in ViewerHost without widening the viewer architecture.`
+#### Scope / Constraints Honored
+- Kept this phase proof-and-cleanup-only and did not add new runtime contract fields, new viewer handoff branches, generic asset caching, or Browser UI changes.
+- Kept the work `.glb`-focused and direct-split-specific while preserving exploded handoff behavior and fallback per-child load behavior.
+- Removed only one narrow piece of direct split residue by centralizing the repeated group-id read in `ViewerHost.tsx` instead of widening into a larger viewer refactor.
+#### Summary of Implementation
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) so the shared-source proof now explicitly covers multiple derived split siblings, keeps the shared `.glb` load count at one parse across the loaded source child plus handed-off siblings, and proves those sibling rows stay independent objects with truthful isolated mesh content.
+- Updated [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) so the host-level proof now covers multiple unloaded grouped split siblings and explicitly locks that they do not fall back into repeated `ensureReferenceLoaded(...)` calls after handoff is available.
+- Updated [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) to use one small `getDirectSplitSourceGroupId(...)` helper so the direct split group-id branch is no longer duplicated across the grouped handoff effect and the guarded sequential load loop.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.2%20-%20Shared%20Source%20Load%20And%20Child%20Derivation%20For%20Split%20Imports.md) to mark `Phase 0.2.3` implemented and close out `Import-4 Phase 0.2` as fully shipped.
+#### Files Changed
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+- [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.2%20-%20Shared%20Source%20Load%20And%20Child%20Derivation%20For%20Split%20Imports.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/viewer/Viewer.test.ts -t "hands off direct split children from one loaded group source and keeps the shared asset load to one parse across siblings"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/components/ViewerHost.test.tsx -t "hands off unloaded direct split siblings from one loaded group source without falling back to repeated child loads"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1392 -->
+### [1392] - 2026-04-16 17:23 - `Import-4 - Phase 0.2.2 - Split-Child Derivation Handoff`
+<!-- ENTRY 1392 -->
+HUMAN SUMMARY: `Implemented the actual load-once handoff for grouped split .glb children by teaching the viewer to keep one shared source object per split group, derive sibling rows from that cached source, and letting ViewerHost hand unloaded grouped children off instead of reparsing the same asset for each child.`
+#### Scope / Constraints Honored
+- Kept this phase focused on the direct split `.glb` handoff path and did not widen into generic asset-loader caching, Browser UI changes, or a broader load-loop rewrite.
+- Reused the existing clone-and-isolate child-derivation machinery instead of introducing a second mesh-derivation system.
+- Preserved exploded handoff as a separate explicit path while keeping fallback per-child load behavior available when the new direct split handoff cannot run.
+#### Summary of Implementation
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so direct split groups now keep one viewer-local shared source object per `directPartSourceGroupId`, track group membership, and expose `handoffDirectPartBackedReferenceChildren(...)` to derive grouped children from that cached source without reloading the shared asset.
+- Updated [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts) and [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx) so ViewerHost can detect grouped direct split siblings, hand unloaded siblings off from one already-loaded source child, and keep multiple siblings from the same group out of the repeated slow sequential load path.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) and [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx) with focused proof that the new handoff derives children from one loaded source and avoids repeated child loads in the host orchestration.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.2%20-%20Shared%20Source%20Load%20And%20Child%20Derivation%20For%20Split%20Imports.md) to mark `Phase 0.2.2` implemented and record the delivered handoff result.
+#### Files Changed
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/app/viewerBridge.ts`](./src/app/viewerBridge.ts)
+- [`src/app/components/ViewerHost.tsx`](./src/app/components/ViewerHost.tsx)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`src/app/components/ViewerHost.test.tsx`](./src/app/components/ViewerHost.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.2%20-%20Shared%20Source%20Load%20And%20Child%20Derivation%20For%20Split%20Imports.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/viewer/Viewer.test.ts -t "hands off direct split children from one loaded group source without reloading the shared asset"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/components/ViewerHost.test.tsx -t "hands off unloaded direct split siblings from one loaded group source without repeated child loads"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1391 -->
+### [1391] - 2026-04-16 17:11 - `Import-4 - Phase 0.2.1 - Shared Source Load Ownership For Direct Split Children`
+<!-- ENTRY 1391 -->
+HUMAN SUMMARY: `Implemented the first split-import performance subphase by adding one explicit shared source-group id for accepted direct split .glb siblings, wiring the staged commit seam to emit that group per committed split file, and locking the grouping contract in focused store proof so the later handoff phase can derive children from one shared source without guessing.`
+#### Scope / Constraints Honored
+- Kept this phase ownership-only and did not change viewer load behavior, viewer host handoff logic, or the generic asset loader.
+- Kept the first pass `.glb`-focused so only accepted direct split `.glb` children receive the new group id.
+- Preserved flat imports, `1 Object` behavior, exploded-reference behavior, committed ordering, and accepted transform behavior unchanged.
+#### Summary of Implementation
+- Updated [`src/app/references/referenceManifest.ts`](./src/app/references/referenceManifest.ts) to add the explicit `directPartSourceGroupId` field to `ReferenceLoadableItem`.
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so imported-reference records and Browser-facing reference items now carry `directPartSourceGroupId`, and `commitStagedImportDraft()` now emits one shared group id across direct split `.glb` siblings from the same committed staged file while leaving flat rows on `null`.
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so the staged split-import proof now uses a split `.glb` case and asserts that sibling children share one direct source group id while the flat accepted row keeps `null`.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.2%20-%20Shared%20Source%20Load%20And%20Child%20Derivation%20For%20Split%20Imports.md) to mark `Phase 0.2.1` implemented and record the delivered shared-source ownership contract.
+#### Files Changed
+- [`src/app/references/referenceManifest.ts`](./src/app/references/referenceManifest.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.2 - Shared Source Load And Child Derivation For Split Imports.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.2%20-%20Shared%20Source%20Load%20And%20Child%20Derivation%20For%20Split%20Imports.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "commits reviewed multi-object staged glb imports with one shared direct source group and without exploded provenance"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1390 -->
+### [1390] - 2026-04-16 16:50 - `Import-4 - Phase 0.1.3 - Commit Path Wiring For Multiple Objects In 1 Component`
+<!-- ENTRY 1390 -->
+HUMAN SUMMARY: `Rewired the staged multi-object commit path so accepted split children now emit the direct part-backed child contract instead of the old broken shape, while leaving flat imports, exploded references, ordering, and accepted transform behavior unchanged.`
+#### Scope / Constraints Honored
+- Kept this phase focused on the staged commit seam and did not change the staged dialog UI, preview Browser organization, Browser error handling, or the manual explode flow.
+- Preserved the `1 Object` path and flat accepted rows so only staged split children now emit the new direct part-backed child marker.
+- Left broader end-to-end cleanup and review work for `Phase 0.1.4`.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so `createCommittedImportedReference(...)` now emits `directPartSourceKind: 'split-import-child'` only when staged accepted child rows carry truthful `sourcePartKey` plus `sourceMeshIndex`, while still keeping `explodedFromReferenceId` as `null`.
+- Kept flat accepted rows and `1 Object` acceptance on the unchanged whole-reference contract with no direct child marker.
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so the staged split-import commit proof now asserts the repaired direct child contract and still verifies ordering plus accepted transform preservation.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md) to mark `Phase 0.1.3` implemented and record the delivered commit-path result.
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "commits reviewed multi-object staged imports as direct part-backed child references without exploded provenance"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1389 -->
+### [1389] - 2026-04-16 16:42 - `Import-4 - Phase 0.1.2 - Part-Backed Child Load Contract`
+<!-- ENTRY 1389 -->
+HUMAN SUMMARY: `Implemented the direct split-import child load contract by adding one explicit part-backed child marker to imported references, teaching the viewer to load those rows without exploded provenance, and proving the new branch while preserving the older exploded-contract rejection path.`
+#### Scope / Constraints Honored
+- Kept this phase runtime-contract-only and did not rewire the staged commit path, staged preview organization, or Browser UI behavior yet.
+- Added one explicit direct child marker instead of widening into a broader imported-reference schema redesign.
+- Preserved the older exploded child contract as a separate explicit branch with its existing provenance requirements.
+#### Summary of Implementation
+- Updated [`src/app/references/referenceManifest.ts`](./src/app/references/referenceManifest.ts) to add the explicit `directPartSourceKind` load marker to `ReferenceLoadableItem`.
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so imported-reference records and Browser-facing reference items now carry the new direct part-backed child marker while existing imported and exploded rows default it to `null`.
+- Updated [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts) so direct part-backed child references now branch away from exploded provenance and isolate the requested shared-asset mesh without requiring `explodedFromReferenceId`.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) with focused proof that the new direct split-import child contract loads successfully while rows without either direct or exploded provenance still fail before asset load.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md) to mark `Phase 0.1.2` implemented and record the delivered runtime-contract result.
+#### Files Changed
+- [`src/app/references/referenceManifest.ts`](./src/app/references/referenceManifest.ts)
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/viewer/Viewer.ts`](./src/viewer/Viewer.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/viewer/Viewer.test.ts -t "loads direct part-backed child references without exploded provenance through the split-import load contract|still rejects part-backed child fields without direct or exploded provenance|loads exploded imported references as isolated single-part objects"`
+- `C:\Program Files\nodejs\npx.cmd tsc -p tsconfig.json --noEmit`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1388 -->
+### [1388] - 2026-04-16 16:10 - `Import-4 - Phase 0.1.1 - Current Split-Import Failure Proof`
+<!-- ENTRY 1388 -->
+HUMAN SUMMARY: `Implemented the first Multiple Objects In 1 Component repair subphase as a proof-only pass by explicitly locking the current broken contract in tests: staged split children commit with per-part fields but no exploded provenance, and the viewer rejects those rows before asset load begins.`
+#### Scope / Constraints Honored
+- Kept the phase proof-only and did not change any runtime staged-import, viewer, or Browser behavior.
+- Tightened the existing staged split-import store proof instead of widening into a broader integration harness.
+- Added one focused viewer contract proof to make the current regression explicit before the later runtime repair phases begin.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) so the staged split-import commit proof now explicitly asserts that committed child rows carry `sourcePartKey` and `sourceMeshIndex` while still storing `explodedFromReferenceId` as `null`.
+- Updated [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts) so the viewer now has one focused proof that part-backed child fields without exploded provenance are rejected under the current load contract before any asset load begins.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md) to mark `Phase 0.1.1` implemented and record the proof-only result.
+#### Files Changed
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`src/viewer/Viewer.test.ts`](./src/viewer/Viewer.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 Phase 0.1 - Multiple Objects In 1 Component Mode Investigation And Repair.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20Phase%200.1%20-%20Multiple%20Objects%20In%201%20Component%20Mode%20Investigation%20And%20Repair.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "currently commits reviewed multi-object staged imports with per-part child fields but without exploded provenance"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/viewer/Viewer.test.ts -t "rejects part-backed child fields without exploded provenance under the current load contract"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1387 -->
+### [1387] - 2026-04-16 15:01 - `Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`
+<!-- ENTRY 1387 -->
+HUMAN SUMMARY: `Finished the staged import dialog containment fix by making the dialog body own the available height, moving the full left settings stack into one large scroll region, retiring the nested staged-files-only scrollbar, and keeping the Preview Browser clipped inside the window with its own local tree scroll.`
+#### Scope / Constraints Honored
+- Kept the follow-up inside the shipped `Import-4 / Phase 1` layout lane without changing staged draft state, preview organization behavior, or `Add To Project` logic.
+- Preserved the current two-column layout, the current narrow-width fallback, and the current `100px` top and bottom viewport buffer.
+- Reused the existing preview-tree local scrollbar instead of collapsing the whole dialog into one master scroll surface.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the left-side staged import working stack now lives inside one dedicated `Staged import settings` scroll region while the right-side preview Browser remains in its own column and the bottom action row stays outside both working scroll regions.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so the dialog shell now clips overflow, the body and two-column content area own the remaining height as the constrained middle region, the new left-column scrollbar uses the staged import scrollbar treatment, the old staged-files nested scroll owner is retired, and the preview column stays clipped inside the dialog.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove the new left settings scroll region exists, the old staged-files nested scroll region is gone, the preview Browser still owns its own scroll region, and the action row remains outside the body content area.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) to record the shipped `Phase 1` containment follow-up.
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "left settings scroll region|preview Browser"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1386 -->
+### [1386] - 2026-04-16 14:51 - `Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`
+<!-- ENTRY 1386 -->
+HUMAN SUMMARY: `Increased the staged import dialog breathing room from a 50px vertical buffer to a 100px vertical buffer so a full preview Browser stays clearly inside the model viewport working area instead of crowding the viewport chrome on dense import sessions.`
+#### Scope / Constraints Honored
+- Kept the follow-up narrowly inside the staged import dialog sizing rules and did not change staged draft state, preview organization behavior, or acceptance logic.
+- Preserved the shipped `Import-4 / Phase 1` two-column layout and only increased the vertical viewport clearance around the dialog.
+- Recorded the stronger buffer as a direct continuation of the shipped `Phase 1` polish work instead of opening a new phase family lane.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so `.BrowserImportDialogBackdrop` now reserves `100px` above and below the staged import dialog and `.BrowserImportDialog` caps itself at `calc(100vh - 200px)` on both standard and narrow-width layouts.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) to record the stronger shipped `Phase 1` viewport-buffer follow-up.
+#### Files Changed
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1385 -->
+### [1385] - 2026-04-16 14:46 - `Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`
+<!-- ENTRY 1385 -->
+HUMAN SUMMARY: `Followed up on the shipped staged import layout by enforcing an explicit 50px top and bottom viewport buffer, so a full-height Preview Browser no longer crowds the model viewport title strip or the docked console when the dialog reaches its vertical cap.`
+#### Scope / Constraints Honored
+- Kept the fix narrowly inside the staged import dialog sizing rules without changing staged draft state, preview organization behavior, or `Add To Project` logic.
+- Preserved the shipped two-column `Import-4 / Phase 1` layout and adjusted only the vertical breathing room around the dialog.
+- Recorded the follow-up in the active `Import-4` phase doc instead of widening into a new import-family phase.
+#### Summary of Implementation
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) so `.BrowserImportDialogBackdrop` now reserves `50px` above and below the staged import dialog and `.BrowserImportDialog` caps itself at `calc(100vh - 100px)` on both standard and narrow-width layouts.
+- Updated [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) to record the shipped `Phase 1` follow-up that keeps the full-height preview column clear of the viewport shell chrome.
+#### Files Changed
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1384 -->
+### [1384] - 2026-04-16 14:39 - `Import-4 - Phase 1 - Preview Browser Column And Scroll Polish`
+<!-- ENTRY 1384 -->
+HUMAN SUMMARY: `Polished the shipped staged import window by widening it into a real two-column dialog, moving the Preview Browser into its own full-height right-side working area, and giving that preview tree a dedicated local scrollbar while keeping the Add To Project action row separate below the content area.`
+#### Scope / Constraints Honored
+- Kept the phase UI-only and did not change staged draft state, preview organization data, or commit behavior.
+- Preserved the existing full-width bottom action row instead of pulling acceptance controls into the new column layout.
+- Added focused Browser proof for the new layout structure without widening into partial-failure or recovery work yet.
+#### Summary of Implementation
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the `Import Files` dialog body now renders as a two-column content area, with supported types, Browser intake, staged files, landing target, and accepted placement on the left, and the `Preview Browser` in its own dedicated right column.
+- Updated [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx) so the preview Browser now lives inside a dedicated preview scroll-region container with its own accessible region label while the tree itself remains the staged preview organization surface.
+- Updated [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css) to widen the dialog, add the two-column layout shell, add the dedicated preview-column and preview-scroll styling, preserve the separate action row, and include a narrow-width one-column fallback.
+- Expanded [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx) to prove the preview Browser now renders in its own dialog column with a dedicated scroll region and that the `Add To Project` action remains outside the content area.
+- Marked [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md) shipped for `Phase 1` and recorded the docs maintenance in [`docs/Doc-Log.md`](./docs/Doc-Log.md).
+#### Files Changed
+- [`src/app/panels/browserTreeMenus.tsx`](./src/app/panels/browserTreeMenus.tsx)
+- [`src/app/theme/surfaces/browser.css`](./src/app/theme/surfaces/browser.css)
+- [`src/app/panels/BrowserPanel.test.tsx`](./src/app/panels/BrowserPanel.test.tsx)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-4%20-%20Staged%20Import%20Session%20Feedback%20And%20Partial-Failure%20Reporting.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "preview Browser|staged import journey|draft component"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
+<!-- ENTRY 1383 -->
+### [1383] - 2026-04-16 14:15 - `Import-3 - Phase 12 - Post-Accept Imported Reference Load Failure Research And Fix`
+<!-- ENTRY 1383 -->
+HUMAN SUMMARY: `Fixed the staged-import blob lifetime bug that could turn newly accepted `.glb` imports red right after Add To Project by keeping committed imported-reference asset URLs alive across draft teardown while preserving cleanup for truly abandoned staged files.`
+#### Scope / Constraints Honored
+- Kept the phase narrow around the post-accept imported-reference load failure only.
+- Fixed the bug in asset ownership and staged cleanup rather than hiding the Browser error state or adding a viewer-specific workaround.
+- Preserved the existing imported-reference removal cleanup contract so blob URLs still release when the last imported owner is removed.
+#### Summary of Implementation
+- Updated [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts) so staged draft cleanup now skips `revokeObjectURL(...)` for any staged blob URL already owned by an accepted imported reference, preventing `closeStagedImportDraft()` from breaking the committed asset path immediately after `Add To Project`.
+- Expanded [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts) to prove accepted staged imports keep their blob URL after draft close, accepted imported references still revoke that blob URL on final removal, and abandoned staged files still revoke their blob URL when the draft closes without acceptance.
+- Marked [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md) shipped for Phase 12 and recorded the docs maintenance in [`docs/Doc-Log.md`](./docs/Doc-Log.md).
+#### Files Changed
+- [`src/app/store/useAppStore.ts`](./src/app/store/useAppStore.ts)
+- [`src/app/store/useAppStore.test.ts`](./src/app/store/useAppStore.test.ts)
+- [`docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-3 - Import Window Structure Review And Add-To-Project Settings.md`](./docs/Human-Plans/Architecture/Import/Future/Import_Phase%20Import-3%20-%20Import%20Window%20Structure%20Review%20And%20Add-To-Project%20Settings.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/Doc-Log.md`](./docs/Doc-Log.md)
+#### Verification
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/store/useAppStore.test.ts -t "keeps accepted staged import blob URLs alive|still revokes abandoned staged import blob URLs|commits staged single-object imports|commits reviewed multi-object staged imports"`
+- `C:\Program Files\nodejs\npx.cmd vitest run src/app/panels/BrowserPanel.test.tsx -t "staged import|Add To Project|Import Files"`
+- `C:\Program Files\nodejs\npm.cmd run build`
+
 <!-- ENTRY 1382 -->
 ### [1382] - 2026-04-16 13:54 - `Import-3 - Phase 11 - Narrow Cleanup And Regression Pass`
 <!-- ENTRY 1382 -->

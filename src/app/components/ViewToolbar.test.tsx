@@ -1213,6 +1213,7 @@ describe('ViewToolbar', () => {
       'Gizmo',
       'View',
       'Environment',
+      'Ground',
       'Materials',
     ])
     expect(container.querySelectorAll('[data-tab-active="true"]')).toHaveLength(1)
@@ -1262,7 +1263,7 @@ describe('ViewToolbar', () => {
     useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-secondary', {
       viewToolbarOpen: true,
       viewToolbarExpandedPresentationMode: 'tabs',
-      viewToolbarActiveTab: 'materials',
+      viewToolbarActiveTab: 'ground',
     })
 
     container = document.createElement('div')
@@ -1297,7 +1298,7 @@ describe('ViewToolbar', () => {
     ).not.toBeNull()
     expect(
       secondaryDock?.querySelector(
-        '[data-view-toolbar-section="materials"][data-tab-active="true"]',
+        '[data-view-toolbar-section="ground"][data-tab-active="true"]',
       ),
     ).not.toBeNull()
 
@@ -1322,7 +1323,7 @@ describe('ViewToolbar', () => {
     ).not.toBeNull()
     expect(
       remountedSecondaryDock?.querySelector(
-        '[data-view-toolbar-section="materials"][data-tab-active="true"]',
+        '[data-view-toolbar-section="ground"][data-tab-active="true"]',
       ),
     ).not.toBeNull()
     expect(
@@ -1332,7 +1333,116 @@ describe('ViewToolbar', () => {
     expect(
       useWorkspaceStore.getState().viewportChromeById['model-viewer-secondary']?.localViewState
         .viewToolbarActiveTab,
-    ).toBe('materials')
+    ).toBe('ground')
+  })
+
+  it('renders para-style view-level environment controls and keeps them on the shared view seam', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const viewSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('View'),
+    )
+    const shadowsSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Shadows"]',
+    ) as HTMLSelectElement | null
+    const toneMappingSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Tone Mapping"]',
+    ) as HTMLSelectElement | null
+    const increaseExposureButton = container.querySelector(
+      'button[aria-label="Increase Exposure"]',
+    ) as HTMLButtonElement | null
+
+    expect(viewSection).toBeTruthy()
+    expect(viewSection?.textContent).toContain('Shadows')
+    expect(viewSection?.textContent).toContain('Tone Mapping')
+    expect(viewSection?.textContent).not.toContain('Exposure Value')
+    expect(shadowsSelect).not.toBeNull()
+    expect(toneMappingSelect).not.toBeNull()
+    expect(increaseExposureButton).not.toBeNull()
+
+    await act(async () => {
+      if (shadowsSelect !== null) {
+        shadowsSelect.value = 'off'
+        shadowsSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      if (toneMappingSelect !== null) {
+        toneMappingSelect.value = 'none'
+        toneMappingSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      increaseExposureButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    expect(useUiPrefsStore.getState().view.shadowsEnabled).toBe(false)
+    expect(useUiPrefsStore.getState().view.toneMapping).toBe('none')
+    expect(useUiPrefsStore.getState().view.exposure).toBe(1.2)
+  })
+
+  it('renders a dedicated ground section and routes its controls into the shared ground view seam', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const groundSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
+      section.querySelector('summary')?.textContent?.includes('Ground'),
+    )
+    const groundSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Ground"]',
+    ) as HTMLSelectElement | null
+    const materialSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Material"]',
+    ) as HTMLSelectElement | null
+    const increaseHeightButton = container.querySelector(
+      'button[aria-label="Increase Ground Height"]',
+    ) as HTMLButtonElement | null
+
+    expect(groundSection).toBeTruthy()
+    expect(groundSection?.textContent).toContain('Ground Height')
+    expect(groundSection?.textContent).toContain('Material')
+    expect(groundSelect).not.toBeNull()
+    expect(materialSelect).not.toBeNull()
+    expect(increaseHeightButton).not.toBeNull()
+
+    await act(async () => {
+      if (groundSelect !== null) {
+        groundSelect.value = 'on'
+        groundSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+    await act(async () => {
+      increaseHeightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await act(async () => {
+      if (materialSelect !== null) {
+        materialSelect.value = 'glossy_studio'
+        materialSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.ground).toEqual({
+      enabled: true,
+      height: 0.5,
+      materialPresetId: 'glossy_studio',
+    })
   })
 
   it('publishes gizmo style controls into the shared axis-overlay style seam', async () => {

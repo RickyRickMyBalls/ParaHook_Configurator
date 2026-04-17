@@ -30,6 +30,9 @@ const DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 320
 
 const cloneView = (view: ViewSettings): ViewSettings => ({
   ...view,
+  ground: {
+    ...view.ground,
+  },
   axisOverlayStyle: {
     ...view.axisOverlayStyle,
   },

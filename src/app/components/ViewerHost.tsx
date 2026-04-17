@@ -99,6 +99,12 @@ const scaleSnapValuesFromDriver = (
   }
 }
 
+const getDirectSplitSourceGroupId = (item: {
+  directPartSourceKind?: string | null
+  directPartSourceGroupId?: string | null
+}): string | null =>
+  item.directPartSourceKind === 'split-import-child' ? item.directPartSourceGroupId ?? null : null
+
 const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
   switch (target.kind) {
     case 'references-root':
@@ -1512,6 +1518,65 @@ export function ViewerHost(props: ViewerHostProps) {
       return
     }
 
+    const directSplitGroups = new Map<
+      string,
+      {
+        loadedSourceItem: (typeof referenceWorkspaceItems)[number] | null
+        unloadedChildren: typeof referenceWorkspaceItems
+      }
+    >()
+
+    referenceWorkspaceItems.forEach((item) => {
+      const groupId = getDirectSplitSourceGroupId(item)
+      if (groupId === null) {
+        return
+      }
+      const existingGroup =
+        directSplitGroups.get(groupId) ?? {
+          loadedSourceItem: null,
+          unloadedChildren: [],
+        }
+      if (item.loadState === 'loaded') {
+        existingGroup.loadedSourceItem ??= item
+      } else if (item.loadState === 'unloaded' && item.isVisible) {
+        existingGroup.unloadedChildren = [...existingGroup.unloadedChildren, item]
+      }
+      directSplitGroups.set(groupId, existingGroup)
+    })
+
+    for (const [groupId, group] of directSplitGroups.entries()) {
+      if (group.loadedSourceItem === null || group.unloadedChildren.length === 0) {
+        continue
+      }
+      const handedOffReferenceIds = new Set(
+        viewer.handoffDirectPartBackedReferenceChildren(groupId, group.unloadedChildren, true),
+      )
+      if (handedOffReferenceIds.size === 0) {
+        continue
+      }
+
+      for (const child of group.unloadedChildren) {
+        if (!handedOffReferenceIds.has(child.referenceId)) {
+          continue
+        }
+        setReferenceItemLoadState(child.referenceId, 'loaded')
+        setReferenceItemPartRows(child.referenceId, [])
+        setReferenceItemVisibility(child.referenceId, true)
+      }
+    }
+  }, [
+    referenceWorkspaceItems,
+    setReferenceItemLoadState,
+    setReferenceItemPartRows,
+    setReferenceItemVisibility,
+  ])
+
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (viewer === null) {
+      return
+    }
+
     const currentReferenceIds = new Set(referenceWorkspaceItems.map((item) => item.referenceId))
     const removedReferenceIds = [...previousReferenceItemsRef.current.keys()].filter(
       (referenceId) => !currentReferenceIds.has(referenceId),
@@ -1548,9 +1613,27 @@ export function ViewerHost(props: ViewerHostProps) {
     }
 
     const syncReferences = async () => {
+      const handledDirectSplitGroupIds = new Set<string>()
       for (const item of referenceWorkspaceItems) {
         if (useAppStore.getState().referenceWorkspace.referenceLoadBatch !== null) {
           return
+        }
+        const directSplitGroupId = getDirectSplitSourceGroupId(item)
+        if (directSplitGroupId !== null) {
+          if (handledDirectSplitGroupIds.has(directSplitGroupId)) {
+            continue
+          }
+          handledDirectSplitGroupIds.add(directSplitGroupId)
+          const hasLoadedSibling = referenceWorkspaceItems.some(
+            (candidate) =>
+              candidate.referenceId !== item.referenceId &&
+              candidate.directPartSourceKind === 'split-import-child' &&
+              candidate.directPartSourceGroupId === directSplitGroupId &&
+              candidate.loadState === 'loaded',
+          )
+          if (hasLoadedSibling) {
+            continue
+          }
         }
         if (
           !item.isVisible ||
