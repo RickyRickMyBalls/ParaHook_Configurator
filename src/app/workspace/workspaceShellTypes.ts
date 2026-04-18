@@ -399,6 +399,56 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   return `spaghetti-${slotId}`
 }
 
+export const workspacePrimarySlotSupportsSurfaceKind = (
+  surfaceKind: WorkspaceSurfaceKind,
+): boolean =>
+  surfaceKind === 'modelViewer' ||
+  surfaceKind === 'browser' ||
+  surfaceKind === 'catalog' ||
+  surfaceKind === 'console' ||
+  surfaceKind === 'spaghettiEditor' ||
+  surfaceKind === 'notepad' ||
+  surfaceKind === 'dashboard'
+
+export const resolveWorkspaceActiveSurfaceInstanceId = ({
+  preferredSurfaceInstanceId,
+  viewportSlotsById,
+  detachedSlotSurfaceById,
+  primaryViewportId,
+}: {
+  preferredSurfaceInstanceId?: WorkspaceSurfaceInstanceId | null
+  viewportSlotsById: Record<string, WorkspaceViewportSlot>
+  detachedSlotSurfaceById?: Record<string, WorkspaceDetachedSlotSurfaceState>
+  primaryViewportId: WorkspaceViewportId
+}): WorkspaceViewportId => {
+  const slottedViewerIds = Object.values(viewportSlotsById)
+    .filter((slot) => slot.surfaceKind === 'modelViewer')
+    .map((slot) => slot.surfaceInstanceId)
+  if (
+    typeof preferredSurfaceInstanceId === 'string' &&
+    slottedViewerIds.includes(preferredSurfaceInstanceId)
+  ) {
+    return preferredSurfaceInstanceId
+  }
+
+  const detachedViewerIds = Object.values(detachedSlotSurfaceById ?? {})
+    .filter((surface) => surface.surfaceKind === 'modelViewer')
+    .map((surface) => surface.surfaceInstanceId)
+  if (
+    typeof preferredSurfaceInstanceId === 'string' &&
+    detachedViewerIds.includes(preferredSurfaceInstanceId)
+  ) {
+    return preferredSurfaceInstanceId
+  }
+
+  return (
+    slottedViewerIds[0] ??
+    detachedViewerIds[0] ??
+    viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceInstanceId ??
+    primaryViewportId
+  )
+}
+
 export const createNextWorkspaceGeneratedId = (
   prefix: string,
   existingIds: Iterable<string>,

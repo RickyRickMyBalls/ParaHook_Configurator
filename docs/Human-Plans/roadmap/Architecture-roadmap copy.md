@@ -3,7 +3,6 @@
 ## Doc Header
 
 ### Doc History
-30. 2026-04-18 10:32:19: Reworked the lower roadmap scan surfaces so this file now separates the active open queue from the parked open backlog and the shipped reference, widened the tracked family scope to include newer `Catalog`, `Import`, `Transform`, `Viewport HUD`, `Cleanup Gen2`, and `Worker Gen2` planning surfaces, and expanded the shipped/open summary so one-person planning can use this roadmap as the practical cross-family "what is still open" plus "what has already landed" reference
 29. 2026-04-17 14:57:36: Refreshed this roadmap against the live `Browser`, `View Toolbar`, and `Worker Vision` family docs, marking the shipped `Browser-13` cleanup slices, the now-landed `View-Toolbar 1`, `View-Toolbar 7`, `View-Toolbar 8 Phase 1` through `Phase 4`, and `Worker-Vision-3 Phase 6` through `Phase 9`, while expanding the `View Toolbar` family read past the stale older four-cut ladder
 28. 2026-04-13 15:00: Refreshed this roadmap against the live `Cleanup`, `Build Path`, and `Viewport Runtime Inspector` family indexes, adding the previously missing `Cleanup` and `Viewport Runtime Inspector` families, marking the now-shipped `Cleanup 1` through `Cleanup 10` ladder plus shipped `VRI-1` through `VRI-3.5` slices, and tightening the `Build Path` source-doc read around the new dedicated vision doc and the real lowercase `build-path-index.md` entrypoint
 27. 2026-04-10 09:25: Refreshed this roadmap against the live changelog plus the current Browser, Workspace, Worker, Model-Viewport, Sketch, and Extrude family docs, marking the newly shipped `Browser-12`, `Sketch-1`, `Extrude-4` through `Extrude-7`, `Worker Vision Phase 1` and `Phase 2`, and the latest `Worker-Vision-3` internal phases while replacing the stale `Workspace 7.5-7` through `7.5-11` ladder with the real open `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, and `Workspace 7.5-17` follow-ons
@@ -50,25 +49,19 @@ Use it to answer:
 This file covers:
 - `Browser`
 - `Console`
-- `Catalog`
 - `Edit History`
 - `Export`
 - `Layers`
 - `Build Path`
 - `Cleanup`
-- `Cleanup Gen2`
-- `Import`
 - `Radio`
 - `Camera Controls`
-- `Transform`
 - `View Toolbar`
-- `Viewport HUD`
 - `Workspace Modes`
 - `Model Viewport`
 - `Spaghetti Editor`
 - `Nodes`
 - `Worker`
-- `Worker Gen2`
 - `Worker Vision`
 - `Viewport Runtime Inspector`
 - `AppShell`
@@ -99,8 +92,6 @@ The `Cleanup` family now belongs in that tracker too because it has become a rea
 
 The `Viewport Runtime Inspector` family now belongs in that tracker too because it already has a shipped `VRI-1` through `VRI-3` ladder and one real open `VRI-4` follow-on instead of living only as a viewport wish-list note.
 
-The lower `To do`, `Other Open Families`, and `Shipped Reference` sections are now the practical scan surface for solo planning, so they should stay simpler than the family-by-family status map above while still being broad enough to catch newer generation indexes and side families that are easy to miss.
-
 ### Source Docs
 
 - `Browser`
@@ -116,26 +107,14 @@ The lower `To do`, `Other Open Families`, and `Shipped Reference` sections are n
 - `Build Path`
   - `docs/Human-Plans/Architecture/Build-Path/build-path-index.md`
   - `docs/Human-Plans/Architecture/Build-Path/Build-Path_Vision.md`
-- `Catalog`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
-  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
 - `Cleanup`
   - `docs/Human-Plans/Architecture/Cleanup/Cleanup-Index.md`
-- `Cleanup Gen2`
-  - `docs/Human-Plans/Architecture/Cleanup/Cleanup-Gen2-Index.md`
-- `Import`
-  - `docs/Human-Plans/Architecture/Import/Import-Index.md`
 - `Radio`
   - `docs/Human-Plans/Architecture/Radio/Radio.md`
 - `Camera Controls`
   - `docs/Human-Plans/Architecture/Camera-Controls/Camera_Controls-Index.md`
-- `Transform`
-  - `docs/Human-Plans/Architecture/Transform/transform-index.md`
 - `View Toolbar`
   - `docs/Human-Plans/Architecture/View-Toolbar/View-Toolbar-Index.md`
-- `Viewport HUD`
-  - `docs/Human-Plans/Architecture/Viewport-HUD/Viewport-HUD-Index.md`
 - `Workspace Modes`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
 - `Model Viewport`
@@ -149,8 +128,6 @@ The lower `To do`, `Other Open Families`, and `Shipped Reference` sections are n
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Spaghetti-Editor-Arch/Nodes/Extrude/extrude-index.md`
 - `Worker`
   - `docs/Human-Plans/Architecture/Worker/Worker.md`
-- `Worker Gen2`
-  - `docs/Human-Plans/Architecture/Worker/Worker-Index-Gen2.md`
 - `Worker Vision`
   - `docs/Human-Plans/Architecture/Worker/Worker-Vision.md`
 - `Viewport Runtime Inspector`
@@ -837,65 +814,95 @@ Source doc:
 - `docs/Human-Plans/Architecture/AppShell/AppShell-Index.md`
 
 Current read:
-- the current dedicated `AppShell` family has shipped its original `[5.0F]` through `[5.0F-2]` cleanup ladder
-- the family index now also carries one later open `AppShell 4 - Workspace Host Reorganization And Readability Cleanup` follow-on
-- that open `AppShell 4` cut should stay treated as a later workspace-driven cleanup after the current main workspace lane such as `Workspace 7`, `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, `Workspace 7.5-17`, `Workspace 5.3`, and `Workspace 8`, not as a reopening of the original shipped `[5.0F]` ladder
+- the current dedicated `AppShell` family is fully shipped for its local `[5.0F]` cleanup ladder
+- there is no open `5.0F` follow-on left inside the current AppShell family doc
+- if a later `AppShell` cleanup returns, it should be treated as a new workspace-driven follow-on after the current open workspace lane such as `Workspace 7.2b`, `Workspace 7.5`, `Workspace 7.5-4`, `Workspace 7.5-5`, `Workspace 7.5-17`, and `Workspace 5.3`, not as a reopening of the shipped `[5.0F]` family
 
 ### [x] [5.0F] AppShell Cleanup And Host Seam Extraction
 ### [x] [5.0F-1] AppShell Runtime Host Extraction
 ### [x] [5.0F-2] AppShell Window And Dock Host Extraction
-### [ ] AppShell 4 - Workspace Host Reorganization And Readability Cleanup
 
 ## To do
 
 This checklist should mirror the live family sections above.
 
-The lower roadmap view is intentionally split into three jobs:
-- `Suggested Working Order`
-  - the active near-term queue
-- `Other Open Families`
-  - real open work that should stay visible but is not in the current near-term order
-- `Shipped Reference`
-  - the grouped scan list of already-landed work
+Keep shipped items visible when they are part of a family that was previously stale in this file, so recent completed work does not disappear during roadmap cleanup.
 
 ### Suggested Working Order
 
 #### [~] - 1 - Workspace-Modes
-- [ ] `Workspace 7`
+- [x] `Workspace 0.1`
+- [x] `Workspace 1`
+- [x] `Workspace 2`
+- [x] `Workspace 3`
+- [x] `Workspace 4`
+- [x] `Workspace 5`
+- [x] `Workspace 5.1`
+- [x] `Workspace 5.2`
+- [x] `Workspace 6`
+- [x] `Workspace 7.1`
+- [x] `Workspace 7.2`
 - [ ] `Workspace 7.2b`
+- [x] `Workspace 7.2c`
+- [x] `Workspace 7.2d`
+- [x] `Workspace 7.2e`
+- [x] `Workspace 7.2f`
+- [x] `Workspace 7.3`
 - [ ] `Workspace 7.5`
 - [~] `Workspace 7.5-4`
 - [~] `Workspace 7.5-5`
 - [~] `Workspace 7.5-17`
 - [ ] `Workspace 5.3`
-- [ ] `Workspace 8`
 
 #### [~] - 2 - Cleanup
+- [x] `Cleanup 1`
+- [x] `Cleanup 2`
+- [x] `Cleanup 3`
+- [x] `Cleanup 4`
+- [x] `Cleanup 4A`
+- [x] `Cleanup 5`
+- [x] `Cleanup 6`
+- [x] `Cleanup 7`
+- [x] `Cleanup 8`
+- [x] `Cleanup 8A`
+- [x] `Cleanup 9`
+- [x] `Cleanup 10`
 - [ ] `Cleanup 11`
-- [ ] `Cleanup Gen2-1`
-- [ ] `Cleanup Gen2-2`
-- [ ] `Cleanup Gen2-3`
-- [ ] `Cleanup Gen2-4`
 
-#### [ ] - 3 - AppShell
-- [ ] `AppShell 4`
+#### [ ] - 3 - Later AppShell Cleanup
+- [ ] `AppShell - Later Workspace Cleanup Follow-On`
 
 #### [ ] - 4 - Model Viewport
 - [ ] `Model-Viewport 1`
-- [ ] `Model-Viewport 2 / Phase 4`
-- [ ] `Model-Viewport 2 / Phase 5`
+- [x] `Model-Viewport 1.1`
 
 #### [~] - 5 - View Toolbar
+- [x] `View Toolbar 1` (`[5.0I-1]`)
 - [ ] `View Toolbar 2` (`[5.0I-2]`)
 - [ ] `View Toolbar 3` (`[5.0I-3]`)
 - [ ] `View Toolbar 4` (`[5.0I-4]`)
 - [ ] `View Toolbar 5`
+- [x] `View Toolbar 5 Phase 1`
+- [x] `View Toolbar 5 Phase 1b`
+- [x] `View Toolbar 5 Phase 1c`
+- [x] `View Toolbar 5 Phase 2`
+- [x] `View Toolbar 5 Phase 3`
+- [x] `View Toolbar 5 Phase 4`
+- [x] `View Toolbar 5 Phase 5`
 - [ ] `View Toolbar 5 Phase 6`
 - [ ] `View Toolbar 6`
+- [x] `View Toolbar 7`
 - [ ] `View Toolbar 8`
+- [x] `View Toolbar 8 Phase 1`
+- [x] `View Toolbar 8 Phase 2`
+- [x] `View Toolbar 8 Phase 3`
+- [x] `View Toolbar 8 Phase 3.1`
+- [x] `View Toolbar 8 Phase 3.2`
+- [x] `View Toolbar 8 Phase 4`
 - [ ] `View Toolbar 8 Phase 5`
 
 #### [ ] - 6 - Sketch
+- [x] `Sketch-1`
 - [~] `Sketch-2`
 - [ ] `Sketch 1` (`[3.2A-1]`)
 - [ ] `Sketch 2` (`[3.2A-2]`)
@@ -915,10 +922,19 @@ The lower roadmap view is intentionally split into three jobs:
 
 #### [~] - 7 - Extrude
 - [~] `Extrude 1`
+- [x] `Extrude 1A`
 - [ ] `Extrude 1B`
 - [~] `Extrude 2`
+- [x] `Extrude 2.1`
 - [~] `Extrude 3`
+- [x] `Extrude 3.1`
+- [x] `Extrude 3.2`
+- [x] `Extrude 3.3`
 - [~] `Extrude 3.4`
+- [x] `Extrude 4`
+- [x] `Extrude 5`
+- [x] `Extrude 6`
+- [x] `Extrude 7`
 
 #### [ ] - 8 - Layers
 - [ ] `Layers 1`
@@ -937,225 +953,23 @@ The lower roadmap view is intentionally split into three jobs:
 - [~] `Build Path - Umbrella Concept And First Questions`
 
 #### [ ] - 11 - Worker Vision
+- [x] `Worker Vision 1`
+- [x] `Worker Vision 2`
 - [ ] `Worker Vision 3`
+- [x] `Worker-Vision-3 Phase 1`
+- [x] `Worker-Vision-3 Phase 2`
+- [x] `Worker-Vision-3 Phase 3`
+- [x] `Worker-Vision-3 Phase 4`
+- [x] `Worker-Vision-3 Phase 5`
+- [x] `Worker-Vision-3 Phase 6`
+- [x] `Worker-Vision-3 Phase 7`
+- [x] `Worker-Vision-3 Phase 8`
+- [x] `Worker-Vision-3 Phase 9`
 - [ ] `Worker-Vision-3 Phase 10`
 - [ ] `Worker Vision 4`
 - [ ] `Worker Vision 5`
 
 #### [~] - 12 - Viewport Runtime Inspector
-- [ ] `VRI 4`
-
-#### [ ] - 13 - Export
-- [ ] `Export 1`
-- [ ] `Export 2`
-- [ ] `Export 3`
-- [ ] `Export 4`
-
-### Other Open Families
-
-This section holds real open work that is still parked outside the current near-term working order.
-
-#### [ ] - Browser
-- [ ] `Browser 7`
-- [ ] `Browser 8`
-- [ ] `Browser 9`
-- [ ] `Browser 10`
-- [ ] `Browser 11`
-- [ ] `Browser 12.1`
-- [ ] `Browser 12.2`
-- [ ] `Browser 13`
-- [ ] `Browser 14`
-
-#### [~] - Console
-- [~] `Console 4.1I`
-
-#### [ ] - Camera Controls
-- [ ] `Camera 5` (`[5.0H-5]`)
-- [ ] `Camera 5.1`
-- [ ] `Camera 6`
-
-#### [ ] - Radio
-- [ ] `Radio 8`
-- [ ] `Radio 11`
-
-#### [ ] - Transform
-- [ ] `Transform 12`
-- [ ] `Transform 13.1`
-- [ ] `Transform 15.4`
-- [ ] `Transform 16`
-- [ ] `Transform 16.1`
-- [ ] `Transform 17`
-
-#### [~] - Import
-- [ ] `Import-2`
-- [~] `Import-4`
-- [ ] `Import-5`
-- [ ] `Import-6`
-- [ ] `Import-7`
-
-#### [ ] - Catalog
-- [ ] `Catalog-2`
-- [ ] `Catalog-3`
-- [ ] `Catalog-4`
-- [ ] `Catalog-5`
-
-#### [ ] - Catalog Gen0
-- [ ] `Catalog-Gen0-1`
-- [ ] `Catalog-Gen0-2`
-- [ ] `Catalog-Gen0-3`
-- [ ] `Catalog-Gen0-4`
-
-#### [ ] - Catalog Gen2
-- [ ] `Catalog-Gen2-1`
-- [ ] `Catalog-Gen2-2`
-- [ ] `Catalog-Gen2-3`
-- [ ] `Catalog-Gen2-4`
-- [ ] `Catalog-Gen2-5`
-- [ ] `Catalog-Gen2-6`
-
-#### [ ] - Spaghetti Editor
-- [ ] `Spaghetti-Editor 1`
-- [ ] `Spaghetti-Editor 3`
-- [ ] `Spaghetti-Editor 4`
-- [ ] `Master Spaghetti 1`
-
-#### [ ] - Viewport HUD
-- [ ] `Viewport-HUD 1`
-
-#### [ ] - Worker Gen2
-- [ ] `Worker - 9`
-- [ ] `Worker - 10`
-- [ ] `Worker - 11`
-- [ ] `Worker - 12`
-- [ ] `Worker - 13`
-- [ ] `Worker - 14`
-- [ ] `Worker - 15`
-- [ ] `Worker - 16`
-- [ ] `Worker - 17`
-- [ ] `Worker - 18`
-- [ ] `Worker - 19`
-
-### Shipped Reference
-
-This is the grouped shipped scan surface. Use it as the cross-family "already landed" reference, not as a timestamp-perfect changelog replacement.
-
-#### 1 - AppShell
-- [x] `AppShell 1` (`[5.0F]`)
-- [x] `AppShell 2` (`[5.0F-1]`)
-- [x] `AppShell 3` (`[5.0F-2]`)
-
-#### 2 - Worker Core
-- [x] `Worker 1` (`[5.3A-1]`)
-- [x] `Worker 2` (`[5.3A-2]`)
-- [x] `Worker 3` (`[5.3A-3]`)
-- [x] `Worker 4` (`[5.3A-4]`)
-- [x] `Worker 5` (`[5.3A-5]`)
-- [x] `Worker 6` (`[5.3A-6]`)
-- [x] `Worker 7` (`[5.3A-7]`)
-
-#### 3 - Browser
-- [x] `Browser 1`
-- [x] `Browser 2`
-- [x] `Browser 3`
-- [x] `Browser 4`
-- [x] `Browser 5`
-- [x] `Browser 5.1`
-- [x] `Browser 5.2`
-- [x] `Browser 5.3`
-- [x] `Browser 5.4`
-- [x] `Browser 5.5`
-- [x] `Browser 6`
-- [x] `Browser 7.1`
-- [x] `Browser 8.1`
-- [x] `Browser 8.2`
-- [x] `Browser 8.3`
-- [x] `Browser 8.4`
-- [x] `Browser 8.5`
-- [x] `Browser 8.7`
-- [x] `Browser 8.8.1`
-- [x] `Browser 8.8.2`
-- [x] `Browser 8.8.3`
-- [x] `Browser 9.1`
-- [x] `Browser 9.2`
-- [x] `Browser 9.3`
-- [x] `Browser 9.4`
-- [x] `Browser 9.5`
-- [x] `Browser 9.6`
-- [x] `Browser 9.7`
-- [x] `Browser 10.1`
-- [x] `Browser 10.2`
-- [x] `Browser 10.3`
-- [x] `Browser 10.4`
-- [x] `Browser 10.5`
-- [x] `Browser 11.1`
-- [x] `Browser 11.2`
-- [x] `Browser 11.3`
-- [x] `Browser 11.4`
-- [x] `Browser 11.5`
-- [x] `Browser 12`
-- [x] `Browser 13 / Phase 1`
-- [x] `Browser 13 / Phase 2`
-- [x] `Browser 13 / Phase 2.1`
-- [x] `Browser 13 / Phase 2.2`
-- [x] `Browser 13 / Phase 2.3`
-
-#### 4 - Workspace Modes
-- [x] `Workspace 0.1`
-- [x] `Workspace 1`
-- [x] `Workspace 2`
-- [x] `Workspace 3`
-- [x] `Workspace 4`
-- [x] `Workspace 5`
-- [x] `Workspace 5.1`
-- [x] `Workspace 5.2`
-- [x] `Workspace 6`
-- [x] `Workspace 7.1`
-- [x] `Workspace 7.2`
-- [x] `Workspace 7.2c`
-- [x] `Workspace 7.2d`
-- [x] `Workspace 7.2e`
-- [x] `Workspace 7.2f`
-- [x] `Workspace 7.3`
-- [x] `Workspace 7.5-1`
-- [x] `Workspace 7.5-2`
-- [x] `Workspace 7.5-3`
-
-#### 5 - Model Viewport
-- [x] `Model-Viewport 1.1`
-- [x] `Model-Viewport 2 / Phase 1`
-- [x] `Model-Viewport 2 / Phase 2`
-- [x] `Model-Viewport 2 / Phase 3`
-
-#### 6 - View Toolbar
-- [x] `View Toolbar 1` (`[5.0I-1]`)
-- [x] `View Toolbar 5 / Phase 1`
-- [x] `View Toolbar 5 / Phase 1b`
-- [x] `View Toolbar 5 / Phase 1c`
-- [x] `View Toolbar 5 / Phase 2`
-- [x] `View Toolbar 5 / Phase 3`
-- [x] `View Toolbar 5 / Phase 4`
-- [x] `View Toolbar 5 / Phase 5`
-- [x] `View Toolbar 7`
-- [x] `View Toolbar 8 / Phase 1`
-- [x] `View Toolbar 8 / Phase 2`
-- [x] `View Toolbar 8 / Phase 3`
-- [x] `View Toolbar 8 / Phase 3.1`
-- [x] `View Toolbar 8 / Phase 3.2`
-- [x] `View Toolbar 8 / Phase 4`
-
-#### 7 - Sketch And Extrude
-- [x] `Sketch-1`
-- [x] `Extrude 1A`
-- [x] `Extrude 2.1`
-- [x] `Extrude 3.1`
-- [x] `Extrude 3.2`
-- [x] `Extrude 3.3`
-- [x] `Extrude 4`
-- [x] `Extrude 5`
-- [x] `Extrude 6`
-- [x] `Extrude 7`
-
-#### 8 - Viewport Runtime Inspector
 - [x] `VRI 1`
 - [x] `VRI 1.1`
 - [x] `VRI 1.2`
@@ -1172,80 +986,171 @@ This is the grouped shipped scan surface. Use it as the cross-family "already la
 - [x] `VRI 3.3`
 - [x] `VRI 3.4`
 - [x] `VRI 3.5`
+- [ ] `VRI 4`
 
-#### 9 - Worker Vision
-- [x] `Worker Vision 1`
-- [x] `Worker Vision 2`
-- [x] `Worker-Vision-3 / Phase 1`
-- [x] `Worker-Vision-3 / Phase 2`
-- [x] `Worker-Vision-3 / Phase 3`
-- [x] `Worker-Vision-3 / Phase 4`
-- [x] `Worker-Vision-3 / Phase 5`
-- [x] `Worker-Vision-3 / Phase 6`
-- [x] `Worker-Vision-3 / Phase 7`
-- [x] `Worker-Vision-3 / Phase 8`
-- [x] `Worker-Vision-3 / Phase 9`
+#### [ ] - 13 - Export
+- [ ] `Export 1`
+- [ ] `Export 2`
+- [ ] `Export 3`
+- [ ] `Export 4`
+- [ ] `Master Spaghetti 1`
 
-#### 10 - Cleanup
-- [x] `Cleanup 1`
-- [x] `Cleanup 2`
-- [x] `Cleanup 3`
-- [x] `Cleanup 4`
-- [x] `Cleanup 4A`
-- [x] `Cleanup 5`
-- [x] `Cleanup 6`
-- [x] `Cleanup 7`
-- [x] `Cleanup 8`
-- [x] `Cleanup 8A`
-- [x] `Cleanup 9`
-- [x] `Cleanup 10`
+### Other Open Families
 
-#### 11 - Transform
-- [x] `Transform 1`
-- [x] `Transform 2`
-- [x] `Transform 3`
-- [x] `Transform 4`
-- [x] `Transform 5`
-- [x] `Transform 6`
-- [x] `Transform 7`
-- [x] `Transform 8`
-- [x] `Transform 9`
-- [x] `Transform 10`
-- [x] `Transform 11`
-- [x] `Transform 13`
-- [x] `Transform 13.2`
-- [x] `Transform 14`
-- [x] `Transform 15`
-- [x] `Transform 15.1`
-- [x] `Transform 15.2`
-- [x] `Transform 15.3`
+- [ ] `Browser 7`
+- [ ] `Browser 8`
+- [ ] `Browser 9`
+- [ ] `Browser 10`
+- [ ] `Browser 11`
+- [ ] `Browser 12.1`
+- [ ] `Browser 12.2`
+- [ ] `Browser 13`
+- [ ] `Browser 14`
+- [~] `Console 4.1I`
+- [ ] `Camera Controls 5` (`[5.0H-5]`)
+- [ ] `Radio 8`
+- [ ] `Radio 11`
 
-#### 12 - Import
-- [x] `Import-1`
-- [x] `Import-3`
+### Shipped Reference
 
-#### 13 - Catalog
-- [x] `Catalog-1`
-
-#### 14 - Camera Controls
-- [x] `Camera 1`
-- [x] `Camera 2`
-- [x] `Camera 3`
-- [x] `Camera 4`
-- [x] `Camera 7`
-
-#### 15 - Spaghetti Editor
-- [x] `Spaghetti-Editor 2`
+1. [x] `App Shell 1` (`[5.0F]`)
+2. [x] `App Shell 2` (`[5.0F-1]`)
+3. [x] `App Shell 3` (`[5.0F-2]`)
+4. [x] `Worker 1` (`[5.3A-1]`)
+5. [x] `Worker 3` (`[5.3A-3]`)
+6. [x] `Worker 2` (`[5.3A-2]`)
+7. [x] `Browser 1`
+8. [x] `Browser 2`
+9. [x] `Browser 3`
+10. [x] `Browser 4`
+11. [x] `Browser 5`
+12. [x] `Browser 5.1`
+13. [x] `Browser 5.2`
+14. [x] `Browser 5.3`
+15. [x] `Browser 5.5`
+16. [x] `Browser 5.4`
+17. [x] `Worker 4` (`[5.3A-4]`)
+18. [x] `Worker 5` (`[5.3A-5]`)
+19. [x] `Worker 6` (`[5.3A-6]`)
+20. [x] `Worker 7` (`[5.3A-7]`)
+21. [x] `Browser 6`
+22. [x] `Browser 7.1`
+23. [x] `Browser 8.3`
+24. [x] `Browser 8.4`
+25. [x] `Browser 8.8.1`
+26. [x] `Browser 8.8.2`
+27. [x] `Browser 8.1`
+28. [x] `Browser 8.8.3`
+29. [x] `Browser 8.2`
+30. [x] `Browser 9.1`
+31. [x] `Browser 9.2`
+32. [x] `Browser 9.3`
+33. [x] `Browser 9.4`
+34. [x] `Browser 9.5`
+35. [x] `Browser 8.5`
+36. [x] `Browser 9.6`
+37. [x] `Browser 9.7`
+38. [x] `Browser 8.7`
+39. [x] `Browser 10.1`
+40. [x] `Browser 10.2`
+41. [x] `Browser 10.3`
+42. [x] `Browser 10.4`
+43. [x] `Browser 10.5`
+44. [x] `Browser 11.1`
+45. [x] `Browser 11.2`
+46. [x] `Browser 11.3`
+47. [x] `Browser 11.4`
+48. [x] `Browser 11.5`
+49. [x] `Browser 12`
+50. [x] `Workspace 7.1`
+51. [x] `Workspace 7.2`
+52. [x] `Workspace 7.2c`
+53. [x] `Workspace 7.2d`
+54. [x] `Workspace 7.2e`
+55. [x] `Workspace 7.2f`
+56. [x] `Workspace 7.3`
+57. [x] `Workspace 7.5-1`
+58. [x] `Workspace 7.5-2`
+59. [x] `Workspace 7.5-3`
+60. [x] `Extrude 1A`
+61. [x] `Extrude 2.1`
+62. [x] `Extrude 3.1`
+63. [x] `Extrude 3.2`
+64. [x] `Extrude 3.3`
+65. [x] `Model-Viewport 1.1`
+66. [x] `Sketch-1`
+67. [x] `Extrude 4`
+68. [x] `Extrude 5`
+69. [x] `Extrude 6`
+70. [x] `Extrude 7`
+71. [x] `VRI 1`
+72. [x] `VRI 1.1`
+73. [x] `VRI 1.2`
+74. [x] `VRI 1.3`
+75. [x] `VRI 1.4`
+76. [x] `VRI 2`
+77. [x] `VRI 2.1`
+78. [x] `VRI 2.2`
+79. [x] `VRI 2.3`
+80. [x] `VRI 2.4`
+81. [x] `VRI 3`
+82. [x] `VRI 3.1`
+83. [x] `VRI 3.2`
+84. [x] `VRI 3.3`
+85. [x] `VRI 3.4`
+86. [x] `VRI 3.5`
+87. [x] `Worker Vision 1`
+88. [x] `Worker Vision 2`
+89. [x] `Worker-Vision-3 Phase 1`
+90. [x] `Worker-Vision-3 Phase 2`
+91. [x] `Worker-Vision-3 Phase 3`
+92. [x] `Worker-Vision-3 Phase 4`
+93. [x] `Worker-Vision-3 Phase 5`
+94. [x] `Worker-Vision-3 Phase 6`
+95. [x] `Worker-Vision-3 Phase 7`
+96. [x] `Worker-Vision-3 Phase 8`
+97. [x] `Worker-Vision-3 Phase 9`
+98. [x] `Browser 13 Phase 1`
+99. [x] `Browser 13 Phase 2`
+100. [x] `Browser 13 Phase 2.1`
+101. [x] `Browser 13 Phase 2.2`
+102. [x] `Browser 13 Phase 2.3`
+103. [x] `View Toolbar 1` (`[5.0I-1]`)
+104. [x] `View Toolbar 5 Phase 1`
+105. [x] `View Toolbar 5 Phase 1b`
+106. [x] `View Toolbar 5 Phase 1c`
+107. [x] `View Toolbar 5 Phase 2`
+108. [x] `View Toolbar 5 Phase 3`
+109. [x] `View Toolbar 5 Phase 4`
+110. [x] `View Toolbar 5 Phase 5`
+111. [x] `View Toolbar 7`
+112. [x] `View Toolbar 8 Phase 1`
+113. [x] `View Toolbar 8 Phase 2`
+114. [x] `View Toolbar 8 Phase 3`
+115. [x] `View Toolbar 8 Phase 3.1`
+116. [x] `View Toolbar 8 Phase 3.2`
+117. [x] `View Toolbar 8 Phase 4`
+118. [x] `Cleanup 1`
+119. [x] `Cleanup 2`
+120. [x] `Cleanup 3`
+121. [x] `Cleanup 4`
+122. [x] `Cleanup 4A`
+123. [x] `Cleanup 5`
+124. [x] `Cleanup 6`
+125. [x] `Cleanup 7`
+126. [x] `Cleanup 8`
+127. [x] `Cleanup 8A`
+128. [x] `Cleanup 9`
+129. [x] `Cleanup 10`
 
 ## Next Cleanup
 
 The likely next maintenance pass for this file is:
-- promote the summary-only families here into full upper family sections when time allows, especially `Catalog`, `Import`, `Transform`, `Viewport HUD`, `Cleanup Gen2`, and `Worker Gen2`
+- add more family notes only when a source architecture doc gains a real new phase
 - avoid inventing roadmap-only phase ids that do not exist in the family source docs
-- keep the newer `Worker Vision`, `Model Viewport`, `Sketch-1/2`, `Extrude`, `Catalog`, and `Cleanup Gen2` ladders synced from their native family docs instead of leaving them changelog-only
-- keep the newer `Browser-13`, `View-Toolbar 5/7/8`, later `Worker-Vision-3`, and `Model-Viewport-2` internal slices synced from their native family docs now that those ladders are landing in smaller shipped internal cuts
-- keep the newer `Cleanup`, `Viewport Runtime Inspector`, `Transform`, `Import`, and `Worker Gen2` ladders synced from their native family indexes now that they form real shipped/open architecture surfaces
-- keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own, and keep `Master Spaghetti 1` attached to that family instead of leaving it parked under `Export`
+- keep the newer `Worker Vision`, `Model Viewport`, `Sketch-1/2`, and `Extrude-6/7` ladders synced from their native family docs instead of leaving them changelog-only
+- keep the newer `Browser-13`, `View-Toolbar 5/7/8`, and later `Worker-Vision-3` slices synced from their native family docs now that those ladders are landing in smaller shipped internal cuts
+- keep the newer `Cleanup` and `Viewport Runtime Inspector` ladders synced from their native family indexes now that both families have real shipped/open phase trees
+- keep `Spaghetti Editor` explicit as a current gap until it gets a denser architecture-side phase ladder of its own
 - let `Build Path` stay marked as an umbrella concept family until its first standalone execution phase exists, while keeping the new vision doc and the umbrella index read aligned
 - keep the workspace checklist synced to the native `Workspace-Modes` family docs instead of reviving the older `Workspace 7.5-7` through `7.5-11` shorthand after the live family has moved on
-- if the grouped shipped scan surface grows too dense again, split it into one sibling shipped-reference doc instead of letting this roadmap drift back into another hard-to-scan wall

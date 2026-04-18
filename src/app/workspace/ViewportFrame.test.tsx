@@ -203,7 +203,7 @@ describe('ViewportFrame', () => {
     expect(container?.textContent).toContain('Dashboard')
   })
 
-  it('keeps catalog disabled in the primary slot viewport type submenu', async () => {
+  it('enables every Phase 5 primary-slot target in the viewport type submenu except Home Page-owned follow-ons', async () => {
     await renderFrame({
       isPrimary: true,
       surfaceKind: 'modelViewer',
@@ -230,13 +230,158 @@ describe('ViewportFrame', () => {
       container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
     ) as HTMLButtonElement[]
     const modelViewerButton = typeButtons.find((button) => button.textContent?.trim() === 'Model Viewport')
+    const browserButton = typeButtons.find((button) => button.textContent?.trim() === 'Browser')
     const catalogButton = typeButtons.find((button) => button.textContent?.trim() === 'Catalog')
+    const consoleButton = typeButtons.find((button) => button.textContent?.trim() === 'Console')
+    const spaghettiEditorButton = typeButtons.find(
+      (button) => button.textContent?.trim() === 'Spaghetti Editor',
+    )
+    const notepadButton = typeButtons.find((button) => button.textContent?.trim() === 'Notepad')
+    const dashboardButton = typeButtons.find((button) => button.textContent?.trim() === 'Dashboard')
 
     expect(modelViewerButton).toBeDefined()
     expect(modelViewerButton?.disabled).toBe(false)
+    expect(browserButton).toBeDefined()
+    expect(browserButton?.disabled).toBe(false)
     expect(catalogButton).toBeDefined()
-    expect(catalogButton?.disabled).toBe(true)
+    expect(catalogButton?.disabled).toBe(false)
+    expect(consoleButton).toBeDefined()
+    expect(consoleButton?.disabled).toBe(false)
+    expect(spaghettiEditorButton).toBeDefined()
+    expect(spaghettiEditorButton?.disabled).toBe(false)
+    expect(notepadButton).toBeDefined()
+    expect(notepadButton?.disabled).toBe(false)
+    expect(dashboardButton).toBeDefined()
+    expect(dashboardButton?.disabled).toBe(false)
   })
+
+  it('calls the primary-slot browser type action from the titlebar submenu', async () => {
+    const onRequestSurfaceKind = vi.fn()
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+      onRequestSurfaceKind,
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const typeGroup = container?.querySelectorAll(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    )[1] as HTMLDivElement | undefined
+    const typeButton = typeGroup?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      typeButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const browserButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Browser') as HTMLButtonElement | undefined
+
+    expect(browserButton).not.toBeUndefined()
+    expect(browserButton?.disabled).toBe(false)
+
+    await act(async () => {
+      browserButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onRequestSurfaceKind).toHaveBeenCalledWith('browser')
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it('calls the primary-slot catalog type action from the titlebar submenu', async () => {
+    const onRequestSurfaceKind = vi.fn()
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+      onRequestSurfaceKind,
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const typeGroup = container?.querySelectorAll(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    )[1] as HTMLDivElement | undefined
+    const typeButton = typeGroup?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      typeButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const catalogButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Catalog') as HTMLButtonElement | undefined
+
+    expect(catalogButton).not.toBeUndefined()
+    expect(catalogButton?.disabled).toBe(false)
+
+    await act(async () => {
+      catalogButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    expect(onRequestSurfaceKind).toHaveBeenCalledWith('catalog')
+    expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+  })
+
+  it.each([
+    ['Console', 'console'],
+    ['Spaghetti Editor', 'spaghettiEditor'],
+    ['Notepad', 'notepad'],
+    ['Dashboard', 'dashboard'],
+  ] as const)(
+    'calls the primary-slot %s type action from the titlebar submenu',
+    async (buttonLabel, expectedSurfaceKind) => {
+      const onRequestSurfaceKind = vi.fn()
+      await renderFrame({
+        isPrimary: true,
+        surfaceKind: 'modelViewer',
+        onRequestSurfaceKind,
+      })
+
+      const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+      await act(async () => {
+        header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+      })
+
+      const typeGroup = container?.querySelectorAll(
+        '.ViewportFrameActionMenuSubmenuGroup',
+      )[1] as HTMLDivElement | undefined
+      const typeButton = typeGroup?.querySelector(
+        '.ViewportFrameActionMenuAction--submenu',
+      ) as HTMLButtonElement | null
+
+      await act(async () => {
+        typeButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+      })
+
+      const targetButton = Array.from(
+        container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+      ).find((button) => button.textContent?.trim() === buttonLabel) as HTMLButtonElement | undefined
+
+      expect(targetButton).not.toBeUndefined()
+      expect(targetButton?.disabled).toBe(false)
+
+      await act(async () => {
+        targetButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      })
+
+      expect(onRequestSurfaceKind).toHaveBeenCalledWith(expectedSurfaceKind)
+      expect(container?.querySelector('.ViewportFrameActionMenu')).toBeNull()
+    },
+  )
 
   it('calls the viewport type action from the titlebar submenu', async () => {
     const onRequestSurfaceKind = vi.fn()

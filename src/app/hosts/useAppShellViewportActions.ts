@@ -7,6 +7,7 @@ import {
   defaultBrowserFloatingPosition,
   defaultBrowserFloatingSize,
   defaultPrimaryViewportSlotId,
+  workspacePrimarySlotSupportsSurfaceKind,
   type WorkspaceDetachedSlotSurfaceState,
   type WorkspaceEditorSurfaceBinding,
   type WorkspaceLayoutNode,
@@ -352,7 +353,10 @@ export function useAppShellViewportActions(input: UseAppShellViewportActionsInpu
       if (currentSlot === null) {
         return
       }
-      if (slotId === defaultPrimaryViewportSlotId) {
+      if (
+        slotId === defaultPrimaryViewportSlotId &&
+        !workspacePrimarySlotSupportsSurfaceKind(nextSurfaceKind)
+      ) {
         return
       }
       const nextSurfaceInstanceId =

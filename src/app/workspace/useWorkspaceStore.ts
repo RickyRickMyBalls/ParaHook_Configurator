@@ -21,6 +21,8 @@ import {
   defaultPrimaryViewportSlotId,
   defaultSecondaryViewportSlotId,
   defaultViewportLayoutRootNodeId,
+  resolveWorkspaceActiveSurfaceInstanceId,
+  workspacePrimarySlotSupportsSurfaceKind,
   type BrowserShellState,
   type BrowserPresentationMode,
   type BrowserFloatingPosition,
@@ -1148,13 +1150,22 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
       const nextDetachedSlotSurfaceById = { ...state.detachedSlotSurfaceById }
       delete nextDetachedSlotSurfaceById[surfaceInstanceId]
       nextDetachedSlotSurfaceById[nextSurfaceInstanceId] = nextDetachedSurface
-      return withDerivedBrowserContract(state, {
-        detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
-        ...(currentDetachedSurface.surfaceKind === 'modelViewer' &&
+      const nextActiveViewerViewportId =
+        currentDetachedSurface.surfaceKind === 'modelViewer' &&
         surfaceKind !== 'modelViewer' &&
         state.activeViewerViewportId === currentDetachedSurface.surfaceInstanceId
-          ? { activeViewerViewportId: state.primaryViewportId }
-          : {}),
+          ? resolveWorkspaceActiveSurfaceInstanceId({
+              preferredSurfaceInstanceId: state.activeViewerViewportId,
+              viewportSlotsById: state.viewportSlotsById,
+              detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+              primaryViewportId: state.primaryViewportId,
+            })
+          : null
+      return withDerivedBrowserContract(state, {
+        detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+        ...(nextActiveViewerViewportId === null
+          ? {}
+          : { activeViewerViewportId: nextActiveViewerViewportId }),
       })
     })
     return nextSurfaceInstanceId
@@ -1283,6 +1294,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
       if (currentSlot === undefined || currentSlot.surfaceKind === surfaceKind) {
         return state
       }
+      if (
+        slotId === defaultPrimaryViewportSlotId &&
+        !workspacePrimarySlotSupportsSurfaceKind(surfaceKind)
+      ) {
+        return state
+      }
       const nextRetainedSurfaceInstanceIdsByKind: Partial<Record<WorkspaceSurfaceKind, string>> = {
         ...currentSlot.retainedSurfaceInstanceIdsByKind,
         [currentSlot.surfaceKind]: currentSlot.surfaceInstanceId,
@@ -1294,32 +1311,43 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
         options?.surfaceInstanceId ??
         nextRetainedSurfaceInstanceIdsByKind[surfaceKind] ??
         createWorkspaceSurfaceInstanceIdForSlot(surfaceKind, slotId)
-      return withDerivedBrowserContract(state, {
-        viewportSlotsById: {
-          ...state.viewportSlotsById,
-          [slotId]: {
-            ...currentSlot,
-            surfaceKind,
-            surfaceInstanceId: nextSurfaceInstanceId,
-            hostViewportId:
-              surfaceKind === 'modelViewer'
-                ? currentSlot.hostViewportId ?? state.primaryViewportId
-                : state.primaryViewportId,
-            retainedSurfaceInstanceIdsByKind: {
-              ...nextRetainedSurfaceInstanceIdsByKind,
-              [surfaceKind]: nextSurfaceInstanceId,
-            },
+      const nextViewportSlotsById = {
+        ...state.viewportSlotsById,
+        [slotId]: {
+          ...currentSlot,
+          surfaceKind,
+          surfaceInstanceId: nextSurfaceInstanceId,
+          hostViewportId:
+            surfaceKind === 'modelViewer'
+              ? currentSlot.hostViewportId ?? state.primaryViewportId
+              : state.primaryViewportId,
+          retainedSurfaceInstanceIdsByKind: {
+            ...nextRetainedSurfaceInstanceIdsByKind,
+            [surfaceKind]: nextSurfaceInstanceId,
           },
         },
-        ...(currentSlot.surfaceKind === 'modelViewer' &&
+      }
+      const nextActiveViewerViewportId =
+        currentSlot.surfaceKind === 'modelViewer' &&
         surfaceKind !== 'modelViewer' &&
         state.activeViewerViewportId === currentSlot.surfaceInstanceId
-          ? { activeViewerViewportId: state.primaryViewportId }
-          : {}),
+          ? resolveWorkspaceActiveSurfaceInstanceId({
+              preferredSurfaceInstanceId: state.activeViewerViewportId,
+              viewportSlotsById: nextViewportSlotsById,
+              detachedSlotSurfaceById: state.detachedSlotSurfaceById,
+              primaryViewportId: state.primaryViewportId,
+            })
+          : null
+      return withDerivedBrowserContract(state, {
+        viewportSlotsById: nextViewportSlotsById,
+        ...(nextActiveViewerViewportId === null
+          ? {}
+          : { activeViewerViewportId: nextActiveViewerViewportId }),
       })
     })
   },
   hydratePersistedWorkspaceLayout: (layout) => {
+    const defaultSlotTree = createDefaultWorkspaceSlotTree()
     const nextViewportChromeById = Object.fromEntries(
       Object.entries(layout.viewportChromeById).map(([viewportId, chrome]) => [
         viewportId,
@@ -1333,6 +1361,21 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
         },
       ]),
     )
+    const nextViewportSlotsById =
+      Object.keys(layout.viewportSlotsById ?? {}).length > 0
+        ? {
+            ...layout.viewportSlotsById,
+          }
+        : defaultSlotTree.viewportSlotsById
+    const nextViewportLayoutNodesById =
+      Object.keys(layout.viewportLayoutNodesById ?? {}).length > 0
+        ? {
+            ...layout.viewportLayoutNodesById,
+          }
+        : defaultSlotTree.viewportLayoutNodesById
+    const nextDetachedSlotSurfaceById = {
+      ...(layout.detachedSlotSurfaceById ?? {}),
+    }
     set((state) =>
       withDerivedBrowserContract(state, {
       leftDockWidth: Math.round(layout.leftDockWidth),
@@ -1359,7 +1402,12 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
         viewportSplitDockSide: layout.browserShell.viewportSplitDockSide,
         popoutState: layout.browserShell.popoutState,
       },
-      activeViewerViewportId: layout.activeViewerViewportId ?? layout.primaryViewportId,
+      activeViewerViewportId: resolveWorkspaceActiveSurfaceInstanceId({
+        preferredSurfaceInstanceId: layout.activeViewerViewportId ?? null,
+        viewportSlotsById: nextViewportSlotsById,
+        detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
+        primaryViewportId: layout.primaryViewportId,
+      }),
       primaryViewportId: layout.primaryViewportId,
       viewportChromeById:
         Object.keys(nextViewportChromeById).length > 0
@@ -1370,21 +1418,9 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set, get) => ({
               ),
             },
       viewportSlotRootNodeId: layout.viewportSlotRootNodeId ?? defaultViewportLayoutRootNodeId,
-      viewportSlotsById:
-        Object.keys(layout.viewportSlotsById ?? {}).length > 0
-          ? {
-              ...layout.viewportSlotsById,
-            }
-          : createDefaultWorkspaceSlotTree().viewportSlotsById,
-      viewportLayoutNodesById:
-        Object.keys(layout.viewportLayoutNodesById ?? {}).length > 0
-          ? {
-              ...layout.viewportLayoutNodesById,
-            }
-          : createDefaultWorkspaceSlotTree().viewportLayoutNodesById,
-      detachedSlotSurfaceById: {
-        ...(layout.detachedSlotSurfaceById ?? {}),
-      },
+      viewportSlotsById: nextViewportSlotsById,
+      viewportLayoutNodesById: nextViewportLayoutNodesById,
+      detachedSlotSurfaceById: nextDetachedSlotSurfaceById,
       editorSurfacePlacementById: {
         ...layout.editorSurfacePlacementById,
       },

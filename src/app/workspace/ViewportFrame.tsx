@@ -7,7 +7,11 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
-import type { WorkspaceSurfaceKind, WorkspaceViewportSlotId } from './workspaceShellTypes'
+import {
+  workspacePrimarySlotSupportsSurfaceKind,
+  type WorkspaceSurfaceKind,
+  type WorkspaceViewportSlotId,
+} from './workspaceShellTypes'
 
 export type ViewportFrameHeaderDragOutPayload = {
   pointerId: number
@@ -122,7 +126,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
       ).map((kind) => ({
         kind,
         label: surfaceKindLabels[kind],
-        disabled: isPrimary && kind !== 'modelViewer',
+        disabled: isPrimary && !workspacePrimarySlotSupportsSurfaceKind(kind),
       })),
     [availableSurfaceKinds, isPrimary],
   )

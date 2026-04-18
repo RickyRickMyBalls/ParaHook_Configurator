@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-04-18 11:13:14: Added the first `Human-Docs` entry point to the hosted docs landing page so the site now exposes a lighter reader-facing explanation layer beside the existing roadmap, architecture, and planning hubs
 19. 2026-04-06 08:17: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.3` future doc out of the broader `Extrude-3` authored follow-on ladder, so the docs landing page now points directly at the focused direction-modes and depth-row-contract follow-on beside `Extrude-3.2`
 18. 2026-04-05 11:19: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.2` future doc out of the broader `Extrude-3` authored-semantics ladder, so the docs landing page now points directly at the focused real-type-contract follow-on beside `Extrude-3` and the finished `Extrude-3.1` groundwork
 17. 2026-04-05 09:41: Refreshed the hosted Extrude docs listing again after carving the new published `Extrude-3.1` future doc out of task `1` under `Extrude-3`, so the docs landing page now points directly at the reusable enum-row follow-on beside the broader type-and-mode completion lane
@@ -53,6 +54,14 @@ This page is meant to feel like a launcher, not a raw repo dump.
   Canonical docs map plus the repo's documentation-structure rules.
 
   [Open Doc Index](Doc-Index.md)
+
+- __Human Docs__
+
+  ---
+
+  Reader-facing project explanations, core concepts, and workspace guides.
+
+  [Open Human Docs](Human-Docs/index.md)
 
 - __Roadmap__
 

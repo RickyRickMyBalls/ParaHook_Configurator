@@ -3,6 +3,13 @@
 ## Doc Header
 
 ### Doc History
+38. 2026-04-18 10:45:51: Marked `Model-Viewport-2 / Phase 5 - Full Primary Workspace Reassignment Coverage` shipped inside the dedicated `Model-Viewport-2` child doc after the repo retired the remaining primary-slot target limits, widened the shared primary-slot workspace coverage to the remaining slotted surfaces through the existing titlebar type submenu path, and completed the current `Model-Viewport-2` ladder while still leaving `Home Page` ownership and startup semantics with the `Home Page` family
+37. 2026-04-18 10:38:12: Marked `Model-Viewport-2 / Phase 4 - Restore And Zero-Viewer Honesty` shipped inside the dedicated `Model-Viewport-2` child doc after the repo added one shared active-surface resolver, taught both live store transitions and persisted-layout normalization to re-resolve active workspace ownership to real surviving model viewers or the honest current primary-slot surface, and advanced the later lane so `Phase 5 - Full Primary Workspace Reassignment Coverage` is now the next open step
+36. 2026-04-18 10:20:49: Updated the dedicated `Model-Viewport-2` child planning lane to add `Phase 5 - Full Primary Workspace Reassignment Coverage` after the existing restore and zero-viewer honesty pass, reserving the later "switch the main slot to any supported workspace surface" widening as its own explicit follow-up instead of folding it into `Phase 4`
+35. 2026-04-18 10:14:29: Marked `Model-Viewport-2 / Phase 3 - Primary Catalog Switch Action` shipped inside the dedicated `Model-Viewport-2` child doc after the repo widened the shared primary-slot supported-surface allowlist to include `Catalog`, let the existing titlebar type submenu dispatch that primary-slot `Catalog` action, and added focused workspace-store plus viewport-menu proof while keeping the remaining unsupported primary targets disabled
+34. 2026-04-18 10:04:42: Updated the dedicated `Model-Viewport-2` child planning lane to add `Phase 3 - Primary Catalog Switch Action` as one explicit follow-up after the shipped Browser-first submenu unlock, reserving `Catalog` support as its own narrow widening step and moving the old restore plus zero-viewer closeout to `Phase 4`
+33. 2026-04-18 09:58:07: Marked `Model-Viewport-2 / Phase 2 - Main Viewport Switch Action` shipped inside the dedicated `Model-Viewport-2` child doc after the repo enabled primary-slot `Browser` through the existing titlebar viewport-type submenu in `ViewportFrame.tsx`, kept unsupported primary targets disabled, and added focused `ViewportFrame.test.tsx` proof while preserving the already-shipped shared primary-slot reassignment contract underneath
+32. 2026-04-18 09:30:19: Marked `Model-Viewport-2 / Phase 1 - Primary Slot Reassignment Contract` shipped inside the dedicated `Model-Viewport-2` child doc after the repo added one explicit primary-slot supported-surface contract, let the shared slot-surface seam switch the primary slot to supported `browser` after startup, preserved the startup default primary `modelViewer`, and added focused workspace-store proof while keeping menus, persistence, and zero-viewer handoff deferred to later `2.x` phases
 31. 2026-04-17 21:40:14: Added the dedicated future doc `Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md`, turning the newly-reserved later `Model-Viewport 2` follow-on into one real planning home with an initial small phase ladder around retiring the protected-main-viewer rule, letting the primary slot switch to another workspace surface, and keeping persistence plus zero-viewer handoff honest
 30. 2026-04-17 21:38:04: Added the later family follow-on `Model-Viewport 2 - Primary Viewport Workspace Reassignment`, reserving one explicit model-viewport phase for letting the user switch the current main `Model Viewport` slot to another workspace surface without pretending that the still-open `1.3` geometry/export ladder is no longer the next honest handoff
 29. 2026-04-07 08:30: Marked `Model-Viewport 1.3 Phase 6C - Backend Failure Honesty And Focused Verification` shipped inside the dedicated `1.3` child doc after the authoritative worker seam adopted honest `null` fallback handling for OC boot/build failures, released minted `shape_set` handles on rejected bundle assembly, and refreshed this family handoff so the next honest model-viewport step now points at `Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
@@ -354,7 +361,11 @@ Reason:
 Dedicated future doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md`
 Current status:
-- open in the dedicated future doc as a later follow-on after the current `1.3` geometry/export handoff
+- `Phase 1 - Primary Slot Reassignment Contract` shipped there
+- `Phase 2 - Main Viewport Switch Action` shipped there
+- `Phase 3 - Primary Catalog Switch Action` shipped there
+- `Phase 4 - Restore And Zero-Viewer Honesty` is now shipped inside that dedicated future doc
+- `Phase 5 - Full Primary Workspace Reassignment Coverage` is now shipped inside that dedicated future doc
 - reserved here so the user goal of changing the main `Model Viewport` into a different workspace now has one honest planning home
 
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
@@ -443,6 +454,11 @@ Definition of done:
 - the repo still treats one primary `Model Viewport` as a protected anchor
 - the current next honest `Model Viewport` implementation handoff still remains in `Model-Viewport 1.3`
 - this later phase is intentionally reserved now so the workspace-facing follow-on has one explicit family home when the repo is ready to let the primary slot switch to `Home Page` or another supported workspace surface
+- `Phase 1 - Primary Slot Reassignment Contract` is now shipped in the dedicated future doc
+- `Phase 2 - Main Viewport Switch Action` is now shipped in the dedicated future doc
+- `Phase 3 - Primary Catalog Switch Action` is now shipped in the dedicated future doc
+- `Phase 4 - Restore And Zero-Viewer Honesty` is now shipped in the dedicated future doc
+- `Phase 5 - Full Primary Workspace Reassignment Coverage` is now shipped in the dedicated future doc
 
 ### Questions
 

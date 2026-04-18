@@ -1,8 +1,9 @@
-# [x] `Catalog-1.12` - `Item Card Add To Project Action`
+# [ ] `Catalog-1.12` - `Item Card Add To Project Action`
 
 ## Doc Header
 
 ### Doc History
+7. 2026-04-18 10:51:04: Added `Catalog-1.12 / Phase 3 - Second Shoe 3D File Seed Expansion`, reopening this small follow-up ladder again so the Catalog shoes slice can surface one additional repo-backed shoe entry through the existing manifest and seed-item seams where the broader reference manifest already includes `Shoe 2` but the current Catalog seed list still only exposes `Shoe 1`
 6. 2026-04-18 09:20:47: Implemented `Catalog-1.12 / Phase 2 - Grid Scroll Ownership And Edge Padding Reduction`, widening the shared Catalog shell with one explicit content-body scroll owner, removing the old slotted-shell outer padding assumption, and adding focused `CatalogSurface.test.tsx` proof that the shell now exposes owned scrolling inside the surface without reopening preview, commit, or item-page behavior
 5. 2026-04-18 09:13:54: Prepped `Catalog-1.12 / Phase 2 - Grid Scroll Ownership And Edge Padding Reduction` for implementation, grounding the next cut in the live `catalog.css` shell where `.CatalogShell` still carries the outer `padding: 16px`, `.CatalogShellContent` still lacks explicit overflow ownership, `CatalogSurface.tsx` still hosts the shell directly without a separate layout wrapper, and `CatalogSurface.test.tsx` still has no layout proof for internal scroll or split-edge fit so the next pass can stay a small CSS-first shell polish instead of drifting into behavior or action changes
 4. 2026-04-18 09:00:00: Added `Catalog-1.12 / Phase 2 - Grid Scroll Ownership And Edge Padding Reduction`, reopening this follow-up branch as a narrow Catalog UI polish pass after shipped `Phase 1` so the grid or content area can own vertical scrolling inside the workspace surface and the outer Catalog shell can stop carrying the extra split-pane edge padding that currently keeps the content from reaching the viewport boundary cleanly
@@ -18,6 +19,7 @@ Use it to answer:
 - how grid cards should expose a direct `Add To Project` action without forcing the item page first
 - which existing Catalog commit seams should be reused instead of reinvented
 - how to keep card-level commit separate from preview loading, item-page ownership, and environment apply behavior
+- how one narrow follow-up can surface a second repo-backed shoe 3D file without widening into broader Catalog family work
 
 ### Why This Phase Exists
 
@@ -42,19 +44,21 @@ This doc covers:
 - reuse of the existing repo-backed action-plan and commit-routing seams
 - focused proof that grid-card commit still becomes downstream Browser/project truth
 - follow-up Catalog shell polish for owned scrolling and split-edge padding reduction
+- a narrow Catalog shoes-seed widening so the current single-shoe slice can grow to two live repo-backed 3D entries
 
 This doc does not cover:
 - preview-session redesign
 - item-page action redesign
 - multi-select batch commit behavior
 - environment-apply card actions
+- a broad shoes-family metadata or filtering pass
 - later family-specific widening for `Catalog-2`, `Catalog-3`, or `Catalog-4`
 
 ## Doc Body
 
 ### Goal
 
-Let eligible Catalog item cards expose one honest direct `Add To Project` action so users can commit obvious repo-backed reference items straight from the grid while keeping preview temporary, keeping the item page useful as the deeper decision surface, and keeping committed truth downstream of Catalog.
+Keep closing the remaining small `Catalog-1.12` follow-ups so the grid can expose honest direct commit behavior, the shell can own its internal scroll and edge fit cleanly, and the current shoes slice can grow from one to two real repo-backed 3D entries without reopening broader Catalog ownership.
 
 ### Boundaries
 
@@ -63,12 +67,16 @@ This phase should:
 - reuse the existing `browser-project` handoff path instead of inventing a parallel commit seam
 - keep preview-box click behavior separate from card commit behavior
 - preserve the item page as the larger preview and description surface
+- reuse the existing reference manifest plus Catalog seed seams when surfacing the second shoe entry
+- keep the shoes widening scoped to one additional live repo-backed 3D file plus any tiny preview-media follow-through it strictly needs
 
 This phase should not:
 - make every card action path conditional in ad hoc UI logic
 - widen into environment items or `apply-environment` card actions
 - widen into imports reuse getting a second commit path
 - turn multi-select into batch `Add To Project` behavior
+- widen into a whole shoes-family metadata or filtering pass
+- silently onboard every remaining shoe reference file just because the broader manifest already has more than one option
 
 ### Architecture Direction
 
@@ -77,6 +85,8 @@ The healthy read for this phase is:
 - `CatalogShell.tsx` still owns local action dispatch
 - `CatalogShellGridMode.tsx` only gains one clearer card affordance
 - `CatalogSurface.tsx` still remains the handoff point into downstream Browser/project truth
+- `referenceManifest.ts` stays the broader repo-backed reference inventory
+- `catalogSeedItems.ts` stays the narrower seam that decides which curated repo-backed entries the Catalog currently surfaces
 
 The healthy product read is:
 - a card can still be selected with direct click
@@ -107,10 +117,16 @@ The current shipped seams already make this follow-up small:
   - already proves the item-page commit path
   - still reads through `Open Item Page` plus item-page `Add To Project` assertions rather than a direct grid-card commit assertion
   - is the strongest nearby proof owner for the new direct card action
+- `src/app/references/referenceManifest.ts`
+  - already includes `shoe:shoe-1`, `shoe:shoe-2`, and `shoe:shoe-3` in the broader repo-backed reference inventory
+- `src/app/catalog/catalogSeedItems.ts`
+  - currently only exposes `reference:shoe-1` in the Catalog shoes slice
+  - is therefore the narrowest likely owner for surfacing a second shoe file without reopening broader family plumbing
 
-So the remaining gap is narrow:
+So the remaining gaps stay narrow:
 - surface the already-shipped commit meaning on eligible grid cards
 - prove it uses the same downstream handoff
+- surface one second live shoe entry through the existing curated Catalog seed path instead of reopening the whole shoes family
 
 ### Acceptance Read
 
@@ -119,6 +135,7 @@ So the remaining gap is narrow:
 - clicking that button reuses the same explicit downstream Browser/project handoff as the item page
 - preview-box behavior, selection behavior, and item-page behavior all remain intact
 - imports reuse and environment entries do not gain fake card-level commit behavior
+- the Catalog shoes slice surfaces a second real repo-backed shoe 3D entry without reopening preview-versus-commit ownership or broader family widening
 
 ## Wishlist Organization
 
@@ -128,6 +145,7 @@ So the remaining gap is narrow:
 - [x] `HLG 2. Grid Commit Reuses The Existing Browser-Project Handoff`
 - [x] `HLG 3. Preview, Selection, And Item-Page Boundaries Stay Intact`
 - [x] `HLG 4. Catalog Content Owns Its Scroll And Split-Edge Fit`
+- [ ] `HLG 5. The Catalog Shoes Slice Surfaces A Second Repo-Backed 3D File`
 
 ### `Catalog-1.12 Phase 1`
 
@@ -144,6 +162,13 @@ So the remaining gap is narrow:
 - [x] `5. The Outer Catalog Shell Stops Carrying The Extra Split-Edge Padding`
 - [x] `6. Scroll And Edge-Fit Polish Do Not Reopen Commit, Preview, Or Item-Page Ownership`
 - [x] `HLG 4. Catalog Content Owns Its Scroll And Split-Edge Fit`
+
+### `Catalog-1.12 Phase 3`
+
+- [ ] `7. The Catalog Shoes Slice Exposes A Second Live Shoe Entry`
+- [ ] `8. The New Shoe Entry Reuses The Existing Manifest And Seed-Item Seams`
+- [ ] `9. The Widening Stays Narrow To One Additional Repo-Backed Shoe File`
+- [ ] `HLG 5. The Catalog Shoes Slice Surfaces A Second Repo-Backed 3D File`
 
 ## [x] `Catalog-1.12` - `Phase 1 - Item Card Add To Project Button`
 
@@ -298,3 +323,93 @@ Minimum verification for this phase should cover:
 - the Catalog content area owns its vertical scroll behavior
 - the outer shell fits the split viewport edge more cleanly
 - the fix lands as local Catalog UI polish without reopening behavior ownership seams
+
+## [ ] `Catalog-1.12` - `Phase 3 - Second Shoe 3D File Seed Expansion`
+
+### Summary
+
+This phase treats the next `Catalog-1.12` follow-up as one narrow curated-content widening pass.
+
+It should add a second live repo-backed shoe 3D file to the current Catalog shoes slice by reusing the existing manifest and Catalog seed seams instead of reopening the wider `Catalog-2` family lane, preview-session behavior, or card-action ownership.
+
+### Phase 3 Research Read
+#### Current Live Read
+
+The current repo-backed shoe read already shows that most of this work exists in the data layer:
+
+- `src/app/references/referenceManifest.ts`
+  - already includes `shoe:shoe-1`, `shoe:shoe-2`, and `shoe:shoe-3`
+  - already points `shoe:shoe-2` at `ReferenceModels/shoes/Shoe_2.glb`
+- `src/app/catalog/catalogSeedItems.ts`
+  - currently only exposes one shoe Catalog entry through `reference:shoe-1`
+  - is the narrowest likely place to widen the visible Catalog shoes slice to two entries
+- `public/CatalogPreviews/shoes/`
+  - currently carries the shipped `shoe-1` preview asset
+  - may need one matching second preview asset if the new shoe card should keep the same static preview baseline
+- current Catalog proof
+  - nearby Catalog tests already cover grid rendering plus add-to-project behavior for seeded reference entries
+  - the likely proof widening is one additional seeded shoe assertion rather than new behavior ownership
+
+So the first honest implementation read is:
+- the phase should stay seed-entry-first
+- it should reuse the already-shipped reference asset and add-to-project ownership
+- it should stop once the Catalog can surface one second real shoe file cleanly
+
+#### First Pass Decisions
+
+- treat this as curated-content widening, not a new Catalog workflow
+- reuse the existing `shoe:shoe-2` repo asset path instead of inventing a new shoe id or family seam
+- keep the current static preview-card baseline unless one tiny second preview asset is strictly needed
+- stop at two visible shoe entries instead of widening into the remaining manifest items or broader shoes metadata work
+
+### Phase 3 Implementation Spec
+#### Exact First Code Cut
+
+1. Add one second repo-backed shoe Catalog seed entry that points at the existing `Shoe_2.glb` asset.
+2. Reuse the current Catalog shoes family, card rendering, and `Add To Project` behavior without creating a new action kind or family-specific code path.
+3. Add or wire any tiny preview-media follow-through the second shoe card strictly needs so it can render like the current seeded reference cards.
+4. Add focused proof that the Catalog shoes slice now exposes two seeded shoe entries while keeping the existing direct-commit behavior intact.
+
+#### Likely Files
+
+- `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogItemContract.test.ts` or nearby Catalog seed-contract proof
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `public/CatalogPreviews/shoes/` only if the second shoe entry needs a matching preview asset
+- `src/app/references/referenceManifest.ts` only if a tiny manifest-label or path alignment fix is truly needed
+
+#### No-Widening Rule
+
+- do not turn this into onboarding every remaining shoe file in the manifest
+- do not widen into new shoes-family filters, metadata taxonomy, or item-page redesign
+- do not reopen preview-session ownership, grid-action ownership, or Browser/project commit routing
+- do not mix this with imports reuse or broader `Catalog-2` family work
+
+#### Implementation Risks
+
+- pointing the new Catalog seed entry at the wrong repo asset or preview media
+- widening the phase into broader manifest cleanup when the real goal is one second visible shoe entry
+- accidentally changing the existing card-action behavior when the phase should only widen the available seeded content
+
+#### Checklist
+
+- [ ] the Catalog shoes slice exposes a second live shoe entry
+- [ ] the new shoe entry reuses the existing repo-backed asset and current Catalog family seams
+- [ ] the second shoe card keeps the same honest preview-versus-commit behavior as the first shoe card
+- [ ] focused Catalog proof covers the widened shoes slice
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+
+- the Catalog shoes family renders two shoe entries instead of one
+- the new shoe entry still uses the existing `Add To Project` path
+- existing footpad, shoe, and foothook seeded entries remain intact
+
+#### Done Shape
+
+`Phase 3` is done when:
+
+- the Catalog shows a second repo-backed shoe 3D file
+- the added shoe entry behaves like the existing seeded reference cards instead of creating a new workflow
+- the widening stays one narrow seed-content pass instead of drifting into broader Catalog-family work

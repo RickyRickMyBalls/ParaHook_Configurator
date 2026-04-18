@@ -15,6 +15,7 @@ import {
   defaultPrimaryWorkspaceViewportId,
   defaultPrimaryViewportLeafNodeId,
   defaultPrimaryViewportSlotId,
+  resolveWorkspaceActiveSurfaceInstanceId,
   defaultSecondaryViewportLeafNodeId,
   defaultSecondaryViewportSlotId,
   defaultViewportLayoutRootNodeId,
@@ -970,6 +971,11 @@ export const normalizePersistedWorkspaceLayout = (
           (entry): entry is readonly [string, WorkspaceDetachedSlotSurfaceState] => entry !== null,
         )
     : []
+  const normalizedViewportSlotsById =
+    viewportSlotEntries.length > 0
+      ? Object.fromEntries(viewportSlotEntries)
+      : defaultSlotTree.viewportSlotsById
+  const normalizedDetachedSlotSurfaceById = Object.fromEntries(detachedSlotSurfaceEntries)
 
   return {
     version: 1,
@@ -1057,10 +1063,15 @@ export const normalizePersistedWorkspaceLayout = (
             })
           : defaultBrowserPopoutState,
     }),
-    activeViewerViewportId:
-      typeof value.activeViewerViewportId === 'string' && value.activeViewerViewportId.length > 0
-        ? value.activeViewerViewportId
-        : primaryViewportId,
+    activeViewerViewportId: resolveWorkspaceActiveSurfaceInstanceId({
+      preferredSurfaceInstanceId:
+        typeof value.activeViewerViewportId === 'string' && value.activeViewerViewportId.length > 0
+          ? value.activeViewerViewportId
+          : null,
+      viewportSlotsById: normalizedViewportSlotsById,
+      detachedSlotSurfaceById: normalizedDetachedSlotSurfaceById,
+      primaryViewportId,
+    }),
     hostRouteOwnershipByRouteId: Object.fromEntries(hostRouteOwnershipEntries),
     surfacePlacementById: Object.fromEntries(surfacePlacementEntries),
     primaryViewportId,
@@ -1069,15 +1080,12 @@ export const normalizePersistedWorkspaceLayout = (
       typeof value.viewportSlotRootNodeId === 'string' && value.viewportSlotRootNodeId.length > 0
         ? value.viewportSlotRootNodeId
         : defaultViewportLayoutRootNodeId,
-    viewportSlotsById:
-      viewportSlotEntries.length > 0
-        ? Object.fromEntries(viewportSlotEntries)
-        : defaultSlotTree.viewportSlotsById,
+    viewportSlotsById: normalizedViewportSlotsById,
     viewportLayoutNodesById:
       viewportLayoutNodeEntries.length > 0
         ? Object.fromEntries(viewportLayoutNodeEntries)
         : defaultSlotTree.viewportLayoutNodesById,
-    detachedSlotSurfaceById: Object.fromEntries(detachedSlotSurfaceEntries),
+    detachedSlotSurfaceById: normalizedDetachedSlotSurfaceById,
     editorSurfacePlacementById: Object.fromEntries(editorSurfaceEntries),
   }
 }

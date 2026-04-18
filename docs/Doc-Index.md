@@ -4,6 +4,12 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+258. 2026-04-18 12:24:30: Expanded the new `Human-Docs` listing in the docs map from a root-level pointer into a browsable subtree, adding the first root pages plus the `Concepts` and `Workspaces` sections so the reader-facing doc layer is discoverable through the same foldable outline tree as the rest of the docs system
+257. 2026-04-18 11:13:14: Added the first `docs/Human-Docs/` front door and refreshed the docs map so the new reader-facing explanation layer is now discoverable as its own top-level docs area beside the existing planning and inventory surfaces
+256. 2026-04-18 11:09:14: Refreshed the docs map after `Human-Docs-Dispatch-Plan.md` was relocated into `docs/DispatchPlans/`, replacing the stale `Human-Plans` root entry with the new top-level `DispatchPlans` section so the dispatch note now points at the user-chosen operational-doc home instead of the earlier planning-doc path
+255. 2026-04-18 11:06:31: Added `docs/Human-Plans/Human-Docs-Dispatch-Plan.md` to the docs map as the operational multi-Codex ownership split for implementing the first `Human-Docs` v1 pass, and refreshed the `Human-Plans` root listing so the new coordination note is discoverable beside the existing planning surfaces instead of getting buried inside chat history only
+254. 2026-04-18 10:48:00: Added `docs/Docs-Command-Center.md` as a lightweight daily-use start page above the larger docs inventory, then refreshed the canonical-sources list, the quick-start questions, and the root docs tree so the new command-center surface is discoverable without replacing the existing `Doc-Index.md` role as the full docs map
+253. 2026-04-18 10:38:00: Refreshed the `### Doc Stats` summary in this docs map using a fresh scan of Markdown docs under `/20/parahook/docs`, updated the non-`/archive/` versus `/archive/` file and raw-line totals to today's counts, and dated the summary heading so later readers can see how old the snapshot is
 252. 2026-04-16 21:05:38: Added `docs/Human-Plans/Architecture/Import/Future/Import_Phase Import-6 - GLB Scene Metadata, Materials, And Content Fidelity.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Import/Import-Vision.md` plus `Import-Index.md` so `Generation 1` now reads as STEP-first through `Import-5` and then `.glb` enrichment through `Import-6`, and updated the `Import` subtree listing so the new GLB-specific future lane is discoverable beside the existing STEP and staged-import docs
 251. 2026-04-16 20:12:39: Added `docs/Human-Plans/Architecture/Import/Import-Vision.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Import/Import-Index.md`, `docs/Human-Plans/Architecture/Import/Import-3-Vision.md`, and `docs/Human-Plans/Architecture/Import/B-rep/B-rep-Vision.md` so the import family now reads through one master generational vision, renamed the live `Import-5` future doc to the canonical non-`OLD` filename, and updated the `Import` subtree listing so the current future, shipped, and companion B-rep import docs are discoverable from this map
 250. 2026-04-16 19:08:18: Added `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md` so the environment family now uses a two-phase ladder with one larger standalone `Environment-1` execution doc, and updated the `View-Toolbar` subtree listing so the new environment future lane is discoverable beside the environment umbrella index
@@ -291,6 +297,14 @@ Use it to answer:
 
 ### Canonical Sources
 
+- `docs/Human-Docs/index.md`
+  - the reader-facing explanation layer for the project
+  - use this when you want plain-English project docs instead of planning docs
+
+- `docs/Docs-Command-Center.md`
+  - the lightweight daily-use start page
+  - use this first when you want the smallest practical docs surface for current work
+
 - `docs/Doc-Index.md`
   - the central navigation and docs-rules index
   - use this first when you are unsure where documentation belongs
@@ -545,6 +559,16 @@ Rule notes:
 
 ### Quick Start By Question
 
+- "I want a human-friendly explanation of the project."
+  - start with `docs/Human-Docs/index.md`
+  - then `docs/Vision.md`
+  - then deeper `docs/Human-Plans/Architecture/` docs only if needed
+
+- "What should I open first today?"
+  - start with `docs/Docs-Command-Center.md`
+  - then `docs/Human-Plans/roadmap/Architecture-roadmap.md`
+  - then `docs/Doc-Index.md` only if you need the larger map
+
 - "What is the current architecture?"
   - start with `docs/repo.md`
   - then `docs/Human-Plans/Architecture/Engine-Architecture.md`
@@ -594,23 +618,38 @@ Rule notes:
 
 ### Doc Stats
 
-#### Summary
+#### Summary 2 (`2026-04-18`)
+
+- Total docs/files scanned: `618`
+- Root scanned: `/20/parahook/docs`
+- Count method: `raw line count per Markdown file (.md)`
+- Non-/archive/ files: `531`
+- Non-/archive/ total lines: `269,466`
+- /archive files: `87`
+- /archive total lines: `129,629`
+- Grand total lines: `399,095`
+
+
+##### Summary 1 (`old`)
 
 - Total docs/files scanned: `103`
 - Root scanned: `/20/parahook/docs`
 - Count method: `raw line count per file`
 - Non-/archive/ files: `61`
-- Non-/archive/ total lines: `20251`
+- Non-/archive/ total lines: `20,251`
 - /archive files: `42`
-- /archive total lines: `74444`
-- Grand total lines: `94695`
+- /archive total lines: `74,444`
+- Grand total lines: `94,695`
+
 
 ### Foldable Outline Tree - `Human Doc Map`
 
 # docs
 - `CHANGELOG.md`
 - `Chill-Log.md`
+- `Docs-Command-Center.md`
 - `Doc-Index.md`
+- `Human-Docs`
 - `index.md`
 - `Vision.md`
 - Agents
@@ -667,6 +706,23 @@ Rule notes:
         - `9 - chatgpt.md`
         - `9 - COPY.md`
         - `MISSINGTASKS.md`
+## -DispatchPlans
+    - `docs.md`
+    - `Human-Docs-Dispatch-Plan.md`
+## -Human-Docs
+    - `index.md`
+    - `What-Is-ParaHook.md`
+    - `How-ParaHook-Is-Organized.md`
+    - `Glossary.md`
+### ----Concepts
+        - `Core-Concepts.md`
+        - `Engine-Architecture.md`
+        - `Project-Flow.md`
+### ----Workspaces
+        - `Overview.md`
+        - `Browser.md`
+        - `Model-Viewport.md`
+        - `Spaghetti-Editor.md`
 ## -Human-Plans
     - `Decisions.MD`
 ### ----CodexNotes

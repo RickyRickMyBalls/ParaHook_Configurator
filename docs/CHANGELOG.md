@@ -65,6 +65,65 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1500 -->
+### [1500] - 2026-04-18 10:45 - `Model-Viewport-2 - Phase 5 - Full Primary Workspace Reassignment Coverage`
+
+HUMAN SUMMARY: `The main workspace slot is no longer limited to just Model Viewport, Browser, and Catalog. Phase 5 finishes the current Model-Viewport-2 ladder by opening the remaining slotted workspace surfaces through the same shared primary-slot path and existing titlebar type submenu, while still keeping Home Page ownership and startup policy outside this phase.`
+
+- Updated `src/app/workspace/workspaceShellTypes.ts` so the shared primary-slot supported-surface contract now includes the remaining shipped slotted workspace targets: `console`, `spaghettiEditor`, `notepad`, and `dashboard`.
+- Updated `src/app/workspace/useWorkspaceStore.test.ts` with focused proof that the primary slot can now switch through the shared store seam to `console`, `spaghettiEditor`, `notepad`, and `dashboard`, and that the active workspace surface follows those zero-viewer states honestly.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` so the primary-slot titlebar type submenu now proves every current `Model-Viewport-2` target is enabled and dispatches the remaining `console`, `spaghettiEditor`, `notepad`, and `dashboard` actions through the existing request path.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` to mark `Model-Viewport-2 / Phase 5 - Full Primary Workspace Reassignment Coverage` shipped and close the current `Model-Viewport-2` ladder.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`.
+
+<!-- ENTRY 1499 -->
+### [1499] - 2026-04-18 10:38 - `Model-Viewport-2 - Phase 4 - Restore And Zero-Viewer Honesty`
+
+HUMAN SUMMARY: `Restore and zero-viewer state now stay honest after the main slot stops being a model viewer. The workspace store and persistence layer both re-resolve active workspace ownership to a real surviving model viewer when one exists, and otherwise fall back to the current primary slot surface instead of silently reviving the old protected primary-viewer id.`
+
+- Updated `src/app/workspace/workspaceShellTypes.ts` to publish one shared active-surface resolver that prefers real slotted or detached model viewers and otherwise falls back to the current primary slot surface.
+- Updated `src/app/workspace/useWorkspaceStore.ts` so both slotted and detached surface-kind transitions now re-resolve active workspace ownership through that shared resolver instead of snapping back to `primaryViewportId` whenever the current viewer stops being a viewer.
+- Updated `src/app/workspace/workspacePersistence.ts` so persisted workspace layouts now normalize stale active-viewer ids to a real surviving model viewer when one exists, and otherwise restore zero-viewer layouts against the honest current primary slot surface instead of a hidden model-viewer fallback id.
+- Updated `src/app/workspace/useWorkspaceStore.test.ts` with focused proof for detached-viewer handoff, zero-viewer restore, and stale active-viewer restore normalization after the primary slot switches to `browser` or `catalog`.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` to mark `Model-Viewport-2 / Phase 4 - Restore And Zero-Viewer Honesty` shipped and advance the later lane to `Phase 5 - Full Primary Workspace Reassignment Coverage`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`.
+
+<!-- ENTRY 1498 -->
+### [1498] - 2026-04-18 10:14 - `Model-Viewport-2 - Phase 3 - Primary Catalog Switch Action`
+
+HUMAN SUMMARY: `The main viewport can now be switched to Catalog through the existing titlebar viewport-type submenu. This stays intentionally narrow for Phase 3: Catalog joins the already-supported Browser path, while the other unsupported primary-slot workspace types still remain visibly disabled.`
+
+- Updated `src/app/workspace/workspaceShellTypes.ts` so the shared primary-slot supported-surface allowlist now accepts `catalog` alongside `modelViewer` and `browser`.
+- Updated `src/app/workspace/useWorkspaceStore.test.ts` with focused proof that the primary slot can switch to `catalog` while another model viewer remains, and that remaining unsupported primary-slot surfaces such as `console` still stay blocked.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` so the primary-slot type submenu now enables `Catalog` and dispatches the primary-slot `catalog` request through the existing titlebar action path.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` to mark `Model-Viewport-2 / Phase 3 - Primary Catalog Switch Action` shipped and advance the later lane to `Phase 4 - Restore And Zero-Viewer Honesty`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts src/app/workspace/ViewportFrame.test.tsx`.
+
+<!-- ENTRY 1497 -->
+### [1497] - 2026-04-18 09:58 - `Model-Viewport-2 - Phase 2 - Main Viewport Switch Action`
+
+HUMAN SUMMARY: `The main viewport can now be switched to Browser through the existing titlebar viewport-type submenu. This stays intentionally narrow for Phase 2: Browser is the only primary-slot target unlocked in the UI, while the other primary-slot workspace types still remain visibly disabled.`
+
+- Updated `src/app/workspace/ViewportFrame.tsx` so the primary-slot viewport-type submenu now follows the shipped primary-slot supported-surface contract instead of blanket-disabling every non-`modelViewer` choice.
+- Updated `src/app/workspace/ViewportFrame.test.tsx` with focused proof that the primary-slot type submenu enables `Browser`, keeps unsupported targets like `Catalog` disabled, and dispatches the primary-slot `browser` request through the existing titlebar action path.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` to mark `Model-Viewport-2 / Phase 2 - Main Viewport Switch Action` shipped and advance the later lane to `Phase 3 - Restore And Zero-Viewer Honesty`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/ViewportFrame.test.tsx src/app/workspace/useWorkspaceStore.test.ts`.
+
+<!-- ENTRY 1496 -->
+### [1496] - 2026-04-18 09:30 - `Model-Viewport-2 - Phase 1 - Primary Slot Reassignment Contract`
+
+HUMAN SUMMARY: `The primary workspace slot is no longer permanently locked to Model Viewport after startup. The shared slot-surface contract now allows the main slot to switch to supported Browser ownership, while unsupported primary targets still stay blocked and any surviving model viewer retakes active-viewer ownership.`
+
+- Updated `src/app/workspace/workspaceShellTypes.ts` to publish one explicit primary-slot supported-surface rule for `modelViewer` plus `browser`.
+- Updated `src/app/workspace/useWorkspaceStore.ts` so the shared `setViewportSlotSurfaceKind(...)` seam now honors that primary-slot rule and hands `activeViewerViewportId` to another surviving model viewer when the current primary viewer stops being a viewer.
+- Updated `src/app/hosts/useAppShellViewportActions.ts` so the app-shell reassignment path now follows the new primary-slot contract instead of blanket-blocking all primary surface-kind changes.
+- Updated `src/app/workspace/useWorkspaceStore.test.ts` with focused proof that the app still boots with a primary `modelViewer`, the primary slot can switch to supported `browser`, and unsupported primary `catalog` reassignment still no-ops.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md` to mark `Model-Viewport-2 / Phase 1 - Primary Slot Reassignment Contract` shipped and advance the later lane to `Phase 2 - Main Viewport Switch Action`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/useWorkspaceStore.test.ts`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/workspace/ViewportFrame.test.tsx`.
+
 <!-- ENTRY 1495 -->
 ### [1495] - 2026-04-18 09:20 - `Catalog-1.12 - Phase 2 - Grid Scroll Ownership And Edge Padding Reduction`
 

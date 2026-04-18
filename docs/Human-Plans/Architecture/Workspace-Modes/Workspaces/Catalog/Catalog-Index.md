@@ -632,7 +632,7 @@ Establish `Catalog` as a real workspace family with one explicit catalog-item co
 Current source doc:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md`
 
-## [ ] Catalog-2 - Reference Asset Families And Explicit Load Into Project Content
+## [x] Catalog-2 - Reference Asset Families And Explicit Load Into Project Content
 
 ### Purpose
 
