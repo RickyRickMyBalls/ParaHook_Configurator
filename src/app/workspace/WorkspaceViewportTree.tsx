@@ -9,6 +9,7 @@ import { useWorkspaceStore } from './useWorkspaceStore'
 import { ViewportFrame, type ViewportFrameHeaderDragOutPayload } from './ViewportFrame'
 import { ViewportSurfaceRegistry } from './ViewportSurfaceRegistry'
 import { ViewportWorkspaceHost } from './ViewportWorkspaceHost'
+import { workspaceSurfaceSupportsHostMode } from './workspaceSurfaceCatalog'
 import {
   defaultPrimaryViewportSlotId,
   type BrowserPresentationMode,
@@ -131,6 +132,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         : 'auto'
     const viewportResultModeLabel = getWorkspaceViewportResultModeLabel(viewportResultMode)
     const nextViewportResultModeLabel = getWorkspaceViewportResultModeLabel(nextViewportResultMode)
+    const slotSupportsPopout = workspaceSurfaceSupportsHostMode(slot.surfaceKind, 'popout')
 
     return (
       <ViewportFrame
@@ -193,7 +195,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         onSplitLeft={() => onSplitViewportSlot(slot.slotId, 'left')}
         onFloat={isPrimarySlot ? undefined : () => onFloatViewportSlot(slot.slotId)}
         onPopOut={
-          slot.surfaceKind === 'modelViewer' || !isPrimarySlot
+          slotSupportsPopout && (slot.surfaceKind === 'modelViewer' || !isPrimarySlot)
             ? () => onPopOutViewportSlot(slot.slotId)
             : undefined
         }

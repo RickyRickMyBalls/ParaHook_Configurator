@@ -123,27 +123,61 @@
 
 .ViewToolbarPanel--tabs {
   display: grid;
-  grid-template-columns: 25px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   align-items: start;
   min-height: 0;
 }
 
+.ViewToolbarPanel--tabs[data-open='true'] {
+  grid-template-columns: 25px minmax(0, 1fr);
+  column-gap: 0;
+  row-gap: 0;
+}
+
+.ViewToolbarTabsHost {
+  min-height: 0;
+}
+
+.ViewToolbarTabsHost > .ViewToolbarRoot {
+  min-width: 0;
+}
+
+.ViewToolbarTabsHost--floating {
+  height: 100%;
+}
+
+.ViewToolbarTabsHost--floating > .ViewToolbarFloatingChrome {
+  min-width: 0;
+}
+
+.ViewToolbarTabsHost--floating[data-open='true'] > .ViewToolbarTabRail {
+  margin-top: var(--v15-view-toolbar-floating-titlebar-height, 32px);
+}
+
+.ViewToolbarTabsHost--docked[data-open='true'] > .ViewToolbarTabRail {
+  margin-top: 36px;
+}
+
 .ViewToolbarTabRail {
-  display: flex;
+  display: none;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   align-self: start;
+}
+
+.ViewToolbarPanel--tabs[data-open='true'] > .ViewToolbarTabRail {
+  display: flex;
 }
 
 .ViewToolbarTabButton {
   width: 100%;
   min-height: 4%;
   padding: 4px 2px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(180deg, rgba(37, 41, 50, 0.96) 0%, rgba(26, 29, 36, 0.96) 100%);
-  color: rgba(228, 233, 244, 0.82);
+  border-radius: 8px 0 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(180deg, rgba(33, 37, 45, 0.96) 0%, rgba(23, 26, 32, 0.97) 100%);
+  color: rgba(220, 226, 238, 0.74);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -153,6 +187,8 @@
   justify-content: center;
   text-align: center;
   text-transform: none;
+  position: relative;
+  box-shadow: none;
 }
 
 .ViewToolbarTabLabel {
@@ -165,17 +201,20 @@
 }
 
 .ViewToolbarTabButton:hover {
-  border-color: rgba(124, 160, 255, 0.4);
-  background: linear-gradient(180deg, rgba(47, 58, 86, 0.96) 0%, rgba(31, 38, 60, 0.96) 100%);
-  color: rgba(242, 245, 255, 0.96);
+  border-color: rgba(124, 160, 255, 0.28);
+  background: linear-gradient(180deg, rgba(41, 47, 61, 0.97) 0%, rgba(28, 33, 43, 0.97) 100%);
+  color: rgba(236, 240, 250, 0.88);
 }
 
 .ViewToolbarTabButton.isActive,
 .ViewToolbarTabButton.isActive:hover {
-  border-color: rgba(124, 160, 255, 0.8);
-  background: linear-gradient(180deg, rgba(61, 84, 140, 0.96) 0%, rgba(43, 58, 98, 0.96) 100%);
+  margin-right: -1px;
+  z-index: 1;
+  border-color: rgba(124, 160, 255, 0.76);
+  border-right-color: transparent;
+  background: linear-gradient(180deg, rgba(59, 81, 133, 0.96) 0%, rgba(43, 58, 98, 0.97) 100%);
   color: #f5f8ff;
-  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.25), 0 0 0 1px rgba(124, 160, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(124, 160, 255, 0.22);
 }
 
 .ViewToolbarTabContent {
@@ -183,6 +222,47 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.ViewToolbarTabPanel {
+  min-width: 0;
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid rgba(124, 160, 255, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(17, 19, 25, 0.96) 0%, rgba(10, 12, 16, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 0 0 1px rgba(124, 160, 255, 0.08);
+}
+
+.ViewToolbarFloatingChrome {
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ViewToolbarFloatingChrome[data-presentation='tabs'] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ViewToolbarFloatingChrome[data-presentation='tabs'] > .ViewToolbarFloatingWindowHeader {
+  border-top: 1px solid var(--v15-panel-border);
+  border-right: 1px solid var(--v15-panel-border);
+  border-left: 1px solid var(--v15-panel-border);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: var(--v15-panel-shadow);
+}
+
+.ViewToolbarFloatingWindowBody[data-presentation='tabs'] {
+  background: transparent;
 }
 
 .ViewToolbarRoot[open][data-scrollable='true']::-webkit-scrollbar {

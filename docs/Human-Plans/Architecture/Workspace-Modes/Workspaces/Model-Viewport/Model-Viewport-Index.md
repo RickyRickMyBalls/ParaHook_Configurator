@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+31. 2026-04-17 21:40:14: Added the dedicated future doc `Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md`, turning the newly-reserved later `Model-Viewport 2` follow-on into one real planning home with an initial small phase ladder around retiring the protected-main-viewer rule, letting the primary slot switch to another workspace surface, and keeping persistence plus zero-viewer handoff honest
+30. 2026-04-17 21:38:04: Added the later family follow-on `Model-Viewport 2 - Primary Viewport Workspace Reassignment`, reserving one explicit model-viewport phase for letting the user switch the current main `Model Viewport` slot to another workspace surface without pretending that the still-open `1.3` geometry/export ladder is no longer the next honest handoff
 29. 2026-04-07 08:30: Marked `Model-Viewport 1.3 Phase 6C - Backend Failure Honesty And Focused Verification` shipped inside the dedicated `1.3` child doc after the authoritative worker seam adopted honest `null` fallback handling for OC boot/build failures, released minted `shape_set` handles on rejected bundle assembly, and refreshed this family handoff so the next honest model-viewport step now points at `Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
 28. 2026-04-07 08:00: Marked `Model-Viewport 1.3 Phase 6B - First Authoritative Retained Result And Shape-Set Registration` shipped inside the dedicated `1.3` child doc after the repo bound the authoritative worker seam to the real OC boot helper, resolved worker-side `shape_set` registration around retained backend resources, and refreshed this family handoff so the next honest model-viewport step now points at `Phase 6C - Backend Failure Honesty And Focused Verification`
 27. 2026-04-07 07:33: Marked `Model-Viewport 1.3 Phase 6A - Worker-Side OpenCascade Boot And Dependency Binding` shipped inside the dedicated `1.3` child doc after the repo added the real stable `opencascade.js` worker dependency, replaced the placeholder `ocInit.ts` seam with a typed memoized worker-local OC boot helper, and refreshed this family handoff so the next honest model-viewport step now points at `Phase 6B - First Authoritative Retained Result And Shape-Set Registration`
@@ -91,6 +93,9 @@ The immediate dedicated follow-on docs for that stack are:
 - `Model-Viewport-1.2 - Draft Preview Execution And Viewport Swap Rules`
 - `Model-Viewport-1.3 - Authoritative Geometry Execution And Export Handoff`
 
+The next later family follow-on reserved here is:
+- `Model-Viewport-2 - Primary Viewport Workspace Reassignment`
+
 The current `Model-Viewport-1` status is:
 - umbrella phase created
 - child ladder locked:
@@ -161,6 +166,7 @@ The next real `Model Viewport` work should center on:
 - viewport swap rules for draft versus authoritative result replacement
 - later authoritative geometry handoff and clean `.step` export staying downstream from the retained geometry-result family
 - the first authoritative-capable retained-result contract and placeholder boundary before real engine work widens
+- later primary-slot workspace reassignment so the user can switch the main `Model Viewport` to another workspace surface without the shell forcing one protected viewer to remain in place
 
 ### Core Naming Decisions
 
@@ -286,6 +292,7 @@ Recommended early future phase themes:
 - shared geometry request / result contract
 - draft preview execution and viewport swap rules
 - authoritative geometry execution and export handoff
+- later primary viewport workspace reassignment after the protected-main-viewer rule is retired
 - later follow-ons after the first geometry-overhaul baseline proves itself
 
 ### Folder Structure
@@ -340,6 +347,15 @@ Current status:
 - `Phase 3 - Honest Authoritative Boundary Cleanup` is shipped there
 - `Phase 4 - Explicit Draft/Authoritative Scheduling From Viewport And Build Policy` is now shipped there
 - `Phase 5` through `Phase 11` are now also open there as later staged follow-ons
+
+5. `Model-Viewport 2 - Primary Viewport Workspace Reassignment`
+Reason:
+- the repo still protects one main `Model Viewport`, so the family needs one explicit workspace-facing follow-on for letting the user switch that main slot to another workspace surface such as `Home Page`, `Browser`, or another supported workspace without forcing a permanent model viewer anchor
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md`
+Current status:
+- open in the dedicated future doc as a later follow-on after the current `1.3` geometry/export handoff
+- reserved here so the user goal of changing the main `Model Viewport` into a different workspace now has one honest planning home
 
 ## [ ] Model-Viewport 1 - Geometry Execution Reset, Preview Policy, And Authoritative Build Path
 
@@ -414,3 +430,70 @@ Dedicated future doc:
 Definition of done:
 - the family has one explicit child-doc home for `1.1`
 - that child doc now owns its internal `Phase 1 / 2 / 3` ladder
+
+## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment
+
+### Summary
+
+#### Purpose:
+- let the user change the current main `Model Viewport` into a different workspace surface
+- retire the protected-primary-viewer assumption from this family without making `Model Viewport` the owner of broader workspace-shell truth
+
+#### Current read:
+- the repo still treats one primary `Model Viewport` as a protected anchor
+- the current next honest `Model Viewport` implementation handoff still remains in `Model-Viewport 1.3`
+- this later phase is intentionally reserved now so the workspace-facing follow-on has one explicit family home when the repo is ready to let the primary slot switch to `Home Page` or another supported workspace surface
+
+### Questions
+
+#### [x] Question 1 - What should `Model-Viewport 2` own?
+
+##### Locked answer
+- the ability for the user to change the main `Model Viewport` slot to another workspace surface
+
+##### Why
+- that behavior currently conflicts with the protected-primary-viewer rule, so it needs one explicit ownership home instead of staying an undocumented shell restriction
+
+### Spec
+
+Dedicated future doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Future/Model-Viewport_Phase Model-Viewport-2 - Primary Viewport Workspace Reassignment.md`
+
+Definition of done:
+- the family has one explicit later phase reserved for primary-slot workspace reassignment
+- that phase is scoped to switching the main `Model Viewport` slot to another supported workspace surface
+- that phase does not pretend `Model Viewport` now owns broader workspace-shell routing, project truth, or `Home Page` ownership
+- that phase now has its own dedicated future-doc planning home instead of living only as an inline placeholder here
+
+## [ ] Model-Viewport 2 - Primary Viewport Workspace Reassignment
+
+### Summary
+
+#### Purpose:
+- let the user change the current main `Model Viewport` into a different workspace surface
+- retire the protected-main-viewer assumption from this family without making `Model Viewport` own broader workspace-shell truth
+
+#### Current read:
+- the repo still treats one primary `Model Viewport` as a protected anchor
+- the current next honest handoff is still `Model-Viewport 1.3 Phase 7 - Final Viewport Source Honesty And Renderable Authoritative Preview`
+- this later phase is intentionally reserved now so the workspace-facing follow-on has one explicit family home when the repo is ready to let the primary slot switch to `Home Page` or another supported workspace surface
+
+### Questions
+
+#### [x] Question 1 - What should `Model-Viewport 2` own?
+
+##### Locked answer
+- the ability for the user to change the main `Model Viewport` slot to another workspace surface
+
+##### Why
+- that behavior currently conflicts with the protected-primary-viewer rule, so it needs one explicit ownership home instead of staying an undocumented shell restriction
+
+### Spec
+
+Dedicated future doc:
+- not created yet
+
+Definition of done:
+- the family has one explicit later phase reserved for primary-slot workspace reassignment
+- that phase is scoped to switching the main `Model Viewport` slot to another supported workspace surface
+- that phase does not pretend `Model Viewport` now owns broader workspace-shell routing, project truth, or `Home Page` ownership

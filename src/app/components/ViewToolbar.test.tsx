@@ -124,6 +124,12 @@ describe('ViewToolbar', () => {
       if (this.classList.contains('RightPanelStack')) {
         return new DOMRect(0, 0, 320, 480)
       }
+      if (this.classList.contains('ViewToolbarTabsHost')) {
+        return new DOMRect(165, 100, 320, 180)
+      }
+      if (this.classList.contains('ViewToolbarTabRail')) {
+        return new DOMRect(165, 132, 25, 260)
+      }
       if (this.classList.contains('ViewToolbarRoot')) {
         return new DOMRect(200, 100, 320, 180)
       }
@@ -137,6 +143,10 @@ describe('ViewToolbar', () => {
           Number.parseFloat(this.style.width || '320'),
           Number.parseFloat(this.style.height || '360'),
         )
+      }
+      if (this.classList.contains('ViewToolbarFloatingChrome')) {
+        const parentRect = this.parentElement?.getBoundingClientRect() ?? new DOMRect(24, 24, 320, 360)
+        return new DOMRect(parentRect.x, parentRect.y, parentRect.width, parentRect.height)
       }
       if (this.classList.contains('ViewToolbarFloatingWindowHeader')) {
         const parentRect = this.parentElement?.getBoundingClientRect() ?? new DOMRect(24, 24, 320, 360)
@@ -1180,8 +1190,13 @@ describe('ViewToolbar', () => {
     expect(presentationSelects).toHaveLength(2)
     expect(presentationSelects.map((select) => select.value).sort()).toEqual(['classic', 'tabs'])
 
+    const reopenedToolbarToggles = Array.from(
+      container.querySelectorAll('.ViewToolbarToggle'),
+    ) as HTMLElement[]
+    expect(reopenedToolbarToggles).toHaveLength(2)
+
     await act(async () => {
-      toolbarToggles[0]?.dispatchEvent(
+      reopenedToolbarToggles[0]?.dispatchEvent(
         new MouseEvent('contextmenu', {
           bubbles: true,
           cancelable: true,
@@ -1222,6 +1237,9 @@ describe('ViewToolbar', () => {
     const tabButtons = Array.from(
       container.querySelectorAll('.ViewToolbarTabButton'),
     ) as HTMLButtonElement[]
+    const tabsShell = container.querySelector('.ViewToolbarPanel--tabs') as HTMLDivElement | null
+    const toolbarRoot = container.querySelector('.ViewToolbarRoot') as HTMLDetailsElement | null
+    const tabsPanel = container.querySelector('.ViewToolbarTabPanel') as HTMLDivElement | null
     expect(tabButtons.map((button) => button.textContent)).toEqual([
       'Camera',
       'Fly Mode',
@@ -1233,6 +1251,14 @@ describe('ViewToolbar', () => {
       'Ground',
       'Materials',
     ])
+    expect(tabsShell).not.toBeNull()
+    expect(tabsShell?.classList.contains('ViewToolbarTabsHost')).toBe(true)
+    expect(toolbarRoot).not.toBeNull()
+    expect(tabsPanel).not.toBeNull()
+    expect(tabsShell?.querySelector('.ViewToolbarTabRail')).not.toBeNull()
+    expect(tabsShell?.querySelector('.ViewToolbarRoot')).toBe(toolbarRoot)
+    expect(toolbarRoot?.querySelector('.ViewToolbarTabRail')).toBeNull()
+    expect(toolbarRoot?.querySelector('.ViewToolbarTabPanel')).toBe(tabsPanel)
     expect(container.querySelectorAll('[data-tab-active="true"]')).toHaveLength(1)
 
     const viewTabButton = tabButtons.find((button) => button.textContent === 'View')
@@ -1817,6 +1843,30 @@ describe('ViewToolbar', () => {
     const primaryFloatingWindow = primaryHost?.querySelector(
       '.ViewToolbarFloatingWindow',
     ) as HTMLDivElement | null
+    const primaryFloatingTabsHost = primaryHost?.querySelector(
+      '.ViewToolbarTabsHost--floating',
+    ) as HTMLDivElement | null
+    const primaryFloatingChrome = primaryHost?.querySelector(
+      '.ViewToolbarFloatingChrome',
+    ) as HTMLDivElement | null
+    const primaryFloatingBody = primaryHost?.querySelector(
+      '.ViewToolbarFloatingWindowBody',
+    ) as HTMLDivElement | null
+    const primaryFloatingPanel = primaryHost?.querySelector(
+      '.ViewToolbarFloatingWindowBody .ViewToolbarPanel',
+    ) as HTMLDivElement | null
+    const primaryFloatingWestResizeHandle = primaryHost?.querySelector(
+      '[data-view-toolbar-resize-handle="w"]',
+    ) as HTMLDivElement | null
+    const primaryFloatingNorthResizeHandle = primaryHost?.querySelector(
+      '[data-view-toolbar-resize-handle="n"]',
+    ) as HTMLDivElement | null
+    const primaryFloatingNorthwestResizeHandle = primaryHost?.querySelector(
+      '[data-view-toolbar-resize-handle="nw"]',
+    ) as HTMLDivElement | null
+    const primaryFloatingSouthwestResizeHandle = primaryHost?.querySelector(
+      '[data-view-toolbar-resize-handle="sw"]',
+    ) as HTMLDivElement | null
     const primaryQuickDockButton = primaryHost?.querySelector(
       '.ViewToolbarFloatingWindowQuickDock',
     ) as HTMLButtonElement | null
@@ -1825,6 +1875,22 @@ describe('ViewToolbar', () => {
     expect(primaryFloatingWindow).not.toBeNull()
     expect(primaryFloatingWindow?.style.left).toBe('120px')
     expect(primaryFloatingWindow?.dataset.viewToolbarHostMode).toBe('floating')
+    expect(
+      primaryFloatingWindow?.style.getPropertyValue('--v15-view-toolbar-floating-titlebar-height'),
+    ).toBe('32px')
+    expect(primaryFloatingTabsHost).not.toBeNull()
+    expect(primaryFloatingChrome).not.toBeNull()
+    expect(primaryFloatingChrome?.dataset.presentation).toBe('tabs')
+    expect(primaryFloatingBody?.dataset.presentation).toBe('tabs')
+    expect(primaryFloatingPanel?.style.paddingTop).toBe('0px')
+    expect(primaryFloatingPanel?.style.paddingLeft).toBe('0px')
+    expect(primaryFloatingPanel?.style.paddingRight).toBe('0px')
+    expect(primaryFloatingTabsHost?.querySelector('.ViewToolbarTabRail')).not.toBeNull()
+    expect(primaryFloatingChrome?.querySelector('.ViewToolbarTabRail')).toBeNull()
+    expect(primaryFloatingWestResizeHandle?.style.left).toBe('25px')
+    expect(primaryFloatingNorthResizeHandle?.style.left).toBe('39px')
+    expect(primaryFloatingNorthwestResizeHandle?.style.left).toBe('25px')
+    expect(primaryFloatingSouthwestResizeHandle?.style.left).toBe('25px')
     expect(
       primaryHost?.querySelector('[data-view-toolbar-section="materials"][data-tab-active="true"]'),
     ).not.toBeNull()
@@ -1869,6 +1935,49 @@ describe('ViewToolbar', () => {
     )
     expect(secondaryHost?.querySelector('.RightDock')).not.toBeNull()
     expect(secondaryHost?.querySelector('.ViewToolbarFloatingWindow')).toBeNull()
+  })
+
+  it('keeps the floating tabs window at least as tall as the outside rail when content is short', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
+
+    useWorkspaceStore.getState().setViewportLocalViewState('model-viewer-primary', {
+      viewToolbarOpen: true,
+      viewToolbarHostMode: 'floating',
+      viewToolbarExpandedPresentationMode: 'tabs',
+      viewToolbarActiveTab: 'ground',
+      viewToolbarFloatingRect: { x: 120, y: 48, width: 320, height: 180 },
+    })
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody ViewportWorkspaceHost'
+    container.dataset.workspaceViewportId = 'model-viewer-primary'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {})
+
+    const floatingWindow = container.querySelector('.ViewToolbarFloatingWindow') as HTMLDivElement | null
+
+    expect(
+      floatingWindow?.style.getPropertyValue('--v15-view-toolbar-floating-min-height'),
+    ).toBe('292px')
+    expect(floatingWindow?.style.height).toBe('292px')
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .viewToolbarFloatingRect,
+    ).toEqual(
+      expect.objectContaining({
+        x: 120,
+        y: 48,
+        width: 320,
+        height: 292,
+      }),
+    )
   })
 
   it('drags the docked toolbar summary out of the dock and converts it into a floating toolbar', async () => {

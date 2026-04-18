@@ -6,6 +6,7 @@ import type {
 export type WorkspaceSurfaceRenderFamily =
   | 'modelViewer'
   | 'browser'
+  | 'catalog'
   | 'console'
   | 'spaghettiEditor'
   | 'dashboard'
@@ -39,7 +40,7 @@ export type CoreWorkspaceSurfaceKind =
   | 'console'
   | 'spaghettiEditor'
 
-export type OptionalWorkspaceSurfaceKind = 'dashboard' | 'notepad'
+export type OptionalWorkspaceSurfaceKind = 'catalog' | 'dashboard' | 'notepad'
 
 const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = [
   {
@@ -69,6 +70,20 @@ const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = 
     },
     participatesInPersistence: true,
     coordination: 'browserShell',
+  },
+  {
+    kind: 'catalog',
+    defaultLabel: 'Catalog Viewport',
+    renderFamily: 'catalog',
+    scope: 'optional',
+    supports: {
+      slotted: true,
+      floating: true,
+      popout: false,
+      split: true,
+    },
+    participatesInPersistence: true,
+    coordination: 'plain',
   },
   {
     kind: 'console',

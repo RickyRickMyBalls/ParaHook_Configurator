@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+91. 2026-04-17 19:51:24: Added the new workspace-family home `Workspaces/Home-Page/Home-Page-Vision.md`, refreshed the umbrella workspace read so `Home Page` now appears as a real workspace-global surface beside the earlier families, and recorded one dedicated planning home for a zero-model-viewport landing surface that can expose launch, resume, and browser-storage transparency without becoming a second Browser or shell-only route hack
 90. 2026-04-15 20:24:35: Added the new workspace-family home `Workspaces/Catalog/Catalog-Vision.md` plus `Workspaces/Catalog/Catalog-Index.md`, refreshed the umbrella workspace read so `Catalog` now appears as a real workspace-global surface beside the earlier families, and recorded one dedicated planning home for curated repo-backed reusable assets such as hooks, shoes, footpads, HDRIs, and later loadable reference families
 89. 2026-04-12 08:50:58: Added the new planned `Workspace 8 - Browser-Truth Published Object Rendering And Visibility` phase to this workspace-family index, grounding the next multi-graph render/read direction in the rule that published Browser/project-content objects should render by default across the project while explicit graph/object visibility becomes the honest user control for turning them off
 88. 2026-04-06 11:36: Added the new workspace-family home `Workspaces/Model-Viewport/Model-Viewport-Index.md`, created its first `Model-Viewport 1` future phase doc around the geometry-execution reset plus preview-policy direction, and refreshed this workspace umbrella so `Model Viewport` now has its own dedicated planning home for the draft-preview versus authoritative-geometry overhaul
@@ -937,6 +938,7 @@ The right mental model is:
 ## list of all workspaces
 
 - workspace-global surfaces
+  - `Home Page`
   - `Model Viewport`
   - `Browser`
   - `Catalog`
@@ -958,6 +960,9 @@ The right mental model is:
 
 ## Workspace-Specific Planning Homes
 
+- `Home Page`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Vision.md`
+  - dedicated home for the real workspace landing-surface direction, including the rule that zero open `Model Viewport` surfaces is a valid state, that the app may return to `Home Page` when the last viewer closes, and that browser-storage transparency should stay explicit without turning `Home Page` into a second Browser or project owner
 - `Model Viewport`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
   - dedicated home for the geometry-execution, preview-policy, and authoritative-geometry handoff direction that is too large to keep only inside the umbrella workspace-family doc

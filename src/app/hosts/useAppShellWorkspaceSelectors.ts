@@ -252,6 +252,11 @@ export function useAppShellWorkspaceSelectors(args: UseAppShellWorkspaceSelector
         detachedViewerPopoutSurfaces,
         detachedDashboardFloatingSurfaces,
         detachedDashboardPopoutSurfaces,
+        detachedCatalogFloatingSurfaces: Object.values(detachedSlotSurfaceById).filter(
+          (surface) =>
+            getWorkspaceSurfaceRenderFamily(surface.surfaceKind) === 'catalog' &&
+            surface.hostMode === 'floating',
+        ),
         detachedNotepadFloatingSurfaces,
         detachedNotepadPopoutSurfaces,
       },

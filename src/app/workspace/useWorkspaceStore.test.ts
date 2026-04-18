@@ -122,6 +122,93 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(secondarySlot?.surfaceInstanceId).toBe('console-surface-1')
   })
 
+  it('can switch a non-primary split pane from model viewer to catalog while the primary stays model-only', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right')
+
+    const secondarySlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'catalog')
+
+    const primarySlot = useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]
+    const secondarySlot =
+      (secondarySlotId !== undefined
+        ? useWorkspaceStore.getState().viewportSlotsById[secondarySlotId]
+        : null) ?? null
+
+    expect(primarySlot?.surfaceKind).toBe('modelViewer')
+    expect(secondarySlot?.surfaceKind).toBe('catalog')
+    expect(secondarySlot?.surfaceInstanceId).toBe(`catalog-${secondarySlotId}`)
+  })
+
+  it('reuses the retained catalog surface instance when a non-primary slot switches away and back', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'catalog',
+      surfaceInstanceId: 'catalog-surface-1',
+    })
+
+    const secondarySlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'dashboard', {
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'catalog')
+
+    const secondarySlot =
+      useWorkspaceStore.getState().viewportSlotsById[secondarySlotId ?? ''] ?? null
+
+    expect(secondarySlot?.surfaceKind).toBe('catalog')
+    expect(secondarySlot?.surfaceInstanceId).toBe('catalog-surface-1')
+    expect(secondarySlot?.retainedSurfaceInstanceIdsByKind).toEqual(
+      expect.objectContaining({
+        catalog: 'catalog-surface-1',
+        dashboard: 'dashboard-surface-1',
+      }),
+    )
+  })
+
+  it('keeps neighboring optional surfaces switching correctly after catalog joins the tiled set', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'dashboard',
+      surfaceInstanceId: 'dashboard-surface-1',
+    })
+
+    const secondarySlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(secondarySlotId).toBeTruthy()
+
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'catalog', {
+      surfaceInstanceId: 'catalog-surface-1',
+    })
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'notepad', {
+      surfaceInstanceId: 'notepad-surface-1',
+    })
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'dashboard')
+
+    let secondarySlot = useWorkspaceStore.getState().viewportSlotsById[secondarySlotId ?? ''] ?? null
+    expect(secondarySlot?.surfaceKind).toBe('dashboard')
+    expect(secondarySlot?.surfaceInstanceId).toBe('dashboard-surface-1')
+
+    useWorkspaceStore.getState().setViewportSlotSurfaceKind(secondarySlotId ?? '', 'catalog')
+    secondarySlot = useWorkspaceStore.getState().viewportSlotsById[secondarySlotId ?? ''] ?? null
+
+    expect(secondarySlot?.surfaceKind).toBe('catalog')
+    expect(secondarySlot?.surfaceInstanceId).toBe('catalog-surface-1')
+    expect(secondarySlot?.retainedSurfaceInstanceIdsByKind).toEqual(
+      expect.objectContaining({
+        dashboard: 'dashboard-surface-1',
+        catalog: 'catalog-surface-1',
+        notepad: 'notepad-surface-1',
+      }),
+    )
+  })
+
   it('detaches a slotted surface into a shared detached-slot record and redocks it with the same instance', () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
       surfaceKind: 'console',
@@ -697,6 +784,52 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(redockedSlot?.surfaceKind).toBe('dashboard')
     expect(redockedSlot?.surfaceInstanceId).toBe('dashboard-surface-1')
     expect(useWorkspaceStore.getState().detachedSlotSurfaceById['dashboard-surface-1']).toBeUndefined()
+  })
+
+  it('detaches, redocks, and persists a catalog slot like any other shared workspace surface', () => {
+    useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+      surfaceKind: 'catalog',
+      surfaceInstanceId: 'catalog-surface-1',
+    })
+
+    const catalogSlotId = Object.keys(useWorkspaceStore.getState().viewportSlotsById).find(
+      (slotId) => slotId !== defaultPrimaryViewportSlotId,
+    )
+    expect(catalogSlotId).toBeTruthy()
+
+    const detachedSurface = useWorkspaceStore
+      .getState()
+      .detachViewportSlotSurface(catalogSlotId ?? '', 'floating')
+
+    expect(detachedSurface).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'catalog',
+        surfaceInstanceId: 'catalog-surface-1',
+        hostMode: 'floating',
+      }),
+    )
+
+    const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
+    const normalized = normalizePersistedWorkspaceLayout(serialized)
+
+    expect(normalized?.detachedSlotSurfaceById['catalog-surface-1']).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'catalog',
+        hostMode: 'floating',
+      }),
+    )
+
+    const redockedSlotId = useWorkspaceStore
+      .getState()
+      .redockDetachedSurface('catalog-surface-1', 'left')
+    const redockedSlot =
+      (redockedSlotId !== null
+        ? useWorkspaceStore.getState().viewportSlotsById[redockedSlotId]
+        : null) ?? null
+
+    expect(redockedSlot?.surfaceKind).toBe('catalog')
+    expect(redockedSlot?.surfaceInstanceId).toBe('catalog-surface-1')
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['catalog-surface-1']).toBeUndefined()
   })
 
   it('detaches, redocks, and persists a notepad slot like any other shared workspace surface', () => {

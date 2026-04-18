@@ -3,6 +3,7 @@ import { BrowserPanel } from '../panels/BrowserPanel'
 import { SpaghettiPanel } from '../panels/SpaghettiPanel'
 import { selectEditorViewportById, useSpaghettiStore } from '../spaghetti/store/useSpaghettiStore'
 import { NotepadSurface } from '../notepad/NotepadSurface'
+import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
 import {
   getWorkspaceSurfaceRenderFamily,
@@ -107,6 +108,10 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
         onOpenNoteInNotepad={(noteId) => onOpenDashboardNoteInNotepad?.(surfaceInstanceId, noteId)}
       />
     )
+  }
+
+  if (renderFamily === 'catalog') {
+    return <CatalogSurface slotId={slotId} surfaceInstanceId={surfaceInstanceId} />
   }
 
   if (renderFamily === 'notepad') {

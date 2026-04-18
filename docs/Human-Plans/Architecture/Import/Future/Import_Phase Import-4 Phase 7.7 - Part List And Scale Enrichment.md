@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-04-17: Prepped `Import-4.7.7 - phase 1 - Two-Column Imported-Parts Lists And Default All-Included Truth` for implementation by grounding the next cut in the live staged file-card parts read, the current controller wiring for staged settings, the missing draft-owned imported-parts membership seam, and the already-shipped per-part preview/commit provenance so the first pass can add explicit two-column imported-parts truth without widening into curation, commit filtering, or automatic `Import As` changes yet
 4. 2026-04-17: Normalized the `Import-4 / Phase 7.7` internal phase naming so the `Wishlist Organization` headings and detailed phase sections now use the same `Import-4.7.7 - phase N` pattern already used by sibling import docs, pulling each detailed phase title directly from the matching wishlist phase name and removing the extra `Phases Breakdown` wrapper
 3. 2026-04-17: Reframed `Import-4 / Phase 7.7` as the real home for the staged imported-parts-list vision after `Import-4 / Phase 7.6` was restored to preview-Browser-only ownership, rewriting this lane around a two-list imported-parts flow, explicit imported-set truth, selective import-mode honesty, later transfer-mode follow-ups, and the separate `Scale enrichment` pass
 2. 2026-04-16: Refined this doc around the first concrete `Part list enrichment` vision, reshaping `7.7.1` into a two-column staged part-selector plan with left and right transfer controls, a `display all objects` visibility toggle, and explicit active-row truth so the wishlist is small enough to implement slice by slice without mixing it into `Scale enrichment`
@@ -169,20 +170,57 @@ These wishlist mappings should be read as the planned `Import-4 / Phase 7.7` lad
 ### Expected Implementation Shape
 
 - update `src/app/panels/browserTreeMenus.tsx`
+- update `src/app/panels/useBrowserPanelController.ts`
 - update `src/app/theme/surfaces/browser.css`
 - update `src/app/panels/BrowserPanel.test.tsx`
-- update `src/app/store/useAppStore.ts` only if the current staged selected-parts ownership is not already sufficient for truthful imported-list membership
+- update `src/app/store/useAppStore.ts`
 
 ### Implementation-Prep Read
 
 - `src/app/panels/browserTreeMenus.tsx`
-  - already owns the staged file-card structure summary, the shipped `Parts` list rendering through `summary.partRows`, and the strongest seam for replacing that single-list treatment with a two-column imported-parts selector
+  - already owns the staged file-card structure summary, the shipped read-only `Parts` list rendering through `summary.partRows`, and the strongest seam for replacing that one-list treatment with one explicit `All Parts` plus `Imported Parts` layout
+  - currently renders the staged file card through `renderStagedImportStructureSummary(...)`, so this phase can stay local to the staged file-card body instead of widening into preview-Browser ownership
+- `src/app/panels/useBrowserPanelController.ts`
+  - already exposes the staged settings handlers that `renderStagedImportStructureSummary(...)` receives
+  - is therefore the strongest seam for adding any new staged imported-parts handlers that should stay dialog-local and validated against the current staged file
 - `src/app/theme/surfaces/browser.css`
-  - already owns the shipped selection-list treatment through `.BrowserImportDialogStructureSelectionList` and is the strongest seam for two-column layout and imported-list readability
+  - already owns the shipped selection-list treatment through `.BrowserImportDialogStructureSelectionList`
+  - is therefore the strongest seam for the first two-column list layout, column labels, and explicit imported-membership styling without redesigning the rest of the staged file card
 - `src/app/panels/BrowserPanel.test.tsx`
-  - already proves the staged import part-list treatment and is the strongest seam for focused regression proof around two-column layout and imported-list truth
+  - already proves the staged import part-list treatment and the current staged settings behavior
+  - should next prove:
+    - the old one-list `Parts` area is replaced by one explicit two-column read
+    - the left column shows the truthful full part inventory
+    - the right column shows the current imported-part membership
+    - the first pass still leaves all truthful parts included by default
 - `src/app/store/useAppStore.ts`
-  - likely already owns the selected-parts truth that should drive the right-column imported membership instead of inventing panel-local state
+  - already owns the staged import draft and the per-file staged settings contract
+  - already builds source-part preview nodes with stable `sourcePartKey` and `sourceMeshIndex`
+  - already commits accepted split children through those same part-provenance fields
+  - does not yet own one explicit staged imported-parts membership seam, so phase 1 should add that owner here instead of inventing panel-local right-column state
+
+### First-Pass Decisions
+
+- add one explicit draft-owned imported-parts membership owner per staged file:
+  - keyed by the truthful inspected `partKey`
+  - using the existing inspected part identity instead of inventing a second row-id-only membership system
+- keep phase 1 structural and truthful only:
+  - the right column should become the explicit imported-parts read
+  - all truthful parts remain included by default
+  - no add/remove curation controls land yet
+- keep `Import As` unchanged in phase 1:
+  - the first pass may show imported-parts truth
+  - it must not yet introduce automatic mode switching
+  - later `phase 4` still owns the honest `1 Object` exit when the imported set becomes a subset
+- keep commit behavior unchanged in phase 1:
+  - no selective filtering yet
+  - no hidden acceptance changes under a layout-only label
+- scope this first pass to staged files whose inspection truthfully exposes `partRows`:
+  - no widening into flat files
+  - no hierarchy-tree redesign here
+- keep the first store addition narrow:
+  - enough truth to drive the right-column read now
+  - shaped so later `phase 2` and `phase 3` can reuse it for curation and commit filtering
 
 ### Vision Summary
 
@@ -204,10 +242,12 @@ These wishlist mappings should be read as the planned `Import-4 / Phase 7.7` lad
 ### Suggested Implementation Ladder
 
 1. Land the two-column structure and headings using the existing part data.
-2. Wire the right column to the staged selected-parts truth as the imported-parts read.
+2. Add one draft-owned imported-parts membership seam keyed by truthful inspected part identity.
+3. Wire the right column to that imported-parts membership as the imported-parts read.
 3. Keep all truthful parts included by default in this first pass.
-4. Tighten Browser proof around two-column rendering and imported-list truth.
-5. Add transfer controls and curation behavior in the next subphase once the structural read is stable.
+4. Keep `Import As` and commit behavior unchanged in this first pass.
+5. Tighten Browser proof around two-column rendering and imported-list truth.
+6. Add transfer controls and curation behavior in the next subphase once the structural read is stable.
 
 ### Suggestions
 
@@ -218,25 +258,40 @@ These wishlist mappings should be read as the planned `Import-4 / Phase 7.7` lad
 
 ### Exact First Code Cut
 
-1. Audit the current staged `Parts` list treatment and the staged selected-parts source of truth in `src/app/panels/browserTreeMenus.tsx` and `src/app/store/useAppStore.ts`.
-2. Replace the current one-list `Parts` area with a two-column layout scaffold in `src/app/panels/browserTreeMenus.tsx` and `src/app/theme/surfaces/browser.css`.
-3. Wire the left and right columns to truthful source and imported membership.
-4. Keep all truthful parts included on the right by default in this first pass.
-5. Tighten `src/app/panels/BrowserPanel.test.tsx` so two-column rendering and imported-list truth are covered.
+1. Audit the live staged `Parts` list treatment in `browserTreeMenus.tsx`, the staged-file controller wiring in `useBrowserPanelController.ts`, and the current draft plus preview/commit part-provenance seams in `useAppStore.ts`.
+2. Add one narrow staged imported-parts membership seam to the staged draft in `useAppStore.ts`, defaulting truthful `partKey` membership to the full inspected part set when a staged file has ready `partRows`.
+3. Expose any needed imported-parts read or reset helpers through `useBrowserPanelController.ts` without adding curation behavior yet.
+4. Replace the current one-list `Parts` area with one explicit two-column imported-parts scaffold in `browserTreeMenus.tsx` and `browser.css`.
+5. Wire the left column to the truthful inspected part inventory and the right column to the new imported-parts membership read.
+6. Tighten `BrowserPanel.test.tsx` so the first pass proves two-column rendering, default all-included imported membership, and unchanged staged settings behavior.
 
 ### Likely Files
 
 - `src/app/panels/browserTreeMenus.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/store/useAppStore.ts`
 - `src/app/theme/surfaces/browser.css`
 - `src/app/panels/BrowserPanel.test.tsx`
 
 ### No-Widening Rule
 
 - do not widen into preview-Browser part rows or object-preview behavior
+- do not add part-removal or part-restore controls yet
+- do not change `Add To Project` commit filtering yet
+- do not change `Import As` yet
 - do not redesign part ordering beyond preserving stable file order
 - do not add transfer controls, transfer modes, or drag-and-drop in the first shipped cut of this subphase; capture them as later follow-ups once the two-column truth is working
 - do not add multi-card bulk behavior in this phase
 - do not touch scale enrichment work in this subphase
+
+### Implementation Risks
+
+- inventing a panel-local imported-membership array instead of one draft-owned store seam
+- using row index or rendered order as imported-membership identity instead of the already truthful `partKey` plus `sourceMeshIndex` provenance
+- accidentally changing commit behavior in `phase 1` because the new imported-membership seam is wired too early into acceptance
+- accidentally changing `Import As` behavior before the later selective-mode phase owns that shift
+- widening the file-card part area into preview-Browser or hierarchy-tree ownership instead of keeping the first pass local to the staged file card
+- letting the two columns drift out of truthful file order and therefore making later curation harder to reason about
 
 ### Checklist
 
@@ -244,8 +299,28 @@ These wishlist mappings should be read as the planned `Import-4 / Phase 7.7` lad
 - [ ] preserve truthful part labels and stable file order
 - [ ] make the right column the explicit imported-parts list
 - [ ] keep all truthful parts included on the right by default
+- [ ] add one draft-owned imported-parts membership seam that later curation and commit phases can reuse
+- [ ] keep `Import As` and commit behavior unchanged in this first pass
 - [ ] add focused Browser proof
 - [ ] reserve transfer controls, transfer modes, and drag-and-drop as later follow-ups after the two-column truth ships
+
+### Verification Shape
+
+Minimum verification for this subphase should cover:
+
+- a staged file with truthful `partRows` now renders one explicit two-column `All Parts` plus `Imported Parts` read inside the staged file card
+- the left column preserves the truthful full part inventory in stable file order
+- the right column initially shows that same truthful full set as the imported default
+- no add/remove curation controls are present yet
+- `Import As` still behaves exactly as before this phase
+- `Add To Project` behavior remains unchanged in this first pass
+
+### Done Shape
+
+- the staged file card no longer treats imported-parts truth as implicit
+- the dialog now shows one explicit source-side parts inventory and one explicit imported-parts read
+- the first phase adds the durable imported-membership owner the later curation and commit-truth phases need
+- `Import-4.7.7 - phase 2` remains the next follow-up for actual left-right curation controls
 
 ## [ ] `Import-4.7.7 - phase 2 - Arrow-Button Imported-Parts Curation`
 

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Studio Environment preview</title>
+  <desc id="desc">Catalog placeholder preview for the Studio Environment item.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#101728" />
+      <stop offset="100%" stop-color="#060b13" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="32%" r="46%">
+      <stop offset="0%" stop-color="#bfe3ff" stop-opacity="0.95" />
+      <stop offset="42%" stop-color="#78bdff" stop-opacity="0.46" />
+      <stop offset="100%" stop-color="#78bdff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg)" />
+  <rect x="26" y="26" width="588" height="368" rx="24" fill="none" stroke="#284768" stroke-width="2" />
+  <rect x="54" y="56" width="206" height="30" rx="15" fill="#102236" stroke="#2e5276" />
+  <text x="157" y="76" text-anchor="middle" fill="#92bfff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="1.6">ENVIRONMENT</text>
+  <ellipse cx="320" cy="190" rx="182" ry="118" fill="url(#glow)" />
+  <path d="M124 290c42-67 108-102 196-102s154 35 196 102" fill="none" stroke="#d5ecff" stroke-width="12" stroke-linecap="round" />
+  <path d="M168 304h304" stroke="#4d7298" stroke-width="10" stroke-linecap="round" />
+  <text x="54" y="362" fill="#eff6ff" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Studio Environment</text>
+  <text x="54" y="390" fill="#89a7ca" font-family="Segoe UI, Arial, sans-serif" font-size="18">Shared viewer environment preview</text>
+</svg>

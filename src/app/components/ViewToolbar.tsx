@@ -142,6 +142,8 @@ const VIEW_TOOLBAR_FLOATING_MIN_HEIGHT = 180
 const VIEW_TOOLBAR_FLOATING_DEFAULT_HEIGHT = 360
 const VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT = 32
 const VIEW_TOOLBAR_DETACH_DRAG_THRESHOLD_PX = 8
+// Keep this in sync with the floating/docked tabs rail column in viewport-overlay.css.
+const VIEW_TOOLBAR_TAB_RAIL_WIDTH = 25
 const VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS = 6
 const VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE = 14
 
@@ -253,7 +255,13 @@ type ViewToolbarBodyProps = {
   sections: ViewToolbarSectionDefinition[]
   isTabsPresentation: boolean
   activeTab: WorkspaceViewToolbarTabKey
+}
+
+type ViewToolbarTabRailProps = {
+  sections: ViewToolbarSectionDefinition[]
+  activeTab: WorkspaceViewToolbarTabKey
   onSelectTab: (tab: WorkspaceViewToolbarTabKey) => void
+  railElementRef?: { current: HTMLDivElement | null }
 }
 
 type ViewToolbarSectionProps = {
@@ -283,42 +291,67 @@ function ViewToolbarSection(props: ViewToolbarSectionProps) {
 }
 
 function ViewToolbarBody(props: ViewToolbarBodyProps) {
-  const { sections, isTabsPresentation, activeTab, onSelectTab } = props
+  const { sections, isTabsPresentation, activeTab } = props
+
+  if (isTabsPresentation) {
+    return (
+      <div className="ViewToolbarTabPanel">
+        <div className="ViewToolbarTabContent">
+          {sections.map((section) => (
+            <ViewToolbarSection
+              key={section.key}
+              section={section}
+              isTabsPresentation={isTabsPresentation}
+              activeTab={activeTab}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
-      {isTabsPresentation ? (
-        <div className="ViewToolbarTabRail" role="tablist" aria-label="View toolbar sections">
-          {sections.map((section) => {
-            const isActive = activeTab === section.key
-            return (
-              <button
-                key={section.key}
-                type="button"
-                role="tab"
-                className={`ViewToolbarTabButton ${isActive ? 'isActive' : ''}`}
-                aria-selected={isActive}
-                aria-pressed={isActive}
-                data-view-toolbar-tab={section.key}
-                onClick={() => onSelectTab(section.key)}
-              >
-                <span className="ViewToolbarTabLabel">{section.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
-      <div className={isTabsPresentation ? 'ViewToolbarTabContent' : undefined}>
-        {sections.map((section) => (
-          <ViewToolbarSection
-            key={section.key}
-            section={section}
-            isTabsPresentation={isTabsPresentation}
-            activeTab={activeTab}
-          />
-        ))}
-      </div>
+      {sections.map((section) => (
+        <ViewToolbarSection
+          key={section.key}
+          section={section}
+          isTabsPresentation={isTabsPresentation}
+          activeTab={activeTab}
+        />
+      ))}
     </>
+  )
+}
+
+function ViewToolbarTabRail(props: ViewToolbarTabRailProps) {
+  const { sections, activeTab, onSelectTab, railElementRef } = props
+
+  return (
+    <div
+      className="ViewToolbarTabRail"
+      ref={railElementRef}
+      role="tablist"
+      aria-label="View toolbar sections"
+    >
+      {sections.map((section) => {
+        const isActive = activeTab === section.key
+        return (
+          <button
+            key={section.key}
+            type="button"
+            role="tab"
+            className={`ViewToolbarTabButton ${isActive ? 'isActive' : ''}`}
+            aria-selected={isActive}
+            aria-pressed={isActive}
+            data-view-toolbar-tab={section.key}
+            onClick={() => onSelectTab(section.key)}
+          >
+            <span className="ViewToolbarTabLabel">{section.label}</span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -326,6 +359,7 @@ const clampViewToolbarFloatingRect = (
   nextRect: WorkspaceFloatingRect,
   viewportWidth: number,
   viewportHeight: number,
+  minimumHeight = VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
 ): WorkspaceFloatingRect => {
   const width = Math.max(
     VIEW_TOOLBAR_FLOATING_MIN_WIDTH,
@@ -335,10 +369,10 @@ const clampViewToolbarFloatingRect = (
     ),
   )
   const height = Math.max(
-    VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+    minimumHeight,
     Math.min(
       Math.round(nextRect.height),
-      Math.max(VIEW_TOOLBAR_FLOATING_MIN_HEIGHT, viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2),
+      Math.max(minimumHeight, viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2),
     ),
   )
   const maxX = Math.max(
@@ -363,6 +397,7 @@ const createDefaultViewToolbarFloatingRect = (
   viewportHeight: number,
   preferredWidth: number,
   preferredHeight: number,
+  minimumHeight = VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
 ): WorkspaceFloatingRect =>
   clampViewToolbarFloatingRect(
     {
@@ -373,6 +408,7 @@ const createDefaultViewToolbarFloatingRect = (
     },
     viewportWidth,
     viewportHeight,
+    minimumHeight,
   )
 
 const resizeViewToolbarFloatingRect = (
@@ -382,13 +418,14 @@ const resizeViewToolbarFloatingRect = (
   deltaY: number,
   viewportWidth: number,
   viewportHeight: number,
+  minimumHeight = VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
 ): WorkspaceFloatingRect => {
   const viewportMaxWidth = Math.max(
     VIEW_TOOLBAR_FLOATING_MIN_WIDTH,
     viewportWidth - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
   )
   const viewportMaxHeight = Math.max(
-    VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+    minimumHeight,
     viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
   )
   let left = anchorRect.x
@@ -413,14 +450,14 @@ const resizeViewToolbarFloatingRect = (
   if (direction.includes('n')) {
     top += deltaY
     top = Math.max(VIEW_TOOLBAR_FLOATING_EDGE_PADDING, top)
-    top = Math.min(top, bottom - VIEW_TOOLBAR_FLOATING_MIN_HEIGHT)
+    top = Math.min(top, bottom - minimumHeight)
     top = Math.max(top, bottom - viewportMaxHeight)
   }
 
   if (direction.includes('s')) {
     bottom += deltaY
     bottom = Math.min(viewportHeight - VIEW_TOOLBAR_FLOATING_EDGE_PADDING, bottom)
-    bottom = Math.max(bottom, top + VIEW_TOOLBAR_FLOATING_MIN_HEIGHT)
+    bottom = Math.max(bottom, top + minimumHeight)
     bottom = Math.min(bottom, top + viewportMaxHeight)
   }
 
@@ -433,11 +470,13 @@ const resizeViewToolbarFloatingRect = (
     },
     viewportWidth,
     viewportHeight,
+    minimumHeight,
   )
 }
 
 const resolveViewToolbarFloatingResizeHandleStyle = (
   direction: ViewToolbarFloatingResizeDirection,
+  visibleLeftEdgeOffset = 0,
 ) => {
   const edgeInset = VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE
   const baseStyle = {
@@ -453,7 +492,7 @@ const resolveViewToolbarFloatingResizeHandleStyle = (
   if (direction === 'n') {
     return {
       ...baseStyle,
-      left: `${edgeInset}px`,
+      left: `${visibleLeftEdgeOffset + edgeInset}px`,
       right: `${edgeInset}px`,
       top: '0',
       height: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
@@ -462,7 +501,7 @@ const resolveViewToolbarFloatingResizeHandleStyle = (
   if (direction === 's') {
     return {
       ...baseStyle,
-      left: `${edgeInset}px`,
+      left: `${visibleLeftEdgeOffset + edgeInset}px`,
       right: `${edgeInset}px`,
       bottom: '0',
       height: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
@@ -482,7 +521,7 @@ const resolveViewToolbarFloatingResizeHandleStyle = (
       ...baseStyle,
       top: `${edgeInset}px`,
       bottom: `${edgeInset}px`,
-      left: '0',
+      left: `${visibleLeftEdgeOffset}px`,
       width: `${VIEW_TOOLBAR_FLOATING_RESIZE_HANDLE_THICKNESS}px`,
     }
   }
@@ -492,7 +531,9 @@ const resolveViewToolbarFloatingResizeHandleStyle = (
     width: `${VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE}px`,
     height: `${VIEW_TOOLBAR_FLOATING_RESIZE_CORNER_SIZE}px`,
     ...(direction.includes('n') ? { top: '0' } : { bottom: '0' }),
-    ...(direction.includes('w') ? { left: '0' } : { right: '0' }),
+    ...(direction.includes('w')
+      ? { left: `${visibleLeftEdgeOffset}px` }
+      : { right: '0' }),
   }
 }
 
@@ -611,6 +652,8 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const { viewportId } = props
   const rightDockRef = useRef<HTMLElement | null>(null)
   const rightPanelStackRef = useRef<HTMLDivElement | null>(null)
+  const viewToolbarTabsHostRef = useRef<HTMLDivElement | null>(null)
+  const viewToolbarTabRailRef = useRef<HTMLDivElement | null>(null)
   const viewToolbarRootRef = useRef<HTMLDetailsElement | null>(null)
   const viewToolbarPanelRef = useRef<HTMLDivElement | null>(null)
   const viewToolbarFloatingWindowRef = useRef<HTMLDivElement | null>(null)
@@ -706,6 +749,8 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   const [viewToolbarMaxHeight, setViewToolbarMaxHeight] = useState<number | null>(null)
   const [viewToolbarUsedHeight, setViewToolbarUsedHeight] = useState<number | null>(null)
   const [viewToolbarHasOverflow, setViewToolbarHasOverflow] = useState(false)
+  const [viewToolbarFloatingTabsMinimumHeight, setViewToolbarFloatingTabsMinimumHeight] =
+    useState<number | null>(null)
   const [viewToolbarContextMenu, setViewToolbarContextMenu] = useState<{
     x: number
     y: number
@@ -1104,6 +1149,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     : viewToolbarCompactAxisWidgetSize ?? COMPACT_AXIS_WIDGET_SIZE
   const rightDockWidth = resolveRightDockWidth(resolvedAxisWidgetSize)
   const isViewToolbarFloating = viewToolbarHostMode === 'floating'
+  const isTabsPresentation = viewToolbarExpandedPresentationMode === 'tabs'
   const effectiveViewToolbarDockMode =
     viewToolbarDockMode === 'top-right-cluster' && viewToolbarOpen
       ? 'top-right-cluster'
@@ -1117,6 +1163,13 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         ? consoleExpandedHeight + dockedConsoleExpandedGap
         : dockedConsoleCollapsedReserve
   const viewToolbarBottomContentPadding = 12
+  const floatingViewToolbarMinimumHeight =
+    isViewToolbarFloating && isTabsPresentation && viewToolbarOpen
+      ? Math.max(
+          VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+          viewToolbarFloatingTabsMinimumHeight ?? VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+        )
+      : VIEW_TOOLBAR_FLOATING_MIN_HEIGHT
 
   const resolveViewToolbarViewportRect = (): DOMRect | null => {
     const viewportHostElement = resolveViewToolbarViewportHostElement(
@@ -1128,7 +1181,10 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
 
   const resolveDefaultViewToolbarFloatingRect = (): WorkspaceFloatingRect => {
     const viewportRect = resolveViewToolbarViewportRect()
-    const dockedToolbarRect = viewToolbarRootRef.current?.getBoundingClientRect() ?? null
+    const dockedToolbarRect =
+      viewToolbarTabsHostRef.current?.getBoundingClientRect() ??
+      viewToolbarRootRef.current?.getBoundingClientRect() ??
+      null
     const preferredWidth = dockedToolbarRect?.width ?? rightDockWidth
     const preferredHeight = Math.max(
       dockedToolbarRect?.height ?? 0,
@@ -1139,7 +1195,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         x: VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
         y: VIEW_TOOLBAR_FLOATING_EDGE_PADDING * 2,
         width: Math.max(VIEW_TOOLBAR_FLOATING_MIN_WIDTH, Math.round(preferredWidth)),
-        height: Math.max(VIEW_TOOLBAR_FLOATING_MIN_HEIGHT, preferredHeight),
+        height: Math.max(floatingViewToolbarMinimumHeight, preferredHeight),
       }
     }
     return createDefaultViewToolbarFloatingRect(
@@ -1147,10 +1203,46 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       Math.max(1, Math.round(viewportRect.height)),
       preferredWidth,
       preferredHeight,
+      floatingViewToolbarMinimumHeight,
     )
   }
 
   const resolvedViewToolbarFloatingRect = viewToolbarFloatingRect ?? resolveDefaultViewToolbarFloatingRect()
+
+  useEffect(() => {
+    if (!isViewToolbarFloating || !isTabsPresentation || !viewToolbarOpen) {
+      setViewToolbarFloatingTabsMinimumHeight(null)
+      return
+    }
+    const railElement = viewToolbarTabRailRef.current
+    if (railElement === null) {
+      return
+    }
+    const syncFloatingTabsMinimumHeight = () => {
+      const railHeight = Math.ceil(railElement.getBoundingClientRect().height)
+      const nextMinimumHeight =
+        railHeight > 0
+          ? Math.max(
+              VIEW_TOOLBAR_FLOATING_MIN_HEIGHT,
+              VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT + railHeight,
+            )
+          : null
+      setViewToolbarFloatingTabsMinimumHeight((currentMinimumHeight) =>
+        currentMinimumHeight === nextMinimumHeight ? currentMinimumHeight : nextMinimumHeight,
+      )
+    }
+    syncFloatingTabsMinimumHeight()
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            syncFloatingTabsMinimumHeight()
+          })
+    resizeObserver?.observe(railElement)
+    return () => {
+      resizeObserver?.disconnect()
+    }
+  }, [isTabsPresentation, isViewToolbarFloating, viewToolbarOpen])
 
   useEffect(() => {
     if (!isViewToolbarFloating || viewToolbarFloatingRect !== null) {
@@ -1172,6 +1264,45 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
   ])
 
   useEffect(() => {
+    if (!isViewToolbarFloating || viewportId === undefined) {
+      return
+    }
+    if (resolvedViewToolbarFloatingRect.height >= floatingViewToolbarMinimumHeight) {
+      return
+    }
+    const viewportRect = resolveViewToolbarViewportRect()
+    const nextRect =
+      viewportRect === null
+        ? {
+            ...resolvedViewToolbarFloatingRect,
+            height: floatingViewToolbarMinimumHeight,
+          }
+        : clampViewToolbarFloatingRect(
+            {
+              ...resolvedViewToolbarFloatingRect,
+              height: floatingViewToolbarMinimumHeight,
+            },
+            Math.max(1, Math.round(viewportRect.width)),
+            Math.max(1, Math.round(viewportRect.height)),
+            floatingViewToolbarMinimumHeight,
+          )
+    if (
+      nextRect.x === resolvedViewToolbarFloatingRect.x &&
+      nextRect.y === resolvedViewToolbarFloatingRect.y &&
+      nextRect.width === resolvedViewToolbarFloatingRect.width &&
+      nextRect.height === resolvedViewToolbarFloatingRect.height
+    ) {
+      return
+    }
+    setViewToolbarFloatingRectState(nextRect)
+  }, [
+    floatingViewToolbarMinimumHeight,
+    isViewToolbarFloating,
+    resolvedViewToolbarFloatingRect,
+    viewportId,
+  ])
+
+  useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
       const pendingDetach = pendingViewToolbarDetachRef.current
       if (
@@ -1183,7 +1314,10 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         const deltaY = event.clientY - pendingDetach.startY
         if (Math.hypot(deltaX, deltaY) >= VIEW_TOOLBAR_DETACH_DRAG_THRESHOLD_PX) {
           const viewportRect = resolveViewToolbarViewportRect()
-          const dockedToolbarRect = viewToolbarRootRef.current?.getBoundingClientRect() ?? null
+          const dockedToolbarRect =
+            viewToolbarTabsHostRef.current?.getBoundingClientRect() ??
+            viewToolbarRootRef.current?.getBoundingClientRect() ??
+            null
           if (viewportRect !== null && dockedToolbarRect !== null) {
             const nextWidth = Math.round(dockedToolbarRect.width)
             const nextHeight = Math.max(
@@ -1213,6 +1347,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               },
               Math.max(1, Math.round(viewportRect.width)),
               Math.max(1, Math.round(viewportRect.height)),
+              floatingViewToolbarMinimumHeight,
             )
             viewToolbarFloatingDragStateRef.current = {
               pointerId: event.pointerId,
@@ -1249,6 +1384,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
           event.clientY - floatingResizeState.startY,
           Math.max(1, Math.round(viewportRect.width)),
           Math.max(1, Math.round(viewportRect.height)),
+          floatingViewToolbarMinimumHeight,
         )
         setViewToolbarFloatingRectState(nextRect)
         return
@@ -1275,6 +1411,7 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
         },
         Math.max(1, Math.round(viewportRect.width)),
         Math.max(1, Math.round(viewportRect.height)),
+        floatingViewToolbarMinimumHeight,
       )
       setViewToolbarFloatingRectState(nextRect)
     }
@@ -1306,7 +1443,12 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
     }
-  }, [setViewportLocalViewState, viewportId, viewToolbarUsedHeight])
+  }, [
+    floatingViewToolbarMinimumHeight,
+    setViewportLocalViewState,
+    viewportId,
+    viewToolbarUsedHeight,
+  ])
 
   useLayoutEffect(() => {
     if (isViewToolbarFloating) {
@@ -2346,7 +2488,6 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     },
   ]
 
-  const isTabsPresentation = viewToolbarExpandedPresentationMode === 'tabs'
   const resolvedViewToolbarActiveTab = viewToolbarSections.some(
     (section) => section.key === viewToolbarActiveTab,
   )
@@ -2463,6 +2604,131 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     />
   )
 
+  const handleDockedViewToolbarContextMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    if (!viewToolbarOpen || shouldIgnoreViewToolbarShellContextMenu(event.target)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    openViewToolbarContextMenu(event.clientX, event.clientY)
+  }
+
+  const viewToolbarBodyElement = (
+    <ViewToolbarBody
+      sections={viewToolbarSections}
+      isTabsPresentation={isTabsPresentation}
+      activeTab={resolvedViewToolbarActiveTab}
+    />
+  )
+
+  const viewToolbarTabRailElement = isTabsPresentation ? (
+    <ViewToolbarTabRail
+      sections={viewToolbarSections}
+      activeTab={resolvedViewToolbarActiveTab}
+      onSelectTab={setViewToolbarActiveTab}
+      railElementRef={viewToolbarTabRailRef}
+    />
+  ) : null
+
+  const dockedViewToolbarRootElement = (
+    <details
+      className="V15Panel ViewToolbarRoot ViewToolbarScrollSurface"
+      open={viewToolbarOpen}
+      ref={viewToolbarRootRef}
+      data-scrollable={viewToolbarHasOverflow ? 'true' : 'false'}
+      onContextMenu={handleDockedViewToolbarContextMenu}
+      style={{
+        ['--v15-view-toolbar-max-height' as string]:
+          viewToolbarMaxHeight !== null ? `${viewToolbarMaxHeight}px` : undefined,
+        ['--v15-view-toolbar-used-height' as string]:
+          viewToolbarUsedHeight !== null ? `${viewToolbarUsedHeight}px` : undefined,
+      }}
+    >
+      <summary
+        className="V15PanelTitle ViewToolbarToggle"
+        onPointerDown={handleDockedViewToolbarSummaryPointerDown}
+        onClick={handleViewToolbarToggleClick}
+      >
+        View
+      </summary>
+      <div
+        className="ViewToolbarPanel"
+        ref={viewToolbarPanelRef}
+        data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
+      >
+        {viewToolbarBodyElement}
+      </div>
+      {viewToolbarContextMenuElement}
+    </details>
+  )
+
+  const floatingViewToolbarBodyElement = (
+    <div
+      className="ViewToolbarRoot ViewToolbarFloatingWindowBody"
+      data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
+      data-scrollable="true"
+      style={{
+        maxHeight: '100%',
+        height: '100%',
+        minHeight: 0,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+      }}
+    >
+      <div
+        className="ViewToolbarPanel"
+        data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
+        style={{
+          marginTop: 0,
+          padding: isTabsPresentation
+            ? `0 0 ${viewToolbarBottomContentPadding}px`
+            : `12px 12px ${viewToolbarBottomContentPadding}px`,
+        }}
+      >
+        {viewToolbarBodyElement}
+      </div>
+    </div>
+  )
+
+  const floatingViewToolbarHeaderElement = (
+    <div
+      className="ViewToolbarFloatingWindowHeader"
+      onPointerDown={handleFloatingViewToolbarHeaderPointerDown}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '8px',
+        padding: '0 10px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.04)',
+        color: 'rgba(241,244,255,0.94)',
+        cursor: 'grab',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+      }}
+    >
+      <span>View</span>
+      <FloatingWindowQuickDockButton
+        className="ViewToolbarFloatingWindowQuickDock"
+        onClick={handleQuickDockViewToolbar}
+      />
+    </div>
+  )
+
+  const floatingViewToolbarChromeElement = (
+    <div
+      className="V15Panel ViewToolbarFloatingChrome"
+      data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
+    >
+      {floatingViewToolbarHeaderElement}
+      {floatingViewToolbarBodyElement}
+    </div>
+  )
+
+  const floatingResizeHandleLeftOffset =
+    isTabsPresentation && viewToolbarOpen ? VIEW_TOOLBAR_TAB_RAIL_WIDTH : 0
+
   if (isViewToolbarFloating) {
     return (
       <div
@@ -2483,15 +2749,15 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
           left: `${resolvedViewToolbarFloatingRect.x}px`,
           top: `${resolvedViewToolbarFloatingRect.y}px`,
           width: `${resolvedViewToolbarFloatingRect.width}px`,
-          height: `${resolvedViewToolbarFloatingRect.height}px`,
+          height: `${Math.max(
+            resolvedViewToolbarFloatingRect.height,
+            floatingViewToolbarMinimumHeight,
+          )}px`,
           zIndex: 19,
-          display: 'grid',
-          gridTemplateRows: `${VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT}px minmax(0, 1fr)`,
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          background: 'rgba(8, 11, 17, 0.96)',
-          boxShadow: '0 18px 44px rgba(0, 0, 0, 0.4)',
+          ['--v15-view-toolbar-floating-titlebar-height' as string]:
+            `${VIEW_TOOLBAR_FLOATING_TITLEBAR_HEIGHT}px`,
+          ['--v15-view-toolbar-floating-min-height' as string]:
+            `${floatingViewToolbarMinimumHeight}px`,
         }}
       >
         {viewToolbarFloatingResizeDirections.map((direction) => (
@@ -2503,59 +2769,25 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             onPointerDown={(event) =>
               handleFloatingViewToolbarResizeHandlePointerDown(direction, event)
             }
-            style={resolveViewToolbarFloatingResizeHandleStyle(direction)}
+            style={resolveViewToolbarFloatingResizeHandleStyle(
+              direction,
+              floatingResizeHandleLeftOffset,
+            )}
           />
         ))}
-        <div
-          className="ViewToolbarFloatingWindowHeader"
-          onPointerDown={handleFloatingViewToolbarHeaderPointerDown}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            padding: '0 10px',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.04)',
-            color: 'rgba(241,244,255,0.94)',
-            cursor: 'grab',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-          }}
-        >
-          <span>View</span>
-          <FloatingWindowQuickDockButton
-            className="ViewToolbarFloatingWindowQuickDock"
-            onClick={handleQuickDockViewToolbar}
-          />
-        </div>
-        <div
-          className="V15Panel ViewToolbarRoot ViewToolbarFloatingWindowBody"
-          data-scrollable="true"
-          style={{
-            maxHeight: '100%',
-            height: '100%',
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-          }}
-        >
+        {isTabsPresentation ? (
           <div
-            className={`ViewToolbarPanel ${isTabsPresentation ? 'ViewToolbarPanel--tabs' : ''}`}
-            data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
-            style={{
-              marginTop: 0,
-              padding: `12px 12px ${viewToolbarBottomContentPadding}px`,
-            }}
+            ref={viewToolbarTabsHostRef}
+            className="ViewToolbarPanel--tabs ViewToolbarTabsHost ViewToolbarTabsHost--floating"
+            data-open={viewToolbarOpen ? 'true' : 'false'}
+            data-presentation="tabs"
           >
-            <ViewToolbarBody
-              sections={viewToolbarSections}
-              isTabsPresentation={isTabsPresentation}
-              activeTab={resolvedViewToolbarActiveTab}
-              onSelectTab={setViewToolbarActiveTab}
-            />
+            {viewToolbarTabRailElement}
+            {floatingViewToolbarChromeElement}
           </div>
-        </div>
+        ) : (
+          floatingViewToolbarChromeElement
+        )}
         {viewToolbarContextMenuElement}
       </div>
     )
@@ -2581,47 +2813,20 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       }}
     >
       <div className="RightPanelStack" ref={rightPanelStackRef}>
-        <details
-          className="V15Panel ViewToolbarRoot ViewToolbarScrollSurface"
-          open={viewToolbarOpen}
-          ref={viewToolbarRootRef}
-          data-scrollable={viewToolbarHasOverflow ? 'true' : 'false'}
-          onContextMenu={(event) => {
-            if (!viewToolbarOpen || shouldIgnoreViewToolbarShellContextMenu(event.target)) {
-              return
-            }
-            event.preventDefault()
-            event.stopPropagation()
-            openViewToolbarContextMenu(event.clientX, event.clientY)
-          }}
-          style={{
-            ['--v15-view-toolbar-max-height' as string]:
-              viewToolbarMaxHeight !== null ? `${viewToolbarMaxHeight}px` : undefined,
-            ['--v15-view-toolbar-used-height' as string]:
-              viewToolbarUsedHeight !== null ? `${viewToolbarUsedHeight}px` : undefined,
-          }}
-        >
-          <summary
-            className="V15PanelTitle ViewToolbarToggle"
-            onPointerDown={handleDockedViewToolbarSummaryPointerDown}
-            onClick={handleViewToolbarToggleClick}
-          >
-            View
-          </summary>
+        {isTabsPresentation ? (
           <div
-            className={`ViewToolbarPanel ${isTabsPresentation ? 'ViewToolbarPanel--tabs' : ''}`}
-            ref={viewToolbarPanelRef}
-            data-presentation={isTabsPresentation ? 'tabs' : 'classic'}
+            ref={viewToolbarTabsHostRef}
+            className="ViewToolbarPanel--tabs ViewToolbarTabsHost ViewToolbarTabsHost--docked"
+            data-open={viewToolbarOpen ? 'true' : 'false'}
+            data-presentation="tabs"
+            onContextMenu={handleDockedViewToolbarContextMenu}
           >
-            <ViewToolbarBody
-              sections={viewToolbarSections}
-              isTabsPresentation={isTabsPresentation}
-              activeTab={resolvedViewToolbarActiveTab}
-              onSelectTab={setViewToolbarActiveTab}
-            />
+            {viewToolbarTabRailElement}
+            {dockedViewToolbarRootElement}
           </div>
-          {viewToolbarContextMenuElement}
-        </details>
+        ) : (
+          dockedViewToolbarRootElement
+        )}
       </div>
     </aside>
   )

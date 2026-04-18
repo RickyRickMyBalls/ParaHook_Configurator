@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Shoe 1 preview</title>
+  <desc id="desc">Catalog placeholder preview for the Shoe 1 reference item.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#162338" />
+      <stop offset="100%" stop-color="#0b1220" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#65b8ff" />
+      <stop offset="100%" stop-color="#9ee0ff" />
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg)" />
+  <rect x="26" y="26" width="588" height="368" rx="24" fill="none" stroke="#284768" stroke-width="2" />
+  <rect x="54" y="56" width="142" height="30" rx="15" fill="#11233a" stroke="#2e5276" />
+  <text x="125" y="76" text-anchor="middle" fill="#92bfff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="1.6">SHOES</text>
+  <path d="M110 270c34-24 58-38 84-48 20-7 36-10 58-12 43-3 81 14 122 39 27 17 54 31 82 39 31 9 56 10 90 12 15 1 24 10 24 24v19H80v-31c0-18 11-33 30-41z" fill="#0d1828" stroke="url(#accent)" stroke-width="8" stroke-linejoin="round" />
+  <path d="M224 207c14-21 24-48 25-82 2-8 8-13 16-13h48c12 0 21 10 20 21-3 28 4 57 18 84" fill="none" stroke="#a6d8ff" stroke-width="8" stroke-linecap="round" />
+  <path d="M168 286c22-8 47-13 78-14M270 271c19 0 38 2 59 5M371 281c18 4 35 10 51 17" fill="none" stroke="#5f9cd4" stroke-width="6" stroke-linecap="round" />
+  <text x="54" y="362" fill="#eff6ff" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700">Shoe 1</text>
+  <text x="54" y="390" fill="#89a7ca" font-family="Segoe UI, Arial, sans-serif" font-size="18">Curated wearable reference preview</text>
+</svg>

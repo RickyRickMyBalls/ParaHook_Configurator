@@ -20,6 +20,7 @@ import { BrowserDockHost } from './hosts/BrowserDockHost'
 import { DashboardWindowHost } from './hosts/DashboardWindowHost'
 import { NotepadWindowHost } from './hosts/NotepadWindowHost'
 import { RadioRuntimeHost } from './hosts/RadioRuntimeHost'
+import { SimpleFloatingSurfaceHost } from './hosts/SimpleFloatingSurfaceHost'
 import { SpaghettiWindowHost } from './hosts/SpaghettiWindowHost'
 import {
   readPersistedNotepadState,
@@ -45,6 +46,7 @@ import {
   useAudioSamplerStore,
 } from './store/audioSamplerStore'
 import { useAppStore } from './store/useAppStore'
+import { CatalogSurface } from './workspace/CatalogSurface'
 import { useWorkspaceChildWindow } from './workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import { WorkspaceViewportTree } from './workspace/WorkspaceViewportTree'
@@ -397,6 +399,7 @@ export function AppShell() {
       detachedViewerPopoutSurfaces,
       detachedDashboardFloatingSurfaces,
       detachedDashboardPopoutSurfaces,
+      detachedCatalogFloatingSurfaces,
       detachedNotepadFloatingSurfaces,
       detachedNotepadPopoutSurfaces,
     },
@@ -1015,6 +1018,21 @@ export function AppShell() {
           onClearDetachedSurface={clearDetachedSlotSurface}
           onOpenNoteInNotepad={handleOpenDashboardNoteInNotepad}
           onQuickDock={redockDetachedSurface}
+        />
+        <SimpleFloatingSurfaceHost
+          viewportRef={viewportRef}
+          floatingSurfaces={detachedCatalogFloatingSurfaces}
+          onQuickDock={redockDetachedSurface}
+          title="Floating Catalog"
+          windowClassName="CatalogFloatingWindow"
+          headerClassName="CatalogFloatingWindowHeader"
+          quickDockClassName="CatalogFloatingWindowQuickDock"
+          defaultRect={{ x: 72, y: 72, width: 520, height: 320 }}
+          minWidth={360}
+          minHeight={240}
+          renderSurface={(surface) => (
+            <CatalogSurface surfaceInstanceId={surface.surfaceInstanceId} hostMode="floating" />
+          )}
         />
         <NotepadWindowHost
           viewportRef={viewportRef}

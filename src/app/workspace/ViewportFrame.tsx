@@ -46,6 +46,7 @@ type ViewportFrameProps = {
 const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
   modelViewer: 'Model Viewport',
   browser: 'Browser',
+  catalog: 'Catalog',
   console: 'Console',
   spaghettiEditor: 'Spaghetti Editor',
   notepad: 'Notepad',
@@ -53,7 +54,7 @@ const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
 }
 
 const typePickerWidth = 180
-const typePickerHeight = 198
+const typePickerHeight = 228
 const actionMenuWidth = 180
 const actionMenuHeight = 210
 const menuEdgePadding = 8
@@ -109,7 +110,15 @@ export function ViewportFrame(props: ViewportFrameProps) {
   const surfaceChoices = useMemo(
     () =>
       (availableSurfaceKinds ??
-        (['modelViewer', 'browser', 'console', 'spaghettiEditor', 'notepad', 'dashboard'] as const)
+        ([
+          'modelViewer',
+          'browser',
+          'catalog',
+          'console',
+          'spaghettiEditor',
+          'notepad',
+          'dashboard',
+        ] as const)
       ).map((kind) => ({
         kind,
         label: surfaceKindLabels[kind],

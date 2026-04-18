@@ -196,10 +196,46 @@ describe('ViewportFrame', () => {
 
     expect(container?.textContent).toContain('Model Viewport')
     expect(container?.textContent).toContain('Browser')
+    expect(container?.textContent).toContain('Catalog')
     expect(container?.textContent).toContain('Console')
     expect(container?.textContent).toContain('Spaghetti Editor')
     expect(container?.textContent).toContain('Notepad')
     expect(container?.textContent).toContain('Dashboard')
+  })
+
+  it('keeps catalog disabled in the primary slot viewport type submenu', async () => {
+    await renderFrame({
+      isPrimary: true,
+      surfaceKind: 'modelViewer',
+    })
+
+    const header = container?.querySelector('.ViewportFrameHeader') as HTMLDivElement | null
+
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }))
+    })
+
+    const typeGroup = container?.querySelectorAll(
+      '.ViewportFrameActionMenuSubmenuGroup',
+    )[1] as HTMLDivElement | undefined
+    const typeButton = typeGroup?.querySelector(
+      '.ViewportFrameActionMenuAction--submenu',
+    ) as HTMLButtonElement | null
+
+    await act(async () => {
+      typeButton?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }))
+    })
+
+    const typeButtons = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionSubmenu .ViewportFrameActionMenuAction') ?? [],
+    ) as HTMLButtonElement[]
+    const modelViewerButton = typeButtons.find((button) => button.textContent?.trim() === 'Model Viewport')
+    const catalogButton = typeButtons.find((button) => button.textContent?.trim() === 'Catalog')
+
+    expect(modelViewerButton).toBeDefined()
+    expect(modelViewerButton?.disabled).toBe(false)
+    expect(catalogButton).toBeDefined()
+    expect(catalogButton?.disabled).toBe(true)
   })
 
   it('calls the viewport type action from the titlebar submenu', async () => {

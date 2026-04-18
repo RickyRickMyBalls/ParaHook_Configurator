@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+15. 2026-04-17 23:36:00: Added the first standalone `Catalog-2` future planning doc under `Future/`, linking the family index to a real implementation-ready reference-family plan that compresses the existing `Catalog-2` lane from this index plus the broader `Catalog-Vision.md` `Generation 1` direction into one small phase ladder for onboarding `foothooks`, `shoes`, and `footpads` as real optional curated families
+14. 2026-04-17 22:12:06: Folded the newer Catalog preview-session direction into this `Generation 1` umbrella, reframing preview as empty card preview boxes plus explicit user-triggered preview loading instead of only a separate preview viewport, adding the new preview-loaded session-list and unload-control wishlist items, and tightening the `Catalog-1` planning read so the foundation lane now explicitly owns in-card preview loading, multi-select preview loading, restore-on-reopen within the running session, and unload controls without widening into project recall
 13. 2026-04-17 18:13:42: Added a dedicated `Generation 1 Vision` section so this index now acts as the more specific Gen 1 planning umbrella under the broader `Catalog-Vision.md`, tying the detailed `Catalog-1` through `Catalog-5` phase ladder back to one explicit Gen 1 browse, preview, commit, HDRI, metadata, and recall direction
 12. 2026-04-16 17:10:00: Tightened the `Catalog` family read again so `Generation 0` now explicitly includes moving the preloaded reference models out of `Browser`, clarifying that `foothooks`, `shoes`, and `footpads` should stop appearing as default Browser-resident content during cleanup and should instead arrive later as optional add-in families the user can choose
 11. 2026-04-16 16:55:23: Reframed the `Catalog` family index so it now stays honest that the family has not started yet, adding the new `Catalog-Gen0-Index.md` planning surface for cleanup-and-prep work before the first real family phase, clarifying that `Catalog-1` through `Catalog-5` now read as the planned `Generation 1` ladder rather than the current state, and preserving `Catalog-Gen2-Index.md` as the later widening surface
@@ -97,7 +99,9 @@ That workspace should:
 - make load/apply actions explicit
 - let the user find imported items they already uploaded so they can place another one after deleting it from the model
 - let the user keep the model visible by splitting the model viewport and turning the new non-primary pane into `Catalog`
-- let the user `Load Preview` into a separate preview viewport before commit
+- let the user start from empty card preview boxes and explicitly `Load Preview` into those card boxes before commit
+- let the user preview more than one selected card at a time and keep those temporary previews in a Catalog-owned session list during the running app session
+- let the user unload preview items from that session list when performance starts to dip
 - let the user choose `Add To Project` when the selected reference should become Browser/project truth
 - stay honest about what happens after load:
   - references become project/content truth
@@ -128,8 +132,12 @@ The healthy `Generation 1` read is:
 - `Catalog` also includes an `Imports` area for items ParaHook already knows about after import intake, so the user can place another copy later without making `Catalog` the import owner
 - the main browse flow is preview-first and store-like rather than auto-loaded or filesystem-like
 - the user can open an item page that acts as the main decision surface for a selected entry
+- the card grid should expose one empty preview box per item so visual preview remains available without auto-loading repo-backed content
+- clicking a preview box or triggering `Load Preview` should load temporary preview state only for the chosen item or selected items
 - `Load Preview` stays temporary and separate from `Add To Project`
 - multiple temporary previews may remain open when the user wants to compare items
+- Catalog may keep a preview-loaded item list during the running session so closing and reopening the surface restores those temporary previews
+- preview-loaded items should be unloadable from that list without affecting project truth
 - `Add To Project` makes the chosen reference become explicit Browser or project truth instead of leaving it catalog-local
 - `HDRIs` remain in the catalog, but keep their own explicit viewer or environment apply path instead of pretending to be geometry content
 - the catalog grows through stronger tags, metadata, search, and richer reference notes without reopening the earlier ownership split
@@ -139,9 +147,11 @@ What this `Generation 1` vision should feel like:
 - a real split-pane workspace surface, not a Browser subsection or one-off overlay
 - a curated internal library, not raw folder walking or arbitrary internet intake
 - a clean `1x1` card-grid browse surface with no auto-loaded previews
+- empty card preview boxes that stay lightweight until the user explicitly loads temporary preview state
 - explicit item-family sections for the first reference families plus `HDRIs`
-- one larger item page whose primary responsibilities are the preview viewport, the description, and the honest action for that asset type
+- one larger item page whose primary responsibilities are the larger preview surface, the description, and the honest action for that asset type
 - a preview flow that supports comparison without silently committing content
+- a small preview-session manager inside Catalog so the user can see what is currently preview-loaded and unload those temporary items when needed
 - a commit flow that hands the selected result into the correct downstream owner
 
 What this `Generation 1` vision should not require yet:
@@ -222,7 +232,8 @@ Expected first-pass responsibilities:
 - behave like a true workspace-mode target when a non-primary split pane changes surface kind
 - organize entries into useful asset families
 - show an `Imports` area for user-uploaded items that ParaHook already knows about
-- preview what an item is before load
+- show one empty preview box per card and let the user explicitly load temporary previews into those boxes
+- keep a temporary preview-loaded item list inside Catalog during the running session
 - show enough metadata to understand the item
 - let the user load/apply it explicitly
 
@@ -497,7 +508,11 @@ Important rule:
 ### Loading Direction
 
 Geometry/reference-like catalog items should:
-- support one temporary preview step first
+- render with empty preview boxes by default instead of auto-loading repo-backed previews
+- support one temporary preview step first through an explicit in-card preview load
+- allow one preview action to target more than one selected card
+- keep a Catalog-owned preview-loaded item list during the running session so closing and reopening the surface restores those temporary previews
+- let the user unload preview items from that list without affecting project truth
 - create explicit project/reference content only after the user commits them
 - show up through the normal downstream content systems once committed
 - remain inspectable after load outside the catalog itself
@@ -542,9 +557,11 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
   - [ ] `0. Lightweight Card Grid`
   - [ ] `0A. Imports Area For Previously Uploaded Items`
   - [ ] `2. Separate Sections For Reference Families`
-  - [ ] `3. Preview In A Separate Viewport`
+  - [ ] `3. Explicit Preview Surfaces`
   - [ ] `3A. No Auto-Loaded Previews`
   - [ ] `3B. Multiple Temporary Previews`
+  - [ ] `3C. Preview-Loaded Session List And Restore`
+  - [ ] `3D. Preview Unload Controls`
   - [ ] `4. Explicit Add-To-Project Commit`
   - [ ] `5. Honest Preview Versus Commit Ownership`
   - [ ] `6. Preview-Friendly Metadata`
@@ -553,12 +570,13 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
     - make `Catalog` a real workspace mode
     - lock the store-page card language
     - add an `Imports` area for items already uploaded into ParaHook without moving import intake into `Catalog`
+    - lock the empty-card-preview plus preview-session baseline
     - lock the preview-versus-commit contract
     - lock the item-page responsibilities
 ### `Catalog-2`
   - [ ] `1. Move The Current Preloaded References Into Catalog`
   - [ ] `2. Separate Sections For Reference Families`
-  - [ ] `3. Preview In A Separate Viewport`
+  - [ ] `3. Explicit Preview Surfaces`
   - [ ] `4. Explicit Add-To-Project Commit`
   - [ ] `6. Preview-Friendly Metadata`
   - [ ] `6A. Item Page As The Main Decision Surface`
@@ -588,7 +606,7 @@ Use the family phases to organize the dedicated Catalog wishlist items like this
     - later comparison or richer remembered catalog behavior where needed
 
   
-## [ ] Catalog-1 - Workspace Foundation And Catalog Contract
+## [x] Catalog-1 - Workspace Foundation And Catalog Contract
 
 ### Purpose
 
@@ -633,6 +651,9 @@ Onboard the first geometry/reference-style catalog families such as hooks, shoes
 - HDRI/environment apply behavior
 - search/scale-up polish beyond what the first reference families strictly need
 - final persistence or project-recall rules for every catalog-loaded reference
+
+Current source doc:
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md`
 
 ## [ ] Catalog-3 - HDRI Catalog And Explicit Environment Apply Path
 

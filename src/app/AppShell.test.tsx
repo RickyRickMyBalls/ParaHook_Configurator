@@ -16,7 +16,9 @@ import {
 } from './store/audioSamplerStore'
 import { consumeQueuedViewerCameraPose, setViewer } from './viewerBridge'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
-import { workspaceLayoutStorageKey } from './workspace/workspacePersistence'
+import {
+  workspaceLayoutStorageKey,
+} from './workspace/workspacePersistence'
 import {
   splitWorkspaceSurfaceToSide,
 } from './workspace/workspaceSurfaceActions'
@@ -2118,6 +2120,164 @@ describe('AppShell', () => {
         (slot) => slot.surfaceKind === 'notepad' && slot.surfaceInstanceId === 'notepad-surface-1',
       ),
     ).toBe(true)
+  })
+
+  it('renders a detached floating catalog surface and quick docks it back', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let catalogSlotId: string | null = null
+    await act(async () => {
+      catalogSlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'catalog',
+        surfaceInstanceId: 'catalog-surface-1',
+      })
+    })
+
+    await act(async () => {
+      useWorkspaceStore.getState().detachViewportSlotSurface(catalogSlotId ?? '', 'floating')
+    })
+    await rerenderAppShell(root!)
+
+    const floatingCatalog = container?.querySelector(
+      '.CatalogFloatingWindow[data-workspace-surface-instance-id="catalog-surface-1"]',
+    ) as HTMLDivElement | null
+    expect(floatingCatalog).not.toBeNull()
+    expect(floatingCatalog?.textContent).toContain('Floating Catalog')
+    expect(floatingCatalog?.textContent).toContain('Catalog workspace foundation is live')
+
+    const quickDockButton = floatingCatalog?.querySelector(
+      '.CatalogFloatingWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+    expect(quickDockButton?.getAttribute('aria-label')).toBe('Quick Dock')
+    expect(quickDockButton?.classList.contains('FloatingWindowHeaderAction')).toBe(true)
+    expect(quickDockButton?.querySelector('svg')).not.toBeNull()
+    expect(quickDockButton?.textContent?.trim()).toBe('')
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(
+      container?.querySelector('.CatalogFloatingWindow[data-workspace-surface-instance-id="catalog-surface-1"]'),
+    ).toBeNull()
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById['catalog-surface-1']).toBeUndefined()
+    expect(
+      Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
+        (slot) => slot.surfaceKind === 'catalog' && slot.surfaceInstanceId === 'catalog-surface-1',
+      ),
+    ).toBe(true)
+  })
+
+  it('floats a slotted catalog surface from the titlebar action menu', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    let secondarySlotId: string | null = null
+    await act(async () => {
+      secondarySlotId = useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
+        surfaceKind: 'modelViewer',
+      })
+    })
+
+    const secondarySlotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === secondarySlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'modelViewer',
+    ) as HTMLDivElement | undefined
+    const modeButton = secondarySlotFrame?.querySelector(
+      '.ViewportFrameModeButton',
+    ) as HTMLButtonElement | null
+
+    expect(modeButton).not.toBeNull()
+
+    await act(async () => {
+      modeButton?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 48,
+          clientY: 48,
+        }),
+      )
+    })
+
+    const catalogAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameTypePickerAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Catalog') as HTMLButtonElement | undefined
+
+    expect(catalogAction).not.toBeUndefined()
+
+    await act(async () => {
+      catalogAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const catalogSlotFrame = Array.from(container?.querySelectorAll('.ViewportFrame') ?? []).find(
+      (element) =>
+        element.getAttribute('data-workspace-slot-id') === secondarySlotId &&
+        element.getAttribute('data-workspace-surface-kind') === 'catalog',
+    ) as HTMLDivElement | undefined
+    const catalogHeader = catalogSlotFrame?.querySelector('.ViewportFrameHeader') as
+      | HTMLDivElement
+      | null
+
+    expect(catalogHeader).not.toBeNull()
+
+    await act(async () => {
+      catalogHeader?.dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 120,
+          clientY: 64,
+        }),
+      )
+    })
+
+    const floatAction = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionMenuAction') ?? [],
+    ).find((element) => element.textContent?.trim() === 'Float') as HTMLButtonElement | undefined
+
+    expect(floatAction).not.toBeUndefined()
+
+    await act(async () => {
+      floatAction?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    await rerenderAppShell(root!)
+
+    const catalogSurfaceInstanceId = `catalog-${secondarySlotId}`
+    const floatingCatalog = container?.querySelector(
+      `.CatalogFloatingWindow[data-workspace-surface-instance-id="${catalogSurfaceInstanceId}"]`,
+    ) as HTMLDivElement | null
+
+    expect(floatingCatalog).not.toBeNull()
+    expect(floatingCatalog?.textContent).toContain('Floating Catalog')
+    expect(floatingCatalog?.style.zIndex).toBe('19')
+    expect(
+      useWorkspaceStore.getState().detachedSlotSurfaceById[catalogSurfaceInstanceId]?.hostMode,
+    ).toBe('floating')
+    expect(
+      container?.querySelector(
+        `.ViewportFrame[data-workspace-slot-id="${secondarySlotId}"][data-workspace-surface-kind="catalog"]`,
+      ),
+    ).toBeNull()
+
+    const quickDockButton = floatingCatalog?.querySelector(
+      '.CatalogFloatingWindowQuickDock',
+    ) as HTMLButtonElement | null
+    expect(quickDockButton).not.toBeNull()
+
+    await act(async () => {
+      quickDockButton?.click()
+    })
+    await rerenderAppShell(root!)
+
+    expect(useWorkspaceStore.getState().detachedSlotSurfaceById[catalogSurfaceInstanceId]).toBeUndefined()
+    expect(
+      container?.querySelector(
+        `.ViewportFrame[data-workspace-slot-id="${secondarySlotId}"][data-workspace-surface-kind="catalog"]`,
+      ),
+    ).not.toBeNull()
   })
 
   it('pops out a notepad slot into a child window and quick docks it back', async () => {

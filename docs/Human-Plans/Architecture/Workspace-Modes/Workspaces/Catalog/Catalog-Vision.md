@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-04-17 22:12:06: Folded the newer preview-session direction into the `Catalog` vision so `Generation 1` now reads as opening with empty card preview boxes instead of preloaded repo-backed previews, allowing explicit in-card and multi-card preview loading, keeping a Catalog-owned preview-loaded item list that restores when the user closes and reopens Catalog during the running session, and adding unload controls so temporary preview state stays lightweight and distinct from `Add To Project`
 18. 2026-04-16 17:10:00: Tightened the generational read again so `Generation 0` now explicitly removes the current preloaded reference models from `Browser`, clarifying that `foothooks`, `shoes`, and `footpads` should stop acting like default Browser-resident content during cleanup and should later return only as intentional optional add-ins
 17. 2026-04-16 16:55:23: Reframed the catalog vision so it stays honest that the `Catalog` family has not started yet, adding an explicit `Generation 0` cleanup-and-prep read ahead of the later repo-backed catalog build, changing the current-state language so `Generation 1` now reads as the first real family generation instead of the active one, and aligning the vision with the new `Catalog-Gen0-Index.md` planning surface
 16. 2026-04-16 12:31:00: Expanded `Generation 1` to include an `Imports` area inside `Catalog`, documenting that the early catalog may show user-uploaded items that already entered ParaHook so the user can place another copy into the model after deleting one, while still keeping import intake itself owned by the separate import system
@@ -121,10 +122,12 @@ When it is good, it should let the user:
 - load the item through an explicit action
 - open `Catalog` in its own pane after splitting the model viewport, so the user can keep the model visible while browsing reusable assets
 - browse a filter-plus-grid store surface where each item appears as its own `1x1` card
-- start with no previews loaded until the user explicitly asks for one
-- `Load Preview` only for the items the user wants, without committing those assets into project truth yet
-- keep more than one temporary preview open when the user wants to compare multiple items
-- click into an item page where the preview viewport becomes larger and the main actions are `Add To Project` plus description-led inspection
+- start with one empty preview box per card and no repo-backed previews loaded until the user explicitly asks for one
+- click a card preview box or trigger `Load Preview` only for the items the user wants, without committing those assets into project truth yet
+- load previews for more than one selected item at a time when the user wants to compare multiple cards
+- keep a Catalog-owned preview-loaded list so those temporary previews restore when the user closes and reopens `Catalog` during the running session
+- unload one or more preview-loaded items when performance starts to dip
+- click into an item page where the preview surface becomes larger and the main actions are `Add To Project` plus description-led inspection
 - choose `Add To Project` when the previewed asset should become real project content
 - understand whether the item becomes:
   - project/reference content
@@ -200,7 +203,9 @@ Unless a later section explicitly says `Generation 2` or `Generation 3`, the int
 - `foothooks`, `shoes`, and `footpads` return only as intentional optional add-ins, not as default Browser-resident preload
 - `Catalog` may also expose an `Imports` area for user-uploaded items that already entered ParaHook
 - the first browse flow is store-like, filterable, and preview-first
+- the first card grid should show empty preview boxes by default instead of preloading repo-backed preview state
 - `Load Preview` stays separate from `Add To Project`
+- Catalog may keep a temporary preview-loaded session list, but that list stays distinct from project truth
 - load behavior stays honest by asset type
 - Browser, project truth, and viewer state remain the downstream owners after commit
 
@@ -896,16 +901,19 @@ Important rule:
 
 For reference-style assets, the first honest user flow should be:
 - browse a reference family such as `Foothooks`, `Shoes`, or `Footpads`
-- see one `1x1` card per item with no preview auto-loaded
-- select one item
-- choose `Load Preview` only for that item
-- see that item in a temporary preview viewport without adding it to project/content truth yet
-- optionally keep multiple temporary previews open if the user wants to compare more than one item
+- see one `1x1` card per item with an empty preview box and no repo-backed preview auto-loaded
+- click a card preview box or choose `Load Preview` only for the item or items the user wants
+- see that preview load into the matching card preview box without adding it to project/content truth yet
+- if more than one item is selected, let the same preview action load temporary previews into each selected card box
+- optionally open the item page when the user wants the larger preview surface, description, and commit action
+- keep a Catalog-owned preview-loaded item list so those temporary previews can survive closing and reopening `Catalog` during the running session
+- let the user unload preview items from that list when performance starts to dip
 - choose `Add To Project` only when the item should become real project content
 
 Important rule:
 - `Load Preview` is temporary preview state
 - `Add To Project` is the explicit commit action that should hand the asset into Browser/project truth and visible model content
+- the preview-loaded list is still temporary Catalog session state, not project truth
 
 Important supporting rule:
 - preview should be user-triggered, not automatic for every card in the catalog grid
@@ -978,8 +986,10 @@ When `Catalog` is working well, the user should be able to say:
 - "I can open a Onewheel Builder, see the required board parts, and fill those slots from the catalog."
 - "I can understand when a sub-assembly such as a rear box is still missing required internals or when a part physically does not fit."
 - "I can browse a clean card grid without the catalog auto-loading everything."
-- "I can preview only the items I care about, and I can keep more than one preview open if I want."
-- "I can open an item page with a larger viewport, read the description, and then decide whether to add it to the project."
+- "I can preview only the items I care about, and those previews load into the matching card boxes instead of committing automatically."
+- "I can preview more than one selected item at a time, keep those temporary previews loaded while I browse, and unload them if performance starts to dip."
+- "If I close and reopen Catalog during the same run, my temporary preview-loaded items are still there."
+- "I can open an item page with a larger preview surface, read the description, and then decide whether to add it to the project."
 - "Loading it makes a clear explicit change in the right downstream system."
 - "The catalog helps me reuse stored assets without confusing them with my project's authored truth."
 
@@ -994,5 +1004,5 @@ The umbrella direction is now:
 - `Generation 2` should widen that catalog to include curated external integrations such as `pubparts.xyz`, linked `3D` model entries more generally, broader platform-normalization rules, and pre-built Onewheel starting boards
 - `Generation 3` should turn the `Generation 2` compatibility groundwork into a real compatibility-check system that can tell the user whether a part or build combination should work
 - the catalog should remain a curated browse-and-load surface, not a second hidden content owner
-- reference-style assets should support a temporary preview step before commit and should only become Browser/project truth after explicit `Add To Project`
+- reference-style assets should support empty card preview boxes, explicit temporary preview loading, and a Catalog-owned preview session before commit, and should only become Browser/project truth after explicit `Add To Project`
 - loaded items should become explicit downstream truth in Browser/project content, viewer environment state, or other honest owner seams depending on the asset type

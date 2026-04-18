@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-17 22:12:06: Folded the newer Catalog preview-session direction into the wishlist by replacing the older preview-viewport-only read with empty card preview boxes plus explicit user-triggered preview loading, adding a preview-loaded session list with restore-on-reopen and unload controls, and tightening the phase mapping so `Catalog-1` now owns that baseline while `Catalog-5` still stays focused on later identity and recall follow-through
 5. 2026-04-16 17:10:00: Tightened the wishlist read so the old preloaded `foothooks`, `shoes`, and `footpads` no longer read as default Browser-resident content, adding an explicit `Catalog-Gen0` prep step to remove those preloaded reference models from `Browser` first and reframing the later catalog families as optional add-ins the user can choose intentionally
 4. 2026-04-16 00:08:43: Expanded the Catalog wishlist again to add the higher-level `System` organizer for Onewheel parts, documenting that the catalog should first distinguish `Platform` versus `Wheel` and later `Hardware`, and capturing the new wheel-side examples for motors and tires so those items can use type-specific fitment metadata without being forced into platform-only filtering
 3. 2026-04-15 23:57:42: Added the first explicit Onewheel-part filter wishlist section, documenting the structured filter model for `ADV`, `XR`, `GT`, `Other`, the first part-type filters `Footpads`, `Bumpers`, `Rails`, and `Motors`, the `Other` sub-sections `FootHolds`, `Shoes`, and `Screw & Nuts`, and the recommendation that names like `XR_Footpad_Kush-Wide_Front` should be represented by structured metadata fields instead of parsed display strings
@@ -46,10 +47,11 @@ The first strong target is:
 
 The core user flow should be:
 - browse a section in a filter-plus-grid store page
-- select an item
-- `Load Preview`
-- inspect it in a separate preview viewport
+- see one empty preview box per card instead of a preloaded repo-backed preview
+- click a card preview box or use `Load Preview`
+- inspect the temporary preview in that card box or on the item's larger page
 - optionally keep other temporary previews open too
+- let Catalog remember which items are preview-loaded while the surface is still part of the running session
 - `Add To Project`
 
 Important rule:
@@ -104,11 +106,12 @@ Important rule:
 - the sections should group assets by what they are and how they load
 - do not blur reference families and viewer-environment presets into one fake universal category
 
-#### [ ] 3. Preview In A Separate Viewport
+#### [ ] 3. Explicit Preview Surfaces
 
-- the user should be able to preview a selected reference in a separate preview viewport before committing it
+- every card should show a preview box even when no preview is loaded yet
+- the user should be able to preview a selected reference in that card box before committing it
 - this preview should not immediately create Browser/project content
-- the model should stay easy to compare against the previewed reference
+- the item page should still provide the larger preview surface for deeper inspection
 - previews should be loaded only when the user asks for them
 - the system should allow more than one temporary preview at a time
 
@@ -118,18 +121,31 @@ Suggested first action name:
 #### [ ] 3A. No Auto-Loaded Previews
 
 - when the user first opens `Catalog`, no previews should already be loaded
-- the grid should not spin up preview viewports for every item automatically
+- the grid should not spin up repo-backed previews for every item automatically
 - preview should be intentional and user-triggered
 
 Important rule:
 - no auto-preview flood on entry
-- no hidden project load just because a card is visible
+- no hidden project load just because a card or preview box is visible
 
 #### [ ] 3B. Multiple Temporary Previews
 
 - the user should be able to preview more than one item at the same time
+- multi-select plus one preview action should be allowed to load more than one card preview at once
 - those previewed items should still remain temporary
 - previewed items should be easy to close, replace, or compare
+
+#### [ ] 3C. Preview-Loaded Session List And Restore
+
+- Catalog should keep a list of which items are currently preview-loaded
+- if the user closes and reopens `Catalog` during the running session, those temporary preview-loaded items should still be there
+- this list should stay Catalog-owned and should not masquerade as Browser/project truth
+
+#### [ ] 3D. Preview Unload Controls
+
+- the user should be able to unload one preview-loaded item, several preview-loaded items, or all preview-loaded items
+- unload should be available from the preview-loaded list view
+- unloading a preview should recover temporary preview weight without affecting committed project content
 
 #### [ ] 4. Explicit Add-To-Project Commit
 
@@ -171,7 +187,7 @@ Useful later metadata:
 
 - clicking a card should open that item's page inside `Catalog`
 - the item page should make three things primary:
-  - the larger preview viewport
+  - the larger preview surface
   - `Add To Project`
   - the description
 
@@ -282,7 +298,7 @@ Use this mapping to keep wishlist items organized by the phase where they are ex
 - `Catalog-1`
   - make `Catalog` a real workspace mode
   - define the catalog item contract
-  - define sections, store-page card language, preview-versus-commit workflow, and the structured filter contract
+  - define sections, store-page card language, empty-card-preview behavior, preview-session workflow, and the structured filter contract
 - `Catalog-2`
   - onboard `foothooks`, `shoes`, and `footpads` as later optional curated catalog families after the old Browser preload is gone
   - make `Add To Project` create explicit Browser/project content
@@ -320,10 +336,11 @@ The wishlist direction is:
 - remove the current preloaded `foothooks`, `shoes`, and `footpads` from the default `Browser` baseline first
 - later let the user add `foothooks`, `shoes`, and `footpads` through `Catalog`
 - organize them into clear reference-family sections
-- show them through a `1x1` card grid with no auto-loaded previews on entry
-- let the user `Load Preview` into separate temporary preview viewports only when they ask for it
+- show them through a `1x1` card grid with empty preview boxes and no auto-loaded previews on entry
+- let the user `Load Preview` into temporary in-card preview boxes only when they ask for it
 - allow more than one temporary preview at a time
-- make the item page center on the larger viewport, `Add To Project`, and the description
+- let Catalog keep a preview-loaded session list that restores on close/reopen during the running session and offers unload controls
+- make the item page center on the larger preview surface, `Add To Project`, and the description
 - use structured platform, part-type, product-name, and position filters instead of guessing from labels
 - add the higher-level `System` organizer so `Platform` parts and `Wheel` parts do not get forced into the same filter language
 - allow motors and tires to use wheel-specific fitment filters where needed

@@ -65,6 +65,464 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1495 -->
+### [1495] - 2026-04-18 09:20 - `Catalog-1.12 - Phase 2 - Grid Scroll Ownership And Edge Padding Reduction`
+
+HUMAN SUMMARY: `The Catalog shell now owns its content scrolling instead of letting tall grid or item-page content run off the page. In slotted workspace mode the outer shell also drops its old edge padding, so split Catalog panes sit flush to the viewport edge while keeping the behavior seams unchanged.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` to add one explicit `CatalogShellContentBody` wrapper so the content lane has a single owned scroll surface.
+- Updated `src/app/theme/surfaces/catalog.css` so `CatalogSurface` and `CatalogShell` fill the available host height, the content lane becomes a two-row shell with `overflow` ownership, and slotted Catalog surfaces remove the old outer shell padding while keeping the inner region padding intact.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that the shared Catalog shell now exposes the explicit content-body scroll owner in the slotted surface path.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1494 -->
+### [1494] - 2026-04-18 08:51 - `Catalog-1.12 - Phase 1 - Item Card Add To Project Button`
+
+HUMAN SUMMARY: `Eligible repo-backed Catalog cards can now commit directly from the grid instead of forcing the item page first. The new card button reuses the same downstream Browser-project handoff as the existing item-page action, while imports reuse and environment entries keep their non-commit card behavior.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` to thread the existing `onAddItemToProject` dispatch seam into the grid surface.
+- Updated `src/app/catalog/ui/CatalogShellGridMode.tsx` to resolve card action eligibility from the shipped Catalog action plan and render a direct card-row `Add To Project` button only for eligible repo-backed entries.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that the grid-card `Add To Project` path commits through the same downstream Browser-project owner and that imports reuse plus environment entries do not expose the grid commit affordance.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1493 -->
+### [1493] - 2026-04-18 08:07 - `Catalog - Item Page Preview Surface Click-To-Load`
+
+HUMAN SUMMARY: `The unloaded preview box on the Catalog item page now acts like a direct preview trigger instead of only showing passive copy. Users can click the larger item-page preview surface itself to load the preview, and repo-backed items still transition into the interactive viewport once that load completes.`
+
+- Updated `src/app/catalog/ui/CatalogShellItemPage.tsx` so the unloaded item-page preview surface becomes a direct `Load Preview` trigger for temporary-preview-capable entries instead of requiring the separate action button.
+- Updated `src/app/theme/surfaces/catalog.css` with the item-page preview-button styling and focus or hover treatment so the larger preview box still reads like the same Catalog surface while behaving like a button.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that clicking the unloaded item-page preview surface loads the preview and switches repo-backed items into the interactive item-page viewport path.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/viewer/referenceAssetLoader.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1492 -->
+### [1492] - 2026-04-18 07:59 - `Catalog - Warm Repo-backed Preview Viewport Reuse`
+
+HUMAN SUMMARY: `Repo-backed Catalog previews now stay warm when you move from the grid card to the item page. Once a reference preview has already loaded, the item page reuses a warm clone from the shared reference-asset cache instead of triggering a second full asset load and falling back to the preview image first.`
+
+- Updated `src/viewer/referenceAssetLoader.ts` with a small warm-object cache plus deep-clone reuse helpers so repeated repo-backed preview viewports can share one parsed asset source without sharing disposable geometry or material instances.
+- Updated `src/app/catalog/ui/CatalogCardPreviewViewport.tsx` to detect warm repo-backed assets and mount the interactive viewport from a warm clone immediately when available, avoiding the second full reload path when the user moves from the card grid to the item page.
+- Added `src/viewer/referenceAssetLoader.test.ts` with focused proof that repeated and concurrent requests for the same repo-backed asset reuse one underlying source load while still returning separate deep clones.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` to keep the shared grid-to-item-page preview-session handoff covered while the warm-loader path now handles the runtime reuse.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/viewer/referenceAssetLoader.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1491 -->
+### [1491] - 2026-04-18 07:50 - `Catalog-2 - Phase 5.1 - Item Page Interactive Preview Viewport`
+
+HUMAN SUMMARY: `Repo-backed Catalog item pages now reuse the same interactive preview viewport seam as the grid cards. If a repo-backed preview was already loaded from the grid, opening that same item page now shows the larger interactive viewport immediately instead of falling back to static preview media or requiring a second load path.`
+
+- Updated `src/app/catalog/ui/CatalogCardPreviewViewport.tsx` with a small preview-surface variant seam so the existing Catalog-local interactive viewport can be reused honestly in both the card box and the larger item-page preview surface.
+- Updated `src/app/catalog/ui/CatalogShellItemPage.tsx` so loaded repo-backed reference items now render through the interactive preview viewport on the item page, while imports reuse and environment entries keep their existing simpler paths.
+- Updated `src/app/theme/surfaces/catalog.css` with the larger item-page viewport sizing so the reused interactive preview surface reads as the deeper inspect area instead of another card-sized box.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that repo-backed item pages now render the interactive viewport after load and that a preview loaded from the grid is already present when the same item page opens.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md` to check off `Catalog-2 / Phase 5.1` and mark the full `Catalog-2` ladder complete again.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1490 -->
+### [1490] - 2026-04-18 00:22 - `Catalog-2 - Phase 5 - Repo-backed Interactive Card Preview Viewports`
+
+HUMAN SUMMARY: `Repo-backed Catalog cards can now act like small interactive preview viewports instead of only showing static loaded media. Loaded `shoes`, `foothooks`, and `footpads` cards now render through a Catalog-local Three.js preview box with local orbit rotation, while imports reuse and environment entries stay on their simpler preview or apply paths.`
+
+- Added `src/app/catalog/ui/CatalogCardPreviewViewport.tsx` as a Catalog-local lightweight Three.js preview viewport for loaded repo-backed reference cards, using the shared reference asset loader plus local orbit controls without reaching into the main model-viewer owner.
+- Updated `src/app/catalog/catalogItemContract.ts` with repo-backed preview-source resolution so Catalog cards can derive interactive viewport load information from real repo-backed reference items while keeping the preview-media seam explicit.
+- Updated `src/app/catalog/ui/CatalogShellGridMode.tsx` so loaded repo-backed reference cards now render the interactive preview viewport in their card box, while imports reuse and environment entries keep their simpler existing paths.
+- Updated `src/app/theme/surfaces/catalog.css` with the local card-viewport shell, canvas, fallback, and overlay styling needed for the new interactive preview box.
+- Updated `src/app/catalog/catalogItemContract.test.ts` and `src/app/workspace/CatalogSurface.test.tsx` with focused proof that repo-backed cards now resolve interactive preview sources and render the new viewport path while imports reuse remains non-interactive.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md` to check off `Catalog-2 / Phase 5` and mark the full `Catalog-2` ladder complete again.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1489 -->
+### [1489] - 2026-04-18 00:13 - `Catalog - Preview Asset Repair And Base-Path Resolution`
+
+HUMAN SUMMARY: `Catalog previews now render again instead of pointing at missing or unresolved media paths. The shipped Catalog items now use lightweight built-in SVG preview assets under \`public/CatalogPreviews/\`, and the grid plus item page now resolve preview URLs through the app base path so preview loading works in real runtime instead of only in state-based tests.`
+
+- Added lightweight shipped preview assets at `public/CatalogPreviews/shoes/shoe-1.svg`, `public/CatalogPreviews/hooks/hook-large.svg`, `public/CatalogPreviews/footpads/pubpad-full-assembly.svg`, and `public/CatalogPreviews/environments/studio-environment.svg` so the current Catalog seed items no longer point at nonexistent preview media.
+- Updated `src/app/catalog/catalogSeedItems.ts` so the shipped Catalog entries now reference those SVG preview assets instead of missing `.png` paths.
+- Updated `src/app/catalog/catalogItemContract.ts` with `resolveCatalogPreviewMediaSrc(...)` so repo-backed preview media resolves through the app base path and still preserves `data:`, `blob:`, and absolute URLs.
+- Updated `src/app/catalog/ui/CatalogShellGridMode.tsx` and `src/app/catalog/ui/CatalogShellItemPage.tsx` so both preview surfaces render through the normalized preview-media URL helper.
+- Updated `src/app/catalog/catalogItemContract.test.ts` with focused proof that preview media now resolves through the base path.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1488 -->
+### [1488] - 2026-04-18 00:08 - `Catalog-2 - Phase 4 - Reference Family Commit Follow-Through`
+
+HUMAN SUMMARY: `The first curated Catalog reference families now have explicit family-level commit proof, not just the earlier generic handoff proof. \`foothooks\`, \`shoes\`, and \`footpads\` all now demonstrate the same downstream Browser/project owner path after the browse and item-page widening, while temporary Catalog preview state stays separate after commit.`
+
+- Updated `src/app/catalog/catalogReferenceCommit.test.ts` so the real `foothooks`, `shoes`, and `footpads` seed families now each prove their repo-backed `Add To Project` handoff contract, including the correct downstream owner plus `.step`, `.glb`, and `.obj` file-type follow-through.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused end-to-end proof that `Shoe 1`, `Large Foothook`, and `PubPad Full Assembly` still commit through `addImportedReference(...)`, reappear through the downstream imports path, and leave the temporary Catalog preview session separate after commit.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md` to check off `Catalog-2 / Phase 4` and mark the full `Catalog-2` doc complete after the commit follow-through proof landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogReferenceCommit.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1487 -->
+### [1487] - 2026-04-18 00:01 - `Catalog-2 - Phase 3 - Reference Family Item Page Read`
+
+HUMAN SUMMARY: `The first curated Catalog reference families now read more intentionally on the item page instead of falling back to raw family-key metadata and generic foundation copy. The item-page decision surface now uses family-specific labels, summary text, and clearer preview-versus-commit guidance for \`foothooks\`, \`shoes\`, and \`footpads\` while keeping the work item-page-only.`
+
+- Updated `src/app/catalog/ui/catalogShellShared.ts` with small item-page helper reads for family labels and family summaries so the first curated reference families can render one shared intentional item-page read instead of raw `familyKey` output.
+- Updated `src/app/catalog/ui/CatalogShellItemPage.tsx` so the detail metadata, intro copy, preview notice, and action-area guidance now reflect family-specific item-page wording for the onboarded reference families while preserving the existing preview and commit routing.
+- Updated `src/app/theme/surfaces/catalog.css` with the small item-page intro styling needed to support the stronger family-read block without widening the broader Catalog shell styling.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused grid-to-item-page proof that the item page now surfaces the curated family label, the family-specific summary copy, and the temporary preview-session guidance for the first reference families.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md` to check off `Catalog-2 / Phase 3` after the item-page readability pass landed.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1486 -->
+### [1486] - 2026-04-17 23:51 - `Catalog-2 - Phase 2 - Reference Family Browse Read`
+
+HUMAN SUMMARY: `The shared Catalog browse shell now reads the first curated reference families more clearly instead of presenting them as generic seed data. The browse rail and card grid now surface \`foothooks\`, \`shoes\`, and \`footpads\` as optional curated families with family-specific browse copy and card metadata, while the work stays shell-only and leaves source, item-page, and commit seams untouched.`
+
+- Updated `src/app/catalog/ui/catalogShellShared.ts` with shared family-label, browse-description, and card-metadata helpers so the rail and grid can reflect the now-explicit `foothooks`, `shoes`, and `footpads` source baseline through one shell-owned read.
+- Updated `src/app/catalog/ui/CatalogShellBrowseRail.tsx` so the active rail copy now describes the first curated families as optional browse lanes instead of leaving the shell on a generic preview-light message.
+- Updated `src/app/catalog/ui/CatalogShellGridMode.tsx` so the grid intro and card metadata now surface the first family read explicitly, including curated family wording for the initial reference lanes while preserving the existing preview-session and selection behavior.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that the rail and grid now expose `Foothooks`, `Shoes`, and `Footpads` as optional curated families and that the shared shell text reflects those family reads.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md` to check off `Catalog-2 / Phase 2` after the browse-read pass landed.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1485 -->
+### [1485] - 2026-04-17 23:45 - `Catalog-2 - Phase 1 - Reference Family Source Baseline`
+
+HUMAN SUMMARY: `The first Catalog reference-family source baseline is now explicit instead of flattened under generic \`references\` seed data. The repo-backed seeds now name \`footpads\`, \`shoes\`, and \`foothooks\` directly, the hook-side section drift is normalized, and the focused proof now locks that later shell phases can read those families straight from the Catalog-owned source seam.`
+
+- Updated `src/app/catalog/catalogSeedItems.ts` so the repo-backed reference seeds now use explicit family naming for `footpads`, `shoes`, and `foothooks`, normalize the old hook section drift, and tighten the source descriptions so these entries read like optional curated families instead of foundation-only fixtures.
+- Updated `src/app/catalog/catalogSource.test.ts` with focused proof that the source seam emits the first three reference families explicitly and no longer flattens them back into generic `references`.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` for the narrow label follow-through from `Large Hook` to `Large Foothook` so the shared Catalog surface proof continues to match the normalized source naming.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md` to check off `Catalog-2 / Phase 1` after the source-baseline cleanup landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogSource.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogEnvironmentApply.test.ts src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1484 -->
+### [1484] - 2026-04-17 23:35 - `Catalog-1 - Phase 11.3 - Environment Apply Ownership Proof`
+
+HUMAN SUMMARY: `Catalog environment items now have one explicit viewer-environment handoff instead of stopping at action-plan naming. The new seam routes \`Apply Environment\` into the shared viewer environment owner, keeps those items out of temporary preview ownership, and proves that no imported reference or project geometry content is created by the apply path.`
+
+- Added `src/app/catalog/catalogEnvironmentApply.ts` and `src/app/catalog/catalogEnvironmentApply.test.ts` with one narrow Catalog-owned adapter that resolves repo-backed environment items into an explicit `viewer-environment` handoff contract.
+- Updated `src/app/catalog/catalogActionPlan.ts` and `src/app/catalog/catalogActionPlan.test.ts` so `apply-environment` is now an available action once the environment handoff seam exists.
+- Updated `src/app/catalog/catalogSeedItems.ts` with one first fixture-backed repo environment entry so the Catalog shell can prove the viewer-environment path without widening into full HDRI runtime.
+- Updated `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/CatalogShellGridMode.tsx`, and `src/app/catalog/ui/CatalogShellItemPage.tsx` so environment items dispatch through `Apply Environment`, stay out of temporary preview loading, and keep mixed selection preview loads from pulling environment entries into the preview session.
+- Updated `src/app/workspace/CatalogSurface.tsx` and `src/app/workspace/CatalogSurface.test.tsx` so Catalog routes environment apply into the shared `useUiPrefsStore.ts` environment owner, while `Add To Project` remains the separate Browser-project path.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 11.3` after the environment ownership proof landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogEnvironmentApply.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1483 -->
+### [1483] - 2026-04-17 23:26 - `Catalog-1 - Phase 11.2 - Preview Session And Imports Boundary Proof`
+
+HUMAN SUMMARY: `Catalog now has focused proof for the two remaining non-owner boundaries after the shipped repo-backed commit handoff. The new tests prove the temporary preview session still does not become committed project truth, and that imports reuse remains a browse-only surface without gaining a second fake commit path or redefining the import pipeline owner.`
+
+- Updated `src/app/catalog/catalogPreviewSession.test.ts` with focused proof that widening the valid Catalog snapshot after a repo-backed commit does not silently add committed imports entries into temporary preview ownership.
+- Updated `src/app/catalog/catalogSource.test.ts` with focused proof that the imports snapshot filters down to true imported references and that Catalog imports reuse entries still stay on the preview-only path instead of becoming a second commit lane.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with end-to-end proof that a repo-backed item can be previewed and committed, the temporary preview session remains separate after that commit, and the resulting imports reuse item page exposes only `Load Preview` without a fake `Add To Project` path.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 11.2` after the preview-session and imports-boundary proof landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1482 -->
+### [1482] - 2026-04-17 23:18 - `Catalog-1 - Phase 11.1 - Reference Commit Handoff Proof`
+
+HUMAN SUMMARY: `Catalog repo items now hand off \`Add To Project\` through one explicit Browser-project commit route instead of leaving that action as a disabled placeholder. The Catalog item page now resolves a reference commit contract, dispatches into the existing \`addImportedReference(...)\` downstream owner, and keeps that committed path separate from the temporary preview session.`
+
+- Added `src/app/catalog/catalogReferenceCommit.ts` with one narrow Catalog-owned helper that resolves repo-backed reference `add-to-project` items into an explicit `browser-project` handoff contract using the real reference asset URL and file type.
+- Added `src/app/catalog/catalogReferenceCommit.test.ts` with focused proof that repo-backed reference items resolve a real Browser-project commit handoff while imports reuse and environment items do not invent the same route.
+- Updated `src/app/catalog/catalogActionPlan.ts` and `src/app/catalog/catalogActionPlan.test.ts` so reference-style `Add To Project` is now an available action instead of a planned placeholder.
+- Updated `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/CatalogShellItemPage.tsx`, and `src/app/workspace/CatalogSurface.tsx` so the item-page action area can dispatch `Add To Project` through the new Catalog commit seam into the existing `addImportedReference(...)` downstream owner without touching Catalog preview-session state.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that clicking `Add To Project` on a repo-backed Catalog item writes committed reference truth into the downstream Browser/project owner and leaves the temporary preview session separate.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 11.1` after the reference commit handoff landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1481 -->
+### [1481] - 2026-04-17 23:10 - `View-Toolbar 6 - Phase 8 Phase 1.7 - Floating Tabs Minimum Height Floor`
+
+HUMAN SUMMARY: `Short floating View toolbar content no longer leaves the outside tabs rail hanging below the visible window. The floating tabs path now derives a rail-aware minimum height from the measured rail plus the titlebar and uses that floor in the floating rect render/default/resize path, while keeping the shell split, padding cleanup, and titlebar alignment intact.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so floating `tabs` mode measures the real outside rail, derives a tabs-aware minimum-height floor from that rail plus the floating titlebar, and applies that floor through the floating rect render, default-rect, drag-clamp, and resize-clamp path.
+- Updated `src/app/components/ViewToolbar.test.tsx` with focused proof that a short-content floating `tabs` case now exports the tabs-aware floating minimum-height variable and clamps the floating rect height up to the rail-aware floor instead of leaving the rail hanging below the chrome.
+- Updated `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md` to check off `Phase 1.7` after the floating rail-aware minimum-height floor landed.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`.
+- The run still emitted the pre-existing controlled/uncontrolled input warning from the environment-controls path, but the suite passed and this change stayed out of that unrelated cleanup.
+
+<!-- ENTRY 1480 -->
+### [1480] - 2026-04-17 22:53 - `Catalog-1 - Phase 10.2 - Card Selection And Open Gesture Cleanup`
+
+HUMAN SUMMARY: `Catalog cards now handle selection directly instead of relying on a separate selection button. Single-click builds the local multi-card selection set, double-click opens the item page, the old \`Add To Selection\` button is gone, and preview-box clicks still stay on their own interaction path so the Phase 10 preview-session behavior remains intact.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` so the grid interaction path no longer depends on a separate one-card select callback and instead routes direct card selection through the local selection-toggle seam that already owns the selected-item set.
+- Updated `src/app/catalog/ui/CatalogShellGridMode.tsx` so the card surface itself now handles direct multi-card selection, double-click card-open behavior, and retirement of the `Add To Selection` button while keeping preview-box clicks isolated from the new card gestures.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof for direct multi-card selection, double-click item-page open, removal of the old selection button, and preserved local multi-card preview loading after the gesture cleanup.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 10.2` after the card-interaction cleanup landed.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1479 -->
+### [1479] - 2026-04-17 22:46 - `View-Toolbar 6 - Phase 8 Phase 1.4 - Floating Window Interior Padding Tightening`
+
+HUMAN SUMMARY: `Floating View toolbar tabs now read as one real highlighted content box instead of a box inside a box. The fix removes the extra outer body chrome and trims the old floating body inset in tabs mode, while keeping the floating title row, shell split, handle alignment, and scroll ownership intact.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so floating `tabs` mode tags the floating chrome/body presentation path explicitly and removes the extra top/left/right floating body inset around the highlighted panel.
+- Updated `src/app/theme/surfaces/viewport-overlay.css` so floating `tabs` mode neutralizes the outer `.ViewToolbarFloatingChrome` body-box chrome while keeping the title-row chrome visible and leaving the highlighted inner `.ViewToolbarTabPanel` as the single real content box.
+- Updated `src/app/components/ViewToolbar.test.tsx` with focused proof that the floating `tabs` body stays on the tabs presentation path and no longer carries the old extra top/left/right body padding.
+- Updated `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md` to check off `Phase 1.4` after the floating body-shell simplification landed.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`.
+- The run still emitted the pre-existing controlled/uncontrolled input warning from the environment-controls path, but the suite passed and this change stayed out of that unrelated cleanup.
+
+<!-- ENTRY 1478 -->
+### [1478] - 2026-04-17 22:41 - `Catalog-1 - Phase 10.1 - Preview Session Rail Placement And Weight Reduction`
+
+HUMAN SUMMARY: `The Catalog preview-loaded panel now sits in the bottom-left browse rail instead of occupying the top of the main content area. The preview session keeps the same temporary behavior and unload controls, but the shell now reads lighter because the content area is back to owning only the main browse surfaces while the left rail carries the compact session summary.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` so the main content area no longer renders the preview-session panel above the grid or item page.
+- Updated `src/app/catalog/ui/CatalogShellBrowseRail.tsx` so the browse rail now owns the preview-session panel, its temporary preview summary copy, and the existing unload actions in one compact bottom-left slot.
+- Updated `src/app/theme/surfaces/catalog.css` to make the rail-hosted preview-session panel lighter and calmer than the shipped Phase 10 content-area version.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that the preview-session panel now lives under the browse rail and no longer renders inside the main content area while preview loading and restore behavior stay intact.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 10.1` after the rail-placement cleanup landed.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1477 -->
+### [1477] - 2026-04-17 22:35 - `Catalog-1 - Phase 10 - Preview And Loader Boundary By Asset Type`
+
+HUMAN SUMMARY: `Catalog now keeps preview state as a temporary per-surface session instead of implying preview or commit through one vague button path. Cards open with empty preview boxes, one preview action can fill multiple selected cards, the content area now tracks preview-loaded items with unload controls, and item-page actions resolve through one explicit Catalog-owned action seam that keeps reference commit separate from preview and later environment apply.`
+
+- Added `src/app/catalog/catalogPreviewSession.ts` plus `src/app/catalog/catalogPreviewSession.test.ts` as the first Catalog-owned per-`surfaceInstanceId` preview-session seam, covering temporary preview load, unload, unload-all, local multi-target resolution, and retained-session restore without moving preview truth into project ownership.
+- Added `src/app/catalog/catalogActionPlan.ts` plus `src/app/catalog/catalogActionPlan.test.ts` as the first explicit Catalog action-routing seam so repo-backed reference entries keep `Add To Project` plus `Load Preview`, imports reuse stays preview-only, and environment-style entries stay on a separate apply family.
+- Updated `src/app/workspace/CatalogSurface.tsx` so the workspace host now reads, sanitizes, restores, and writes the Catalog preview session while still acting as a thin source-and-host coordinator over the shared Catalog snapshot.
+- Updated `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/CatalogShellGridMode.tsx`, and `src/app/catalog/ui/CatalogShellItemPage.tsx` so the grid renders empty in-card preview boxes, local multi-select can load preview into more than one selected card, the shared content area shows a preview-loaded list with unload controls, and the item page consumes the new action plan instead of branching action meaning inline.
+- Updated `src/app/theme/surfaces/catalog.css` to style the new preview boxes, item-page preview surface, and in-content preview-session list.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof for empty preview boxes, card-box preview loading, local multi-card preview loading, and retained-surface preview-session restore.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 10` after the preview-session and action-routing boundary landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogPreviewSession.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1476 -->
+### [1476] - 2026-04-17 22:22 - `View-Toolbar 6 - Phase 8 Phase 1.6 - Floating Tabs Titlebar Baseline Alignment`
+
+HUMAN SUMMARY: `Floating View toolbar tabs now start at the bottom of the floating title bar instead of beginning too high beside the \`View\` label. The fix stays narrow by reusing the real floating titlebar height as one shared offset owner, while keeping the docked tabs rule, floating shell split, and recent resize-handle alignment intact.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so the floating window exports `--v15-view-toolbar-floating-titlebar-height` from the existing floating titlebar height owner instead of introducing a second guessed titlebar constant in CSS.
+- Updated `src/app/theme/surfaces/viewport-overlay.css` so floating `tabs` mode applies a floating-only rail-start offset from that titlebar-height variable, moving the left rail down to the bottom edge of the floating `View` title row while leaving the docked rule unchanged.
+- Updated `src/app/components/ViewToolbar.test.tsx` with focused proof that the floating window still exposes the shared floating titlebar height in the same floating `tabs` ownership path.
+- Updated `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md` to check off `Phase 1.6` after the floating titlebar-baseline alignment landed.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`.
+- The run still emitted the pre-existing controlled/uncontrolled input warning from the environment-controls path, but the suite passed and this change stayed out of that unrelated cleanup.
+
+<!-- ENTRY 1475 -->
+### [1475] - 2026-04-17 22:12 - `View-Toolbar 6 - Phase 8 Phase 1.5 - Floating Tabs Resize Handle Realignment`
+
+HUMAN SUMMARY: `Floating View toolbar tabs can now be resized cleanly again from the visible left edge and left corners. The fix keeps the current floating resize math and shell split intact, and only realigns the west-side hit targets so they match the real \`ViewToolbarFloatingChrome\` edge instead of the old outer host edge.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so floating `tabs` mode offsets the `w`, `nw`, `sw`, and the left start of the `n`/`s` resize handles to the real visible `.ViewToolbarFloatingChrome` edge while keeping the outer floating rect as the single size/position owner.
+- Kept `resizeViewToolbarFloatingRect(...)`, the current floating drag path, the `Phase 1.3` outside-tabs shell split, and quick-dock behavior unchanged.
+- Updated `src/app/components/ViewToolbar.test.tsx` with focused proof that the floating `tabs` west-side and left-corner handles now land on the visible box edge contract instead of the far-left outer host edge.
+- Updated `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md` to check off `Phase 1.5` after the handle realignment landed.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`.
+- The run still emitted the pre-existing controlled/uncontrolled input warning from the environment-controls path, but the suite passed and this change stayed out of that unrelated cleanup.
+
+<!-- ENTRY 1474 -->
+### [1474] - 2026-04-17 21:52 - `Catalog-1 - Phase 9 - Shell File Boundaries And Placeholder Wiring`
+
+HUMAN SUMMARY: `Catalog shell ownership is now split into focused UI files instead of one overloaded \`CatalogShell.tsx\` owner. The workspace host stays thin, the browse rail, grid mode, item page, and shared shell helpers now have explicit homes under \`src/app/catalog/ui/\`, and the existing source-backed Catalog behavior remains unchanged.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` so it now only coordinates section, selection, and content-mode state before delegating the visible shell regions to focused UI owners.
+- Added `src/app/catalog/ui/CatalogShellBrowseRail.tsx`, `src/app/catalog/ui/CatalogShellGridMode.tsx`, and `src/app/catalog/ui/CatalogShellItemPage.tsx` to give the browse rail, imports-through-browse grid mode, and item-page mode explicit UI owners.
+- Added `src/app/catalog/ui/catalogShellShared.ts` to hold the shared section-option, section-label, action-label, and visible-items helpers without pushing shell logic back into `CatalogSurface.tsx`.
+- Kept `src/app/workspace/CatalogSurface.tsx` as the thin workspace host over the shared `catalogSource.ts` seam.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 9` after the UI-boundary cleanup landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/workspace/ViewportSurfaceRegistry.test.tsx`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1473 -->
+### [1473] - 2026-04-17 21:46 - `View-Toolbar 6 - Phase 8 Phase 1.3 - Floating Window True Outside Tabs`
+
+HUMAN SUMMARY: `Floating View toolbar tabs now sit outside the real floating window box instead of still reading trapped inside it. The outer floating wrapper stays responsible for position, drag, resize, and z-index, while one inner \`ViewToolbarFloatingChrome\` shell now owns the real visible window chrome and the focused proof confirms the rail no longer renders inside that shell.`
+
+- Updated `src/app/components/ViewToolbar.tsx` to split the floating tabs branch into one outer interaction host plus one inner `.V15Panel.ViewToolbarFloatingChrome` shell, keeping the rail outside the real visible floating box while preserving the current drag, resize, quick-dock, and tab-state paths.
+- Updated `src/app/theme/surfaces/viewport-overlay.css` so `.ViewToolbarFloatingChrome` owns the real floating shell layout and the floating tabs host keeps the inner chrome shell sized correctly without pulling the rail back inside it.
+- Updated `src/app/components/ViewToolbar.test.tsx` to widen the existing floating proof just enough to assert the floating tabs host still contains the rail while the inner `.ViewToolbarFloatingChrome` shell does not.
+- Updated `docs/Human-Plans/Architecture/View-Toolbar/Future/View_Toolbar_Phase View-Toolbar 6 Phase 8 - Outside Tab Rail And Attached Shell Chrome.md` to check off `Phase 1.3` and record the shipped floating-shell ownership split.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`.
+- The run still emitted the pre-existing controlled/uncontrolled input warning from the environment-controls path, but the suite passed and this change did not widen into that unrelated cleanup.
+
+<!-- ENTRY 1472 -->
+### [1472] - 2026-04-17 21:40 - `Catalog-1 - Grid Selection Highlight Return`
+
+HUMAN SUMMARY: `Catalog grid cards can now be visibly selected again without forcing navigation away from the grid. The selected-card highlight reads more clearly, card click now restores a separate in-grid selection state, and \`Open Item Page\` remains the explicit navigation action for the later item page flow.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` so clicking a card selects it in-grid again, while `Open Item Page` remains the action that transitions the content area to the item page.
+- Updated `src/app/theme/surfaces/catalog.css` to strengthen the selected-card highlight treatment and add hover/focus visibility so the card selection state reads clearly.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` with focused proof that grid selection remains visible as a separate highlight state before the user opens the item page.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/workspace/ViewportSurfaceRegistry.test.tsx`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1471 -->
+### [1471] - 2026-04-17 21:36 - `Catalog-1 - Phase 8.2 - Card Density And Overlap Cleanup`
+
+HUMAN SUMMARY: `Catalog card density is now calmer and more stable under real copy. The grid cards use smaller typography, wider minimum widths, larger gaps, and stronger box containment so the card boxes stop visually colliding while the shipped Phase 8.1 browse-plus-content behavior stays unchanged.`
+
+- Updated `src/app/theme/surfaces/catalog.css` to tighten Catalog grid-card typography, widen the grid minimum card width, increase inter-card spacing, and harden card containment so neighboring cards stop visually overlapping.
+- Kept the shipped `Phase 8.1` browse/content behavior intact while landing this as a styling-only cleanup.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 8.2` after the card-density cleanup landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/workspace/ViewportSurfaceRegistry.test.tsx`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1470 -->
+### [1470] - 2026-04-17 21:29 - `Catalog-1 - Phase 8.1 - Imports As Browse Section`
+
+HUMAN SUMMARY: `Catalog now reads as a 2-column browse-plus-content workspace instead of a dashboard-like multi-panel shell. \`Imports\` moved into the browse rail, the separate imports panel is gone, and the shared content area now swaps between the card grid and one full store-style item page with a clear return path back to the catalog.`
+
+- Updated `src/app/catalog/ui/CatalogShell.tsx` to collapse the shell into a 2-column browse-plus-content layout, move `Imports` into the browse section list, and make the shared content area swap between grid mode and one full item-page mode.
+- Updated `src/app/theme/surfaces/catalog.css` to support the new 2-column shell layout, content-mode swap, and store-style item-page presentation.
+- Updated `src/app/workspace/CatalogSurface.test.tsx` to prove the new 2-column shell read, the shared content-area swap between grid and item page, and the new imports-through-browse behavior.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 8.1` after the layout cleanup landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/workspace/ViewportSurfaceRegistry.test.tsx`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1469 -->
+### [1469] - 2026-04-17 21:14 - `Catalog-1 - Phase 8 - First Catalog Shell Regions`
+
+HUMAN SUMMARY: `Catalog now has its first visible browse-first shell instead of a placeholder surface. The new shell renders explicit filters, card-grid, item-page, actions, and imports regions over the shared \`catalogSource.ts\` seam, keeps previews user-triggered, and lands with focused surface plus registry proof instead of widening into preview runtime or real loader behavior.`
+
+- Added `src/app/catalog/ui/CatalogShell.tsx` as the first Catalog-owned visible shell scaffold with explicit filters, card-grid, selected-item detail, action-area, and imports regions.
+- Updated `src/app/workspace/CatalogSurface.tsx` to consume `referenceWorkspace` through the shared Catalog source helper and render the new source-backed shell instead of placeholder copy.
+- Updated `src/app/catalog/catalogSource.ts` with a narrow helper that normalizes imported reference-workspace entries into the Catalog imports snapshot shape without making Catalog the import-runtime owner.
+- Added `src/app/workspace/CatalogSurface.test.tsx` to prove the first shell regions render over the shared Catalog source seam and that previews stay user-triggered instead of auto-loading `img` or `video` elements.
+- Updated `src/app/workspace/ViewportSurfaceRegistry.test.tsx` to prove the canonical workspace registry path now renders the shipped Catalog shell instead of the old placeholder surface.
+- Added `src/app/theme/surfaces/catalog.css` and updated `src/app/theme/v15Theme.css` so the first visible Catalog shell has a dedicated surface style owner instead of inline layout styling.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 8` after the first visible shell landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/workspace/ViewportSurfaceRegistry.test.tsx`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1468 -->
+### [1468] - 2026-04-17 21:04 - `Catalog-1 - Phase 7 - Manifest Source Seam`
+
+HUMAN SUMMARY: `Catalog now has its first Catalog-owned curated source seam instead of relying on older Browser-era reference manifest ownership or ad hoc local arrays. The new source lane combines authored repo-backed seed items with imports-area reuse entries through one shared \`CatalogItemRecord\` path, and it lands with focused pure proof instead of widening into shell UI or import-runtime migration.`
+
+- Added `src/app/catalog/catalogSeedItems.ts` as the first authored repo-backed Catalog seed-data file for the baseline curated library.
+- Added `src/app/catalog/catalogSource.ts` as the first Catalog-owned source seam, emitting the Phase 6 `CatalogItemRecord` contract for both repo-backed authored entries and imports-area reuse entries passed in through a read-only imports snapshot.
+- Added `src/app/catalog/catalogSource.test.ts` with focused proof that the source seam exposes repo-backed entries, can surface imports-area entries through the same path, and keeps downstream apply behavior out of the data read itself.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 7` after the new Catalog source owner landed.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1467 -->
+### [1467] - 2026-04-17 20:57 - `Catalog-1 - Phase 6 - Catalog Item Contract`
+
+HUMAN SUMMARY: `Catalog now has its first dedicated item-contract seam instead of depending on older Browser or reference-manifest ownership. The new \`src/app/catalog/catalogItemContract.ts\` module defines explicit asset, action, source, and preview-media truth plus repo-versus-imports item sources, and the phase lands with one focused pure contract test instead of widening into runtime manifest migration.`
+
+- Added `src/app/catalog/catalogItemContract.ts` as the first Catalog-owned item contract module, including explicit unions for `CatalogItemAssetKind`, `CatalogItemActionKind`, `CatalogItemSourceKind`, and `CatalogItemPreviewMediaKind` plus the baseline `CatalogItemRecord` and explicit repo-backed versus imports-area source refs.
+- Added helper-light contract utilities in that same module so later phases can consume one canonical seam for imports classification and primary preview-media access without reintroducing ad hoc string bands.
+- Added `src/app/catalog/catalogItemContract.test.ts` with focused proof for both a repo-backed browse entry and an imports-area reuse entry, keeping the imports read explicit without pretending Catalog owns import intake.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 6` now that the first shared Catalog item contract is real.
+- Re-ran `npm.cmd exec vitest run src/app/catalog/catalogItemContract.test.ts`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1466 -->
+### [1466] - 2026-04-17 20:48 - `View-Toolbar 6 Phase 8 - Phase 1.2 - Zero-Gap Attachment And Rail Rhythm Tightening`
+
+HUMAN SUMMARY: `The tabs rail now sits flush against the toolbar shell instead of floating beside it with extra dead air. The shared tabs host uses a zero-gap attachment read, the rail rhythm is tighter, and the tab buttons are less pill-like so the stack reads more like a real tabs strip without widening into the separate floating shell-owner or padding work.`
+
+- Updated `src/app/theme/surfaces/viewport-overlay.css` so `.ViewToolbarPanel--tabs[data-open='true']` now uses an explicit zero horizontal host gap instead of the earlier shared `10px` gap, keeping the rail flush to the toolbar box.
+- Tightened `.ViewToolbarTabRail` spacing from `8px` to `4px` so neighboring tabs read like one tighter vertical strip.
+- Refined `.ViewToolbarTabButton` so the panel-facing edge is flatter, inactive tabs are calmer and more recessed, and the active tab uses a minimal `-1px` overlap with a transparent panel-facing border to read more attached without introducing the richer later chrome work.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`, which passed all 32 tests and still surfaced the pre-existing controlled/uncontrolled input warning in the environment controls test.
+
+<!-- ENTRY 1465 -->
+### [1465] - 2026-04-17 20:45 - `Catalog-1 - Phase 5 - Persistence And Popup Decision`
+
+HUMAN SUMMARY: `Catalog startup restore is now proven through the real shared workspace persistence bridge, and Catalog popout support is explicitly deferred instead of being claimed vaguely. The phase narrows Catalog metadata and slotted viewport chrome to match reality, while adding focused persistence and popout-regression proof on smaller workspace test seams.`
+
+- Updated `src/app/workspace/workspaceSurfaceCatalog.ts` so `catalog` now advertises `popout: false`, matching the current live host reality instead of claiming unsupported popout behavior.
+- Updated `src/app/workspace/WorkspaceViewportTree.tsx` so slotted viewport chrome only exposes the popout action when the current surface kind actually supports `popout`, which removes the unsupported Catalog popout button from non-primary slotted panes.
+- Added `src/app/workspace/useWorkspacePersistenceBridge.test.tsx` with focused accepted-restore and declined-fresh-start proof for saved slotted plus detached Catalog layouts through the real `useWorkspacePersistenceBridge.ts` hydration seam.
+- Added `src/app/workspace/WorkspaceViewportTree.test.tsx` and updated `src/app/workspace/workspaceSurfaceCatalog.test.ts` so the shared workspace test surface now proves Catalog popout is explicitly deferred in both metadata and slotted chrome behavior.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md` to check off `Phase 5` after the restore proof and explicit popout deferral landed.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/useWorkspacePersistenceBridge.test.tsx src/app/workspace/WorkspaceViewportTree.test.tsx`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1464 -->
+### [1464] - 2026-04-17 20:26 - `Catalog-1 - Phase 4.2 - Slotted Titlebar Float Menu Parity`
+
+HUMAN SUMMARY: `Catalog titlebar Float now produces a visible floating window through the real slotted user path instead of silently collapsing the slot and leaving the detached surface hidden. The fix keeps the shared menu-driven detach behavior intact, gives the reusable simple floating host the same visible stacking priority as the working Dashboard path, and adds focused AppShell proof for the full split-to-Catalog-to-Float flow.`
+
+- Updated `src/app/hosts/SimpleFloatingSurfaceHost.tsx` so reusable simple floating workspace windows now accept a floating `zIndex` and default to the same visible stacking priority used by the working detached Dashboard window path, fixing the detached Catalog follow-through after the slotted titlebar `Float` action removes the source slot.
+- Updated `src/app/AppShell.test.tsx` with focused end-to-end proof for the real user flow: split a non-primary `modelViewer`, switch that slot to `catalog`, right-click the slotted titlebar, choose `Float`, verify the floating Catalog window appears with visible stacking, and quick-dock it back into the slot tree.
+- Updated the owning `Catalog-1` phase doc to check off `Phase 4.2` now that the slotted titlebar `Float` path is honest for `catalog`.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+- Re-ran `npm.cmd exec vitest run src/app/AppShell.test.tsx`, which still surfaced the existing unrelated AppShell failures around dashboard sticky-note editing/alignment, declined startup restore, floating spaghetti dock-lock positioning, and one SoundCloud runtime assertion while the new Catalog float proof passed.
+
+<!-- ENTRY 1463 -->
+### [1463] - 2026-04-17 20:11 - `View-Toolbar 6 Phase 8 - Phase 1.1 - Parent Shell Exit And True Outside Tabs`
+
+HUMAN SUMMARY: `Tabs mode now places its section rail outside the real View Toolbar panel instead of only outside the inner content box. The docked and floating shells still own the actual title/content panel, while the outer tabs host owns the rail relationship and the focused ViewToolbar proof now checks that split directly.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so `tabs` mode now renders one outer `.ViewToolbarPanel--tabs.ViewToolbarTabsHost` around the real docked or floating `.ViewToolbarRoot` shell, with `.ViewToolbarTabRail` moved out of the parent toolbar box and the existing tab-state / section-owner seam preserved.
+- Updated the same file so tabs-mode detach and default floating sizing read from the outer tabs host first, keeping the shell measurement honest after the rail stopped living inside `.ViewToolbarRoot`.
+- Updated `src/app/theme/surfaces/viewport-overlay.css` so `.ViewToolbarPanel--tabs` now acts as the real outer tabs host, the rail only appears while the shell is open, and the docked rail offsets below the title row instead of living inside the parent box.
+- Updated `src/app/components/ViewToolbar.test.tsx` so the focused tabs proof now asserts the outer host owns `.ViewToolbarTabRail`, `.ViewToolbarRoot` still owns `.ViewToolbarTabPanel`, and the existing tab-switch plus camera-command path remains live.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`, which passed all 32 tests and still surfaced the pre-existing controlled/uncontrolled input warning in the environment controls test.
+
+<!-- ENTRY 1462 -->
+### [1462] - 2026-04-17 19:54 - `Catalog-1 - Phase 4 - Float And Redock Host-Mode Parity`
+
+HUMAN SUMMARY: `Catalog now participates in the shared floating-window lifecycle instead of stopping at tiled-only workspace support. A detached Catalog surface can float, quick-dock back into the slot tree, and reuse one generic simple floating host so this phase does not need a Catalog-only shell wrapper.`
+
+- Added `src/app/hosts/SimpleFloatingSurfaceHost.tsx` as a reusable floating-shell owner for simple detached workspace surfaces and used it for the floating `catalog` path instead of introducing a `Catalog`-only window host.
+- Updated `src/app/hosts/useAppShellWorkspaceSelectors.ts`, `src/app/AppShell.tsx`, and `src/app/workspace/CatalogSurface.tsx` so detached `catalog` surfaces are selected, rendered, and labeled through the shared host-mode lifecycle while keeping floating host-mode truth visible on the surface.
+- Updated `src/app/AppShell.test.tsx` with focused proof that a detached floating `catalog` surface renders and quick-docks back into the slotted workspace layout.
+- Re-ran `./node_modules/.bin/tsc.cmd -b --pretty false`.
+- Re-ran `npm.cmd exec vitest run src/app/AppShell.test.tsx -t "renders a detached floating catalog surface and quick docks it back"`, which passed the new Catalog proof while still surfacing six unrelated existing failures elsewhere in `src/app/AppShell.test.tsx`.
+
+<!-- ENTRY 1461 -->
+### [1461] - 2026-04-17 19:40 - `Catalog-1 - Phase 3 - Tiled Behavior Regression Proof`
+
+HUMAN SUMMARY: `The tiled Catalog slot path is now explicitly proven on the shared workspace-store lifecycle instead of only being assumed from the Phase 2 open path. The workspace proof now covers switching away from Catalog and returning to the retained Catalog instance, while also confirming the neighboring optional surfaces still switch honestly after Catalog joins the tiled set.`
+
+- Updated `src/app/workspace/useWorkspaceStore.test.ts` so the shared workspace-store proof now covers a non-primary slot switching from `catalog` to another surface and back again while reusing the retained `catalog` surface instance for that slot.
+- Expanded the same tiled proof surface to confirm `dashboard`, `notepad`, and `catalog` can coexist in the retained-surface map without regressing neighboring optional-surface switching.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/useWorkspaceStore.test.ts` and `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1460 -->
+### [1460] - 2026-04-17 19:30 - `View-Toolbar 6 Phase 8 - Phase 1 - Outer Rail Wrapper And Inner Panel Split`
+
+HUMAN SUMMARY: `Tabs mode now separates its left rail from the inner content box instead of treating both as one shared panel grid. The tabs shell owns the rail relationship, the new inner panel owns the content chrome, and focused \`ViewToolbar\` proof confirms the wrapper split kept tab behavior and camera commands intact.`
+
+- Updated `src/app/components/ViewToolbar.tsx` so `ViewToolbarBody(...)` now renders `tabs` mode through one explicit outer `.ViewToolbarPanel--tabs` shell with the existing `.ViewToolbarTabRail` plus one new inner `.ViewToolbarTabPanel` wrapper around `.ViewToolbarTabContent`.
+- Updated `src/app/theme/surfaces/viewport-overlay.css` so the outer tabs shell now owns only the rail-versus-panel layout while the new inner `.ViewToolbarTabPanel` owns the content-box chrome, giving the rail an outside-the-box read without changing tab-state ownership.
+- Updated `src/app/components/ViewToolbar.test.tsx` so the focused tabs-mode proof now asserts the new shell and inner panel wrappers exist while preserving the existing section-order, tab-switch, and camera-command behavior check.
+- Updated the owning `View-Toolbar 6 / Phase 8` planning doc to mark `Phase 1` implemented and advance `Phase 2` as the next active cut.
+- Re-ran `npm.cmd test -- src/app/components/ViewToolbar.test.tsx`.
+
+<!-- ENTRY 1459 -->
+### [1459] - 2026-04-17 19:22 - `Catalog-1 - Phase 2 - Tiled Slot Switching And First CatalogSurface`
+
+HUMAN SUMMARY: `Catalog can now open as a real non-primary split-pane target through the shared workspace viewport-type path. This adds one intentionally minimal \`CatalogSurface\`, routes \`catalog\` through the canonical surface registry, keeps the primary pane model-only, and proves the new flow with focused workspace tests plus a clean typecheck.`
+
+- Added `src/app/workspace/CatalogSurface.tsx` as the first intentionally minimal Catalog workspace owner, keeping the surface honest but placeholder-only so later phases can still own the real browse shell.
+- Updated `src/app/workspace/ViewportSurfaceRegistry.tsx` so the canonical render-family registry now renders `catalog` through the new `CatalogSurface` branch instead of falling back to the viewer placeholder.
+- Updated `src/app/workspace/ViewportFrame.tsx` so the shared default viewport-type submenu now includes `Catalog` for non-primary panes, while the existing primary-slot disable rule still keeps the primary pane `modelViewer`-only.
+- Added `src/app/workspace/ViewportSurfaceRegistry.test.tsx`, expanded `src/app/workspace/ViewportFrame.test.tsx`, and expanded `src/app/workspace/useWorkspaceStore.test.ts` so the workspace proof now covers registry rendering, shared viewport-type submenu visibility, primary-slot disable behavior, and the split-then-switch flow from `modelViewer` to `catalog`.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/ViewportSurfaceRegistry.test.tsx src/app/workspace/ViewportFrame.test.tsx src/app/workspace/useWorkspaceStore.test.ts` and `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
+<!-- ENTRY 1458 -->
+### [1458] - 2026-04-17 19:11 - `Catalog-1 - Phase 1 - Surface Kind And Catalog Registration`
+
+HUMAN SUMMARY: `Registered \`catalog\` as a first-class optional workspace surface kind without widening into real Catalog UI yet. The workspace shell now gives Catalog its own canonical metadata and \`catalog-...\` slot ids, while the focused workspace proof covers optional-surface classification, persistence participation, split support, and detached-slot round-tripping.`
+
+- Updated `src/app/workspace/workspaceShellTypes.ts` so `WorkspaceSurfaceKind` now includes `catalog`, and slotted surface creation now produces explicit `catalog-${slotId}` ids instead of falling through the old `spaghetti` prefix.
+- Updated `src/app/workspace/workspaceSurfaceCatalog.ts` so `catalog` now has one canonical optional-surface entry with explicit `renderFamily`, split/floating/popout/slotted support, persistence participation, and plain coordination.
+- Updated `src/app/workspace/ViewportFrame.tsx` with the minimal label-map follow-through required by the widened workspace kind union, while intentionally leaving picker availability and real surface rendering for later Catalog phases.
+- Added `src/app/workspace/workspaceSurfaceCatalog.test.ts` and expanded `src/app/workspace/useWorkspaceStore.test.ts` so the workspace proof now covers Catalog parse and metadata truth plus detached, redocked, and persisted shared-surface behavior.
+- Updated `src/app/console/useConsoleInteraction.ts` to reuse the canonical `WorkspaceSurfaceKind` in its local workspace helper contracts, fixing the one TypeScript ripple exposed by the new surface registration without widening console behavior.
+- Re-ran `npm.cmd exec vitest run src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/useWorkspaceStore.test.ts src/app/workspace/ViewportFrame.test.tsx` and `./node_modules/.bin/tsc.cmd -b --pretty false`.
+
 <!-- ENTRY 1457 -->
 ### [1457] - 2026-04-17 19:00 - `Build - Staged Import Preview Selector Strict-Null Repair`
 
@@ -42921,257 +43379,3 @@ HUMAN SUMMARY: `Initialized the new /20/parahook stack with Vite, React, TypeScr
 #### Verification Steps
 - Review restored `GE - Phase 1` in the history task log and the canonical phase log.
 - Confirm the draft reflects the original restart architecture, repo layout, worker skeleton, and viewer skeleton.
-
-
-- [623] 2026-03-26 23:36 EDT: Landed `Transform 4.4` reference-adapter cleanup by extracting shared reference-transform Console helpers into `src/app/console/referenceTransformConsole.ts`, routing both `ConsoleDock` and `ReferenceTransformToolbar` through the same transform path/prompt/selection logic, and tightening the focused ConsoleDock/toolbar tests around transform-shell escape and shared status-path formatting.
-- [622] 2026-03-26 23:28 EDT: Extracted the shared reference-transform Console adapter helpers into `src/app/console/referenceTransformConsole.ts`, rewired `ConsoleDock` to use those shared prompt/path/value builders, and aligned the reference transform toolbar to the same shared path and axis-selection helpers so transform-specific Console and toolbar semantics no longer drift independently.
-- [621] 2026-03-26 23:02 EDT: Cleared the active reference-transform gizmo handle before console-driven entry commits so `Transform > Move/Rotate/Scale > ... axis > value` now returns cleanly to the `Transform` root instead of re-autofilling the last `@` axis prompt.
-- [692] 2026-03-28 10:57 EDT: Landed `Browser-8.3` by adding one shared selected content-owner target descriptor for `assembly`, `component`, and `object-part`, routing Console content context through that seam, and updating `Viewer Transform` focused-target display to use the same owner payload with lightweight parent context.
-- [620] 2026-03-25 13:14 EDT: Extended reference-category Console scopes so `Footpads`, `Shoes`, and the other categories now list their individual reference items, allowing users to drill into a single object from the category scope and enter the existing per-reference `Load Model` flow while Browser selection follows the chosen item.
-- [619] 2026-03-25 12:46 EDT: Synced deeper Console reference navigation back into Browser selection so `references > footpads` now deselects the `References` root and selects the `Footpads` category row instead, while `back` restores the root reference target.
-- [618] 2026-03-25 12:39 EDT: Wired the Console root `References` entry back into shared workspace selection so committing `references` from root now also selects the `References` row in the Browser instead of only changing console scope.
-- [617] 2026-03-25 12:33 EDT: Expanded the Console root `References` aliases so the singular `ref` path is explicitly covered at root, along with tolerant `reference` and `refrence` spellings that still enter the shared references scope.
-- [616] 2026-03-25 12:30 EDT: Added `References` as a first-class Console root choice so users can enter the existing reference selection scope directly from root with `references`, `ref`, or `refs`, without requiring a prior Browser selection.
-- [615] 2026-03-25 12:22 EDT: Added staged Console aliases for reference-category navigation so `Footpads`, `Shoes`, and `Premade Foothooks` can be reached from `Select > References` with short tokens like `fp`, `sh`, and `pfh`, including the common `foodpads` typo path for footpads.
-- [614] 2026-03-25 12:17 EDT: Extended Browser-5.3 reference console depth so selecting `References` exposes child category scopes, selecting a category like `Footpads` syncs to `Select > References > Footpads`, and both Console and Browser row menus route category/root `Load All` actions through the shared reference owner seam.
-<!-- ENTRY 690 -->
-### [690] - 2026-03-28 00:48 - `TRN - Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup`
-<!-- ENTRY 690 -->
-HUMAN SUMMARY: `Unified more of \`Viewer Transform\` across references and generated objects by adding the focused-target toolbar section, giving object sessions shared snap ownership and runtime snap behavior, and cleaning up the status/target adapter path so object transform no longer reads like a reference-only fallback.` 
-
-#### Scope
-- Kept the cleanup inside the existing single-target `Viewer Transform` shell.
-- Added object snap parity and shared target-surface cleanup without changing persistence truth.
-- Left multi-select, object timeline, and object camera lock for later phases.
-
-#### Summary
-- Added object-local snap state in the store via `transformSnapByObjectId`.
-- Made the shared toolbar Snap section work for generated objects and added the new focused-target section near the top of `Viewer Transform`.
-- Updated the viewer host and viewer runtime so object sessions receive shared snap values and use the same snap execution/preview path during active transform drag.
-- Cleaned up the toolbar status breadcrumb so object sessions read as `Select > Object > ... > Viewer Transform`.
-
-#### Files Changed
-- `src/app/store/useAppStore.ts`
-- `src/app/components/ReferenceTransformToolbar.tsx`
-- `src/app/components/ReferenceTransformToolbar.test.tsx`
-- `src/app/components/ViewerHost.tsx`
-- `src/app/components/ViewerHost.test.tsx`
-- `src/app/console/referenceTransformConsole.ts`
-- `src/viewer/Viewer.ts`
-- `docs/Human-Plans/Architecture/Transform/transform-index.md`
-- `docs/Human-Plans/Architecture/Transform/Shipped/Transform_Phase Transform-15.1 - Shared Viewer Transform Target Adapter Cleanup.md`
-- `docs/CHANGELOG.md`
-
-#### Verification
-- `cmd /c npx vitest run src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx`
-- `cmd /c npx tsc --noEmit`
-- `cmd /c npm run build`
-
-#### Notes
-- `npm run build` is green; the remaining output is only the existing Vite browser-compatibility and chunk-size warnings.
-
-<!-- ENTRY 691 -->
-### [691] - 2026-03-28 15:35 - `BRW - Browser-8.1 - Container And Leaf Target Semantics`
-<!-- ENTRY 691 -->
-HUMAN SUMMARY: `Landed the first Browser-8 content hierarchy cleanup by anchoring content-side Console navigation under \`Select > Content > ...\`, making parent content targets owner-only by default, and adding explicit descendant resolution only where the user actually asks for it, such as \`SelectAll\` and zoom-style owner actions.` 
-
-#### Scope
-- Kept the phase focused on target semantics, content-root Console routing, and selection ownership cleanup.
-- Preserved existing reference browse/load flows and did not attempt Browser-8.2 container CRUD or Browser-8.4 drag/drop reparenting.
-- Tightened Browser and Console deselect/back behavior where content selection had been leaving stale highlight behind.
-
-#### Summary
-- Added a shared content Console root so object and assembly scopes now read under `Select > Content > ...`.
-- Split content selection resolution into:
-  - owner-only default selection for content containers
-  - explicit descendant resolution for `SelectAll`, zoom framing, and similar owner-wide actions
-- Added the staged `SelectAll` content action and cleaned up `Esc` / `Back` content-scope clearing so browser-selected content targets unwind more predictably.
-- Kept Browser-panel transform entry tests aligned with the current reference-transform shell entry seam while the broader Browser-8 ladder continues.
-
-#### Files Changed
-- `src/app/store/useAppStore.ts`
-- `src/app/console/stagedNavigation.ts`
-- `src/app/console/ConsoleDock.tsx`
-- `src/app/console/referenceTransformConsole.ts`
-- `src/app/console/stagedNavigation.test.ts`
-- `src/app/console/ConsoleBar.test.tsx`
-- `src/app/console/ConsoleDock.test.tsx`
-- `src/app/components/ReferenceTransformToolbar.test.tsx`
-- `src/app/panels/BrowserPanel.test.tsx`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.1 - Container And Leaf Target Semantics.md`
-- `docs/Doc-Log.md`
-- `docs/CHANGELOG.md`
-
-#### Verification
-- `cmd /c npx vitest run src/app/store/useAppStore.test.ts src/app/console/stagedNavigation.test.ts src/app/console/ConsoleBar.test.tsx src/app/console/ConsoleDock.test.tsx src/app/components/ReferenceTransformToolbar.test.tsx src/app/components/ViewerHost.test.tsx src/app/panels/BrowserPanel.test.tsx`
-- `cmd /c npx tsc --noEmit`
-
-<!-- ENTRY 692 -->
-### [692] - 2026-03-28 19:58 - `BRW - Browser-8.5 - Drag Session Architecture Cleanup`
-<!-- ENTRY 692 -->
-HUMAN SUMMARY: `Rebuilt the Browser drag internals around a clearer drag-session seam, extracting pure legality and preview derivation helpers so reorder/reparent preview is less coupled to row-local native drag behavior and stale drag state clears more reliably.` 
-
-#### Scope / Constraints Honored
-- Kept the shipped `Browser-8.4` legality matrix unchanged.
-- Kept the dragged source row mounted during drag and left real tree mutation on drop only.
-- Left the richer left/right depth-lane interaction for later `Browser-8.6`.
-
-#### Summary of Implementation
-- Added a dedicated Browser drag helper seam for:
-  - drag session creation
-  - hover legality resolution
-  - preview-layout derivation
-- Refactored the Browser panel controller to update drag state through those helpers instead of one mixed row-event block.
-- Strengthened Browser-level drag cleanup by clearing stale session state on broader interrupted-drag fallbacks, including escape and visibility/lifecycle loss.
-- Added a focused regression that verifies the global escape fallback clears preview state and row drag styling.
-
-#### Files Changed
-- `src/app/panels/browserContentDrag.ts`
-- `src/app/panels/useBrowserPanelController.ts`
-- `src/app/panels/browserTreeSections.tsx`
-- `src/app/panels/BrowserPanel.test.tsx`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-8.5 - Drag Session Architecture Cleanup.md`
-- `docs/Doc-Log.md`
-- `docs/CHANGELOG.md`
-
-#### Behavior Changes
-- Browser drag preview and cleanup now derive from a clearer shared drag-session model instead of being recomputed ad hoc inside row handlers.
-- Interrupted drag now clears more reliably instead of leaving provisional preview state stuck behind.
-
-#### Verification Steps
-- `cmd /c npx vitest run src/app/panels/BrowserPanel.test.tsx`
-- `cmd /c npx tsc --noEmit`
-
-<!-- ENTRY 693 -->
-### [693] - 2026-03-28 17:24 - `BRW - Browser-9.3 - Part Row Exposure For Imported Objects`
-<!-- ENTRY 693 -->
-HUMAN SUMMARY: `Exposed truthful imported-object part rows in Browser by deriving them from the real loaded reference hierarchy, while keeping object ownership and current reference-transform behavior intact instead of promoting those part rows into the global workspace part-selection model too early.` 
-
-#### Scope / Constraints Honored
-- Only exposed part rows when the loaded imported object already contains real internal part structure.
-- Kept `Object` as the parent owner above visible imported `Part` rows.
-- Preserved current imported-object transform compatibility and did not attempt shared transform-backend convergence in the same pass.
-
-#### Summary of Implementation
-- Added viewer-side reference-part descriptor extraction and cached those descriptors per loaded reference.
-- Stored imported reference part-row descriptors in reference workspace state and synced them after successful viewer loads.
-- Extended Browser content-tree derivation so landed imported objects can expand into visible child `Part` rows when multiple real leaf parts exist.
-- Kept Browser part rows local to Browser in this first pass so generated-content part selection and reference transform behavior stay stable.
-- Hardened top-level assembly selection to treat legacy root assemblies with missing `parentAssemblyId` as top-level roots.
-
-#### Files Changed
-- `src/viewer/referencePartDescriptors.ts`
-- `src/viewer/referencePartDescriptors.test.ts`
-- `src/viewer/Viewer.ts`
-- `src/app/viewerBridge.ts`
-- `src/app/components/ViewerHost.tsx`
-- `src/app/components/ViewerHost.test.tsx`
-- `src/app/store/useAppStore.ts`
-- `src/app/panels/selectBrowserTreeRows.ts`
-- `src/app/panels/selectBrowserTreeRows.test.ts`
-- `src/app/panels/browserInteractions.ts`
-- `src/app/panels/browserRowFamilies.ts`
-- `docs/Human-Plans/Architecture/Browser/Browser-Index.md`
-- `docs/Human-Plans/Architecture/Browser/Shipped/Browser_Phase Browser-9.3 - Part Row Exposure For Imported Objects.md`
-- `docs/Doc-Log.md`
-- `docs/CHANGELOG.md`
-
-#### Verification Steps
-- `cmd /c npx vitest run src/viewer/referencePartDescriptors.test.ts src/app/components/ViewerHost.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts`
-- `cmd /c npx tsc --noEmit`
-
-<!-- ENTRY 694 -->
-### [694] - 2026-04-15 12:31 - `BRW - Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow`
-<!-- ENTRY 694 -->
-HUMAN SUMMARY: `Fixed the docked Browser overflow bug so large object lists stay contained inside the Browser panel and scroll through the Browser body instead of running off the bottom of the app or depending on the outer left-dock stack to carry the load.` 
-
-#### Scope / Constraints Honored
-- Kept the fix narrowly focused on docked Browser overflow containment and scroll ownership.
-- Preserved existing Browser hierarchy, row rendering, selection, drag, and action behavior.
-- Left floating, popout, and viewport-split Browser presentation modes on their existing height contracts.
-
-#### Summary of Implementation
-- Added the missing flex/min-height containment contract to the docked Browser target so the Browser panel can shrink within the left dock and expose its own inner scroll region.
-- Tightened Browser surface CSS so the docked Browser root fills the constrained target instead of sizing purely to content height.
-- Changed BrowserDockHost wheel forwarding to prefer `.BrowserPanelBody` scrolling before falling back to the outer constrained dock stack.
-- Updated the dock-host regression test to assert Browser-body-first wheel scrolling on the docked surface.
-
-#### Files Changed
-- `src/app/hosts/BrowserDockHost.tsx`
-- `src/app/hosts/BrowserDockHost.test.tsx`
-- `src/app/theme/shell/docks.css`
-- `src/app/theme/surfaces/browser.css`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - UI Clean Polish And Cleanup.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow.md`
-- `docs/Doc-Log.md`
-- `docs/CHANGELOG.md`
-
-#### Verification Steps
-- `npm.cmd test -- BrowserPanel.test.tsx`
-- `npm.cmd test -- BrowserDockHost.test.tsx -t "prefers browser-body scrolling before falling back to the outer left-dock stack"`
-
-<!-- ENTRY 695 -->
-### [695] - 2026-04-15 12:47 - `BRW - Browser-13 - Phase 1 - Unsplit Left Dock Constraint Follow-Up`
-<!-- ENTRY 695 -->
-HUMAN SUMMARY: `Followed up the Browser Phase 1 scrollbar work by forcing the primary left dock into its constrained stack path even before any viewport split exists, so the docked Browser can behave like a bounded panel in the normal unsplit shell instead of only after split-layout gating turns on.` 
-
-#### Scope / Constraints Honored
-- Kept this pass narrowly focused on the unsplit left-dock constraint gate.
-- Did not reopen Browser row rendering, BrowserPanel structure, or meatball docking behavior in the same change.
-- Left the earlier Browser-body-first wheel routing intact.
-
-#### Summary of Implementation
-- Changed the primary left-dock selector path so the primary Browser-bearing dock is treated as constrained in the normal unsplit shell instead of only after a viewport split.
-- Added a focused AppShell regression test proving the unsplit primary left dock now receives the constrained panel-stack class.
-- Reused the earlier BrowserDockHost focused test to confirm the docked Browser scroll path still prefers Browser-body scrolling.
-
-#### Files Changed
-- `src/app/hosts/useAppShellWorkspaceSelectors.ts`
-- `src/app/AppShell.test.tsx`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 1 - Scrollable Browser Content When Object Lists Overflow.md`
-- `docs/Doc-Log.md`
-- `docs/CHANGELOG.md`
-
-#### Verification Steps
-- `npm.cmd test -- AppShell.test.tsx -t "keeps the primary left dock panel stack constrained even before the primary viewport is split"`
-- `npm.cmd test -- BrowserDockHost.test.tsx -t "prefers browser-body scrolling before falling back to the outer left-dock stack"`
-
-<!-- ENTRY 696 -->
-### [696] - 2026-04-15 15:18 - `BRW - Browser-13 - Phase 2.3 - Shared Dock Resize Seam Chrome Cleanup`
-<!-- ENTRY 696 -->
-HUMAN SUMMARY: `Removed the legacy painted vertical seam line and visible [] split-toggle button from the shared docked Browser/right-rail resize edge, while preserving the seam hit area itself and keeping viewport split actions available through the existing resize-handle context menu.` 
-
-#### Scope / Constraints Honored
-- Kept this pass narrowly focused on the docked resize seam chrome that reappeared after `Phase 2.3`.
-- Preserved the shared `leftDockWidth` resize path and did not introduce a new Browser-only dock width system.
-- Kept viewport split actions available through the existing seam context menu instead of removing split access entirely.
-
-#### Summary of Implementation
-- Removed the visible `[]` split-toggle button from the shared left-dock resize seam and deleted its unused prop plumbing through the AppShell and workspace tree path.
-- Removed the old painted vertical seam pseudo-element styling so the seam now behaves like an invisible hit area on the Browser/right-rail edge.
-- Updated the AppShell split-related tests to use the seam context-menu actions instead of the removed button and kept the focused dock-edge structure proof in place.
-
-#### Files Changed
-- `src/app/workspace/PrimaryViewportLeftDock.tsx`
-- `src/app/theme/shell/docks.css`
-- `src/app/workspace/WorkspaceViewportTree.tsx`
-- `src/app/AppShell.tsx`
-- `src/app/hosts/useAppShellDockController.ts`
-- `src/app/workspace/PrimaryViewportLeftDock.test.tsx`
-- `src/app/AppShell.test.tsx`
-- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Future/Browser_Phase Browser-13 - Phase 2.3 - Reachable Shared Right-Edge Dock Resize Seam.md`
-- `docs/Doc-Log.md`
-- `docs/CHANGELOG.md`
-
-#### Verification Steps
-- `npm.cmd test -- PrimaryViewportLeftDock.test.tsx`
-- `npm.cmd test -- AppShell.test.tsx -t "lets the resize-handle menu switch left dock viewport split on and off"`
-- `npm.cmd test -- AppShell.test.tsx -t "lets the resize handle menu split the viewport from the left dock edge"`
-- `npm.cmd test -- AppShell.test.tsx -t "keeps the floating spaghetti editor draggable when left dock viewport split is active"`
-# 2026-03-28
-
-- Browser: landed `Browser-9.1` reference tree convergence baseline so the Browser now presents `References` as an assembly-like root, reference categories as component-like rows, and reference items as object-like rows while preserving the current reference-transform target compatibility underneath

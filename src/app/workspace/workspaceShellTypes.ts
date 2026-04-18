@@ -52,6 +52,7 @@ export type BrowserShellState = {
 export type WorkspaceSurfaceKind =
   | 'modelViewer'
   | 'browser'
+  | 'catalog'
   | 'console'
   | 'spaghettiEditor'
   | 'notepad'
@@ -382,6 +383,9 @@ export const createWorkspaceSurfaceInstanceIdForSlot = (
   }
   if (surfaceKind === 'browser') {
     return `browser-${slotId}`
+  }
+  if (surfaceKind === 'catalog') {
+    return `catalog-${slotId}`
   }
   if (surfaceKind === 'console') {
     return `console-${slotId}`

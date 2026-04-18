@@ -3,6 +3,7 @@
 @import './shell/docks.css';
 @import './shell/windows.css';
 @import './surfaces/browser.css';
+@import './surfaces/catalog.css';
 @import './surfaces/console.css';
 @import './surfaces/viewport-overlay.css';
 @import './surfaces/spaghetti.css';

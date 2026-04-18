@@ -23,6 +23,7 @@ import {
   defaultBrowserFloatingPosition,
   defaultBrowserFloatingSize,
   defaultPrimaryViewportSlotId,
+  type WorkspaceSurfaceKind,
 } from '../workspace/workspaceShellTypes'
 import {
   buildConsoleWorkspaceViewportOptions,
@@ -245,9 +246,7 @@ type UseConsoleInteractionOptions = {
   ) => string | null
   resolveEditorSurfaceInstanceIdForSlotSwitch: (currentSlot: {
     surfaceInstanceId: string
-    retainedSurfaceInstanceIdsByKind: Partial<
-      Record<'modelViewer' | 'browser' | 'console' | 'spaghettiEditor', string>
-    >
+    retainedSurfaceInstanceIdsByKind: Partial<Record<WorkspaceSurfaceKind, string>>
   }) => string | null
   resolveSelectedObjectPartKeyForZoom: () => string | null
   resolveSelectedReferenceIdForZoom: () => string | null
@@ -260,7 +259,7 @@ type UseConsoleInteractionOptions = {
   setIsBrowserPoppedOut: (poppedOut: boolean) => void
   setViewportSlotSurfaceKind: (
     slotId: string,
-    surfaceKind: 'modelViewer' | 'browser' | 'console' | 'spaghettiEditor',
+    surfaceKind: WorkspaceSurfaceKind,
     options?: {
       surfaceInstanceId?: string
       discardRetainedSurfaceKinds?: ('spaghettiEditor')[]
@@ -269,7 +268,7 @@ type UseConsoleInteractionOptions = {
   splitViewportSlot: (
     slotId: string,
     side: 'top' | 'right' | 'bottom' | 'left',
-    options?: { surfaceKind?: 'modelViewer' | 'browser' | 'console' | 'spaghettiEditor' },
+    options?: { surfaceKind?: WorkspaceSurfaceKind },
   ) => string | null
   suppressNextReferenceTransformShellExitRef: BooleanRef
   switchToDocked: (focusInput?: boolean) => void
