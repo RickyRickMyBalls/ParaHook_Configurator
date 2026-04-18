@@ -65,6 +65,338 @@ Do not use it for:
 
 ## Doc Body
 
+<!-- ENTRY 1512 -->
+### [1512] - 2026-04-18 13:49 - `Catalog-Gen0 - Phase 5.6 - Legacy ReferenceModels Retirement`
+
+HUMAN SUMMARY: `This closes the final cleanup step for the Catalog family migration by removing the old \`public/ReferenceModels\` tree after the migrated families and shared \`src\` consumers were already rewired to Catalog-owned homes. Gen0 can now honestly claim one Catalog-owned repo asset home for the first reference families instead of a dual-home compromise.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-Gen0 / Phase 5.6`.
+- Performed retirement only after the migrated families and shared `src/...` consumers no longer depended on `ReferenceModels/...`.
+- Did not widen into new `Catalog-1` runtime behavior or later family expansion.
+- Used one final changelog entry for the completed retirement phase.
+
+#### Summary of Implementation
+- Confirmed the migrated `shoes`, `hooks`, and `footpads` families already lived in `public/Catalog/...`.
+- Confirmed the shared `src/...` seams no longer contained `ReferenceModels/...` assumptions for the migrated families.
+- Removed the old `public/ReferenceModels` tree so the repo no longer carries the legacy family-home path.
+- Closed the final `Catalog-Gen0 / Phase 5` honesty read in the Catalog planning doc.
+
+#### Files Changed
+- `public/ReferenceModels/` retired
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The migrated reference families no longer have a live legacy asset-home folder under `public/ReferenceModels/...`.
+- The repo now presents one Catalog-owned asset home for `shoes`, `hooks`, and `footpads`.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
+
+<!-- ENTRY 1511 -->
+### [1511] - 2026-04-18 13:49 - `Catalog-Gen0 - Phase 5.5 - Shared Consumer Path Rewire`
+
+HUMAN SUMMARY: `This cleans up the remaining shared repo assumptions that still pointed at \`ReferenceModels/...\` after the per-family moves landed. The surviving \`src\`-side manifest, Catalog, and Browser-facing test seams now read the migrated families from \`Catalog/shoes/...\`, \`Catalog/hooks/...\`, and \`Catalog/footpads/...\` instead of encoding a dual-home asset layout.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-Gen0 / Phase 5.5`.
+- Limited the change to shared consumer-path rewiring after the family migrations were already in place.
+- Did not widen into new browse behavior or unrelated cleanup.
+- Used one final changelog entry for the completed shared-rewire phase.
+
+#### Summary of Implementation
+- Swept `src/...` for the remaining `ReferenceModels/...` reads after `Phase 5.3` and `Phase 5.4`.
+- Normalized the surviving shared path assumptions onto the Catalog-owned migrated-family homes.
+- Rewired the shared test-fixture paths that still encoded the old parent family-home path.
+- Closed the Catalog planning read with the explicit result that `src/...` now has zero surviving `ReferenceModels/...` matches for the migrated families.
+
+#### Files Changed
+- `src/app/catalog/catalogActionPlan.test.ts`
+- `src/app/catalog/catalogEnvironmentApply.test.ts`
+- `src/app/catalog/catalogItemContract.test.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/panels/browserContextMenu.test.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/browserRowActions.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Shared `src/...` seams for the migrated families now read the Catalog-owned asset homes instead of the retired `ReferenceModels/...` parent paths.
+- The repo no longer carries a live dual-home assumption for those migrated families under `src/...`.
+
+#### Verification Steps
+- Confirmed the remaining `src/...` `ReferenceModels/...` match count is `0`.
+- Did not run tests.
+
+<!-- ENTRY 1510 -->
+### [1510] - 2026-04-18 13:49 - `Catalog-Gen0 - Phase 5.4 - Footpads Asset Migration`
+
+HUMAN SUMMARY: `This completes the footpads-family migration by copying the visible legacy footpad assets and companion material files into \`public/Catalog/footpads\`, then repointing the published assembly manifest plus Catalog seed path to that Catalog-owned family home. The phase stays intentionally narrow: it preserves the current single seeded footpad member while carrying the broader asset set honestly into the new home.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-Gen0 / Phase 5.4`.
+- Carried the required `.mtl` companion files with the `.obj` assets instead of widening into preview or metadata redesign.
+- Repointed the current manifest and Catalog seed footpad path without inventing new family ids.
+- Used one final changelog entry for the completed footpads migration.
+
+#### Summary of Implementation
+- Created `public/Catalog/footpads`.
+- Copied `PubPad.mtl`, `PubPad.obj`, `XR_Footpad_PubPad_Full_Assembly.mtl`, and `XR_Footpad_PubPad_Full_Assembly.obj` into the Catalog-owned footpads home.
+- Updated `src/app/references/referenceManifest.ts` so `footpad:pubpad-full-assembly` now reads from `Catalog/footpads/XR_Footpad_PubPad_Full_Assembly.obj`.
+- Updated `src/app/catalog/catalogSeedItems.ts` so `reference:footpad-pubpad-full-assembly` now points at the same Catalog-owned assembly path.
+
+#### Files Changed
+- `public/Catalog/footpads/PubPad.mtl`
+- `public/Catalog/footpads/PubPad.obj`
+- `public/Catalog/footpads/XR_Footpad_PubPad_Full_Assembly.mtl`
+- `public/Catalog/footpads/XR_Footpad_PubPad_Full_Assembly.obj`
+- `src/app/references/referenceManifest.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Manifest-backed footpad loading now resolves from `Catalog/footpads/...` instead of `ReferenceModels/footpads/...`.
+- The seeded published footpad assembly now points at the Catalog-owned footpads home.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
+
+<!-- ENTRY 1509 -->
+### [1509] - 2026-04-18 13:49 - `Catalog-Gen0 - Phase 5.3 - Hooks Asset Migration`
+
+HUMAN SUMMARY: `This completes the hooks-family migration by copying the legacy repo-backed hook assets into \`public/Catalog/hooks\`, repointing manifest hook paths to Catalog-owned homes, and expanding the Catalog seed so the migrated hooks family is exposed from that same Catalog-owned folder. The phase stays intentionally scoped to hooks only and leaves legacy-folder retirement for the later cleanup phase.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-Gen0 / Phase 5.3`.
+- Followed the completed `Phase 5.1` contract by targeting `public/Catalog/hooks` while preserving the current manifest category id rail.
+- Expanded the Catalog hooks seed slice only as needed to represent the migrated repo-backed family honestly.
+- Used one final changelog entry for the whole hooks migration instead of splitting the copy, manifest rewire, and seed expansion into separate shipped-history slices.
+
+#### Summary of Implementation
+- Created `public/Catalog/hooks` and copied `large.step`, `medium.step`, `small.step`, and `xl.step` from the legacy hook home into that Catalog-owned family folder.
+- Updated `src/app/references/referenceManifest.ts` so the four manifest-backed hooks now read from `Catalog/hooks/large.step`, `Catalog/hooks/medium.step`, `Catalog/hooks/small.step`, and `Catalog/hooks/xl.step`.
+- Updated `src/app/catalog/catalogSeedItems.ts` so `reference:hook-large` now points at the Catalog-owned hook path and added `reference:hook-medium`, `reference:hook-small`, and `reference:hook-xl` to expose the migrated repo-backed hook set through the Catalog seed.
+- Kept preview honesty explicit by leaving the new hook entries without preview media until a later preview lane adds that coverage.
+
+#### Files Changed
+- `public/Catalog/hooks/large.step`
+- `public/Catalog/hooks/medium.step`
+- `public/Catalog/hooks/small.step`
+- `public/Catalog/hooks/xl.step`
+- `src/app/references/referenceManifest.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Manifest-backed hook loading now resolves from `Catalog/hooks/...` instead of `ReferenceModels/hooks/...`.
+- The Catalog repo-backed hooks slice now exposes `hook-large`, `hook-medium`, `hook-small`, and `hook-xl` from the Catalog-owned hooks home.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
+
+<!-- ENTRY 1508 -->
+### [1508] - 2026-04-18 13:32 - `Catalog-Gen0 - Phase 5.2 - Shoes Asset Migration`
+
+HUMAN SUMMARY: `This completes the shoes-family migration by copying the legacy repo-backed shoe models into \`public/Catalog/shoes\`, repointing manifest shoe asset paths to Catalog-owned homes, and expanding the Catalog seed so the migrated shoes family is exposed from that same Catalog-owned folder. The phase stays intentionally scoped to shoes only and leaves legacy-folder retirement plus broader shared cleanup for later phases.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-Gen0 / Phase 5.2` and did not widen into hooks, footpads, shared rewires, or legacy-folder retirement.
+- Followed the completed `Phase 5.1` contract by targeting `public/Catalog/shoes` as the stable family home while preserving the current manifest id rail.
+- Used one final changelog entry for the whole shoes migration instead of splitting the asset copy, manifest rewire, and Catalog seed expansion into separate shipped-history slices.
+- Did not run tests in this pass.
+
+#### Summary of Implementation
+- Copied `Shoe_1.glb`, `Shoe_2.glb`, and `Shoe_3.glb` from `public/ReferenceModels/shoes` into `public/Catalog/shoes`, where `vans-high-top-low.glb` already lived.
+- Updated `src/app/references/referenceManifest.ts` so the three manifest-backed shoes now read from `Catalog/shoes/Shoe_1.glb`, `Catalog/shoes/Shoe_2.glb`, and `Catalog/shoes/Shoe_3.glb`.
+- Updated `src/app/catalog/catalogSeedItems.ts` so `reference:shoe-1` now points at the Catalog-owned shoe path and added new `reference:shoe-2` plus `reference:shoe-3` entries to expose the migrated repo-backed shoe set through the Catalog seed.
+- Kept preview honesty explicit by leaving `shoe-2` and `shoe-3` without preview media until a later preview lane adds that coverage.
+
+#### Files Changed
+- `public/Catalog/shoes/Shoe_1.glb`
+- `public/Catalog/shoes/Shoe_2.glb`
+- `public/Catalog/shoes/Shoe_3.glb`
+- `src/app/references/referenceManifest.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Manifest-backed shoe loading now resolves from `Catalog/shoes/...` instead of `ReferenceModels/shoes/...`.
+- The Catalog repo-backed shoes slice now exposes `shoe-1`, `shoe-2`, `shoe-3`, and `vans-high-top-low` from the Catalog-owned shoes home.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
+
+<!-- ENTRY 1507 -->
+### [1507] - 2026-04-18 13:22 - `Catalog-Gen0 - Phase 5.1 - Catalog Family Folder Contract`
+
+HUMAN SUMMARY: `This completes the Catalog family-folder-contract phase by locking \`public/Catalog/shoes\`, \`public/Catalog/hooks\`, and \`public/Catalog/footpads\` as the stable migration homes for the first reference families. The phase stays intentionally narrow and docs-first: it records the shared path and readable-slug contract for later family moves and marks \`Phase 5.2\`, \`Phase 5.3\`, and \`Phase 5.4\` implementation-ready without widening into runtime rewires yet.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-Gen0 / Phase 5.1` and did not begin `Phase 5.2+` asset moves or runtime rewires.
+- Preferred docs-and-contract updates instead of touching runtime files.
+- Preserved current manifest and seed identity rails while locking the shared migration contract those later phases should target.
+- Used one final changelog entry for the whole `Phase 5.1` pass instead of splitting the sub-slices into separate shipped-history entries.
+
+#### Summary of Implementation
+- Re-read the live asset layout across `public/Catalog`, `public/ReferenceModels`, `src/app/references/referenceManifest.ts`, and `src/app/catalog/catalogSeedItems.ts` and recorded the current split between the lightly used Catalog-owned home and the older `ReferenceModels/...` runtime paths.
+- Locked the stable Catalog family-folder homes as `public/Catalog/shoes`, `public/Catalog/hooks`, and `public/Catalog/footpads`.
+- Locked one shared path and readable-slug contract for later family migrations, including the decision that the move phases should repoint parent asset homes to `Catalog/...` without forcing immediate manifest-id renames or source-filename rewrites.
+- Marked `Phase 5.2`, `Phase 5.3`, and `Phase 5.4` implementation-ready against that exact folder contract so the next Codex can move each family without reopening the folder-layout question.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes in this phase.
+- The repo now has one explicit migration contract for the first Catalog-owned reference-family homes, which reduces decision drift for the next family-move phases.
+
+#### Verification Steps
+- Not run. This pass stayed docs-only.
+
+<!-- ENTRY 1506 -->
+### [1506] - 2026-04-18 13:00 - `Catalog-Gen0 - Phase 5 - Catalog Folder Organization Follow-Up`
+
+HUMAN SUMMARY: `This started the Catalog folder-organization follow-up by copying the external Vans shoe model into \`public/Catalog/shoes/vans-high-top-low.glb\` and exposing it as a new Catalog repo seed item. The new seed gives the Catalog-owned shoes folder one real resident without reopening the broader ReferenceModels migration yet.`
+
+#### Scope / Constraints Honored
+- Kept the change focused to one new shoe asset and one matching Catalog seed entry.
+- Used the new `public/Catalog/shoes` family home instead of widening into full reference-family migration.
+- Did not rewire the older manifest-backed reference assets off `ReferenceModels/...` in this pass.
+- Recorded the work against the new `Catalog-Gen0 / Phase 5` follow-up lane.
+
+#### Summary of Implementation
+- Copied `C:\Users\Rubbe\Desktop\ParaHookConfig\20\3d models\Vans-High-Top-low.glb` into `public/Catalog/shoes/vans-high-top-low.glb`.
+- Added `reference:vans-high-top-low` to `src/app/catalog/catalogSeedItems.ts` as a `shoes` family Catalog repo item.
+- Pointed the new seed item at the Catalog-owned asset path `Catalog/shoes/vans-high-top-low.glb`.
+- Left preview media empty for now so the asset can exist in the Catalog seed before a dedicated preview is added.
+
+#### Files Changed
+- `public/Catalog/shoes/vans-high-top-low.glb`
+- `src/app/catalog/catalogSeedItems.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen0-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Catalog repo seed now includes one additional shoe entry backed by a Catalog-owned asset path instead of the older `ReferenceModels/shoes/...` home.
+
+#### Verification Steps
+- Not run. I did not run app or tests in this pass.
+
+<!-- ENTRY 1505 -->
+### [1505] - 2026-04-18 12:49 - `Catalog-Gen0.2.1 - BrowserPanelController Dependency-Order Hotfix`
+
+HUMAN SUMMARY: `This hotfix fixed a build-blocking TypeScript regression where a useMemo dependency in useBrowserPanelController referenced browserTreeRows before declaration. Reordering memo declarations puts browserTreeRows above dependent consumers so the file type-checks again.`
+
+#### Scope / Constraints Honored
+- Kept the fix to declaration ordering in one hook file.
+- Did not change runtime behavior beyond removing the TS compile-time dependency-order break.
+- Kept the browser tree behavior functionally identical.
+- Added a focused bug report documenting the regression and the fix path.
+
+#### Summary of Implementation
+- Reordered the declaration in `src/app/panels/useBrowserPanelController.ts` so `browserTreeRows = useMemo(...)` is defined before `mountedReferenceContainerRowIds = useMemo(...)`.
+- Verified the dependency array now reads `browserTreeRows.contentRows` only after the source memo is declared.
+- Added `docs/Bugs/21_2026-04-18_12-49-00_BrowserPanelController-Dependency-Order-Build-Regression.md` as the regression record.
+
+#### Files Changed
+- `src/app/panels/useBrowserPanelController.ts`
+- `docs/Bugs/21_2026-04-18_12-49-00_BrowserPanelController-Dependency-Order-Build-Regression.md`
+
+#### Behavior Changes (if any)
+- No runtime behavior changes; the fix resolves TS build failure caused by invalid declaration ordering.
+
+#### Verification Steps
+- Not rerun in this pass.
+
+<!-- ENTRY 1504 -->
+### [1504] - 2026-04-18 12:49 - `Catalog-Gen0.2.1 - Phase 4 - Focused Proof Update`
+
+HUMAN SUMMARY: `Phase 4 adds focused proof coverage for the startup-reference honesty cut, confirming the first-load Browser read has no pre-seeded \`reference-root\` while preserving user-driven imported-reference behavior after real intake and commit paths.`
+
+#### Scope / Constraints Honored
+- Kept changes proof-only and avoided runtime behavior edits.
+- Limited updates to store and Browser proof surfaces directly affected by startup-reference and imported-reference behavior.
+- Did not expand into broader Browser interactions or Catalog runtime semantics.
+
+#### Summary of Implementation
+- Added/updated `src/app/store/useAppStore.test.ts` with startup-shape assertions that removed manifest-backed `reference-root`/preload category expectations in the empty baseline and preserved checks for post-intake imported-reference content rows.
+- Added/updated `src/app/panels/selectBrowserTreeRows.test.ts` to guard against synthesized startup `References` assumptions and keep tree proof aligned with explicit user-driven imported-reference state.
+- Focused on stable follow-through proof for imported-reference visibility after real commit/intake flows without reintroducing startup seeding behavior.
+
+#### Files Changed
+- `src/app/store/useAppStore.test.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+
+#### Behavior Changes (if any)
+- Runtime behavior did not change in this phase; proof now encodes the startup baseline and preserved imported-reference invariants.
+
+#### Verification Steps
+- Not rerun in this pass.
+
+<!-- ENTRY 1503 -->
+### [1503] - 2026-04-18 12:49 - `Catalog-Gen0.2.1 - Phase 3 - Imported Reference Preservation`
+
+HUMAN SUMMARY: `Phase 3 secures user-driven imported-reference visibility after startup preload removal by ensuring `References` hierarchy shaping only includes real imported-reference records and by preserving post-intake and post-commit Browser paths.`
+
+#### Scope / Constraints Honored
+- Preserved user-driven imported-reference behavior only, without reintroducing startup manifest baselines.
+- Did not widen into broader reference identity, recall, or Catalog runtime redesign.
+- Kept the cut minimal and aligned to the `Catalog-Gen0.2.1` phase boundary.
+
+#### Summary of Implementation
+- Updated `src/app/store/useAppStore.ts` so imported-reference runtime starts empty on startup and only renders reference hierarchy content when actual reference items exist.
+- Filtered manifest category emission in `selectReferenceWorkspaceBrowserTree(...)` to include only non-empty categories, preventing startup-shell behavior from leaking into the true imported-reference path.
+- Added focused proof in `src/app/store/useAppStore.test.ts` for runtime continuity: committed imported references and staging/import flows still surface in content rows after startup and after downstream Catalog commit paths.
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+
+#### Behavior Changes (if any)
+- Startup reference baselines now rely on explicit imported-reference state instead of manifest preload fallback rows.
+- Imported-reference preservation remains functional for real intake and commit flows without restoring legacy startup baseline behavior.
+
+#### Verification Steps
+- Reworked tests in `src/app/store/useAppStore.test.ts` for startup and imported-reference proof.
+- Not rerun in this pass.
+
+<!-- ENTRY 1502 -->
+### [1502] - 2026-04-18 12:33 - `Catalog-Gen0.2.1 - Phase 2 - Browser References Root Removal`
+
+HUMAN SUMMARY: `Phase 2 removes the legacy Browser \`References\` shell from first-load content browse now that startup reference state is empty. The Browser content selector no longer synthesizes the reference root and preload-only category rows when there are no reference items, while later imported-reference hierarchy paths still remain available once real reference items exist.`
+
+- Updated `src/app/store/useAppStore.ts` so `selectCurrentProjectContentBrowserRows(...)` only mounts the Browser `References` assembly and reference category rows when the reference workspace actually has items instead of recreating the old preload-era shell on every startup.
+- Updated `src/app/panels/useBrowserPanelController.ts` so collapsed-row sync only treats the legacy reference root and reference category rows as mounted Browser rows when those rows are actually present in `contentRows`.
+- Updated `src/app/store/useAppStore.test.ts` with focused proof that startup Browser content rows no longer include `reference-root` or preload-only `reference-category-row:*` entries, while the existing later imported-reference content-row path still passes once real reference items exist.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-Gen0.2.1 - Browser References Baseline Removal.md` to mark `Phase 2 - Browser References Root Removal` implemented and record the shipped Browser-honesty cut.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/store/useAppStore.test.ts -t "does not surface the References root in startup browser content rows when no reference items exist|does not seed manifest-backed reference records into startup reference workspace state"`.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/store/useAppStore.test.ts -t "flattens ungrouped imported references directly under References in browser content rows"`.
+
+<!-- ENTRY 1501 -->
+### [1501] - 2026-04-18 12:19 - `Catalog-Gen0.2.1 - Phase 1 - Startup Manifest Seeding Removal`
+
+HUMAN SUMMARY: `Phase 1 removes the old Browser-era startup preload that was seeding manifest-backed references into first-load store state. The app now starts with an empty reference workspace baseline, while the tests that still need legacy manifest fixtures build them explicitly inside the store test file instead of inheriting them from startup state.`
+
+- Updated `src/app/store/useAppStore.ts` so the default `referenceWorkspace` initialization now starts with empty `importedReferencesById` and `importedReferenceOrder`, and removed the old manifest-backed startup helper path that mirrored `REFERENCE_MANIFEST_ITEMS` into first-load state.
+- Updated `src/app/store/useAppStore.test.ts` to add focused proof that startup state no longer seeds manifest-backed imported references, and added one local manifest-fixture reset helper for scenarios that still intentionally exercise the legacy reference-runtime seam after startup.
+- Updated `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-Gen0.2.1 - Browser References Baseline Removal.md` to mark `Phase 1 - Startup Manifest Seeding Removal` implemented and record the shipped store-owned cut.
+- Re-ran `./node_modules/.bin/vitest.cmd run src/app/store/useAppStore.test.ts -t "does not seed manifest-backed reference records into startup reference workspace state|moves manifest reference-backed objects through the shared content-owner move seam without creating a copy|builds the static reference workspace tree and toggles category visibility as viewer-only state"`.
+
 <!-- ENTRY 1500 -->
 ### [1500] - 2026-04-18 10:45 - `Model-Viewport-2 - Phase 5 - Full Primary Workspace Reassignment Coverage`
 

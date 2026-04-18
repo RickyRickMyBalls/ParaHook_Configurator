@@ -297,6 +297,10 @@ Use it to answer:
 
 ### Canonical Sources
 
+- `docs/Doc-Vision.md`
+  - the north-star doc for how the repo docs system itself should work
+  - use this when the question is about docs generations, doc roles, `Human-Plans` versus `Human-Docs`, or the larger docs workflow
+
 - `docs/Human-Docs/index.md`
   - the reader-facing explanation layer for the project
   - use this when you want plain-English project docs instead of planning docs
@@ -559,6 +563,11 @@ Rule notes:
 
 ### Quick Start By Question
 
+- "How is the docs system supposed to work?"
+  - start with `docs/Doc-Vision.md`
+  - then `docs/Docs-Command-Center.md`
+  - then `docs/Doc-Index.md` if you need the larger inventory map
+
 - "I want a human-friendly explanation of the project."
   - start with `docs/Human-Docs/index.md`
   - then `docs/Vision.md`
@@ -649,6 +658,7 @@ Rule notes:
 - `Chill-Log.md`
 - `Docs-Command-Center.md`
 - `Doc-Index.md`
+- `Doc-Vision.md`
 - `Human-Docs`
 - `index.md`
 - `Vision.md`

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+20. 2026-04-18 14:01:44: Closed the older "still in `Generation 0` today" wording now that the `Catalog-Gen0` cleanup-and-prep band has been completed, updating the vision so `Generation 0` reads as the completed prep generation and `Generation 1` reads as the active first real family baseline without widening the north-star into new runtime detail
 19. 2026-04-17 22:12:06: Folded the newer preview-session direction into the `Catalog` vision so `Generation 1` now reads as opening with empty card preview boxes instead of preloaded repo-backed previews, allowing explicit in-card and multi-card preview loading, keeping a Catalog-owned preview-loaded item list that restores when the user closes and reopens Catalog during the running session, and adding unload controls so temporary preview state stays lightweight and distinct from `Add To Project`
 18. 2026-04-16 17:10:00: Tightened the generational read again so `Generation 0` now explicitly removes the current preloaded reference models from `Browser`, clarifying that `foothooks`, `shoes`, and `footpads` should stop acting like default Browser-resident content during cleanup and should later return only as intentional optional add-ins
 17. 2026-04-16 16:55:23: Reframed the catalog vision so it stays honest that the `Catalog` family has not started yet, adding an explicit `Generation 0` cleanup-and-prep read ahead of the later repo-backed catalog build, changing the current-state language so `Generation 1` now reads as the first real family generation instead of the active one, and aligning the vision with the new `Catalog-Gen0-Index.md` planning surface
@@ -102,11 +103,11 @@ This doc exists to keep the catalog on the narrow honest path between those two 
 
 `Catalog` should be described as evolving through explicit generations.
 
-`Generation 0` is the current cleanup-and-prep state because the family has not started yet.
+`Generation 0` is now the completed cleanup-and-prep generation that made the first real family start possible.
 
-That cleanup should first remove the old preloaded reference-model behavior from `Browser`.
+That cleanup first removed the old preloaded reference-model behavior from `Browser` and closed the legacy Browser-owned baseline.
 
-`Generation 1` is the first real repo-backed curated browse-and-load workspace direction after that prep.
+`Generation 1` is now the active first real repo-backed curated browse-and-load workspace direction after that completed prep.
 
 `Generation 2` should widen that workspace so it can also integrate curated external catalog sources such as `pubparts.xyz` and support linked `3D` model entries more generally.
 
@@ -158,9 +159,9 @@ The point is to make it easy to say:
 
 #### Generation 0 - Cleanup And Prep Before Catalog Family Start
 
-`Generation 0` is the current state because the `Catalog` family has not started yet.
+`Generation 0` is now complete.
 
-This generation is prep only.
+This generation was prep only.
 
 It should be used to:
 - inventory where catalog-like behavior already leaks through preloaded references, `HDRI` handling, Browser-adjacent seams, or shell touchpoints
@@ -175,7 +176,7 @@ What `Generation 0` does well:
 - removes the misleading Browser-resident default reference-model baseline before later optional add-ins arrive
 - reduces the risk that `Catalog-1` starts by rediscovering drift instead of building the family
 
-What `Generation 0` does not yet do:
+What `Generation 0` did not do:
 - ship a real `Catalog` workspace surface
 - ship the first manifest runtime
 - ship preview or commit behavior
@@ -187,13 +188,13 @@ Important rule:
 
 In short:
 
-`Generation 0` is the cleanup-and-prep band before the first real catalog build starts.
+`Generation 0` was the cleanup-and-prep band before the first real catalog build starts.
 
-That includes removing the current Browser preload for reference models so later add-ins stay intentional.
+That included removing the old Browser preload for reference models so later add-ins stay intentional.
 
 #### Generation 1 - Repo-Backed Curated Catalog
 
-`Generation 1` is the first real catalog baseline after `Generation 0` cleanup and prep.
+`Generation 1` is now the first real catalog baseline after completed `Generation 0` cleanup and prep.
 
 Unless a later section explicitly says `Generation 2` or `Generation 3`, the intended first real browse-and-load behavior described in this doc should be read as `Generation 1`.
 
@@ -997,9 +998,8 @@ When `Catalog` is working well, the user should be able to say:
 
 The umbrella direction is now:
 - ParaHook should have a real `Catalog` workspace organized as explicit generations
-- `Generation 0` is the current cleanup-and-prep state because the family has not started yet
-- `Generation 0` should remove the current Browser-resident preload for reference models such as foothooks, shoes, and footpads
-- `Generation 1` is the first real repo-backed curated browse-and-load catalog for later optional foothooks, shoes, footpads, `HDRIs`, and similar stored references
+- `Generation 0` is now the completed cleanup-and-prep generation that removed the old Browser-resident preload for reference models such as foothooks, shoes, and footpads
+- `Generation 1` is now the first real repo-backed curated browse-and-load catalog for later optional foothooks, shoes, footpads, `HDRIs`, and similar stored references
 - `Generation 1` may also include an `Imports` area for previously uploaded items that are already inside ParaHook, without making `Catalog` own import intake
 - `Generation 2` should widen that catalog to include curated external integrations such as `pubparts.xyz`, linked `3D` model entries more generally, broader platform-normalization rules, and pre-built Onewheel starting boards
 - `Generation 3` should turn the `Generation 2` compatibility groundwork into a real compatibility-check system that can tell the user whether a part or build combination should work

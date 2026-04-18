@@ -18,7 +18,7 @@ describe('catalogActionPlan', () => {
       actionKind: 'add-to-project',
       source: {
         sourceKind: 'repo',
-        assetPath: 'ReferenceModels/shoes/Shoe_1.glb',
+        assetPath: 'Catalog/shoes/Shoe_1.glb',
       },
       previewMedia: [],
     }

@@ -102,7 +102,7 @@ describe('catalogSource', () => {
           sourceKind: 'manifest',
           categoryId: 'shoes',
           label: 'Manifest Shoe',
-          assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+          assetPath: '/Catalog/shoes/Shoe_1.glb',
         },
         'imported-reference-1': {
           referenceId: 'imported-reference-1',

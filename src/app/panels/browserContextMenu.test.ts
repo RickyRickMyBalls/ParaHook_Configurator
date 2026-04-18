@@ -87,7 +87,7 @@ const hiddenReferenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   sourceKind: 'manifest',
   categoryId: 'shoes',
   fileType: 'glb',
-  assetPath: '/ReferenceModels/shoes/shoe-1.glb',
+  assetPath: '/Catalog/shoes/shoe-1.glb',
   errorMessage: null,
 })
 
@@ -132,7 +132,7 @@ const importedContentObjectRow = (): BrowserObjectTreeRowVm => ({
   referenceSourceKind: 'imported',
   referenceState: 'error',
   fileType: 'glb',
-  assetPath: '/ReferenceModels/shoes/shoe-1.glb',
+  assetPath: '/Catalog/shoes/shoe-1.glb',
   errorMessage: 'Load failed',
 })
 

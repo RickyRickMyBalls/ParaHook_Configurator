@@ -216,7 +216,7 @@ const referenceItemRow = (): BrowserReferenceItemTreeRowVm => ({
   sourceKind: 'manifest',
   categoryId: 'shoes',
   fileType: 'glb',
-  assetPath: '/ReferenceModels/shoes/shoe-1.glb',
+  assetPath: '/Catalog/shoes/shoe-1.glb',
   isVisible: false,
   state: 'dormant',
   stateLabel: 'Dormant',
@@ -717,7 +717,7 @@ describe('createBrowserRowInteractionHandlers', () => {
       rowId: 'reference-item-row:shoe-2',
       label: 'Shoe 2',
       referenceId: 'shoe-2',
-      assetPath: '/ReferenceModels/shoes/shoe-2.glb',
+      assetPath: '/Catalog/shoes/shoe-2.glb',
       isVisible: true,
     }
     const deps = createDeps({

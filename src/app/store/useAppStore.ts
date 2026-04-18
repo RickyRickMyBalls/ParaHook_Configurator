@@ -47,7 +47,6 @@ import {
   REFERENCE_MANIFEST_ITEMS,
   USER_REFERENCE_CATEGORY_ID,
   USER_REFERENCE_CATEGORY_LABEL,
-  resolveReferenceAssetPath,
   type DirectPartBackedReferenceLoadKind,
   type ReferenceCategoryId,
   type ReferenceTransformOverride,
@@ -2787,8 +2786,8 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   transformHistoryByObjectId: {},
   activeContentObjectTransformSession: null,
   stagedImportDraft: null,
-  importedReferencesById: buildInitialReferenceRecords(),
-  importedReferenceOrder: [...INITIAL_REFERENCE_RECORD_ORDER],
+  importedReferencesById: {},
+  importedReferenceOrder: [],
   partRowsByReferenceId: {},
   contentOrderByParentKey: {},
 })
@@ -3882,30 +3881,6 @@ const buildImportedReferenceId = (): string =>
 
 const buildDirectPartSourceGroupId = (): string =>
   `direct-part-source-group:${newId('direct-part-source-group')}`
-
-const buildInitialReferenceRecords = (): Record<string, ImportedReferenceRecord> =>
-  Object.fromEntries(
-    REFERENCE_MANIFEST_ITEMS.map((item) => [
-      item.referenceId,
-      {
-        referenceId: item.referenceId,
-        sourceKind: 'manifest',
-        categoryId: item.categoryId,
-        label: item.label,
-        fileType: item.fileType,
-        assetPath: resolveReferenceAssetPath(item.assetPath),
-        parentAssemblyId: null,
-        parentComponentId: null,
-        directPartSourceKind: null,
-        directPartSourceGroupId: null,
-        explodedFromReferenceId: null,
-        sourcePartKey: null,
-        sourceMeshIndex: null,
-      } satisfies ImportedReferenceRecord,
-    ]),
-  )
-
-const INITIAL_REFERENCE_RECORD_ORDER = REFERENCE_MANIFEST_ITEMS.map((item) => item.referenceId)
 
 const buildImportedReferenceLabel = (
   fileName: string,
@@ -11018,18 +10993,20 @@ export const selectCurrentProjectContentBrowserRows = (
         .filter((item): item is ImportedReferenceRecord => item !== null)
         .map((item) => buildReferenceWorkspaceBrowserItemVm(referenceWorkspace, item))
     : []
-  const referenceCategories = includeReferenceHierarchy
+  const shouldRenderReferenceHierarchy = includeReferenceHierarchy && allReferenceItems.length > 0
+  const referenceCategories = shouldRenderReferenceHierarchy
     ? REFERENCE_MANIFEST_CATEGORIES.map((category) => ({
         categoryId: category.categoryId,
         label: category.label,
         emptyLabel: 'No loadable references yet.',
       }))
     : []
-  const totalShelfReferenceCount = allReferenceItems.filter(
-    (item) => item.parentAssemblyId == null && item.parentComponentId == null,
-  ).length
+  const totalShelfReferenceCount = shouldRenderReferenceHierarchy
+    ? allReferenceItems.filter((item) => item.parentAssemblyId == null && item.parentComponentId == null)
+        .length
+    : 0
 
-  if (includeReferenceHierarchy) {
+  if (shouldRenderReferenceHierarchy) {
     const referenceRootAssembly = buildReferenceRootAssemblyRecord({
       projectContent: state.projectContent,
       referenceWorkspace,
@@ -11701,7 +11678,7 @@ export const selectReferenceWorkspaceBrowserTree = (
 
   const manifestCategories = REFERENCE_MANIFEST_CATEGORIES.map((category) =>
     buildCategoryVm(category.categoryId, category.label, 'No loadable references yet.'),
-  )
+  ).filter((category) => category.items.length > 0)
 
   const importedItems = allReferenceItems.filter((item) => item.categoryId === USER_REFERENCE_CATEGORY_ID)
 

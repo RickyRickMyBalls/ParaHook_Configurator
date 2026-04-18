@@ -14,6 +14,7 @@ import {
   GRAPH_OUTPUT_SURFACE_VERSION,
   type GraphOutputSurface,
 } from '../spaghetti/outputSurface'
+import { REFERENCE_MANIFEST_ITEMS, resolveReferenceAssetPath } from '../references/referenceManifest'
 import type { GraphPreviewPreparation } from '../spaghetti/previewPreparation'
 import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 import { OUTPUT_PREVIEW_NODE_TYPE } from '../spaghetti/system/outputPreviewNode'
@@ -143,6 +144,44 @@ const createOutputSurface = (entries: GraphOutputSurface['entries']): GraphOutpu
   surfaceVersion: GRAPH_OUTPUT_SURFACE_VERSION,
   entries,
 })
+
+const resetStoreWithManifestReferences = (
+  useAppStore: Awaited<typeof import('./useAppStore')>['useAppStore'],
+): void => {
+  const initialState = useAppStore.getInitialState()
+  const importedReferencesById = Object.fromEntries(
+    REFERENCE_MANIFEST_ITEMS.map((item) => [
+      item.referenceId,
+      {
+        referenceId: item.referenceId,
+        sourceKind: 'manifest' as const,
+        categoryId: item.categoryId,
+        label: item.label,
+        fileType: item.fileType,
+        assetPath: resolveReferenceAssetPath(item.assetPath),
+        parentAssemblyId: null,
+        parentComponentId: null,
+        directPartSourceKind: null,
+        directPartSourceGroupId: null,
+        explodedFromReferenceId: null,
+        sourcePartKey: null,
+        sourceMeshIndex: null,
+      },
+    ]),
+  )
+
+  useAppStore.setState(
+    {
+      ...initialState,
+      referenceWorkspace: {
+        ...initialState.referenceWorkspace,
+        importedReferencesById,
+        importedReferenceOrder: REFERENCE_MANIFEST_ITEMS.map((item) => item.referenceId),
+      },
+    },
+    true,
+  )
+}
 
 const createOutputPreviewGraph = (options: {
   objects: Array<{ objectId: string; slotId: string; label: string; orderIndex: number }>
@@ -368,6 +407,121 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     useAppStore.setState(useAppStore.getInitialState(), true)
 
     expect(useAppStore.getState().selectedPartKey).toBeNull()
+  })
+
+  it('does not seed manifest-backed reference records into startup reference workspace state', async () => {
+    const { useAppStore } = await import('./useAppStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+
+    expect(useAppStore.getState().referenceWorkspace.importedReferencesById).toEqual({})
+    expect(useAppStore.getState().referenceWorkspace.importedReferenceOrder).toEqual([])
+  })
+
+  it('does not surface the References root in startup browser content rows when no reference items exist', async () => {
+    const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      referenceWorkspace: useAppStore.getState().referenceWorkspace,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(browserRows.some((row) => row.rowId === 'reference-root')).toBe(false)
+    expect(
+      browserRows.some(
+        (row) =>
+          row.kind === 'component' &&
+          typeof row.rowId === 'string' &&
+          row.rowId.startsWith('reference-category-row:'),
+      ),
+    ).toBe(false)
+  })
+
+  it('still surfaces user-driven imported references from empty startup baseline', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const initialRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      referenceWorkspace: useAppStore.getState().referenceWorkspace,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+    expect(initialRows.some((row) => row.rowId === 'reference-root')).toBe(false)
+
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    useAppStore.getState().appendStagedImportDraftFiles([
+      {
+        fileName: 'startup-import.step',
+        fileType: 'step',
+        objectUrl: 'blob:startup-import-step',
+      },
+    ])
+
+    const stagedFileId =
+      useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0]?.stagedFileId ?? null
+    expect(stagedFileId).toBeTruthy()
+
+    useAppStore.getState().resolveStagedImportFileStructureInspection(stagedFileId!, {
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
+    })
+    useAppStore.getState().setStagedImportFileUpAxis(stagedFileId!, 'y-up')
+    useAppStore.getState().setStagedImportFileScaleAlignment(stagedFileId!, 'centimeters')
+    useAppStore.getState().setStagedImportPutAcceptedInNewAssembly(true)
+
+    const committedBefore = useAppStore.getState().referenceWorkspace.importedReferenceOrder.length
+
+    const commitResult = useAppStore.getState().commitStagedImportDraft()
+    const state = useAppStore.getState()
+
+    expect(commitResult).toMatchObject({
+      status: 'success',
+      committedReferenceCount: 1,
+    })
+    expect(state.referenceWorkspace.importedReferenceOrder).toHaveLength(committedBefore + 1)
+
+    const committedReference = state.referenceWorkspace.importedReferenceOrder
+      .map((referenceId) => state.referenceWorkspace.importedReferencesById[referenceId]!)
+      .find((reference) => reference.assetPath === 'blob:startup-import-step')
+
+    expect(committedReference).toBeTruthy()
+
+    const rowsAfterCommit = selectCurrentProjectContentBrowserRows({
+      currentProject: state.currentProject,
+      projectContent: state.projectContent,
+      referenceWorkspace: state.referenceWorkspace,
+      sketchVisibilityByRowId: state.sketchVisibilityByRowId,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(rowsAfterCommit.some((row) => row.rowId === `reference-item-row:${committedReference!.referenceId}`)).toBe(
+      true,
+    )
+    expect(rowsAfterCommit.some((row) => row.rowId === 'reference-root')).toBe(false)
   })
 
   it('stores an explicit console workspace handoff with a fresh sequence on repeated publishes', async () => {
@@ -828,7 +982,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('moves manifest reference-backed objects through the shared content-owner move seam without creating a copy', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       projectContent: {
@@ -1144,7 +1298,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore,
     } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().setWorkspaceSelectedTarget({
       kind: 'assembly',
@@ -1209,7 +1363,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
       await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const referenceId = useAppStore.getState().addImportedReference({
       fileName: 'shoe.glb',
@@ -1235,7 +1389,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
       await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const importedReferenceA = useAppStore.getState().addImportedReference({
       fileName: 'shoe-a.glb',
@@ -1309,7 +1463,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
       await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const referenceId = useAppStore.getState().addImportedReference({
       fileName: 'shoe-hide.glb',
@@ -1345,7 +1499,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore,
     } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const referenceId = useAppStore.getState().addImportedReference({
       fileName: 'explodeable.glb',
@@ -1397,7 +1551,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('marks selected authored assemblies as hideable while visible and showable while hidden', async () => {
     const { selectConsoleWorkspaceContextTarget, useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       projectContent: {
@@ -1476,7 +1630,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('marks selected authored components as hideable while visible and showable while hidden', async () => {
     const { selectConsoleWorkspaceContextTarget, useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       projectContent: {
@@ -1558,7 +1712,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
       await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const importedReferenceA = useAppStore.getState().addImportedReference({
       fileName: 'shoe-visible-a.glb',
@@ -1613,7 +1767,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildImportedReferenceRowId, selectConsoleWorkspaceContextTarget, useAppStore } =
       await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const importedReferenceA = useAppStore.getState().addImportedReference({
       fileName: 'shoe-hidden-a.glb',
@@ -1678,7 +1832,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore,
     } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(
       selectCurrentProjectTopLevelAssemblies(useAppStore.getState()).map((assembly) => assembly.assemblyId),
@@ -1724,7 +1878,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       projectContent: {
@@ -1830,7 +1984,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('deletes authored component subtrees including child objects', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       projectContent: {
@@ -1898,7 +2052,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('clears resolved grouped content selection when the primary workspace target changes', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().setWorkspaceResolvedContentSelection({
       rootRowId: 'assembly-root:project-file-1',
@@ -2042,7 +2196,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('resolves linked explicit object selection against the owner graph viewer key', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       projectContent: {
@@ -2121,7 +2275,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useConsoleStore } = await import('../console/useConsoleStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
@@ -2167,7 +2321,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useAppStore } = await import('./useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
 
     useAppStore.getState().setWorkerError('Build failed')
@@ -2191,7 +2345,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     expect(selectCurrentProject(useAppStore.getState())).toMatchObject({
@@ -2500,7 +2654,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const rowOneArtifactA = {
@@ -2760,7 +2914,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const topComponentId = 'project-component:project-file-1:graph-document-1:published'
@@ -2926,7 +3080,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     useSpaghettiStore.setState((state) => ({
@@ -3172,7 +3326,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const previewPreparation = createPreviewPreparation([
@@ -3278,7 +3432,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const previewPreparation = createPreviewPreparation([
@@ -3425,7 +3579,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const previewPreparation: GraphPreviewPreparation = {
@@ -3681,7 +3835,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
@@ -3745,7 +3899,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     useSpaghettiStore.setState((state) => ({
@@ -3835,7 +3989,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -3871,7 +4025,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -3906,7 +4060,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { defaultPrimaryViewportSlotId } = await import('../workspace/workspaceShellTypes')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -3950,7 +4104,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -3989,7 +4143,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { buildDispatcher } = await import('../buildDispatcher')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const graphDocumentId = 'graph-document-1'
@@ -4061,7 +4215,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4113,7 +4267,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
@@ -4162,7 +4316,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { createValidBaseplateGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const secondGraphId = useSpaghettiStore
@@ -4184,7 +4338,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('cycles browser graph build policy through live, release, manual, off, and back to live', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().browserGraphBuildPolicyByGraphDocumentId['graph-document-1']).toBe(
       undefined,
@@ -4214,7 +4368,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('cycles browser content build policy through live, release, manual, off, and back to live', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(
       useAppStore.getState().browserContentBuildPolicyByRowId['project-component:test'],
@@ -4244,7 +4398,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('cycles browser content build policy from an inherited base policy when no authored value exists', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().cycleBrowserContentBuildPolicy('project-component:test', 'manual')
     expect(
@@ -4255,7 +4409,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('returns browser-authored policy lookups as null when unset', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().getBrowserGraphBuildPolicy('graph-document-1')).toBeNull()
     expect(useAppStore.getState().getBrowserContentBuildPolicy('project-component:test')).toBeNull()
@@ -4276,7 +4430,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useAppStore,
     } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(selectViewportPresentationSettings(useAppStore.getState())).toEqual({
       lastLoaded: {
@@ -4302,7 +4456,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
@@ -4340,7 +4494,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4369,7 +4523,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4461,7 +4615,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4511,14 +4665,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
     const requestBuildSpy = vi.spyOn(buildDispatcher, 'requestGraphBuild').mockReturnValue(108)
 
     useSpaghettiStore.getState().setGraph(createPublishedCubeGraph())
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useWorkspaceStore.getState().setViewportResultMode('model-viewer-primary', 'final')
     useAppStore.getState().setBrowserGraphBuildPolicy('graph-document-1', 'release')
     useAppStore.getState().beginBrowserBuildInteraction('graph-document-1')
@@ -4564,7 +4718,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4628,7 +4782,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4797,7 +4951,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -4868,7 +5022,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5026,7 +5180,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5068,7 +5222,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5114,7 +5268,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5148,7 +5302,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     expect(
@@ -5230,7 +5384,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5273,7 +5427,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5310,7 +5464,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5341,7 +5495,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5397,7 +5551,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5452,7 +5606,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const graphDocumentId = useSpaghettiStore
@@ -5493,7 +5647,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const graphDocumentIdA = useSpaghettiStore.getState().createGraphDocument(
@@ -5551,7 +5705,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const graphDocumentId = useSpaghettiStore
@@ -5644,7 +5798,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5714,7 +5868,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5764,7 +5918,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5819,7 +5973,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5869,7 +6023,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5902,7 +6056,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5944,7 +6098,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -5981,7 +6135,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -6032,7 +6186,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
     const { createPublishedCubeGraph } = await import('../spaghetti/dev/sampleGraph')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -6071,7 +6225,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -6158,7 +6312,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -6297,7 +6451,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
     const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
 
@@ -7243,7 +7397,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const loadedDocument = {
@@ -7324,7 +7478,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       useSpaghettiStore,
     } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const secondGraphId = useSpaghettiStore.getState().createGraphDocument(
@@ -7380,13 +7534,9 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   })
 
   it('builds the static reference workspace tree and toggles category visibility as viewer-only state', async () => {
-    const {
-      selectReferenceWorkspaceBrowserTree,
-      useAppStore,
-    } = await import('./useAppStore')
-    const { resolveReferenceAssetPath } = await import('../references/referenceManifest')
+    const { selectReferenceWorkspaceBrowserTree, useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const initialTree = selectReferenceWorkspaceBrowserTree(useAppStore.getState())
     expect(initialTree).toMatchObject({
@@ -7404,7 +7554,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
           items: [
             expect.objectContaining({
               assetPath: resolveReferenceAssetPath(
-                'ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+                'Catalog/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
               ),
               displayTransform: {
                 scale: 1,
@@ -7416,7 +7566,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
         }),
         expect.objectContaining({
           categoryId: 'shoes',
-          label: 'Shoes',
+          label: 'Wearable',
           itemCount: 3,
           visibleItemCount: 0,
         }),
@@ -7429,22 +7579,22 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
             expect.objectContaining({
               referenceId: 'hook:large',
               fileType: 'step',
-              assetPath: resolveReferenceAssetPath('ReferenceModels/hooks/large.step'),
+              assetPath: resolveReferenceAssetPath('Catalog/hooks/large.step'),
             }),
             expect.objectContaining({
               referenceId: 'hook:medium',
               fileType: 'step',
-              assetPath: resolveReferenceAssetPath('ReferenceModels/hooks/medium.step'),
+              assetPath: resolveReferenceAssetPath('Catalog/hooks/medium.step'),
             }),
             expect.objectContaining({
               referenceId: 'hook:small',
               fileType: 'step',
-              assetPath: resolveReferenceAssetPath('ReferenceModels/hooks/small.step'),
+              assetPath: resolveReferenceAssetPath('Catalog/hooks/small.step'),
             }),
             expect.objectContaining({
               referenceId: 'hook:xl',
               fileType: 'step',
-              assetPath: resolveReferenceAssetPath('ReferenceModels/hooks/xl.step'),
+              assetPath: resolveReferenceAssetPath('Catalog/hooks/xl.step'),
             }),
           ],
         }),
@@ -7485,7 +7635,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().setReferenceItemVisibility('shoe:shoe-1', true)
     useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'error', 'Load failed')
@@ -7560,7 +7710,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('adds imported references under User References, disambiguates duplicate labels, and removes them with true workspace cleanup', async () => {
     const { selectReferenceWorkspaceBrowserTree, useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const revokeObjectURL = vi.fn()
     const originalUrl = globalThis.URL
@@ -7650,7 +7800,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('does not explode an ineligible imported reference', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const referenceId = useAppStore.getState().addImportedReference({
       fileName: 'shoe.glb',
@@ -7674,7 +7824,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('explodes one eligible imported wrapper into ordered per-part imported references under the same parent', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const assemblyId = useAppStore.getState().createProjectAssembly()
     const beforeReferenceId = useAppStore.getState().addImportedReference({
@@ -7784,7 +7934,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('keeps duplicate and fallback exploded child labels deterministic in truthful source order', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const wrapperReferenceId = useAppStore.getState().addImportedReference({
       fileName: 'naming.glb',
@@ -7839,7 +7989,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('keeps shared imported asset paths alive until the last exploded child is removed', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const revokeObjectURL = vi.fn()
     const originalUrl = globalThis.URL
@@ -7895,7 +8045,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const referenceId = useAppStore.getState().addImportedReference({
       fileName: 'shoe.glb',
@@ -7935,7 +8085,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
 
     const assemblyId = useAppStore.getState().createProjectAssembly()
@@ -7985,7 +8135,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('starts a root reference batch in deterministic browser order and resets errored targets', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().setReferenceItemLoadState('footpad:pubpad-full-assembly', 'error', 'Nope')
     useAppStore.getState().setReferenceItemLoadState('shoe:shoe-1', 'loaded')
 
@@ -8022,7 +8172,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('starts a category batch scoped to that category only', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().startReferenceLoadBatchForCategory('footpads')
 
@@ -8037,7 +8187,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('replaces queued batch work while preserving the in-flight active item until it settles', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().startReferenceLoadBatchForAll()
     const firstRequestId =
       useAppStore.getState().referenceWorkspace.referenceLoadBatch?.requestId ?? null
@@ -8060,7 +8210,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('removes hidden queued ids from the active batch while leaving the active item alone', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().startReferenceLoadBatchForAll()
     const firstRequestId =
       useAppStore.getState().referenceWorkspace.referenceLoadBatch?.requestId ?? null
@@ -8092,7 +8242,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     const { useAppStore } = await import('./useAppStore')
     const { useConsoleStore } = await import('../console/useConsoleStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
 
     useAppStore.getState().startReferenceLoadBatchForCategory('footpads')
@@ -8118,7 +8268,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('appends changed reference transform history entries, supports lock toggle, and merges while preserving the latest row for each transform kind', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
     useAppStore.getState().beginReferenceTransformEntry('translate')
     useAppStore.getState().setActiveReferenceTransformDraft({
@@ -8299,7 +8449,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('deletes transform history entries and preserves the active scrub target', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       referenceWorkspace: {
@@ -8453,7 +8603,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('normalizes legacy absolute transform history rows when opening the transform shell', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.setState((state) => ({
       ...state,
       referenceWorkspace: {
@@ -8519,7 +8669,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       insertReferenceTransformHistoryEntryAtScrubIndex,
     } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
 
     useAppStore.getState().beginReferenceTransformEntry('translate')
@@ -8644,7 +8794,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('scrubs committed transform history and inserts new commits after the scrubbed entry before replaying the future', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
 
     useAppStore.getState().beginReferenceTransformEntry('translate')
@@ -8743,7 +8893,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('tracks transform shell sessions on committed child history entries and ignores empty shells', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
     useAppStore.getState().exitReferenceTransformShell()
@@ -8778,7 +8928,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('restores the captured baseline when an active reference transform session is cancelled', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().setReferenceTransformOverride('shoe:shoe-1', {
       position: { x: 2, y: 3, z: 4 },
       rotationDeg: { x: 0, y: 0, z: 0 },
@@ -8807,7 +8957,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('tracks and clears the active reference transform handle across commit and cancel', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
     useAppStore.getState().beginReferenceTransformEntry('translate')
     useAppStore.getState().setActiveReferenceTransformHandle({
@@ -8843,7 +8993,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('treats same-value reference transform space writes as a no-op', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().beginReferenceTransformShell('shoe:shoe-1')
 
     const previousSession =
@@ -8865,7 +9015,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('preserves unlocked snap vectors and rescales linked axes when re-locked edits change the driver axis', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().setReferenceTransformSnapValue('shoe:shoe-1', 'translate', 1)
     useAppStore.getState().setReferenceTransformSnapLocked('shoe:shoe-1', 'translate', false)
@@ -8886,7 +9036,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('forces rotate-snap timeline mode back to basic when rotate snap is unlocked', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
     useAppStore.getState().setReferenceTimelineMode('shoe:shoe-1', 'rotate-snap', 'timeline')
 
     expect(
@@ -8903,7 +9053,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and clamps the move snap dot delay preference', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.moveSnapDotDelayMs).toBe(120)
 
@@ -8917,7 +9067,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and updates the move snap dots enabled preference', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.moveSnapDotsEnabled).toBe(true)
 
@@ -8928,7 +9078,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and updates the preview last move snap dots preference', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.previewLastMoveSnapDotsEnabled).toBe(false)
 
@@ -8939,7 +9089,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and clamps the move snap dot near/far size preferences', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.moveSnapDotNearScale).toBe(1.45)
     expect(useAppStore.getState().referenceWorkspace.moveSnapDotFarScale).toBe(0.04)
@@ -8954,7 +9104,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and clamps the move snap visible radius preference', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.moveSnapDotVisibleRadiusMultiplier).toBe(40)
 
@@ -8968,7 +9118,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and updates the rotate snap preview enabled preference', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewEnabled).toBe(true)
 
@@ -8979,7 +9129,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and clamps the rotate snap preview line size and thickness preferences', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineSize).toBe(1)
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewLineThickness).toBe(1)
@@ -8994,7 +9144,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('defaults and clamps the rotate snap preview radius and delay preferences', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewRadiusDeg).toBe(60)
     expect(useAppStore.getState().referenceWorkspace.rotateSnapPreviewDelayMs).toBe(120)
@@ -9009,7 +9159,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('returns null and keeps the draft open when Add To Project is attempted with no staged files', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().openStagedImportDraft({
       parentAssemblyId: null,
@@ -9033,7 +9183,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('keeps accepted staged import blob URLs alive when the draft closes and only revokes them after the last imported owner is removed', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const revokeObjectURL = vi.fn()
     const originalUrl = globalThis.URL
@@ -9097,7 +9247,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('still revokes abandoned staged import blob URLs when the draft closes without acceptance', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const revokeObjectURL = vi.fn()
     const originalUrl = globalThis.URL
@@ -9130,9 +9280,14 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   })
 
   it('commits staged single-object imports only when accepted and stores the chosen import transform truth', async () => {
-    const { useAppStore } = await import('./useAppStore')
+    const {
+      selectCurrentProjectContentBrowserRows,
+      selectReferenceWorkspaceBrowserTree,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().openStagedImportDraft({
       parentAssemblyId: null,
@@ -9198,13 +9353,45 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(
       state.referenceWorkspace.transformOverrideById[committedReference!.referenceId],
     ).toMatchObject({ rotationDeg: { x: 90, y: 0, z: 0 }, scale: { x: 10, y: 10, z: 10 } })
+
+    const committedReferenceId = committedReference!.referenceId
+    const committedReferenceCategory = selectReferenceWorkspaceBrowserTree(state).categories.find(
+      (category) => category.categoryId === 'user-references',
+    )
+
+    expect(committedReferenceCategory).toMatchObject({
+      categoryId: 'user-references',
+      items: [expect.objectContaining({ referenceId: committedReferenceId, sourceKind: 'imported' })],
+    })
+
+    expect(
+      selectCurrentProjectContentBrowserRows({
+        currentProject: state.currentProject,
+        projectContent: state.projectContent,
+        sketchVisibilityByRowId: state.sketchVisibilityByRowId,
+        referenceWorkspace: state.referenceWorkspace,
+        graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+        graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: `reference-item-row:${committedReferenceId}`,
+          kind: 'object',
+          referenceId: committedReferenceId,
+          contentOriginKind: 'imported-reference',
+          referenceCategoryId: 'user-references',
+        }),
+      ]),
+    )
+
     expect(state.referenceWorkspace.stagedImportDraft).not.toBeNull()
   })
 
   it('commits custom staged scale multipliers through the accepted transform override', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().openStagedImportDraft({
       parentAssemblyId: null,
@@ -9259,7 +9446,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('commits reviewed multi-object staged glb imports with one shared direct source group and without exploded provenance', async () => {
     const { buildImportedReferenceRowId, useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     const landingAssemblyId = useAppStore.getState().createProjectAssembly()
     useAppStore.getState().openStagedImportDraft({
@@ -9439,7 +9626,7 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
   it('reports partial staged acceptance per file and keeps only failed files staged for recovery', async () => {
     const { useAppStore } = await import('./useAppStore')
 
-    useAppStore.setState(useAppStore.getInitialState(), true)
+    resetStoreWithManifestReferences(useAppStore)
 
     useAppStore.getState().openStagedImportDraft({
       parentAssemblyId: null,
@@ -9519,4 +9706,5 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     })
   })
 })
+
 

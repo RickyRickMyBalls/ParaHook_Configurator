@@ -23,7 +23,7 @@ describe('catalogItemContract', () => {
       actionKind: 'add-to-project',
       source: {
         sourceKind: 'repo',
-        assetPath: 'ReferenceModels/shoes/Shoe_1.glb',
+        assetPath: 'Catalog/shoes/Shoe_1.glb',
       },
       previewMedia: [
         {
@@ -85,7 +85,7 @@ describe('catalogItemContract', () => {
       actionKind: 'add-to-project',
       source: {
         sourceKind: 'repo',
-        assetPath: 'ReferenceModels/shoes/Shoe_1.glb',
+        assetPath: 'Catalog/shoes/Shoe_1.glb',
       },
       previewMedia: [],
     }

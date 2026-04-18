@@ -59,13 +59,13 @@ describe('referenceAssetLoader', () => {
       ),
     )
     gltfLoaderLoadMock.mockImplementation((assetPath: string, onLoad: (result: { scene: Object3D }) => void) => {
-      expect(assetPath).toBe('/ReferenceModels/shoes/Shoe_1.glb')
+      expect(assetPath).toBe('/Catalog/shoes/Shoe_1.glb')
       onLoad({ scene: cachedScene })
     })
 
     const reference = {
       fileType: 'glb' as const,
-      assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+      assetPath: '/Catalog/shoes/Shoe_1.glb',
     }
 
     const firstObject = await loadReferenceAssetObject(reference)
@@ -106,7 +106,7 @@ describe('referenceAssetLoader', () => {
 
     const reference = {
       fileType: 'glb' as const,
-      assetPath: '/ReferenceModels/shoes/Shoe_1.glb',
+      assetPath: '/Catalog/shoes/Shoe_1.glb',
     }
 
     const firstPromise = loadReferenceAssetObject(reference)

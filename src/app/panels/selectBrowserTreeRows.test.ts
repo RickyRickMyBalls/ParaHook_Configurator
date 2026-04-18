@@ -383,6 +383,26 @@ describe('selectBrowserTreeRows', () => {
     expect(rows.contentRows).toEqual([])
   })
 
+  it('does not synthesize a startup reference root when the reference tree is absent', () => {
+    const rows = selectBrowserTreeRows({
+      contentRows: [],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: null,
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.referenceRows).toEqual([])
+    expect(rows.contentRows).toEqual([])
+    expect(rows.graphRows).toEqual([])
+    expect(rows.viewportRows).toEqual([])
+  })
+
   it('keeps Browser selection local and separates it from viewport focus state', () => {
     const rows = selectBrowserTreeRows({
       referenceWorkspaceTree: emptyReferenceWorkspaceTree,
@@ -1336,7 +1356,7 @@ describe('selectBrowserTreeRows', () => {
           label: 'Large',
           categoryId: 'premade-foothooks',
           fileType: 'step',
-          assetPath: '/ReferenceModels/hooks/large.step',
+          assetPath: '/Catalog/hooks/large.step',
           isVisible: true,
           loadState: 'loading',
           contentOriginKind: 'source-reference',
@@ -1350,7 +1370,7 @@ describe('selectBrowserTreeRows', () => {
           label: 'Medium',
           categoryId: 'premade-foothooks',
           fileType: 'step',
-          assetPath: '/ReferenceModels/hooks/medium.step',
+          assetPath: '/Catalog/hooks/medium.step',
           isVisible: false,
           loadState: 'error',
           errorMessage: 'STEP import failed',
@@ -1566,7 +1586,7 @@ describe('selectBrowserTreeRows', () => {
           label: 'Shoe 2',
           categoryId: 'shoes',
           fileType: 'glb',
-          assetPath: '/ReferenceModels/shoes/shoe-2.glb',
+          assetPath: '/Catalog/shoes/shoe-2.glb',
           isVisible: true,
           loadState: 'loaded',
           contentOriginKind: 'source-reference',
@@ -1581,7 +1601,7 @@ describe('selectBrowserTreeRows', () => {
           label: 'Shoe 1',
           categoryId: 'shoes',
           fileType: 'glb',
-          assetPath: '/ReferenceModels/shoes/shoe-1.glb',
+          assetPath: '/Catalog/shoes/shoe-1.glb',
           isVisible: true,
           loadState: 'loaded',
           contentOriginKind: 'imported-reference',
@@ -1746,7 +1766,7 @@ describe('selectBrowserTreeRows', () => {
           label: 'PubPad Full Assembly',
           categoryId: 'footpads',
           fileType: 'obj',
-          assetPath: 'ReferenceModels/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
+          assetPath: 'Catalog/footpads/XR_Footpad_PubPad_Full_Assembly.obj',
           isVisible: true,
           loadState: 'loaded',
           contentOriginKind: 'source-reference',

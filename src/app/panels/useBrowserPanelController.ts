@@ -655,51 +655,6 @@ export function useBrowserPanelController(
     workspaceResolvedContentSelection,
   ])
 
-  const workspaceIntentDeps = useMemo<WorkspaceIntentDeps>(
-    () => ({
-      app: {
-        setWorkspaceSelectedTarget,
-        setActiveSurface,
-        requestFloatingShellActivation,
-        requestConsoleContextSync,
-        requestConsoleWorkspaceContextHandoff,
-        setReferenceItemVisibility,
-        beginReferenceTransform: beginReferenceTransformShell,
-        selectPart,
-      },
-      spaghetti: {
-        activeEditorViewportId,
-        editorViewportsById,
-        openGraphDocumentInViewport,
-        openGraphDocumentInNewViewport,
-        swapFocusedEditorViewportToGraphDocument,
-        setActiveEditorViewportId,
-        setEditorViewportPosition,
-        setSelectedNodeId,
-        requestEditorViewportNodeFit,
-      },
-    }),
-    [
-      activeEditorViewportId,
-      beginReferenceTransformShell,
-      editorViewportsById,
-      openGraphDocumentInViewport,
-      openGraphDocumentInNewViewport,
-      requestConsoleContextSync,
-      requestConsoleWorkspaceContextHandoff,
-      requestEditorViewportNodeFit,
-      requestFloatingShellActivation,
-      selectPart,
-      setActiveEditorViewportId,
-      setActiveSurface,
-      setEditorViewportPosition,
-      setReferenceItemVisibility,
-      setSelectedNodeId,
-      setWorkspaceSelectedTarget,
-      swapFocusedEditorViewportToGraphDocument,
-    ],
-  )
-
   const browserTreeRows = useMemo(
     () =>
       selectBrowserTreeRows({
@@ -743,6 +698,65 @@ export function useBrowserPanelController(
       selectedBrowserRowIds,
       sharedViewerComposition,
       sharedViewerCompositionGraphDocumentIds,
+    ],
+  )
+
+  const mountedReferenceContainerRowIds = useMemo(() => {
+    const rowIds = new Set<string>()
+    browserTreeRows.contentRows.forEach((row) => {
+      if (row.rowKind === 'assembly' && row.referenceContainerKind === 'root') {
+        rowIds.add(row.rowId)
+        return
+      }
+      if (row.rowKind === 'component' && row.referenceContainerKind === 'category') {
+        rowIds.add(row.rowId)
+      }
+    })
+    return rowIds
+  }, [browserTreeRows.contentRows])
+
+  const workspaceIntentDeps = useMemo<WorkspaceIntentDeps>(
+    () => ({
+      app: {
+        setWorkspaceSelectedTarget,
+        setActiveSurface,
+        requestFloatingShellActivation,
+        requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
+        setReferenceItemVisibility,
+        beginReferenceTransform: beginReferenceTransformShell,
+        selectPart,
+      },
+      spaghetti: {
+        activeEditorViewportId,
+        editorViewportsById,
+        openGraphDocumentInViewport,
+        openGraphDocumentInNewViewport,
+        swapFocusedEditorViewportToGraphDocument,
+        setActiveEditorViewportId,
+        setEditorViewportPosition,
+        setSelectedNodeId,
+        requestEditorViewportNodeFit,
+      },
+    }),
+    [
+      activeEditorViewportId,
+      beginReferenceTransformShell,
+      editorViewportsById,
+      openGraphDocumentInViewport,
+      openGraphDocumentInNewViewport,
+      requestConsoleContextSync,
+      requestConsoleWorkspaceContextHandoff,
+      requestEditorViewportNodeFit,
+      requestFloatingShellActivation,
+      selectPart,
+      setActiveEditorViewportId,
+      setActiveSurface,
+      setEditorViewportPosition,
+      setReferenceItemVisibility,
+      setSelectedNodeId,
+      setWorkspaceSelectedTarget,
+      swapFocusedEditorViewportToGraphDocument,
     ],
   )
 
@@ -2055,11 +2069,14 @@ export function useBrowserPanelController(
 
   useEffect(() => {
     const referenceControlledRowIds = new Set<string>()
-    if (!referenceWorkspaceTree.isExpanded) {
+    const referenceCategoryRowIds = referenceWorkspaceTree.categories.map((category) => category.rowId)
+    const rootRowIsMounted = mountedReferenceContainerRowIds.has(referenceWorkspaceTree.rowId)
+
+    if (rootRowIsMounted && !referenceWorkspaceTree.isExpanded) {
       referenceControlledRowIds.add(referenceWorkspaceTree.rowId)
     }
     referenceWorkspaceTree.categories.forEach((category) => {
-      if (!category.isExpanded) {
+      if (mountedReferenceContainerRowIds.has(category.rowId) && !category.isExpanded) {
         referenceControlledRowIds.add(category.rowId)
       }
     })
@@ -2068,7 +2085,7 @@ export function useBrowserPanelController(
         ...currentRowIds.filter(
           (rowId) =>
             rowId !== referenceWorkspaceTree.rowId &&
-            !referenceWorkspaceTree.categories.some((category) => category.rowId === rowId),
+            !referenceCategoryRowIds.includes(rowId),
         ),
         ...referenceControlledRowIds,
       ]
@@ -2080,7 +2097,7 @@ export function useBrowserPanelController(
       }
       return nextRowIds
     })
-  }, [referenceWorkspaceTree])
+  }, [mountedReferenceContainerRowIds, referenceWorkspaceTree])
 
   const browserRowInteractionHandlers = useMemo(
     () =>

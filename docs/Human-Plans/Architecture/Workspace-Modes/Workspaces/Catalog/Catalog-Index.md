@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+17. 2026-04-18 14:01:44: Closed the older "still in `Generation 0` today" wording in this umbrella family index now that `Catalog-Gen0` has been closed out, updating the short-version and current-planning read so the family now points at the completed Gen0 prep band and the next true execution owner in `Catalog-1` without widening the `Generation 1` umbrella itself
+16. 2026-04-18 14:10:42: Prepped this `Catalog` umbrella index for the next `Generation 1` ladder, adding explicit Gen1 human-level goals plus a stronger workflow read that the index should organize wishlist items into `Catalog-N` family phases while each large family phase gets its own standalone `Future/` plan doc and its own internal Codex-sized phase loop before the family advances to the next `Catalog-N` lane
 15. 2026-04-17 23:36:00: Added the first standalone `Catalog-2` future planning doc under `Future/`, linking the family index to a real implementation-ready reference-family plan that compresses the existing `Catalog-2` lane from this index plus the broader `Catalog-Vision.md` `Generation 1` direction into one small phase ladder for onboarding `foothooks`, `shoes`, and `footpads` as real optional curated families
 14. 2026-04-17 22:12:06: Folded the newer Catalog preview-session direction into this `Generation 1` umbrella, reframing preview as empty card preview boxes plus explicit user-triggered preview loading instead of only a separate preview viewport, adding the new preview-loaded session-list and unload-control wishlist items, and tightening the `Catalog-1` planning read so the foundation lane now explicitly owns in-card preview loading, multi-select preview loading, restore-on-reopen within the running session, and unload controls without widening into project recall
 13. 2026-04-17 18:13:42: Added a dedicated `Generation 1 Vision` section so this index now acts as the more specific Gen 1 planning umbrella under the broader `Catalog-Vision.md`, tying the detailed `Catalog-1` through `Catalog-5` phase ladder back to one explicit Gen 1 browse, preview, commit, HDRI, metadata, and recall direction
@@ -77,12 +79,12 @@ Use this folder like this:
 
 ParaHook should gain one real `Catalog` workspace where the user can browse reusable assets stored in the repo and load them intentionally.
 
-The family is still in `Generation 0` today because the real `Catalog` family has not started yet.
+The `Generation 0` cleanup band is now complete, so the next true family execution owner should be read as `Catalog-1`.
 
-The immediate `Generation 0` cleanup read is:
-- move the preloaded reference models out of `Browser`
-- stop starting the user with browser-resident `foothooks`, `shoes`, and `footpads`
-- let those reference families become later optional add-ins instead
+The completed `Generation 0` cleanup read is:
+- the old Browser-owned reference baseline has been retired
+- the repo-backed reference families now live in Catalog-owned asset homes
+- `foothooks`, `shoes`, and `footpads` can now return only as later intentional optional add-ins
 
 The first intended catalog families are:
 - foothooks
@@ -112,9 +114,8 @@ It should feel like a real reusable-asset workspace, not a one-off file picker o
 
 Important current planning read:
 - this main index still works as the umbrella family home
-- the current prep and cleanup work belongs in `Catalog-Gen0-Index.md`
-- the current `Generation 0` prep should explicitly remove the old Browser-resident preloaded reference-model baseline
-- the older `Catalog-1` through `Catalog-5` ladder now reads as the planned `Generation 1` family or foundation lane, not the current state
+- the completed prep and cleanup closeout now lives in `Catalog-Gen0-Index.md`
+- the older `Catalog-1` through `Catalog-5` ladder now reads as the active `Generation 1` family or foundation lane
 - the newer widening work that now belongs to explicit `Generation 2` should be tracked in `Catalog-Gen2-Index.md` instead of being forced into the older phase ladder
 
 ### Generation 1 Vision
@@ -187,6 +188,36 @@ Important boundary rule:
 - if a question is about what `Generation 1` is supposed to deliver through the detailed phase ladder, use this index
 - if a question is about the current cleanup band before the family starts, use `Catalog-Gen0-Index.md`
 - if a question is about the later widening lane, use `Catalog-Gen2-Index.md`
+
+### Generation 1 Human Level Goals
+
+The `Generation 1` family ladder should achieve these human-level goals:
+
+- make `Catalog` a real workspace surface the user can keep beside the model while browsing
+- return `foothooks`, `shoes`, `footpads`, and later `HDRIs` only as intentional optional catalog families instead of default Browser-resident content
+- keep preview, commit, and apply behavior honest by asset type instead of forcing every catalog item through one fake universal load path
+- let the user browse a clean, lightweight, preview-first reusable-asset library without auto-loading repo-backed preview state
+- widen the early catalog through stronger metadata, search, tags, and reference notes without weakening the earlier Browser or viewer ownership split
+- preserve enough item identity follow-through that later project or session behavior can remember what curated asset was chosen without turning `Catalog` into the hidden long-term owner
+
+### Generation 1 Workflow Read
+
+Use the `Generation 1` docs workflow like this:
+
+1. start from the `Catalog-Vision.md` wishlist and human-level goals
+2. compress those wishlist items into the `Generation 1` family ladder in this `Catalog-Index.md`
+3. use this index to decide which items belong in `Catalog-1`, `Catalog-2`, `Catalog-3`, `Catalog-4`, `Catalog-5`, and only add a later `Catalog-6` if the remaining wishlist does not fit honestly into the existing ladder
+4. for every large `Catalog-N` family phase, create one standalone implementation-ready future doc under `Future/`
+5. inside that standalone family-phase doc, break the work into Codex-sized internal phases such as `Phase 1`, `Phase 2`, `Phase 3`, and so on
+6. run Codex against that standalone family-phase doc one internal phase at a time:
+   - prep the next internal phase
+   - implement it
+   - repeat until that `Catalog-N` family phase is complete
+7. once the family phase is complete, update this umbrella index and move to the next `Catalog-N` lane
+
+Important rule:
+- this umbrella index should organize the family ladder and preserve the Gen1 human-level goals
+- standalone `Future/` family-phase docs should carry the implementation-ready checklist and the Codex execution loop
 
 ### Why This Doc Exists
 
@@ -553,6 +584,11 @@ These wishlist mappings should be read as the planned `Generation 1` ladder afte
 
 Use the family phases to organize the dedicated Catalog wishlist items like this:
 
+Important workflow rule:
+- when one `Catalog-N` lane is large enough to need more than one Codex-sized implementation cut, that lane should have its own standalone future doc in `Future/`
+- Codex should then work against that standalone family-phase doc one internal phase at a time instead of trying to execute the whole family lane directly from this umbrella index
+- only add a new top-level `Catalog-6` or later family lane if the remaining `Generation 1` wishlist no longer fits honestly inside `Catalog-3`, `Catalog-4`, or `Catalog-5`
+
 ### `Catalog-1`
   - [ ] `0. Lightweight Card Grid`
   - [ ] `0A. Imports Area For Previously Uploaded Items`
@@ -674,6 +710,9 @@ Add HDRIs as a dedicated catalog family with their own explicit environment appl
 - broader search and metadata scale-up work unless the HDRI family truly needs a small extension
 - later project recall/history policy for all applied HDRIs
 
+Current source doc:
+- create one standalone future doc under `Future/` before implementation so `Catalog-3` can break into its own internal Codex-sized phases
+
 ## [ ] Catalog-4 - Search, Tags, Metadata, And Catalog Scale-Up
 
 ### Purpose
@@ -694,6 +733,9 @@ Widen the catalog from a first curated library into a more scalable reusable-ass
 - the first reference-family or HDRI onboarding cuts themselves
 - the final project/session identity follow-through after assets are loaded
 
+Current source doc:
+- create one standalone future doc under `Future/` before implementation so `Catalog-4` can break into its own internal Codex-sized phases
+
 ## [ ] Catalog-5 - Project Recall And Catalog Item Identity Follow-Through
 
 ### Purpose
@@ -713,6 +755,9 @@ Decide how loaded catalog items should be remembered or referenced across projec
 - the first reference-family load path
 - the first HDRI apply path
 - generic search and browse scale-up that belongs in `Catalog-4`
+
+Current source doc:
+- create one standalone future doc under `Future/` before implementation so `Catalog-5` can break into its own internal Codex-sized phases
 
 ### Summary
 
