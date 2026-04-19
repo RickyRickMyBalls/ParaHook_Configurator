@@ -1248,6 +1248,7 @@ describe('ViewToolbar', () => {
       'Gizmo',
       'View',
       'Environment',
+      'Shadows',
       'Ground',
       'Materials',
     ])
@@ -1326,6 +1327,7 @@ describe('ViewToolbar', () => {
       'Gizmo',
       'View',
       'Environment',
+      'Shadows',
       'Ground',
       'Materials',
     ])
@@ -2127,9 +2129,10 @@ describe('ViewToolbar', () => {
     ).toBe('ground')
   })
 
-  it('renders para-style view-level environment controls and keeps them on the shared view seam', async () => {
+  it('renders para-style view controls and keeps non-environment toggles on the shared view seam', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+    const { useWorkspaceStore } = await import('../workspace/useWorkspaceStore')
 
     container = document.createElement('div')
     container.className = 'ViewportFrameBody'
@@ -2143,45 +2146,55 @@ describe('ViewToolbar', () => {
     const viewSection = Array.from(container.querySelectorAll('.ViewStyledSection')).find((section) =>
       section.querySelector('summary')?.textContent?.includes('View'),
     )
-    const shadowsSelect = container.querySelector(
-      '.ParaSelectNative[aria-label="Shadows"]',
-    ) as HTMLSelectElement | null
-    const toneMappingSelect = container.querySelector(
-      '.ParaSelectNative[aria-label="Tone Mapping"]',
-    ) as HTMLSelectElement | null
-    const increaseExposureButton = container.querySelector(
-      'button[aria-label="Increase Exposure"]',
-    ) as HTMLButtonElement | null
+    const findToggleByLabel = (labelText: string): HTMLInputElement | null => {
+      const label = Array.from(viewSection?.querySelectorAll('label') ?? []).find((candidate) =>
+        candidate.textContent?.includes(labelText),
+      )
+      return label?.querySelector('input[type="checkbox"]') ?? null
+    }
+    const orbitEnabledToggle = findToggleByLabel('Orbit Enabled')
+    const gridToggle = findToggleByLabel('Grid')
+    const axesToggle = findToggleByLabel('Axes')
+    const wireframeToggle = findToggleByLabel('Wireframe')
+    const axisOverlayToggle = findToggleByLabel('Axis Overlay')
 
     expect(viewSection).toBeTruthy()
-    expect(viewSection?.textContent).toContain('Shadows')
-    expect(viewSection?.textContent).toContain('Tone Mapping')
-    expect(viewSection?.textContent).not.toContain('Exposure Value')
-    expect(shadowsSelect).not.toBeNull()
-    expect(toneMappingSelect).not.toBeNull()
-    expect(increaseExposureButton).not.toBeNull()
+    expect(viewSection?.textContent).toContain('Presentation')
+    expect(viewSection?.textContent).toContain('Dock')
+    expect(viewSection?.textContent).toContain('Orbit Enabled')
+    expect(viewSection?.textContent).toContain('Grid')
+    expect(viewSection?.textContent).toContain('Axes')
+    expect(viewSection?.textContent).toContain('Wireframe')
+    expect(viewSection?.textContent).toContain('Axis Overlay')
+    expect(viewSection?.textContent).not.toContain('Tone Mapping')
+    expect(viewSection?.textContent).not.toContain('Exposure')
+    expect(orbitEnabledToggle).not.toBeNull()
+    expect(gridToggle).not.toBeNull()
+    expect(axesToggle).not.toBeNull()
+    expect(wireframeToggle).not.toBeNull()
+    expect(axisOverlayToggle).not.toBeNull()
 
     await act(async () => {
-      if (shadowsSelect !== null) {
-        shadowsSelect.value = 'off'
-        shadowsSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-      if (toneMappingSelect !== null) {
-        toneMappingSelect.value = 'none'
-        toneMappingSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-      increaseExposureButton?.dispatchEvent(
-        new MouseEvent('click', { bubbles: true, cancelable: true }),
-      )
+      orbitEnabledToggle?.click()
+      gridToggle?.click()
+      axesToggle?.click()
+      wireframeToggle?.click()
+      axisOverlayToggle?.click()
     })
 
-    expect(useUiPrefsStore.getState().view.shadowsEnabled).toBe(false)
-    expect(useUiPrefsStore.getState().view.toneMapping).toBe('none')
-    expect(useUiPrefsStore.getState().view.exposure).toBe(1.2)
+    expect(useUiPrefsStore.getState().view.orbitEnabled).toBe(false)
+    expect(useUiPrefsStore.getState().view.gridVisible).toBe(false)
+    expect(useUiPrefsStore.getState().view.axesVisible).toBe(true)
+    expect(useUiPrefsStore.getState().view.wireframe).toBe(true)
+    expect(
+      useWorkspaceStore.getState().viewportChromeById['model-viewer-primary']?.localViewState
+        .axisOverlayEnabled,
+    ).toBe(false)
   })
 
   it('renders para-style core environment controls and keeps preset plus add-light type ownership intact', async () => {
     const { ViewToolbar } = await import('./ViewToolbar')
+    const { getEnvironmentPresetDefinition } = await import('../../shared/viewSettingsTypes')
     const { useUiPrefsStore } = await import('../store/uiPrefsStore')
 
     container = document.createElement('div')
@@ -2202,6 +2215,12 @@ describe('ViewToolbar', () => {
     const addLightTypeSelect = container.querySelector(
       '.ParaSelectNative[aria-label="Add Light Type"]',
     ) as HTMLSelectElement | null
+    const reapplyPresetButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Reapply Selected Preset',
+    ) as HTMLButtonElement | undefined
+    const exposureIncreaseButton = container.querySelector(
+      'button[aria-label="Increase Exposure"]',
+    ) as HTMLButtonElement | null
     const lightNameInput = container.querySelector(
       'input[placeholder="Light name"]',
     ) as HTMLInputElement | null
@@ -2212,9 +2231,33 @@ describe('ViewToolbar', () => {
 
     expect(environmentSection).toBeTruthy()
     expect(environmentSection?.textContent).toContain('Preset')
+    expect(environmentSection?.textContent).toContain('Post-Look Grade')
+    expect(environmentSection?.textContent).toContain(
+      'The Environment-2 grade surface is visible here now, and it stays downstream from the',
+    )
+    expect(environmentSection?.textContent).toContain('Exposure')
+    expect(environmentSection?.textContent).toContain('Contrast')
+    expect(environmentSection?.textContent).toContain('Highlights')
+    expect(environmentSection?.textContent).toContain('Shadows')
+    expect(environmentSection?.textContent).toContain('Whites')
+    expect(environmentSection?.textContent).toContain('Blacks')
+    expect(environmentSection?.textContent).toContain('Temperature')
+    expect(environmentSection?.textContent).toContain('Tint')
+    expect(environmentSection?.textContent).toContain('Saturation')
+    expect(environmentSection?.textContent).toContain('Add Environment Light')
     expect(environmentSection?.textContent).toContain('Add Light Type')
+    expect(environmentSection?.textContent).toContain('Selected Light')
+    expect(environmentSection?.textContent).toContain(
+      'Use the Browser eye to turn this light on or off.',
+    )
+    expect(environmentSection?.textContent).toContain(
+      'Baseline is selected and still matches the live scene.',
+    )
+    expect(environmentSection?.querySelectorAll('.ListRow')).toHaveLength(0)
     expect(presetSelect).not.toBeNull()
+    expect(exposureIncreaseButton).not.toBeNull()
     expect(addLightTypeSelect).not.toBeNull()
+    expect(reapplyPresetButton).not.toBeUndefined()
     expect(lightNameInput).not.toBeNull()
     expect(addLightButton).not.toBeUndefined()
 
@@ -2227,14 +2270,312 @@ describe('ViewToolbar', () => {
         addLightTypeSelect.value = 'spot'
         addLightTypeSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
+    })
+
+    expect(environmentSection?.textContent).toContain(
+      'Studio is selected and still matches the live scene.',
+    )
+
+    await act(async () => {
+      exposureIncreaseButton?.click()
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentGrade.exposure).toBe(1.23)
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'custom',
+      label: 'Custom Studio',
+    })
+    expect(environmentSection?.textContent).toContain(
+      'Studio is selected, but the live scene has diverged from it.',
+    )
+
+    await act(async () => {
+      reapplyPresetButton?.click()
+    })
+
+    const studioPreset = getEnvironmentPresetDefinition('studio')
+    expect(useUiPrefsStore.getState().view.environmentGrade).toEqual(studioPreset.environmentGrade)
+    expect(environmentSection?.textContent).toContain(
+      'Studio is selected and still matches the live scene.',
+    )
+
+    await act(async () => {
       addLightButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     })
 
     expect(useUiPrefsStore.getState().view.envPreset).toBe('studio')
+    expect(environmentSection?.textContent).toContain(
+      'Studio is selected, but the live scene has diverged from it.',
+    )
     expect(useUiPrefsStore.getState().view.lighting.lights).toHaveLength(initialLightCount + 1)
     expect(
       useUiPrefsStore.getState().view.lighting.lights.at(-1)?.type,
     ).toBe('spot')
+  })
+
+  it('captures, recalls, and quick-compares a remembered environment look from the toolbar', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const getEnvironmentSection = () =>
+      Array.from(container!.querySelectorAll('.ViewStyledSection')).find((section) =>
+        section.querySelector('summary')?.textContent?.includes('Environment'),
+      )
+
+    const environmentSection = getEnvironmentSection()
+    const captureButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Capture Look',
+    ) as HTMLButtonElement | undefined
+    const recallButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Recall Look',
+    ) as HTMLButtonElement | undefined
+    const compareButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Compare A/B',
+    ) as HTMLButtonElement | undefined
+
+    expect(environmentSection?.textContent).toContain(
+      'Capture the current environment look to enable recall and A/B compare.',
+    )
+    expect(captureButton).not.toBeUndefined()
+    expect(recallButton?.disabled).toBe(true)
+    expect(compareButton?.disabled).toBe(true)
+
+    await act(async () => {
+      captureButton?.click()
+    })
+
+    expect(recallButton?.disabled).toBe(false)
+    expect(compareButton?.disabled).toBe(false)
+    expect(environmentSection?.textContent).toContain(
+      'The live look matches the remembered look.',
+    )
+
+    await act(async () => {
+      useUiPrefsStore.getState().setEnvironmentGrade({
+        exposure: 1.42,
+        contrast: 1.18,
+      })
+    })
+
+    expect(environmentSection?.textContent).toContain(
+      'The remembered look is ready to recall or compare against the live look.',
+    )
+
+    await act(async () => {
+      compareButton?.click()
+    })
+
+    expect(compareButton?.textContent).toBe('Return to Current')
+    expect(environmentSection?.textContent).toContain(
+      'A/B compare is showing the remembered look. Click Return to Current to restore the live look.',
+    )
+    expect(useUiPrefsStore.getState().view.environmentGrade.exposure).not.toBe(1.42)
+
+    await act(async () => {
+      const returnButton = Array.from(container!.querySelectorAll('button')).find(
+        (button) => button.textContent === 'Return to Current',
+      ) as HTMLButtonElement | undefined
+      returnButton?.click()
+    })
+
+    expect(compareButton?.textContent).toBe('Compare A/B')
+    expect(useUiPrefsStore.getState().environmentLookComparisonActive).toBe(false)
+  })
+
+  it('surfaces active HDRI lighting and background intensity controls in the Environment section', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const getEnvironmentSection = () =>
+      Array.from(container!.querySelectorAll('.ViewStyledSection')).find((section) =>
+        section.querySelector('summary')?.textContent?.includes('Environment'),
+      )
+
+    let environmentSection = getEnvironmentSection()
+    expect(environmentSection?.textContent).toContain('Active Environment')
+    expect(environmentSection?.textContent).toContain(
+      'HDRI lighting controls appear here after an HDRI/EXR environment is applied.',
+    )
+
+    await act(async () => {
+      useUiPrefsStore.getState().applyHdriEnvironment({
+        label: 'Workshop Loft',
+        assetPath: '/HDRI/workshop_loft.hdr',
+      })
+    })
+
+    environmentSection = getEnvironmentSection()
+    const increaseLightingIntensityButton = environmentSection?.querySelector(
+      'button[aria-label="Increase Lighting Intensity"]',
+    ) as HTMLButtonElement | null
+    const increaseBackgroundIntensityButton = environmentSection?.querySelector(
+      'button[aria-label="Increase Background Intensity"]',
+    ) as HTMLButtonElement | null
+    const backgroundSelect = environmentSection?.querySelector(
+      '.ParaSelectNative[aria-label="Background"]',
+    ) as HTMLSelectElement | null
+    const increaseOrientationButton = environmentSection?.querySelector(
+      'button[aria-label="Increase Orientation"]',
+    ) as HTMLButtonElement | null
+
+    expect(environmentSection?.textContent).toContain(
+      'Workshop Loft is the active HDRI/EXR environment.',
+    )
+    expect(increaseLightingIntensityButton).not.toBeNull()
+    expect(increaseBackgroundIntensityButton).not.toBeNull()
+    expect(increaseOrientationButton).not.toBeNull()
+    expect(backgroundSelect?.value).toBe('visible')
+
+    await act(async () => {
+      increaseLightingIntensityButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+      increaseBackgroundIntensityButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+      increaseOrientationButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+      if (backgroundSelect !== null) {
+        backgroundSelect.value = 'hidden'
+        backgroundSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'hdri',
+      label: 'Workshop Loft',
+      intensity: 1.05,
+      backgroundIntensity: 1.05,
+      backgroundVisible: false,
+      rotationDeg: 1,
+    })
+  })
+
+  it('proves the Environment-1 closeout flow from preset baseline to active HDRI tuning', async () => {
+    const { ViewToolbar } = await import('./ViewToolbar')
+    const { getEnvironmentPresetDefinition } = await import('../../shared/viewSettingsTypes')
+    const { useUiPrefsStore } = await import('../store/uiPrefsStore')
+
+    container = document.createElement('div')
+    container.className = 'ViewportFrameBody'
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewToolbar viewportId="model-viewer-primary" />)
+    })
+
+    const getEnvironmentSection = () =>
+      Array.from(container!.querySelectorAll('.ViewStyledSection')).find((section) =>
+        section.querySelector('summary')?.textContent?.includes('Environment'),
+      )
+
+    let environmentSection = getEnvironmentSection()
+    const presetSelect = container.querySelector(
+      '.ParaSelectNative[aria-label="Preset"]',
+    ) as HTMLSelectElement | null
+    const reapplyPresetButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent === 'Reapply Selected Preset',
+    ) as HTMLButtonElement | undefined
+
+    expect(environmentSection?.textContent).toContain(
+      'Baseline is selected and still matches the live scene.',
+    )
+    expect(presetSelect).not.toBeNull()
+    expect(reapplyPresetButton).not.toBeUndefined()
+
+    await act(async () => {
+      if (presetSelect !== null) {
+        presetSelect.value = 'studio'
+        presetSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(environmentSection?.textContent).toContain(
+      'Studio is selected and still matches the live scene.',
+    )
+
+    await act(async () => {
+      reapplyPresetButton?.click()
+    })
+
+    const studioPreset = getEnvironmentPresetDefinition('studio')
+    expect(useUiPrefsStore.getState().view.environmentGrade).toEqual(studioPreset.environmentGrade)
+    expect(environmentSection?.textContent).toContain(
+      'Studio is selected and still matches the live scene.',
+    )
+
+    await act(async () => {
+      useUiPrefsStore.getState().applyHdriEnvironment({
+        label: 'Workshop Loft',
+        assetPath: '/HDRI/workshop_loft.hdr',
+      })
+    })
+
+    environmentSection = getEnvironmentSection()
+    const increaseLightingIntensityButton = environmentSection?.querySelector(
+      'button[aria-label="Increase Lighting Intensity"]',
+    ) as HTMLButtonElement | null
+    const increaseBackgroundIntensityButton = environmentSection?.querySelector(
+      'button[aria-label="Increase Background Intensity"]',
+    ) as HTMLButtonElement | null
+    const backgroundSelect = environmentSection?.querySelector(
+      '.ParaSelectNative[aria-label="Background"]',
+    ) as HTMLSelectElement | null
+    const increaseOrientationButton = environmentSection?.querySelector(
+      'button[aria-label="Increase Orientation"]',
+    ) as HTMLButtonElement | null
+
+    expect(environmentSection?.textContent).toContain(
+      'Workshop Loft is the active HDRI/EXR environment.',
+    )
+    expect(increaseLightingIntensityButton).not.toBeNull()
+    expect(increaseBackgroundIntensityButton).not.toBeNull()
+    expect(increaseOrientationButton).not.toBeNull()
+
+    await act(async () => {
+      increaseLightingIntensityButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+      increaseBackgroundIntensityButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+      increaseOrientationButton?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, cancelable: true }),
+      )
+      if (backgroundSelect !== null) {
+        backgroundSelect.value = 'hidden'
+        backgroundSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({
+      kind: 'hdri',
+      label: 'Workshop Loft',
+      intensity: 1.05,
+      backgroundIntensity: 1.05,
+      backgroundVisible: false,
+      rotationDeg: 1,
+    })
   })
 
   it('renders para-style selected-light core tuning controls and preserves type-gated light branches', async () => {
@@ -2258,9 +2599,6 @@ describe('ViewToolbar', () => {
     }
 
     const editorPanel = getEditorPanel()
-    const enabledSelect = editorPanel?.querySelector(
-      '.ParaSelectNative[aria-label="Enabled"]',
-    ) as HTMLSelectElement | null
     const typeSelect = editorPanel?.querySelector(
       '.ParaSelectNative[aria-label="Type"]',
     ) as HTMLSelectElement | null
@@ -2275,7 +2613,8 @@ describe('ViewToolbar', () => {
     ) as HTMLInputElement | null
 
     expect(editorPanel).not.toBeNull()
-    expect(enabledSelect).not.toBeNull()
+    expect(editorPanel?.textContent).toContain('Use the Browser eye to turn this light on or off.')
+    expect(editorPanel?.querySelector('.ParaSelectNative[aria-label="Enabled"]')).toBeNull()
     expect(typeSelect).not.toBeNull()
     expect(increaseIntensityButton).not.toBeNull()
     expect(selectedLightNameInput?.value).toBe('Key')
@@ -2286,10 +2625,6 @@ describe('ViewToolbar', () => {
     expect(editorPanel?.querySelectorAll('.ParaVec3Slider.isStacked')).toHaveLength(0)
 
     await act(async () => {
-      if (enabledSelect !== null) {
-        enabledSelect.value = 'off'
-        enabledSelect.dispatchEvent(new Event('change', { bubbles: true }))
-      }
       increaseIntensityButton?.dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true }),
       )
@@ -2297,7 +2632,6 @@ describe('ViewToolbar', () => {
 
     expect(getSelectedLight()).toMatchObject({
       id: 'key',
-      enabled: false,
       intensity: 1.9,
       type: 'directional',
     })
@@ -2425,6 +2759,10 @@ describe('ViewToolbar', () => {
 
     const host = container
     const getEditorPanel = () => host?.querySelector('.EditorPanel') as HTMLDivElement | null
+    const getShadowSection = () =>
+      (Array.from(host?.querySelectorAll('.ViewStyledSection') ?? []).find((section) =>
+        section.querySelector('summary')?.textContent?.includes('Shadows'),
+      ) as HTMLDetailsElement | undefined) ?? null
     const getSelectedLight = () => {
       const { selectedLightId, lights } = useUiPrefsStore.getState().view.lighting
       return lights.find((light) => light.id === selectedLightId) ?? null
@@ -2447,15 +2785,18 @@ describe('ViewToolbar', () => {
         'button[aria-label="Toggle Target"]',
       ) as HTMLButtonElement | null
 
-    const castShadowSelect = getEditorPanel()?.querySelector(
-      '.ParaSelectNative[aria-label="Cast Shadow"]',
-    ) as HTMLSelectElement | null
-    const increaseShadowBiasButton = getEditorPanel()?.querySelector(
-      'button[aria-label="Increase Shadow Bias"]',
-    ) as HTMLButtonElement | null
-    const shadowMapSelect = getEditorPanel()?.querySelector(
-      '.ParaSelectNative[aria-label="Shadow Map"]',
-    ) as HTMLSelectElement | null
+    const getCastShadowSelect = () =>
+      getShadowSection()?.querySelector(
+        '.ParaSelectNative[aria-label="Cast Shadow"]',
+      ) as HTMLSelectElement | null
+    const getIncreaseShadowBiasButton = () =>
+      getShadowSection()?.querySelector(
+        'button[aria-label="Increase Shadow Bias"]',
+      ) as HTMLButtonElement | null
+    const getShadowMapSelect = () =>
+      getShadowSection()?.querySelector(
+        '.ParaSelectNative[aria-label="Shadow Map"]',
+      ) as HTMLSelectElement | null
     const getVectorFieldSlider = (field: HTMLDivElement | null) =>
       field?.querySelector('.ParaVec3Slider') as HTMLDivElement | null
     const setTrackBounds = (track: Element | undefined) => {
@@ -2486,10 +2827,10 @@ describe('ViewToolbar', () => {
     expect(getTargetField()?.querySelector('.ParaVec3FieldCompact')).not.toBeNull()
     expect(getVectorFieldSlider(getPositionField())?.classList.contains('isCompact')).toBe(true)
     expect(getVectorFieldSlider(getTargetField())?.classList.contains('isCompact')).toBe(true)
-    expect(castShadowSelect).not.toBeNull()
-    expect(increaseShadowBiasButton).not.toBeNull()
-    expect(shadowMapSelect).not.toBeNull()
-    expect(Array.from(shadowMapSelect?.options ?? []).map((option) => option.value)).toEqual([
+    expect(getCastShadowSelect()).not.toBeNull()
+    expect(getIncreaseShadowBiasButton()).not.toBeNull()
+    expect(getShadowMapSelect()).not.toBeNull()
+    expect(Array.from(getShadowMapSelect()?.options ?? []).map((option) => option.value)).toEqual([
       '256',
       '512',
       '1024',
@@ -2536,13 +2877,15 @@ describe('ViewToolbar', () => {
         }),
       )
       window.dispatchEvent(new PointerEvent('pointerup', {}))
+      const castShadowSelect = getCastShadowSelect()
       if (castShadowSelect !== null) {
         castShadowSelect.value = 'off'
         castShadowSelect.dispatchEvent(new Event('change', { bubbles: true }))
       }
-      increaseShadowBiasButton?.dispatchEvent(
+      getIncreaseShadowBiasButton()?.dispatchEvent(
         new MouseEvent('click', { bubbles: true, cancelable: true }),
       )
+      const shadowMapSelect = getShadowMapSelect()
       if (shadowMapSelect !== null) {
         shadowMapSelect.value = '2048'
         shadowMapSelect.dispatchEvent(new Event('change', { bubbles: true }))
@@ -2573,15 +2916,9 @@ describe('ViewToolbar', () => {
     expect(getPositionToggle()?.getAttribute('aria-expanded')).toBe('true')
     expect(getVectorFieldSlider(getPositionField())).not.toBeNull()
     expect(getVectorFieldSlider(getPositionField())?.classList.contains('isStacked')).toBe(true)
-    expect(
-      getEditorPanel()?.querySelector('.ParaSelectNative[aria-label="Cast Shadow"]'),
-    ).not.toBeNull()
-    expect(
-      getEditorPanel()?.querySelector('button[aria-label="Increase Shadow Bias"]'),
-    ).not.toBeNull()
-    expect(
-      getEditorPanel()?.querySelector('.ParaSelectNative[aria-label="Shadow Map"]'),
-    ).not.toBeNull()
+    expect(getCastShadowSelect()).not.toBeNull()
+    expect(getIncreaseShadowBiasButton()).not.toBeNull()
+    expect(getShadowMapSelect()).not.toBeNull()
 
     await act(async () => {
       const currentTypeSelect = getEditorPanel()?.querySelector(
@@ -2595,15 +2932,9 @@ describe('ViewToolbar', () => {
 
     expect(getPositionField()).toBeNull()
     expect(getTargetField()).toBeNull()
-    expect(
-      getEditorPanel()?.querySelector('.ParaSelectNative[aria-label="Cast Shadow"]'),
-    ).toBeNull()
-    expect(
-      getEditorPanel()?.querySelector('button[aria-label="Increase Shadow Bias"]'),
-    ).toBeNull()
-    expect(
-      getEditorPanel()?.querySelector('.ParaSelectNative[aria-label="Shadow Map"]'),
-    ).toBeNull()
+    expect(getCastShadowSelect()).toBeNull()
+    expect(getIncreaseShadowBiasButton()).toBeNull()
+    expect(getShadowMapSelect()).toBeNull()
   })
 
   it('renders a dedicated ground section and routes its controls into the shared ground view seam', async () => {

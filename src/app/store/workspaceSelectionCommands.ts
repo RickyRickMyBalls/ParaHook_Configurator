@@ -4,9 +4,11 @@ import type {
   WorkspaceSelectedTarget,
   WorkspaceSurface,
 } from './useAppStore'
+import { useUiPrefsStore } from './uiPrefsStore'
 
 export type WorkspaceTargetSelectionCommandDeps = {
   setWorkspaceSelectedTarget: (target: WorkspaceSelectedTarget | null) => void
+  selectLight?: (lightId: string | null) => void
   selectPart?: (partKey: string | null) => void
   setActiveSurface?: (surface: WorkspaceSurface | null) => void
   requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
@@ -23,12 +25,22 @@ export type WorkspaceExplicitSelectionCommit = {
 
 export type WorkspaceExplicitSelectionCommandDeps = {
   setWorkspaceExplicitSelection: (selection: WorkspaceExplicitSelectionCommit) => void
+  selectLight?: (lightId: string | null) => void
   selectPart?: (partKey: string | null) => void
   setActiveSurface?: (surface: WorkspaceSurface | null) => void
   requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
   requestConsoleWorkspaceContextHandoff?: (
     handoff: Omit<ConsoleWorkspaceContextHandoff, 'seq'>,
   ) => void
+}
+
+export type WorkspaceSelectedEnvironmentLightDeleteCommandDeps = WorkspaceTargetSelectionCommandDeps & {
+  deleteLight: (lightId: string) => void
+}
+
+export type WorkspaceSelectedEnvironmentLightDeleteResult = {
+  deletedTarget: Extract<WorkspaceSelectedTarget, { kind: 'environment-light' }>
+  nextSelectedTarget: WorkspaceSelectedTarget | null
 }
 
 type WorkspaceSelectionCommandOptions = {
@@ -39,6 +51,7 @@ type WorkspaceSelectionCommandOptions = {
 
 const applySharedWorkspaceSelectionSideEffects = (
   deps: {
+    selectLight?: (lightId: string | null) => void
     selectPart?: (partKey: string | null) => void
     setActiveSurface?: (surface: WorkspaceSurface | null) => void
     requestConsoleContextSync?: (reason: ConsoleContextSyncReason) => void
@@ -52,6 +65,7 @@ const applySharedWorkspaceSelectionSideEffects = (
   if (options.activeSurface !== undefined) {
     deps.setActiveSurface?.(options.activeSurface)
   }
+  deps.selectLight?.(target?.kind === 'environment-light' ? target.lightId : null)
   if (options.selectedPartKey !== undefined) {
     deps.selectPart?.(options.selectedPartKey)
   }
@@ -96,4 +110,36 @@ export const commitWorkspaceExplicitSelection = (
   deps.setWorkspaceExplicitSelection(selection)
   applySharedWorkspaceSelectionSideEffects(deps, selection.selectedTarget, options)
   return selection.selectedTarget
+}
+
+export const deleteWorkspaceSelectedEnvironmentLight = (
+  deps: WorkspaceSelectedEnvironmentLightDeleteCommandDeps,
+  target: Extract<WorkspaceSelectedTarget, { kind: 'environment-light' }>,
+  options: WorkspaceSelectionCommandOptions = {},
+): WorkspaceSelectedEnvironmentLightDeleteResult | null => {
+  const currentLights = useUiPrefsStore.getState().view.lighting.lights
+  if (!currentLights.some((light) => light.id === target.lightId)) {
+    return null
+  }
+
+  deps.deleteLight(target.lightId)
+  const nextSelectedLightId = useUiPrefsStore.getState().view.lighting.selectedLightId
+  const nextSelectedTarget =
+    nextSelectedLightId === null
+      ? null
+      : ({
+          kind: 'environment-light',
+          lightId: nextSelectedLightId,
+        } as const)
+
+  if (nextSelectedTarget === null) {
+    clearWorkspaceTargetSelection(deps, options)
+  } else {
+    commitWorkspaceTargetSelection(deps, nextSelectedTarget, options)
+  }
+
+  return {
+    deletedTarget: target,
+    nextSelectedTarget,
+  }
 }

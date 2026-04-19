@@ -6,6 +6,7 @@ import {
   selectTargetIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
+import { frameEnvironmentLightCommand } from '../viewCommands'
 import { getViewer } from '../viewerBridge'
 import {
   clearWorkspaceTargetSelection,
@@ -71,6 +72,7 @@ export type BrowserRowInteractionDeps = {
     selectionAnchorTarget: WorkspaceSelectedTarget | null
   }) => void
   setActiveSurface: (surface: WorkspaceSurface | null) => void
+  selectLight: (lightId: string | null) => void
   selectPart: (partKey: string | null) => void
   requestConsoleContextSync: (reason: ConsoleContextSyncReason) => void
   requestConsoleWorkspaceContextHandoff: (
@@ -83,6 +85,8 @@ export type BrowserRowInteractionDeps = {
   setReferenceItemVisibility: (referenceId: string, visible: boolean) => void
   toggleReferenceCategoryVisibility: (categoryId: ReferenceCategoryId) => void
   toggleSketchVisibility: (rowId: string) => void
+  setEnvironmentSourceBackgroundVisible: (visible: boolean) => void
+  setEnvironmentLightEnabled: (lightId: string, enabled: boolean) => void
   setPartVisibility: (partKey: string, isVisible: boolean) => void
   setExpandedGraphDocumentIds: (
     updater: (currentIds: string[]) => string[],
@@ -138,6 +142,8 @@ const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
       return `component:${target.componentId}`
     case 'object':
       return `object:${target.objectId}`
+    case 'environment-light':
+      return `environment-light:${target.lightId}`
     case 'graph-document':
       return `graph-document:${target.graphDocumentId}`
     case 'graph-node':
@@ -163,6 +169,8 @@ const buildExplicitSelectionTargetFromRow = (
       return { kind: 'component', componentId: row.rowId }
     case 'object':
       return { kind: 'object', objectId: row.rowId }
+    case 'environment-light':
+      return { kind: 'environment-light', lightId: row.lightId }
     default:
       return null
   }
@@ -306,6 +314,7 @@ export const createBrowserRowInteractionHandlers = (
     commitWorkspaceExplicitSelection(
       {
         setWorkspaceExplicitSelection: deps.setWorkspaceExplicitSelection,
+        selectLight: deps.selectLight,
         setActiveSurface: deps.setActiveSurface,
         selectPart: deps.selectPart,
         requestConsoleContextSync: deps.requestConsoleContextSync,
@@ -333,6 +342,7 @@ export const createBrowserRowInteractionHandlers = (
     clearWorkspaceTargetSelection(
       {
         setWorkspaceSelectedTarget: deps.setWorkspaceSelectedTarget,
+        selectLight: deps.selectLight,
         selectPart: deps.selectPart,
         requestConsoleContextSync: deps.requestConsoleContextSync,
         requestConsoleWorkspaceContextHandoff: deps.requestConsoleWorkspaceContextHandoff,
@@ -406,6 +416,7 @@ export const createBrowserRowInteractionHandlers = (
             commitWorkspaceExplicitSelection(
               {
                 setWorkspaceExplicitSelection: deps.setWorkspaceExplicitSelection,
+                selectLight: deps.selectLight,
                 setActiveSurface: deps.setActiveSurface,
                 selectPart: deps.selectPart,
                 requestConsoleContextSync: deps.requestConsoleContextSync,
@@ -522,6 +533,10 @@ export const createBrowserRowInteractionHandlers = (
       })
       return
     }
+    if (row.rowKind === 'environment-light') {
+      frameEnvironmentLightCommand(row.lightId)
+      return
+    }
     if (row.rowKind === 'object') {
       const viewer = getViewer()
       if (viewer === null) {
@@ -601,6 +616,15 @@ export const createBrowserRowInteractionHandlers = (
       }))
       return
     }
+    if (row.rowKind === 'environment-root') {
+      deps.closeMenus()
+      deps.setCollapsedContentRowIds((currentIds) =>
+        currentIds.includes(row.rowId)
+          ? currentIds.filter((currentId) => currentId !== row.rowId)
+          : [...currentIds, row.rowId],
+      )
+      return
+    }
     if (
       row.rowKind === 'assembly' ||
       row.rowKind === 'component' ||
@@ -674,6 +698,20 @@ export const createBrowserRowInteractionHandlers = (
   }
 
   const handleToggleContentVisibility = (row: BrowserRenderableRowVm) => {
+    if (row.rowKind === 'environment-source' && row.sourceKind === 'hdri') {
+      deps.setLocalSelectedBrowserRowId(row.rowId)
+      deps.closeMenus()
+      deps.appendBrowserEntry(`${row.label} background visibility toggled`)
+      deps.setEnvironmentSourceBackgroundVisible(!row.backgroundVisible)
+      return
+    }
+    if (row.rowKind === 'environment-light') {
+      deps.setLocalSelectedBrowserRowId(row.rowId)
+      deps.closeMenus()
+      deps.appendBrowserEntry(`${row.label} visibility toggled`)
+      deps.setEnvironmentLightEnabled(row.lightId, !row.enabled)
+      return
+    }
     if (
       row.rowKind !== 'assembly' &&
       row.rowKind !== 'component' &&
@@ -828,6 +866,9 @@ export const resolveBrowserSelectedRowIdFromTarget = (
   }
   if (target.kind === 'object') {
     return target.objectId
+  }
+  if (target.kind === 'environment-light') {
+    return `environment-light-row:${target.lightId}`
   }
   return null
 }

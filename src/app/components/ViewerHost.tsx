@@ -119,6 +119,8 @@ const getWorkspaceTargetKey = (target: WorkspaceSelectedTarget): string => {
       return `component:${target.componentId}`
     case 'object':
       return `object:${target.objectId}`
+    case 'environment-light':
+      return `environment-light:${target.lightId}`
     case 'graph-document':
       return `graph-document:${target.graphDocumentId}`
     case 'graph-node':
@@ -290,6 +292,9 @@ const getLoadedReferencePartRows = (
   item.explodedFromReferenceId === null ? viewer.getReferencePartDescriptors(item.referenceId) : []
 
 type ReferenceWorkspaceItemVm = ReturnType<typeof selectReferenceWorkspaceItems>[number]
+
+const environmentLightTypeSupportsTransform = (type: string): boolean =>
+  type === 'directional' || type === 'point' || type === 'spot'
 
 type ViewerHostProps = {
   viewportId: WorkspaceViewportId
@@ -1057,6 +1062,41 @@ export function ViewerHost(props: ViewerHostProps) {
   ])
 
   useEffect(() => {
+    const activeEnvironmentLightSession =
+      referenceWorkspace.activeEnvironmentLightTransformSession
+    if (workspaceSelectedTarget?.kind !== 'environment-light') {
+      if (activeEnvironmentLightSession !== null) {
+        useAppStore.getState().exitEnvironmentLightTransformShell()
+      }
+      return
+    }
+
+    const selectedLight =
+      globalView.lighting.lights.find((light) => light.id === workspaceSelectedTarget.lightId) ??
+      null
+    if (
+      selectedLight === null ||
+      !environmentLightTypeSupportsTransform(selectedLight.type)
+    ) {
+      if (activeEnvironmentLightSession !== null) {
+        useAppStore.getState().exitEnvironmentLightTransformShell()
+      }
+      return
+    }
+
+    if (activeEnvironmentLightSession?.lightId !== workspaceSelectedTarget.lightId) {
+      useAppStore.getState().beginViewerTransformShell({
+        kind: 'environment-light',
+        lightId: workspaceSelectedTarget.lightId,
+      })
+    }
+  }, [
+    globalView.lighting.lights,
+    referenceWorkspace.activeEnvironmentLightTransformSession,
+    workspaceSelectedTarget,
+  ])
+
+  useEffect(() => {
     if (!hasActiveReferenceTimelines) {
       return
     }
@@ -1162,7 +1202,10 @@ export function ViewerHost(props: ViewerHostProps) {
             activeSession.targetId !== target.referenceId)) ||
         (target.kind === 'content-object' &&
           (activeSession.targetKind !== 'content-object' ||
-            activeSession.targetId !== target.objectId))
+            activeSession.targetId !== target.objectId)) ||
+        (target.kind === 'environment-light' &&
+          (activeSession.targetKind !== 'environment-light' ||
+            activeSession.targetId !== target.lightId))
       ) {
         return
       }
@@ -1250,6 +1293,14 @@ export function ViewerHost(props: ViewerHostProps) {
                   } satisfies WorkspaceSelectedTarget,
                   selectedPartKey: null,
                 }
+              : pick.kind === 'environment-light'
+                ? {
+                    target: {
+                      kind: 'environment-light',
+                      lightId: pick.lightId,
+                    } satisfies WorkspaceSelectedTarget,
+                    selectedPartKey: null,
+                  }
               : (() => {
                   const objectRow = contentObjectRowByViewerPartKey.get(pick.partKey)
                   if (objectRow !== undefined) {
@@ -1313,6 +1364,7 @@ export function ViewerHost(props: ViewerHostProps) {
         commitWorkspaceExplicitSelection(
           {
             setWorkspaceExplicitSelection: appState.setWorkspaceExplicitSelection,
+            selectLight: useUiPrefsStore.getState().selectLight,
             selectPart: appState.selectPart,
             requestConsoleContextSync: appState.requestConsoleContextSync,
           },
@@ -1331,6 +1383,7 @@ export function ViewerHost(props: ViewerHostProps) {
         clearWorkspaceTargetSelection(
           {
             setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectLight: useUiPrefsStore.getState().selectLight,
             selectPart: appState.selectPart,
             requestConsoleContextSync: appState.requestConsoleContextSync,
           },
@@ -1349,6 +1402,7 @@ export function ViewerHost(props: ViewerHostProps) {
         commitWorkspaceTargetSelection(
           {
             setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+            selectLight: useUiPrefsStore.getState().selectLight,
             selectPart: appState.selectPart,
             requestConsoleContextSync: appState.requestConsoleContextSync,
           },

@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createBrowserRowInteractionHandlers } from './browserInteractions'
+import {
+  createBrowserRowInteractionHandlers,
+  resolveBrowserSelectedRowIdFromTarget,
+} from './browserInteractions'
 import type {
   BrowserAssemblyTreeRowVm,
   BrowserComponentTreeRowVm,
+  BrowserEnvironmentRootTreeRowVm,
+  BrowserEnvironmentLightTreeRowVm,
+  BrowserEnvironmentSourceTreeRowVm,
   BrowserGraphTreeRowVm,
   BrowserGraphNodeTreeRowVm,
   BrowserObjectTreeRowVm,
@@ -26,6 +32,9 @@ const {
 const { viewerFrameSelectionSetMock } = vi.hoisted(() => ({
   viewerFrameSelectionSetMock: vi.fn(),
 }))
+const { frameEnvironmentLightCommandMock } = vi.hoisted(() => ({
+  frameEnvironmentLightCommandMock: vi.fn(() => true),
+}))
 
 vi.mock('../store/workspaceIntents', () => ({
   activateSurfaceIntent: activateSurfaceIntentMock,
@@ -38,6 +47,10 @@ vi.mock('../viewerBridge', () => ({
   getViewer: () => ({
     frameSelectionSet: viewerFrameSelectionSetMock,
   }),
+}))
+
+vi.mock('../viewCommands', () => ({
+  frameEnvironmentLightCommand: frameEnvironmentLightCommandMock,
 }))
 
 const graphDocument = {
@@ -98,6 +111,80 @@ const objectRow = (objectId: string, label: string, partKey = 'part:object-1'): 
   highlightViewerKey: partKey,
   authoringGraphDocumentId: 'graph-document-1',
   authoringNodeId: 'node-1',
+})
+
+const environmentLightRow = (
+  lightId: string,
+  label: string,
+  options: { isSelected?: boolean; isSelectedLight?: boolean; enabled?: boolean } = {},
+): BrowserEnvironmentLightTreeRowVm => ({
+  rowId: `environment-light-row:${lightId}`,
+  rowKind: 'environment-light',
+  depth: 1,
+  treeGuides: ['elbow'],
+  iconLabel: 'L',
+  label,
+  meta: `${options.isSelectedLight ? 'Selected | ' : ''}${options.enabled === false ? 'Off' : 'On'} | directional | 1.85`,
+  isSelected: options.isSelected ?? false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+  lightId,
+  lightType: 'directional',
+  enabled: options.enabled ?? true,
+  color: '#fff2e6',
+  intensity: 1.85,
+  isSelectedLight: options.isSelectedLight ?? false,
+})
+
+const environmentRootRow = (): BrowserEnvironmentRootTreeRowVm => ({
+  rowId: 'environment-root',
+  rowKind: 'environment-root',
+  depth: 0,
+  treeGuides: ['tee'],
+  iconLabel: 'E',
+  label: 'Environment',
+  meta: '2 objects',
+  isSelected: false,
+  isExpandable: true,
+  isExpanded: true,
+  actions: [],
+  childCount: 2,
+})
+
+const environmentSourceRow = (
+  options: { backgroundVisible?: boolean } = {},
+): BrowserEnvironmentSourceTreeRowVm => ({
+  rowId: 'environment-source-row:active',
+  rowKind: 'environment-source',
+  depth: 1,
+  treeGuides: ['tee'],
+  iconLabel: 'E',
+  label: 'HDRI: Workshop Loft',
+  meta: 'HDRI source | Exposure 1.15 | /HDRI/workshop_loft.hdr',
+  isSelected: false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+  envPreset: 'baseline',
+  sourceKind: 'hdri',
+  sourceLabel: 'Workshop Loft',
+  sourceAssetPath: '/HDRI/workshop_loft.hdr',
+  backgroundVisible: options.backgroundVisible ?? true,
+  environmentGrade: {
+    toneMapping: 'aces',
+    exposure: 1.15,
+    contrast: 1,
+    highlights: 0,
+    shadows: 0,
+    whites: 0,
+    blacks: 0,
+    temperature: 0,
+    tint: 0,
+    saturation: 1,
+  },
+  background: '#0b0b0f',
+  isDiverged: false,
 })
 
 const componentRow = (componentId: string, label: string): BrowserComponentTreeRowVm => ({
@@ -251,6 +338,7 @@ const createDeps = (
   setWorkspaceSelectedTarget: vi.fn(),
   setWorkspaceExplicitSelection: vi.fn(),
   setActiveSurface: vi.fn(),
+  selectLight: vi.fn(),
   selectPart: vi.fn(),
   requestConsoleContextSync: vi.fn(),
   requestConsoleWorkspaceContextHandoff: vi.fn(),
@@ -261,6 +349,8 @@ const createDeps = (
   setReferenceItemVisibility: vi.fn(),
   toggleReferenceCategoryVisibility: vi.fn(),
   toggleSketchVisibility: vi.fn(),
+  setEnvironmentSourceBackgroundVisible: vi.fn(),
+  setEnvironmentLightEnabled: vi.fn(),
   setPartVisibility: vi.fn(),
   setExpandedGraphDocumentIds: vi.fn(),
   setGraphSectionExpandedByRowId: vi.fn(),
@@ -278,6 +368,8 @@ describe('createBrowserRowInteractionHandlers', () => {
     activateGraphDocumentIntentMock.mockReturnValue({ editorViewportId: 'editor-viewport-1' })
     activateGraphNodeIntentMock.mockReturnValue({ editorViewportId: 'editor-viewport-1' })
     viewerFrameSelectionSetMock.mockReset()
+    frameEnvironmentLightCommandMock.mockReset()
+    frameEnvironmentLightCommandMock.mockReturnValue(true)
   })
 
   it('clears Browser selection and requests console sync for empty-body deselect', () => {
@@ -404,6 +496,54 @@ describe('createBrowserRowInteractionHandlers', () => {
       explicitSelectedTargets: [{ kind: 'object', objectId: 'reference-item-row:shoe-1' }],
       selectionAnchorTarget: { kind: 'object', objectId: 'reference-item-row:shoe-1' },
     })
+  })
+
+  it('selects environment lights through the shared environment target contract', () => {
+    const row = environmentLightRow('light-key', 'Key', { isSelectedLight: true })
+    const deps = createDeps({
+      browserTreeRows: {
+        referenceRows: [],
+        contentRows: [],
+      },
+      workspaceSelectedTarget: { kind: 'environment-light', lightId: 'light-key' },
+      workspaceExplicitSelectedTargets: [{ kind: 'environment-light', lightId: 'light-key' }],
+      workspaceSelectionAnchorTarget: { kind: 'environment-light', lightId: 'light-key' },
+    })
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleSelectBrowserRow(row)
+
+    expect(deps.setWorkspaceExplicitSelection).toHaveBeenCalledWith({
+      selectedTarget: { kind: 'environment-light', lightId: 'light-key' },
+      explicitSelectedTargets: [{ kind: 'environment-light', lightId: 'light-key' }],
+      selectionAnchorTarget: { kind: 'environment-light', lightId: 'light-key' },
+    })
+    expect(deps.selectLight).toHaveBeenCalledWith('light-key')
+  })
+
+  it('resolves viewport-picked environment-light targets to the matching Browser row id', () => {
+    expect(
+      resolveBrowserSelectedRowIdFromTarget(
+        { kind: 'environment-light', lightId: 'light-key' },
+        {
+          graphDocumentsById: {},
+          referenceWorkspaceRootRowId: 'reference-root',
+          buildProjectSketchBrowserRowId: (graphDocumentId, nodeId, featureId) =>
+            `project-sketch:${graphDocumentId}:${nodeId}:${featureId}`,
+        },
+      ),
+    ).toBe('environment-light-row:light-key')
+  })
+
+  it('frames environment-light rows through the shared environment-light frame command', () => {
+    const row = environmentLightRow('light-key', 'Key')
+    const deps = createDeps()
+    const handlers = createBrowserRowInteractionHandlers(deps)
+
+    handlers.handleDoubleSelectBrowserRow(row)
+
+    expect(frameEnvironmentLightCommandMock).toHaveBeenCalledWith('light-key')
+    expect(viewerFrameSelectionSetMock).not.toHaveBeenCalled()
   })
 
   it('adds ctrl-clicked rows into explicit multi-select without rewriting the anchor logic in BrowserPanel', () => {
@@ -581,14 +721,18 @@ describe('createBrowserRowInteractionHandlers', () => {
       ...componentRow('reference-category-row:footpads', 'Footpads'),
       referenceCategoryId: 'footpads',
     }
+    const environmentRow = environmentRootRow()
     const setExpandedGraphDocumentIds = vi.fn()
+    const setCollapsedContentRowIds = vi.fn()
     const deps = createDeps({
       setExpandedGraphDocumentIds,
+      setCollapsedContentRowIds,
     })
     const handlers = createBrowserRowInteractionHandlers(deps)
 
     handlers.handleToggleBrowserRowExpand(graphDocumentRow)
     handlers.handleToggleBrowserRowExpand(categoryRow)
+    handlers.handleToggleBrowserRowExpand(environmentRow)
 
     expect(deps.toggleReferenceCategoryExpanded).toHaveBeenCalledWith('footpads')
     expect(setExpandedGraphDocumentIds).toHaveBeenCalledTimes(1)
@@ -597,12 +741,20 @@ describe('createBrowserRowInteractionHandlers', () => {
       | undefined
     expect(graphUpdater?.([])).toEqual(['graph-document-1'])
     expect(graphUpdater?.(['graph-document-1'])).toEqual([])
+    expect(setCollapsedContentRowIds).toHaveBeenCalledTimes(1)
+    const environmentUpdater = setCollapsedContentRowIds.mock.calls[0]?.[0] as
+      | ((currentIds: string[]) => string[])
+      | undefined
+    expect(environmentUpdater?.([])).toEqual(['environment-root'])
+    expect(environmentUpdater?.(['environment-root'])).toEqual([])
   })
 
-  it('dispatches visibility toggles through reference, sketch, and content-specific handlers', () => {
+  it('dispatches visibility toggles through reference, sketch, content, and environment handlers', () => {
     const nextReferenceRow = referenceItemRow()
     const nextSketchRow = sketchRow()
     const nextObjectRow = objectRow('object-1', 'Pedal Body')
+    const nextEnvironmentSourceRow = environmentSourceRow()
+    const nextEnvironmentLightRow = environmentLightRow('light-key', 'Key')
     const nextPartRow: BrowserPartTreeRowVm = {
       rowId: 'part-row:1',
       rowKind: 'part' as const,
@@ -625,11 +777,15 @@ describe('createBrowserRowInteractionHandlers', () => {
 
     handlers.handleToggleReferenceVisibility(nextReferenceRow)
     handlers.handleToggleSketchVisibility(nextSketchRow)
+    handlers.handleToggleContentVisibility(nextEnvironmentSourceRow)
+    handlers.handleToggleContentVisibility(nextEnvironmentLightRow)
     handlers.handleToggleContentVisibility(nextObjectRow)
     handlers.handleToggleContentVisibility(nextPartRow)
 
     expect(deps.toggleReferenceItemVisibility).toHaveBeenCalledWith('shoe-1')
     expect(deps.toggleSketchVisibility).toHaveBeenCalledWith(nextSketchRow.rowId)
+    expect(deps.setEnvironmentSourceBackgroundVisible).toHaveBeenCalledWith(false)
+    expect(deps.setEnvironmentLightEnabled).toHaveBeenCalledWith('light-key', false)
     expect(deps.setPartVisibility).toHaveBeenCalledWith('part:object-1', false)
     expect(deps.setPartVisibility).toHaveBeenCalledWith('part:object-1:1', false)
   })

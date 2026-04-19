@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+17. 2026-04-19 09:28:30: Closed `Catalog-2.14` after Catalog reference commits started mapping committed shoe families into the Shoes Browser branch only, reusing the same parent for later shoes, and leaving user-import flattening untouched for the generic import path
+16. 2026-04-18 22:05:00: Reopened `Catalog-2` as an active corrective family lane for `Catalog-2.14 - Clean Reference Browser Collection Creation`, keeping the already-shipped reference-family onboarding intact while adding one focused follow-up so Catalog reference adds create only the needed `References > Shoes > Shoe object` organization and reuse the existing `Shoes` parent for later shoes
 15. 2026-04-18 07:50:56: Implemented `Catalog-2 / Phase 5.1 - Item Page Interactive Preview Viewport`, widening the already-shipped repo-backed card viewport seam into the larger item-page preview surface so loaded repo-backed item pages now render the same interactive viewport and reuse already-loaded preview-session state from the grid, while imports reuse and environment entries keep their existing simpler item-page paths
 14. 2026-04-18 07:43:44: Prepped `Catalog-2 / Phase 5.1 - Item Page Interactive Preview Viewport` for implementation, grounding the next cut in the live shared preview-session handoff across `CatalogShell.tsx`, the still-static item-page preview render in `CatalogShellItemPage.tsx`, the already-shipped `CatalogCardPreviewViewport.tsx` seam, and the repo-backed preview-source helper in `catalogItemContract.ts` so the item page can reuse already-loaded preview state and render the same interactive viewport without reopening commit, imports, environment, or later `pubparts` behavior
 13. 2026-04-18 07:33:27: Added `Catalog-2 / Phase 5.1 - Item Page Interactive Preview Viewport`, widening the `Catalog-2` follow-through with one narrow preview-surface follow-up so repo-backed item pages can stop using static image or video preview media and instead render the same interactive preview viewport pattern at the larger item-page scale, while keeping commit routing, imports reuse, environment apply, and later `pubparts` source onboarding outside this immediate cut
@@ -28,6 +30,7 @@ Use it to answer:
 - what still needs to widen beyond the shipped `Catalog-1` fixture baseline
 - how reference-family metadata, browse sections, preview behavior, and commit behavior should land without blurring into `HDRI` or later search-scale work
 - how `Catalog` should stay browse-owned while committed reference results become Browser/project truth
+- how committed shoe references should create clean Browser collection hierarchy without adding empty sibling family collections
 
 ### Why This Phase Exists
 
@@ -54,11 +57,13 @@ This doc covers:
 - family-level metadata and browse organization for `foothooks`, `shoes`, and `footpads`
 - explicit preview-plus-commit behavior for those reference families
 - downstream Browser/project-content handoff for committed reference results
+- the corrective Browser collection creation rule for committed shoe references
 
 This doc does not cover:
 - `HDRI` or environment-family onboarding
 - broader search and metadata scale-up beyond what the first reference families need
 - final identity, recall, or rebind rules after commit
+- adding empty Browser collection parents for families that have no committed items
 
 ## Doc Body
 
@@ -74,12 +79,14 @@ This phase should:
 - keep `Load Preview` temporary and `Add To Project` explicit
 - let committed reference results become visible through downstream Browser/project content systems
 - keep the item-page and grid browse surfaces honest for real reference-family usage
+- create only the Browser collection structure needed by the reference item the user actually commits
 
 This phase should not:
 - reopen the `Catalog-1` workspace-foundation seams unless a narrow follow-on is truly needed
 - widen into `HDRI` or environment apply behavior
 - widen into large search, tag, or metadata scale-up work that belongs to `Catalog-4`
 - decide final recall, remembered-catalog, or identity-follow-through policy that belongs to `Catalog-5`
+- create empty sibling Browser collections such as `Footpads`, `Wearables`, or premade hook groupings when the user only adds a shoe
 
 ### Architecture Direction
 
@@ -94,6 +101,7 @@ The healthy product read is:
 - cards and item pages read with honest family-specific labels and metadata
 - the user can temporarily preview those items without committing them
 - `Add To Project` still becomes explicit Browser/project truth instead of leaving loaded references catalog-local
+- adding one shoe creates one clean shoe-owned Browser path, and later shoes reuse that same parent instead of creating redundant empty collections
 
 ### Current Live Read
 
@@ -145,6 +153,7 @@ It should widen the now-stable foundation into the first honest reference-family
 - [x] `HLG 6. Item Page As The Main Decision Surface`
 - [x] `HLG 7. Interactive Repo-backed Card Preview Viewports`
 - [x] `HLG 8. Interactive Repo-backed Item Page Preview Viewports`
+- [x] `HLG 9. Clean Reference Browser Collection Creation`
 
 ### `Catalog-2 Phase 1`
 
@@ -194,6 +203,14 @@ It should widen the now-stable foundation into the first honest reference-family
 - [x] `HLG 3. Explicit Preview Surfaces`
 - [x] `HLG 6. Item Page As The Main Decision Surface`
 - [x] `HLG 8. Interactive Repo-backed Item Page Preview Viewports`
+
+### `Catalog-2.14`
+
+- [x] `19. First Shoe Commit Creates Only References, Shoes, And The Shoe Object`
+- [x] `20. Later Shoe Commits Reuse The Existing Shoes Parent Collection`
+- [x] `21. Shoe Commits Do Not Create Empty Sibling Collections For Other Reference Families`
+- [x] `HLG 4. Explicit Add-To-Project Commit`
+- [x] `HLG 9. Clean Reference Browser Collection Creation`
 
 ## [x] `Catalog-2` - `Phase 1 - Reference Family Source Baseline`
 
@@ -825,3 +842,106 @@ Minimum verification for this phase should cover:
 - repo-backed item pages no longer fall back to static preview media
 - the larger item page uses the same honest interactive preview seam as the card box
 - preview meaning stays temporary and explicit
+
+## [x] `Catalog-2.14` - `Clean Reference Browser Collection Creation`
+
+### Purpose
+
+Correct the reference commit follow-through so Catalog adds create only the Browser/project organization needed by the specific committed reference item.
+
+For the current shoe case, adding one shoe should create:
+- `References`
+- `Shoes`
+- the committed shoe object
+
+It should not also create empty sibling collections for unrelated families such as `Footpads`, `Wearables`, or premade hook groups.
+
+### Owns
+
+- the Browser collection creation rule for Catalog-committed reference items
+- clean shoe parent collection reuse across the second, third, fourth, and later committed shoes
+- a focused correction to the existing reference commit handoff path
+- proof that committing one reference family does not create empty sibling family collections
+
+### Does Not Own
+
+- changing the Catalog browse taxonomy itself
+- changing preview-session behavior
+- changing HDRI/environment apply behavior
+- adding PubParts integration
+- redesigning the full Browser collection system beyond the Catalog reference-add path
+
+### Current Live Read
+
+The shipped reference-family work already gives this correction a narrow starting point:
+
+- `src/app/catalog/catalogReferenceCommit.ts`
+  - owns the Catalog-to-Browser/project reference commit handoff
+  - is the likely first place to keep collection creation tied to the committed item's family
+- `src/app/workspace/CatalogSurface.tsx`
+  - routes Catalog reference actions into the downstream commit path
+- `src/app/store/useAppStore.ts`
+  - likely owns the Browser/project content structures created by committed references
+- `src/app/store/useAppStore.test.ts`
+  - proves the committed reference hierarchy directly at the Browser/project tree read
+
+### First Pass Decisions
+
+- treat this as a correction to committed reference organization, not a new Catalog family
+- keep the path specific enough to prove shoes first while leaving the same rule usable for foothooks and footpads later
+- reuse the existing `Shoes` parent collection for later shoe commits
+- only create a sibling family collection when an item from that family is actually committed
+
+### Implementation Spec
+
+#### Exact First Code Cut
+
+1. Find the current Catalog reference commit path that creates Browser/project collections.
+2. Make the collection creation branch off the committed item's reference family.
+3. For shoe commits, create or reuse `References > Shoes` and add the shoe object under that parent.
+4. Do not create empty `Footpads`, `Wearables`, premade hook, or other sibling family collections during a shoe commit.
+5. Add focused proof for first-shoe and later-shoe commits.
+
+#### Likely Files
+
+- `src/app/catalog/catalogReferenceCommit.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/store/useAppStore.test.ts`
+
+#### No-Widening Rule
+
+- do not rebuild the Browser collection model
+- do not change Catalog browse sections or filters
+- do not create default collections for uncommitted reference families
+- do not mix this with PubParts, PubWheel Builder, or later compatibility checks
+
+#### Implementation Risks
+
+- keeping the old "create all possible family buckets" behavior hidden in a helper
+- creating duplicate `Shoes` parents on later shoe commits
+- fixing shoes with a hard-coded exception instead of a family-based rule the other reference families can share
+
+#### Checklist
+
+- [x] first shoe commit creates only the needed `References > Shoes > Shoe object` hierarchy
+- [x] later shoe commits reuse the existing `Shoes` parent
+- [x] shoe commits do not create empty sibling collections for other reference families
+- [x] the correction stays inside the Catalog reference-add path
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+
+- clean Browser/project organization after committing one shoe from Catalog
+- clean Browser/project organization after committing more than one shoe from Catalog
+- no empty `Footpads`, `Wearables`, premade hook, or unrelated family collection after a shoe-only commit
+
+#### Done Shape
+
+`Catalog-2.14` is done when:
+
+- adding a shoe from Catalog creates exactly the needed shoe reference organization
+- later shoes reuse the same shoe parent
+- Catalog reference commits no longer add empty sibling collections for families the user did not commit

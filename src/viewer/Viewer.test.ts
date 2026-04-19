@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import type { Vector3 as ThreeVector3 } from 'three'
+import { Texture, Vector3 } from 'three'
+import type { Camera, Vector3 as ThreeVector3 } from 'three'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CameraClipRangeMode } from './scene/CameraController'
 
@@ -1607,7 +1608,10 @@ describe('Viewer baseline replacement', () => {
 
   it('applies the retuned default environment baseline through the existing runtime seams', async () => {
     const { Viewer } = await import('./Viewer')
-    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+    const {
+      DEFAULT_VIEW_SETTINGS,
+      getEnvironmentPresetDefinition,
+    } = await import('../shared/viewSettingsTypes')
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -1624,7 +1628,18 @@ describe('Viewer baseline replacement', () => {
     viewer = new Viewer(container)
     resizeObserverCallback?.([], {} as ResizeObserver)
 
-    expect(DEFAULT_VIEW_SETTINGS.exposure).toBe(1.15)
+    expect(DEFAULT_VIEW_SETTINGS.environmentGrade).toEqual({
+      toneMapping: 'aces',
+      exposure: 1.15,
+      contrast: 1,
+      highlights: 0,
+      shadows: 0,
+      whites: 0,
+      blacks: 0,
+      temperature: 0,
+      tint: 0,
+      saturation: 1,
+    })
     expect(DEFAULT_VIEW_SETTINGS.lighting.lights.map((light) => light.id)).toEqual([
       'key',
       'fill',
@@ -1647,7 +1662,8 @@ describe('Viewer baseline replacement', () => {
     })
 
     const runtime = viewer as unknown as {
-      renderer: { toneMappingExposure: number }
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      renderer: { toneMappingExposure: number; domElement: HTMLCanvasElement }
       scene: { background: { getHexString: () => string } | null }
       lightsById: Map<string, { intensity: number }>
       minorGridHelper: { material: { opacity: number } }
@@ -1655,13 +1671,393 @@ describe('Viewer baseline replacement', () => {
       doubleMajorGridHelper: { material: { opacity: number } }
     }
 
-    expect(runtime.renderer.toneMappingExposure).toBe(DEFAULT_VIEW_SETTINGS.exposure)
+    expect(runtime.renderer.toneMappingExposure).toBe(DEFAULT_VIEW_SETTINGS.environmentGrade.exposure)
+    expect(runtime.renderer.domElement.style.filter).toContain('brightness(')
+    expect(runtime.renderer.domElement.style.filter).toContain('contrast(')
+    expect(runtime.renderer.domElement.style.filter).toContain('saturate(')
+    expect(runtime.renderer.domElement.style.filter).toContain('hue-rotate(')
     expect(runtime.scene.background?.getHexString()).toBe('0b0b0f')
     expect([...runtime.lightsById.keys()]).toEqual(['key', 'fill', 'rim'])
     expect(runtime.lightsById.get('rim')?.intensity).toBe(0.42)
     expect(runtime.minorGridHelper.material.opacity).toBe(0.1)
     expect(runtime.majorGridHelper.material.opacity).toBe(0.3)
     expect(runtime.doubleMajorGridHelper.material.opacity).toBe(1)
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      envPreset: 'studio',
+    })
+
+    expect(runtime.scene.background?.getHexString()).toBe(
+      getEnvironmentPresetDefinition('studio').background.slice(1),
+    )
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      envPreset: 'dark_studio',
+    })
+
+    expect(runtime.scene.background?.getHexString()).toBe(
+      getEnvironmentPresetDefinition('dark_studio').background.slice(1),
+    )
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      environmentGrade: {
+        ...DEFAULT_VIEW_SETTINGS.environmentGrade,
+        exposure: 1.35,
+        contrast: 1.18,
+        highlights: 24,
+        shadows: -14,
+        whites: 12,
+        blacks: -8,
+        temperature: 18,
+        tint: -10,
+        saturation: 1.24,
+      },
+    })
+
+    expect(runtime.renderer.toneMappingExposure).toBe(1.35)
+    expect(runtime.renderer.domElement.style.filter).toContain('contrast(')
+    expect(runtime.renderer.domElement.style.filter).toContain('saturate(')
+    expect(runtime.renderer.domElement.style.filter).toContain('hue-rotate(')
+  })
+
+  it('applies an active HDRI as one lighting contribution seam while keeping background treatment separate', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS, createHdriEnvironmentSource } = await import(
+      '../shared/viewSettingsTypes'
+    )
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    const hdriTexture = new Texture()
+    const loadHdriTexture = vi.fn(async () => hdriTexture)
+    const runtime = viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+      loadHdriTexture: (assetPath: string) => Promise<Texture>
+      scene: {
+        environment: Texture | null
+        background: Texture | { getHexString: () => string } | null
+        environmentIntensity?: number
+        backgroundIntensity?: number
+        environmentRotation: { y: number }
+        backgroundRotation: { y: number }
+      }
+      lightsById: Map<string, { intensity: number }>
+    }
+    runtime.loadHdriTexture = loadHdriTexture
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      environmentSource: createHdriEnvironmentSource({
+        label: 'Workshop Loft',
+        assetPath: '/HDRI/workshop_loft.hdr',
+        backgroundVisible: false,
+        intensity: 1.35,
+        backgroundIntensity: 0.45,
+        rotationDeg: 90,
+      }),
+    })
+
+    expect(loadHdriTexture).toHaveBeenCalledWith('/HDRI/workshop_loft.hdr')
+    expect(runtime.scene.background).toBeNull()
+    expect([...runtime.lightsById.keys()]).toEqual(['key', 'fill', 'rim'])
+
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(runtime.scene.environment).toBe(hdriTexture)
+    expect(runtime.scene.background).toBeNull()
+    expect(runtime.scene.environmentIntensity).toBe(1.35)
+    expect(runtime.scene.backgroundIntensity).toBe(0.45)
+    expect(runtime.scene.environmentRotation.y).toBeCloseTo(Math.PI / 2)
+    expect(runtime.scene.backgroundRotation.y).toBeCloseTo(Math.PI / 2)
+    expect(runtime.lightsById.get('key')?.intensity).toBe(1.85)
+
+    runtime.applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      environmentSource: createHdriEnvironmentSource({
+        label: 'Workshop Loft',
+        assetPath: '/HDRI/workshop_loft.hdr',
+        backgroundVisible: true,
+        intensity: 1.35,
+        backgroundIntensity: 0.45,
+        rotationDeg: 180,
+      }),
+    })
+
+    expect(runtime.scene.environment).toBe(hdriTexture)
+    expect(runtime.scene.background).toBe(hdriTexture)
+    expect(runtime.scene.environmentIntensity).toBe(1.35)
+    expect(runtime.scene.backgroundIntensity).toBe(0.45)
+    expect(runtime.scene.environmentRotation.y).toBeCloseTo(Math.PI)
+    expect(runtime.scene.backgroundRotation.y).toBeCloseTo(Math.PI)
+  })
+
+  it('creates wireframe helpers for environment lights and picks them through the shared target contract', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+    const canvas = (viewer as unknown as { renderer: { domElement: HTMLCanvasElement } }).renderer
+      .domElement
+    Object.defineProperty(canvas, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({
+          left: 0,
+          top: 0,
+          width: 800,
+          height: 600,
+          right: 800,
+          bottom: 600,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }) as DOMRect,
+    })
+
+    const environmentLightView = {
+      ...DEFAULT_VIEW_SETTINGS,
+      lighting: {
+        selectedLightId: 'light-key',
+        lights: [
+          {
+            id: 'light-key',
+            name: 'Key',
+            type: 'point' as const,
+            enabled: true,
+            color: '#fff2e6',
+            intensity: 1.25,
+            position: { x: 0, y: 0, z: 0 },
+            castShadow: true,
+            shadowBias: -0.0002,
+            shadowMapSize: 1024,
+          },
+        ],
+      },
+    }
+
+    ;(viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }).applyViewSettings(environmentLightView)
+
+    const runtime = viewer as unknown as {
+      environmentLightHelpersById: Map<
+        string,
+        {
+          userData: { environmentLightId: string }
+          getWorldPosition: (target: Vector3) => Vector3
+        }
+      >
+      collectWorkspaceSelectionCandidates: () => Array<{
+        pick: { kind: string; lightId?: string }
+      }>
+      pickWorkspaceSelection: (clientX: number, clientY: number) => { kind: string; lightId?: string } | null
+    }
+
+    const helper = runtime.environmentLightHelpersById.get('light-key')
+    expect(helper?.userData.environmentLightId).toBe('light-key')
+    expect(runtime.collectWorkspaceSelectionCandidates().some((candidate) => candidate.pick.kind === 'environment-light')).toBe(true)
+    const helperWorldPosition = new Vector3()
+    helper?.getWorldPosition(helperWorldPosition)
+    const projected = helperWorldPosition.project(
+      (viewer as unknown as { cameraController: { getActiveCamera: () => { project: (vector: Vector3) => Vector3 } } })
+        .cameraController.getActiveCamera() as unknown as Camera,
+    )
+    const pickX = ((projected.x + 1) / 2) * 800
+    const pickY = ((1 - projected.y) / 2) * 600
+    expect(runtime.pickWorkspaceSelection(pickX, pickY)).toEqual({
+      kind: 'environment-light',
+      lightId: 'light-key',
+    })
+  })
+
+  it('frames environment-light helpers by light id without falling back to frame all for missing helpers', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    ;(viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }).applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      lighting: {
+        selectedLightId: 'light-key',
+        lights: [
+          {
+            id: 'light-key',
+            name: 'Key',
+            type: 'point' as const,
+            enabled: true,
+            color: '#fff2e6',
+            intensity: 1.25,
+            position: { x: 1, y: 2, z: 3 },
+            castShadow: true,
+            shadowBias: -0.0002,
+            shadowMapSize: 1024,
+          },
+        ],
+      },
+    })
+
+    const controller = cameraControllerMocks.instances[0]!
+    const runtime = viewer as unknown as {
+      frameEnvironmentLight: (
+        lightId: string,
+        options?: { animate?: boolean; durationMs?: number },
+      ) => boolean
+    }
+
+    expect(
+      runtime.frameEnvironmentLight('light-key', {
+        animate: true,
+        durationMs: 320,
+      }),
+    ).toBe(true)
+    expect(controller.frameObject).toHaveBeenCalledWith(expect.any(Object), {
+      animate: true,
+      durationMs: 320,
+    })
+
+    controller.frameObject.mockClear()
+
+    expect(runtime.frameEnvironmentLight('missing-light')).toBe(false)
+    expect(controller.frameObject).not.toHaveBeenCalled()
+  })
+
+  it('reports translated environment-light helper movement through the shared viewer transform callback', async () => {
+    const { Viewer } = await import('./Viewer')
+    const { DEFAULT_VIEW_SETTINGS } = await import('../shared/viewSettingsTypes')
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+
+    Object.defineProperty(container, 'clientWidth', {
+      configurable: true,
+      value: 800,
+    })
+    Object.defineProperty(container, 'clientHeight', {
+      configurable: true,
+      value: 600,
+    })
+
+    viewer = new Viewer(container)
+    resizeObserverCallback?.([], {} as ResizeObserver)
+
+    ;(viewer as unknown as {
+      applyViewSettings: (settings: typeof DEFAULT_VIEW_SETTINGS) => void
+    }).applyViewSettings({
+      ...DEFAULT_VIEW_SETTINGS,
+      lighting: {
+        selectedLightId: 'light-key',
+        lights: [
+          {
+            id: 'light-key',
+            name: 'Key',
+            type: 'point' as const,
+            enabled: true,
+            color: '#fff2e6',
+            intensity: 1.25,
+            position: { x: 1, y: 2, z: 3 },
+            castShadow: true,
+            shadowBias: -0.0002,
+            shadowMapSize: 1024,
+          },
+        ],
+      },
+    })
+
+    const handleViewerTransformChange = vi.fn()
+    const runtime = viewer as unknown as {
+      environmentLightHelpersById: Map<string, { position: Vector3 }>
+      setOnViewerTransformChange: (
+        handler:
+          | ((
+              target: { kind: 'environment-light'; lightId: string },
+              transform: {
+                position: { x: number; y: number; z: number }
+                rotationDeg: { x: number; y: number; z: number }
+                scale: { x: number; y: number; z: number }
+              },
+            ) => void)
+          | null,
+      ) => void
+      setViewerTransformSession: (session: {
+        targetKind: 'environment-light'
+        targetId: string
+        mode: 'translate'
+        space: 'world'
+        entryOrigin: null
+      }) => void
+      handleTransformGizmoObjectChange: (object: object) => void
+    }
+
+    runtime.setOnViewerTransformChange(handleViewerTransformChange)
+    runtime.setViewerTransformSession({
+      targetKind: 'environment-light',
+      targetId: 'light-key',
+      mode: 'translate',
+      space: 'world',
+      entryOrigin: null,
+    })
+
+    const helper = runtime.environmentLightHelpersById.get('light-key')
+    expect(helper).toBeTruthy()
+
+    helper!.position.set(4, 5, 6)
+    runtime.handleTransformGizmoObjectChange(helper!)
+
+    expect(handleViewerTransformChange).toHaveBeenCalledWith(
+      {
+        kind: 'environment-light',
+        lightId: 'light-key',
+      },
+      expect.objectContaining({
+        position: { x: 4, y: 5, z: 6 },
+      }),
+    )
   })
 
   it('creates a hidden ground plane by default and applies ground visibility, height, and material through the shared view seam', async () => {

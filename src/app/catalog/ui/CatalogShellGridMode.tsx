@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
+import type { EnvironmentSourceSettings } from '../../../shared/viewSettingsTypes'
 import type { CatalogItemRecord } from '../catalogItemContract'
 import {
   getCatalogItemPrimaryPreviewMedia,
+  resolveCatalogRepoEnvironmentSource,
   resolveCatalogRepoReferencePreviewSource,
   resolveCatalogPreviewMediaSrc,
 } from '../catalogItemContract'
@@ -9,16 +11,25 @@ import { isCatalogActionAvailable, resolveCatalogActionPlan } from '../catalogAc
 import { CatalogCardPreviewViewport } from './CatalogCardPreviewViewport'
 import {
   formatCatalogSectionLabel,
+  type CatalogBrowseMode,
   resolveCatalogCardBrowseMeta,
   resolveCatalogGridIntroCopy,
 } from './catalogShellShared'
 
 type CatalogShellGridModeProps = {
+  browseMode: CatalogBrowseMode
   activeSection: string
   selectedItemIds: string[]
   previewLoadedItemIds: string[]
   visibleItems: CatalogItemRecord[]
   onAddItemToProject: (item: CatalogItemRecord) => void
+  onApplyEnvironment: (item: CatalogItemRecord) => void
+  onBrowseLocalEnvironment: (file: File) => void
+  appliedEnvironmentSource: EnvironmentSourceSettings
+  onSetHdriBackgroundVisible: (visible: boolean) => void
+  onSetHdriIntensity: (intensity: number) => void
+  displayedPreviewLoadableItemCount: number
+  onLoadDisplayedPreviews: () => void
   onLoadPreview: (itemId: string) => void
   onToggleItemSelection: (itemId: string) => void
   onOpenItemPage: (itemId: string) => void
@@ -26,11 +37,19 @@ type CatalogShellGridModeProps = {
 
 export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
   const {
+    browseMode,
     activeSection,
     selectedItemIds,
     previewLoadedItemIds,
     visibleItems,
     onAddItemToProject,
+    onApplyEnvironment,
+    onBrowseLocalEnvironment,
+    appliedEnvironmentSource,
+    onSetHdriBackgroundVisible,
+    onSetHdriIntensity,
+    displayedPreviewLoadableItemCount,
+    onLoadDisplayedPreviews,
     onLoadPreview,
     onToggleItemSelection,
     onOpenItemPage,
@@ -83,10 +102,78 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
     )
   }
 
+  const showsEnvironmentItems = visibleItems.some((item) => item.assetKind === 'environment')
+
   return (
     <div className="CatalogShellGridMode" data-catalog-region="grid">
       <div className="CatalogShellGridIntro">
-        <p className="CatalogShellRule">{resolveCatalogGridIntroCopy(activeSection)}</p>
+        <p className="CatalogShellRule">{resolveCatalogGridIntroCopy(activeSection, browseMode)}</p>
+        <div className="CatalogShellGridIntroActions" data-catalog-region="grid-actions">
+          <button
+            type="button"
+            className="CatalogShellCardActionButton"
+            data-catalog-action-kind="load-displayed-previews"
+            disabled={displayedPreviewLoadableItemCount === 0}
+            onClick={onLoadDisplayedPreviews}
+          >
+            Load All Displayed Previews
+          </button>
+          <p className="CatalogShellRule CatalogShellGridIntroRead">
+            {displayedPreviewLoadableItemCount === 0
+              ? 'No currently displayed cards can load preview.'
+              : `${displayedPreviewLoadableItemCount} currently displayed preview-capable card${
+                  displayedPreviewLoadableItemCount === 1 ? '' : 's'
+                } ready.`}
+          </p>
+        </div>
+        {showsEnvironmentItems ? (
+          <div className="CatalogEnvironmentToolbar" data-catalog-region="environment-toolbar">
+            <label className="CatalogShellCardActionButton CatalogEnvironmentBrowseButton">
+              Browse HDRI/EXR
+              <input
+                type="file"
+                accept=".hdr,.exr"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0] ?? null
+                  event.currentTarget.value = ''
+                  if (file !== null) {
+                    onBrowseLocalEnvironment(file)
+                  }
+                }}
+              />
+            </label>
+            <label className="CatalogEnvironmentToggle">
+              <input
+                type="checkbox"
+                checked={
+                  appliedEnvironmentSource.kind === 'hdri'
+                    ? appliedEnvironmentSource.backgroundVisible ?? true
+                    : true
+                }
+                disabled={appliedEnvironmentSource.kind !== 'hdri'}
+                onChange={(event) => onSetHdriBackgroundVisible(event.currentTarget.checked)}
+              />
+              Background
+            </label>
+            <label className="CatalogEnvironmentRange">
+              Intensity
+              <input
+                type="range"
+                min="0"
+                max="5"
+                step="0.1"
+                value={appliedEnvironmentSource.kind === 'hdri' ? appliedEnvironmentSource.intensity ?? 1 : 1}
+                disabled={appliedEnvironmentSource.kind !== 'hdri'}
+                onChange={(event) => onSetHdriIntensity(Number(event.currentTarget.value))}
+              />
+            </label>
+            <span className="CatalogEnvironmentActiveRead">
+              {appliedEnvironmentSource.kind === 'hdri'
+                ? `Applied: ${appliedEnvironmentSource.label}`
+                : 'No HDRI/EXR applied'}
+            </span>
+          </div>
+        ) : null}
       </div>
       <div className="CatalogShellCardGrid">
         {visibleItems.map((item) => {
@@ -98,7 +185,11 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
           const showAddToProjectAction =
             actionPlan.primaryAction.actionKind === 'add-to-project' &&
             isCatalogActionAvailable(actionPlan.primaryAction)
+          const showApplyEnvironmentAction =
+            actionPlan.primaryAction.actionKind === 'apply-environment' &&
+            isCatalogActionAvailable(actionPlan.primaryAction)
           const previewViewportSource = resolveCatalogRepoReferencePreviewSource(item)
+          const environmentPreviewSource = resolveCatalogRepoEnvironmentSource(item)
 
           return (
             <article
@@ -122,7 +213,24 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
                 }
               }}
             >
-              {isPreviewLoaded && previewViewportSource !== null ? (
+              {environmentPreviewSource !== null ? (
+                <div
+                  className="CatalogShellPreviewBox CatalogShellPreviewBox--environment"
+                  data-catalog-preview-box={item.itemId}
+                  data-catalog-hdri-preview={environmentPreviewSource.fileType}
+                >
+                  {previewMedia !== null ? (
+                    <img
+                      src={resolveCatalogPreviewMediaSrc(previewMedia.src)}
+                      alt={previewMedia.alt}
+                    />
+                  ) : null}
+                  <span className="CatalogEnvironmentPreviewCube" aria-hidden="true" />
+                  <span className="CatalogShellPreviewBoxCopy">
+                    HDRI preview scene
+                  </span>
+                </div>
+              ) : isPreviewLoaded && previewViewportSource !== null ? (
                 <div
                   className="CatalogShellPreviewBox CatalogShellPreviewBox--interactive isLoaded"
                   data-catalog-preview-box={item.itemId}
@@ -134,6 +242,24 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
                     fallbackPreviewMedia={previewMedia}
                   />
                 </div>
+              ) : !previewAllowed && previewMedia !== null ? (
+                <button
+                  type="button"
+                  className="CatalogShellPreviewBox"
+                  data-catalog-preview-box={item.itemId}
+                  disabled
+                >
+                  {previewMedia.mediaKind === 'image' ? (
+                    <img
+                      src={resolveCatalogPreviewMediaSrc(previewMedia.src)}
+                      alt={previewMedia.alt}
+                    />
+                  ) : (
+                    <video aria-label={previewMedia.alt} muted playsInline>
+                      <source src={resolveCatalogPreviewMediaSrc(previewMedia.src)} />
+                    </video>
+                  )}
+                </button>
               ) : (
                 <button
                   type="button"
@@ -175,7 +301,7 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
               <strong className="CatalogShellCardLabel">{item.label}</strong>
               <span className="CatalogShellCardDescription">{item.description}</span>
               <span className="CatalogShellCardMeta">
-                {resolveCatalogCardBrowseMeta(item)}
+                {resolveCatalogCardBrowseMeta(item, browseMode)}
               </span>
               <div className="CatalogShellCardActions">
                 {showAddToProjectAction ? (
@@ -189,6 +315,19 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
                     }}
                   >
                     Add To Project
+                  </button>
+                ) : null}
+                {showApplyEnvironmentAction ? (
+                  <button
+                    type="button"
+                    className="CatalogShellCardActionButton"
+                    data-catalog-card-action-kind="apply-environment"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onApplyEnvironment(item)
+                    }}
+                  >
+                    Apply Environment
                   </button>
                 ) : null}
                 <button

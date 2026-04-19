@@ -1,3 +1,6 @@
+import type { CatalogItemRecord } from './catalogItemContract'
+import { resolveCatalogActionPlan } from './catalogActionPlan'
+
 export type CatalogPreviewSessionState = {
   loadedItemIds: string[]
 }
@@ -70,6 +73,14 @@ export function unloadCatalogPreviewItem(
 
 export function unloadAllCatalogPreviewItems(): CatalogPreviewSessionState {
   return EMPTY_CATALOG_PREVIEW_SESSION
+}
+
+export function resolveCatalogDisplayedPreviewLoadTargetItemIds(
+  visibleItems: CatalogItemRecord[],
+): string[] {
+  return visibleItems
+    .filter((item) => resolveCatalogActionPlan(item).allowsTemporaryPreview)
+    .map((item) => item.itemId)
 }
 
 export function isCatalogPreviewLoaded(

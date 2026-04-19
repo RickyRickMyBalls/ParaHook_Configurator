@@ -202,6 +202,7 @@ export type WorkspaceViewToolbarTabKey =
   | 'gizmo'
   | 'view'
   | 'environment'
+  | 'shadows'
   | 'ground'
   | 'materials'
 

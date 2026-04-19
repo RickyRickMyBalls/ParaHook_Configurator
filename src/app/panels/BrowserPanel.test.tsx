@@ -1105,6 +1105,7 @@ const isMockExplicitSelectionTarget = (target: any): boolean =>
     'assembly',
     'component',
     'object',
+    'environment-light',
   ].includes(target.kind)
 
 const getMockSelectionTargetKey = (target: any): string => {
@@ -1121,6 +1122,8 @@ const getMockSelectionTargetKey = (target: any): string => {
       return `component:${target.componentId}`
     case 'object':
       return `object:${target.objectId}`
+    case 'environment-light':
+      return `environment-light:${target.lightId}`
     default:
       return `${target.kind}`
   }

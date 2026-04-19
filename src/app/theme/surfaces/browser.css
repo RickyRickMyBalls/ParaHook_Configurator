@@ -720,6 +720,15 @@
   box-shadow: none;
 }
 
+.V15Panel button.BrowserTreeRowMain.isEnvironmentRow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .V15Panel button.BrowserTreeRowMain.isPartRow {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -772,6 +781,7 @@
 
 .V15Panel button.BrowserTreeRowMain.isGraphRow:hover,
 .V15Panel button.BrowserTreeRowMain.isContentRow:hover,
+.V15Panel button.BrowserTreeRowMain.isEnvironmentRow:hover,
 .V15Panel button.BrowserTreeRowMain.isReferenceRow:hover,
 .V15Panel button.BrowserTreeRowMain.isGraphChildBuildRow:hover,
 .V15Panel button.BrowserTreeRowMain.isPartRow:hover,

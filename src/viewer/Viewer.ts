@@ -7,11 +7,14 @@ import {
   BufferGeometry,
   Clock,
   Color,
+  ConeGeometry,
   DoubleSide,
   DirectionalLight,
   EdgesGeometry,
+  EquirectangularReflectionMapping,
   Float32BufferAttribute,
   Group,
+  CircleGeometry,
   HemisphereLight,
   Light,
   Line,
@@ -33,14 +36,20 @@ import {
   Raycaster,
   Scene,
   SpotLight,
+  Texture,
   Vector2,
   Vector3,
   WebGLRenderer,
+  SphereGeometry,
+  WireframeGeometry,
 } from 'three'
 import type { TransformControlsMode } from 'three/examples/jsm/controls/TransformControls.js'
 import type { ViewerRenderablePart } from '../shared/buildTypes'
 import {
   DEFAULT_VIEW_SETTINGS,
+  DEFAULT_ENVIRONMENT_BACKGROUND,
+  getEnvironmentPresetDefinition,
+  type EnvironmentGradeSettings,
   type GroundMaterialPresetId,
   type LightSpec,
   type LightType,
@@ -157,8 +166,6 @@ type FlySession = {
 }
 const DEFAULT_FLY_ACTIVATION_MODE: FlyActivationMode = 'right-click'
 const DEFAULT_FLY_MODE_TYPE: FlyModeType = 'free-cam'
-const DEFAULT_BACKGROUND = '#0b0b0f'
-const STUDIO_BACKGROUND = '#151922'
 const ACTIVE_PART_SELECTION_OUTLINE = '#9ec3ff'
 const GRID_SIZE = 300
 const GRID_MINOR_STEP = 1
@@ -246,6 +253,9 @@ const createGridLayer = (
 
 const cloneViewSettings = (settings: ViewSettings): ViewSettings => ({
   ...settings,
+  environmentSource: {
+    ...settings.environmentSource,
+  },
   ground: {
     ...settings.ground,
   },
@@ -328,6 +338,53 @@ type DirectPartBackedReferenceLoadProvenance = {
   directPartSourceKind: DirectPartBackedReferenceLoadKind
   sourcePartKey: string
   sourceMeshIndex: number
+}
+
+type EnvironmentLightingRuntime =
+  | {
+      kind: 'preset'
+      intensity: number
+      rotationDeg: number
+    }
+  | {
+      kind: 'hdri'
+      assetPath: string
+      intensity: number
+      rotationDeg: number
+    }
+
+type EnvironmentBackgroundRuntime =
+  | {
+      kind: 'preset-color'
+      color: string
+    }
+  | {
+      kind: 'hdri'
+      assetPath: string
+      visible: boolean
+      fallbackColor: string
+      intensity: number
+      rotationDeg: number
+    }
+
+const resolveEnvironmentGradeCanvasFilter = (
+  grade: EnvironmentGradeSettings,
+): string => {
+  const brightness = clamp(
+    1 + (grade.highlights + grade.shadows) * 0.00125 + (grade.whites - grade.blacks) * 0.00075,
+    0.5,
+    1.5,
+  )
+  const contrast = clamp(
+    grade.contrast * (1 + (grade.whites - grade.blacks) * 0.001),
+    0,
+    3,
+  )
+  const saturation = clamp(grade.saturation, 0, 3)
+  const temperatureHue = clamp(grade.temperature * 0.22, -35, 35)
+  const tintHue = clamp(grade.tint * -0.16, -25, 25)
+
+  return `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) hue-rotate(${temperatureHue + tintHue}deg)`
 }
 
 type LoadedReferenceObject = {
@@ -445,6 +502,8 @@ export class Viewer {
   private activeReferenceTransformEntryOrigin: ReferenceTransformOverride | null = null
   private activeContentObjectTransformObjectId: string | null = null
   private activeContentObjectTransformEntryOrigin: ReferenceTransformOverride | null = null
+  private activeEnvironmentLightTransformLightId: string | null = null
+  private activeEnvironmentLightTransformEntryOrigin: ReferenceTransformOverride | null = null
   private cameraLockedReferenceId: string | null = null
   private cameraLockedReferenceCenter: Vector3 | null = null
   private cameraLockedReferenceMaxDim: number | null = null
@@ -599,8 +658,12 @@ export class Viewer {
   private gizmoMode: TransformControlsMode = 'translate'
   private readonly lightsById = new Map<string, Light>()
   private readonly lightTargetsById = new Map<string, Object3D>()
+  private readonly environmentLightHelpersById = new Map<string, Group>()
   private readonly materialCacheByPresetId = new Map<MaterialPresetId, MeshStandardMaterial>()
   private readonly assignedPresetByPartKey = new Map<string, MaterialPresetId>()
+  private environmentTexture: Texture | null = null
+  private environmentTextureSourcePath: string | null = null
+  private environmentLoadRequestId = 0
   private currentViewSettings: ViewSettings = cloneViewSettings(DEFAULT_VIEW_SETTINGS)
   private readonly resizeObserver: ResizeObserver
 
@@ -610,7 +673,7 @@ export class Viewer {
       this.container.style.position = 'relative'
     }
     this.scene = new Scene()
-    this.scene.background = new Color(DEFAULT_BACKGROUND)
+    this.scene.background = new Color(DEFAULT_ENVIRONMENT_BACKGROUND)
     this.clock = new Clock()
 
     this.perspectiveCamera = new PerspectiveCamera(60, 1, 0.1, 1000)
@@ -1072,12 +1135,13 @@ export class Viewer {
 
     this.renderer.shadowMap.enabled = settings.shadowsEnabled
     this.renderer.toneMapping =
-      settings.toneMapping === 'aces' ? ACESFilmicToneMapping : NoToneMapping
-    this.renderer.toneMappingExposure = settings.exposure
-
-    this.scene.background = new Color(
-      settings.envPreset === 'studio' ? STUDIO_BACKGROUND : DEFAULT_BACKGROUND,
+      settings.environmentGrade.toneMapping === 'aces' ? ACESFilmicToneMapping : NoToneMapping
+    this.renderer.toneMappingExposure = settings.environmentGrade.exposure
+    this.renderer.domElement.style.filter = resolveEnvironmentGradeCanvasFilter(
+      settings.environmentGrade,
     )
+
+    this.applyEnvironmentSource(settings)
 
     this.applyGroundSettings(settings.ground)
     this.setAxisOverlayEnabled(settings.axisOverlayEnabled)
@@ -1086,6 +1150,146 @@ export class Viewer {
     this.applyMaterialSettings(settings.materials)
     this.applyShadowFlags()
     this.refreshSelectionStyling()
+  }
+
+  private applyEnvironmentSource(settings: ViewSettings): void {
+    const lightingRuntime = this.resolveEnvironmentLightingRuntime(settings)
+    const backgroundRuntime = this.resolveEnvironmentBackgroundRuntime(settings)
+    const environmentScene = this.scene as Scene & {
+      environmentIntensity?: number
+      backgroundIntensity?: number
+    }
+    environmentScene.environmentIntensity = lightingRuntime.intensity
+    environmentScene.backgroundIntensity =
+      backgroundRuntime.kind === 'hdri' ? backgroundRuntime.intensity : 1
+    environmentScene.environmentRotation.y = MathUtils.degToRad(lightingRuntime.rotationDeg)
+    environmentScene.backgroundRotation.y =
+      backgroundRuntime.kind === 'hdri' ? MathUtils.degToRad(backgroundRuntime.rotationDeg) : 0
+
+    if (lightingRuntime.kind !== 'hdri') {
+      this.environmentLoadRequestId += 1
+      this.environmentTextureSourcePath = null
+      this.disposeEnvironmentTexture()
+      this.applyEnvironmentLightingContribution(null)
+      this.applyEnvironmentBackgroundTreatment(backgroundRuntime, null)
+      return
+    }
+
+    const assetPath = lightingRuntime.assetPath
+    if (this.environmentTextureSourcePath === assetPath && this.environmentTexture !== null) {
+      this.applyEnvironmentLightingContribution(this.environmentTexture)
+      this.applyEnvironmentBackgroundTreatment(backgroundRuntime, this.environmentTexture)
+      return
+    }
+
+    const requestId = ++this.environmentLoadRequestId
+    this.environmentTextureSourcePath = assetPath
+    this.applyEnvironmentBackgroundTreatment(backgroundRuntime, null)
+
+    void this.loadHdriTexture(assetPath)
+      .then((texture) => {
+        if (
+          requestId !== this.environmentLoadRequestId ||
+          this.currentViewSettings.environmentSource.assetPath !== assetPath ||
+          this.currentViewSettings.environmentSource.kind !== 'hdri'
+        ) {
+          texture.dispose()
+          return
+        }
+
+        this.disposeEnvironmentTexture()
+        texture.mapping = EquirectangularReflectionMapping
+        this.environmentTexture = texture
+        this.applyEnvironmentLightingContribution(texture)
+        this.applyEnvironmentBackgroundTreatment(
+          this.resolveEnvironmentBackgroundRuntime(this.currentViewSettings),
+          texture,
+        )
+      })
+      .catch(() => {
+        if (requestId !== this.environmentLoadRequestId) {
+          return
+        }
+        this.applyEnvironmentLightingContribution(null)
+      })
+  }
+
+  private resolveEnvironmentLightingRuntime(settings: ViewSettings): EnvironmentLightingRuntime {
+    const assetPath = settings.environmentSource.assetPath?.trim() ?? ''
+    if (settings.environmentSource.kind === 'hdri' && assetPath.length > 0) {
+      return {
+        kind: 'hdri',
+        assetPath,
+        intensity: settings.environmentSource.intensity ?? 1,
+        rotationDeg: settings.environmentSource.rotationDeg ?? 0,
+      }
+    }
+
+    return {
+      kind: 'preset',
+      intensity: 1,
+      rotationDeg: 0,
+    }
+  }
+
+  private resolveEnvironmentBackgroundRuntime(settings: ViewSettings): EnvironmentBackgroundRuntime {
+    const assetPath = settings.environmentSource.assetPath?.trim() ?? ''
+    if (settings.environmentSource.kind === 'hdri' && assetPath.length > 0) {
+      return {
+        kind: 'hdri',
+        assetPath,
+        visible: settings.environmentSource.backgroundVisible ?? true,
+        fallbackColor: DEFAULT_ENVIRONMENT_BACKGROUND,
+        intensity:
+          settings.environmentSource.backgroundIntensity ??
+          settings.environmentSource.intensity ??
+          1,
+        rotationDeg: settings.environmentSource.rotationDeg ?? 0,
+      }
+    }
+
+    return {
+      kind: 'preset-color',
+      color: getEnvironmentPresetDefinition(settings.envPreset).background,
+    }
+  }
+
+  private applyEnvironmentLightingContribution(texture: Texture | null): void {
+    this.scene.environment = texture
+  }
+
+  private applyEnvironmentBackgroundTreatment(
+    runtime: EnvironmentBackgroundRuntime,
+    texture: Texture | null,
+  ): void {
+    if (runtime.kind === 'preset-color') {
+      this.scene.background = new Color(runtime.color)
+      return
+    }
+
+    if (!runtime.visible) {
+      this.scene.background = null
+      return
+    }
+
+    this.scene.background = texture ?? new Color(runtime.fallbackColor)
+  }
+
+  private async loadHdriTexture(assetPath: string): Promise<Texture> {
+    if (assetPath.toLowerCase().endsWith('.exr')) {
+      const { EXRLoader } = await import('three/examples/jsm/loaders/EXRLoader.js')
+      return new EXRLoader().loadAsync(assetPath)
+    }
+
+    const { RGBELoader } = await import('three/examples/jsm/loaders/RGBELoader.js')
+    return new RGBELoader().loadAsync(assetPath)
+  }
+
+  private disposeEnvironmentTexture(): void {
+    if (this.environmentTexture !== null) {
+      this.environmentTexture.dispose()
+      this.environmentTexture = null
+    }
   }
 
   public setProjectionMode(mode: ProjectionMode): void {
@@ -1346,6 +1550,8 @@ export class Viewer {
     if (session !== null) {
       this.activeContentObjectTransformObjectId = null
       this.activeContentObjectTransformEntryOrigin = null
+      this.activeEnvironmentLightTransformLightId = null
+      this.activeEnvironmentLightTransformEntryOrigin = null
     }
     this.lastReferenceTransformMoveSnapHandle = null
     this.activeReferenceTransformRotatePreviewBasis = null
@@ -1394,6 +1600,8 @@ export class Viewer {
     if (session !== null) {
       this.activeReferenceTransformReferenceId = null
       this.activeReferenceTransformEntryOrigin = null
+      this.activeEnvironmentLightTransformLightId = null
+      this.activeEnvironmentLightTransformEntryOrigin = null
       this.lastReferenceTransformMoveSnapHandle = null
       this.activeReferenceTransformRotatePreviewBasis = null
       this.activeReferenceTransformRotatePreviewRingRadius = null
@@ -1410,15 +1618,54 @@ export class Viewer {
     this.syncReferenceTransformRotateSnapPreviewOverlay()
   }
 
+  public setEnvironmentLightTransformSession(
+    session: {
+      lightId: string
+      mode: TransformControlsMode
+      space: GizmoSpace
+      entryOrigin: ReferenceTransformOverride | null
+    } | null,
+  ): void {
+    this.activeEnvironmentLightTransformLightId = session?.lightId ?? null
+    this.activeEnvironmentLightTransformEntryOrigin = session?.entryOrigin ?? null
+    if (session !== null) {
+      this.activeReferenceTransformReferenceId = null
+      this.activeReferenceTransformEntryOrigin = null
+      this.activeContentObjectTransformObjectId = null
+      this.activeContentObjectTransformEntryOrigin = null
+      this.lastReferenceTransformMoveSnapHandle = null
+      this.activeReferenceTransformRotatePreviewBasis = null
+      this.activeReferenceTransformRotatePreviewRingRadius = null
+      this.gizmoMode = session.mode
+      this.gizmoSpace = session.space
+      this.transformGizmo.setMode(session.mode)
+      this.transformGizmo.setSpace(session.space)
+    }
+    this.syncGizmoEnabledState()
+    this.refreshGizmoAttachment()
+    this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+    this.syncReferenceTransformRotateSnapPreviewOverlay()
+  }
+
   public setViewerTransformSession(session: ViewerTransformSession | null): void {
     if (session === null) {
       this.setReferenceTransformSession(null)
       this.setContentObjectTransformSession(null)
+      this.setEnvironmentLightTransformSession(null)
       return
     }
     if (session.targetKind === 'reference') {
       this.setReferenceTransformSession({
         referenceId: session.targetId,
+        mode: session.mode,
+        space: session.space,
+        entryOrigin: session.entryOrigin,
+      })
+      return
+    }
+    if (session.targetKind === 'environment-light') {
+      this.setEnvironmentLightTransformSession({
+        lightId: session.targetId,
         mode: session.mode,
         space: session.space,
         entryOrigin: session.entryOrigin,
@@ -1922,6 +2169,22 @@ export class Viewer {
     })
   }
 
+  public frameEnvironmentLight(lightId: string, options?: FrameTargetOptions): boolean {
+    const helper = this.environmentLightHelpersById.get(lightId)
+    if (helper === undefined) {
+      return false
+    }
+    this.rememberCameraPose()
+    this.cameraController.frameObject(helper, options)
+    appendConsoleEntry({
+      layer: 'View',
+      text: `Zoom environment light: ${lightId}`,
+      source: 'viewer',
+      severity: 'info',
+    })
+    return true
+  }
+
   public frameSelectionSet(partIds: string[], referenceIds: string[]): boolean {
     const bounds = new Box3()
     let hasTarget = false
@@ -2010,7 +2273,8 @@ export class Viewer {
   public commitReferenceTransformSession(): void {
     if (
       this.activeReferenceTransformReferenceId === null &&
-      this.activeContentObjectTransformObjectId === null
+      this.activeContentObjectTransformObjectId === null &&
+      this.activeEnvironmentLightTransformLightId === null
     ) {
       return
     }
@@ -2020,6 +2284,10 @@ export class Viewer {
     }
     if (this.activeContentObjectTransformObjectId !== null) {
       this.requestContentObjectTransformCommit()
+      return
+    }
+    if (this.activeEnvironmentLightTransformLightId !== null) {
+      this.requestEnvironmentLightTransformCommit()
       return
     }
     this.requestReferenceTransformCommit()
@@ -2359,6 +2627,7 @@ export class Viewer {
       this.middleClickTracker === null &&
       this.activeReferenceTransformReferenceId === null &&
       this.activeContentObjectTransformObjectId === null &&
+      this.activeEnvironmentLightTransformLightId === null &&
       !this.transformGizmo.isDragging() &&
       !this.isWorkspaceSelectionViewportGizmoHit(event.clientX, event.clientY)
     )
@@ -2816,6 +3085,7 @@ export class Viewer {
     for (const spec of lightSpecs) {
       let light = this.lightsById.get(spec.id)
       let targetObject = this.lightTargetsById.get(spec.id) ?? null
+      let helper = this.environmentLightHelpersById.get(spec.id) ?? null
 
       if (light !== undefined) {
         const currentType = toLightType(light)
@@ -2823,6 +3093,7 @@ export class Viewer {
           this.removeLight(spec.id)
           light = undefined
           targetObject = null
+          helper = null
         }
       }
 
@@ -2838,7 +3109,22 @@ export class Viewer {
         }
       }
 
+      if (helper !== null) {
+        const currentType = helper.userData.environmentLightType
+        if (currentType !== spec.type) {
+          this.removeEnvironmentLightHelper(spec.id)
+          helper = null
+        }
+      }
+
+      if (helper === null) {
+        helper = this.createEnvironmentLightHelperFromSpec(spec)
+        this.environmentLightHelpersById.set(spec.id, helper)
+        this.scene.add(helper)
+      }
+
       this.applySpecToLight(light, targetObject, spec)
+      this.applySpecToEnvironmentLightHelper(helper, spec)
     }
   }
 
@@ -2938,6 +3224,133 @@ export class Viewer {
         light.shadow.map = null
       }
     }
+  }
+
+  private createEnvironmentLightHelperFromSpec(spec: LightSpec): Group {
+    const helper = new Group()
+    helper.name = `${spec.name}:environment-light-helper`
+    helper.userData.environmentLightId = spec.id
+    helper.userData.environmentLightType = spec.type
+
+    const material = new LineBasicMaterial({
+      color: spec.color,
+      transparent: true,
+      opacity: 0.7,
+      toneMapped: false,
+      depthTest: false,
+      depthWrite: false,
+    })
+
+    if (spec.type === 'point') {
+      helper.add(
+        new LineSegments(new WireframeGeometry(new SphereGeometry(0.34, 8, 6)), material),
+      )
+      return helper
+    }
+
+    if (spec.type === 'spot') {
+      const cone = new LineSegments(
+        new WireframeGeometry(new ConeGeometry(0.3, 0.8, 12, 1, true)),
+        material,
+      )
+      cone.position.y = 0.4
+      helper.add(cone)
+      helper.add(
+        new Line(
+          new BufferGeometry().setFromPoints([
+            new Vector3(0, 0, 0),
+            new Vector3(0, 0.9, 0),
+          ]),
+          material,
+        ),
+      )
+      return helper
+    }
+
+    if (spec.type === 'directional') {
+      const disc = new LineSegments(new WireframeGeometry(new CircleGeometry(0.36, 16)), material)
+      disc.rotation.x = Math.PI / 2
+      helper.add(disc)
+      helper.add(
+        new Line(
+          new BufferGeometry().setFromPoints([
+            new Vector3(0, 0, 0),
+            new Vector3(0, 0.86, 0),
+          ]),
+          material,
+        ),
+      )
+      helper.add(
+        new LineSegments(new WireframeGeometry(new SphereGeometry(0.06, 6, 4)), material),
+      )
+      return helper
+    }
+
+    if (spec.type === 'hemisphere') {
+      helper.add(
+        new LineSegments(
+          new WireframeGeometry(new SphereGeometry(0.38, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2)),
+          material,
+        ),
+      )
+      return helper
+    }
+
+    helper.add(
+      new LineSegments(new WireframeGeometry(new SphereGeometry(0.18, 6, 4)), material),
+    )
+    return helper
+  }
+
+  private applySpecToEnvironmentLightHelper(helper: Group, spec: LightSpec): void {
+    helper.name = `${spec.name}:environment-light-helper`
+    helper.userData.environmentLightId = spec.id
+    helper.userData.environmentLightType = spec.type
+    helper.visible = true
+    helper.position.set(0, 0, 0)
+    helper.quaternion.identity()
+    helper.scale.setScalar(spec.id === this.currentViewSettings.lighting.selectedLightId ? 1.12 : 1)
+
+    if (supportsPosition(spec.type)) {
+      const position = spec.position ?? { x: 0, y: 5, z: 0 }
+      helper.position.set(position.x, position.y, position.z)
+    }
+
+    if (supportsTarget(spec.type)) {
+      const position = spec.position ?? { x: 0, y: 5, z: 0 }
+      const target = spec.target ?? { x: 0, y: 0, z: 0 }
+      const direction = new Vector3(
+        target.x - position.x,
+        target.y - position.y,
+        target.z - position.z,
+      )
+      if (direction.lengthSq() < 1e-6) {
+        direction.set(0, -1, 0)
+      } else {
+        direction.normalize()
+      }
+      helper.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction)
+    }
+
+    const isSelected = spec.id === this.currentViewSettings.lighting.selectedLightId
+    const opacity = spec.enabled ? (isSelected ? 1 : 0.72) : 0.3
+
+    helper.traverse((child) => {
+      if (!(child instanceof Line)) {
+        return
+      }
+      const material = child.material
+      if (Array.isArray(material)) {
+        return
+      }
+      material.color.set(spec.color)
+      material.opacity = opacity
+      material.transparent = true
+      material.depthTest = false
+      material.depthWrite = false
+      material.toneMapped = false
+      material.needsUpdate = true
+    })
   }
 
   private applyMaterialSettings(materials: ViewSettings['materials']): void {
@@ -3112,6 +3525,29 @@ export class Viewer {
       this.scene.remove(target)
       this.lightTargetsById.delete(id)
     }
+
+    this.removeEnvironmentLightHelper(id)
+  }
+
+  private removeEnvironmentLightHelper(id: string): void {
+    const helper = this.environmentLightHelpersById.get(id)
+    if (helper === undefined) {
+      return
+    }
+    this.scene.remove(helper)
+    helper.traverse((child) => {
+      if (!(child instanceof Line)) {
+        return
+      }
+      child.geometry.dispose()
+      const material = child.material
+      if (Array.isArray(material)) {
+        material.forEach((entry) => entry.dispose())
+        return
+      }
+      material.dispose()
+    })
+    this.environmentLightHelpersById.delete(id)
   }
 
   private clearAllLights(): void {
@@ -3618,6 +4054,16 @@ export class Viewer {
       return
     }
 
+    if (this.activeEnvironmentLightTransformLightId !== null) {
+      const helper = this.environmentLightHelpersById.get(this.activeEnvironmentLightTransformLightId)
+      if (helper === undefined || !helper.visible) {
+        this.transformGizmo.detach()
+        return
+      }
+      this.transformGizmo.attach(helper)
+      return
+    }
+
     if (this.sketchPlanePickOverlay?.stage === 'adjust') {
       this.transformGizmo.setMode(this.sketchPlanePickOverlay.gizmoMode)
       this.transformGizmo.setSpace('world')
@@ -3645,6 +4091,7 @@ export class Viewer {
       this.gizmoEnabled ||
         this.activeReferenceTransformReferenceId !== null ||
         this.activeContentObjectTransformObjectId !== null ||
+        this.activeEnvironmentLightTransformLightId !== null ||
         this.sketchPlanePickOverlay?.stage === 'adjust',
     )
   }
@@ -3657,7 +4104,9 @@ export class Viewer {
     const referenceObject =
       this.viewerTransformHistoryOverlay.target.kind === 'reference'
         ? this.referenceObjects.get(this.viewerTransformHistoryOverlay.target.referenceId) ?? null
-        : this.contentObjectPivots.get(this.viewerTransformHistoryOverlay.target.objectId) ?? null
+        : this.viewerTransformHistoryOverlay.target.kind === 'content-object'
+          ? this.contentObjectPivots.get(this.viewerTransformHistoryOverlay.target.objectId) ?? null
+          : this.environmentLightHelpersById.get(this.viewerTransformHistoryOverlay.target.lightId) ?? null
     this.referenceTransformHistoryHelper.setOverlay(
       this.viewerTransformHistoryOverlay,
       referenceObject,
@@ -3671,6 +4120,9 @@ export class Viewer {
     if (this.activeContentObjectTransformObjectId !== null) {
       return this.contentObjectPivots.get(this.activeContentObjectTransformObjectId) ?? null
     }
+    if (this.activeEnvironmentLightTransformLightId !== null) {
+      return this.environmentLightHelpersById.get(this.activeEnvironmentLightTransformLightId) ?? null
+    }
     return null
   }
 
@@ -3680,6 +4132,9 @@ export class Viewer {
     }
     if (this.activeContentObjectTransformObjectId !== null) {
       return this.activeContentObjectTransformEntryOrigin
+    }
+    if (this.activeEnvironmentLightTransformLightId !== null) {
+      return this.activeEnvironmentLightTransformEntryOrigin
     }
     return null
   }
@@ -3931,6 +4386,15 @@ export class Viewer {
     this.refreshGizmoAttachment()
   }
 
+  private requestEnvironmentLightTransformCommit(): void {
+    if (this.activeEnvironmentLightTransformLightId === null) {
+      return
+    }
+    this.onViewerTransformCommit?.()
+    this.transformGizmo.clearActiveHandle()
+    this.refreshGizmoAttachment()
+  }
+
   private applyReferenceTransformSnapToOverride(
     object: Object3D,
     transformOverride: ReferenceTransformOverride,
@@ -4070,6 +4534,11 @@ export class Viewer {
     if (this.activeContentObjectTransformObjectId !== null) {
       this.onContentObjectTransformHandleChange?.(handle)
       this.onViewerTransformHandleChange?.(handle)
+      return
+    }
+    if (this.activeEnvironmentLightTransformLightId !== null) {
+      const environmentHandle = handle?.mode === 'translate' ? handle : null
+      this.onViewerTransformHandleChange?.(environmentHandle)
     }
   }
 
@@ -4137,6 +4606,25 @@ export class Viewer {
       this.syncReferenceTransformRotateSnapPreviewOverlay()
       return
     }
+    if (
+      this.activeEnvironmentLightTransformLightId !== null &&
+      this.environmentLightHelpersById.get(this.activeEnvironmentLightTransformLightId) === object
+    ) {
+      const snappedOverride = this.applyReferenceTransformSnapToOverride(
+        object,
+        this.readReferenceTransformOverride(object),
+      )
+      this.onViewerTransformChange?.(
+        {
+          kind: 'environment-light',
+          lightId: this.activeEnvironmentLightTransformLightId,
+        },
+        snappedOverride,
+      )
+      this.syncReferenceTransformMoveSnapAvailabilityOverlay()
+      this.syncReferenceTransformRotateSnapPreviewOverlay()
+      return
+    }
     this.handleSketchPlanePickTransformObjectChange(object)
   }
 
@@ -4153,6 +4641,13 @@ export class Viewer {
       this.contentObjectPivots.get(this.activeContentObjectTransformObjectId) === object
     ) {
       this.requestContentObjectTransformCommit()
+      return
+    }
+    if (
+      this.activeEnvironmentLightTransformLightId !== null &&
+      this.environmentLightHelpersById.get(this.activeEnvironmentLightTransformLightId) === object
+    ) {
+      this.requestEnvironmentLightTransformCommit()
       return
     }
     this.handleSketchPlanePickTransformDragComplete(object)
@@ -4422,6 +4917,18 @@ export class Viewer {
 
   private collectWorkspaceSelectionCandidates(): WorkspaceSelectionCandidate[] {
     const candidates: WorkspaceSelectionCandidate[] = []
+    for (const [lightId, helper] of this.environmentLightHelpersById.entries()) {
+      if (!isObjectWorldVisible(helper)) {
+        continue
+      }
+      candidates.push({
+        pick: {
+          kind: 'environment-light',
+          lightId,
+        },
+        object: helper,
+      })
+    }
     for (const [referenceId, object] of this.referenceObjects.entries()) {
       if (!isObjectWorldVisible(object)) {
         continue
@@ -4470,6 +4977,13 @@ export class Viewer {
     for (const intersection of intersections) {
       let current: Object3D | null = intersection.object
       while (current !== null) {
+        const environmentLightId = current.userData.environmentLightId
+        if (typeof environmentLightId === 'string' && environmentLightId.length > 0) {
+          return {
+            kind: 'environment-light',
+            lightId: environmentLightId,
+          }
+        }
         const referenceId = current.userData.referenceId
         if (typeof referenceId === 'string' && referenceId.length > 0) {
           return {
@@ -5094,7 +5608,10 @@ export class Viewer {
       event,
       viewerFlyActive: this.flySession !== null,
       geometrySketchMode: this.geometrySketchOverlay?.mode ?? null,
-      referenceTransformActive: this.activeReferenceTransformReferenceId !== null,
+      referenceTransformActive:
+        this.activeReferenceTransformReferenceId !== null ||
+        this.activeContentObjectTransformObjectId !== null ||
+        this.activeEnvironmentLightTransformLightId !== null,
     })
 
     if (routing.owner === 'viewer-fly' && this.flySession !== null) {
@@ -5147,10 +5664,15 @@ export class Viewer {
       } else if (this.activeContentObjectTransformObjectId !== null) {
         this.onContentObjectTransformModeChange?.('translate')
         this.onViewerTransformModeChange?.('translate')
+      } else if (this.activeEnvironmentLightTransformLightId !== null) {
+        this.onViewerTransformModeChange?.('translate')
       }
       return
     }
     if (key === 'e') {
+      if (this.activeEnvironmentLightTransformLightId !== null) {
+        return
+      }
       event.preventDefault()
       this.setGizmoMode('rotate')
       if (this.activeReferenceTransformReferenceId !== null) {
@@ -5163,6 +5685,9 @@ export class Viewer {
       return
     }
     if (key === 'r') {
+      if (this.activeEnvironmentLightTransformLightId !== null) {
+        return
+      }
       event.preventDefault()
       this.setGizmoMode('scale')
       if (this.activeReferenceTransformReferenceId !== null) {
@@ -5183,6 +5708,8 @@ export class Viewer {
         this.onViewerTransformSpaceChange?.(nextSpace)
       } else if (this.activeContentObjectTransformObjectId !== null) {
         this.onContentObjectTransformSpaceChange?.(nextSpace)
+        this.onViewerTransformSpaceChange?.(nextSpace)
+      } else if (this.activeEnvironmentLightTransformLightId !== null) {
         this.onViewerTransformSpaceChange?.(nextSpace)
       }
       return

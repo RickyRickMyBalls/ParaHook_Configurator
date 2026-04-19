@@ -540,6 +540,17 @@ const areConsoleStagedNavigationSessionsEqual = (
     left.selections.graphDocumentId === right.selections.graphDocumentId &&
     left.selections.selectedNodeId === right.selections.selectedNodeId &&
     left.selections.sketchNodeId === right.selections.sketchNodeId &&
+    left.selections.contentAssemblyId === right.selections.contentAssemblyId &&
+    left.selections.contentComponentId === right.selections.contentComponentId &&
+    left.selections.contentObjectId === right.selections.contentObjectId &&
+    left.selections.environmentLightId === right.selections.environmentLightId &&
+    left.selections.contentCanHide === right.selections.contentCanHide &&
+    left.selections.contentCanShow === right.selections.contentCanShow &&
+    (left.selections.contentVisibilityPartKeys ?? []).length ===
+      (right.selections.contentVisibilityPartKeys ?? []).length &&
+    (left.selections.contentVisibilityPartKeys ?? []).every(
+      (partKey, index) => partKey === (right.selections.contentVisibilityPartKeys ?? [])[index],
+    ) &&
     (left.selections.referenceId ?? null) === (right.selections.referenceId ?? null) &&
     (left.selections.referenceCategoryId ?? null) ===
       (right.selections.referenceCategoryId ?? null)

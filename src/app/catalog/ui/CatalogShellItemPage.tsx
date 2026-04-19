@@ -1,6 +1,8 @@
+import type { EnvironmentSourceSettings } from '../../../shared/viewSettingsTypes'
 import type { CatalogItemRecord } from '../catalogItemContract'
 import {
   getCatalogItemPrimaryPreviewMedia,
+  resolveCatalogRepoEnvironmentSource,
   resolveCatalogRepoReferencePreviewSource,
   resolveCatalogPreviewMediaSrc,
 } from '../catalogItemContract'
@@ -22,6 +24,10 @@ type CatalogShellItemPageProps = {
   onLoadPreview: () => void
   onAddToProject: () => void
   onApplyEnvironment: () => void
+  onBrowseLocalEnvironment: (file: File) => void
+  appliedEnvironmentSource: EnvironmentSourceSettings
+  onSetHdriBackgroundVisible: (visible: boolean) => void
+  onSetHdriIntensity: (intensity: number) => void
   onBackToCatalog: () => void
 }
 
@@ -33,6 +39,10 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
     onLoadPreview,
     onAddToProject,
     onApplyEnvironment,
+    onBrowseLocalEnvironment,
+    appliedEnvironmentSource,
+    onSetHdriBackgroundVisible,
+    onSetHdriIntensity,
     onBackToCatalog,
   } = props
   const selectedItemPreviewMedia = getCatalogItemPrimaryPreviewMedia(item)
@@ -40,6 +50,7 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
   const familyLabel = resolveCatalogItemPageFamilyLabel(item)
   const familySummary = resolveCatalogItemPageFamilySummary(item)
   const previewViewportSource = resolveCatalogRepoReferencePreviewSource(item)
+  const environmentPreviewSource = resolveCatalogRepoEnvironmentSource(item)
   const canClickPreviewSurfaceToLoad = !isPreviewLoaded && actionPlan.allowsTemporaryPreview
   const itemPageActions = [actionPlan.primaryAction, actionPlan.secondaryAction].filter(
     (action): action is NonNullable<typeof action> => action !== null,
@@ -80,6 +91,23 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           </span>
         ))}
       </div>
+      {(item.metadata?.length ?? 0) > 0 ? (
+        <dl className="CatalogShellDetailMetadata">
+          {(item.metadata ?? []).map((entry) => (
+            <div key={`${item.itemId}:${entry.label}`} className="CatalogShellDetailMetadataRow">
+              <dt>{entry.label}</dt>
+              <dd>{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {(item.notes?.length ?? 0) > 0 ? (
+        <ul className="CatalogShellDetailNotes">
+          {(item.notes ?? []).map((note) => (
+            <li key={`${item.itemId}:${note}`}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
       {canClickPreviewSurfaceToLoad ? (
         <button
           type="button"
@@ -93,7 +121,23 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
         </button>
       ) : (
         <div className={`CatalogShellItemPreviewSurface ${isPreviewLoaded ? 'isLoaded' : ''}`}>
-          {isPreviewLoaded && previewViewportSource !== null ? (
+          {environmentPreviewSource !== null ? (
+            <div
+              className="CatalogEnvironmentItemPreview"
+              data-catalog-hdri-preview={environmentPreviewSource.fileType}
+            >
+              {selectedItemPreviewMedia !== null ? (
+                <img
+                  src={resolveCatalogPreviewMediaSrc(selectedItemPreviewMedia.src)}
+                  alt={selectedItemPreviewMedia.alt}
+                />
+              ) : null}
+              <span className="CatalogEnvironmentPreviewCube" aria-hidden="true" />
+              <span className="CatalogShellItemPreviewSurfaceCopy">
+                Simple applied-environment preview for {item.label}.
+              </span>
+            </div>
+          ) : isPreviewLoaded && previewViewportSource !== null ? (
             <CatalogCardPreviewViewport
               itemId={item.itemId}
               itemLabel={item.label}
@@ -102,6 +146,17 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
               surfaceKind="item-page"
             />
           ) : isPreviewLoaded && selectedItemPreviewMedia !== null ? (
+            selectedItemPreviewMedia.mediaKind === 'image' ? (
+              <img
+                src={resolveCatalogPreviewMediaSrc(selectedItemPreviewMedia.src)}
+                alt={selectedItemPreviewMedia.alt}
+              />
+            ) : (
+              <video aria-label={selectedItemPreviewMedia.alt} muted playsInline>
+                <source src={resolveCatalogPreviewMediaSrc(selectedItemPreviewMedia.src)} />
+              </video>
+            )
+          ) : !actionPlan.allowsTemporaryPreview && selectedItemPreviewMedia !== null ? (
             selectedItemPreviewMedia.mediaKind === 'image' ? (
               <img
                 src={resolveCatalogPreviewMediaSrc(selectedItemPreviewMedia.src)}
@@ -133,6 +188,14 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
             : 'This entry applies through the shared viewer environment owner instead of the temporary Catalog preview session.'}
         </span>
       </div>
+      {(item.projectUsageCount ?? 0) > 0 ? (
+        <div className="CatalogShellPreviewNotice">
+          <strong>Remembered project use.</strong>
+          <span>
+            {item.projectUsageCount} imported project cop{item.projectUsageCount === 1 ? 'y' : 'ies'} currently trace back to this curated Catalog item.
+          </span>
+        </div>
+      ) : null}
       <div className="CatalogShellSourcePath">{item.source.assetPath}</div>
       <div className="CatalogShellActionArea" data-catalog-region="actions">
         <div className="CatalogShellActionCopy">
@@ -149,6 +212,22 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           ) : null}
         </div>
         <div className="CatalogShellActionButtons">
+          {item.assetKind === 'environment' ? (
+            <label className="CatalogShellActionUploadButton">
+              Browse HDRI/EXR
+              <input
+                type="file"
+                accept=".hdr,.exr"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0] ?? null
+                  event.currentTarget.value = ''
+                  if (file !== null) {
+                    onBrowseLocalEnvironment(file)
+                  }
+                }}
+              />
+            </label>
+          ) : null}
           {itemPageActions.map((action) => (
             <button
               key={`${item.itemId}:${action.actionKind}`}
@@ -172,6 +251,43 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           ))}
         </div>
       </div>
+      {item.assetKind === 'environment' ? (
+        <div className="CatalogEnvironmentControls" data-catalog-region="environment-controls">
+          <div>
+            <p className="CatalogShellRegionEyebrow">Applied HDRI/EXR</p>
+            <strong>
+              {appliedEnvironmentSource.kind === 'hdri'
+                ? appliedEnvironmentSource.label
+                : 'No HDRI/EXR applied'}
+            </strong>
+          </div>
+          <label className="CatalogEnvironmentToggle">
+            <input
+              type="checkbox"
+              checked={
+                appliedEnvironmentSource.kind === 'hdri'
+                  ? appliedEnvironmentSource.backgroundVisible ?? true
+                  : true
+              }
+              disabled={appliedEnvironmentSource.kind !== 'hdri'}
+              onChange={(event) => onSetHdriBackgroundVisible(event.currentTarget.checked)}
+            />
+            Background visible
+          </label>
+          <label className="CatalogEnvironmentRange">
+            Intensity
+            <input
+              type="range"
+              min="0"
+              max="5"
+              step="0.1"
+              value={appliedEnvironmentSource.kind === 'hdri' ? appliedEnvironmentSource.intensity ?? 1 : 1}
+              disabled={appliedEnvironmentSource.kind !== 'hdri'}
+              onChange={(event) => onSetHdriIntensity(Number(event.currentTarget.value))}
+            />
+          </label>
+        </div>
+      ) : null}
     </div>
   )
 }

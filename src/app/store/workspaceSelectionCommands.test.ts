@@ -3,7 +3,9 @@ import {
   clearWorkspaceTargetSelection,
   commitWorkspaceExplicitSelection,
   commitWorkspaceTargetSelection,
+  deleteWorkspaceSelectedEnvironmentLight,
 } from './workspaceSelectionCommands'
+import { useUiPrefsStore } from './uiPrefsStore'
 
 describe('workspaceSelectionCommands', () => {
   it('commits a single workspace target through one shared selection outcome seam', () => {
@@ -130,5 +132,109 @@ describe('workspaceSelectionCommands', () => {
       selectedTarget: null,
     })
     expect(requestConsoleContextSync).toHaveBeenCalledWith('surface-clear')
+  })
+
+  it('deletes a selected environment light through the shared selection path', () => {
+    const setWorkspaceSelectedTarget = vi.fn()
+    const selectLight = vi.fn()
+    const setActiveSurface = vi.fn()
+    const requestConsoleContextSync = vi.fn()
+    const requestConsoleWorkspaceContextHandoff = vi.fn()
+    const deleteLight = vi.fn()
+    const getStateSpy = vi.spyOn(useUiPrefsStore, 'getState').mockReturnValue({
+      view: {
+        lighting: {
+          lights: [
+            { id: 'light-a' },
+            { id: 'light-b' },
+          ],
+          selectedLightId: 'light-b',
+        },
+      },
+    } as any)
+
+    deleteWorkspaceSelectedEnvironmentLight(
+      {
+        setWorkspaceSelectedTarget,
+        selectLight,
+        setActiveSurface,
+        requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
+        deleteLight,
+      },
+      {
+        kind: 'environment-light',
+        lightId: 'light-a',
+      },
+      {
+        activeSurface: 'browser',
+      },
+    )
+
+    expect(deleteLight).toHaveBeenCalledWith('light-a')
+    expect(setWorkspaceSelectedTarget).toHaveBeenCalledWith({
+      kind: 'environment-light',
+      lightId: 'light-b',
+    })
+    expect(selectLight).toHaveBeenCalledWith('light-b')
+    expect(setActiveSurface).toHaveBeenCalledWith('browser')
+    expect(requestConsoleWorkspaceContextHandoff).toHaveBeenCalledWith({
+      sourceSurface: 'browser',
+      mode: 'selection',
+      graphDocumentId: null,
+      nodeId: null,
+      editorViewportId: null,
+      selectedTarget: {
+        kind: 'environment-light',
+        lightId: 'light-b',
+      },
+    })
+    expect(requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+
+    getStateSpy.mockRestore()
+  })
+
+  it('clears shared selection after deleting the last selected environment light', () => {
+    const setWorkspaceSelectedTarget = vi.fn()
+    const selectLight = vi.fn()
+    const requestConsoleContextSync = vi.fn()
+    const requestConsoleWorkspaceContextHandoff = vi.fn()
+    const deleteLight = vi.fn()
+    const getStateSpy = vi.spyOn(useUiPrefsStore, 'getState').mockReturnValue({
+      view: {
+        lighting: {
+          lights: [{ id: 'light-a' }],
+          selectedLightId: null,
+        },
+      },
+    } as any)
+
+    const result = deleteWorkspaceSelectedEnvironmentLight(
+      {
+        setWorkspaceSelectedTarget,
+        selectLight,
+        requestConsoleContextSync,
+        requestConsoleWorkspaceContextHandoff,
+        deleteLight,
+      },
+      {
+        kind: 'environment-light',
+        lightId: 'light-a',
+      },
+    )
+
+    expect(result).toEqual({
+      deletedTarget: {
+        kind: 'environment-light',
+        lightId: 'light-a',
+      },
+      nextSelectedTarget: null,
+    })
+    expect(deleteLight).toHaveBeenCalledWith('light-a')
+    expect(setWorkspaceSelectedTarget).toHaveBeenCalledWith(null)
+    expect(selectLight).toHaveBeenCalledWith(null)
+    expect(requestConsoleContextSync).toHaveBeenCalledWith('target-selection')
+
+    getStateSpy.mockRestore()
   })
 })

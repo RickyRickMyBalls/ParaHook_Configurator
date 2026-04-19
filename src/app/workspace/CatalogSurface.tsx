@@ -29,7 +29,14 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
   const { slotId, surfaceInstanceId, hostMode = 'slotted' } = props
   const addImportedReference = useAppStore((state) => state.addImportedReference)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
-  const setViewKey = useUiPrefsStore((state) => state.setViewKey)
+  const environmentSource = useUiPrefsStore((state) => state.view.environmentSource)
+  const applyHdriEnvironment = useUiPrefsStore((state) => state.applyHdriEnvironment)
+  const setHdriEnvironmentBackgroundVisible = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentBackgroundVisible,
+  )
+  const setHdriEnvironmentIntensity = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentIntensity,
+  )
   const catalogSnapshot = useMemo(
     () =>
       createCatalogSourceSnapshot(
@@ -75,6 +82,8 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
     }
 
     addImportedReference({
+      catalogItemId: commitRequest.catalogItemId,
+      catalogFamilyKey: commitRequest.catalogFamilyKey,
       fileName: commitRequest.fileName,
       fileType: commitRequest.fileType,
       objectUrl: commitRequest.objectUrl,
@@ -87,7 +96,26 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
       return
     }
 
-    setViewKey('envPreset', applyRequest.envPreset)
+    applyHdriEnvironment({
+      label: applyRequest.label,
+      assetPath: applyRequest.assetPath,
+    })
+  }
+
+  const handleBrowseLocalEnvironment = (file: File) => {
+    const normalizedName = file.name.trim()
+    if (!/\.(?:hdr|exr)$/i.test(normalizedName)) {
+      return
+    }
+
+    const objectUrl =
+      typeof URL.createObjectURL === 'function'
+        ? URL.createObjectURL(file)
+        : `local:${normalizedName}`
+    applyHdriEnvironment({
+      label: normalizedName,
+      assetPath: objectUrl,
+    })
   }
 
   return (
@@ -103,6 +131,10 @@ export function CatalogSurface(props: CatalogSurfaceProps) {
         onPreviewSessionChange={setPreviewSession}
         onAddItemToProject={handleAddItemToProject}
         onApplyEnvironment={handleApplyEnvironment}
+        onBrowseLocalEnvironment={handleBrowseLocalEnvironment}
+        appliedEnvironmentSource={environmentSource}
+        onSetHdriBackgroundVisible={setHdriEnvironmentBackgroundVisible}
+        onSetHdriIntensity={setHdriEnvironmentIntensity}
         onUnloadAllPreviewItems={() => setPreviewSession(unloadAllCatalogPreviewItems())}
         onUnloadPreviewItem={(itemId) =>
           setPreviewSession((currentSession) =>

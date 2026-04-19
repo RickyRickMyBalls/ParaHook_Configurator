@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Studio Small 09 2K environment thumbnail">
+  <defs>
+    <radialGradient id="softbox" cx="50%" cy="18%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.28" stop-color="#dce6f5"/>
+      <stop offset="1" stop-color="#111824"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="180" fill="url(#softbox)"/>
+  <ellipse cx="160" cy="138" rx="104" ry="22" fill="#06090f" opacity="0.42"/>
+  <rect x="117" y="72" width="86" height="66" rx="10" fill="#9fb0c5" opacity="0.78"/>
+  <path d="M117 83 L160 58 L203 83 L160 104 Z" fill="#cbd8e7"/>
+  <path d="M203 83 L203 138 L160 162 L160 104 Z" fill="#6e8198"/>
+  <path d="M117 83 L160 104 L160 162 L117 138 Z" fill="#889bb2"/>
+</svg>

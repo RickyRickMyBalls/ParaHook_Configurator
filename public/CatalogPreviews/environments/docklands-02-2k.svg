@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Docklands 02 2K environment thumbnail">
+  <defs>
+    <linearGradient id="dockSky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#8fb4cf"/>
+      <stop offset="0.62" stop-color="#d0d9df"/>
+      <stop offset="1" stop-color="#5e7480"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="180" fill="url(#dockSky)"/>
+  <rect y="118" width="320" height="62" fill="#35444c"/>
+  <path d="M0 132 C40 126 70 138 112 131 C160 123 210 137 256 128 C284 123 302 124 320 126 L320 180 L0 180 Z" fill="#617989" opacity="0.72"/>
+  <rect x="44" y="72" width="18" height="52" fill="#29333b"/>
+  <rect x="75" y="84" width="68" height="40" fill="#3e4a50"/>
+  <rect x="166" y="62" width="16" height="64" fill="#29333b"/>
+  <rect x="202" y="92" width="78" height="34" fill="#46545c"/>
+</svg>

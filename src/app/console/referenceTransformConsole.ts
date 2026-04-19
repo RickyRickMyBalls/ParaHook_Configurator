@@ -62,7 +62,7 @@ export const buildReferenceTransformConsoleBreadcrumb = ({
   leafLabel = null,
 }: {
   referenceLabel: string | null
-  targetKindLabel?: 'Reference' | 'Object'
+  targetKindLabel?: 'Reference' | 'Object' | 'Environment Light'
   stagedNavigationSession: ConsoleStagedNavigationSession | null
   mode: ActiveReferenceTransformSession['mode']
   leafLabel?: string | null
@@ -474,7 +474,7 @@ export const buildReferenceTransformStatusPath = ({
   stagedNavigationSession = null,
 }: {
   referenceLabel: string
-  targetKindLabel?: 'Reference' | 'Object'
+  targetKindLabel?: 'Reference' | 'Object' | 'Environment Light'
   activeSession: ViewerTransformStatusSession | null
   stagedNavigationSession?: ConsoleStagedNavigationSession | null
 }): string => {

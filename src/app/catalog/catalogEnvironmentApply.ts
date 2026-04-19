@@ -1,22 +1,18 @@
-import type { EnvPreset } from '../../shared/viewSettingsTypes'
 import {
   isCatalogActionAvailable,
   type CatalogActionPlan,
 } from './catalogActionPlan'
-import type { CatalogItemRecord } from './catalogItemContract'
+import {
+  resolveCatalogRepoEnvironmentSource,
+  type CatalogEnvironmentFileType,
+  type CatalogItemRecord,
+} from './catalogItemContract'
 
 export type CatalogEnvironmentApplyRequest = {
   downstreamOwner: 'viewer-environment'
-  envPreset: EnvPreset
-}
-
-function resolveCatalogEnvironmentPreset(item: CatalogItemRecord): EnvPreset | null {
-  switch (item.itemId) {
-    case 'environment:studio':
-      return 'studio'
-    default:
-      return null
-  }
+  label: string
+  assetPath: string
+  fileType: CatalogEnvironmentFileType
 }
 
 export function resolveCatalogEnvironmentApplyRequest(
@@ -34,13 +30,15 @@ export function resolveCatalogEnvironmentApplyRequest(
     return null
   }
 
-  const envPreset = resolveCatalogEnvironmentPreset(item)
-  if (envPreset === null) {
+  const environmentSource = resolveCatalogRepoEnvironmentSource(item)
+  if (environmentSource === null) {
     return null
   }
 
   return {
     downstreamOwner: 'viewer-environment',
-    envPreset,
+    label: environmentSource.label,
+    assetPath: environmentSource.objectUrl,
+    fileType: environmentSource.fileType,
   }
 }

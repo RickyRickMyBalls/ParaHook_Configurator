@@ -63,6 +63,7 @@ import {
   type WorkspaceDetachedSlotSurfaceState,
 } from './workspace/workspaceShellTypes'
 import { useWorkspacePersistenceBridge } from './workspace/useWorkspacePersistenceBridge'
+import { useUiPrefsPersistenceBridge } from './store/useUiPrefsPersistenceBridge'
 import { useWorkspaceDetachedRestoreCompatibilityBridge } from './workspace/useWorkspaceDetachedRestoreCompatibilityBridge'
 const floatingDockLockGap = 25
 const modelViewportPopoutBackground = 'rgb(7, 11, 18)'
@@ -598,6 +599,7 @@ export function AppShell() {
   })
 
   useWorkspacePersistenceBridge()
+  useUiPrefsPersistenceBridge()
 
   useEffect(() => {
     if (hasHydratedNotepadPersistenceRef.current) {

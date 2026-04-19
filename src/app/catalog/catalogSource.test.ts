@@ -11,6 +11,15 @@ describe('catalogSource', () => {
     const repoItems = getCatalogRepoItems()
 
     expect(repoItems.length).toBeGreaterThan(0)
+    expect(repoItems.filter((item) => item.assetKind === 'reference-asset')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          systemKey: 'Platform',
+          platformCompatibility: expect.arrayContaining(['ADV', 'XR', 'GT', 'Pint', 'XR Classic']),
+          partGroups: expect.any(Array),
+        }),
+      ]),
+    )
     expect(repoItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -19,6 +28,10 @@ describe('catalogSource', () => {
           sectionKey: 'footpads',
           assetKind: 'reference-asset',
           actionKind: 'add-to-project',
+          systemKey: 'Platform',
+          partType: 'Footpad',
+          position: 'Pair',
+          partGroups: ['Footpads'],
           source: expect.objectContaining({
             sourceKind: 'repo',
           }),
@@ -29,6 +42,11 @@ describe('catalogSource', () => {
           sectionKey: 'shoes',
           assetKind: 'reference-asset',
           actionKind: 'add-to-project',
+          systemKey: 'Platform',
+          partType: 'Shoe',
+          productName: 'Shoe 1',
+          brand: 'ParaHook',
+          partGroups: ['Shoes'],
           source: expect.objectContaining({
             sourceKind: 'repo',
           }),
@@ -40,6 +58,10 @@ describe('catalogSource', () => {
           sectionKey: 'foothooks',
           assetKind: 'reference-asset',
           actionKind: 'add-to-project',
+          systemKey: 'Platform',
+          partType: 'FootHold',
+          position: 'Universal',
+          partGroups: ['FootHolds'],
           source: expect.objectContaining({
             sourceKind: 'repo',
           }),
@@ -59,8 +81,25 @@ describe('catalogSource', () => {
       expect.objectContaining({
         familyKey: 'foothooks',
         sectionKey: 'foothooks',
+        systemKey: 'Platform',
+        partType: 'FootHold',
       }),
     )
+  })
+
+  it('surfaces every current repo HDRI and EXR as an environment catalog item', () => {
+    const hdriItems = getCatalogRepoItems().filter((item) => item.sectionKey === 'hdris')
+
+    expect(hdriItems.map((item) => item.source.assetPath).sort()).toEqual([
+      'HDRI/citrus_orchard_road_puresky_2k.exr',
+      'HDRI/docklands_02_2k.hdr',
+      'HDRI/rogland_clear_night_2k.hdr',
+      'HDRI/studio_small_09_2k.exr',
+      'HDRI/studio_small_09_2k.hdr',
+    ])
+    expect(hdriItems.every((item) => item.assetKind === 'environment')).toBe(true)
+    expect(hdriItems.every((item) => item.actionKind === 'apply-environment')).toBe(true)
+    expect(hdriItems.every((item) => item.previewMedia.length > 0)).toBe(true)
   })
 
   it('surfaces imports-area reuse entries through the same source seam without hiding apply behavior in the read', () => {
@@ -71,6 +110,7 @@ describe('catalogSource', () => {
           categoryId: 'user-references',
           label: 'Imported Reference 1',
           assetPath: 'blob:imported-reference-1',
+          catalogItemId: null,
         },
       },
       importedReferenceOrder: ['imported-reference-1'],
@@ -122,6 +162,7 @@ describe('catalogSource', () => {
           categoryId: 'user-references',
           label: 'Imported Reference 1',
           assetPath: 'blob:imported-reference-1',
+          catalogItemId: null,
         },
       },
       importedReferenceOrder: ['imported-reference-1'],

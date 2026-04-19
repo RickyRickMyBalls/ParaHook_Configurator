@@ -6,6 +6,9 @@ import type { BrowserSelectionModifiers } from './browserInteractions'
 import { getBrowserRowFamilyAdapter } from './browserRowFamilies'
 import type {
   BrowserBuildPolicySource,
+  BrowserEnvironmentRootTreeRowVm,
+  BrowserEnvironmentLightTreeRowVm,
+  BrowserEnvironmentSourceTreeRowVm,
   BrowserGraphSectionTreeRowVm,
   BrowserGraphTreeRowVm,
   BrowserReferenceCategoryTreeRowVm,
@@ -171,6 +174,12 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
       : null
   const referenceRow = referenceRootRow ?? referenceCategoryRow ?? referenceItemRow
   const referenceSurfaceRow = referenceRow ?? referenceContainerRow
+  const environmentSourceRow =
+    row.rowKind === 'environment-source' ? (row as BrowserEnvironmentSourceTreeRowVm) : null
+  const environmentRootRow =
+    row.rowKind === 'environment-root' ? (row as BrowserEnvironmentRootTreeRowVm) : null
+  const environmentLightRow =
+    row.rowKind === 'environment-light' ? (row as BrowserEnvironmentLightTreeRowVm) : null
   const referenceBackedObjectRow =
     row.rowKind === 'object' &&
     (row.contentOriginKind === 'imported-reference' || row.contentOriginKind === 'source-reference')
@@ -185,7 +194,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     row.rowKind === 'component' ||
     row.rowKind === 'object' ||
     row.rowKind === 'sketch'
+  const isEnvironmentRow =
+    environmentRootRow !== null || environmentSourceRow !== null || environmentLightRow !== null
   const isSketchRow = row.rowKind === 'sketch'
+  const isEnvironmentContentRow = isContentRow || isEnvironmentRow
   const isIndependentBrowserBuildPolicy =
     browserBuildPolicyState !== null &&
     browserBuildPolicyState.authoredBrowserBuildPolicy !== null &&
@@ -219,6 +231,11 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
   const isPartVisible = isPartVisibilityRow ? row.isVisible : false
   const isSketchVisibilityRow = row.rowKind === 'sketch'
   const isSketchVisible = row.rowKind === 'sketch' ? row.isVisible : false
+  const isEnvironmentLightVisibilityRow = environmentLightRow !== null
+  const isEnvironmentSourceVisibilityRow =
+    environmentSourceRow !== null && environmentSourceRow.sourceKind === 'hdri'
+  const isEnvironmentLightVisible = environmentLightRow?.enabled ?? false
+  const isEnvironmentSourceVisible = environmentSourceRow?.backgroundVisible ?? false
   const buildSurfaceRow = isContentRow || isGraphRebuildRow ? row : null
   const referenceContainerState = referenceContainerRow?.referenceContainerState ?? 'dormant'
   const referenceContainerProgress01 = referenceContainerRow?.referenceContainerProgress01 ?? undefined
@@ -246,25 +263,27 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     graphRow?.openViewportCount ? 'isOpen' : '',
     graphRow?.hasFocusedViewport || isActiveViewportRow ? 'isActiveEditor' : '',
     graphRow?.buildState === 'building' || contentBuildState === 'building' ? 'isBuilding' : '',
+    isEnvironmentRow ? 'isEnvironmentRow' : '',
   ]
     .filter((value) => value.length > 0)
     .join(' ')
   const rowMainClassName = [
     'BrowserTreeRowMain',
     graphRow !== null ? 'isGraphRow' : '',
-    isContentRow ? 'isContentRow' : '',
+    isEnvironmentContentRow ? 'isContentRow' : '',
     row.rowKind === 'sketches-root' ? 'isSketchesRootRow' : '',
     isGraphRebuildRow ? 'isGraphChildBuildRow' : '',
     isReferenceRow ? 'isReferenceRow' : '',
     isPartRow ? 'isPartRow' : '',
     isGraphChildPlainRow ? 'isGraphChildPlainRow' : '',
     row.rowKind === 'viewport' ? 'isViewportRow' : '',
-    isContentRow ? `isContentRow--${contentBuildState}` : '',
+    isEnvironmentContentRow ? `isContentRow--${contentBuildState}` : '',
     referenceBackedObjectRow !== null ? 'isContentRow--imported' : '',
     isGraphRebuildRow ? `isGraphChildBuildRow--${contentBuildState}` : '',
     row.rowKind === 'object' ? 'isContentRow--slim' : '',
     row.rowKind === 'part' ? 'isContentRow--slim' : '',
     row.rowKind === 'graph-rebuild-object' ? 'isGraphChildBuildRow--slim' : '',
+    isEnvironmentRow ? 'isEnvironmentRow' : '',
   ]
     .filter((value) => value.length > 0)
     .join(' ')
@@ -272,7 +291,9 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
     isReferenceVisibilityRow ||
     isSketchVisibilityRow ||
     isContentVisibilityRow ||
-    isPartVisibilityRow
+    isPartVisibilityRow ||
+    isEnvironmentSourceVisibilityRow ||
+    isEnvironmentLightVisibilityRow
 
   return (
     <div
@@ -383,6 +404,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                   ? isContentVisible
                   : isPartVisibilityRow
                     ? isPartVisible
+                  : isEnvironmentSourceVisibilityRow
+                    ? isEnvironmentSourceVisible
+                  : isEnvironmentLightVisibilityRow
+                    ? isEnvironmentLightVisible
                   : isSketchVisible)
                 ? 'isVisible'
                 : 'isHidden'
@@ -402,6 +427,14 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                 onToggleContentVisibility?.(row)
                 return
               }
+              if (isEnvironmentSourceVisibilityRow) {
+                onToggleContentVisibility?.(row)
+                return
+              }
+              if (isEnvironmentLightVisibilityRow) {
+                onToggleContentVisibility?.(row)
+                return
+              }
               onToggleSketchVisibility?.(row)
             }}
             aria-label={`${
@@ -411,6 +444,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                   ? isContentVisible
                   : isPartVisibilityRow
                     ? isPartVisible
+                  : isEnvironmentSourceVisibilityRow
+                    ? isEnvironmentSourceVisible
+                  : isEnvironmentLightVisibilityRow
+                    ? isEnvironmentLightVisible
                   : isSketchVisible)
                 ? 'Hide'
                 : 'Show'
@@ -422,6 +459,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                   ? isContentVisible
                   : isPartVisibilityRow
                     ? isPartVisible
+                  : isEnvironmentSourceVisibilityRow
+                    ? isEnvironmentSourceVisible
+                  : isEnvironmentLightVisibilityRow
+                    ? isEnvironmentLightVisible
                   : isSketchVisible)
                 ? 'Hide'
                 : 'Show'
@@ -436,6 +477,10 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
                 ? isContentVisible
                 : isPartVisibilityRow
                   ? isPartVisible
+                : isEnvironmentSourceVisibilityRow
+                  ? isEnvironmentSourceVisible
+                : isEnvironmentLightVisibilityRow
+                  ? isEnvironmentLightVisible
                 : isSketchVisible) ? (
               <span className="BrowserTreeRowVisibilityToggleSlash" aria-hidden="true" />
             ) : null}
@@ -506,6 +551,14 @@ export function BrowserTreeRowShell(props: BrowserTreeRowShellProps) {
           >
             <span className="BrowserGraphStateFill" aria-hidden="true" />
             <BrowserTreeRowContent label={row.label} />
+          </span>
+        ) : isEnvironmentRow ? (
+          <span
+            className="BrowserTreeRowSurface BrowserContentStateBar BrowserContentStateBar--done"
+            title={visibleRowMeta}
+          >
+            <span className="BrowserContentStateFill" aria-hidden="true" />
+            <BrowserTreeRowContent label={row.label} meta={visibleRowMeta} />
           </span>
         ) : buildSurfaceRow !== null ? (
           <span

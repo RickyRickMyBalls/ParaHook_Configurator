@@ -3,6 +3,7 @@ import type { BrowserRenderableRowVm } from './selectBrowserTreeRows'
 export type BrowserRowFamilyId =
   | 'graph'
   | 'content'
+  | 'environment'
   | 'reference'
   | 'sketch'
   | 'viewport'
@@ -38,6 +39,17 @@ export const browserRowFamilyAdapters: BrowserRowFamilyAdapter[] = [
     supportsDoubleSelect: true,
     supportsExpandToggle: true,
     supportsVisibilityToggle: true,
+  },
+  {
+    familyId: 'environment',
+    matchesRow: (row) =>
+      row.rowKind === 'environment-root' ||
+      row.rowKind === 'environment-source' ||
+      row.rowKind === 'environment-light',
+    supportsContextMenu: false,
+    supportsDoubleSelect: false,
+    supportsExpandToggle: true,
+    supportsVisibilityToggle: false,
   },
   {
     familyId: 'graph',
@@ -104,6 +116,12 @@ export const describeBrowserRow = (row: BrowserRenderableRowVm): string => {
       return `Graph section ${row.label}`
     case 'viewport':
       return `Viewport ${row.label}`
+    case 'environment-root':
+      return row.label
+    case 'environment-source':
+      return `Environment source ${row.label}`
+    case 'environment-light':
+      return `Environment light ${row.label}`
     case 'assembly':
     case 'component':
     case 'object':
@@ -119,4 +137,5 @@ export const isExplicitSelectionRow = (row: BrowserRenderableRowVm): boolean =>
   row.rowKind === 'reference-item' ||
   row.rowKind === 'assembly' ||
   row.rowKind === 'component' ||
-  row.rowKind === 'object'
+  row.rowKind === 'object' ||
+  row.rowKind === 'environment-light'

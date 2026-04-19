@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-18 12:48:00: Added reciprocal links from `docs/Doc-Vision.md` to `docs/Agents/Agents-Planning.md`, `docs/Agents/Implementation-Behavior.md`, and `docs/DispatchPlans/Human-Docs-Dispatch-Plan.md` so Gen 4 cleanup rules are discoverable from the vision source.
 1. 2026-04-18 12:24:00: Added this `Doc-Vision.md` file as one canonical north-star surface for the ParaHook docs system, capturing how the docs generations should be understood, how `Human-Plans` and `Human-Docs` should differ, and what must stay true so the repo's docs continue to help one human plus Codex work on a large CAD app without the docs system turning into its own source of drift
 
 ### Purpose
@@ -35,9 +36,21 @@ Do not use it for:
   - docs inventory and canonical navigation map
   - useful for finding where docs live and which surfaces are exposed
 
+- `docs/Agents/Agents-Planning.md`
+  - phase coordination and planning-mode expectations for work that spans multiple agents/families
+  - useful for checking planning rules before starting a cleanup or dispatch cycle
+
 - `docs/Docs-Command-Center.md`
   - lightweight daily-use docs start surface
   - useful for the small "what should I open first" read
+
+- `docs/Agents/Implementation-Behavior.md`
+  - implementation behavior guide for cleanup, refactor, and cleanup-vs-implementation boundaries
+  - useful for keeping Gen 4 cleanup work constrained, behavior-driven, and non-accumulative
+
+- `docs/DispatchPlans/Human-Docs-Dispatch-Plan.md`
+  - dispatch-specific runbook used to split Human-Docs work across worker and coordinator roles
+  - useful when the docs cleanup is being executed as a multi-agent rollout
 
 - `docs/Human-Docs/`
   - reader-facing explanation layer

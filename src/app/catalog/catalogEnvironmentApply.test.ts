@@ -23,7 +23,34 @@ describe('catalogEnvironmentApply', () => {
 
     expect(resolveCatalogEnvironmentApplyRequest(item, resolveCatalogActionPlan(item))).toEqual({
       downstreamOwner: 'viewer-environment',
-      envPreset: 'studio',
+      label: 'Studio Environment',
+      assetPath: expect.stringMatching(/\/Environments\/studio\.hdr$/),
+      fileType: 'hdr',
+    })
+  })
+
+  it('keeps real repo HDRI identity in the viewer-environment handoff', () => {
+    const item: CatalogItemRecord = {
+      itemId: 'environment:rogland-clear-night-2k-hdr',
+      label: 'Rogland Clear Night 2K',
+      familyKey: 'environments',
+      sectionKey: 'hdris',
+      tags: ['environment', 'hdri', 'night'],
+      description: 'Repo-backed night HDRI entry.',
+      assetKind: 'environment',
+      actionKind: 'apply-environment',
+      source: {
+        sourceKind: 'repo',
+        assetPath: 'HDRI/rogland_clear_night_2k.hdr',
+      },
+      previewMedia: [],
+    }
+
+    expect(resolveCatalogEnvironmentApplyRequest(item, resolveCatalogActionPlan(item))).toEqual({
+      downstreamOwner: 'viewer-environment',
+      label: 'Rogland Clear Night 2K',
+      assetPath: expect.stringMatching(/\/HDRI\/rogland_clear_night_2k\.hdr$/),
+      fileType: 'hdr',
     })
   })
 

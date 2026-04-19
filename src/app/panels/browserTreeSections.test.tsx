@@ -49,12 +49,99 @@ const buildAssemblyRow = (
   rebuildGraphDocumentIds: [],
 })
 
+const buildEnvironmentRootRow = (
+  options: { isExpanded?: boolean; childCount?: number } = {},
+): BrowserTreeRowsVm['contentRows'][number] => {
+  const childCount = options.childCount ?? 2
+  return {
+    rowId: 'environment-root',
+    rowKind: 'environment-root',
+    depth: 0,
+    treeGuides: ['tee'],
+    iconLabel: 'E',
+    label: 'Environment',
+    meta: childCount === 1 ? '1 object' : `${childCount} objects`,
+    isSelected: false,
+    isExpandable: childCount > 0,
+    isExpanded: options.isExpanded ?? true,
+    actions: [],
+    childCount,
+  }
+}
+
+const buildEnvironmentSourceRow = (
+  rowId: string,
+  label: string,
+  options: { isSelected?: boolean; isDiverged?: boolean } = {},
+): BrowserTreeRowsVm['contentRows'][number] => ({
+  rowId,
+  rowKind: 'environment-source',
+  depth: 1,
+  treeGuides: ['vertical', 'tee'],
+  iconLabel: 'E',
+  label,
+  meta: options.isDiverged ? 'Custom scene | Exposure 1.22' : 'Preset truth | Exposure 1.22',
+  isSelected: options.isSelected ?? false,
+  isExpandable: false,
+  isExpanded: false,
+  actions: [],
+  envPreset: 'studio',
+  sourceKind: options.isDiverged ? 'custom' : 'preset',
+  sourceLabel: options.isDiverged ? 'Custom Studio' : 'Studio',
+  sourceAssetPath: null,
+  backgroundVisible: true,
+  environmentGrade: {
+    toneMapping: 'aces',
+    exposure: 1.22,
+    contrast: 1,
+    highlights: 0,
+    shadows: 0,
+    whites: 0,
+    blacks: 0,
+    temperature: 0,
+    tint: 0,
+    saturation: 1,
+  },
+  background: '#151922',
+  isDiverged: options.isDiverged ?? false,
+})
+
+const buildEnvironmentLightRow = (
+  rowId: string,
+  label: string,
+  options: { isSelected?: boolean; isSelectedLight?: boolean; enabled?: boolean } = {},
+): BrowserTreeRowsVm['contentRows'][number] => {
+  const enabled = options.enabled ?? true
+  const isSelectedLight = options.isSelectedLight ?? false
+  return {
+    rowId,
+    rowKind: 'environment-light',
+    depth: 1,
+    treeGuides: ['vertical', 'elbow'],
+    iconLabel: 'L',
+    label,
+    meta: `${isSelectedLight ? 'Selected | ' : ''}${enabled ? 'On' : 'Off'} | directional | 1.85`,
+    isSelected: options.isSelected ?? false,
+    isExpandable: false,
+    isExpanded: false,
+    actions: [],
+    lightId: rowId,
+    lightType: 'directional',
+    enabled,
+    color: '#fff2e6',
+    intensity: 1.85,
+    isSelectedLight,
+  }
+}
+
 const rowHandlers: BrowserTreeRowHandlers = {
   onSelect: vi.fn(),
   onContextMenu: vi.fn(),
 }
 
-const renderSection = async (contentRows: BrowserTreeRowsVm['contentRows']) => {
+const renderSection = async (
+  contentRows: BrowserTreeRowsVm['contentRows'],
+) => {
   await act(async () => {
     root?.render(
       <div className="BrowserPanelBody">
@@ -116,6 +203,31 @@ afterEach(async () => {
 })
 
 describe('BrowserContentSection FLIP scroll stabilization', () => {
+  it('renders Environment as a normal Content tree row above project content rows', async () => {
+    await renderSection([
+      buildEnvironmentRootRow({ childCount: 2 }),
+      buildEnvironmentSourceRow('environment-source-row:active', 'Source: Studio'),
+      buildEnvironmentLightRow('environment-light-row:key', 'Key', { isSelectedLight: true }),
+      buildAssemblyRow('assembly-1', 'Assembly 1'),
+    ])
+
+    expect(container?.querySelector('.BrowserTreeSection--environment')).toBeNull()
+    expect(
+      Array.from(container?.querySelectorAll('.BrowserTreeGroup--content .BrowserTreeRowLabel') ?? [])
+        .map((element) => element.textContent),
+    ).toEqual(['Environment', 'Source: Studio', 'Key', 'Assembly 1'])
+
+    const environmentRowMain = Array.from(
+      container?.querySelectorAll('.BrowserTreeRowLabel') ?? [],
+    ).find((element) => element.textContent === 'Environment')?.closest(
+      '.BrowserTreeRowMain',
+    ) as HTMLButtonElement | null
+    expect(environmentRowMain?.classList.contains('isContentRow')).toBe(true)
+    expect(environmentRowMain?.classList.contains('isEnvironmentRow')).toBe(true)
+    expect(container?.querySelector('.BrowserContentStateBar--environment')).toBeNull()
+    expect(container?.querySelector('.BrowserContentStateBar--done')).not.toBeNull()
+  })
+
   it('does not animate rows after plain scroll and a selection rerender', async () => {
     const rowOneTop = { current: 100 }
     const rowTwoTop = { current: 140 }

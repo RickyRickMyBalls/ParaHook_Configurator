@@ -1,9 +1,13 @@
 import {
+  buildCatalogBrowseModeOptions,
+  type CatalogBrowseMode,
   type CatalogSectionOption,
+  resolveCatalogBrowseModeDescription,
   resolveCatalogSectionBrowseDescription,
 } from './catalogShellShared'
 
 type CatalogShellBrowseRailProps = {
+  browseMode: CatalogBrowseMode
   activeSection: string
   previewLoadedItems: Array<{
     itemId: string
@@ -11,6 +15,7 @@ type CatalogShellBrowseRailProps = {
   }>
   totalItemCount: number
   sectionOptions: CatalogSectionOption[]
+  onBrowseModeChange: (browseMode: CatalogBrowseMode) => void
   onSectionChange: (sectionKey: string) => void
   onUnloadAllPreviewItems: () => void
   onUnloadPreviewItem: (itemId: string) => void
@@ -18,17 +23,20 @@ type CatalogShellBrowseRailProps = {
 
 export function CatalogShellBrowseRail(props: CatalogShellBrowseRailProps) {
   const {
+    browseMode,
     activeSection,
     previewLoadedItems,
     totalItemCount,
     sectionOptions,
+    onBrowseModeChange,
     onSectionChange,
     onUnloadAllPreviewItems,
     onUnloadPreviewItem,
   } = props
+  const browseModeOptions = buildCatalogBrowseModeOptions()
   const activeSectionDescription =
     activeSection === 'all'
-      ? resolveCatalogSectionBrowseDescription('all')
+      ? resolveCatalogSectionBrowseDescription('all', browseMode)
       : sectionOptions.find((option) => option.sectionKey === activeSection)?.description ??
         'Browse stays source-backed and preview-light through the shared Catalog shell.'
 
@@ -39,6 +47,25 @@ export function CatalogShellBrowseRail(props: CatalogShellBrowseRailProps) {
           <p className="CatalogShellRegionEyebrow">Browse</p>
           <h2>Sections</h2>
         </div>
+        <div className="CatalogShellTagFilters" data-catalog-region="browse-mode-switcher">
+          {browseModeOptions.map((option) => {
+            const selected = browseMode === option.browseMode
+            return (
+              <button
+                key={option.browseMode}
+                type="button"
+                className={`CatalogShellTag ${selected ? 'isSelected' : ''}`}
+                title={option.description}
+                onClick={() => onBrowseModeChange(option.browseMode)}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+        <p className="CatalogShellRule" data-catalog-region="browse-mode-description">
+          {resolveCatalogBrowseModeDescription(browseMode)}
+        </p>
         <div className="CatalogShellFilterList">
           <button
             type="button"

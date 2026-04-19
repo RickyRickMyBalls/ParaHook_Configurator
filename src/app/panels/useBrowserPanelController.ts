@@ -44,12 +44,14 @@ import {
   useAppStore,
 } from '../store/useAppStore'
 import type { BrowserBuildPolicy } from '../store/useAppStore'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
   activateGraphTargetIntent,
   activateGraphDocumentIntent,
   activateObjectIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
+import { deleteWorkspaceSelectedEnvironmentLight } from '../store/workspaceSelectionCommands'
 import { buildBrowserContextMenuItems } from './browserContextMenu'
 import {
   createBrowserContentDragSession,
@@ -273,6 +275,7 @@ export function useBrowserPanelController(
     selectSharedViewerCompositionGraphDocumentIds,
   )
   const currentProject = useAppStore((state) => state.currentProject)
+  const environmentView = useUiPrefsStore((state) => state.view)
   const projectContent = useAppStore((state) => state.projectContent)
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const sketchVisibilityByRowId = useAppStore((state) => state.sketchVisibilityByRowId)
@@ -292,6 +295,12 @@ export function useBrowserPanelController(
   )
   const browserContentBuildPolicyByRowId = useAppStore(
     (state) => state.browserContentBuildPolicyByRowId,
+  )
+  const selectLight = useUiPrefsStore((state) => state.selectLight)
+  const deleteLight = useUiPrefsStore((state) => state.deleteLight)
+  const updateLight = useUiPrefsStore((state) => state.updateLight)
+  const setHdriEnvironmentBackgroundVisible = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentBackgroundVisible,
   )
   const cycleBrowserGraphBuildPolicy = useAppStore((state) => state.cycleBrowserGraphBuildPolicy)
   const cycleBrowserContentBuildPolicy = useAppStore((state) => state.cycleBrowserContentBuildPolicy)
@@ -660,6 +669,7 @@ export function useBrowserPanelController(
       selectBrowserTreeRows({
         referenceLoadBatch: referenceWorkspace.referenceLoadBatch,
         activeTransformReferenceId,
+        environmentView,
         contentRows: projectContentRows,
         contentOrderByParentKey,
         graphRows,
@@ -681,6 +691,7 @@ export function useBrowserPanelController(
     [
       activeEditorViewportId,
       activeTransformReferenceId,
+      environmentView,
       browserContentBuildPolicyByRowId,
       browserGraphBuildPolicyByGraphDocumentId,
       collapsedContentRowIds,
@@ -1087,6 +1098,67 @@ export function useBrowserPanelController(
       severity: 'info',
     })
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.key !== 'Delete') {
+        return
+      }
+      const eventTarget = event.target
+      if (
+        eventTarget instanceof HTMLElement &&
+        (eventTarget.isContentEditable ||
+          eventTarget.tagName === 'INPUT' ||
+          eventTarget.tagName === 'TEXTAREA' ||
+          eventTarget.tagName === 'SELECT')
+      ) {
+        return
+      }
+      if (workspaceSelectedTarget?.kind !== 'environment-light') {
+        return
+      }
+      event.preventDefault()
+      const target = workspaceSelectedTarget
+      const lightLabel =
+        useUiPrefsStore
+          .getState()
+          .view.lighting.lights.find((light) => light.id === target.lightId)?.name ?? target.lightId
+      const deletedTarget = deleteWorkspaceSelectedEnvironmentLight(
+        {
+          setWorkspaceSelectedTarget,
+          selectLight,
+          setActiveSurface,
+          requestConsoleContextSync,
+          requestConsoleWorkspaceContextHandoff,
+          deleteLight,
+        },
+        target,
+        {
+          activeSurface: 'browser',
+        },
+      )
+      if (deletedTarget === null) {
+        return
+      }
+      closeBrowserOverlays()
+      appendBrowserEntry(`Delete: ${lightLabel}`)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [
+    appendBrowserEntry,
+    closeBrowserOverlays,
+    deleteLight,
+    requestConsoleContextSync,
+    requestConsoleWorkspaceContextHandoff,
+    selectLight,
+    setActiveSurface,
+    setWorkspaceSelectedTarget,
+    workspaceSelectedTarget,
+  ])
 
   const handleOpenContentImportMenu = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -2118,6 +2190,7 @@ export function useBrowserPanelController(
         setWorkspaceSelectedTarget,
         setWorkspaceExplicitSelection,
         setActiveSurface,
+        selectLight,
         selectPart,
         requestConsoleContextSync,
         requestConsoleWorkspaceContextHandoff,
@@ -2128,6 +2201,8 @@ export function useBrowserPanelController(
         setReferenceItemVisibility,
         toggleReferenceCategoryVisibility,
         toggleSketchVisibility,
+        setEnvironmentSourceBackgroundVisible: setHdriEnvironmentBackgroundVisible,
+        setEnvironmentLightEnabled: (lightId, enabled) => updateLight(lightId, { enabled }),
         setPartVisibility,
         setExpandedGraphDocumentIds,
         setGraphSectionExpandedByRowId,
@@ -2143,6 +2218,9 @@ export function useBrowserPanelController(
       requestConsoleContextSync,
       requestConsoleWorkspaceContextHandoff,
       selectPart,
+      selectLight,
+      setHdriEnvironmentBackgroundVisible,
+      updateLight,
       setActiveEditorViewportId,
       setActiveSurface,
       setPartVisibility,

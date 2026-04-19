@@ -37,6 +37,7 @@ import {
   toViewerRenderablePart,
   type ViewerRenderablePart,
 } from '../../shared/buildTypes'
+import type { LightSpec } from '../../shared/viewSettingsTypes'
 import {
   deriveAuthoritativeExportInput,
   type ExportPreparationResult,
@@ -73,6 +74,7 @@ import {
 } from '../references/referenceTimeline'
 import type { ImportedReferenceFile } from '../references/importReferenceFile'
 import { appendConsoleEntry } from '../console/useConsoleStore'
+import { useUiPrefsStore } from './uiPrefsStore'
 import {
   selectViewportResultModeById,
   selectViewportResultModeBehaviorById,
@@ -225,6 +227,19 @@ export type ActiveContentObjectTransformSession = {
   entryOrigin: ReferenceTransformOverride | null
 }
 
+export type ActiveEnvironmentLightTransformSession = {
+  lightId: string
+  sessionId: string
+  sessionOrdinal: number
+  mode: 'translate'
+  space: ReferenceTransformSpace
+  shellActive: boolean
+  entryActive: boolean
+  activeHandle: ActiveReferenceTransformHandle | null
+  draftTransform: ReferenceTransformOverride
+  entryOrigin: ReferenceTransformOverride | null
+}
+
 export type ViewerTransformTarget =
   | {
       kind: 'reference'
@@ -233,6 +248,10 @@ export type ViewerTransformTarget =
   | {
       kind: 'content-object'
       objectId: string
+    }
+  | {
+      kind: 'environment-light'
+      lightId: string
     }
 
 export type ActiveViewerTransformSession = {
@@ -257,6 +276,8 @@ export type ImportedReferenceRecord = {
   label: string
   fileType: ReferenceFileType
   assetPath: string
+  catalogItemId?: string | null
+  catalogFamilyKey?: string | null
   parentAssemblyId: string | null
   parentComponentId: string | null
   directPartSourceKind?: DirectPartBackedReferenceLoadKind | null
@@ -579,6 +600,7 @@ export type ReferenceWorkspaceState = {
   contentObjectTransformOverrideById: Record<string, ReferenceTransformOverride | null>
   transformHistoryByObjectId: Record<string, ReferenceTransformHistoryEntry[]>
   activeContentObjectTransformSession: ActiveContentObjectTransformSession | null
+  activeEnvironmentLightTransformSession: ActiveEnvironmentLightTransformSession | null
   stagedImportDraft: StagedImportDraftState | null
   importedReferencesById: Record<string, ImportedReferenceRecord>
   importedReferenceOrder: string[]
@@ -723,6 +745,10 @@ export type WorkspaceSelectedTarget =
   | {
       kind: 'object'
       objectId: string
+    }
+  | {
+      kind: 'environment-light'
+      lightId: string
     }
   | {
       kind: 'part'
@@ -882,6 +908,16 @@ export type ConsoleWorkspaceContextTarget =
       canExplode?: boolean
       referenceCategoryId?: ReferenceCategoryId
       referenceCategoryLabel?: string
+    }
+  | {
+      kind: 'environment-light'
+      lightId: string
+      label: string
+      contentBreadcrumbLabels?: string[]
+      fallbackGraphDocumentId: null
+      canDelete: boolean
+      canHide?: boolean
+      canShow?: boolean
     }
   | {
       kind: 'references-root'
@@ -1134,6 +1170,8 @@ export type AppState = {
   failStagedImportFileStructureInspection: (stagedFileId: string, errorMessage: string) => void
   closeStagedImportDraft: () => void
   addImportedReference: (reference: {
+    catalogItemId?: string | null
+    catalogFamilyKey?: string | null
     fileName: string
     fileType: ReferenceFileType
     objectUrl: string
@@ -1235,6 +1273,19 @@ export type AppState = {
   toggleContentObjectTransformHistoryLock: (objectId: string, entryId: string) => void
   mergeContentObjectTransformHistory: (objectId: string) => void
   cancelActiveContentObjectTransformEntry: () => void
+  beginEnvironmentLightTransformShell: (lightId: string) => void
+  exitEnvironmentLightTransformShell: () => void
+  beginEnvironmentLightTransformEntry: (mode: ReferenceTransformMode) => void
+  commitActiveEnvironmentLightTransformEntry: () => void
+  setActiveEnvironmentLightTransformMode: (mode: ReferenceTransformMode) => void
+  setActiveEnvironmentLightTransformSpace: (space: ReferenceTransformSpace) => void
+  setActiveEnvironmentLightTransformHandle: (
+    handle: ActiveReferenceTransformHandle | null,
+  ) => void
+  setActiveEnvironmentLightTransformDraft: (
+    transformOverride: ReferenceTransformOverride | null,
+  ) => void
+  cancelActiveEnvironmentLightTransformEntry: () => void
   beginViewerTransformShell: (target: ViewerTransformTarget) => void
   exitActiveViewerTransformShell: () => void
   beginActiveViewerTransformEntry: (mode: ReferenceTransformMode) => void
@@ -1439,11 +1490,13 @@ const isExplicitWorkspaceSelectionTarget = (
   | { kind: 'assembly' }
   | { kind: 'component' }
   | { kind: 'object' }
+  | { kind: 'environment-light' }
 > =>
   target !== null &&
   (target.kind === 'assembly' ||
     target.kind === 'component' ||
-    target.kind === 'object')
+    target.kind === 'object' ||
+    target.kind === 'environment-light')
 
 const getWorkspaceSelectedTargetKey = (target: WorkspaceSelectedTarget): string => {
   switch (target.kind) {
@@ -1463,6 +1516,8 @@ const getWorkspaceSelectedTargetKey = (target: WorkspaceSelectedTarget): string 
       return `component:${target.componentId}`
     case 'object':
       return `object:${target.objectId}`
+    case 'environment-light':
+      return `environment-light:${target.lightId}`
     case 'part':
       return `part:${target.partKey}`
   }
@@ -1487,6 +1542,21 @@ const resolveReferenceCategoryLabel = (categoryId: ReferenceCategoryId): string 
     : REFERENCE_MANIFEST_CATEGORIES.find((category) => category.categoryId === categoryId)?.label ??
       categoryId
 
+const resolveCatalogReferenceCategoryId = (
+  catalogFamilyKey: string | null | undefined,
+): ReferenceCategoryId => {
+  switch (catalogFamilyKey) {
+    case 'footpads':
+      return 'footpads'
+    case 'shoes':
+      return 'shoes'
+    case 'foothooks':
+      return 'premade-foothooks'
+    default:
+      return USER_REFERENCE_CATEGORY_ID
+  }
+}
+
 const shouldRenderReferenceCategoryInBrowser = (categoryId: ReferenceCategoryId): boolean =>
   categoryId !== USER_REFERENCE_CATEGORY_ID
 
@@ -1497,8 +1567,27 @@ const resolveReferenceCategoryIdFromComponentId = (
     (categoryId) => buildReferenceCategoryRowId(categoryId) === componentId,
   ) ?? null
 
-const selectVisibleReferenceCategoryIds = (): ReferenceCategoryId[] => {
-  return REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId)
+const selectReferenceCategoriesWithShelfItems = (
+  referenceWorkspace: Pick<ReferenceWorkspaceState, 'importedReferencesById' | 'importedReferenceOrder'>,
+): ReferenceCategoryId[] => {
+  const categoryIdSet = new Set<ReferenceCategoryId>()
+  referenceWorkspace.importedReferenceOrder.forEach((referenceId) => {
+    const record = referenceWorkspace.importedReferencesById[referenceId]
+    if (
+      record === undefined ||
+      record.parentAssemblyId !== null ||
+      record.parentComponentId !== null
+    ) {
+      return
+    }
+    if (!REFERENCE_MANIFEST_CATEGORIES.some((category) => category.categoryId === record.categoryId)) {
+      return
+    }
+    categoryIdSet.add(record.categoryId)
+  })
+  return REFERENCE_MANIFEST_CATEGORIES.map((category) => category.categoryId).filter((categoryId) =>
+    categoryIdSet.has(categoryId),
+  )
 }
 
 const resolveReferenceContainerParentAssemblyId = (
@@ -1524,7 +1613,7 @@ const buildReferenceRootAssemblyRecord = (
   ),
   assemblySourceKind: 'runtime-root',
   childRowIds: [
-    ...selectVisibleReferenceCategoryIds()
+    ...selectReferenceCategoriesWithShelfItems(state.referenceWorkspace)
       .map(buildReferenceCategoryRowId)
       .filter(
         (categoryRowId) =>
@@ -2785,6 +2874,7 @@ const createInitialReferenceWorkspaceState = (): ReferenceWorkspaceState => ({
   contentObjectTransformOverrideById: {},
   transformHistoryByObjectId: {},
   activeContentObjectTransformSession: null,
+  activeEnvironmentLightTransformSession: null,
   stagedImportDraft: null,
   importedReferencesById: {},
   importedReferenceOrder: [],
@@ -2797,6 +2887,18 @@ const buildDefaultReferenceTransformOverride = (): ReferenceTransformOverride =>
   rotationDeg: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
 })
+
+const environmentLightSupportsPosition = (light: Pick<LightSpec, 'type'>): boolean =>
+  light.type === 'directional' || light.type === 'point' || light.type === 'spot'
+
+const buildEnvironmentLightTransformOverride = (light: LightSpec): ReferenceTransformOverride => ({
+  position: { ...(light.position ?? { x: 0, y: 5, z: 0 }) },
+  rotationDeg: { x: 0, y: 0, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+})
+
+const selectEnvironmentLightById = (lightId: string): LightSpec | null =>
+  useUiPrefsStore.getState().view.lighting.lights.find((light) => light.id === lightId) ?? null
 
 const buildStagedImportDraftFileId = () => newId('staged-import-file')
 const DEFAULT_STAGED_IMPORT_MODE: StagedImportMode = 'single-object'
@@ -3450,12 +3552,40 @@ const cloneActiveContentObjectTransformSession = (
         entryOrigin: cloneReferenceTransformOverride(value.entryOrigin),
       }
 
+const cloneActiveEnvironmentLightTransformSession = (
+  value: ActiveEnvironmentLightTransformSession | null,
+): ActiveEnvironmentLightTransformSession | null =>
+  value === null
+    ? null
+    : {
+        lightId: value.lightId,
+        sessionId: value.sessionId,
+        sessionOrdinal: value.sessionOrdinal,
+        mode: 'translate',
+        space: value.space,
+        shellActive: value.shellActive,
+        entryActive: value.entryActive,
+        activeHandle: value.activeHandle === null ? null : { ...value.activeHandle },
+        draftTransform:
+          cloneReferenceTransformOverride(value.draftTransform) ??
+          buildDefaultReferenceTransformOverride(),
+        entryOrigin: cloneReferenceTransformOverride(value.entryOrigin),
+      }
+
 export const selectActiveViewerTransformTarget = (
   referenceWorkspace: Pick<
     ReferenceWorkspaceState,
-    'activeReferenceTransformSession' | 'activeContentObjectTransformSession'
+    | 'activeReferenceTransformSession'
+    | 'activeContentObjectTransformSession'
+    | 'activeEnvironmentLightTransformSession'
   >,
 ): ViewerTransformTarget | null => {
+  if (referenceWorkspace.activeEnvironmentLightTransformSession !== null) {
+    return {
+      kind: 'environment-light',
+      lightId: referenceWorkspace.activeEnvironmentLightTransformSession.lightId,
+    }
+  }
   if (referenceWorkspace.activeContentObjectTransformSession !== null) {
     return {
       kind: 'content-object',
@@ -3474,9 +3604,29 @@ export const selectActiveViewerTransformTarget = (
 export const selectActiveViewerTransformSession = (
   referenceWorkspace: Pick<
     ReferenceWorkspaceState,
-    'activeReferenceTransformSession' | 'activeContentObjectTransformSession'
+    | 'activeReferenceTransformSession'
+    | 'activeContentObjectTransformSession'
+    | 'activeEnvironmentLightTransformSession'
   >,
 ): ActiveViewerTransformSession | null => {
+  const activeEnvironmentLightSession = cloneActiveEnvironmentLightTransformSession(
+    referenceWorkspace.activeEnvironmentLightTransformSession,
+  )
+  if (activeEnvironmentLightSession !== null) {
+    return {
+      targetKind: 'environment-light',
+      targetId: activeEnvironmentLightSession.lightId,
+      sessionId: activeEnvironmentLightSession.sessionId,
+      sessionOrdinal: activeEnvironmentLightSession.sessionOrdinal,
+      mode: activeEnvironmentLightSession.mode,
+      space: activeEnvironmentLightSession.space,
+      shellActive: activeEnvironmentLightSession.shellActive,
+      entryActive: activeEnvironmentLightSession.entryActive,
+      activeHandle: activeEnvironmentLightSession.activeHandle,
+      draftTransform: activeEnvironmentLightSession.draftTransform,
+      entryOrigin: activeEnvironmentLightSession.entryOrigin,
+    }
+  }
   const activeContentObjectSession = cloneActiveContentObjectTransformSession(
     referenceWorkspace.activeContentObjectTransformSession,
   )
@@ -3521,11 +3671,18 @@ export const selectActiveViewerTransformSession = (
 export const selectActiveViewerTransformHistoryEntries = (
   referenceWorkspace: Pick<
     ReferenceWorkspaceState,
-    'activeReferenceTransformSession' | 'activeContentObjectTransformSession' | 'transformHistoryByReferenceId' | 'transformHistoryByObjectId'
+    | 'activeReferenceTransformSession'
+    | 'activeContentObjectTransformSession'
+    | 'activeEnvironmentLightTransformSession'
+    | 'transformHistoryByReferenceId'
+    | 'transformHistoryByObjectId'
   >,
 ): ReferenceTransformHistoryEntry[] => {
   const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
   if (activeTarget === null) {
+    return []
+  }
+  if (activeTarget.kind === 'environment-light') {
     return []
   }
   return activeTarget.kind === 'reference'
@@ -3536,11 +3693,18 @@ export const selectActiveViewerTransformHistoryEntries = (
 export const selectActiveViewerTransformSnapState = (
   referenceWorkspace: Pick<
     ReferenceWorkspaceState,
-    'activeReferenceTransformSession' | 'activeContentObjectTransformSession' | 'transformSnapByReferenceId' | 'transformSnapByObjectId'
+    | 'activeReferenceTransformSession'
+    | 'activeContentObjectTransformSession'
+    | 'activeEnvironmentLightTransformSession'
+    | 'transformSnapByReferenceId'
+    | 'transformSnapByObjectId'
   >,
 ): ReferenceTransformSnapState => {
   const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
   if (activeTarget === null) {
+    return DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
+  }
+  if (activeTarget.kind === 'environment-light') {
     return DEFAULT_REFERENCE_TRANSFORM_SNAP_STATE
   }
   return activeTarget.kind === 'reference'
@@ -7405,6 +7569,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
   addImportedReference: ({
+    catalogItemId = null,
+    catalogFamilyKey = null,
     fileName,
     fileType,
     objectUrl,
@@ -7484,20 +7650,22 @@ export const useAppStore = create<AppState>((set, get) => ({
             ...state.referenceWorkspace.transformSnapByReferenceId,
             [referenceId]: cloneReferenceTransformSnapState(),
           },
-          importedReferencesById: {
-            ...state.referenceWorkspace.importedReferencesById,
-            [referenceId]: {
-              referenceId,
-              sourceKind: 'imported',
-              categoryId: USER_REFERENCE_CATEGORY_ID,
-              label,
-              fileType,
-              assetPath: objectUrl,
-              parentAssemblyId,
-              parentComponentId,
-              directPartSourceKind: null,
-              directPartSourceGroupId: null,
-              explodedFromReferenceId: null,
+            importedReferencesById: {
+              ...state.referenceWorkspace.importedReferencesById,
+              [referenceId]: {
+                referenceId,
+                sourceKind: 'imported',
+                categoryId: resolveCatalogReferenceCategoryId(catalogFamilyKey),
+                label,
+                fileType,
+                assetPath: objectUrl,
+                catalogItemId,
+                catalogFamilyKey,
+                parentAssemblyId,
+                parentComponentId,
+                directPartSourceKind: null,
+                directPartSourceGroupId: null,
+                explodedFromReferenceId: null,
               sourcePartKey: null,
               sourceMeshIndex: null,
             },
@@ -7801,6 +7969,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           label: partRow.label,
           fileType: importedReference.fileType,
           assetPath: importedReference.assetPath,
+          catalogItemId: importedReference.catalogItemId ?? null,
+          catalogFamilyKey: importedReference.catalogFamilyKey ?? null,
           parentAssemblyId: importedReference.parentAssemblyId,
           parentComponentId: importedReference.parentComponentId,
           directPartSourceKind: null,
@@ -8767,6 +8937,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             [referenceId]: true,
           },
           activeContentObjectTransformSession: null,
+          activeEnvironmentLightTransformSession: null,
           activeReferenceTransformSession: {
             referenceId,
             sessionId: newId('reference-transform-session'),
@@ -9326,6 +9497,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             [objectId]: currentEntries,
           },
           activeReferenceTransformSession: null,
+          activeEnvironmentLightTransformSession: null,
           activeContentObjectTransformSession: {
             objectId,
             sessionId: newId('content-object-transform-session'),
@@ -9826,10 +9998,222 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   },
+  beginEnvironmentLightTransformShell: (lightId) => {
+    set((state) => {
+      const light = selectEnvironmentLightById(lightId)
+      if (light === null || !environmentLightSupportsPosition(light)) {
+        return {
+          referenceWorkspace: {
+            ...state.referenceWorkspace,
+            activeEnvironmentLightTransformSession: null,
+          },
+        }
+      }
+      const existingSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (existingSession?.lightId === lightId && existingSession.shellActive) {
+        return state
+      }
+      const draftTransform = buildEnvironmentLightTransformOverride(light)
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeReferenceTransformSession: null,
+          activeContentObjectTransformSession: null,
+          activeEnvironmentLightTransformSession: {
+            lightId,
+            sessionId: newId('environment-light-transform-session'),
+            sessionOrdinal: 1,
+            mode: 'translate',
+            space: 'world',
+            shellActive: true,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform,
+            entryOrigin: null,
+          },
+        },
+      }
+    })
+  },
+  exitEnvironmentLightTransformShell: () => {
+    set((state) => ({
+      referenceWorkspace: {
+        ...state.referenceWorkspace,
+        activeEnvironmentLightTransformSession: null,
+      },
+    }))
+  },
+  beginEnvironmentLightTransformEntry: (mode) => {
+    if (mode !== 'translate') {
+      return
+    }
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            mode: 'translate',
+            entryActive: true,
+            activeHandle: null,
+            entryOrigin:
+              cloneReferenceTransformOverride(activeSession.draftTransform) ??
+              buildDefaultReferenceTransformOverride(),
+            draftTransform:
+              cloneReferenceTransformOverride(activeSession.draftTransform) ??
+              buildDefaultReferenceTransformOverride(),
+          },
+        },
+      }
+    })
+  },
+  commitActiveEnvironmentLightTransformEntry: () => {
+    const activeSession = get().referenceWorkspace.activeEnvironmentLightTransformSession
+    if (activeSession === null) {
+      return
+    }
+    const committedTransformOverride =
+      cloneReferenceTransformOverride(activeSession.draftTransform) ??
+      buildDefaultReferenceTransformOverride()
+    useUiPrefsStore.getState().updateLight(activeSession.lightId, {
+      position: { ...committedTransformOverride.position },
+    })
+    set((state) => {
+      const latestLight = selectEnvironmentLightById(activeSession.lightId)
+      const nextDraftTransform =
+        latestLight === null
+          ? committedTransformOverride
+          : buildEnvironmentLightTransformOverride(latestLight)
+      const currentSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (currentSession?.lightId !== activeSession.lightId) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...currentSession,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform: nextDraftTransform,
+            entryOrigin: null,
+          },
+        },
+      }
+    })
+  },
+  setActiveEnvironmentLightTransformMode: (mode) => {
+    if (mode !== 'translate') {
+      return
+    }
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            mode: 'translate',
+          },
+        },
+      }
+    })
+  },
+  setActiveEnvironmentLightTransformSpace: (space) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null || activeSession.space === space) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            space,
+          },
+        },
+      }
+    })
+  },
+  setActiveEnvironmentLightTransformHandle: (handle) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            activeHandle:
+              handle === null || handle.mode !== 'translate' ? null : { ...handle },
+          },
+        },
+      }
+    })
+  },
+  setActiveEnvironmentLightTransformDraft: (transformOverride) => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      const nextTransformOverride =
+        cloneReferenceTransformOverride(transformOverride) ?? buildDefaultReferenceTransformOverride()
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            draftTransform: {
+              ...activeSession.draftTransform,
+              position: { ...nextTransformOverride.position },
+            },
+          },
+        },
+      }
+    })
+  },
+  cancelActiveEnvironmentLightTransformEntry: () => {
+    set((state) => {
+      const activeSession = state.referenceWorkspace.activeEnvironmentLightTransformSession
+      if (activeSession === null) {
+        return state
+      }
+      const baseline =
+        cloneReferenceTransformOverride(activeSession.entryOrigin) ??
+        buildDefaultReferenceTransformOverride()
+      return {
+        referenceWorkspace: {
+          ...state.referenceWorkspace,
+          activeEnvironmentLightTransformSession: {
+            ...activeSession,
+            entryActive: false,
+            activeHandle: null,
+            draftTransform: baseline,
+            entryOrigin: null,
+          },
+        },
+      }
+    })
+  },
   beginViewerTransformShell: (target) => {
     const state = get()
     if (target.kind === 'reference') {
       state.beginReferenceTransformShell(target.referenceId)
+      return
+    }
+    if (target.kind === 'environment-light') {
+      state.beginEnvironmentLightTransformShell(target.lightId)
       return
     }
     state.beginContentObjectTransformShell(target.objectId)
@@ -9844,6 +10228,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.exitReferenceTransformShell()
       return
     }
+    if (activeTarget.kind === 'environment-light') {
+      state.exitEnvironmentLightTransformShell()
+      return
+    }
     state.exitContentObjectTransformShell()
   },
   beginActiveViewerTransformEntry: (mode) => {
@@ -9854,6 +10242,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (activeTarget.kind === 'reference') {
       state.beginReferenceTransformEntry(mode)
+      return
+    }
+    if (activeTarget.kind === 'environment-light') {
+      state.beginEnvironmentLightTransformEntry(mode)
       return
     }
     state.beginContentObjectTransformEntry(mode)
@@ -9868,6 +10260,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.commitActiveReferenceTransformEntry()
       return
     }
+    if (activeTarget.kind === 'environment-light') {
+      state.commitActiveEnvironmentLightTransformEntry()
+      return
+    }
     state.commitActiveContentObjectTransformEntry()
   },
   setActiveViewerTransformMode: (mode) => {
@@ -9878,6 +10274,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (activeTarget.kind === 'reference') {
       state.setActiveReferenceTransformMode(mode)
+      return
+    }
+    if (activeTarget.kind === 'environment-light') {
+      state.setActiveEnvironmentLightTransformMode(mode)
       return
     }
     state.setActiveContentObjectTransformMode(mode)
@@ -9892,6 +10292,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.setActiveReferenceTransformSpace(space)
       return
     }
+    if (activeTarget.kind === 'environment-light') {
+      state.setActiveEnvironmentLightTransformSpace(space)
+      return
+    }
     state.setActiveContentObjectTransformSpace(space)
   },
   setActiveViewerTransformHandle: (handle) => {
@@ -9902,6 +10306,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (activeTarget.kind === 'reference') {
       state.setActiveReferenceTransformHandle(handle)
+      return
+    }
+    if (activeTarget.kind === 'environment-light') {
+      state.setActiveEnvironmentLightTransformHandle(handle)
       return
     }
     state.setActiveContentObjectTransformHandle(handle)
@@ -9916,6 +10324,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.setActiveReferenceTransformDraft(transformOverride)
       return
     }
+    if (activeTarget.kind === 'environment-light') {
+      state.setActiveEnvironmentLightTransformDraft(transformOverride)
+      return
+    }
     state.setActiveContentObjectTransformDraft(transformOverride)
   },
   setActiveViewerTransformHistoryScrubIndex: (scrubIndex) => {
@@ -9926,6 +10338,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (activeTarget.kind === 'reference') {
       state.setActiveReferenceTransformHistoryScrubIndex(scrubIndex)
+      return
+    }
+    if (activeTarget.kind === 'environment-light') {
       return
     }
     state.setActiveContentObjectTransformHistoryScrubIndex(scrubIndex)
@@ -9940,12 +10355,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.cancelActiveReferenceTransformEntry()
       return
     }
+    if (activeTarget.kind === 'environment-light') {
+      state.cancelActiveEnvironmentLightTransformEntry()
+      return
+    }
     state.cancelActiveContentObjectTransformEntry()
   },
   resetViewerTransform: (target) => {
     const state = get()
     if (target.kind === 'reference') {
       state.resetReferenceTransform(target.referenceId)
+      return
+    }
+    if (target.kind === 'environment-light') {
       return
     }
     state.resetContentObjectTransform(target.objectId)
@@ -9956,12 +10378,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.setReferenceTransformHistoryEntryDeltaValue(target.referenceId, entryId, axis, value)
       return
     }
+    if (target.kind === 'environment-light') {
+      return
+    }
     state.setContentObjectTransformHistoryEntryDeltaValue(target.objectId, entryId, axis, value)
   },
   deleteViewerTransformHistoryEntry: (target, entryId) => {
     const state = get()
     if (target.kind === 'reference') {
       state.deleteReferenceTransformHistoryEntry(target.referenceId, entryId)
+      return
+    }
+    if (target.kind === 'environment-light') {
       return
     }
     state.deleteContentObjectTransformHistoryEntry(target.objectId, entryId)
@@ -9972,12 +10400,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.toggleReferenceTransformHistoryLock(target.referenceId, entryId)
       return
     }
+    if (target.kind === 'environment-light') {
+      return
+    }
     state.toggleContentObjectTransformHistoryLock(target.objectId, entryId)
   },
   mergeViewerTransformHistory: (target) => {
     const state = get()
     if (target.kind === 'reference') {
       state.mergeReferenceTransformHistory(target.referenceId)
+      return
+    }
+    if (target.kind === 'environment-light') {
       return
     }
     state.mergeContentObjectTransformHistory(target.objectId)
@@ -9988,12 +10422,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.setReferenceTransformSnapEnabled(target.referenceId, mode, enabled)
       return
     }
+    if (target.kind === 'environment-light') {
+      return
+    }
     state.setContentObjectTransformSnapEnabled(target.objectId, mode, enabled)
   },
   setViewerTransformSnapValue: (target, mode, value) => {
     const state = get()
     if (target.kind === 'reference') {
       state.setReferenceTransformSnapValue(target.referenceId, mode, value)
+      return
+    }
+    if (target.kind === 'environment-light') {
       return
     }
     state.setContentObjectTransformSnapValue(target.objectId, mode, value)
@@ -10004,12 +10444,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       state.setReferenceTransformSnapAxisValue(target.referenceId, mode, axis, value)
       return
     }
+    if (target.kind === 'environment-light') {
+      return
+    }
     state.setContentObjectTransformSnapAxisValue(target.objectId, mode, axis, value)
   },
   setViewerTransformSnapLocked: (target, mode, locked) => {
     const state = get()
     if (target.kind === 'reference') {
       state.setReferenceTransformSnapLocked(target.referenceId, mode, locked)
+      return
+    }
+    if (target.kind === 'environment-light') {
       return
     }
     state.setContentObjectTransformSnapLocked(target.objectId, mode, locked)
@@ -10995,11 +11441,16 @@ export const selectCurrentProjectContentBrowserRows = (
     : []
   const shouldRenderReferenceHierarchy = includeReferenceHierarchy && allReferenceItems.length > 0
   const referenceCategories = shouldRenderReferenceHierarchy
-    ? REFERENCE_MANIFEST_CATEGORIES.map((category) => ({
-        categoryId: category.categoryId,
-        label: category.label,
-        emptyLabel: 'No loadable references yet.',
-      }))
+    ? selectReferenceCategoriesWithShelfItems(referenceWorkspace).map((categoryId) => {
+        const category = REFERENCE_MANIFEST_CATEGORIES.find(
+          (candidate) => candidate.categoryId === categoryId,
+        )
+        return {
+          categoryId,
+          label: category?.label ?? resolveReferenceCategoryLabel(categoryId),
+          emptyLabel: 'No loadable references yet.',
+        }
+      })
     : []
   const totalShelfReferenceCount = shouldRenderReferenceHierarchy
     ? allReferenceItems.filter((item) => item.parentAssemblyId == null && item.parentComponentId == null)
@@ -11729,6 +12180,12 @@ const resolveConsoleSelectedTargetLabel = (
       return 'References'
     case 'reference-category':
       return target.categoryId
+    case 'environment-light':
+      return (
+        useUiPrefsStore
+          .getState()
+          .view.lighting.lights.find((light) => light.id === target.lightId)?.name ?? target.lightId
+      )
     default:
       return null
   }
@@ -11784,6 +12241,15 @@ const resolveConsoleContentBreadcrumbLabels = (
   }
 
   if (target.kind !== 'object') {
+    if (target.kind === 'environment-light') {
+      const light = useUiPrefsStore
+        .getState()
+        .view.lighting.lights.find((candidate) => candidate.id === target.lightId)
+      if (light === undefined) {
+        return null
+      }
+      return ['Environment', light.name]
+    }
     return null
   }
 
@@ -11963,6 +12429,28 @@ export const selectConsoleWorkspaceContextTarget = (
   }
   if (selectedTarget.kind === 'graph-document' || selectedTarget.kind === 'graph-node') {
     return selectedTarget
+  }
+  if (selectedTarget.kind === 'environment-light') {
+    const light = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((candidate) => candidate.id === selectedTarget.lightId)
+    if (light === undefined) {
+      return null
+    }
+    return {
+      kind: 'environment-light',
+      lightId: light.id,
+      label: light.name,
+      contentBreadcrumbLabels:
+        resolveConsoleContentBreadcrumbLabels(state, {
+          kind: 'environment-light',
+          lightId: light.id,
+        }) ?? ['Environment', light.name],
+      fallbackGraphDocumentId: null,
+      canDelete: true,
+      canHide: light.enabled,
+      canShow: !light.enabled,
+    }
   }
   if (selectedTarget.kind === 'references-root') {
     const selectedOwnerTarget = resolveWorkspaceSelectedContentOwnerTarget(state, {

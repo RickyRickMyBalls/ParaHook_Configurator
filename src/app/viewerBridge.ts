@@ -128,6 +128,10 @@ export type ViewerTransformTarget =
       kind: 'content-object'
       objectId: string
     }
+  | {
+      kind: 'environment-light'
+      lightId: string
+    }
 
 export type ViewerTransformHistoryOverlayVm = {
   target: ViewerTransformTarget
@@ -188,6 +192,7 @@ export interface ViewerApi {
   frameSelected: (partId: string | null, options?: FrameTargetOptions) => void
   frameSelectionSet: (partIds: string[], referenceIds: string[]) => boolean
   frameReference: (referenceId: string, options?: FrameTargetOptions) => void
+  frameEnvironmentLight: (lightId: string, options?: FrameTargetOptions) => boolean
   snapCameraToDirection: (dir: SnapDirection) => void
   zoomCameraByWheelDelta: (deltaY: number) => void
   beginTemporaryPanDrag: (startClientX: number, startClientY: number) => void

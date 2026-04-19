@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Rogland Clear Night 2K environment thumbnail">
+  <defs>
+    <radialGradient id="moonGlow" cx="72%" cy="24%" r="48%">
+      <stop offset="0" stop-color="#dceaff"/>
+      <stop offset="0.18" stop-color="#6076b5"/>
+      <stop offset="1" stop-color="#070b19"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="180" fill="url(#moonGlow)"/>
+  <circle cx="232" cy="42" r="15" fill="#edf3ff"/>
+  <path d="M0 128 C38 116 70 122 102 110 C140 96 180 106 212 96 C252 84 288 90 320 76 L320 180 L0 180 Z" fill="#121d2c"/>
+  <path d="M0 150 C62 142 124 150 180 136 C230 124 280 132 320 118 L320 180 L0 180 Z" fill="#070b12"/>
+</svg>

@@ -8,7 +8,15 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
+import {
+  ENVIRONMENT_PRESET_OPTIONS,
+  areEnvironmentLookSnapshotsEqual,
+  createEnvironmentLookSnapshot,
+  resolveEnvironmentPresetRead,
+} from '../../shared/viewSettingsTypes'
 import type {
+  EnvPreset,
+  EnvironmentGradeSettings,
   GroundMaterialPresetId,
   LightSpec,
   LightType,
@@ -103,17 +111,13 @@ const shadowsEnabledOptions = [
   { value: 'off', label: 'Off' },
   { value: 'on', label: 'On' },
 ]
-const toneMappingOptions = [
-  { value: 'none', label: 'None' },
-  { value: 'aces', label: 'ACES' },
-]
-const envPresetOptions = [
-  { value: 'none', label: 'None' },
-  { value: 'studio', label: 'Studio' },
-]
 const enabledOptions = [
   { value: 'off', label: 'Off' },
   { value: 'on', label: 'On' },
+]
+const hdriBackgroundOptions = [
+  { value: 'visible', label: 'Visible' },
+  { value: 'hidden', label: 'Hidden' },
 ]
 const shadowMapOptions = shadowSizes.map((size) => ({
   value: `${size}`,
@@ -192,11 +196,19 @@ const formatClipDistance = (value: number): string => {
 const formatCameraShortcutTransitionDuration = (value: number): string =>
   `${Math.round(value)} ms`
 
-const formatExposureValue = (value: number): string =>
-  Number(value.toFixed(2)).toString()
-
 const formatLightIntensityValue = (value: number): string =>
   Number(value.toFixed(2)).toString()
+
+const formatEnvironmentIntensityValue = (value: number): string =>
+  Number(value.toFixed(2)).toString()
+
+const formatEnvironmentRotationValue = (value: number): string => `${Math.round(value)} deg`
+
+const formatEnvironmentGradeMultiplierValue = (value: number): string =>
+  `${Number(value.toFixed(2)).toString()}x`
+
+const formatEnvironmentGradeOffsetValue = (value: number): string =>
+  `${value > 0 ? '+' : ''}${Math.round(value)}`
 
 const formatLightDistanceValue = (value: number): string =>
   Number(value.toFixed(1)).toString()
@@ -685,13 +697,34 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     (state) => state.cameraShortcutTransitionDurationMs,
   )
   const setView = useUiPrefsStore((state) => state.setView)
+  const setEnvironmentGrade = useUiPrefsStore((state) => state.setEnvironmentGrade)
+  const captureEnvironmentLook = useUiPrefsStore((state) => state.captureEnvironmentLook)
+  const recallEnvironmentLook = useUiPrefsStore((state) => state.recallEnvironmentLook)
+  const toggleEnvironmentLookComparison = useUiPrefsStore(
+    (state) => state.toggleEnvironmentLookComparison,
+  )
+  const capturedEnvironmentLook = useUiPrefsStore((state) => state.capturedEnvironmentLook)
+  const environmentLookComparisonActive = useUiPrefsStore(
+    (state) => state.environmentLookComparisonActive,
+  )
   const setViewKey = useUiPrefsStore((state) => state.setViewKey)
+  const applyEnvironmentPreset = useUiPrefsStore((state) => state.applyEnvironmentPreset)
+  const setHdriEnvironmentBackgroundVisible = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentBackgroundVisible,
+  )
+  const setHdriEnvironmentIntensity = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentIntensity,
+  )
+  const setHdriEnvironmentBackgroundIntensity = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentBackgroundIntensity,
+  )
+  const setHdriEnvironmentRotation = useUiPrefsStore(
+    (state) => state.setHdriEnvironmentRotation,
+  )
   const setCameraShortcutTransitionDurationMs = useUiPrefsStore(
     (state) => state.setCameraShortcutTransitionDurationMs,
   )
-  const selectLight = useUiPrefsStore((state) => state.selectLight)
   const addLight = useUiPrefsStore((state) => state.addLight)
-  const deleteLight = useUiPrefsStore((state) => state.deleteLight)
   const updateLight = useUiPrefsStore((state) => state.updateLight)
   const selectMaterialPreset = useUiPrefsStore((state) => state.selectMaterialPreset)
   const updateMaterialPreset = useUiPrefsStore((state) => state.updateMaterialPreset)
@@ -769,6 +802,10 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
     })
   }
 
+  const updateEnvironmentGrade = (patch: Partial<EnvironmentGradeSettings>) => {
+    setEnvironmentGrade(patch)
+  }
+
   const selectedPreset = useMemo<MaterialPreset | null>(() => {
     return (
       view.materials.presets.find((preset) => preset.id === view.materials.selectedPresetId) ??
@@ -776,6 +813,46 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
       null
     )
   }, [view.materials.presets, view.materials.selectedPresetId])
+  const currentEnvironmentLook = useMemo(
+    () => createEnvironmentLookSnapshot(view),
+    [view.envPreset, view.environmentGrade, view.environmentSource, view.lighting],
+  )
+  const rememberedEnvironmentLookMatchesCurrent =
+    capturedEnvironmentLook !== null
+      ? areEnvironmentLookSnapshotsEqual(currentEnvironmentLook, capturedEnvironmentLook)
+      : false
+  const environmentPresetRead = useMemo(
+    () => resolveEnvironmentPresetRead(view),
+    [view.envPreset, view.environmentGrade, view.lighting],
+  )
+  const environmentPresetOptions = useMemo(() => {
+    if (
+      view.environmentSource.kind !== 'custom' &&
+      view.environmentSource.kind !== 'hdri' &&
+      !environmentPresetRead.isDiverged
+    ) {
+      return ENVIRONMENT_PRESET_OPTIONS
+    }
+
+    const selectedLabel =
+      view.environmentSource.kind === 'hdri'
+        ? `HDRI: ${view.environmentSource.label}`
+        : view.environmentSource.label
+
+    return ENVIRONMENT_PRESET_OPTIONS.map((option) =>
+      option.value === view.envPreset
+        ? {
+            ...option,
+            label: selectedLabel,
+          }
+        : option,
+    )
+  }, [
+    environmentPresetRead.isDiverged,
+    view.envPreset,
+    view.environmentSource.kind,
+    view.environmentSource.label,
+  ])
 
   const withViewer = (callback: (viewer: NonNullable<ReturnType<typeof getViewer>>) => void) => {
     const viewer = getViewer(viewportId)
@@ -1991,27 +2068,6 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
               Axis Overlay
             </label>
           </div>
-          <ParaSelect
-            label="Shadows"
-            value={view.shadowsEnabled ? 'on' : 'off'}
-            options={shadowsEnabledOptions}
-            onChange={(value) => setViewKey('shadowsEnabled', value === 'on')}
-          />
-          <ParaSelect
-            label="Tone Mapping"
-            value={view.toneMapping}
-            options={toneMappingOptions}
-            onChange={(value) => setViewKey('toneMapping', value as typeof view.toneMapping)}
-          />
-          <ParaSlider
-            label="Exposure"
-            value={view.exposure}
-            min={0}
-            max={2}
-            step={0.05}
-            formatValue={formatExposureValue}
-            onChange={(value) => setViewKey('exposure', value)}
-          />
         </>
       ),
     },
@@ -2023,46 +2079,193 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
           <ParaSelect
             label="Preset"
             value={view.envPreset}
-            options={envPresetOptions}
-            onChange={(value) => setViewKey('envPreset', value as typeof view.envPreset)}
+            options={environmentPresetOptions}
+            onChange={(value) => applyEnvironmentPreset(value as EnvPreset)}
           />
-
-          <div className="V15SectionLabel">Lighting</div>
-          <div className="ItemList">
-            {view.lighting.lights.map((light) => {
-              const selected = light.id === view.lighting.selectedLightId
-              return (
-                <div
-                  key={light.id}
-                  className={`ListRow ${selected ? 'isSelected' : ''}`}
-                  onClick={() => selectLight(light.id)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={light.enabled}
-                    onChange={(event) => {
-                      event.stopPropagation()
-                      updateLight(light.id, { enabled: event.target.checked })
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                  />
-                  <span className="ListRowName">{light.name}</span>
-                  <span className="TypeChip">{light.type}</span>
-                  <button
-                    type="button"
-                    className="IconButton"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      deleteLight(light.id)
-                    }}
-                  >
-                    Del
-                  </button>
-                </div>
-              )
-            })}
+          <div className="V15Meta">
+            {environmentPresetRead.isDiverged
+              ? `${environmentPresetRead.definition.label} is selected, but the live scene has diverged from it.`
+              : `${environmentPresetRead.definition.label} is selected and still matches the live scene.`}
           </div>
 
+          <div className="V15SectionLabel">Post-Look Grade</div>
+          <div className="V15Meta">
+            The Environment-2 grade surface is visible here now, and it stays downstream from the
+            active scene or HDRI source.
+          </div>
+          <div className="InlineButtonRow">
+            <button type="button" onClick={() => applyEnvironmentPreset(view.envPreset)}>
+              Reapply Selected Preset
+            </button>
+          </div>
+
+          <div className="V15SectionLabel">Look Memory</div>
+          <div className="InlineButtonRow">
+            <button type="button" onClick={captureEnvironmentLook}>
+              Capture Look
+            </button>
+            <button
+              type="button"
+              onClick={recallEnvironmentLook}
+              disabled={capturedEnvironmentLook === null}
+            >
+              Recall Look
+            </button>
+            <button
+              type="button"
+              onClick={toggleEnvironmentLookComparison}
+              disabled={capturedEnvironmentLook === null}
+            >
+              {environmentLookComparisonActive ? 'Return to Current' : 'Compare A/B'}
+            </button>
+          </div>
+          <div className="V15Meta">
+            {capturedEnvironmentLook === null
+              ? 'Capture the current environment look to enable recall and A/B compare.'
+              : environmentLookComparisonActive
+                ? 'A/B compare is showing the remembered look. Click Return to Current to restore the live look.'
+                : rememberedEnvironmentLookMatchesCurrent
+                  ? 'The live look matches the remembered look.'
+                  : 'The remembered look is ready to recall or compare against the live look.'}
+          </div>
+
+          <div className="V15SectionLabel">Grade Controls</div>
+          <div className="MiniFieldGrid">
+            <ParaSlider
+              label="Exposure"
+              value={view.environmentGrade.exposure}
+              min={0}
+              max={5}
+              step={0.01}
+              formatValue={formatEnvironmentGradeMultiplierValue}
+              onChange={(value) => updateEnvironmentGrade({ exposure: value })}
+            />
+            <ParaSlider
+              label="Contrast"
+              value={view.environmentGrade.contrast}
+              min={0}
+              max={3}
+              step={0.01}
+              formatValue={formatEnvironmentGradeMultiplierValue}
+              onChange={(value) => updateEnvironmentGrade({ contrast: value })}
+            />
+            <ParaSlider
+              label="Highlights"
+              value={view.environmentGrade.highlights}
+              min={-100}
+              max={100}
+              step={1}
+              formatValue={formatEnvironmentGradeOffsetValue}
+              onChange={(value) => updateEnvironmentGrade({ highlights: value })}
+            />
+            <ParaSlider
+              label="Shadows"
+              value={view.environmentGrade.shadows}
+              min={-100}
+              max={100}
+              step={1}
+              formatValue={formatEnvironmentGradeOffsetValue}
+              onChange={(value) => updateEnvironmentGrade({ shadows: value })}
+            />
+            <ParaSlider
+              label="Whites"
+              value={view.environmentGrade.whites}
+              min={-100}
+              max={100}
+              step={1}
+              formatValue={formatEnvironmentGradeOffsetValue}
+              onChange={(value) => updateEnvironmentGrade({ whites: value })}
+            />
+            <ParaSlider
+              label="Blacks"
+              value={view.environmentGrade.blacks}
+              min={-100}
+              max={100}
+              step={1}
+              formatValue={formatEnvironmentGradeOffsetValue}
+              onChange={(value) => updateEnvironmentGrade({ blacks: value })}
+            />
+            <ParaSlider
+              label="Temperature"
+              value={view.environmentGrade.temperature}
+              min={-100}
+              max={100}
+              step={1}
+              formatValue={formatEnvironmentGradeOffsetValue}
+              onChange={(value) => updateEnvironmentGrade({ temperature: value })}
+            />
+            <ParaSlider
+              label="Tint"
+              value={view.environmentGrade.tint}
+              min={-100}
+              max={100}
+              step={1}
+              formatValue={formatEnvironmentGradeOffsetValue}
+              onChange={(value) => updateEnvironmentGrade({ tint: value })}
+            />
+            <ParaSlider
+              label="Saturation"
+              value={view.environmentGrade.saturation}
+              min={0}
+              max={3}
+              step={0.01}
+              formatValue={formatEnvironmentGradeMultiplierValue}
+              onChange={(value) => updateEnvironmentGrade({ saturation: value })}
+            />
+          </div>
+
+          <div className="V15SectionLabel">Active Environment</div>
+          {view.environmentSource.kind !== 'hdri' ? (
+            <div className="V15Meta">
+              HDRI lighting controls appear here after an HDRI/EXR environment is applied.
+            </div>
+          ) : (
+            <>
+              <div className="V15Meta">
+                {view.environmentSource.label} is the active HDRI/EXR environment.
+              </div>
+              <ParaSlider
+                label="Lighting Intensity"
+                value={view.environmentSource.intensity ?? 1}
+                min={0}
+                max={5}
+                step={0.05}
+                formatValue={formatEnvironmentIntensityValue}
+                onChange={setHdriEnvironmentIntensity}
+              />
+              <ParaSelect
+                label="Background"
+                value={view.environmentSource.backgroundVisible === false ? 'hidden' : 'visible'}
+                options={hdriBackgroundOptions}
+                onChange={(value) => setHdriEnvironmentBackgroundVisible(value === 'visible')}
+              />
+              <ParaSlider
+                label="Background Intensity"
+                value={
+                  view.environmentSource.backgroundIntensity ??
+                  view.environmentSource.intensity ??
+                  1
+                }
+                min={0}
+                max={5}
+                step={0.05}
+                formatValue={formatEnvironmentIntensityValue}
+                disabled={view.environmentSource.backgroundVisible === false}
+                onChange={setHdriEnvironmentBackgroundIntensity}
+              />
+              <ParaSlider
+                label="Orientation"
+                value={view.environmentSource.rotationDeg ?? 0}
+                min={0}
+                max={360}
+                step={1}
+                formatValue={formatEnvironmentRotationValue}
+                onChange={setHdriEnvironmentRotation}
+              />
+            </>
+          )}
+
+          <div className="V15SectionLabel">Add Environment Light</div>
           <div className="InlineEditorRow">
             <ParaSelect
               label="Add Light Type"
@@ -2094,17 +2297,15 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
             </button>
           </div>
 
-          {selectedLight === null ? null : (
+          <div className="V15SectionLabel">Selected Light</div>
+          {selectedLight === null ? (
+            <div className="V15Meta">Select a light in the Browser or viewport to edit it here.</div>
+          ) : (
             <div className="EditorPanel">
+              <div className="V15Meta">
+                {selectedLight.name} is selected. Use the Browser eye to turn this light on or off.
+              </div>
               <div className="MiniFieldGrid">
-                <ParaSelect
-                  label="Enabled"
-                  value={selectedLight.enabled ? 'on' : 'off'}
-                  options={enabledOptions}
-                  onChange={(value) =>
-                    updateLight(selectedLight.id, { enabled: value === 'on' })
-                  }
-                />
                 <label>
                   Name
                   <input
@@ -2229,36 +2430,60 @@ export function ViewToolbar(props: ViewToolbarProps = {}) {
                 </div>
               ) : null}
 
-              {supportsShadow(selectedLight.type) ? (
-                <div className="MiniFieldGrid">
-                  <ParaSelect
-                    label="Cast Shadow"
-                    value={selectedLight.castShadow ? 'on' : 'off'}
-                    options={enabledOptions}
-                    onChange={(value) =>
-                      updateLight(selectedLight.id, { castShadow: value === 'on' })
-                    }
-                  />
-                  <ParaSlider
-                    label="Shadow Bias"
-                    min={-0.01}
-                    max={0.01}
-                    step={0.0001}
-                    value={selectedLight.shadowBias ?? -0.0003}
-                    onChange={(value) => updateLight(selectedLight.id, { shadowBias: value })}
-                    formatValue={formatLightShadowBiasValue}
-                  />
-                  <ParaSelect
-                    label="Shadow Map"
-                    value={`${selectedLight.shadowMapSize ?? 1024}`}
-                    options={shadowMapOptions}
-                    onChange={(value) =>
-                      updateLight(selectedLight.id, { shadowMapSize: Number(value) })
-                    }
-                  />
-                </div>
-              ) : null}
             </div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'shadows',
+      label: 'Shadows',
+      renderBody: () => (
+        <>
+          <ParaSelect
+            label="Shadows"
+            value={view.shadowsEnabled ? 'on' : 'off'}
+            options={shadowsEnabledOptions}
+            onChange={(value) => setViewKey('shadowsEnabled', value === 'on')}
+          />
+          <div className="V15SectionLabel">Selected Light Shadows</div>
+          {selectedLight === null ? (
+            <div className="V15Meta">Select a light to edit shadow controls.</div>
+          ) : !supportsShadow(selectedLight.type) ? (
+            <div className="V15Meta">
+              {lightTypeLabel(selectedLight.type)} lights do not support shadows.
+            </div>
+          ) : (
+            <>
+              <div className="V15Meta">{selectedLight.name}</div>
+              <div className="MiniFieldGrid">
+                <ParaSelect
+                  label="Cast Shadow"
+                  value={selectedLight.castShadow ? 'on' : 'off'}
+                  options={enabledOptions}
+                  onChange={(value) =>
+                    updateLight(selectedLight.id, { castShadow: value === 'on' })
+                  }
+                />
+                <ParaSlider
+                  label="Shadow Bias"
+                  min={-0.01}
+                  max={0.01}
+                  step={0.0001}
+                  value={selectedLight.shadowBias ?? -0.0003}
+                  onChange={(value) => updateLight(selectedLight.id, { shadowBias: value })}
+                  formatValue={formatLightShadowBiasValue}
+                />
+                <ParaSelect
+                  label="Shadow Map"
+                  value={`${selectedLight.shadowMapSize ?? 1024}`}
+                  options={shadowMapOptions}
+                  onChange={(value) =>
+                    updateLight(selectedLight.id, { shadowMapSize: Number(value) })
+                  }
+                />
+              </div>
+            </>
           )}
         </>
       ),

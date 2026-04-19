@@ -4,7 +4,7 @@
 
 ### Doc History
 2. 2026-04-16 12:14:00: Expanded the `Generation 2` wishlist tracking again so external-link intake now distinguishes Dropbox shared-folder links from ZIP-file links, adding explicit tracking items for inspect-first folder intake, staged ZIP inspection, supported-versus-unsupported file classification, and user choice over which supported files to import
-1. 2026-04-16 11:55:00: Added this dedicated `Catalog-Gen2-Index.md` planning surface so the newer `Generation 2` catalog direction has one focused home for wishlist tracking around PubParts intake, linked `3D` model entries, Onewheel platform normalization, system-level part organization, and pre-built board onboarding before those lanes split into narrower implementation phases
+1. 2026-04-16 11:55:00: Added this dedicated `Catalog-Gen2-Index.md` planning surface so the newer `Generation 2` catalog direction has one focused home for wishlist tracking around PubParts intake, linked `3D` model entries, platform compatibility normalization, system-level part organization, and pre-built PubWheel onboarding before those lanes split into narrower implementation phases
 
 ### Purpose
 
@@ -22,9 +22,9 @@ This doc covers:
 - curated external catalog integration
 - linked `3D` model entries and linked archive intake direction
 - PubParts normalization into the ParaHook catalog shape
-- platform and fitment normalization for Onewheel parts
+- platform and fitment normalization for platform parts
 - system-level part organization for `Generation 2`
-- pre-built Onewheel board onboarding
+- pre-built PubWheel starting assembly onboarding
 - wishlist tracking for those `Generation 2` lanes
 
 This doc does not cover:
@@ -42,9 +42,9 @@ This doc does not cover:
 The main additions are:
 - curated external catalog intake, starting with `pubparts.xyz`
 - linked `3D` model entries and linked archive handoff
-- stronger Onewheel platform normalization
+- stronger platform compatibility normalization
 - higher-level part-system organization beyond one flat platform list
-- pre-built Onewheel board entries
+- pre-built PubWheel starting assembly entries
 
 This doc exists mainly to track those wishes cleanly before they turn into narrower phase docs.
 
@@ -57,9 +57,9 @@ That is useful as architecture truth, but it is too broad to serve as the workin
 `Catalog-Index.md` also still carries the earlier `Catalog-1` through `Catalog-5` ladder, which is useful family history, but it is not the best surface for the newer `Generation 2` shape that now includes:
 - PubParts intake
 - external-linked catalog items
-- broader Onewheel platform truth
+- broader platform compatibility truth
 - `Platform` versus `Wheel` organization
-- pre-built boards
+- pre-built PubWheel assemblies
 
 This doc exists to give those `Generation 2` wishes one explicit tracking home.
 
@@ -69,9 +69,9 @@ This doc exists to give those `Generation 2` wishes one explicit tracking home.
 - intake curated external catalog sources
 - normalize external item truth into the ParaHook catalog contract
 - represent linked model pages and linked archives honestly
-- widen Onewheel compatibility metadata beyond the simpler `Generation 1` read
+- widen platform compatibility metadata beyond the simpler `Generation 1` read
 - organize parts by the system they really belong to
-- carry pre-built Onewheel boards as starting configurations
+- carry pre-built PubWheel starting assemblies as starting configurations
 
 Important rule:
 - `Generation 2` should still stay metadata-first and curation-first
@@ -132,16 +132,16 @@ Use the `Generation 2` lanes to organize the current wishlist like this:
     - keep `motors` and `tires` out of fake single-platform ownership when they really cross board families
     - leave room for later `Power` and `Fasteners` growth without forcing them into the wrong lane
 
-### `Catalog-Gen2-5` - Pre-Built Onewheel Boards
-  - [ ] `G2-27. Pre-Built Board Entries`
-  - [ ] `G2-28. ADV Starting Board`
-  - [ ] `G2-29. GT Starting Board`
-  - [ ] `G2-30. Pint Starting Board`
-  - [ ] `G2-31. XR Starting Board`
-  - [ ] `G2-32. XR Classic Starting Board`
+### `Catalog-Gen2-5` - Pre-Built PubWheel Starting Assemblies
+  - [ ] `G2-27. Pre-Built PubWheel Entries`
+  - [ ] `G2-28. ADV Starting Assembly`
+  - [ ] `G2-29. GT Starting Assembly`
+  - [ ] `G2-30. Pint Starting Assembly`
+  - [ ] `G2-31. XR Starting Assembly`
+  - [ ] `G2-32. XR Classic Starting Assembly`
   - [ ] `G2-33. Load Into Model As Starting Configuration`
   #### - lane target:
-    - let the catalog carry full starting boards in addition to loose parts
+    - let the catalog carry full starting PubWheel assemblies in addition to loose parts
     - keep those entries honest as starting assemblies, not only reference parts
 
 ### `Catalog-Gen2-6` - Metadata Groundwork For Later Builder And Compatibility
@@ -201,7 +201,7 @@ Let `Generation 2` entries point at linked models or linked archives honestly, w
 
 ### Purpose
 
-Define the wider Onewheel platform truth needed for `Generation 2` so catalog metadata can stop reading as one oversimplified platform list.
+Define the wider platform compatibility truth needed for `Generation 2` so catalog metadata can stop reading as one oversimplified platform list.
 
 ### Owns
 
@@ -237,16 +237,16 @@ Organize `Generation 2` parts by the system they actually belong to instead of m
 - the later full builder slot model
 - compatibility proof logic beyond metadata truth
 
-## [ ] Catalog-Gen2-5 - Pre-Built Onewheel Boards
+## [ ] Catalog-Gen2-5 - Pre-Built PubWheel Starting Assemblies
 
 ### Purpose
 
-Add full starting Onewheel boards to the catalog so the user can begin from a known board configuration instead of only loose parts.
+Add full PubWheel starting assemblies to the catalog so the user can begin from a known PubWheel configuration instead of only loose parts.
 
 ### Owns
 
-- pre-built board entries
-- one starting board per main platform family
+- pre-built PubWheel entries
+- one starting PubWheel assembly per main platform family
 - the rule that these should load into the model as starting configurations
 
 ### Does Not Own
@@ -272,14 +272,14 @@ Prepare the metadata truth that later `Generation 3` builder and checker work wi
 
 - the `Ricky Checker`
 - later dimensional fit math
-- the full `Onewheel Builder` runtime
+- the full `PubWheel Builder` runtime
 
 ### Summary
 
 The `Generation 2` wishlist direction is now:
 - intake curated external sources such as `pubparts.xyz`
 - support linked models and linked archives honestly
-- normalize platform and fitment truth for real Onewheel part families
+- normalize platform and fitment truth for real platform part families
 - organize parts by real systems such as `Platform` and `Wheel`
-- onboard pre-built boards as starting configurations
+- onboard pre-built PubWheel assemblies as starting configurations
 - prepare the metadata groundwork that `Generation 3` compatibility and builder work will later depend on

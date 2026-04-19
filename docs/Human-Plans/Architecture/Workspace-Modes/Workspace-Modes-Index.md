@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+93. 2026-04-19 13:24:23: Updated the Home Page workspace-specific planning home after `Home-Page-Index.md` was renamed to `Home-Page-Gen1-Index.md`, keeping the workspace umbrella pointed at the active Generation 1 planning index.
+92. 2026-04-19 10:36:04: Added the `Workspaces/Home-Page/Home-Page-Index.md` umbrella family index plus the first standalone future phase doc `Home-Page-1`, and refreshed this workspace umbrella so `Home Page` now points at an index-owned implementation ladder for startup, zero-viewer return, and launch actions instead of only the vision note
 91. 2026-04-17 19:51:24: Added the new workspace-family home `Workspaces/Home-Page/Home-Page-Vision.md`, refreshed the umbrella workspace read so `Home Page` now appears as a real workspace-global surface beside the earlier families, and recorded one dedicated planning home for a zero-model-viewport landing surface that can expose launch, resume, and browser-storage transparency without becoming a second Browser or shell-only route hack
 90. 2026-04-15 20:24:35: Added the new workspace-family home `Workspaces/Catalog/Catalog-Vision.md` plus `Workspaces/Catalog/Catalog-Index.md`, refreshed the umbrella workspace read so `Catalog` now appears as a real workspace-global surface beside the earlier families, and recorded one dedicated planning home for curated repo-backed reusable assets such as hooks, shoes, footpads, HDRIs, and later loadable reference families
 89. 2026-04-12 08:50:58: Added the new planned `Workspace 8 - Browser-Truth Published Object Rendering And Visibility` phase to this workspace-family index, grounding the next multi-graph render/read direction in the rule that published Browser/project-content objects should render by default across the project while explicit graph/object visibility becomes the honest user control for turning them off
@@ -961,8 +963,11 @@ The right mental model is:
 ## Workspace-Specific Planning Homes
 
 - `Home Page`
+  - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Vision.md`
   - dedicated home for the real workspace landing-surface direction, including the rule that zero open `Model Viewport` surfaces is a valid state, that the app may return to `Home Page` when the last viewer closes, and that browser-storage transparency should stay explicit without turning `Home Page` into a second Browser or project owner
+  - current implementation-planning owner:
+    - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
 - `Model Viewport`
   - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Model-Viewport/Model-Viewport-Index.md`
   - dedicated home for the geometry-execution, preview-policy, and authoritative-geometry handoff direction that is too large to keep only inside the umbrella workspace-family doc

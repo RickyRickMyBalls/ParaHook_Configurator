@@ -2,7 +2,32 @@
 
 ## Doc Header
 
-## Doc History
+### Doc History
+39. 2026-04-18 23:31:45: Marked `Environment-1 / Phase 11` implemented after the focused closeout proof test covered baseline preset state, preset divergence and reapply, and active HDRI tuning, then closed the family lane in the source doc while leaving `Environment-2` as the remaining open environment work
+38. 2026-04-18 23:24:11: Implemented `Environment-1 / Phase 10` by adding HDRI-only active environment orientation through environment-owned source state, applying that orientation to viewer `scene.environmentRotation` and `scene.backgroundRotation`, routing Browser source-row eye visibility to active HDRI background visibility, and proving the store, toolbar, Browser, and viewer seams while leaving startup baseline retuning, grading, persistence, compare workflow, Catalog browsing, final family proof, and closeout to later phases
+37. 2026-04-18 23:14:35: Implemented `Environment-1 / Phase 9` by splitting active HDRI lighting intensity from background intensity, exposing HDRI-only active-environment controls in the View toolbar, routing the new tune actions through environment-owned view state, and proving the viewer applies separate `scene.environmentIntensity` and `scene.backgroundIntensity` values while leaving startup baseline retuning, orientation, grading, persistence, and Catalog browsing out of scope
+36. 2026-04-18 23:06:29: Implemented `Environment-1 / Phase 8` by keeping the active HDRI as one Environment-owned Browser source row, splitting the viewer HDRI runtime into explicit background-treatment and environment-light contribution helpers, proving HDRI texture contribution can light models directly while direct lights remain intact, and leaving visible intensity, background-versus-lighting tune controls, orientation, grading, persistence, and baseline retuning out of scope
+35. 2026-04-18 23:00:11: Implemented `Environment-1 / Phase 7` by making the View toolbar read and edit the currently selected environment light, retiring the toolbar-local light picker and toolbar enabled selector, routing light visibility through the Browser row eye to environment-owned `LightSpec.enabled`, and adding focused toolbar plus Browser proof while keeping true environment-light runtime, HDRI browsing, intensity/background separation, grading, persistence, and baseline retuning out of scope
+34. 2026-04-18 21:45:00: Implemented `Environment-1 / Phase 6.3` by extending the shared View Transform target/session seam to selected environment lights, attaching the viewer gizmo to environment-light helpers, committing translate drafts back through `LightSpec.position`, gating non-positioned lights out of the move path, and adding focused store/viewer proof while keeping selected-light settings, rotate/scale light semantics, true environment-light runtime, and HDRI work out of scope
+33. 2026-04-18 21:28:00: Prepped `Environment-1 / Phase 6.3` with an implementation spec for registering selected environment lights as shared View Transform targets, moving them through the existing translate gizmo/session seam, and committing position changes back into environment-owned light specs without widening into selected-light settings, toolbar-list retirement, true environment-light runtime, or HDRI work
+32. 2026-04-18 21:16:00: Implemented `Environment-1 / Phase 6.2` by adding an honest selected environment-light frame command and viewer helper-framing seam, routing Browser environment-light double-click and Console `Zoom > Object` through it, proving missing helpers do not frame all silently, and leaving View Transform movement plus selected-light toolbar settings for later phases
+31. 2026-04-18 20:50:00: Prepped `Environment-1 / Phase 6.2` with an implementation spec for selected environment-light framing, grounding Browser and Console zoom routing in the existing viewer framing seams while keeping movement, selected-light settings, and true HDRI runtime out of scope
+30. 2026-04-18 20:35:00: Added the next environment-object HLG for object framing and View Transform movement, then chunked it into `Environment-1 / Phase 6.2` for selected-environment-object zoom/framing and `Environment-1 / Phase 6.3` for moving selected environment objects through the shared View Transform toolbar before the later selected-light settings pass
+29. 2026-04-18 20:00:00: Implemented corrective `Environment-1 / Phase 6.1` by routing selected environment-light deletes through the shared selection and command seam, feeding Console selected-environment-object context from environment-owned truth, and keeping the later toolbar-population pass out of scope while `Phase 7` remains the next active cut
+28. 2026-04-18 19:10:50: Implemented corrective `Environment-1 / Phase 5.2` by routing Browser `Environment` rows through the mature content-row chrome path, removing the bespoke `BrowserContentStateBar--environment` branch, and keeping the `Phase 5.1` Environment row contract and selection behavior intact while later delete, Console, toolbar, and HDRI runtime work remains out of scope
+27. 2026-04-18 19:08:00: Added corrective `Environment-1 / Phase 5.2` as the Browser visual-parity follow-up after `Phase 5.1`, keeping `Environment` as a real Browser collection row while explicitly moving its row chrome onto the same visual language as `Assembly`, `References`, and normal content rows before delete, Console, toolbar, or HDRI runtime work continues
+26. 2026-04-18 18:45:00: Implemented corrective `Environment-1 / Phase 5.1` by replacing the boxed Browser `Environment` subsection with a normal `Content > Environment` tree row, deriving the current source and environment-light child rows from shared environment truth, keeping source wording honest about the missing true HDRI runtime, and resolving `environment-light` targets back to `environment-light-row:<lightId>` Browser row ids without widening into toolbar population or Phase 6.1
+25. 2026-04-18 18:30:00: Added the family-level `## Vision` section above `## Wishlist Organization`, preserving the human-readable `Environment-1` summary vision plus the current HLG list before the doc compresses that intent into CLG, phase chunking, wishlist checklists, phase summaries, implementation specs, and worker tasks
+24. 2026-04-18 18:10:13: Prepped corrective `Environment-1 / Phase 5.1` inside this family doc so the Browser `Environment` surface normalizes from a boxed custom subsection into a real Browser collection row under `Content`, derived from default, added, or loaded environment objects with source and light child rows plus viewport-pick-to-Browser-row follow-through, while keeping toolbar population, transforms, true HDRI runtime, and later phases out of scope
+23. 2026-04-18 17:48:16: Closed `Environment-1 / Phase 6` by adding viewport wireframe light objects plus the shared selected environment-object contract for Browser rows and viewport picks, then advanced the remaining ladder to `Phase 7` without widening into toolbar population or true HDRI runtime
+22. 2026-04-18 17:34:35: Closed `Environment-1 / Phase 5` by adding the Browser `Environment` section plus active light and HDRI rows from shared environment truth, then advanced the remaining ladder to `Phase 6` without widening into viewport helpers or toolbar routing
+21. 2026-04-18 17:46:00: Tightened the `Environment-1` family doc after the shipped `Phase 4` pass so the summary, `Phase 3` handoff read, and `Phase 4` status now point honestly at `Phase 5` as the next legal cut instead of leaving stale pre-implementation wording behind
+20. 2026-04-18 17:30:00: Closed `Environment-1 / Phase 4` by adding the visible environment tuning surface, quick studio controls, honest preset divergence handling, and the selected-preset reapply path while keeping the startup baseline and later Browser/HDRI work out of scope
+19. 2026-04-18 17:31:00: Tightened the `Environment-1` planning guardrails so any new settings surfaced in the `View Toolbar` should prefer the existing para-style control language first, explicitly steering later environment tuning and selected-light editing toward `ParaSlider`, `ParaSelect`, and `ParaVec3`-style controls instead of ad hoc widget patterns
+18. 2026-04-18 17:24:00: Re-prepped this `Environment-1` family-phase doc around the stronger Blender-like environment-object vision, replacing the softer optional Browser-light wording with explicit Browser-and-viewport environment-object `HLG` plus `CLG`, adding active HDRI ownership under one `Environment` content section, and expanding the remaining ladder from `Phase 4` through `Phase 11` so visible tuning, Browser rows, viewport wireframes, selection-driven toolbar editing, real environment runtime, and final closeout each keep one honest owner
+17. 2026-04-18 16:49:23: Closed the remaining `Phase 3` preset-honesty follow-through by surfacing divergence when exposure or lighting edits drift away from the selected named preset, moving preset background behavior into the shared preset definition seam, and marking `Environment-1-HLG-2` complete so `Phase 4` can stay focused on visible tuning without widening into later family work
+16. 2026-04-18 16:22:23: Reformatted this `Environment-1` family-phase doc into the current standalone future-doc shape by adding a proper family summary, `## Wishlist Organization`, explicit `High Level Goals` plus `CLG`, and one cleaner top-level phase ladder, while keeping the startup-baseline guardrail, the shipped `Phase 1` through `Phase 3` reality, and the remaining `Phase 4` through `Phase 8` execution order honest
+15. 2026-04-18 16:46:00: Cleaned up this `Environment-1` phase doc so the shipped baseline-lighting work remains preserved as historical context while the remaining open ladder is explicitly reframed around opt-in preset truth, visible environment cleanup, Browser-light workflow if still needed, and true HDRI runtime without changing the current startup scene by default
 14. 2026-04-17 09:47:20: Added the standalone future plan doc `Future/Environment_Phase Environment-1 Phase 2c - Environment Section Organization Pass.md`, tightening `Environment-1 / Phase 2c` around a visible toolbar organization pass that likely introduces one dedicated `Shadows` section while keeping `Ground` separate and leaving runtime behavior unchanged
 13. 2026-04-17 02:14:33: Implemented `Environment-1 / Phase 2d - Ground Plane And Floor Read Lane` as a standalone pass by adding a shared `ground` contract, a dedicated `Ground` View Toolbar section with para-style visibility, height, and material controls, a viewer-owned visible studio floor runtime, and focused toolbar, workspace-persistence, and viewer proof while leaving `Phase 2c` still pending as the next active cleanup cut
 12. 2026-04-17 02:03:35: Prepped `Environment-1 / Phase 2d - Ground Plane And Floor Read Lane` for implementation by grounding it in the live `Viewer.ts`, `viewSettingsTypes.ts`, `ViewToolbar.tsx`, `ParaSelect.tsx`, and `ParaSlider.tsx` seams, and locking the first cut to a new visible `Ground` toolbar section with an on or off `ParaSelect`, a raise or lower `ParaSlider`, and a narrow ground-material selection surface
@@ -18,1092 +43,1952 @@
 2. 2026-04-16 19:54:14: Prepped `Environment-1 / Phase 1 - Confirm The First Environment Contract And Baseline Target` for implementation by grounding the phase in the live `ViewToolbar.tsx`, `viewSettingsTypes.ts`, `uiPrefsStore.ts`, and `Viewer.ts` seams, locking the exact baseline-read contract and no-widening boundary before later lighting repair, preset, Browser-light, and HDRI-runtime work begins
 1. 2026-04-16 19:08:18: Created this standalone future phase doc for `Environment-1`, combining the old baseline-lighting, visible preset-controls, and true HDRI/environment-runtime goals into one implementation-ready lane with an explicit internal phase ladder so the brighter Blender-like viewport target can ship in small honest cuts
 
-## Purpose
+### Purpose
 
-This doc locks the first `Environment` phase.
+This doc is the standalone future execution surface for `Environment-1`.
 
 Use it to answer:
-- how the first real environment lane should improve the dark default viewport
-- how visible environment presets should be introduced
-- how Browser-facing light controls should stay downstream from environment-owned light truth
-- how true HDRI or environment-light runtime should arrive without pretending it already exists
+- how the first real environment lane should preserve the current startup scene while adding opt-in environment workflows
+- how named presets, visible tuning, Browser and viewport environment objects, and true HDRI runtime should be phased honestly
+- which `Environment-1` goals are already advanced versus still open
+- how the remaining implementation ladder should run from the corrective `Phase 5.1` through `Phase 11`
 
-## Why This Phase Exists
+### Why This Phase Exists
 
-The current environment surface is too thin for the quality bar you want.
+The current environment surface is stronger than it was at the start of the family, but it is still incomplete.
 
-Right now the viewer has:
-- exposure
-- tone mapping
-- basic background switching
-- direct light editing
+The repo now has:
+- a preserved startup baseline
+- a brighter default scene
+- a dedicated `Ground` lane
+- a first named preset model and shared preset-apply seam
 
-But it still does not have:
-- a real preset system for environment looks
-- Browser-facing light entries for quick readability help
-- true HDRI-backed environment lighting
+Remaining gaps after the first selected-light and HDRI runtime cuts:
+- environment-light tuning, separation, orientation, and final family proof
 
-This phase exists to give those first three old environment lanes one clean execution home instead of scattering them across multiple tiny umbrella phases too early.
+This doc exists to keep the first environment family honest all the way from the preserved baseline to a real environment runtime without widening into later grading and workflow-polish work that belongs to `Environment-2`.
 
-## Scope
+### Scope
 
-This phase covers:
-- default viewport lighting baseline repair
-- visible environment preset language and tuning controls
-- Browser-facing light management as a downstream control surface if needed
-- true environment-light runtime and first HDRI-facing controls
+This family phase covers:
+- preservation of the shipped startup scene as the locked default baseline
+- named environment preset language and preset-apply truth
+- visible environment tuning controls
+- one dedicated normal Browser `Environment` tree row under `Content`
+- Browser-visible and viewport-visible environment objects for lights and the active HDRI
+- selection-driven light editing through Browser, viewport, and toolbar
+- selected environment-object zoom/framing and View Transform movement
+- retirement of the older toolbar-local light list once Browser ownership lands honestly
+- true environment-light runtime plus the minimum useful tune controls
+- final `Environment-1` proof and closeout
 
-This phase does not cover:
+This family phase does not cover:
 - Photoshop-like post-look grading sliders
 - final persistence, recall, or A/B compare workflow polish
-- the browseable HDRI catalog itself
+- browseable HDRI catalog ownership
 
 ## Doc Body
 
-## [ ] Environment-1 - Default Lighting, Presets, And HDRI Runtime
+### Summary
 
-### Header
+`Environment-1` is the first real environment family lane.
 
-Purpose:
-- make the viewport read much closer to the desired Blender-style studio scene by fixing the baseline lighting, giving the user a real preset surface, and then widening into honest environment-light runtime
+The family is part-shipped today:
+- `Phase 1`, `Phase 2`, `Phase 2b`, `Phase 2c`, `Phase 2d`, `Phase 3`, and `Phase 4` are landed or honestly closed
+- `Phase 5` landed the first Browser environment surface, and corrective `Phase 5.1` normalized it into a real `Content > Environment` tree row with source and light children
+- viewport-picked `environment-light` targets now resolve back to matching Browser row ids
+- `Phase 6` through `Phase 11` remain open after that corrective Browser hierarchy pass, except where prior records already mark shipped behavior
 
-Owns:
-- brighter default scene readability
-- named environment presets
+The current startup scene is intentionally locked as the preserved baseline.
+
+The family has already advanced from one thin `envPreset` label toward a real preset apply seam that now surfaces divergence honestly, and the Browser now has a normalized environment-owned tree surface, but the family is not done:
+- lights are still managed from a toolbar list instead of behaving like scene objects
+- later selected-light editing still needs to route from the selected environment object into the toolbar
+- the viewer still does not have true environment-light contribution
+- the family-level preset-honesty goal is now closed, and the remaining open work should continue after the normalized Browser row identity now provided by `Phase 5.1`
+
+### Owns
+
+- preservation of the currently shipped default startup scene as the locked baseline
+- named environment presets and preset-to-scene apply truth
 - visible environment tuning controls
-- Browser-facing light read or control rows if the model viewport still needs that workflow
-- true environment-light contribution and basic HDRI-facing runtime controls
+- one dedicated normal Browser `Environment` tree row for active environment objects
+- Browser-visible and viewport-visible light-object representation
+- selection-driven light setting editing and shared View Transform movement through Browser, viewport, and toolbar
+- active HDRI ownership as an `Environment` content entry after selection
+- true environment-light contribution
+- environment intensity and background-versus-lighting separation
+- basic orientation control if still needed
+- end-to-end family proof and closeout for the first environment lane
 
-Keeps elsewhere:
-- Photoshop-like final image grading
+### Does Not Own
+
+- Photoshop-like grade sliders
+- final-image grading ownership
 - long-term persistence or compare polish
 - browseable HDRI asset-library ownership
 
-### Target Result
-
-At the end of this phase:
-- the default viewport no longer crushes dark models into unreadable black
-- the environment section has a clear named preset model
-- the model viewport can be helped by Browser-visible light controls if that workflow is still needed
-- environment lighting is no longer just a background-color trick
-- the viewer can use true environment-light contribution with honest tuning seams
-
 ### Current Live Read
 
-Current visible owner seam:
-- `src/app/components/ViewToolbar.tsx`
-  - already exposes:
-    - tone mapping
-    - exposure
-    - one thin `Environment` preset select
-    - raw light rows and light editing
-  - does not yet expose:
-    - a real environment-preset language
-    - a compact tuning surface for common studio adjustments
-    - Browser-facing light read or control paths
-
-Current shared settings seam:
+Current shared environment seam:
 - `src/shared/viewSettingsTypes.ts`
-  - already owns:
-    - `toneMapping`
-    - `exposure`
+  - now owns:
     - `envPreset`
-    - `lighting.lights`
-    - material presets
-  - does not yet own:
-    - a richer environment-preset contract
-    - true environment-light contribution settings
-    - HDRI intensity or orientation values
+    - explicit preset definitions
+    - default preset-apply patching for `envPreset`, `exposure`, and `lighting`
+    - shared ground settings
+    - active HDRI lighting intensity
+    - active HDRI background visibility and background intensity
+    - active HDRI orientation
+
+Current mutation seam:
+- `src/app/store/uiPrefsStore.ts`
+  - now owns one shared `applyEnvironmentPreset(...)` seam
+  - now owns one shared `applyHdriEnvironment(...)` seam plus HDRI lighting intensity, background visibility, background intensity, and orientation mutations
+  - still allows direct manual edits to exposure and light fields after a preset is chosen
+  - now leaves the visible surface free to mark when the live scene diverges from the chosen preset
+
+Current visible surface:
+- `src/app/components/ViewToolbar.tsx`
+  - now exposes:
+    - the named preset selector
+    - an honest preset-honesty read that surfaces divergence after manual edits
+    - selected-light editing from Browser or viewport selection
+    - the active HDRI source read and HDRI-only lighting intensity, background visibility, background intensity, and orientation controls
+    - the dedicated `Ground` and `Shadows` sections through the earlier `Phase 2c` and `Phase 2d` follow-through
+
+Current Browser-facing surface:
+- the Browser now has one normal `Content > Environment` collection row derived from environment-owned source and light truth
+- the current environment source row uses one stable active source row id for preset, custom, or HDRI sources
+- the active HDRI source row now uses the normal Browser eye to toggle active HDRI background visibility through Environment-owned source state
+- environment light rows use the normal Browser eye to toggle `LightSpec.enabled`
+- viewport-picked environment lights resolve back to the matching Browser row
+- selected environment lights populate the Environment toolbar from `view.lighting.selectedLightId`
+
+Current viewport-object read:
+- viewport wireframe helpers now exist for environment lights and participate in the shared selected environment-object contract
+- selected positioned environment lights can be framed and moved through the shared View Transform toolbar
+- the viewport object language should remain:
+  - point lights
+  - spot lights
+  - directional lights
+  - area lights
 
 Current runtime seam:
 - `src/viewer/Viewer.ts`
   - already applies:
-    - renderer tone mapping
-    - renderer exposure
-    - background color
-    - direct light specs
-    - material presets
-  - does not yet apply:
-    - true `scene.environment` style environment-light contribution
-    - post-grade controls
-
-Important implementation read:
-- the shipped baseline readability repair already lands through the existing light, background, material, and exposure seams
-- the later HDRI/runtime work needs a new honest environment-light seam
-- Browser-facing light rows must remain downstream from the environment-owned light state
-
-## [x] Phase 1 - Confirm The First Environment Contract And Baseline Target
-
-Purpose:
-- lock the exact first environment contract around what the brighter default scene must improve before any runtime widening begins
-
-Owns:
-- current dark-scene read confirmation
-- the exact Blender-like readability target
-- the first settings-contract decisions for baseline lighting versus later preset and HDRI widening
-
-This phase should:
-- confirm the current default-lighting shortfalls in the live viewer seams
-- lock the baseline target around:
-  - brighter midtones
-  - neutral dark-gray background
-  - better key and fill balance
-  - less dominant grid
-  - better dark-model separation
-- identify which current settings can already support the first pass
-- identify the minimum new settings that should not be delayed if the first pass needs them
-
-Does not own:
-- visible UI growth yet
-- true HDRI runtime yet
-
-Done when:
-- the environment baseline target is explicit enough that later implementation can stay narrow
-
-## Implementation Spec
-
-## Code-Backed Read
-
-The current Phase 1 seam is intentionally narrow, but it needs one explicit implementation read before later lighting work starts:
-
-- `src/shared/viewSettingsTypes.ts`
-  - already owns the current environment-facing shared state for:
-    - `toneMapping`
-    - `exposure`
-    - `envPreset`
-    - `lighting.lights`
-    - material presets
-  - still models `envPreset` as the thin union:
-    - `none`
-    - `studio`
-  - still ships the dark default baseline:
-    - `toneMapping: 'aces'`
-    - `exposure: 1`
-    - `envPreset: 'none'`
-    - one directional `key`
-    - one hemisphere `fill`
-- `src/app/store/uiPrefsStore.ts`
-  - already clones and updates the shared view state
-  - already owns the add, update, select, and delete seams for light rows
-  - is the current mutation owner that later baseline or preset changes will route through
-- `src/app/components/ViewToolbar.tsx`
-  - already exposes:
     - tone mapping
     - exposure
-    - the `Environment` preset select
-    - raw light rows and light editing
-  - currently keeps the environment surface thin:
-    - one preset select
-    - then direct light rows
-  - does not yet expose a compact baseline-focused scene-tuning surface
-- `src/viewer/Viewer.ts`
-  - currently applies:
-    - renderer tone mapping
-    - renderer exposure
-    - background color
-    - direct light specs
+    - background treatment from the shared preset definition seam
+    - active HDRI textures to `scene.environment` for model lighting
+    - separate active HDRI lighting and background intensity values
+    - active HDRI orientation through `scene.environmentRotation` and `scene.backgroundRotation`
+    - direct-light specs
     - material presets
-  - still owns the current grid-visual tuning at runtime:
-    - grid visibility comes from shared view state
-    - grid opacity and line-strength tuning are still hardcoded in `Viewer.ts`
-  - still treats environment preset mostly as background choice:
-    - `studio` switches the background color
-    - there is no true environment-light contribution yet
+    - ground runtime
 
-Main implication:
-- `Phase 1` should not try to fix the scene yet
-- it should lock the current contract and exactly name which current seams are sufficient for `Phase 2` baseline repair and which gaps must stay deferred to later phases
-- it should make the grid rule explicit so `Phase 2` can reduce grid dominance without pretending that a new shared environment setting is required first
+Important honest read:
+- the startup baseline is preserved and should stay preserved
+- named presets now exist and apply through one shared seam
+- manual exposure or lighting edits now surface as divergence when the live scene drifts away from the chosen preset
+- background behavior now comes from the shared preset-definition seam instead of a viewer-local branch
+- `Environment-1-HLG-2` is now complete
+- the remaining open work is `Phase 11` focused end-to-end proof and honest `Environment-1` closeout
 
-## First Pass Decisions
+### Done Shape
 
-- keep `Phase 1` as a contract-and-baseline-read pass only
-- do not widen this phase into immediate lighting retuning, preset expansion, or HDRI runtime work
-- treat the current environment owner split as:
-  - `viewSettingsTypes.ts` = shared environment state contract
-  - `uiPrefsStore.ts` = state mutation owner
-  - `ViewToolbar.tsx` = visible control owner
-  - `Viewer.ts` = runtime apply owner
-- lock the baseline target around the current observed failures:
-  - scene too dark in the midtones
-  - background too close to black
-  - insufficient fill and rim separation for dark models
-  - grid reading louder than the model in dark scenes
-- lock the current environment limitation explicitly:
-  - `envPreset` is not yet true environment lighting
-  - it is currently a thin background-state choice layered on top of direct lights
-- lock the current grid ownership explicitly:
-  - `gridVisible` is already shared view state
-  - grid intensity reduction for `Phase 2` is allowed as a narrow runtime retune inside `Viewer.ts`
-  - `Phase 2` must not add new shared grid settings or new toolbar controls just to reduce default grid dominance
-- keep Browser-facing light rows out of `Phase 1`
-  - this pass may name them as later workflow need
-  - but it should not yet decide Browser UI shape beyond the downstream-owner rule
+`Environment-1` is done when:
+- the startup scene still boots into the preserved baseline unless the user explicitly chooses otherwise
+- environment presets read as honest named scene states
+- the user can do meaningful everyday scene tuning without dropping straight into raw light editing
+- active environment content lives in one normal Browser `Environment` tree row under `Content`, with environment-owned child rows instead of a boxed custom subsection
+- lights behave like real scene objects in both the Browser and the model viewport
+- viewport-picked environment lights resolve back to their matching Browser rows
+- selected environment objects can be framed or zoomed to like normal viewport objects
+- selected environment objects can be moved through the shared View Transform toolbar while staying backed by environment-owned truth
+- selecting a light in the Browser or viewport populates the toolbar for that exact light
+- the older toolbar-local light list is gone
+- Browser row visibility owns light on or off through the eye control
+- the active HDRI is represented as one `Environment` content entry
+- the viewer has true environment-light contribution instead of only background switching
+- that runtime is tunable enough to be useful
+- the family has focused proof and can be closed honestly before `Environment-2`
 
-## Exact First Code Cut
+## Vision
 
-The implementation-ready first cut is:
+### Vision Summary
 
-1. Re-read and confirm the live environment seams in:
-   - `src/shared/viewSettingsTypes.ts`
-   - `src/app/store/uiPrefsStore.ts`
-   - `src/app/components/ViewToolbar.tsx`
-   - `src/viewer/Viewer.ts`
-2. Add one narrow implementation-ready contract read inside this doc that explicitly records:
-   - the shipped default environment state
-   - the current preset limitation
-   - the exact baseline visual failures the next pass must repair
-3. Lock the `Phase 2` implementation boundary so it can use only the existing baseline-ready seams:
-   - exposure
-   - background color or preset
-   - light defaults
-   - grid runtime tuning inside `Viewer.ts` only
-   - material defaults if needed for scene readability
-4. Explicitly defer from `Phase 1`:
-   - new visible controls
-   - Browser light surfaces
-   - true environment-light runtime
-   - post-look grading
+`Environment-1` should make the scene environment feel like real, editable scene content while preserving the current startup baseline.
 
-## Likely Files
+The user should be able to work with environment content in the same mental model used for other model-viewport objects:
+- lights and environment source entries should live under a real Browser `Environment` collection row
+- the `Environment` row and its children should use the same normal Browser row visual language as `Assembly`, `References`, and other content rows instead of looking like a custom boxed panel or unstyled special case
+- environment objects should be represented in the model viewport when that representation helps selection and editing
+- selecting an environment object in the Browser or viewport should point every surface at the same selected environment object
+- selected environment objects should be frameable or zoomable like normal scene objects, so the user can quickly navigate to the light or environment helper they are editing
+- selected environment objects should be movable through the shared View Transform toolbar, with transform edits writing back to environment-owned object truth rather than a duplicate viewport-only helper state
+- the View Toolbar should expose the selected environment object's practical settings using the existing para-style control language where it fits
+- environment object visibility, deletion, transform-oriented actions, and Console context should behave like normal object workflows where possible
+- active HDRI or environment-light contribution should be represented honestly only when the underlying runtime truth exists
 
-- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
-- optional code-read targets for confirmation only:
-  - `src/shared/viewSettingsTypes.ts`
-  - `src/app/store/uiPrefsStore.ts`
-  - `src/app/components/ViewToolbar.tsx`
-  - `src/viewer/Viewer.ts`
+The important product intent is that `Environment` is not a fake Browser panel. It is a real Browser collection row derived from environment-owned objects that exist by default or are added or loaded by the user. Browser, viewport, toolbar, and Console surfaces should remain downstream of that environment-owned truth instead of creating a second hidden owner.
 
-## No-Widening Rule
+### Human Level Goals
 
-- do not change the shipped lighting defaults in `Phase 1`
-- do not add new environment presets in `Phase 1`
-- do not add new toolbar controls in `Phase 1`
-- do not add Browser-facing light rows in `Phase 1`
-- do not add true HDRI or environment-light runtime in `Phase 1`
-- do not widen this contract pass into Photoshop-like grading planning beyond explicitly deferring it
+- [x] `Environment-1-HLG-1. Preserve The Current Startup Scene As The Locked Baseline`
+- [x] `Environment-1-HLG-2. Make Environment Presets Honest`
+- [ ] `Environment-1-HLG-3. Finish The Visible Environment Surface`
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [ ] `Environment-1-HLG-5. Make Light Editing Selection-Driven Through Browser, Viewport, And Toolbar`
+- [ ] `Environment-1-HLG-6. Make HDRI Or Environment Lighting Real In The Viewport`
+- [ ] `Environment-1-HLG-7. Make Chosen Environment Lighting Tunable`
+- [x] `Environment-1-HLG-8. Delete Selected Environment Objects Like Real Scene Objects`
+- [x] `Environment-1-HLG-9. Expose Selected Environment Objects In Console Context Like Real Objects`
+- [x] `Environment-1-HLG-10. Zoom To Selected Environment Objects Like Real Scene Objects`
+- [ ] `Environment-1-HLG-11. Move Selected Environment Objects Through The Shared View Transform Toolbar`
 
-## Implementation Risks
+Vision rule:
+- add new HLG here first, then derive CLG, then chunk those CLG into Codex-sized phases before updating the wishlist
 
-- blurring the contract read and the actual baseline repair into one mixed pass
-- silently treating the current `envPreset` background toggle as if it already means true environment lighting
-- under-specifying the baseline target so `Phase 2` widens into generic scene polish instead of a narrow readability repair
-- letting Browser-facing light workflow questions leak into the baseline contract before the default scene itself is fixed
+## Wishlist Organization
 
-## Checklist
+### High Level Goals
 
-- [x] confirm the live shared environment state seam in `viewSettingsTypes.ts`
-- [x] confirm the live mutation seam in `uiPrefsStore.ts`
-- [x] confirm the live visible control seam in `ViewToolbar.tsx`
-- [x] confirm the live runtime apply seam in `Viewer.ts`
-- [x] lock the exact current baseline-read failures for the dark viewport
-- [x] lock the explicit rule that `envPreset` is not yet true environment lighting
-- [x] lock the exact `Phase 2` boundary around baseline readability repair only
-- [x] keep all later preset, Browser, HDRI-runtime, and grading work deferred
+- [x] `Environment-1-HLG-1. Preserve The Current Startup Scene As The Locked Baseline`
+- [x] `Environment-1-HLG-2. Make Environment Presets Honest`
+- [ ] `Environment-1-HLG-3. Finish The Visible Environment Surface`
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [ ] `Environment-1-HLG-5. Make Light Editing Selection-Driven Through Browser, Viewport, And Toolbar`
+- [ ] `Environment-1-HLG-6. Make HDRI Or Environment Lighting Real In The Viewport`
+- [ ] `Environment-1-HLG-7. Make Chosen Environment Lighting Tunable`
+- [x] `Environment-1-HLG-8. Delete Selected Environment Objects Like Real Scene Objects`
+- [x] `Environment-1-HLG-9. Expose Selected Environment Objects In Console Context Like Real Objects`
+- [x] `Environment-1-HLG-10. Zoom To Selected Environment Objects Like Real Scene Objects`
+- [ ] `Environment-1-HLG-11. Move Selected Environment Objects Through The Shared View Transform Toolbar`
 
-## Verification Shape
+Important rule:
+- only check off an `Environment-1-HLG` when the full family ladder has really achieved it
+- do not check off an HLG just because one intermediate phase moved it forward
 
-Minimum verification for this phase should cover:
+### Codex Level Goals
 
-- the doc accurately reflects the currently shipped environment state contract
-- the doc explicitly names the default baseline values and current environment-owner seams
-- the doc clearly distinguishes:
-  - direct-light baseline repair
-  - later preset work
-  - later Browser light workflow
-  - later true environment-light runtime
-  - later Photoshop-like grading
-- `Phase 2` can be started from this doc without reopening what the baseline target actually is
+- [ ] `Environment-1-CLG-1. Keep The Shipped Startup Scene Preserved As The Locked Baseline Through Every Remaining Phase`
+- [ ] `Environment-1-CLG-2. Keep Environment As The Owner Of Active Environment State And Selected Environment Objects`
+- [ ] `Environment-1-CLG-3. Keep Catalog As The Owner Of Browseable HDRI Assets Instead Of Active Scene State`
+- [ ] `Environment-1-CLG-4. Add One Dedicated Browser Content Section Named Environment`
+- [ ] `Environment-1-CLG-5. Keep Browser Rows, Viewport Picks, And Toolbar Population On One Selected Environment-Object Contract`
+- [ ] `Environment-1-CLG-6. Represent Lights As Browser Rows And Viewport Wireframe Objects Only`
+- [ ] `Environment-1-CLG-7. Use Browser Eye Visibility As The On-Or-Off Toggle For Lights`
+- [ ] `Environment-1-CLG-8. Retire The Old View-Toolbar Light List Once Browser Ownership Lands`
+- [ ] `Environment-1-CLG-9. Store The Active HDRI Under The Same Environment Content Surface`
+- [ ] `Environment-1-CLG-10. Prefer Para-Style Toolbar Controls For New Environment Settings Whenever The Existing Control Family Fits`
+- [ ] `Environment-1-CLG-11. Keep Prep, Implementation, Verification, And Cleanup Distinct Across The Remaining Ladder`
+- [x] `Environment-1-CLG-12. Make Preset Honesty Explicit Before Claiming The Family Is Done`
+- [ ] `Environment-1-CLG-13. Add One Final Family Closeout Entry Only When Environment-1 Is Actually Complete`
+- [x] `Environment-1-CLG-14. Route Selected Environment Object Delete Through The Shared Selection Command Path`
+- [x] `Environment-1-CLG-15. Add Console Breadcrumbs And Real-Object Actions For Selected Environment Objects`
+- [x] `Environment-1-CLG-16. Keep Environment Object Actions Backed By Environment-Owned Truth`
+- [x] `Environment-1-CLG-17. Make Environment Browser Rows Use Normal Browser Visual Parity Instead Of Special-Case Chrome`
+- [x] `Environment-1-CLG-18. Route Environment Object Zoom Through The Existing Selected-Object Framing Path`
+- [ ] `Environment-1-CLG-19. Register Selected Environment Objects As Valid View Transform Targets`
+- [ ] `Environment-1-CLG-20. Persist Environment Object Transform Edits Back To Environment-Owned Light Truth`
 
-## Done Shape
+### `Environment-1 Phase 1`
 
-`Phase 1` is done when:
+- [x] `Environment-1-HLG-1. Preserve The Current Startup Scene As The Locked Baseline`
+- [x] `0. Lock The Exact Baseline Contract And No-Widening Boundary`
+- [x] `1. Name The Current Dark-Viewport Failures Before Later Runtime Widening`
 
-- the current environment contract is named clearly enough that later passes do not need to rediscover it
-- the exact visual failures of the current dark viewport are explicitly locked
-- the next implementation pass can target default readability repair without drifting into presets, Browser workflow, or HDRI runtime too early
-- grid-dominance reduction is explicitly allowed as a narrow `Viewer.ts` runtime retune during `Phase 2` instead of reopening the contract for new shared settings
+### `Environment-1 Phase 2`
 
-Current status:
-- `Phase 1` is implemented as a docs-only contract-lock pass
-- the next active implementation cut is `Phase 2 - Ship The Default Lighting Baseline Repair`
+- [x] `Environment-1-HLG-1. Preserve The Current Startup Scene As The Locked Baseline`
+- [x] `2. Brighten The Default Scene Without Widening Into Presets`
+- [x] `3. Improve The Default Light Balance`
+- [x] `4. Reduce Grid Dominance`
 
-## [x] Phase 2 - Ship The Default Lighting Baseline Repair
+### `Environment-1 Phase 2b`
 
-Purpose:
-- make the out-of-box viewport look materially better before the user touches anything
+- [x] `Environment-1-HLG-1. Preserve The Current Startup Scene As The Locked Baseline`
+- [x] `5. Do One Honest Lighting Cleanup Pass Before Preset Truth`
 
-Owns:
+### `Environment-1 Phase 2c`
+
+- [x] `Environment-1-HLG-3. Finish The Visible Environment Surface`
+- [x] `6. Reorganize The Environment-Facing Toolbar Surface`
+- [x] `7. Give Shadow-Facing Controls One Explicit Visible Owner`
+- [x] `8. Keep Ground Separate From Environment`
+
+### `Environment-1 Phase 2d`
+
+- [x] `Environment-1-HLG-1. Preserve The Current Startup Scene As The Locked Baseline`
+- [x] `Environment-1-HLG-3. Finish The Visible Environment Surface`
+- [x] `9. Add The First Honest Ground Or Floor Read`
+
+### `Environment-1 Phase 3`
+
+- [x] `Environment-1-HLG-2. Make Environment Presets Honest`
+- [x] `10. Replace The Thin Preset Label With Named Preset Truth`
+- [x] `11. Route View Toolbar And Catalog Through One Shared Preset-Apply Seam`
+- [x] `12. Preserve The Baseline As The Default Startup Choice`
+- [x] `13. Finish The Remaining Preset-Honesty Follow-Through Around Divergence And Background Ownership`
+
+### `Environment-1 Phase 4`
+
+- [x] `Environment-1-HLG-3. Finish The Visible Environment Surface`
+- [x] `14. Add Better Visible Scene Controls In The Environment Section`
+- [x] `15. Add Quick Studio Tuning Sliders`
+- [x] `16. Make The Visible Contract For Preset Versus Custom Scene Editing Honest`
+
+- Phase 4 is now complete: the Environment section ships the first practical tuning surface and an honest preset-versus-custom read.
+
+### `Environment-1 Phase 5`
+
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [x] `17. Add A Dedicated Content Environment Surface`
+- [x] `18. Move Active Lights Into Environment-Owned Browser Rows`
+- [x] `19. Keep Browser Downstream From Environment-Owned Truth`
+- [ ] `19A. Normalize The Environment Surface Into A Normal Browser Tree Row`
+
+### `Environment-1 Phase 5.1`
+
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [ ] `19A. Normalize Environment Into A Real Browser Collection Row Under Content`
+- [ ] `19B. Add Current Environment Source And Environment Light Child Rows`
+- [ ] `19C. Resolve Viewport-Picked Environment Lights Back To Matching Browser Rows`
+- [ ] `19D. Avoid HDRI Runtime Overclaiming In The Browser Tree`
+
+### `Environment-1 Phase 5.2`
+
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [x] `Environment-1-CLG-17. Make Environment Browser Rows Use Normal Browser Visual Parity Instead Of Special-Case Chrome`
+- [x] `19E. Route Environment Rows Through Normal Browser Row Visual Treatment`
+- [x] `19F. Reuse Assembly Or References-Style Content State Bars For Environment Rows`
+- [x] `19G. Remove The Unstyled Environment Row Chrome That Makes The Normal Tree Row Look Boxed Or Ugly`
+- [x] `19H. Preserve The Phase 5.1 Environment-Owned Data Contract While Fixing Presentation Only`
+
+### `Environment-1 Phase 6`
+
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [ ] `Environment-1-HLG-5. Make Light Editing Selection-Driven Through Browser, Viewport, And Toolbar`
+- [ ] `20. Render Lights As Wireframe Viewport Objects`
+- [ ] `21. Give Each Light Type One Honest Lightweight Object Shape`
+- [ ] `22. Keep Browser Selection And Viewport Picks On One Selected Environment-Object Contract`
+
+### `Environment-1 Phase 6.1`
+
+- [x] `Environment-1-HLG-8. Delete Selected Environment Objects Like Real Scene Objects`
+- [x] `Environment-1-HLG-9. Expose Selected Environment Objects In Console Context Like Real Objects`
+- [x] `Environment-1-CLG-14. Route Selected Environment Object Delete Through The Shared Selection Command Path`
+- [x] `Environment-1-CLG-15. Add Console Breadcrumbs And Real-Object Actions For Selected Environment Objects`
+- [x] `Environment-1-CLG-16. Keep Environment Object Actions Backed By Environment-Owned Truth`
+- [x] `22A. Add Delete-Key Handling For Selected Environment Objects`
+- [x] `22B. Add Console Breadcrumbs For Selected Environment Objects`
+- [x] `22C. Add Console Real-Object Actions For Selected Environment Objects`
+- [x] `22D. Keep Delete, Hide/Show, And Back Actions Routed Through Environment-Owned Truth`
+
+### `Environment-1 Phase 6.2`
+
+- [x] `Environment-1-HLG-10. Zoom To Selected Environment Objects Like Real Scene Objects`
+- [x] `Environment-1-CLG-18. Route Environment Object Zoom Through The Existing Selected-Object Framing Path`
+- [x] `22E. Add Selected Environment Object Bounds Or Frame Targets`
+- [x] `22F. Make Console And Browser Zoom Actions Frame The Selected Environment Object`
+- [x] `22G. Keep Environment Object Zoom Selection-Driven Instead Of Camera-Special-Cased`
+
+### `Environment-1 Phase 6.3`
+
+- [ ] `Environment-1-HLG-11. Move Selected Environment Objects Through The Shared View Transform Toolbar`
+- [ ] `Environment-1-CLG-19. Register Selected Environment Objects As Valid View Transform Targets`
+- [ ] `Environment-1-CLG-20. Persist Environment Object Transform Edits Back To Environment-Owned Light Truth`
+- [ ] `22H. Route Selected Environment Objects Into The Shared View Transform Toolbar`
+- [ ] `22I. Move Environment Light Position Through The Shared Transform Commit Path`
+- [ ] `22J. Keep Viewport Helpers, Browser Rows, Console Context, And Toolbar Transform On One Environment-Owned Object`
+
+### `Environment-1 Phase 7`
+
+- [ ] `Environment-1-HLG-5. Make Light Editing Selection-Driven Through Browser, Viewport, And Toolbar`
+- [ ] `23. Populate The Toolbar From The Selected Light`
+- [ ] `24. Support Light-Setting Editing For The Selected Light`
+- [ ] `25. Retire The Old Toolbar Light List And Use Browser Eye Visibility For Light On-Or-Off`
+
+### `Environment-1 Phase 8`
+
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [ ] `Environment-1-HLG-6. Make HDRI Or Environment Lighting Real In The Viewport`
+- [ ] `26. Keep Active HDRI Ownership Inside The Environment Content Surface`
+- [ ] `27. Add The First True Environment-Light Runtime`
+- [ ] `28. Keep Background Treatment And Light Contribution As Explicit Separate Concepts`
+
+### `Environment-1 Phase 9`
+
+- [ ] `Environment-1-HLG-6. Make HDRI Or Environment Lighting Real In The Viewport`
+- [ ] `Environment-1-HLG-7. Make Chosen Environment Lighting Tunable`
+- [ ] `29. Add Environment Intensity`
+- [ ] `30. Add Background-Versus-Lighting Separation`
+
+### `Environment-1 Phase 10`
+
+- [x] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [x] `Environment-1-HLG-5. Make Light Editing Selection-Driven Through Browser, Viewport, And Toolbar`
+- [x] `Environment-1-HLG-7. Make Chosen Environment Lighting Tunable`
+- [x] `31. Add Basic Orientation Control If Still Needed`
+- [x] `32. Close Remaining Environment-Object Cleanup Around Selection, Visibility, And Toolbar Routing`
+
+### `Environment-1 Phase 11`
+
+- [ ] `Environment-1-HLG-3. Finish The Visible Environment Surface`
+- [ ] `Environment-1-HLG-4. Represent Environment Content As Real Browser And Viewport Objects`
+- [ ] `Environment-1-HLG-5. Make Light Editing Selection-Driven Through Browser, Viewport, And Toolbar`
+- [ ] `Environment-1-HLG-6. Make HDRI Or Environment Lighting Real In The Viewport`
+- [ ] `Environment-1-HLG-7. Make Chosen Environment Lighting Tunable`
+- [ ] `33. Add Focused End-To-End Proof Across Presets, Environment Objects, Toolbar Selection, And HDRI Runtime`
+- [ ] `34. Add Final Family Closeout`
+
+## [x] `Environment-1` - `Phase 1 - Confirm The First Environment Contract And Baseline Target`
+
+### Phase 1 Summary
+
+#### Purpose
+
+Lock the exact first environment contract around what the brighter default scene must improve before any runtime widening begins.
+
+#### Owns
+
+- current dark-scene read confirmation
+- the exact baseline target
+- the first no-widening boundary before presets, Browser environment-object work, and HDRI runtime
+
+#### Does Not Own
+
+- visible UI growth
+- true HDRI runtime
+- Browser environment-object workflow
+
+#### Current Status
+
+`Phase 1` is shipped as a docs-only contract-lock pass.
+
+### Phase 1 Implementation Spec
+
+#### Shipped Read
+
+- locked the baseline target around brighter midtones, better key and fill balance, less dominant grid, and better dark-model separation
+- kept `envPreset` explicitly framed as a thin early seam rather than pretending it was already true environment lighting
+- allowed `Phase 2` to use only the already-existing baseline-ready seams
+
+#### Done Shape
+
+`Phase 1` is done because later phases no longer need to rediscover what the baseline target was supposed to mean.
+
+## [x] `Environment-1` - `Phase 2 - Ship The Default Lighting Baseline Repair`
+
+### Phase 2 Summary
+
+#### Purpose
+
+Make the out-of-box viewport materially better before the user touches anything.
+
+#### Owns
+
 - default background improvement
 - exposure baseline tuning
 - default light-balance repair
 - grid-intensity reduction
-- first dark-material readability support where needed
+- first dark-material readability support
 
-This phase should:
-- brighten the default scene without flattening it into gray mush
-- move the background away from near-black toward a better neutral dark gray
-- reduce the grid's visual dominance
-- improve the default light rig so dark models get stronger readable fill
-- add first rim or separation help if needed
+#### Does Not Own
 
-Does not own:
-- preset switching
-- Browser light rows
+- named presets
+- Browser `Environment` rows or viewport light objects
 - HDRI runtime
 
-Done when:
-- the default viewport reads clearly enough that the model is more important than the grid or background
+#### Current Status
 
-### Implementation Spec
+`Phase 2` is shipped.
 
-### Code-Backed Read
+### Phase 2 Implementation Spec
 
-The current `Phase 2` seam is intentionally narrow and should stay grounded in the already-shipped default state plus the existing viewer runtime constants:
+#### Shipped Read
 
-- `src/shared/viewSettingsTypes.ts`
-  - currently ships the default environment baseline as:
-    - `toneMapping: 'aces'`
-    - `exposure: 1`
-    - `envPreset: 'none'`
-    - default `lighting.lights` = one directional `key` plus one hemisphere `fill`
-    - default selected material preset = `default_matte`
-  - currently ships the default material preset set as:
-    - `default_matte`
-    - `studio_plastic`
-    - `brushed_metal`
-    - `highlight_gloss`
-  - already has enough shared state for baseline repair without adding fields:
-    - exposure
-    - `envPreset`
-    - `lighting.lights`
-    - material presets
-- `src/app/store/uiPrefsStore.ts`
-  - still clones `DEFAULT_VIEW_SETTINGS` into the live UI view state
-  - already routes baseline retunes automatically once the shared defaults change
-  - does not need new mutation APIs for this phase as long as the state shape stays the same
-- `src/viewer/Viewer.ts`
-  - still owns the currently dark background baseline constants:
-    - `DEFAULT_BACKGROUND = '#0b0b0f'`
-    - `STUDIO_BACKGROUND = '#151922'`
-  - still owns the currently loud grid constants:
-    - minor grid opacity `0.1`
-    - major grid opacity `0.3`
-    - double-major grid opacity `1`
-  - already applies the baseline-ready runtime seams:
-    - `renderer.toneMappingExposure = settings.exposure`
-    - `scene.background` from `envPreset`
-    - `applyLights(settings.lighting.lights)`
-    - `applyMaterialSettings(settings.materials)`
-  - already applies material preset changes through the existing `MeshStandardMaterial` path
-- `src/app/components/ViewToolbar.tsx`
-  - already exposes the existing controls needed to prove the baseline repair stays inside current seams:
-    - exposure
-    - `Environment` preset select
-    - raw light rows
-    - material preset editor
-  - should not gain new UI in this phase
+- retuned the shipped baseline scene while keeping the same narrow runtime seam
+- kept the work inside the default scene instead of widening into new shared environment state
+- left later preset, Browser, and HDRI work deferred honestly
 
-Main implication:
-- `Phase 2` should repair the shipped default scene by retuning existing defaults and existing viewer runtime constants only
-- `Phase 2` should not introduce a richer environment contract just to make the scene brighter
-- material help is allowed only as a narrow support seam after background, exposure, light balance, and grid dominance have been corrected first
+#### Done Shape
 
-### First Pass Decisions
+`Phase 2` is done because the startup scene became readable enough to preserve as the later locked baseline.
 
-- keep `Phase 2` as a baseline-repair pass only
-- keep the shared environment state shape unchanged in this phase
-- keep the default preset contract unchanged in this phase:
-  - do not add new `envPreset` values
-  - do not treat `studio` as newly-real preset truth yet
-- prefer the baseline repair order as:
-  - background and exposure retune first
-  - default light rig rebalance second
-  - grid dominance reduction third
-  - default-material readability help only if the scene still reads too dark after the earlier tuning
-- keep the default environment entrypoint honest:
-  - prefer retuning the `'none'` baseline instead of changing the default startup state to pretend a richer preset model already exists
-- keep the default material entrypoint honest:
-  - if readability support is needed, retune `default_matte`
-  - do not switch startup to a different existing material preset just to hide lighting problems
-- allow one narrow default separation-light addition only if the existing key/fill pair cannot achieve the target read
-  - any added light must still use the existing `LightSpec` model and existing raw light-row UI
-  - this is still baseline repair, not preset expansion
+## [x] `Environment-1` - `Phase 2b - Default Lighting Cleanup And Balance Polish`
 
-### Exact First Code Cut
+### Phase 2b Summary
 
-The implementation-ready first cut is:
+#### Purpose
 
-1. Retune the shared default baseline in `src/shared/viewSettingsTypes.ts` only through existing fields:
-   - exposure
-   - default light intensities and positions
-   - optional one-light separation addition if needed
-   - default material preset values only if needed after light and background retuning
-2. Retune the viewer-only baseline constants in `src/viewer/Viewer.ts` only through existing runtime seams:
-   - `DEFAULT_BACKGROUND`
-   - grid layer opacities
-3. Keep the startup default contract structurally unchanged:
-   - keep `envPreset` inside the current thin union
-   - keep the existing toolbar and store APIs unchanged
-   - keep `scene.background` on the current background-selection path
-4. Add focused proof that the repair stayed narrow:
-   - the default viewport is brighter and less crushed
-   - the grid is quieter
-   - dark models separate from the background more clearly
-   - the existing `Environment` section still shows the same control surface, with only the default light rows reflecting any baseline rig change
+Do one honest lighting cleanup pass through the existing baseline rig before widening into presets and runtime work.
 
-### Likely Files
+#### Owns
 
-- `src/shared/viewSettingsTypes.ts`
-- `src/viewer/Viewer.ts`
-- `src/viewer/Viewer.test.ts`
-- optional proof-only reads:
-  - `src/app/store/uiPrefsStore.ts`
-  - `src/app/components/ViewToolbar.tsx`
-  - `src/app/components/ViewToolbar.test.tsx`
-- docs update target after implementation:
-  - `docs/CHANGELOG.md`
+- key-light cleanup
+- fill cleanup
+- rim cleanup
+- focused proof for the baseline rig
 
-### No-Widening Rule
+#### Does Not Own
 
-- do not add new `ViewSettings` fields in `Phase 2`
-- do not add new environment presets in `Phase 2`
-- do not add a new compact environment tuning surface in `Phase 2`
-- do not add Browser-facing light rows in `Phase 2`
-- do not add true environment-light runtime in `Phase 2`
-- do not add post-grade controls in `Phase 2`
-- do not switch the startup environment to fake preset truth by introducing new `envPreset` meaning early
-- do not use a startup material-preset swap as the main fix for a dark scene that should be solved through baseline lighting first
+- new environment state
+- preset truth
+- visible tuning surfaces
 
-### Implementation Risks
+#### Current Status
 
-- over-brightening the viewport into flat gray instead of keeping readable contrast
-- solving the scene mainly by switching materials instead of repairing the default light and background balance
-- letting a new third light become an uncontrolled preset-expansion step instead of a narrow baseline-readability fix
-- changing startup preset meaning in a way that makes `Phase 3` redundant or confusing
-- reducing grid dominance by inventing a new setting instead of staying inside the allowed `Viewer.ts` runtime retune seam
+`Phase 2b` is shipped.
 
-### Checklist
+### Phase 2b Implementation Spec
 
-- [x] lock the current default background, light, grid, and material baseline in code-backed terms
-- [x] lock the rule that `Phase 2` must stay inside existing shared state and existing runtime seams
-- [x] lock the preferred repair order so material help stays downstream from lighting and background repair
-- [x] lock the rule that default preset truth and visible UI growth stay deferred to later phases
-- [x] name the likely implementation and verification files for the first cut
+#### Shipped Read
 
-### Verification Shape
+- refined the baseline rig without reopening the broader family contract
+- kept the startup scene stable enough to preserve as the baseline for the rest of the family
 
-Minimum verification for this phase should cover:
+#### Done Shape
 
-- shared defaults still use the same `ViewSettings` shape
-- the viewer still applies baseline scene state through the same runtime seams:
-  - exposure
-  - background selection
-  - direct lights
-  - material presets
-- the default viewport reads brighter and clearer in manual proof without adding new controls
-- the grid is visibly less dominant while still remaining available through the existing `gridVisible` toggle
-- if a new default separation light is added, it appears through the existing raw light-row surface without any UI expansion
-- focused automated proof should land in `src/viewer/Viewer.test.ts` where practical, with `ViewToolbar` proof only if the changed default light count needs explicit regression coverage
+`Phase 2b` is done because later phases can now build on the preserved baseline rather than continuing baseline churn.
 
-### Done Shape
+## [x] `Environment-1` - `Phase 2c - Environment Section Organization Pass`
 
-`Phase 2` is done when:
+### Phase 2c Summary
 
-- the shipped default scene is materially easier to read before any user edits
-- the startup background is no longer near-black
-- default light balance gives dark models clearer readable separation
-- the grid no longer competes with the model as the loudest visual element
-- any default-material support stays narrow and clearly secondary to the lighting repair
-- the implementation remains inside the existing state model, toolbar surface, and viewer runtime seams
+#### Purpose
 
-Current status:
-- `Phase 2` is implemented as a narrow default-retuning pass
-- the brighter exposure and stronger light rig remain shipped
-- the default background colors were later restored to their original darker values on request
-- the grid opacities were later restored to their original pre-Phase-2 values on request
-- the next active implementation cut is `Phase 2c - Environment Section Organization Pass`
+Give the environment-facing toolbar surface one clearer visible organization before preset and runtime widening continues.
 
-## [x] Phase 2b - Default Lighting Cleanup And Balance Polish
+#### Owns
 
-Purpose:
-- do one narrow cleanup pass on the shipped default light rig so the environment baseline reads cleaner before the lane widens into preset truth
+- visible toolbar organization
+- the dedicated `Shadows` section move
+- final `Environment`, `Shadows`, and `Ground` top-level ownership split
 
-Owns:
-- cleanup tuning for the shipped key, fill, and rim light relationship
-- cleaner default light color balance if needed
-- cleanup tuning for light positions, targets, and intensities inside the existing light model
-- small shadow-readability cleanup only if it is directly tied to the default light rig
+#### Does Not Own
 
-This phase should:
-- tighten the shipped Phase 2 rig so it feels more intentional and less like a first-pass rescue
-- improve how the key, fill, and rim lights work together on dark models
-- reduce any remaining muddy or over-obvious separation-light behavior
-- keep the default environment read cleaner without reopening the background or preset contract
-
-Does not own:
-- new shared environment fields
-- new environment presets
-- visible environment UI growth
-- Browser light rows
+- new environment runtime behavior
+- new shared environment state
+- preset truth
 - HDRI runtime
 
-Done when:
-- the default light rig feels cleaner and more balanced while still staying inside the existing baseline seams
+#### Current Status
 
-Current status:
-- `Phase 2b` is implemented as a narrow lighting-only cleanup pass
-- the shipped default rig now uses:
-  - a warmer, wider, slightly higher `key`
-  - a slightly stronger but more neutral `fill`
-  - a softer, less aggressive `rim` pushed farther off-axis for large dark models
-- the original darker backgrounds and original pre-Phase-2 grid opacities remain unchanged in this follow-up
-- the next active implementation cut is `Phase 2c - Environment Section Organization Pass`
+`Phase 2c` is honestly closed.
 
-### Implementation Spec
-
-### Code-Backed Read
-
-The current `Phase 2b` seam should stay even narrower than `Phase 2` and focus on the already-shipped default light rig:
-
-- `src/shared/viewSettingsTypes.ts`
-  - now owns the shipped default baseline light truth:
-    - brighter `exposure`
-    - stronger `key`
-    - stronger `fill`
-    - one shipped `rim` light
-  - already exposes every seam this cleanup pass needs:
-    - light intensities
-    - light colors
-    - light positions
-    - light targets
-    - existing shadow flags
-- `src/viewer/Viewer.ts`
-  - already applies all light cleanup changes through the current direct-light path:
-    - `applyLights(settings.lighting.lights)`
-    - `applySpecToLight(...)`
-  - should not gain a second lighting-owner seam in this phase
-- `src/app/components/ViewToolbar.tsx`
-  - already shows the raw light rows that reflect the shipped default rig
-  - should remain unchanged in this phase
-
-Main implication:
-- `Phase 2b` is for cleaning up the shipped default rig, not for widening the environment model
-- if the current readability win feels slightly rough, this is the place to refine it before `Phase 3` turns lighting into named preset truth
-
-### First Pass Decisions
-
-- keep `Phase 2b` lighting-only
-- prefer tuning in this order:
-  - key and fill balance first
-  - rim-light cleanup second
-  - shadow-readability cleanup only if directly needed
-- keep the background constants unchanged in this phase unless a lighting adjustment proves impossible without them
-- do not add or remove environment presets in this phase
-- do not add a fourth default light unless the current three-light rig clearly cannot be cleaned up through tuning alone
-- prefer reducing awkwardness over chasing another dramatic brightness jump
-
-### Exact First Code Cut
-
-The implementation-ready first cut is:
-
-1. Re-read the shipped default light rig in `src/shared/viewSettingsTypes.ts`
-2. Retune only the existing default light entries where needed:
-   - intensity
-   - color
-   - position
-   - target
-   - shadow flags or bias only if directly needed
-3. Keep `Viewer.ts` on the same existing light-apply runtime path
-4. Add focused proof only if the cleanup changes alter default light count, default IDs, or a directly testable runtime expectation
-
-### Likely Files
-
-- `src/shared/viewSettingsTypes.ts`
-- optional proof:
-  - `src/viewer/Viewer.test.ts`
-- docs update targets after implementation:
-  - `docs/CHANGELOG.md`
-
-### No-Widening Rule
-
-- do not add new `ViewSettings` fields in `Phase 2b`
-- do not add new environment presets in `Phase 2b`
-- do not add new toolbar controls in `Phase 2b`
-- do not widen this cleanup into Browser or HDRI/runtime work
-- do not use `Phase 2b` to quietly start preset-truth mapping early
-
-### Implementation Risks
-
-- turning a cleanup pass into a second broad baseline rewrite
-- chasing subjective polish without locking a concrete lighting issue first
-- widening into preset semantics instead of keeping this pass on default-rig cleanup only
-- adding more default lights when the real need is tuning the existing ones
-
-### Checklist
-
-- [x] define `Phase 2b` as a narrow follow-up after the shipped Phase 2 baseline repair
-- [x] lock `Phase 2b` to existing light-rig seams only
-- [x] defer preset truth, visible UI, Browser, and HDRI/runtime work out of this follow-up
-- [x] make `Phase 2b` the next active implementation cut
-
-### Verification Shape
-
-Minimum verification for this phase should cover:
-
-- the cleanup stays inside the existing default light model
-- the raw light-row surface remains the same
-- the default rig reads cleaner without reopening the broader environment contract
-
-### Done Shape
-
-`Phase 2b` is done when:
-
-- the shipped default rig feels cleaner and more balanced than the first Phase 2 pass
-- the cleanup remains clearly lighting-focused
-- `Phase 3` can start from a more intentional default rig instead of a rough first rescue pass
-
-## [ ] Phase 2c - Environment Section Organization Pass
-
-Current source doc:
+The detailed internal `Phase 2c` ladder lives in:
 - `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 Phase 2c - Environment Section Organization Pass.md`
 
-Purpose:
-- reorganize the current `Environment` section in the View Toolbar so the existing controls read like one intentional surface before new environment runtime features are added
+Closure read:
+- the dedicated `Shadows` section landed
+- `Ground` stayed separate
+- the final optional wording-only cleanup slice was intentionally skipped by user decision
 
-Owns:
-- control grouping and ordering inside the current `Environment` section
-- clearer separation between baseline scene controls and raw per-light editing
-- environment-section wording and structure cleanup in the current toolbar surface
+### Phase 2c Implementation Spec
 
-This phase should:
-- make the current `Environment` section easier to scan and understand without adding new environment behavior
-- give the existing background, exposure, preset, shadow, grid, and light rows a cleaner information hierarchy
-- prepare the section so later preset truth, ground-plane controls, and HDRI/runtime work can land on a more stable visible surface
+#### Source Of Truth
 
-Does not own:
-- new environment runtime behavior
-- new shared environment fields
-- preset-truth expansion
-- ground-plane rendering
-- Browser light rows
+Use the standalone child doc above as the detailed execution record for the shipped internal `2c` ladder.
 
-Done when:
-- the current `Environment` section feels cleaner and more intentional while still exposing the same underlying behavior
+#### Done Shape
 
-### Implementation Spec
+`Phase 2c` is done because the visible toolbar surface is cleaner without claiming any new preset or HDRI runtime behavior.
 
-### Code-Backed Read
+## [x] `Environment-1` - `Phase 2d - Ground Plane And Floor Read Lane`
 
-The current `Phase 2c` seam is a visible-organization pass only:
+### Phase 2d Summary
 
-- `src/app/components/ViewToolbar.tsx`
-  - already owns the visible `Environment` section
-  - currently mixes the thin preset row, baseline scene toggles, and raw light rows into one relatively flat surface
-  - is the primary owner for this pass
-- `src/shared/viewSettingsTypes.ts`
-  - should remain structurally unchanged in this phase
-- `src/viewer/Viewer.ts`
-  - should remain behaviorally unchanged in this phase unless a tiny naming or hook-up cleanup is required to support the same visible organization
+#### Purpose
 
-Main implication:
-- `Phase 2c` is about making the existing environment controls read better, not about introducing a new environment feature
+Add the first honest ground or floor read so models sit in a more legible studio space than grid-only world zero.
 
-### First Pass Decisions
+#### Owns
 
-- keep `Phase 2c` presentation-first
-- prefer grouping in this order:
-  - baseline scene controls
-  - preset-facing controls
-  - raw light rows
-- keep the same current environment behavior and state model underneath the reorganized section
-- do not quietly fold the ground-plane idea into this pass
+- the first ground-plane runtime
+- the dedicated `Ground` toolbar section
+- a narrow shared `ground` settings contract
 
-### Exact First Code Cut
+#### Does Not Own
 
-The implementation-ready first cut is:
-
-1. Re-read the current `Environment` section structure in `src/app/components/ViewToolbar.tsx`
-2. Reorganize the existing rows so the section reads more clearly without changing the current shared contract
-3. Keep the current control set honest:
-   - no new environment state fields
-   - no new runtime features
-   - no preset-truth widening yet
-4. Add focused `ViewToolbar` proof only where the organization pass changes a meaningful visible grouping or ordering contract
-
-### Likely Files
-
-- `src/app/components/ViewToolbar.tsx`
-- optional proof:
-  - `src/app/components/ViewToolbar.test.tsx`
-- docs update targets after implementation:
-  - `docs/CHANGELOG.md`
-
-### No-Widening Rule
-
-- do not add new `ViewSettings` fields in `Phase 2c`
-- do not add a ground plane in `Phase 2c`
-- do not add new environment presets in `Phase 2c`
-- do not widen this pass into HDRI/runtime work
-- do not use organization cleanup as a pretext for silent behavior changes
-
-### Implementation Risks
-
-- turning a UI-organization pass into a hidden behavior pass
-- reorganizing the section in a way that makes the later ground or preset lanes harder to place
-- over-designing the control surface before the real preset model exists
-
-### Checklist
-
-- [x] add a narrow owner for environment-section organization before new ground runtime work
-- [x] lock `Phase 2c` to current `ViewToolbar` structure and wording cleanup only
-- [x] defer ground, preset-truth, Browser, and HDRI/runtime work out of this pass
-- [x] make `Phase 2c` the next active implementation cut
-
-### Verification Shape
-
-Minimum verification for this phase should cover:
-
-- the `Environment` section remains on the same state and runtime seams
-- the visible grouping is cleaner without introducing new environment behavior
-- any proof added is focused on the visible toolbar contract, not viewer runtime changes
-
-### Done Shape
-
-`Phase 2c` is done when:
-
-- the `Environment` section is easier to scan and understand than the current flat layout
-- the current controls still drive the same behavior they did before
-- `Phase 2d` can add the ground lane on top of a cleaner visible surface
-
-## [x] Phase 2d - Ground Plane And Floor Read Lane
-
-Purpose:
-- add the first honest ground or floor read for the environment lane so models can sit in a more legible studio space than grid-only world zero, and expose that floor through one dedicated `Ground` section in the View Toolbar
-
-Owns:
-- the first viewer-owned ground-plane runtime
-- one dedicated `Ground` section in the View Toolbar
-- the first explicit ground control contract:
-  - on or off
-  - raise or lower
-  - ground material selection
-- the ownership boundary between the existing grid and the new ground surface
-
-This phase should:
-- decide the smallest honest first ground behavior for the viewer
-- improve object grounding and shadow read without widening straight into full environment preset or HDRI work
-- keep the ground lane explicit instead of hiding it inside a broader preset or toolbar cleanup pass
-- make the first `Ground` section feel like a dedicated tool surface instead of burying floor controls inside `Environment`
-
-Does not own:
-- full preset-truth mapping
+- preset truth
+- Browser `Environment` rows or viewport light objects
 - HDRI runtime
-- Browser light rows
+
+#### Current Status
+
+`Phase 2d` is shipped.
+
+### Phase 2d Implementation Spec
+
+#### Shipped Read
+
+- added the shared `ground` state contract
+- added the dedicated `Ground` section with para-style controls
+- landed one viewer-owned visible studio floor runtime
+
+#### Done Shape
+
+`Phase 2d` is done because later preset work no longer has to rediscover basic floor ownership.
+
+## [x] `Environment-1` - `Phase 3 - Add Named Environment Presets And Preset Truth`
+
+### Phase 3 Summary
+
+#### Purpose
+
+Replace the earlier thin environment read with a named preset model without changing the startup default scene.
+
+#### Owns
+
+- named preset language
+- preset-to-light-rig mapping
+- the first shared preset-apply seam
+- the contract between the preserved baseline and opt-in preset choice
+
+#### Does Not Own
+
+- Browser `Environment` rows or viewport light objects
+- true HDRI runtime
 - post-look grading
 
-Done when:
-- the viewer has an explicit first ground or floor read that improves scene grounding without pretending the environment model is already complete
+#### Current Status
 
-### Implementation Spec
+`Phase 3` is shipped and the family-level preset-honesty follow-through is now complete.
 
-### Code-Backed Read
+The landed result:
+- added the first named preset set:
+  - `Baseline`
+  - `Studio`
+  - `Dark Studio`
+- routes both the View Toolbar and Catalog through one shared `applyEnvironmentPreset(...)` seam
+- preserves the startup baseline as the default scene and default preset choice
+- surfaces divergence when manual exposure or lighting edits move the live scene away from the selected preset
+- keeps preset background behavior in the shared preset definition seam instead of a viewer-local branch
 
-The current `Phase 2d` seam should stay grounded in the existing viewer runtime and current toolbar/control seams:
+The next open work:
+- `Phase 5` should move active lights and the chosen HDRI into one dedicated Browser `Environment` section
+- `Phase 5` should keep Browser downstream from environment-owned truth and stop before viewport-object rendering, selection-driven toolbar routing, or HDRI runtime
 
+### Phase 3 Implementation Spec
+
+#### Shipped Read
+
+Primary landed seams:
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
 - `src/viewer/Viewer.ts`
-  - already owns the grid runtime at world zero
-  - already owns shadow-enabled model rendering
-  - is the natural owner for a first ground-plane or floor mesh
+
+What landed:
+- explicit shared preset definitions
+- one shared preset-apply patch for `envPreset`, `exposure`, and `lighting`
+- one visible preset selector in the toolbar
+- one Catalog apply path that uses the same environment-owned preset seam
+
+What stayed deferred honestly:
+- true environment-light runtime
+- Browser `Environment` rows and viewport light objects
+- final-image grading
+
+#### Done Shape
+
+`Phase 3` is done because named presets now read honestly, the selected preset no longer hides divergence after manual exposure or lighting edits, and preset background behavior lives in the shared preset definition seam.
+
+## [x] `Environment-1` - `Phase 4 - Add The Visible Environment Tuning Surface`
+
+### Phase 4 Summary
+
+#### Purpose
+
+Make the environment section a practical everyday control surface for opt-in environment tuning instead of a thin preset picker plus raw light editor.
+
+#### Owns
+
+- clearer environment-section control grouping
+- quick studio-tuning sliders
+- the visible contract for keeping preset changes and custom scene edits readable while the tuning surface grows
+
+#### Does Not Own
+
+- Browser `Environment` rows
+- true HDRI runtime
+- final-image grading
+
+#### Current Status
+
+`Phase 4` is shipped.
+
+The landed result:
+- the Environment section now exposes a practical first visible tuning surface
+- tone mapping and exposure now sit in the Environment section as quick studio controls
+- the preset-versus-custom read stays honest when the live scene diverges
+- the selected preset can be reapplied from the same visible surface
+
+The next open work:
+- `Phase 5` should add the Browser `Environment` section and rows
+- `Phase 5` should keep Browser downstream from environment-owned truth without widening into viewport light objects or true HDRI runtime
+
+#### First Pass Decisions
+
+- keep the preserved startup baseline unchanged at startup
+- add practical scene-tuning controls on top of the active environment state rather than hiding everything inside raw light rows
+- keep the visible preset-versus-custom read honest as the tune surface grows
+- prefer the existing para-style control family first whenever the setting naturally fits:
+  - `ParaSlider`
+  - `ParaSelect`
+  - `ParaVec3`-style button controls
+- keep this phase inside the visible environment surface and the active environment-state contract
+- do not widen this phase into true HDRI runtime or Browser `Environment` row work
+
+### Phase 4 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the live preset and tuning seams in:
+   - `src/shared/viewSettingsTypes.ts`
+   - `src/app/store/uiPrefsStore.ts`
+   - `src/app/components/ViewToolbar.tsx`
+2. Add the first practical visible environment-tuning controls for the current preset-driven scene
+3. Make the visible preset-versus-custom editing contract honest enough that manual edits no longer read like an unchanged named preset by default
+4. Keep the startup baseline preserved and opt-in only
+
+#### Likely Files
+
 - `src/shared/viewSettingsTypes.ts`
-  - currently has no explicit ground-plane contract
-  - now needs one narrow shared `ground` state owner because this cut explicitly exposes user-facing toolbar controls for:
-    - on or off state
-    - height or vertical offset
-    - ground material selection
+- `src/app/store/uiPrefsStore.ts`
 - `src/app/components/ViewToolbar.tsx`
-  - already imports and uses both `ParaSelect` and `ParaSlider`
-  - currently has no dedicated `Ground` section
-  - is the visible owner for the new section this phase introduces
-- `src/app/components/ParaSelect.tsx`
-  - already provides the correct para-style select control shape for:
-    - on or off
-    - ground material selection
-- `src/app/components/ParaSlider.tsx`
-  - already provides the correct para-style slider surface for:
-    - raise or lower ground height
+- focused proof if needed:
+  - `src/app/components/ViewToolbar.test.tsx`
+  - `src/app/store/useAppStore.test.ts`
+  - `src/app/store/uiPrefsStore.test.ts`
 
-Main implication:
-- `Phase 2d` should no longer be treated as a hidden viewer-only default
-- this cut now explicitly owns both:
-  - the first ground-plane runtime
-  - the first visible `Ground` toolbar section that drives it through shared view state
+#### No-Widening Rule
 
-### First Pass Decisions
+- do not add Browser `Environment` rows in `Phase 4`
+- do not add true environment-light runtime in `Phase 4`
+- do not widen into Photoshop-like grading
+- do not retune the preserved baseline startup scene automatically
 
-- keep `Phase 2d` honest about what kind of ground read it is shipping
-- ship `Ground` as a separate View Toolbar section instead of adding these controls under `Environment`
-- use one `ParaSelect` for ground visibility with the narrow first contract:
-  - `Off`
-  - `On`
-- use one `ParaSlider` for vertical offset so the ground can be raised or lowered relative to world zero
-- use one narrow ground-material control surface for the first cut
-  - prefer a dedicated ground-material preset select over a full editable material editor
-  - do not reuse the model-material preset editor as the ground owner
-- explicitly define the relationship between:
-  - grid
-  - shadows
-  - ground-plane visibility
-- do not widen the first ground cut into a full environment-preset or HDRI pass
-- keep the first ground-material contract narrow and fixed enough that the floor stays a viewer-presentational surface rather than becoming a second authored material system
+#### Implementation Risks
 
-### Exact First Code Cut
+- leaving the preset label looking more authoritative than the live scene after manual edits
+- building only more raw-light controls instead of a practical preset-driven tune surface
+- adding ad hoc toolbar widgets when an existing para-style control would cover the setting cleanly
+- silently rewriting the baseline scene instead of keeping edits opt-in
 
-The implementation-ready first cut is:
+#### Checklist
 
-1. Add one narrow shared `ground` contract in `src/shared/viewSettingsTypes.ts` for:
-   - visibility or mode
-   - vertical offset
-   - ground material preset id
-2. Add one dedicated `Ground` section in `src/app/components/ViewToolbar.tsx` using:
-   - `ParaSelect` for on or off
-   - `ParaSlider` for raise or lower
-   - `ParaSelect` for material
-3. Implement the ground-plane runtime in `src/viewer/Viewer.ts` through one honest floor mesh seam driven by the shared `ground` state
-4. Add focused proof for:
-   - shared ground defaults
-   - toolbar control wiring
-   - viewer runtime application of visibility, height, and material selection
+- [x] add the first practical visible tuning controls on top of the preset model
+- [x] make the visible preset-versus-custom contract honest
+- [x] preserve the startup baseline as the default startup choice
+- [x] keep Browser, HDRI runtime, and grading work deferred
 
-### Likely Files
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- the environment section exposes practical scene-tuning controls beyond the thin preset select
+- the visible preset read stays honest after manual scene edits
+- the startup scene still boots into the preserved baseline
+
+#### Done Shape
+
+`Phase 4` is done when:
+- the user can tune the scene meaningfully without diving into raw light rows for every small change
+- the visible preset-versus-custom scene read is honest enough that `Environment-1-HLG-3` advances materially
+
+## [~] `Environment-1` - `Phase 5 - Add The Browser Environment Section And Rows`
+
+### Phase 5 Summary
+
+#### Purpose
+
+Create the first dedicated `Content > Environment` home for active environment objects so lights stop behaving like hidden toolbar-only state.
+
+#### Owns
+
+- the first Browser `Environment` surface under `Content`
+- Browser rows for active lights
+- one honest current-environment source read without pretending true HDRI runtime has landed
+- the first Browser-facing environment-object organization contract
+
+#### Does Not Own
+
+- a second Browser-local environment owner
+- viewport wireframe objects
+- selection-driven toolbar population
+- HDRI runtime
+
+#### Current Live Read
+
+- the Browser now has one dedicated `Environment` surface, but it landed as a boxed custom subsection instead of a normal tree row
+- active lights have a Browser-facing home from environment-owned truth
+- the current environment source still needs one honest child row that does not overclaim true HDRI runtime
+- `Environment` must stay the active owner of environment truth after Browser rows appear
+
+#### First Pass Decisions
+
+- add one explicit `Environment` surface under `Content`
+- represent active lights and the current environment source as Browser rows instead of only toolbar-local controls
+- keep Browser downstream from environment-owned truth instead of inventing Browser-local state
+- do not widen into viewport-object rendering or toolbar-routing yet
+
+### Phase 5 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the current Browser content-section seams and environment-owned light truth
+2. Add one dedicated Browser `Environment` surface under `Content`
+3. Add rows for active lights and the current environment source through environment-owned state only
+
+#### Likely Files
+
+- Browser-facing content surfaces where the new `Environment` section belongs
+- `src/app/store/uiPrefsStore.ts`
+- `src/shared/viewSettingsTypes.ts`
+- environment docs and indexes
+
+#### No-Widening Rule
+
+- do not create a second Browser-local environment owner
+- do not widen this phase into viewport wireframe objects
+- do not widen this phase into toolbar selection routing
+- do not widen this phase into grading or persistence work
+
+#### Implementation Risks
+
+- letting Browser become a second hidden owner for environment light truth
+- landing Browser rows without one explicit `Environment` section contract
+- treating HDRI like a completed runtime contribution before the true HDRI phase exists
+
+#### Checklist
+
+- [x] add one dedicated Browser `Environment` surface
+- [x] represent active lights as Browser rows
+- [~] represent the current environment source honestly without overclaiming HDRI runtime
+- [x] keep Browser downstream from environment-owned truth
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- Browser shows one explicit `Environment` surface
+- active lights and the current environment source appear there honestly
+- Browser does not become a second environment owner
+
+#### Done Shape
+
+`Phase 5` is only partially sufficient after the first implementation because:
+- the Browser has an environment-owned surface, but it is boxed instead of a real Browser collection row
+- active lights have one Browser home, but the current environment source row still needs the normal tree hierarchy contract
+- `Phase 5.1` must normalize the Browser hierarchy before the family relies on Browser row identity for viewport picks or later toolbar routing
+
+## [x] `Environment-1` - `Phase 5.1 - Normalize The Browser Environment Tree Row Hierarchy`
+
+### Phase 5.1 Summary
+
+#### Purpose
+
+Correct the Browser shape from a boxed custom `Environment` subsection into a real Browser collection row under `Content`, derived from the environment objects the user gets by default or later adds or loads, with environment-owned children that later viewport picks and toolbar routing can resolve to honestly.
+
+#### Owns
+
+- one real Browser `Environment` collection row under `Content`
+- environment-owned child rows below that parent
+- a current environment source child row that does not claim true HDRI runtime
+- environment light child rows under the same parent
+- review follow-through that viewport-picked environment lights resolve back to matching Browser rows
+
+#### Does Not Own
+
+- toolbar population from the selected light
+- transform editing
+- true HDRI runtime
+- environment intensity or background-versus-lighting separation
+- Phase 7 or later toolbar-routing work
+
+#### Current Live Read
+
+- `Phase 5.1` replaced the custom boxed Browser subsection with a natural `Content > Environment` tree hierarchy
+- Browser row identity is now stable enough for later selected-toolbar routing to build on it
+- the first honest child rows are:
+  - the current environment source row
+  - environment light rows
+- the current environment source row should describe the selected source or preset honestly without pretending the viewer has true HDRI light contribution yet
+- viewport-picked environment lights resolve back to the corresponding Browser row ids such as `environment-light-row:<lightId>`
+
+#### First Pass Decisions
+
+- make `Environment` a real Browser collection row under `Content`
+- place the current environment source row and environment light rows under that parent
+- keep Browser rows downstream from environment-owned truth
+- keep the active source language honest until true HDRI runtime exists
+- map viewport-picked environment lights back to the matching Browser environment-light row when the pick seam is present
+
+### Phase 5.1 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the Browser tree selector, row-family, presenter, and panel-controller seams that currently render the boxed environment subsection
+2. Replace the boxed `Environment` subsection with a real Browser collection row under `Content`
+3. Add child rows for the current environment source and environment lights from environment-owned truth
+4. Ensure viewport-picked environment lights resolve to the matching Browser environment-light row id where the viewport pick seam already exists
+5. Keep HDRI wording limited to current source or selected environment source unless true HDRI runtime is actually present
+
+#### Likely Files
+
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- focused proof:
+  - `src/app/panels/selectBrowserTreeRows.test.ts`
+  - `src/app/panels/browserTreeSections.test.tsx`
+  - `src/app/panels/browserInteractions.test.ts`
+
+#### No-Widening Rule
+
+- do not populate the toolbar from selected environment lights
+- do not add transform editing
+- do not add true HDRI runtime
+- do not add environment intensity, background-versus-lighting separation, or orientation controls
+- do not widen into `Phase 7` or later work
+
+#### Implementation Risks
+
+- keeping the boxed subsection while only renaming it as a tree row
+- creating Browser-local environment state instead of deriving rows from environment-owned truth
+- overclaiming HDRI runtime by labeling the source row as a real lighting contribution before that runtime exists
+- resolving viewport-picked lights to light ids only without synchronizing the matching Browser row
+
+#### Checklist
+
+- [x] make `Environment` a real Browser collection row under `Content`
+- [x] add the current environment source child row
+- [x] add environment light child rows
+- [x] keep all rows derived from environment-owned truth
+- [x] keep HDRI/runtime language honest
+- [x] resolve viewport-picked environment lights back to the matching Browser row
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- Browser renders `Environment` as a normal tree row under `Content`
+- expanding `Environment` shows the current environment source row and light rows
+- no Browser row claims true HDRI runtime if the runtime is not present
+- a viewport-picked environment light maps back to the matching Browser row id when the viewport pick seam exists
+
+#### Done Shape
+
+`Phase 5.1` is done when:
+- the Browser environment surface is a natural tree hierarchy instead of a boxed custom subsection
+- the first child rows are the current environment source and environment lights
+- viewport-picked environment lights can resolve to the matching Browser row without adding toolbar population or true HDRI runtime
+
+## [x] `Environment-1` - `Phase 5.2 - Browser Environment Row Visual Parity`
+
+### Phase 5.2 Summary
+
+#### Purpose
+
+Fix the visual follow-through after `Phase 5.1`: the Browser `Environment` surface should not merely be structurally normal in the tree data. It should also look and behave visually like the mature Browser rows around it, especially the `Assembly 1` and `References` collection rows that use the shared content-state bar language.
+
+#### Owns
+
+- Environment row visual parity with normal Browser collection rows
+- removing the unstyled custom `isEnvironmentRow` / `BrowserContentStateBar--environment` look that makes the row appear like a boxed or ugly special case
+- reusing the established content-row surface treatment for the `Environment` root where possible
+- making environment source and light child rows read as natural nested Browser rows
+- focused Browser presenter/theme proof that Environment rows receive the expected row classes or styled state bars
+
+#### Does Not Own
+
+- changing the environment-owned row data contract from `Phase 5.1`
+- adding true HDRI runtime or claiming HDRI lighting contribution
+- changing viewport wireframe light object behavior
+- adding delete-key behavior
+- adding Console breadcrumbs or real-object actions
+- populating the View Toolbar from selected lights
+- changing the underlying startup scene lighting baseline
+
+#### Current Live Read
+
+- `Phase 5.1` made `Environment` a real `Content > Environment` tree row structurally
+- the presenter still routes environment rows through a custom Environment visual branch
+- the custom Environment branch emits `BrowserContentStateBar--environment` classes that do not have matching visual definitions in the Browser theme
+- the `Environment` row therefore falls back to generic button/card chrome while `Assembly 1` gets the polished content-row state-bar treatment
+- this phase should close that visual mismatch before the Browser row becomes the base for later delete, Console, and toolbar work
+
+#### First Pass Decisions
+
+- keep the `Environment` data hierarchy from `Phase 5.1`
+- prefer reusing the same content-row visual path as `Assembly`, `component`, `object`, or `References` rows instead of inventing another bespoke Environment skin
+- if Environment-specific classes remain, they must be fully styled and must inherit the transparent row-main treatment used by mature Browser rows
+- child rows should stay visually quieter than the root row while still reading as normal nested Browser rows
+- implementation should be presentation-only unless a tiny presenter-class adjustment is required to reach the shared Browser row chrome
+
+#### Implementation Status
+
+`Phase 5.2` is implemented. The next legal cut is `Phase 6.1`, and it should keep the `Phase 5.1` data contract intact.
+
+### Phase 5.2 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the `Phase 5.1` Environment row contract and keep the Environment row ids, child ordering, and viewport selection behavior unchanged.
+2. In `src/app/panels/browserTreeRowPresenter.tsx`, remove the Environment-only custom visual branch as the primary chrome path and make the Environment root and child rows reuse the mature Browser content-row treatment as closely as possible.
+3. In `src/app/theme/surfaces/browser.css`, make any remaining Environment-specific classes inherit the same polished row-main and state-bar language that already makes `Assembly` and `References` look finished.
+4. Keep the fix presentation-only: no row-data changes, no new selection semantics, and no runtime behavior beyond Browser visual parity.
+
+#### Likely Files
+
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/theme/surfaces/browser.css`
+- focused proof:
+  - `src/app/panels/browserTreeSections.test.tsx`
+  - `src/app/panels/browserTreeRowPresenter.test.tsx`
+  - `src/app/panels/BrowserPanel.test.tsx`
+
+#### No-Widening Rule
+
+- do not change the `Phase 5.1` Environment row contract, child ordering, or row ids
+- do not add delete-key behavior, Console breadcrumbs/actions, toolbar population, true HDRI runtime, viewport helper changes, or startup lighting changes
+- do not widen into later phases or into a second Environment-only Browser visual language
+- do not touch the Browser selection model except to preserve the existing `Phase 5.1` behavior
+
+#### Implementation Risks
+
+- leaving the Environment root on the bespoke `BrowserContentStateBar--environment` branch and missing the parity goal
+- styling the root row but forgetting the child Environment rows, so the hierarchy still reads like a special case
+- accidentally changing visibility, expansion, or selection behavior while cleaning up the chrome
+- overfitting the CSS so the Environment fix breaks mature `Assembly` or `References` rows
+
+#### Verification Commands
+
+- `pnpm test -- src/app/panels/browserTreeSections.test.tsx src/app/panels/browserTreeRowPresenter.test.tsx src/app/panels/BrowserPanel.test.tsx`
+- `pnpm test -- src/app/panels/browserTreeSections.test.tsx`
+- optional browser UI spot-check: confirm Environment now matches the mature Browser row language while `Phase 5.1` row identity and selection behavior still pass
+
+#### Done Checklist
+
+- [x] Environment root uses the same polished Browser content-row chrome as the mature collection rows
+- [x] Environment child rows remain nested and visually quiet but no longer look like an unstyled special case
+- [x] the presenter and CSS changes stay presentation-only and preserve the `Phase 5.1` row contract
+- [x] focused Browser presenter/panel tests pass for the Environment row parity path
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- Browser `Environment` root uses normal content-row visual treatment instead of generic boxed button chrome
+- environment source and light children remain visible under `Environment`
+- existing `Phase 5.1` row identity behavior still passes, including viewport-picked environment lights resolving back to matching Browser rows
+- no tests or snapshots imply true HDRI runtime or selected-toolbar behavior that this phase does not own
+
+#### Done Shape
+
+`Phase 5.2` is done when:
+- `Environment` visually matches the mature Browser tree-row language used by rows like `Assembly 1` and `References`
+- no unstyled Environment-only state-bar class creates the boxed or ugly row appearance
+- the fix stays presentation-scoped and preserves the `Phase 5.1` environment-owned Browser row contract
+
+## [ ] `Environment-1` - `Phase 6 - Add Viewport Light Objects And Shared Selection`
+
+### Phase 6 Summary
+
+#### Purpose
+
+Make the environment lights read like real scene objects in the model viewport while keeping Browser rows, viewport picks, and selected-object truth aligned.
+
+#### Owns
+
+- wireframe viewport-object representation for environment lights
+- one honest object-shape language per light type
+- the first shared selected environment-object contract across Browser and viewport
+
+#### Does Not Own
+
+- filled meshes or production render geometry for light helpers
+- toolbar population details
+- true environment-light runtime
+
+#### Current Live Read
+
+- the Browser now has an `Environment` section, but the viewport still lacks object language
+- lights are not yet selectable as visible helpers in the viewport
+- Browser selection and viewport picks still do not share one selected environment-object contract
+
+#### First Pass Decisions
+
+- render light helpers as wireframes only
+- keep each light type visually distinct but lightweight
+- start with one honest shape language:
+  - point light -> sphere
+  - spot light -> cone
+  - directional light -> sun-arrow or directional-disc with heading
+  - area light -> rectangle
+- keep Browser row selection and viewport picking pointed at one shared selected environment object
+
+### Phase 6 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the current Browser environment rows, viewer light runtime, and selection seams
+2. Render wireframe light helpers in the viewport
+3. Make Browser row selection and viewport picks resolve to the same selected environment object
+
+#### Likely Files
 
 - `src/shared/viewSettingsTypes.ts`
-- `src/app/components/ViewToolbar.tsx`
+- `src/app/store/uiPrefsStore.ts`
+- Browser selection or content surfaces that host environment rows
 - `src/viewer/Viewer.ts`
 - focused proof:
   - `src/viewer/Viewer.test.ts`
-  - `src/app/components/ViewToolbar.test.tsx`
-- docs update targets after implementation:
-  - `docs/CHANGELOG.md`
 
-### No-Widening Rule
+#### No-Widening Rule
 
-- do not use `Phase 2d` to quietly start preset truth
-- do not bundle HDRI runtime into the ground lane
-- do not widen into full environment-surface redesign
-- do not add multiple competing floor systems
-- do not turn `Phase 2d` into a full authored material editor for the ground plane
-- do not make the new `Ground` section a catch-all owner for unrelated environment controls
+- do not widen into true environment-light runtime in `Phase 6`
+- do not widen into toolbar edit-surface migration in `Phase 6`
+- do not render filled light meshes
 
-### Implementation Risks
+#### Implementation Risks
 
-- tying the first ground behavior too tightly to one model size or one import shape
-- making the ground visually heavier than the model
-- making the ground-material control too broad and accidentally creating a second material-authoring lane
-- placing the new `Ground` section in a way that conflicts with the `Phase 2c` toolbar-organization pass instead of layering on top of it cleanly
+- letting viewport helpers become decorative only instead of selectable environment objects
+- inventing one shape language in Browser and a different one in the viewport
+- widening into toolbar routing before selection identity is stable
 
-### Checklist
+#### Checklist
 
-- [x] add a dedicated ground-lane owner after the environment-section organization pass
-- [x] lock the first ground cut to a dedicated `Ground` section with:
-  - on or off control
-  - raise or lower control
-  - ground material control
-- [x] ground the visible control surface in the live `ParaSelect` and `ParaSlider` seams
-- [x] keep preset-truth, Browser, and HDRI/runtime widening deferred out of this lane
-- [x] place `Phase 2d` before the preset-truth phase
+- [ ] add wireframe viewport objects for environment lights
+- [ ] keep one lightweight shape per light type
+- [ ] keep Browser rows and viewport picks on one selected environment-object contract
 
-### Verification Shape
+#### Verification Shape
 
 Minimum verification for this phase should cover:
+- light helpers appear in the viewport as wireframes
+- each light type reads as a distinct object shape
+- selecting a Browser row or viewport helper points at the same selected environment object
 
-- the new `Ground` section renders through the shared para-style controls
-- the shared `ground` state stays narrow and explicit
-- the chosen ground read lands through one honest runtime seam
-- the relationship between grid, shadows, ground visibility, ground height, and ground material is explicit
+#### Done Shape
 
-### Done Shape
+`Phase 6` is done when:
+- environment lights read as real selectable scene objects in the viewport without widening into full toolbar migration or HDRI runtime
 
-`Phase 2d` is done when:
+## [x] `Environment-1` - `Phase 6.1 - Shared Delete And Console Context For Selected Environment Objects`
 
-- models feel more grounded in the default viewer scene than they do with grid-only world zero
-- the user can explicitly:
-  - turn ground on or off
-  - raise or lower the ground plane
-  - choose a ground material
-- the first ground behavior is explicit and testable
-- `Phase 3` can widen into preset truth without having to rediscover basic floor ownership
+### Phase 6.1 Summary
+
+#### Purpose
+
+Make selected environment objects behave like real scene objects for delete and Console-context reading without widening into the later toolbar-population pass.
+
+#### Owns
+
+- delete-key routing for selected environment objects through the shared selection and command path
+- Console context for selected environment objects, including breadcrumbs and object-style actions
+- environment-owned truth as the backing source for both delete and Console reads
+
+#### Does Not Own
+
+- toolbar population from selected environment objects
+- transform editing for selected environment objects
+- new Browser hierarchy normalization
+- true environment-light runtime
+
+#### Current Live Read
+
+- `Phase 5.1` already normalized the Browser `Environment` row and child rows
+- `Phase 6` already established the selected environment-object contract in the viewport
+- selected environment objects now delete through the shared selection and command path like real scene objects
+- Console now shows selected environment objects with real-object breadcrumbs and object-style actions
+
+#### First Pass Decisions
+
+- route delete for selected environment objects through the shared selection/command path wherever that path already exists
+- keep delete behavior backed by environment-owned truth instead of Browser-local or Console-local copies
+- make Console reuse real-object-style context affordances such as breadcrumbs, delete, hide or show, and back where those actions make sense
+- keep this as a follow-up to the selection identity work from `Phase 5.1` and `Phase 6`, not a toolbar population pass
+
+### Phase 6.1 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the selected environment-object contract from `Phase 6` and the Browser row identity from `Phase 5.1`
+2. Route Delete-key handling for selected environment objects through the shared selection and command path
+3. Feed Console selected-environment-object context from environment-owned truth so breadcrumbs and object-style actions appear for those selections
+
+#### Likely Files
+
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/ConsolePanel.tsx`
+- `src/app/console/consoleReferenceContentCommands.ts`
+- `src/app/console/consoleFormatters.ts`
+- focused proof:
+  - `src/app/panels/browserInteractions.test.ts`
+  - `src/app/panels/BrowserPanel.test.tsx`
+  - `src/app/console/ConsoleDock.test.tsx`
+  - `src/app/console/consoleReferenceContentCommands.test.ts`
+
+#### No-Widening Rule
+
+- do not implement the later toolbar-population pass in `Phase 6.1`
+- do not reopen Browser hierarchy normalization from `Phase 5.1`
+- do not add new viewport object shapes or true environment-light runtime
+- do not introduce Browser-local or Console-local copies of selected environment-object truth
+
+#### Implementation Risks
+
+- routing Delete from the wrong selected-object source and accidentally making environment objects diverge from the shared selection path
+- showing Console breadcrumbs that read like copied Browser state instead of environment-owned truth
+- drifting into toolbar selection or transform editing before the shared delete and Console-context contract is settled
+
+#### Checklist
+
+- [x] route Delete-key handling for selected environment objects through the shared selection path
+- [x] show selected environment objects in Console context with breadcrumbs
+- [x] expose normal object-style actions such as delete, hide or show, and back where appropriate
+- [x] keep all of those actions backed by environment-owned truth
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- pressing Delete on a selected environment object deletes that object through the shared selection path
+- Console shows the selected environment object with breadcrumbs
+- Console exposes normal object-style actions for the selected environment object
+- the readout stays backed by environment-owned truth instead of Browser-local or Console-local copies
+
+#### Done Shape
+
+`Phase 6.1` is done when:
+- selected environment objects delete like real scene objects
+- Console treats selected environment objects like real selected objects with honest breadcrumbs and actions
+- the phase stays a follow-up to `Phase 5.1` and `Phase 6` without widening into toolbar population
+
+## [x] `Environment-1` - `Phase 6.2 - Frame Selected Environment Objects`
+
+### Phase 6.2 Summary
+
+#### Purpose
+
+Make selected environment objects zoomable and frameable like normal scene objects, so the user can quickly navigate to a light or environment helper before editing it.
+
+#### Owns
+
+- selected environment-object zoom or frame behavior
+- the bounds or target-point contract needed for environment-object framing
+- Console and Browser zoom actions that frame the selected environment object through the existing selected-object framing path
+
+#### Does Not Own
+
+- View Transform movement for selected environment objects
+- selected-light setting controls in the View Toolbar
+- true environment-light runtime
+- new light helper shape language beyond what `Phase 6` already established
+
+#### Current Live Read
+
+- `Phase 6` gives environment lights selectable viewport helper identity
+- `Phase 6.1` gives selected environment lights Console context and object-style actions
+- selected environment lights still need an honest frame target before object-local zoom can behave like it does for normal scene objects
+
+#### First Pass Decisions
+
+- keep zoom/framing downstream of the selected environment-object contract
+- derive frame targets from environment-owned light truth, not from decorative helper-only state
+- use the existing selected-object framing path where possible instead of adding an environment-only camera shortcut
+- keep this phase focused on navigation only; movement belongs to `Phase 6.3`
+
+### Phase 6.2 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the landed `environment-light` selection contract from `src/app/components/ViewerHost.tsx`, `src/app/panels/browserInteractions.ts`, `src/app/store/workspaceSelectionCommands.ts`, and `src/app/store/useAppStore.ts`.
+2. Add one shared viewer command for framing a selected environment light by `lightId`, parallel to `frameSelectedCommand(...)` and `frameReferenceCommand(...)`, instead of forcing environment lights into `selectedPartKey`.
+3. Add a viewer-side frame target seam that resolves `lightId` to the live environment-light helper generated from shared `ViewSettings.lighting.lights`; frame the helper object when present and return a boolean success value so callers can keep current no-op/fallback behavior honest.
+4. Route Browser environment-light double-click or zoom intent through that shared command after resolving the row back to `environment-light-row:<lightId>`.
+5. Route Console selected environment-light `Zoom > Object` through the same command by carrying `environmentLightId` through the existing `contentObjectSelected` and `contentObjectZoomRoot` staged-navigation session.
+6. Add focused proof for the viewer command, Browser row routing, Console staged navigation, and Console command execution.
+
+#### Concrete File Focus
+
+- `src/app/viewerBridge.ts`
+  - extend the viewer bridge contract with an environment-light framing method that returns success/failure.
+- `src/app/viewCommands.ts`
+  - add the shared command wrapper, likely `frameEnvironmentLightCommand(lightId, viewportId?, options?)`.
+- `src/viewer/Viewer.ts`
+  - add the actual frame implementation against `environmentLightHelpersById`.
+  - keep helper placement derived from `applySpecToEnvironmentLightHelper(...)`, which already consumes environment-owned light specs.
+- `src/app/panels/browserInteractions.ts`
+  - update `handleDoubleSelectBrowserRow(...)` so `rowKind === 'environment-light'` frames the selected light helper.
+  - do not route through `visibilityPartKeys`; environment-light rows do not have part keys.
+- `src/app/console/stagedNavigation.ts`
+  - add `ROOT_ZOOM_CHOICE` to environment-light selected choices.
+  - keep `contentObjectZoomRoot` carrying `selections.environmentLightId` so Back returns to the selected light context.
+- `src/app/console/useConsoleInteraction.ts`
+  - when `Zoom > Object` is executing and the staged session has `environmentLightId`, call the new shared environment-light frame command before falling back to the existing part/reference warning path.
+- Focused tests:
+  - `src/viewer/Viewer.test.ts`
+  - `src/app/viewCommands.test.ts`
+  - `src/app/panels/browserInteractions.test.ts`
+  - `src/app/console/stagedNavigation.test.ts`
+  - `src/app/console/ConsoleDock.test.tsx`
+
+#### No-Widening Rule
+
+- Do not make environment lights masquerade as `part:*` selections or populate `selectedPartKey`; their selected target remains `{ kind: 'environment-light', lightId }`.
+- Do not implement View Transform movement, transform target registration, gizmo activation, or light-position commits; that remains `Phase 6.3`.
+- Do not add or retire selected-light toolbar controls; selected-light settings remain later toolbar work.
+- Do not change helper shape language, light runtime contribution, HDRI source behavior, preset truth, or baseline lighting.
+- Do not introduce Browser-local or Console-local light geometry; the frame target must resolve from environment-owned light truth and the live viewer helper map.
+
+#### Implementation Risks
+
+- The current `frameSelectedCommand(partKey)` path falls back to `frameAll()` for missing part ids, which would hide failed environment-light resolution if reused blindly.
+- Browser object double-click currently frames object rows via `visibilityPartKeys` and references via `referenceIds`; environment-light rows need their own branch because their selected `partKey` is intentionally `null`.
+- Console zoom currently depends on `resolveSelectedObjectPartKeyForZoom()` and `resolveSelectedReferenceIdForZoom()`, so selected environment lights will continue warning until `environmentLightId` is checked explicitly.
+- Helper objects are decorative but their placement is already derived from `ViewSettings.lighting.lights`; the implementation should frame the helper while documenting that the truth source is still the light spec.
+- Hidden or deleted lights can leave stale selected context during edge cases; the command should return `false` when no live helper exists instead of silently framing all.
+
+#### Verification Shape
+
+Minimum focused verification for this implementation should cover:
+- `Viewer.frameEnvironmentLight(...)` frames the helper for a live `lightId` and returns `true`.
+- `Viewer.frameEnvironmentLight(...)` returns `false` for a missing `lightId` without calling `frameAll()`.
+- Browser double-click on an `environment-light` row calls the new environment-light frame command and does not require `visibilityPartKeys`.
+- Console selected environment-light context exposes `Zoom`, and `Zoom > Object` calls the same environment-light frame command.
+- Existing object and reference zoom tests still pass, proving the shared selected-object framing path was extended rather than replaced.
+
+#### Checklist
+
+- [x] add selected environment-object frame targets or bounds
+- [x] route Browser-selected environment-object zoom through the selected-object framing path
+- [x] route Console-selected environment-object zoom through the same framing path
+- [x] keep viewport helper framing backed by environment-owned light truth
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- selected environment-light zoom frames the helper or light position
+- Browser and Console zoom actions resolve to the same selected environment object
+- object-local zoom does not bypass shared selected-object truth
+
+#### Done Shape
+
+`Phase 6.2` is done when:
+- selected environment objects can be zoomed to like real scene objects without widening into movement or selected-light settings
 
 Current status:
-- `Phase 2d` is implemented as a standalone dedicated ground-lane pass
-- `Phase 2c` remains the next active implementation cut
-- the standalone implementation-planning home for `Phase 2c` now lives at:
-  - `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 Phase 2c - Environment Section Organization Pass.md`
-- the shipped first cut now includes:
-  - a shared `ground` state contract
-  - a new `Ground` toolbar section
-  - one `ParaSelect` visibility control
-  - one `ParaSlider` height control
-  - one narrow ground-material preset control
-  - one viewer-owned visible studio floor that receives shadows without replacing the grid
+- `Phase 6.2` is implemented and focused verification passed
+- Browser environment-light double-click routes through the shared environment-light frame command
+- Console selected environment-light `Zoom > Object` routes through the same frame command and keeps Back returning to the selected environment-light context
+- missing environment-light helpers return framing failure without silently framing all
+- `Phase 6.3` now owns the movement-only cut on top of this framing path
 
-## [ ] Phase 3 - Add Named Environment Presets And Preset Truth
+## [x] `Environment-1` - `Phase 6.3 - Move Selected Environment Objects Through View Transform`
 
-Purpose:
-- replace the thin current environment read with a real preset model
+### Phase 6.3 Summary
 
-Owns:
-- named preset language
-- preset-to-light-rig mapping
-- the contract between default scene state and authored preset state
+#### Purpose
 
-This phase should:
-- define the first honest preset set such as:
-  - `Neutral`
-  - `Studio`
-  - `Dark Studio`
-- map each preset to explicit lighting and background behavior
-- keep the preset truth in environment-owned state rather than scattering it through toolbar-only assumptions
+Let the user move selected environment objects through the shared View Transform toolbar, with transform commits writing back to environment-owned light truth.
 
-Does not own:
-- Browser light surfaces
-- HDRI runtime
-- post-look grading
+#### Owns
 
-Done when:
-- environment presets are real named scene states instead of only background labels
+- registering selected environment objects as valid View Transform targets
+- moving environment light position through the shared transform commit path
+- keeping viewport helpers, Browser rows, Console context, and View Transform state pointed at the same environment-owned object after movement
 
-## [ ] Phase 4 - Add The Visible Environment Tuning Surface
+#### Does Not Own
 
-Purpose:
-- make the environment section a practical everyday control surface rather than a thin advanced-only light editor
+- per-light setting controls such as intensity, type, color, cone angle, or shadow controls
+- retirement of the old toolbar-local light list
+- true environment-light runtime
+- HDRI transform or orientation controls
 
-Owns:
-- clearer environment-section control grouping
-- quick studio-tuning sliders
-- the visible contract for editing presets versus editing the current scene
+#### Current Live Read
 
-This phase should:
-- add practical visible controls for common scene tuning such as:
-  - exposure
-  - background brightness
-  - light-balance or environment brightness style controls
-- keep raw low-level light editing available where needed without making it the only workflow
-- make the environment section feel intentional and legible
+- selected environment lights can be represented, selected, deleted, zoomed, and shown in Console context
+- positioned environment lights can now participate in the shared transform target model
+- the later selected-light settings pass should still not own basic object movement because movement now rides the existing View Transform toolbar contract
 
-Does not own:
-- Browser light rows yet
-- HDRI runtime yet
+#### First Pass Decisions
 
-Done when:
-- the user can tune the scene meaningfully without diving into raw light rows for every small change
+- treat environment light position as the first transform-supported field
+- use the existing View Transform toolbar language instead of inventing a one-off environment movement widget
+- write transform commits back into the shared environment light data so the helper, Browser row, Console context, and renderer stay honest
+- leave non-position transforms and per-light settings for later phases unless the current light type already has a safe existing transform field
 
-## [ ] Phase 5 - Add Browser-Facing Light Entries As A Downstream Surface
+### Phase 6.3 Implementation Spec
 
-Purpose:
-- give users a Browser-visible way to manage helpful scene lights for model-viewport readability if that workflow still proves valuable after the earlier baseline and preset work
+#### Exact First Code Cut
 
-Owns:
-- Browser-facing light entries or quick light actions
-- the rule that Browser only reads or controls environment-owned light truth
+1. Re-read the landed `Phase 6.2` environment-light frame/helper seam and the existing View Transform target model.
+2. Extend the shared View Transform target/session contract to include environment lights without changing the selected workspace target shape:
+   - keep workspace selection as `{ kind: 'environment-light', lightId }`
+   - add a View Transform target shape such as `{ kind: 'environment-light', lightId }` only inside the transform/session APIs
+3. Add one environment-light transform shell/session path that mirrors the existing reference/content-object shell lifecycle closely enough for the shared View Transform toolbar to render and start translate entries.
+4. Limit the first transform mode to translate/move for light types with a real `LightSpec.position` field.
+5. Feed the active environment-light transform session into `ViewerHost -> viewer.setViewerTransformSession(...)`, then teach the viewer to attach the transform gizmo to the matching `environmentLightHelpersById` helper.
+6. On transform change, convert the helper translation draft into a new light `position` draft for the active light.
+7. On transform commit, write the committed `position` back through environment-owned truth, most likely `useUiPrefsStore.getState().updateLight(lightId, { position })`, then let normal `applyViewSettings(...)` refresh the light, helper, Browser row metadata, and Console context.
+8. Preserve Browser and Console selection after commit; do not rewrite selection into `part:*`, content-object ids, or toolbar-local selected-light state.
 
-This phase should:
-- decide the smallest honest Browser surface for light visibility or management
-- keep that surface downstream from the environment-owned state
-- help users read objects in the model viewport more easily when working through Browser-heavy flows
+#### Concrete File Focus
 
-Does not own:
-- the main light-truth data model
-- a second Browser-local lighting system
-- HDRI runtime
+- `src/app/store/useAppStore.ts`
+  - extend `ViewerTransformTarget`, `ActiveViewerTransformSession`, and selectors such as `selectActiveViewerTransformTarget(...)`, `selectActiveViewerTransformSession(...)`, `selectActiveViewerTransformHistoryEntries(...)`, and `selectActiveViewerTransformSnapState(...)` only as much as environment-light translate support requires
+  - add environment-light transform shell/session actions or a minimal generic branch for active environment-light target lifecycle
+  - keep any environment-light transform draft narrow to position/move state rather than adopting full reference transform history unless the current generic helpers can be reused safely
+- `src/app/viewerBridge.ts`
+  - extend `ViewerTransformTarget` and `ViewerTransformSession` with the environment-light target shape so `ViewerHost` and `Viewer` agree on the same target id
+- `src/app/components/ViewerHost.tsx`
+  - include active environment-light transform sessions in `activeViewerTransformSession`
+  - accept viewer transform change events for `target.kind === 'environment-light'`
+  - commit active environment-light translate drafts back to `useUiPrefsStore.updateLight(...)`
+  - keep `setViewerTransformSession(...)` synchronized without touching content-object transform groups
+- `src/viewer/Viewer.ts`
+  - extend `setViewerTransformSession(...)`, `getActiveViewerTransformObject()`, active entry-origin reads, and transform-change target emission to support environment-light helpers by `lightId`
+  - attach the transform gizmo to `environmentLightHelpersById.get(lightId)` when an environment-light transform session is active
+  - keep helper placement source-of-truth in `applySpecToEnvironmentLightHelper(...)`; the gizmo move should be a draft/commit path, not a second persistent helper transform owner
+- `src/app/components/ReferenceTransformToolbar.tsx`
+  - render the existing View Transform shell for an environment-light target, preferably with translate/move enabled and rotate/scale disabled or inert for this phase
+  - use the current active transform target/session selectors rather than special-casing a separate light movement panel
+- `src/app/console/stagedNavigation.ts`, `src/app/console/useConsoleInteraction.ts`, and `src/app/console/ConsoleDock.tsx`
+  - route selected environment-light `Move` or `Transform > Move` into the same transform shell only if needed to match existing object behavior
+  - keep Back returning to the selected environment-light context
+- Focused proof:
+  - `src/app/store/useAppStore.test.ts`
+  - `src/app/components/ViewerHost.test.tsx`
+  - `src/viewer/Viewer.test.ts`
+  - `src/app/components/ReferenceTransformToolbar.test.tsx`
+  - existing Browser/Console selected-environment-light tests where movement entry points are covered
 
-Done when:
-- Browser can help with light readability without becoming a second hidden lighting owner
+#### No-Widening Rule
 
-## [ ] Phase 6 - Add True Environment-Light Runtime
+- Do not implement per-light settings such as intensity, color, type, target, cone angle, distance, decay, shadow settings, or enabled state; those remain selected-light toolbar work in `Phase 7` or later.
+- Do not retire or redesign the old toolbar-local light list.
+- Do not add true environment-light runtime, HDRI orientation, HDRI placement, environment intensity, or background-versus-lighting separation.
+- Do not make environment lights look like content objects, references, or `part:*` selections just to reuse transforms.
+- Do not add rotate or scale support unless the existing View Transform code requires harmless defaults; if exposed, they must not commit any environment-light setting in this phase.
+- Do not create a second persistent helper-position store; committed movement must update the environment-owned `LightSpec.position`.
 
-Purpose:
-- move beyond background-color-only environment behavior into real environment-light contribution
+#### Implementation Risks
 
-Owns:
+- The active View Transform target union currently assumes only `reference` and `content-object`, so a partial target extension can silently fall into the content-object branch if every selector and switch is not updated together.
+- Existing reference/content-object transform history is rich and may be overkill for light movement; reusing it without a clear persistence mapping could accidentally create hidden light transform history instead of a direct position commit.
+- `LightSpec` types such as `ambient` and `hemisphere` do not have applicable positions after normalization, so the first cut should gate transformability to positioned light types or fail gracefully.
+- The viewer helper is the gizmo attachment object, but the persistent truth is still `ViewSettings.lighting.lights`; direct helper mutation must be treated as draft state only.
+- `applyViewSettings(...)` will recreate or reposition helpers from the light spec, so commit ordering should avoid a snap-back frame where the gizmo moves the helper but the store has not yet accepted the position.
+- Console and Browser both already use selected environment-light context; movement entry should preserve that context rather than switching to a content-object transform session.
+
+#### Verification Shape
+
+Minimum focused verification for this implementation should cover:
+- selecting an environment light can open or activate the shared View Transform toolbar without setting `selectedPartKey`.
+- starting a translate/move entry for a positioned environment light attaches the viewer gizmo to the matching environment-light helper.
+- changing the viewer transform draft updates the active environment-light transform draft for that same `lightId`.
+- committing the move calls the environment-owned light mutation path and updates `LightSpec.position`.
+- after commit, `Viewer.applyViewSettings(...)` places the environment-light helper at the committed position.
+- Browser selected row id, Console selected context, and `view.lighting.selectedLightId` still point at the same light after movement.
+- non-positioned light types do not expose a broken move path or commit bogus position data.
+
+#### Checklist
+
+- [x] register selected environment lights as transformable View Transform targets
+- [x] move environment light position through the shared transform commit path
+- [x] update viewport helper placement from the committed environment-owned light truth
+- [x] keep Browser and Console selection stable after movement
+
+#### Implementation Result
+
+- selected environment lights are represented in the shared View Transform target/session union without rewriting workspace selection into a content object or `part:*` target
+- the shared View Transform toolbar can show an environment-light target and keeps the first cut translate-only
+- `ViewerHost` starts an environment-light transform shell for selected positioned lights and keeps non-positioned light types out of the move path
+- `Viewer` attaches the gizmo to the matching `environmentLightHelpersById` helper and reports helper translation through the shared viewer-transform callback
+- committed movement writes back through `useUiPrefsStore.updateLight(lightId, { position })`, so `applyViewSettings(...)` remains the helper placement source of truth
+- focused proof now covers the store commit path, non-positioned light gating, helper movement callback, helper framing path, and the full production build
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- [x] selecting an environment light enables the shared View Transform toolbar for that target
+- [x] committing a move updates the environment-owned light position
+- [x] the viewport helper reflects the moved position
+- [x] Browser and Console still refer to the same selected environment object after the move
+
+#### Done Shape
+
+`Phase 6.3` is done when:
+- selected environment objects can be moved through the shared View Transform toolbar like real scene objects, without widening into selected-light settings or true environment-light runtime
+
+## [x] `Environment-1` - `Phase 7 - Route Selected Lights Into The Toolbar`
+
+### Phase 7 Summary
+
+#### Purpose
+
+Make light setting editing selection-driven so clicking a light in the Browser or viewport populates the toolbar for that exact light instead of relying on the old toolbar-local list.
+
+#### Owns
+
+- toolbar population from the selected light
+- selected-light setting controls that are not already owned by the shared View Transform toolbar
+- retirement of the old toolbar-local light list
+- Browser eye visibility as the light on-or-off control
+
+#### Does Not Own
+
+- true environment-light runtime
+- HDRI intensity and background-versus-lighting separation
+- Catalog HDRI browsing
+
+#### Current Live Read
+
+- Browser rows and viewport helpers can exist first, but the toolbar still needs to follow selected-object truth
+- object framing and movement should already be handled by `Phase 6.2` and `Phase 6.3`
+- the old toolbar-local light list should retire once selection-driven editing exists
+- light visibility should move onto Browser row eye behavior instead of a second light-list owner
+
+#### First Pass Decisions
+
+- populate the toolbar from the selected light only
+- let the toolbar own per-light settings for the selected light while View Transform owns basic object movement
+- prefer the existing para-style control family first for selected-light editing where the control semantics fit:
+  - `ParaSlider`
+  - `ParaSelect`
+  - `ParaVec3`-style button controls
+- retire the older toolbar-local list instead of keeping two competing light-picking surfaces
+- route light on or off through the Browser eye control
+
+### Phase 7 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the landed selected environment-object seam from `Phase 6.3`
+2. Populate toolbar controls from the selected light
+3. Retire the older toolbar-local light list and route light visibility through Browser eye behavior
+
+#### Likely Files
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.tsx`
+- Browser-facing environment surfaces where row-eye visibility is rendered
+- `src/viewer/Viewer.ts`
+
+#### No-Widening Rule
+
+- do not widen into true environment-light runtime
+- do not widen into HDRI browsing or grading
+- do not keep the old toolbar list alive as a second selector after the new contract lands
+
+#### Implementation Risks
+
+- keeping both the Browser and toolbar list as competing light selectors
+- making viewport selection behave differently from Browser selection
+- introducing one-off selected-light widgets when the para-style controls already match the setting
+- treating Browser eye visibility and toolbar visibility as separate truths
+
+#### Checklist
+
+- [x] populate the toolbar from the selected light
+- [x] support selected-light setting edits through the toolbar
+- [x] retire the older toolbar-local light list
+- [x] use Browser eye visibility for light on or off
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- [x] selecting a light in the Browser populates the toolbar for that light
+- [x] selecting a light helper in the viewport populates the same toolbar state
+- [x] selected-light settings use the existing para-style control family where it fits
+- [x] Browser eye visibility turns lights on or off without a second owner
+
+#### Implementation Result
+
+- the Environment toolbar now exposes one `Selected Light` editor that follows `view.lighting.selectedLightId`, which Browser and viewport environment-light selection already update through the shared selected-target seam
+- the older toolbar-local light list, per-row selector, delete button, and toolbar enabled selector are gone, leaving Browser and viewport selection as the light-picking source
+- selected-light edits remain on the existing para-style control family for type, intensity, vectors, distance, decay, spot settings, and shadow settings
+- Browser environment-light rows now render the normal visibility eye, and clicking it writes to `LightSpec.enabled` through the Browser interaction dependency instead of creating separate toolbar visibility truth
+- focused tests cover the retired toolbar list, selected-light editor controls, Browser-eye rendering, and Browser-eye-to-light-enabled routing
+
+#### Verification Result
+
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserTreeRowPresenter.test.tsx`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+#### Done Shape
+
+`Phase 7` is done when:
+- light editing is genuinely selection-driven across Browser, viewport, and toolbar, and the old toolbar light list is gone
+
+## [x] `Environment-1` - `Phase 8 - Add Active HDRI Ownership And The First True Environment-Light Runtime`
+
+### Phase 8 Summary
+
+#### Purpose
+
+Make the chosen HDRI a first-class environment entry and move the viewer from preset-background-only behavior into true environment-light contribution.
+
+#### Owns
+
+- active HDRI ownership under the Browser `Environment` section
 - the first honest environment-light runtime seam
-- environment-light contribution separate from direct lights
-- the split between background look and light contribution
+- the split between background treatment and light contribution
 
-This phase should:
-- add true environment lighting to the viewer runtime
-- keep the environment-light seam explicit and distinct from direct lights
-- preserve compatibility with the earlier preset model
+#### Does Not Own
 
-Does not own:
-- browseable HDRI library selection
-- later post-grade sliders
+- intensity and background-versus-lighting tune controls
+- final proof and family closeout
+- Catalog HDRI browsing
 
-Done when:
-- environment changes can affect model lighting directly instead of only changing the background
+#### Current Live Read
 
-## [ ] Phase 7 - Add HDRI Intensity And Background-Versus-Lighting Separation
+- the Browser can now own one active HDRI entry
+- direct lights still carry the real scene-lighting load today
+- background treatment and light contribution need an explicit runtime seam before later tune controls
 
-Purpose:
-- make the new environment-light runtime practically controllable
+#### First Pass Decisions
 
-Owns:
+- keep the active HDRI represented as one environment-owned Browser entry
+- add true environment-light contribution without silently replacing direct-light ownership
+- keep background treatment and light contribution conceptually separate even if the first cut keeps them visually coupled
+- stop before later tune controls and final proof
+
+### Phase 8 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the landed Browser `Environment` section, selected-object seam, and viewer background apply seam
+2. Keep active HDRI ownership inside the `Environment` content surface
+3. Add one explicit environment-light runtime seam
+4. Keep background treatment and light contribution as explicit separate concepts
+
+#### Likely Files
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- Browser-facing environment surfaces where the active HDRI row lives
+- `src/viewer/Viewer.ts`
+- focused proof:
+  - `src/viewer/Viewer.test.ts`
+
+#### No-Widening Rule
+
+- do not widen into intensity or background-separation controls yet
+- do not widen into grading, persistence, or Catalog browseable HDRI ownership
+- do not reopen baseline-scene retuning
+
+#### Implementation Risks
+
+- treating the chosen HDRI as Catalog-owned active state instead of Environment-owned active state
+- keeping environment-light contribution too implicit and recreating split-truth
+- making background and lighting contribution too tangled to tune later
+
+#### Checklist
+
+- [x] keep the active HDRI owned under the Browser `Environment` section
+- [x] add one explicit environment-light runtime seam
+- [x] keep background treatment and light contribution conceptually separate
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- the active HDRI has one honest Environment-owned content entry
+- environment changes can affect model lighting directly instead of only changing background appearance
+- the environment-light runtime seam is explicit enough to tune later
+
+#### Implementation Result
+
+- the Browser source child under `Content > Environment` now uses one active environment-source row identity for preset, custom, or HDRI sources instead of deriving HDRI row identity from the selected preset id
+- HDRI sources still flow through environment-owned `ViewSettings.environmentSource`, so Catalog apply remains an upstream handoff and does not own the active runtime state
+- `Viewer.applyEnvironmentSource(...)` now resolves background treatment and environment-light contribution separately before applying the shared HDRI texture
+- the HDRI texture is applied to `scene.environment` for model-light contribution while `scene.background` remains a separate treatment path that can stay hidden or show the HDRI background
+- direct lights continue to apply from `ViewSettings.lighting.lights`; this phase does not replace the key, fill, rim, or selected-light ownership model
+
+#### Verification Result
+
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserTreeSections.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+#### Done Shape
+
+`Phase 8` is done when:
+- the chosen HDRI is represented as one first-class environment entry
+- the viewer has true environment-light contribution instead of only preset-driven background switching
+
+## [x] `Environment-1` - `Phase 9 - Add Environment Intensity And Background-Versus-Lighting Separation`
+
+### Phase 9 Summary
+
+#### Purpose
+
+Make the new environment-light runtime practically tunable.
+
+#### Owns
+
 - environment intensity
-- background-versus-light contribution separation
-- first honest apply or tune controls once an environment is already chosen
+- background-versus-lighting separation
+- the first honest visible tune controls for the chosen environment
 
-This phase should:
+#### Does Not Own
+
+- Catalog HDRI browsing
+- final closeout or grading work
+
+#### Current Live Read
+
+- once `Phase 8` lands, the environment-light runtime will still need practical tune controls
+- the family still needs one honest split between background appearance and lighting contribution
+
+#### First Pass Decisions
+
 - expose intensity for environment-light contribution
-- let the user control whether the background appearance and the lighting contribution move together or stay distinct where appropriate
-- keep the visible controls grounded in the environment surface rather than in debug-only runtime toggles
+- allow background appearance and lighting contribution to move together or separately where appropriate
+- keep those controls attached to the active chosen environment state instead of the untouched startup baseline
 
-Does not own:
-- HDRI browsing catalog
-- orientation controls if they are not yet needed
+### Phase 9 Implementation Spec
 
-Done when:
-- the environment-light runtime is visibly tunable and not locked to one hardcoded look
+#### Exact First Code Cut
 
-## [ ] Phase 8 - Add Basic HDRI Orientation And Final Proof
+1. Re-read the landed runtime seam from `Phase 8`
+2. Add environment intensity and background-versus-lighting separation
+3. Keep the visible controls grounded in the environment surface
 
-Purpose:
-- finish the first environment-runtime lane with the minimum remaining practical controls and focused proof
+#### Likely Files
 
-Owns:
-- optional HDRI or environment rotation or orientation control
-- focused cleanup
-- end-to-end proof that the combined environment lane is honest
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/viewer/Viewer.ts`
 
-This phase should:
-- add basic environment orientation control if the runtime needs it to make presets useful
-- tighten proof around:
-  - default lighting baseline
-  - preset truth
-  - visible tuning controls
-  - Browser-facing light surface
-  - true environment-light runtime
-- stop before post-look grading or persistence widening
+#### No-Widening Rule
 
-Does not own:
-- Photoshop-like sliders
+- do not widen into grading sliders
+- do not widen into browsing or asset-library work
+- do not silently rewrite the startup baseline
+
+#### Implementation Risks
+
+- adding tune controls that are too tied to one hardcoded environment look
+- making the new controls debug-only instead of user-facing environment controls
+
+#### Checklist
+
+- [x] add environment intensity
+- [x] add background-versus-lighting separation
+- [x] keep the controls attached to the active chosen environment state
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- [x] the environment-light runtime is visibly tunable
+- [x] background and lighting contribution can be separated honestly
+
+#### Implementation Result
+
+- `EnvironmentSourceSettings` now carries active HDRI `intensity` for lighting and `backgroundIntensity` for background treatment separately, while preset and custom sources keep neutral values and do not alter the locked startup baseline.
+- `uiPrefsStore` now normalizes active HDRI tune values and exposes dedicated mutations for HDRI lighting intensity, background visibility, and background intensity.
+- The View toolbar `Environment` section now includes an `Active Environment` read with HDRI-only `Lighting Intensity`, `Background`, and `Background Intensity` controls grounded in the active environment source state.
+- `Viewer.applyEnvironmentSource(...)` now feeds `scene.environmentIntensity` from the lighting runtime and `scene.backgroundIntensity` from the background runtime, so HDRI lighting contribution and HDRI background appearance can diverge honestly.
+
+#### Verification Result
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/components/ViewToolbar.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+#### Done Shape
+
+`Phase 9` is done when:
+- `Environment-1-HLG-7` advances from idea to real visible tune behavior
+
+## [x] `Environment-1` - `Phase 10 - Add Basic Orientation And Final Environment-Object Cleanup`
+
+### Phase 10 Summary
+
+#### Purpose
+
+Finish the minimum remaining practical controls and cleanup around the new environment-object workflow before final proof.
+
+#### Owns
+
+- optional orientation control if it is still needed
+- final cleanup around selection, visibility, and toolbar-routing seams
+- last-mile environment-object polish required for honesty
+
+#### Does Not Own
+
+- grading sliders
 - persistence or compare workflow polish
+- final family closeout
 
-Done when:
-- the whole old `Environment-1` through `Environment-3` target is achieved through one finished first lane
+#### Current Live Read
 
-## Summary
+- after `Phase 9`, the environment-object workflow should be mostly real but may still need one narrow cleanup pass
+- this phase should finish the minimum practical control surface only
 
-Recommended implementation order:
-- `Phase 1` lock the first environment contract
-- `Phase 2` fix the dark default viewport
-- `Phase 2b` clean up the shipped default light rig
-- `Phase 3` establish real preset truth
-- `Phase 4` add the practical tuning surface
-- `Phase 5` add Browser-facing light entries if still needed
-- `Phase 6` add true environment-light runtime
-- `Phase 7` make that runtime tunable
-- `Phase 8` close with orientation and proof
+#### First Pass Decisions
 
-Guardrail:
-- keep this entire lane focused on default lighting, presets, Browser light controls, and true HDRI or environment runtime
-- do not widen this phase into Photoshop-like grading or long-term persistence polish
+- add orientation only if it still materially helps the runtime
+- tighten the selection, visibility, and toolbar-routing seams only where they remain inconsistent
+- stop before final proof and closeout
+
+### Phase 10 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the landed post-`Phase 9` family state
+2. Add orientation only if it is still needed
+3. Close the remaining environment-object cleanup around selection, visibility, and toolbar routing
+
+#### Likely Files
+
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- Browser-facing environment surfaces
+- `src/app/components/ViewToolbar.tsx`
+- `src/viewer/Viewer.ts`
+
+#### No-Widening Rule
+
+- do not widen into grading or persistence work
+- do not reopen baseline-scene retuning
+- do not keep the family open just to collect unrelated polish
+
+#### Implementation Risks
+
+- adding orientation even if it is not needed just because the original wishlist mentioned it
+- using cleanup as an excuse to reopen earlier family boundaries
+- letting one small mismatch between Browser, viewport, and toolbar survive into final proof
+
+#### Checklist
+
+- [x] add orientation only if still needed
+- [x] close remaining environment-object cleanup around selection, visibility, and toolbar routing
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- orientation exists only if it materially helps
+- Browser, viewport, and toolbar still resolve through one honest environment-object contract
+- the active HDRI and light objects still keep one clear owner
+
+#### Implementation Result
+
+- `EnvironmentSourceSettings` now carries HDRI-only `rotationDeg` state with neutral defaults for preset and custom sources, so orientation remains attached to the active environment source instead of becoming viewer-local state.
+- `uiPrefsStore` now normalizes and preserves HDRI orientation through active HDRI apply and exposes one environment-owned orientation mutation for the View toolbar.
+- The View toolbar `Active Environment` controls now include an HDRI-only `Orientation` slider alongside lighting intensity, background visibility, and background intensity.
+- `Viewer.applyEnvironmentSource(...)` now applies active HDRI orientation to both `scene.environmentRotation` and `scene.backgroundRotation`, keeping environment lighting and background treatment aligned.
+- The Browser active HDRI source row now exposes the normal visibility eye as a downstream background-visibility control, while environment light rows still route their eye through `LightSpec.enabled`.
+
+#### Verification Result
+
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/components/ViewToolbar.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserTreeRowPresenter.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+#### Done Shape
+
+`Phase 10` is done when:
+- the environment-object workflow is clean enough that final proof no longer depends on known seam mismatches
+
+## [x] `Environment-1` - `Phase 11 - Add Focused End-To-End Proof And Family Closeout`
+
+### Phase 11 Summary
+
+#### Purpose
+
+Close the first environment family with focused proof that the combined baseline, preset, Browser, viewport, toolbar, and runtime story is honest.
+
+#### Owns
+
+- focused end-to-end proof for the combined family
+- final docs cleanup and closeout
+- the final honest `Environment-1` completion read before `Environment-2`
+
+#### Does Not Own
+
+- new feature widening
+- grading or persistence work
+
+#### Current Live Read
+
+- after `Phase 10`, the family should be close enough to close with one focused final pass
+- this phase should prove the behavior and close the family without reopening earlier design work
+
+#### First Pass Decisions
+
+- tighten proof around the preserved baseline, preset truth, visible tuning, Browser environment objects, selection-driven toolbar editing, and real environment runtime
+- close the family docs honestly
+- stop before `Environment-2` work
+
+### Phase 11 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Re-read the landed post-`Phase 10` family state
+2. Add focused end-to-end proof across the full environment-object workflow
+3. Close the family docs honestly
+
+#### Likely Files
+
+- focused proof:
+  - `src/viewer/Viewer.test.ts`
+  - `src/app/components/ViewToolbar.test.tsx`
+  - Browser-facing tests where environment rows and eye visibility are covered
+- docs closeout surfaces:
+  - `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+  - `docs/CHANGELOG.md`
+  - `docs/Doc-Log.md`
+
+#### No-Widening Rule
+
+- do not widen into grading or persistence work
+- do not reopen baseline-scene retuning
+- do not keep the family open just to collect unrelated polish
+
+#### Implementation Risks
+
+- using final proof as an excuse to reopen earlier family boundaries
+- closing the family without proving Browser, viewport, and toolbar alignment on the same selected environment object
+
+#### Checklist
+
+- [x] add focused end-to-end proof across presets, environment objects, toolbar selection, and HDRI runtime
+- [x] close the family docs honestly
+
+#### Implementation Result
+
+- Added a focused closeout proof test in `src/app/components/ViewToolbar.test.tsx` that covers the Environment-1 baseline preset state, preset divergence and reapply path, and active HDRI tuning controls in one narrow pass.
+- Kept the existing Browser and viewer proof surfaces intact so the overall Environment-1 lane still reads honestly across the Browser row contract, selection-driven toolbar editing, and HDRI runtime seams.
+- Closed the family docs without widening into grading, persistence, or any `Environment-2` behavior.
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+- preserved startup baseline
+- preset truth and visible preset contract
+- visible tuning controls
+- Browser `Environment` section plus active lights and HDRI entry
+- viewport wireframe light objects
+- selection-driven toolbar population and Browser-eye light visibility
+- true environment-light runtime
+- intensity and background-versus-lighting separation
+
+#### Verification Result
+
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx src/app/panels/browserTreeSections.test.tsx src/app/panels/browserTreeRowPresenter.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+#### Done Shape
+
+`Phase 11` is done when:
+- the whole first environment lane is honest enough to close before `Environment-2`
+- the family closeout docs can mark `Environment-1` complete without pretending later grading work already shipped
+- `Environment-1` is now closed out, and the remaining environment work lives in `Environment-2`

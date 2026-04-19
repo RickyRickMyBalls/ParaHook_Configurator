@@ -70,6 +70,12 @@ export const frameReferenceCommand = (
   getViewer(viewportId)?.frameReference(referenceId, options)
 }
 
+export const frameEnvironmentLightCommand = (
+  lightId: string,
+  viewportId?: WorkspaceViewportId,
+  options?: FrameTargetOptions,
+): boolean => getViewer(viewportId)?.frameEnvironmentLight(lightId, options) ?? false
+
 export const setConsoleCameraModeCommand = (
   mode: 'pan' | 'orbit' | 'zoom-window' | null,
 ): void => {

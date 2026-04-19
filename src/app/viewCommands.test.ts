@@ -3,6 +3,7 @@ import { useUiPrefsStore } from './store/uiPrefsStore'
 import { setViewer } from './viewerBridge'
 import {
   frameAllCommand,
+  frameEnvironmentLightCommand,
   frameExtentsCommand,
   framePreviousCommand,
   frameReferenceCommand,
@@ -33,6 +34,7 @@ describe('viewCommands', () => {
     const frameSelected = vi.fn()
     const frameSelectedGeometrySketch = vi.fn(() => true)
     const frameReference = vi.fn()
+    const frameEnvironmentLight = vi.fn(() => true)
     const setConsoleCameraMode = vi.fn()
 
     setViewer('model-viewer-primary', {
@@ -43,6 +45,7 @@ describe('viewCommands', () => {
       frameSelected,
       frameSelectedGeometrySketch,
       frameReference,
+      frameEnvironmentLight,
       setConsoleCameraMode,
     } as any)
 
@@ -63,6 +66,12 @@ describe('viewCommands', () => {
       animate: true,
       durationMs: 320,
     })
+    expect(
+      frameEnvironmentLightCommand('light-key', 'model-viewer-primary', {
+        animate: true,
+        durationMs: 320,
+      }),
+    ).toBe(true)
     setConsoleCameraModeCommand('orbit')
 
     expect(setCameraPreset).toHaveBeenCalledWith('top')
@@ -82,6 +91,14 @@ describe('viewCommands', () => {
       animate: true,
       durationMs: 320,
     })
+    expect(frameEnvironmentLight).toHaveBeenCalledWith('light-key', {
+      animate: true,
+      durationMs: 320,
+    })
     expect(setConsoleCameraMode).toHaveBeenCalledWith('orbit')
+  })
+
+  it('reports environment-light framing failure when there is no active viewer', () => {
+    expect(frameEnvironmentLightCommand('missing-light', 'missing-viewport')).toBe(false)
   })
 })

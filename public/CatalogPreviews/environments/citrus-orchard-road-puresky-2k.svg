@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Citrus Orchard Road Puresky 2K environment thumbnail">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#8ec7ff"/>
+      <stop offset="0.55" stop-color="#dcefff"/>
+      <stop offset="1" stop-color="#d5c78b"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="180" fill="url(#sky)"/>
+  <circle cx="250" cy="42" r="22" fill="#fff7c2"/>
+  <path d="M0 132 C48 114 86 128 132 112 C182 94 236 106 320 84 L320 180 L0 180 Z" fill="#5f8d54"/>
+  <path d="M0 152 C62 136 110 148 164 132 C222 116 264 124 320 108 L320 180 L0 180 Z" fill="#314f35"/>
+</svg>

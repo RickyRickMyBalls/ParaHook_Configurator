@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+2. 2026-04-18 12:48:20: Added a docs-specific execution rule so implementation passes that touch docs cleanup consult `docs/Doc-Vision.md` to avoid drift between cleanup behavior and the Gen 4 docs contract.
 1. 2026-04-12 10:09:21: Added the repo-wide implementation behavior guide covering file ownership, hook/effect boundaries, JSX extraction, migration retirement, behavior-first testing, and cleanup scope discipline
 
 ## Purpose
@@ -25,6 +26,10 @@ files that are outside the requested change.
 
 Prefer small honest ownership boundaries, behavior-focused tests, and deletion
 of residue over speculative abstraction.
+
+When docs cleanup tasks are the active work stream, use `docs/Doc-Vision.md`
+as the source-of-truth contract for what Gen 4 cleanup should and should not
+change, especially around where to implement versus where to document.
 
 When scope is unclear, do less and make it correct rather than more and make it
 approximate.

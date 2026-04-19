@@ -8,6 +8,8 @@ import type { CatalogItemRecord } from './catalogItemContract'
 
 export type CatalogReferenceCommitRequest = {
   downstreamOwner: 'browser-project'
+  catalogItemId: string
+  catalogFamilyKey: string
   fileName: string
   fileType: ReferenceFileType
   objectUrl: string
@@ -52,6 +54,8 @@ export function resolveCatalogReferenceCommitRequest(
 
   return {
     downstreamOwner: 'browser-project',
+    catalogItemId: item.itemId,
+    catalogFamilyKey: item.familyKey,
     fileName: item.label,
     fileType,
     objectUrl: resolveReferenceAssetPath(item.source.assetPath),

@@ -9,6 +9,10 @@ export type WorkspaceSelectionPick =
       kind: 'reference-item'
       referenceId: string
     }
+  | {
+      kind: 'environment-light'
+      lightId: string
+    }
 
 export type WorkspaceSelectionPickEvent = {
   picks: WorkspaceSelectionPick[]

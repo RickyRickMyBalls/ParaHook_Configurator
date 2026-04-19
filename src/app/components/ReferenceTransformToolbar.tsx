@@ -27,6 +27,7 @@ import {
   type ReferenceTransformSnapMode,
   useAppStore,
 } from '../store/useAppStore'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { getViewer } from '../viewerBridge'
 import { SpaghettiContextMenu } from '../spaghetti/ui/SpaghettiContextMenu'
 import {
@@ -40,6 +41,7 @@ import {
   type ReferenceTimelineMode,
   type ReferenceTimelineRange,
 } from '../references/referenceTimeline'
+import { REFERENCE_MANIFEST_ITEMS_BY_ID } from '../references/referenceManifest'
 import { appendConsoleEntry, useConsoleStore } from '../console/useConsoleStore'
 import {
   buildReferenceTransformStatusPath,
@@ -302,6 +304,7 @@ const groupReferenceTransformHistoryEntries = (
 export function ReferenceTransformToolbar() {
   const referenceWorkspace = useAppStore((state) => state.referenceWorkspace)
   const projectContent = useAppStore((state) => state.projectContent)
+  const environmentLights = useUiPrefsStore((state) => state.view.lighting.lights)
   const beginActiveViewerTransformEntry = useAppStore((state) => state.beginActiveViewerTransformEntry)
   const exitActiveViewerTransformShell = useAppStore((state) => state.exitActiveViewerTransformShell)
   const requestReferenceTransformShellExit = useAppStore(
@@ -392,6 +395,10 @@ export function ReferenceTransformToolbar() {
     [referenceItems, referenceWorkspace.activeReferenceTransformSession],
   )
   const activeObjectSession = referenceWorkspace.activeContentObjectTransformSession
+  const hasActiveTransformShell =
+    referenceWorkspace.activeReferenceTransformSession !== null ||
+    activeObjectSession !== null ||
+    referenceWorkspace.activeEnvironmentLightTransformSession !== null
   const activeObject = useMemo(
     () =>
       activeObjectSession === null
@@ -454,7 +461,7 @@ export function ReferenceTransformToolbar() {
     useState<ActiveKeyboardChannelSelection>(null)
 
   useEffect(() => {
-    if (activeReference === null && activeObject === null) {
+    if (!hasActiveTransformShell) {
       return
     }
     if (position !== null) {
@@ -468,17 +475,13 @@ export function ReferenceTransformToolbar() {
       ),
       y: 22,
     })
-  }, [activeObject, activeReference, position])
+  }, [hasActiveTransformShell, position])
 
   useEffect(() => {
     return () => {
       getViewer()?.setReferenceCameraLock(null)
     }
   }, [])
-
-  useEffect(() => {
-    setChannelContextMenu(null)
-  }, [activeObjectSession?.objectId, activeReference?.referenceId])
 
   const activeTarget = selectActiveViewerTransformTarget(referenceWorkspace)
   const activeTargetKind = activeTarget?.kind ?? 'reference'
@@ -489,8 +492,35 @@ export function ReferenceTransformToolbar() {
 
   const activeReferenceId = activeTarget?.kind === 'reference' ? activeTarget.referenceId : null
   const activeObjectId = activeTarget?.kind === 'content-object' ? activeTarget.objectId : null
-  const activeLabel = activeReference?.label ?? activeObject?.label ?? 'Object'
-  const activeTargetKindLabel = activeTargetKind === 'content-object' ? 'Object' : 'Reference'
+  const activeEnvironmentLightId =
+    activeTarget?.kind === 'environment-light' ? activeTarget.lightId : null
+  const activeEnvironmentLight =
+    activeEnvironmentLightId === null
+      ? null
+      : environmentLights.find((light) => light.id === activeEnvironmentLightId) ?? null
+  const activeReferenceFallbackLabel =
+    activeReferenceId === null
+      ? null
+      : referenceWorkspace.importedReferencesById[activeReferenceId]?.label ??
+        REFERENCE_MANIFEST_ITEMS_BY_ID[activeReferenceId]?.label ??
+        null
+  const activeLabel =
+    activeEnvironmentLight?.name ??
+    activeReference?.label ??
+    activeReferenceFallbackLabel ??
+    activeObject?.label ??
+    'Object'
+  const activeTargetKindLabel =
+    activeTargetKind === 'environment-light'
+      ? 'Environment Light'
+      : activeTargetKind === 'content-object'
+        ? 'Object'
+        : 'Reference'
+
+  useEffect(() => {
+    setChannelContextMenu(null)
+  }, [activeObjectSession?.objectId, activeEnvironmentLightId, activeReference?.referenceId])
+
   const activeTransformOverride =
     activeSession?.draftTransform ?? buildDefaultTransformOverride()
   const transformHistory = selectActiveViewerTransformHistoryEntries(referenceWorkspace)
@@ -526,6 +556,17 @@ export function ReferenceTransformToolbar() {
   const transformSnapState = selectActiveViewerTransformSnapState(referenceWorkspace)
   const activeTargetDescriptor = useMemo(
     () => {
+      if (activeEnvironmentLight !== null) {
+        return {
+          kind: activeTargetKind,
+          label: activeEnvironmentLight.name,
+          kindLabel: 'Environment Light',
+          parentContext: 'Environment',
+          supportsSnap: false,
+          supportsTimeline: false,
+          supportsCameraLock: false,
+        }
+      }
       if (activeContentOwnerTarget !== null) {
         return {
           kind: activeTargetKind,
@@ -557,6 +598,7 @@ export function ReferenceTransformToolbar() {
     },
     [
       activeContentOwnerTarget,
+      activeEnvironmentLight,
       activeLabel,
       activeReferenceId,
       activeTargetKind,
@@ -675,13 +717,20 @@ export function ReferenceTransformToolbar() {
       }),
     [activeLabel, activeSession, activeTargetKindLabel, evaluatedTransformOverride],
   )
+  const visibleTransformSections = useMemo(
+    () =>
+      activeEnvironmentLightId === null
+        ? TRANSFORM_SECTIONS
+        : TRANSFORM_SECTIONS.filter((section) => section.key === 'translate'),
+    [activeEnvironmentLightId],
+  )
 
   useEffect(() => {
-    if (activeReferenceId === null && activeObjectId === null) {
+    if (activeReferenceId === null && activeObjectId === null && activeEnvironmentLightId === null) {
       setPendingShortcutActivation(null)
       setActiveKeyboardChannelSelection(null)
     }
-  }, [activeObjectId, activeReferenceId])
+  }, [activeEnvironmentLightId, activeObjectId, activeReferenceId])
 
   useEffect(() => {
     const sessionIds = groupedTransformHistory.map((session) => session.sessionId)
@@ -742,6 +791,9 @@ export function ReferenceTransformToolbar() {
   }, [activeMode, pendingShortcutActivation])
 
   const activateModeShortcut = (mode: TransformSectionKey) => {
+    if (activeEnvironmentLightId !== null && mode !== 'translate') {
+      return
+    }
     appendConsoleEntry({
       layer: 'Shortcuts',
       text: transformModeLabel(mode),
@@ -761,6 +813,9 @@ export function ReferenceTransformToolbar() {
   }
 
   const activateAxisShortcut = (section: TransformSectionKey, axis: Axis) => {
+    if (activeEnvironmentLightId !== null && section !== 'translate') {
+      return
+    }
     setSelectedSection(section)
     setActiveKeyboardChannelSelection({ section, axis })
     appendConsoleEntry({
@@ -788,7 +843,8 @@ export function ReferenceTransformToolbar() {
       const key = event.key.toLowerCase()
       const routing = routeKeyboardInput({
         event,
-        referenceTransformActive: activeReferenceId !== null || activeObjectId !== null,
+        referenceTransformActive:
+          activeReferenceId !== null || activeObjectId !== null || activeEnvironmentLightId !== null,
       })
       if (routing.owner !== 'reference-transform' || routing.decision !== 'handle') {
         return
@@ -800,7 +856,7 @@ export function ReferenceTransformToolbar() {
       }
       if (event.key === 'Escape') {
         event.preventDefault()
-        if (activeReferenceId !== null || activeObjectId !== null) {
+        if (activeReferenceId !== null || activeObjectId !== null || activeEnvironmentLightId !== null) {
           getViewer()?.cancelReferenceTransformDrag()
           getViewer()?.clearReferenceTransformHandle()
           if (entryActive) {
@@ -822,6 +878,9 @@ export function ReferenceTransformToolbar() {
         return
       }
       if (key === 'r') {
+        if (activeEnvironmentLightId !== null) {
+          return
+        }
         event.preventDefault()
         activateModeShortcut('rotate')
         return
@@ -832,6 +891,9 @@ export function ReferenceTransformToolbar() {
         return
       }
       if (key === 's') {
+        if (activeEnvironmentLightId !== null) {
+          return
+        }
         event.preventDefault()
         activateModeShortcut('scale')
         return
@@ -849,6 +911,7 @@ export function ReferenceTransformToolbar() {
   }, [
     activeMode,
     activeObjectId,
+    activeEnvironmentLightId,
     activeReferenceId,
     beginActiveViewerTransformEntry,
     cancelActiveViewerTransformEntry,
@@ -861,7 +924,10 @@ export function ReferenceTransformToolbar() {
     axis: Axis,
     value: number,
   ) => {
-    if (activeReferenceId === null && activeObjectId === null) {
+    if (activeReferenceId === null && activeObjectId === null && activeEnvironmentLightId === null) {
+      return
+    }
+    if (activeEnvironmentLightId !== null && group !== 'position') {
       return
     }
     const nextOverride = {
@@ -1034,6 +1100,10 @@ export function ReferenceTransformToolbar() {
   const handleFrameReference = () => {
     if (activeReferenceId !== null) {
       getViewer()?.frameReference(activeReferenceId)
+      return
+    }
+    if (activeEnvironmentLightId !== null) {
+      getViewer()?.frameEnvironmentLight(activeEnvironmentLightId)
       return
     }
     getViewer()?.frameSelected(useAppStore.getState().selectedPartKey)
@@ -1567,7 +1637,7 @@ export function ReferenceTransformToolbar() {
             onPointerDown={stopTitleActionPointerDown}
             onMouseDown={stopTitleActionMouseDown}
             onClick={() => {
-              if (activeTargetKind === 'content-object') {
+              if (activeTargetKind === 'content-object' || activeTargetKind === 'environment-light') {
                 getViewer()?.cancelReferenceTransformDrag()
                 getViewer()?.clearReferenceTransformHandle()
                 exitActiveViewerTransformShell()
@@ -2056,7 +2126,7 @@ export function ReferenceTransformToolbar() {
           </div>
         ) : null}
         <div className="ReferenceTransformToolbarSection" aria-label="Viewer transform values">
-          {TRANSFORM_SECTIONS.map((section) => (
+          {visibleTransformSections.map((section) => (
             <div
               className={`ReferenceTransformToolbarTransformSection ${selectedSection === section.key ? 'isActive' : ''} ${
                 expandedSections[section.key] ? 'isExpanded' : 'isCollapsed'

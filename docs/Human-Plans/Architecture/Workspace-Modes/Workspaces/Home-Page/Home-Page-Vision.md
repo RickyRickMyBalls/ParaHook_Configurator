@@ -3,6 +3,12 @@
 ## Doc Header
 
 ### Doc History
+12. 2026-04-19 13:24:23: Updated this vision after `Home-Page-Index.md` was renamed to `Home-Page-Gen1-Index.md`, making the relationship and Generation 1 routing language point at the active Generation Index Doc instead of the older bridge-index migration target.
+11. 2026-04-19 12:47:31: Applied the `Vision Rails` generation-section format to `Generation 1`, replacing the older summary/phase-creation heading stack with `### Generation 1 Summary` and `### Generation 1 Vision Rails` so the Vision Doc now guides `Home-Page-Gen1-Index.md` setup without reading like an implementation spec.
+10. 2026-04-19 12:37:18: Reformatted the Home Page vision against the updated planning guide rails by adding a top-level `## Vision` section, converting the human-level wishlist into generation-scoped HLG identifiers, nesting supporting vision detail under the Vision area, adding a foldable `Generation 1` routing section, and clarifying that `Home-Page-Gen1-Index.md` is the target Generation 1 routing surface while `Home-Page-Index.md` remains the older bridge.
+9. 2026-04-19 11:19:11: Expanded the `Home Page` persistence HLG to include workspace restore, view settings, Dashboard, Notepad, recent-items, and browser storage/quota visibility toggles while leaving Catalog preview/session persistence and Console history/transcript persistence out of the Home Page wishlist for now.
+8. 2026-04-19 10:49:53: Added the environment reload-memory example to the `Home Page` HLG and storage-transparency direction, clarifying that `Home Page` should expose an `Environment` persistence toggle so Catalog-applied HDRI or environment state can either be remembered or forgotten on page reload without making `Home Page` the environment owner
+7. 2026-04-19 10:36:04: Updated this vision after the `Home-Page-Index.md` planning surface was created, pointing implementation-phase routing at the new index and removing the stale wording that treated the family index as only a future placeholder
 6. 2026-04-17 20:38:47: Expanded the `Home Page` vision so the human-level goals and owned-content read now explicitly allow one lightweight repo/docs/version orientation area, including a small GitHub link, docs link, and brief version and what's-new summary without turning `Home Page` into the full release-notes owner
 5. 2026-04-17 20:35:24: Expanded the `Home Page` storage-transparency vision so the human-level wishlist and the storage section now explicitly say ParaHook should show and expose any app-owned persisted data it stores on the user's machine or browser profile, keeping the future `Home Page` honest about owned persistence instead of only reporting one bucket
 4. 2026-04-17 20:30:24: Expanded the `Home Page` human-level wishlist to include one explicit goal for saving graph contents in browser storage behind a user-controlled on/off setting, keeping that desire visible at the vision layer without yet locking the exact persistence implementation
@@ -25,7 +31,8 @@ Do not use it for:
 - one specific implementation checklist
 - pretending `Home Page` owns project truth, Browser truth, or graph truth
 - inventing a separate routing or page-mode framework outside the workspace system
-- replacing the later implementation-planning role of a future `Home-Page` family index
+- replacing the planning role of `Home-Page-GenN-Index.md` Generation Index Docs
+- replacing the implementation-planning role of `Future/Home-Page-N - Family Phase Name.md` Family Phase Docs
 
 ### Relationship To Other Docs
 
@@ -40,6 +47,10 @@ Do not use it for:
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md`
   - umbrella workspace family
   - useful for how `Home Page` should fit alongside `Model Viewport`, `Browser`, `Catalog`, `Console`, and later other workspace surfaces
+
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+  - active Generation 1 index
+  - useful for routing the active Home Page HLG and CLG into `Home-Page-1`, `Home-Page-2`, and later Generation 1 family phases
 
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Browser/Browser-Index.md`
   - Browser and project-content ownership family
@@ -73,19 +84,38 @@ Without a vision doc, `Home Page` risks drifting into one of two weak shapes:
 
 This doc exists to keep `Home Page` on the narrow honest path between those failures.
 
+## Vision
+
 ### Human Level Goals
 
 Keep these as the explicit human-level wishlist items for `Home Page`:
 
-- `Home Page` should be the first surface the user loads into.
-- There should be a toggle so the user can switch off `Home Page` first and load directly into `Model Viewport`.
-- `Home Page` should keep track of browser storage so the user can tell if there is a leak.
-- `Home Page` should help the user understand whether the app is storing data and bloating browser-side storage.
-- The user should be able to save what they have in their graphs in browser storage and turn that setting on or off.
-- `Home Page` should show and expose any app-owned data ParaHook stores on the user's computer or in browser storage.
-- `Home Page` should include a small GitHub link, docs link, and a brief version and what's-new summary.
+- [ ] `Home-Page-Gen1-HLG-1. Home Page should be the first surface the user loads into.`
+- [ ] `Home-Page-Gen1-HLG-2. There should be a toggle so the user can switch off Home Page first and load directly into Model Viewport.`
+- [ ] `Home-Page-Gen1-HLG-3. Home Page should keep track of browser storage so the user can tell if there is a leak.`
+- [ ] `Home-Page-Gen1-HLG-4. Home Page should help the user understand whether the app is storing data and bloating browser-side storage.`
+- [ ] `Home-Page-Gen1-HLG-5. The user should be able to save what they have in their graphs in browser storage and turn that setting on or off.`
+- [ ] `Home-Page-Gen1-HLG-6. Home Page should show and expose any app-owned data ParaHook stores on the user's computer or in browser storage.`
+- [ ] `Home-Page-Gen1-HLG-7. Home Page should include a Workspace Restore persistence toggle so browser reload can either remember or forget the last saved workspace layout.`
+- [ ] `Home-Page-Gen1-HLG-8. Home Page should include a View Settings persistence toggle so browser reload can either remember or forget view presentation preferences.`
+- [ ] `Home-Page-Gen1-HLG-9. Home Page should include an Environment persistence toggle so browser reload can either remember or forget applied environment state such as a Catalog-loaded HDRI.`
+- [ ] `Home-Page-Gen1-HLG-10. Home Page should include a Dashboard persistence toggle so dashboard lanes and widget placement can either survive reload or start fresh.`
+- [ ] `Home-Page-Gen1-HLG-11. Home Page should include a Notepad persistence toggle so notes can either survive reload or be cleared from browser persistence.`
+- [ ] `Home-Page-Gen1-HLG-12. Home Page should include a Recent Items persistence toggle when a recent-items owner exists, so recent/resume state can be remembered or forgotten intentionally.`
+- [ ] `Home-Page-Gen1-HLG-13. Home Page should expose browser storage and quota usage when the browser provides that estimate.`
+- [ ] `Home-Page-Gen1-HLG-14. Home Page should include a small GitHub link, docs link, and a brief version and what's-new summary.`
 
-### Short Version
+### Home Page Generations
+
+The Home Page vision currently has one active generation.
+
+Generation index routing:
+- `Generation 1` routes into `Home-Page-Gen1-Index.md`.
+- later generations should get generation indexes only when the Home Page vision grows beyond the current startup, zero-viewer, persistence, and orientation scope.
+
+### Supporting Vision Detail
+
+#### Short Version
 
 `Home Page` should be a real workspace surface inside the shared workspace model.
 
@@ -106,7 +136,7 @@ Important rule:
 - it should not become the hidden long-term owner of project data, graph data, or viewer behavior
 - the startup toggle changes launch behavior only; it does not disable the `Home Page` surface itself
 
-### Home Page As A Real Workspace Surface
+#### Home Page As A Real Workspace Surface
 
 `Home Page` should be treated as a first-class workspace surface.
 
@@ -125,7 +155,7 @@ Important rule:
 - `Home Page` must prove that zero-model-viewport workspace state is valid
 - it must not merely disguise the old protected-primary-viewer rule behind a decorative screen
 
-### What Home Page Should Own
+#### What Home Page Should Own
 
 `Home Page` should own:
 - start and resume actions such as opening the workspace, creating a new graph, opening a recent direction, or returning to the last saved layout
@@ -147,7 +177,7 @@ That distinction matters because:
 - ParaHook-owned `localStorage` growth may reflect real app persistence growth
 - browser-managed cache growth may be normal browser behavior rather than a ParaHook leak
 
-### What Home Page Must Not Own
+#### What Home Page Must Not Own
 
 `Home Page` must not own:
 - project-content hierarchy
@@ -164,7 +194,7 @@ Important rule:
 - `Home Page` may link to those owners, summarize them, or help the user re-enter them, but it should not absorb them
 - `Home Page` may include one lightweight "what's new" orientation read, but it should not become the full long-form changelog, docs owner, or release-notes system
 
-### Entry And Return Rules
+#### Entry And Return Rules
 
 The intended entry rules are:
 - fresh launch should open on `Home Page` by default
@@ -183,7 +213,7 @@ The healthy experience is:
 - the viewer is present when the user wants geometry inspection
 - `Home Page` is present when the user wants launch, resume, and workspace-health orientation
 
-### Startup Preference Direction
+#### Startup Preference Direction
 
 `Home Page` should be the default first surface on startup.
 
@@ -210,7 +240,7 @@ The clean behavior read is:
   - `Home Page` can still be opened manually
   - zero open `Model Viewport` surfaces can still return to `Home Page`
 
-### Storage Transparency Direction
+#### Storage Transparency Direction
 
 `Home Page` should expose a clear storage read because ParaHook already persists some browser state and the user should not have to guess whether that state is growing abnormally.
 
@@ -220,6 +250,25 @@ The first explicit read should likely include:
 - one total ParaHook-owned persisted-data size
 - one broader origin-storage estimate when supported by the browser
 - every ParaHook-owned persistence bucket the app currently writes, not only the newest or most visible one
+- user-facing persistence toggles for current or future ParaHook-owned buckets such as workspace restore, graph browser storage, view settings, environment reload memory, Dashboard, Notepad, and recent items
+
+One concrete example:
+- when a user applies an HDRI from `Catalog`, then refreshes the browser, ParaHook may currently remember enough environment state to restore that HDRI
+- `Home Page` should expose that as an `Environment` persistence row or toggle
+- when the toggle is on, browser reload may restore the applied environment state
+- when the toggle is off, browser reload should not remember that applied environment state
+
+Other persistence rows should follow the same honest contract:
+- `Workspace Restore` controls whether the saved layout is remembered across reloads or starts fresh
+- `View Settings` controls whether presentation preferences are remembered across reloads
+- `Dashboard` controls whether dashboard lane and placement data is remembered across reloads
+- `Notepad` controls whether notes are remembered in browser persistence
+- `Recent Items` controls whether recent/resume state is remembered once that owner exists
+- storage/quota visibility reports browser support truth without pretending unavailable estimates are known
+
+Important rule:
+- `Home Page` exposes and controls whether environment persistence is remembered across reloads
+- the actual environment state, Catalog apply action, and viewer presentation still belong to their existing owners
 
 Important rule:
 - if ParaHook stores user-owned data on the machine or in the browser profile, `Home Page` should surface that bucket and expose truthful user control over it
@@ -242,7 +291,7 @@ Important rule:
 - `Home Page` should make storage truth visible
 - it should not silently clear user data or present destructive reset as a casual one-click default
 
-### Healthy Feel
+#### Healthy Feel
 
 When `Home Page` is healthy, it should feel like:
 - a calm launchpad
@@ -256,7 +305,7 @@ It should feel less like:
 - a debugging junk drawer
 - a fake viewer screen that exists only to hide a protected primary-viewport rule
 
-### What Must Stay True
+#### What Must Stay True
 
 - `Home Page` is a real workspace surface inside the hybrid workspace model.
 - `Home Page` is the default first startup surface unless the user explicitly chooses the startup preference that opens directly into `Model Viewport`.
@@ -265,4 +314,79 @@ It should feel less like:
 - Skipping `Home Page` on startup does not disable `Home Page` as a workspace surface.
 - `Home Page` may summarize storage and workspace state, but it does not become the owner of project, graph, import, catalog, or viewer truth.
 - Storage transparency must distinguish ParaHook-owned persisted data from broader browser-managed storage.
+- Persistence toggles such as `Workspace Restore`, `View Settings`, `Environment`, `Dashboard`, `Notepad`, and `Recent Items` should control whether a remembered bucket survives reload, while the owning feature still owns the meaning of that state.
 - `Home Page` should reduce confusion and support orientation without reopening hidden singleton assumptions elsewhere in the shell.
+
+## [~] Generation 1 - Workspace Landing Surface And Persistence Transparency
+
+### Generation 1 Summary
+
+`Generation 1` is the first real `Home Page` generation.
+
+It should make `Home Page` a real workspace landing surface, prove that zero open `Model Viewport` surfaces is valid, expose startup and return behavior clearly, and give the user honest visibility into ParaHook-owned browser persistence.
+
+It should also keep the small GitHub, docs, version, and what's-new orientation read lightweight so `Home Page` does not become the docs or release-notes owner.
+
+The final `Generation 1` vision is that `Home Page` feels like the calm front door to ParaHook.
+
+On launch, the user can land on `Home Page`, understand where to go next, start or resume work, inspect storage health, and choose whether startup and reload persistence should remember specific app-owned state.
+
+If the user chooses to skip `Home Page` on startup, the surface still remains part of the workspace model and can still become the honest return target when no `Model Viewport` remains open.
+
+### Generation 1 Vision Rails
+
+#### Index Setup Target
+
+Use `Home-Page-Gen1-Index.md` as the active Generation 1 routing surface for current `Home-Page-1`, `Home-Page-2`, and `Home-Page-3` family-phase routing.
+
+#### HLG To Preserve
+
+- `Home-Page-Gen1-HLG-1`
+- `Home-Page-Gen1-HLG-2`
+- `Home-Page-Gen1-HLG-3`
+- `Home-Page-Gen1-HLG-4`
+- `Home-Page-Gen1-HLG-5`
+- `Home-Page-Gen1-HLG-6`
+- `Home-Page-Gen1-HLG-7`
+- `Home-Page-Gen1-HLG-8`
+- `Home-Page-Gen1-HLG-9`
+- `Home-Page-Gen1-HLG-10`
+- `Home-Page-Gen1-HLG-11`
+- `Home-Page-Gen1-HLG-12`
+- `Home-Page-Gen1-HLG-13`
+- `Home-Page-Gen1-HLG-14`
+
+#### Family Phase Routing Direction
+
+Create or preserve `Generation 1` family phases when work is about:
+- the Home Page workspace surface
+- zero-viewer landing behavior
+- startup preference
+- launch and resume entry points
+- storage transparency
+- persistence toggles
+- lightweight orientation
+
+#### Ownership Boundaries
+
+`Generation 1` owns:
+- real workspace-surface registration for `Home Page`
+- default startup landing behavior
+- startup preference to open directly into `Model Viewport`
+- zero-viewer return behavior
+- launch/resume actions into real workspace owners
+- ParaHook-owned browser persistence visibility
+- user-facing persistence toggles for current or future owned buckets
+- small GitHub, docs, version, and what's-new orientation
+
+#### Do Not Route Here
+
+`Generation 1` does not own:
+- project-content truth
+- graph-document truth
+- Browser row semantics
+- Catalog preview or item ownership
+- Environment state semantics
+- viewer presentation truth
+- full docs, changelog, or release-note ownership
+- destructive storage clearing without explicit confirmation and owning-feature rules

@@ -11811,6 +11811,91 @@ describe('ConsoleDock', () => {
     )
   })
 
+  it('frames a selected environment light from Console Zoom Object without using selectedPartKey', async () => {
+    const viewerFrameEnvironmentLight = vi.fn(() => true)
+    const viewerFrameSelected = vi.fn()
+    setViewer({
+      frameAll: vi.fn(),
+      frameExtents: vi.fn(),
+      frameEnvironmentLight: viewerFrameEnvironmentLight,
+      frameGeometrySketch: vi.fn(),
+      framePrevious: vi.fn(),
+      frameSelected: viewerFrameSelected,
+      frameReference: vi.fn(),
+      setConsoleCameraMode: vi.fn(),
+    } as any)
+
+    useUiPrefsStore.setState((state) => ({
+      ...state,
+      view: {
+        ...state.view,
+        lighting: {
+          selectedLightId: 'light-key',
+          lights: [
+            {
+              id: 'light-key',
+              name: 'Key',
+              type: 'point' as const,
+              enabled: true,
+              color: '#fff2e6',
+              intensity: 1.25,
+              position: { x: 0, y: 5, z: 0 },
+              castShadow: true,
+              shadowBias: -0.0002,
+              shadowMapSize: 1024,
+            },
+          ],
+        },
+      },
+    }))
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useAppStore.getState().setWorkspaceSelectedTarget({
+        kind: 'environment-light',
+        lightId: 'light-key',
+      })
+      useAppStore.setState({ selectedPartKey: null })
+      useAppStore.getState().setActiveSurface('browser')
+      useAppStore.getState().requestConsoleContextSync('target-selection')
+    })
+
+    const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('z')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectZoomRoot')
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('object')
+    })
+
+    await act(async () => {
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(viewerFrameEnvironmentLight).toHaveBeenCalledWith('light-key', {
+      animate: true,
+      durationMs: 320,
+    })
+    expect(viewerFrameSelected).not.toHaveBeenCalled()
+    expect(useAppStore.getState().selectedPartKey).toBeNull()
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('contentObjectSelected')
+    expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
+      'Select > Content > Environment > Key > Choose next',
+    )
+  })
+
   it('aligns the active viewport to the selected graph document when multiple graph editor viewports are open', async () => {
     container = document.createElement('div')
     document.body.appendChild(container)

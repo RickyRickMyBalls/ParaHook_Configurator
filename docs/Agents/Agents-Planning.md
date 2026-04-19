@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+4. 2026-04-18 12:48:12: Added a docs-system check requirement for planning mode to consult `docs/Doc-Vision.md` before adding new planning structure or dispatching Gen 4 cleanup tasks.
 3. 2026-03-08 11:48: Added a forward rule that substantive timestamped planning entries should carry incrementing `[N]` indices, while simple formatting/maintenance edits should not
 2. 2026-03-08 10:34: Tightened the `Planning-Batch` rule so entries must be numbered newest-first instead of left as unordered bullets
 1. 2026-03-08 10:22: Added planning-batch logging rules, clarified that planning mode does not create `docs/CHANGELOG.md` entries, and added an explicit confidence-label recommendation for planning conclusions
@@ -30,6 +31,10 @@ implementation work begins.
 When planning mode is active, Codex should stay focused on architecture,
 direction, and classification work unless the user explicitly asks for code or
 file edits.
+
+For any docs-system planning (including Gen 4 cleanup work), planning should
+start by checking `docs/Doc-Vision.md` to honor the current generation
+contract before adding new planning structure or dispatching tasks.
 
 The default output in planning mode should be:
 - structured interpretation

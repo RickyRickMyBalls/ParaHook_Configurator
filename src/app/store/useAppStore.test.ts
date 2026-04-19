@@ -8081,6 +8081,105 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     )
   })
 
+  it('creates only the shoes Browser hierarchy for Catalog shoe commits and reuses it for later shoes', async () => {
+    const {
+      selectCurrentProjectContentBrowserRows,
+      selectReferenceWorkspaceBrowserTree,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useSpaghettiStore.setState(useSpaghettiStore.getInitialState(), true)
+
+    const firstShoeId = useAppStore.getState().addImportedReference({
+      catalogItemId: 'reference:shoe-1',
+      catalogFamilyKey: 'shoes',
+      fileName: 'shoe-a.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-a',
+    })
+    const secondShoeId = useAppStore.getState().addImportedReference({
+      catalogItemId: 'reference:shoe-2',
+      catalogFamilyKey: 'shoes',
+      fileName: 'shoe-b.glb',
+      fileType: 'glb',
+      objectUrl: 'blob:shoe-b',
+    })
+
+    const browserRows = selectCurrentProjectContentBrowserRows({
+      currentProject: useAppStore.getState().currentProject,
+      projectContent: useAppStore.getState().projectContent,
+      sketchVisibilityByRowId: useAppStore.getState().sketchVisibilityByRowId,
+      referenceWorkspace: useAppStore.getState().referenceWorkspace,
+      graphRuntimeByDocumentId: useSpaghettiStore.getState().graphRuntimeByDocumentId,
+      graphDocumentsById: useSpaghettiStore.getState().graphDocumentsById,
+    })
+
+    expect(
+      browserRows.filter(
+        (row) => row.kind === 'component' && row.rowId.startsWith('reference-category-row:'),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        rowId: 'reference-category-row:shoes',
+        label: 'Wearable',
+        referenceCategoryId: 'shoes',
+        referenceContainerKind: 'category',
+        referenceContainerItemCount: 2,
+        parentAssemblyId: 'reference-root',
+      }),
+    ])
+    expect(browserRows.some((row) => row.rowId === 'reference-category-row:footpads')).toBe(false)
+    expect(browserRows.some((row) => row.rowId === 'reference-category-row:premade-foothooks')).toBe(
+      false,
+    )
+    expect(browserRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowId: 'reference-root',
+          kind: 'assembly',
+        }),
+        expect.objectContaining({
+          rowId: `reference-item-row:${firstShoeId}`,
+          kind: 'object',
+          parentAssemblyId: 'reference-root',
+          parentComponentId: 'reference-category-row:shoes',
+          referenceCategoryId: 'shoes',
+          contentOriginKind: 'source-reference',
+        }),
+        expect.objectContaining({
+          rowId: `reference-item-row:${secondShoeId}`,
+          kind: 'object',
+          parentAssemblyId: 'reference-root',
+          parentComponentId: 'reference-category-row:shoes',
+          referenceCategoryId: 'shoes',
+          contentOriginKind: 'source-reference',
+        }),
+      ]),
+    )
+
+    expect(selectReferenceWorkspaceBrowserTree(useAppStore.getState())).toMatchObject({
+      categories: [
+        expect.objectContaining({
+          categoryId: 'shoes',
+          itemCount: 2,
+          visibleItemCount: 2,
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              referenceId: firstShoeId,
+              categoryId: 'shoes',
+            }),
+            expect.objectContaining({
+              referenceId: secondShoeId,
+              categoryId: 'shoes',
+            }),
+          ]),
+        }),
+      ],
+    })
+  })
+
   it('derives authored assembly and component Browser visibility from owned reference-backed children', async () => {
     const { selectCurrentProjectContentBrowserRows, useAppStore } = await import('./useAppStore')
     const { useSpaghettiStore } = await import('../spaghetti/store/useSpaghettiStore')
@@ -9704,6 +9803,112 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
       stagedFileId: brokenFileId,
       fileName: 'broken.glb',
     })
+  })
+
+  it('exposes selected environment lights with environment-owned console breadcrumbs', async () => {
+    const { selectConsoleWorkspaceContextTarget, useAppStore } = await import('./useAppStore')
+    const { useUiPrefsStore } = await import('./uiPrefsStore')
+
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+    const firstLight = useUiPrefsStore.getState().view.lighting.lights[0]
+
+    useAppStore.getState().setWorkspaceSelectedTarget({
+      kind: 'environment-light',
+      lightId: firstLight.id,
+    })
+
+    expect(selectConsoleWorkspaceContextTarget(useAppStore.getState())).toMatchObject({
+      kind: 'environment-light',
+      lightId: firstLight.id,
+      label: firstLight.name,
+      canDelete: true,
+      canHide: firstLight.enabled,
+      canShow: !firstLight.enabled,
+      contentBreadcrumbLabels: ['Environment', firstLight.name],
+    })
+  })
+
+  it('routes positioned environment lights through the shared viewer transform shell and commits position only', async () => {
+    const {
+      selectActiveViewerTransformSession,
+      selectActiveViewerTransformTarget,
+      useAppStore,
+    } = await import('./useAppStore')
+    const { useUiPrefsStore } = await import('./uiPrefsStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+
+    const light = useUiPrefsStore.getState().view.lighting.lights.find((entry) => entry.type === 'directional')
+    expect(light).toBeTruthy()
+
+    useAppStore.getState().beginViewerTransformShell({
+      kind: 'environment-light',
+      lightId: light!.id,
+    })
+
+    expect(selectActiveViewerTransformTarget(useAppStore.getState().referenceWorkspace)).toEqual({
+      kind: 'environment-light',
+      lightId: light!.id,
+    })
+    expect(selectActiveViewerTransformSession(useAppStore.getState().referenceWorkspace)).toMatchObject({
+      targetKind: 'environment-light',
+      targetId: light!.id,
+      mode: 'translate',
+      space: 'world',
+      entryActive: false,
+      draftTransform: {
+        position: light!.position,
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+
+    useAppStore.getState().beginActiveViewerTransformEntry('rotate')
+    expect(selectActiveViewerTransformSession(useAppStore.getState().referenceWorkspace)?.entryActive).toBe(false)
+
+    useAppStore.getState().beginActiveViewerTransformEntry('translate')
+    useAppStore.getState().setActiveViewerTransformDraft({
+      position: { x: 12, y: 8, z: -4 },
+      rotationDeg: { x: 45, y: 45, z: 45 },
+      scale: { x: 2, y: 2, z: 2 },
+    })
+    useAppStore.getState().commitActiveViewerTransformEntry()
+
+    const committedLight = useUiPrefsStore
+      .getState()
+      .view.lighting.lights.find((entry) => entry.id === light!.id)
+    expect(committedLight?.position).toEqual({ x: 12, y: 8, z: -4 })
+    expect(selectActiveViewerTransformSession(useAppStore.getState().referenceWorkspace)).toMatchObject({
+      targetKind: 'environment-light',
+      targetId: light!.id,
+      mode: 'translate',
+      entryActive: false,
+      activeHandle: null,
+      draftTransform: {
+        position: { x: 12, y: 8, z: -4 },
+        rotationDeg: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    })
+  })
+
+  it('does not start a viewer transform shell for non-positioned environment lights', async () => {
+    const { selectActiveViewerTransformTarget, useAppStore } = await import('./useAppStore')
+    const { useUiPrefsStore } = await import('./uiPrefsStore')
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
+
+    const light = useUiPrefsStore.getState().view.lighting.lights.find((entry) => entry.type === 'hemisphere')
+    expect(light).toBeTruthy()
+
+    useAppStore.getState().beginViewerTransformShell({
+      kind: 'environment-light',
+      lightId: light!.id,
+    })
+
+    expect(selectActiveViewerTransformTarget(useAppStore.getState().referenceWorkspace)).toBeNull()
   })
 })
 

@@ -14,18 +14,22 @@ type CatalogSurfaceTestState = {
   referenceWorkspace: {
     importedReferencesById: Record<
       string,
-      {
-        referenceId: string
-        sourceKind: 'manifest' | 'imported'
-        categoryId: string
-        label: string
-        assetPath: string
-        fileType?: ReferenceFileType
-      }
+        {
+          referenceId: string
+          sourceKind: 'manifest' | 'imported'
+          categoryId: string
+          label: string
+          assetPath: string
+          catalogItemId?: string | null
+          catalogFamilyKey?: string | null
+          fileType?: ReferenceFileType
+        }
     >
     importedReferenceOrder: string[]
   }
   addImportedReference: (reference: {
+    catalogItemId?: string | null
+    catalogFamilyKey?: string | null
     fileName: string
     fileType: ReferenceFileType
     objectUrl: string
@@ -66,7 +70,7 @@ describe('CatalogSurface', () => {
     useUiPrefsStore.setState({
       view: structuredClone(DEFAULT_VIEW_SETTINGS),
     })
-    addImportedReferenceSpy = vi.fn(({ fileName, fileType, objectUrl }) => {
+    addImportedReferenceSpy = vi.fn(({ catalogItemId, catalogFamilyKey, fileName, fileType, objectUrl }) => {
       const nextReferenceId = `catalog-commit-${currentAppState.referenceWorkspace.importedReferenceOrder.length}`
       currentAppState = {
         ...currentAppState,
@@ -79,6 +83,8 @@ describe('CatalogSurface', () => {
               categoryId: 'user-references',
               label: fileName,
               assetPath: objectUrl,
+              catalogItemId: catalogItemId ?? null,
+              catalogFamilyKey: catalogFamilyKey ?? null,
               fileType,
             },
           },
@@ -141,7 +147,7 @@ describe('CatalogSurface', () => {
       'Sections',
     )
     expect(container?.querySelector('[data-catalog-region="content"]')?.textContent).toContain(
-      'Catalog Cards',
+      'Part Catalog Cards',
     )
     expect(container?.querySelector('[data-catalog-region="content"]')?.textContent).not.toContain(
       'Imports Area',
@@ -153,25 +159,25 @@ describe('CatalogSurface', () => {
       'Imports',
     )
     expect(container?.querySelector('[data-catalog-region="filters"]')?.textContent).toContain(
-      'Foothooks',
+      'Shoes',
     )
     expect(container?.querySelector('[data-catalog-region="filters"]')?.textContent).toContain(
-      'Shoes',
+      'FootHolds',
     )
     expect(container?.querySelector('[data-catalog-region="filters"]')?.textContent).toContain(
       'Footpads',
     )
     expect(container?.querySelector('[data-catalog-region="filters"]')?.textContent).toContain(
-      'Optional curated reference families now browse here',
+      'Hdris',
+    )
+    expect(container?.querySelector('[data-catalog-region="filters"]')?.textContent).toContain(
+      'Part read keeps the curated reference families visible',
     )
     expect(container?.querySelector('[data-catalog-region="content"]')?.textContent).toContain(
-      'Curated Shoes family',
+      'Part read keeps the curated reference families visible',
     )
     expect(container?.querySelector('[data-catalog-region="content"]')?.textContent).toContain(
-      'Curated Foothooks family',
-    )
-    expect(container?.querySelector('[data-catalog-region="content"]')?.textContent).toContain(
-      'Curated Footpads family',
+      'Part Catalog Cards',
     )
   })
 
@@ -203,6 +209,114 @@ describe('CatalogSurface', () => {
     expect(contentRegion).not.toBeNull()
     expect(contentBody).not.toBeNull()
     expect(contentBody?.querySelector('[data-catalog-region="grid"]')).not.toBeNull()
+  })
+
+  it('switches the shared surface between Part and Platform browse reads without changing the item contract', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const currentContainer = container
+
+    await act(async () => {
+      root?.render(<CatalogSurface surfaceInstanceId="catalog-surface-browse-mode" />)
+    })
+
+    const browseModeButtons = Array.from(
+      currentContainer?.querySelectorAll('[data-catalog-region="browse-mode-switcher"] .CatalogShellTag') ??
+        [],
+    ) as HTMLButtonElement[]
+    const partButton = browseModeButtons.find((element) => element.textContent === 'Part')
+    const platformButton = browseModeButtons.find((element) => element.textContent === 'Platform')
+    const getFilterGroupButton = (groupKey: string, value: string) =>
+      Array.from(
+        currentContainer?.querySelectorAll(`[data-catalog-filter-group="${groupKey}"] .CatalogShellTag`) ??
+          [],
+      ).find(
+        (element) => element.textContent?.replace(/\s*\(\d+\)$/u, '').trim() === value,
+      ) as HTMLButtonElement | undefined
+    const sectionButtonLabels = () =>
+      Array.from(
+        currentContainer?.querySelectorAll('[data-catalog-region="filters"] .CatalogShellFilterButton') ??
+          [],
+      )
+        .map((element) => element.textContent?.replace(/\d+$/u, '').trim() ?? '')
+
+    expect(partButton).toBeDefined()
+    expect(platformButton).toBeDefined()
+    expect(currentContainer?.querySelector('[data-catalog-region="browse-mode-description"]')?.textContent)
+      .toContain('Part read centers part type')
+    expect(currentContainer?.querySelector('[data-catalog-region="filter-groups"]')?.textContent).toContain(
+      'Part Groups',
+    )
+    expect(sectionButtonLabels()).toEqual(
+      expect.arrayContaining(['All', 'Footpads', 'Shoes', 'FootHolds', 'Hdris', 'Imports']),
+    )
+
+    const shoesFilterButton = getFilterGroupButton('partGroups', 'Shoes')
+    expect(shoesFilterButton).toBeDefined()
+
+    await act(async () => {
+      shoesFilterButton?.click()
+    })
+
+    expect(
+      Array.from(currentContainer?.querySelectorAll('[data-catalog-region="grid"] .CatalogShellCard') ?? [])
+        .length,
+    ).toBe(4)
+    expect(currentContainer?.querySelector('[data-catalog-region="grid"]')?.textContent).toContain(
+      'Shoe 1',
+    )
+    expect(currentContainer?.querySelector('[data-catalog-region="grid"]')?.textContent).not.toContain(
+      'Large Foothook',
+    )
+
+    await act(async () => {
+      platformButton?.click()
+    })
+
+    expect(
+      currentContainer?.querySelector('[data-catalog-region="browse-mode-description"]')?.textContent,
+    ).toContain('Platform read centers system ownership')
+    expect(currentContainer?.querySelector('[data-catalog-region="filter-groups"]')?.textContent).toContain(
+      'Platform Compatibility',
+    )
+    expect(sectionButtonLabels()).toEqual(
+      expect.arrayContaining(['All', 'ADV', 'XR', 'GT', 'Pint', 'XR Classic', 'Hdris', 'Imports']),
+    )
+    expect(
+      currentContainer
+        ?.querySelector('[data-catalog-filter-group="partGroups"]')
+        ?.querySelector('.CatalogShellTag.isSelected')?.textContent,
+    ).toContain('Shoes')
+    expect(currentContainer?.querySelector('[data-catalog-region="content"]')?.textContent).toContain(
+      'Platform Catalog Cards',
+    )
+
+    expect(
+      Array.from(currentContainer?.querySelectorAll('[data-catalog-region="grid"] .CatalogShellCard') ?? [])
+        .length,
+    ).toBe(4)
+    expect(currentContainer?.querySelector('[data-catalog-region="grid"]')?.textContent).toContain(
+      'Shoe 1',
+    )
+    expect(currentContainer?.querySelector('[data-catalog-region="grid"]')?.textContent).not.toContain(
+      'Large Foothook',
+    )
+
+    await act(async () => {
+      partButton?.click()
+    })
+
+    expect(
+      currentContainer?.querySelector('[data-catalog-region="browse-mode-description"]')?.textContent,
+    ).toContain('Part read centers part type')
+    expect(sectionButtonLabels()).toEqual(
+      expect.arrayContaining(['All', 'Footpads', 'Shoes', 'FootHolds', 'Hdris', 'Imports']),
+    )
+
+    expect(currentContainer?.querySelector('[data-catalog-region="content"]')?.textContent).toContain(
+      'Part Catalog Cards',
+    )
   })
 
   it('swaps the shared content area between the card grid and a full item page without auto-loading media', async () => {
@@ -255,7 +369,7 @@ describe('CatalogSurface', () => {
     })
 
     expect(contentRegion?.querySelector('[data-catalog-region="grid"]')).not.toBeNull()
-    expect(contentRegion?.textContent).toContain('Catalog Cards')
+    expect(contentRegion?.textContent).toContain('Part Catalog Cards')
   })
 
   it('renders the interactive preview viewport on a repo-backed item page once preview is loaded', async () => {
@@ -369,9 +483,11 @@ describe('CatalogSurface', () => {
     })
 
     expect(addImportedReferenceSpy).toHaveBeenCalledWith({
+      catalogFamilyKey: 'shoes',
+      catalogItemId: 'reference:shoe-1',
       fileName: 'Shoe 1',
       fileType: 'glb',
-      objectUrl: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+      objectUrl: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
     })
     expect(currentAppState.referenceWorkspace.importedReferenceOrder).toContain('catalog-commit-1')
     expect(currentAppState.referenceWorkspace.importedReferencesById['catalog-commit-1']).toEqual(
@@ -380,7 +496,9 @@ describe('CatalogSurface', () => {
         sourceKind: 'imported',
         categoryId: 'user-references',
         label: 'Shoe 1',
-        assetPath: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+        assetPath: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
+        catalogItemId: 'reference:shoe-1',
+        catalogFamilyKey: 'shoes',
       }),
     )
 
@@ -434,7 +552,7 @@ describe('CatalogSurface', () => {
     ).toBeNull()
 
     const environmentCard = Array.from(container?.querySelectorAll('.CatalogShellCard') ?? []).find(
-      (element) => element.textContent?.includes('Studio Environment'),
+      (element) => element.textContent?.includes('Studio Small 09 2K HDR'),
     ) as HTMLElement | undefined
     expect(environmentCard).toBeDefined()
     expect(
@@ -446,9 +564,11 @@ describe('CatalogSurface', () => {
     })
 
     expect(addImportedReferenceSpy).toHaveBeenCalledWith({
+      catalogFamilyKey: 'shoes',
+      catalogItemId: 'reference:shoe-1',
       fileName: 'Shoe 1',
       fileType: 'glb',
-      objectUrl: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+      objectUrl: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
     })
     expect(currentAppState.referenceWorkspace.importedReferenceOrder).toContain('catalog-commit-1')
 
@@ -484,17 +604,17 @@ describe('CatalogSurface', () => {
     const familyExpectations = [
       {
         label: 'Shoe 1',
-        objectUrlPattern: /\/ReferenceModels\/shoes\/Shoe_1\.glb$/,
+        objectUrlPattern: /\/Catalog\/shoes\/Shoe_1\.glb$/,
         fileType: 'glb',
       },
       {
         label: 'Large Foothook',
-        objectUrlPattern: /\/ReferenceModels\/hooks\/large\.step$/,
+        objectUrlPattern: /\/Catalog\/hooks\/large\.step$/,
         fileType: 'step',
       },
       {
         label: 'PubPad Full Assembly',
-        objectUrlPattern: /\/ReferenceModels\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/,
+        objectUrlPattern: /\/Catalog\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/,
         fileType: 'obj',
       },
     ] as const
@@ -530,21 +650,25 @@ describe('CatalogSurface', () => {
     }
 
     expect(addImportedReferenceSpy).toHaveBeenNthCalledWith(1, {
+      catalogFamilyKey: 'shoes',
+      catalogItemId: 'reference:shoe-1',
       fileName: 'Shoe 1',
       fileType: 'glb',
-      objectUrl: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+      objectUrl: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
     })
     expect(addImportedReferenceSpy).toHaveBeenNthCalledWith(2, {
+      catalogFamilyKey: 'foothooks',
+      catalogItemId: 'reference:hook-large',
       fileName: 'Large Foothook',
       fileType: 'step',
-      objectUrl: expect.stringMatching(/\/ReferenceModels\/hooks\/large\.step$/),
+      objectUrl: expect.stringMatching(/\/Catalog\/hooks\/large\.step$/),
     })
     expect(addImportedReferenceSpy).toHaveBeenNthCalledWith(3, {
+      catalogFamilyKey: 'footpads',
+      catalogItemId: 'reference:footpad-pubpad-full-assembly',
       fileName: 'PubPad Full Assembly',
       fileType: 'obj',
-      objectUrl: expect.stringMatching(
-        /\/ReferenceModels\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/,
-      ),
+      objectUrl: expect.stringMatching(/\/Catalog\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/),
     })
 
     expect(currentAppState.referenceWorkspace.importedReferenceOrder).toEqual([
@@ -556,21 +680,25 @@ describe('CatalogSurface', () => {
     expect(currentAppState.referenceWorkspace.importedReferencesById['catalog-commit-1']).toEqual(
       expect.objectContaining({
         label: 'Shoe 1',
-        assetPath: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+        assetPath: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
+        catalogItemId: 'reference:shoe-1',
+        catalogFamilyKey: 'shoes',
       }),
     )
     expect(currentAppState.referenceWorkspace.importedReferencesById['catalog-commit-2']).toEqual(
       expect.objectContaining({
         label: 'Large Foothook',
-        assetPath: expect.stringMatching(/\/ReferenceModels\/hooks\/large\.step$/),
+        assetPath: expect.stringMatching(/\/Catalog\/hooks\/large\.step$/),
+        catalogItemId: 'reference:hook-large',
+        catalogFamilyKey: 'foothooks',
       }),
     )
     expect(currentAppState.referenceWorkspace.importedReferencesById['catalog-commit-3']).toEqual(
       expect.objectContaining({
         label: 'PubPad Full Assembly',
-        assetPath: expect.stringMatching(
-          /\/ReferenceModels\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/,
-        ),
+        assetPath: expect.stringMatching(/\/Catalog\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/),
+        catalogItemId: 'reference:footpad-pubpad-full-assembly',
+        catalogFamilyKey: 'footpads',
       }),
     )
 
@@ -691,15 +819,15 @@ describe('CatalogSurface', () => {
     })
 
     const environmentCard = Array.from(container?.querySelectorAll('.CatalogShellCard') ?? []).find(
-      (element) => element.textContent?.includes('Studio Environment'),
+      (element) => element.textContent?.includes('Studio Small 09 2K HDR'),
     ) as HTMLElement | undefined
     expect(environmentCard).toBeDefined()
 
     const environmentPreviewBox = environmentCard?.querySelector(
-      '[data-catalog-preview-box="environment:studio"]',
-    ) as HTMLButtonElement | null
+      '[data-catalog-preview-box="environment:studio-small-09-2k-hdr"]',
+    ) as HTMLElement | null
     expect(environmentPreviewBox).not.toBeNull()
-    expect(environmentPreviewBox?.disabled).toBe(true)
+    expect(environmentPreviewBox?.textContent).toContain('HDRI preview scene')
 
     await act(async () => {
       environmentCard?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
@@ -720,7 +848,15 @@ describe('CatalogSurface', () => {
       applyEnvironmentButton?.click()
     })
 
-    expect(useUiPrefsStore.getState().view.envPreset).toBe('studio')
+    expect(useUiPrefsStore.getState().view.environmentSource).toEqual(
+      expect.objectContaining({
+        kind: 'hdri',
+        label: 'Studio Small 09 2K HDR',
+        assetPath: expect.stringMatching(/\/HDRI\/studio_small_09_2k\.hdr$/),
+        backgroundVisible: true,
+        intensity: 1,
+      }),
+    )
     expect(addImportedReferenceSpy).not.toHaveBeenCalled()
     expect(currentAppState.referenceWorkspace.importedReferenceOrder).toEqual([
       'imported-reference-1',

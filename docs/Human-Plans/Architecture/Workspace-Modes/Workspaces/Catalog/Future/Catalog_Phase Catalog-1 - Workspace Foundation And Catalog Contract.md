@@ -1,8 +1,12 @@
-# [ ] `Catalog-1` - `Workspace Foundation And Catalog Contract`
+# [~] `Catalog-1` - `Workspace Foundation And Catalog Contract`
 
 ## Doc Header
 
 ### Doc History
+54. 2026-04-19 13:46:22: Added the Gen1 CLG coverage checklist into this `Catalog-1` Family Phase Doc so the local phase doc now mirrors the Generation Index read where Catalog-1 HLG are covered but CLG 1, 2, 3, and 5 remain open or broader than the shipped foundation, making any needed follow-up phases visible before the family is marked complete.
+53. 2026-04-19 13:39:26: Updated this `Catalog-1` Family Phase Doc format against the current Architecture Setup guide rails, adding the missing top-level `Vision` section, making the top status partial because `Phase 4.1` and `Catalog-1.12` remain open, normalizing implementation-phase fold labels to `Catalog-1 / Phase N`, correcting stale wishlist checkboxes so shipped implementation-phase coverage no longer reads as open, and wrapping the `Catalog-1.12` plus `Catalog-1.13` follow-up branches in the same `Summary` and `Implementation Spec` two-section pattern as the older implementation phases.
+52. 2026-04-19 09:21:18: Implemented `Catalog-1.13 - Load All Displayed Preview-Capable Cards`, adding the displayed-grid batch preview action that routes through the existing temporary preview-session owner, skips hidden filtered-out cards and apply-environment entries, and closes the remaining Catalog-1 displayed-preview batch checklist with focused CatalogShell and preview-session proof plus `npm run build`
+51. 2026-04-18 22:11:00: Added `Catalog-1.13 - Load All Displayed Preview-Capable Cards` as a new foundation follow-up branch so the Catalog grid can expose one explicit batch preview action for every currently visible preview-capable card without committing project content, applying environment state, or touching hidden filtered-out cards
 50. 2026-04-17 23:35:35: Implemented `Catalog-1 / Phase 11.3 - Environment Apply Ownership Proof`, adding one narrow `catalogEnvironmentApply.ts` handoff seam, wiring repo-backed environment items through `CatalogSurface.tsx` into the existing shared `useUiPrefsStore.ts` viewer environment owner, adding one first fixture-backed `Studio Environment` Catalog entry, and proving that `Apply Environment` updates viewer-owned environment state without creating imported references, project geometry content, or temporary preview-session ownership
 49. 2026-04-17 23:29:43: Prepped `Catalog-1 / Phase 11.3 - Environment Apply Ownership Proof` for implementation, grounding the next cut in the shipped `catalogActionPlan.ts` `viewer-environment` direction, the current `CatalogSurface.tsx` gap where only Browser-project commit handoff exists, and the nearby `useUiPrefsStore.ts` plus `ViewToolbar.tsx` environment-state owner so the phase now lands as one narrow Catalog-to-viewer environment handoff proof instead of a vague future `HDRI` placeholder
 48. 2026-04-17 23:26:08: Implemented `Catalog-1 / Phase 11.2 - Preview Session And Imports Boundary Proof`, adding focused proof that the temporary Catalog preview session stays separate from downstream committed reference truth even after `Phase 11.1`, that imports reuse remains browse-only and never gains a fake second commit path, and that Catalog still does not become the import-pipeline owner just because it can now show committed references back through the reuse surface
@@ -63,6 +67,7 @@ Use it to answer:
 - how the first `Catalog` surface should read in `Generation 1`
 - what the first catalog data contract and curated-source seam should look like
 - how the first visible workspace shell should handle card-grid browse, imports, and preview-versus-commit boundaries
+- how visible-card preview loading can batch only the currently displayed preview-capable cards
 - how to keep future catalog implementation clean instead of bloating existing shell or Browser files
 
 ### Why This Phase Exists
@@ -87,6 +92,7 @@ This phase covers:
 - the first curated catalog-item contract
 - the first manifest or catalog-source seam
 - the first card-grid, imports, item-page, and preview-shell contract
+- displayed-card preview loading as a Catalog-owned preview-session action
 - placeholder shell wiring and clean file boundaries
 - the first preview-versus-commit and downstream ownership contract
 
@@ -110,6 +116,7 @@ This phase should:
 - make `Catalog` a real hosted workspace surface
 - lock the baseline `Generation 1` browse contract around a lightweight card grid, item-page decision surface, and imports reuse area
 - keep `Load Preview` separate from `Add To Project`
+- keep batch preview loading scoped to currently visible preview-capable cards
 - keep asset-type loader boundaries honest before later family onboarding begins
 
 This phase should not:
@@ -117,6 +124,7 @@ This phase should not:
 - onboard final `HDRI` behavior as if it were the same thing as geometry-reference loading
 - pull `Generation 2` widening into the baseline
 - become a giant all-in-one catalog implementation without clean seams
+- treat hidden filtered-out cards, HDRI apply-only cards, or commit-only actions as part of displayed-card preview loading
 
 ### Architecture Direction
 
@@ -181,61 +189,98 @@ This phase is healthy when:
   - temporary preview versus explicit commit separation
 - the asset-type loader split is explicit enough that later `Catalog-2` and `Catalog-3` do not have to reopen the same ownership questions
 
+## Vision
+
+`Catalog-1` is the first Generation 1 family phase that turns Catalog from planning direction into a real workspace surface.
+
+The phase should stay foundation-shaped:
+- prove Catalog can live inside the shared workspace surface system
+- give Catalog one curated item contract and source seam
+- create the first browse-first shell with card grid, imports reuse, item page, and preview-session boundaries
+- keep preview, commit, import, and environment ownership separate before later Catalog families widen asset coverage
+
+The phase is still partial because two follow-up lanes remain open:
+- `Catalog-1 / Phase 4.1` for slotted header drag-out floating handoff parity
+- `Catalog-1.12` for direct grid-card `Add To Project`
+
 ## Wishlist Organization
 
-### High Level Goals
+### Catalog-1 HLG Checklist
 
-- [ ] `HLG 1. Catalog Is A Real Workspace Surface`
-- [ ] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
-- [ ] `HLG 3. Preview Stays Separate From Add To Project`
-- [ ] `HLG 4. Catalog Uses Explicit Item Metadata And Curated Source Truth`
-- [ ] `HLG 5. Catalog Stays Distinct From Browser, Import, And Viewer Ownership`
+- [x] `Catalog-Gen1-HLG-1. let the user keep the model visible while browsing reusable assets in a real Catalog workspace surface`
+- [x] `Catalog-Gen1-HLG-3. let the user browse clear item families such as foothooks, shoes, footpads, HDRIs, imports, and later reusable references or preset families`
+- [x] `Catalog-Gen1-HLG-5. let reference-style items preview temporarily before explicit Add To Project`
+- [x] `Catalog-Gen1-HLG-10. keep imported user files and curated repo assets distinct even when they appear near each other in the Catalog surface`
 
-### `Catalog-1 Phase 1`
+### Catalog-1 CLG Checklist
+
+- [ ] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
+- [ ] Catalog-Gen1-CLG-2. Keep repo-backed reusable assets optional and Catalog-selected instead of Browser-resident defaults.
+- [ ] Catalog-Gen1-CLG-3. Keep preview, commit, and apply behavior distinct by asset type.
+- [ ] Catalog-Gen1-CLG-5. Make repo-backed and already-imported user assets visibly distinct in the Catalog surface.
+- [x] Catalog-Gen1-CLG-13. Add a displayed-card batch preview action that only affects visible preview-capable cards.
+
+### Catalog-1 Open Coverage Read
+
+The Gen1 HLG routed to `Catalog-1` are covered, but the family phase stays partial because the Gen1 CLG checklist above still has open items.
+
+Current likely follow-up routing:
+- `Catalog-1 / Phase 4.1` should close the remaining workspace-surface parity part of `Catalog-Gen1-CLG-1`.
+- `Catalog-1.12` should advance the direct grid-card commit part of `Catalog-Gen1-CLG-3`.
+- `Catalog-Gen1-CLG-2` and `Catalog-Gen1-CLG-5` need a manager read before closure because they may already be satisfied by later `Catalog-2`/imports work, but the Gen1 index still treats them as broader than the shipped `Catalog-1` foundation proof.
+
+### `Catalog-1 / Phase 1`
 
 - [x] `1. Catalog Registers As A Real Workspace Surface Kind`
 - [x] `2. Catalog Gets Deterministic Surface-Instance Ids`
 - [x] `3. Catalog Metadata Lives In The Canonical Workspace Surface Catalog`
 - [x] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 2`
+### `Catalog-1 / Phase 2`
 
 - [x] `4. A Non-Primary Split Pane Can Switch To Catalog`
 - [x] `5. Catalog Gets One Minimal First Surface Owner`
 - [x] `6. The Primary Protected Model Slot Stays Model-Only`
 - [x] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 3`
+### `Catalog-1 / Phase 3`
 
 - [x] `7. Tiled Catalog Switching Reuses The Shared Workspace Path`
 - [x] `8. Catalog Tiled Behavior Is Proven Against Existing Optional Surfaces`
 - [x] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 4`
+### `Catalog-1 / Phase 4`
 
 - [x] `9. Catalog Floats And Redocks Through The Shared Host-Mode Path`
 - [x] `10. Catalog Does Not Need A One-Off Floating Shell`
 - [x] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 4.1`
+### `Catalog-1 / Phase 4.1`
 
 - [ ] `10A. Slotted Catalog Header Drag-Out Reaches A Real Floating Handoff`
 - [ ] `10B. Generic Optional Surfaces Stop Falling Back To Default Float Placement On Drag-Out`
 - [ ] `HLG 1. Catalog Is A Real Workspace Surface`
+- [ ] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 4.2`
+### `Catalog-1 / Phase 4.2`
 
-- [ ] `10C. Slotted Catalog Titlebar Float Menu Action Opens A Real Floating Window`
-- [ ] `10D. Shared Optional-Surface Float Menu Routing Is Proven Through The Titlebar Action Path`
-- [ ] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] `10C. Slotted Catalog Titlebar Float Menu Action Opens A Real Floating Window`
+- [x] `10D. Shared Optional-Surface Float Menu Routing Is Proven Through The Titlebar Action Path`
+- [x] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 5`
+### `Catalog-1 / Phase 5`
 
 - [x] `11. Workspace Persistence Serializes And Restores Catalog Honestly`
 - [x] `12. Popup Or Popout Scope Is Decided Explicitly Instead Of Left Vague`
 - [x] `HLG 1. Catalog Is A Real Workspace Surface`
+- [x] Catalog-Gen1-CLG-1. Keep Catalog as a real workspace surface that can sit beside the model viewport.
 
-### `Catalog-1 Phase 6`
+### `Catalog-1 / Phase 6`
 
 - [x] `13. Catalog Gets One Explicit Shared Item Contract`
 - [x] `14. The Baseline Contract Includes The Fields Needed For Card-Grid Browse`
@@ -243,16 +288,20 @@ This phase is healthy when:
 - [x] `16. The Baseline Contract Includes The Imports-Area Read Without Making Imports The Owner`
 - [x] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
 - [x] `HLG 4. Catalog Uses Explicit Item Metadata And Curated Source Truth`
+- [x] Catalog-Gen1-CLG-3. Keep preview, commit, and apply behavior distinct by asset type.
+- [~] Catalog-Gen1-CLG-5. Make repo-backed and already-imported user assets visibly distinct in the Catalog surface.
 
-### `Catalog-1 Phase 7`
+### `Catalog-1 / Phase 7`
 
 - [x] `17. Catalog Gets One Curated Manifest Or Source Seam`
 - [x] `18. Repo-Backed Items And Imports-Area Entries Read Through Explicit Source Truth`
 - [x] `19. The Shell Stops Depending On Raw Folder Walking Or Filename Guessing`
 - [x] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
 - [x] `HLG 4. Catalog Uses Explicit Item Metadata And Curated Source Truth`
+- [~] Catalog-Gen1-CLG-2. Keep repo-backed reusable assets optional and Catalog-selected instead of Browser-resident defaults.
+- [~] Catalog-Gen1-CLG-5. Make repo-backed and already-imported user assets visibly distinct in the Catalog surface.
 
-### `Catalog-1 Phase 8`
+### `Catalog-1 / Phase 8`
 
 - [x] `20. The First Visible Shell Uses A Lightweight Card Grid`
 - [x] `21. Catalog Opens With No Auto-Loaded Previews`
@@ -260,8 +309,10 @@ This phase is healthy when:
 - [x] `23. The Item Page Is The Main Decision Surface For A Selected Entry`
 - [x] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
 - [x] `HLG 3. Preview Stays Separate From Add To Project`
+- [x] Catalog-Gen1-CLG-3. Keep preview, commit, and apply behavior distinct by asset type.
+- [~] Catalog-Gen1-CLG-5. Make repo-backed and already-imported user assets visibly distinct in the Catalog surface.
 
-### `Catalog-1 Phase 8.1`
+### `Catalog-1 / Phase 8.1`
 
 - [x] `23A. Imports Reads As A Browse Section Instead Of A Separate Peer Panel`
 - [x] `23B. Catalog Uses A Two-Column Browse Plus Content Layout Instead Of A Third Item-Page Column`
@@ -269,45 +320,66 @@ This phase is healthy when:
 - [x] `23D. The Item Page Reads Like A Store-Style Destination With A Clear Return To Catalog`
 - [x] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
 - [x] `HLG 3. Preview Stays Separate From Add To Project`
+- [~] Catalog-Gen1-CLG-5. Make repo-backed and already-imported user assets visibly distinct in the Catalog surface.
 
-### `Catalog-1 Phase 8.2`
+### `Catalog-1 / Phase 8.2`
 
 - [x] `23E. Catalog Card Typography Tightens So Card Copy Stops Colliding`
 - [x] `23F. Catalog Cards Keep Clear Vertical Rhythm Without Visual Overlap`
 - [x] `23G. The Grid Sizing Stays Stable Under Real Card Copy`
 - [x] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
 
-### `Catalog-1 Phase 9`
+### `Catalog-1 / Phase 9`
 
-- [ ] `24. CatalogSurface Stays A Thin Workspace Host Instead Of Regaining Shell Logic`
-- [ ] `25. CatalogShell Splits Into Focused Browse, Grid, And Item-Page UI Owners`
-- [ ] `26. Imports-Through-Browse Gets An Explicit UI Owner Inside The Shared Shell`
-- [ ] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
-- [ ] `HLG 4. Catalog Uses Explicit Item Metadata And Curated Source Truth`
+- [x] `24. CatalogSurface Stays A Thin Workspace Host Instead Of Regaining Shell Logic`
+- [x] `25. CatalogShell Splits Into Focused Browse, Grid, And Item-Page UI Owners`
+- [x] `26. Imports-Through-Browse Gets An Explicit UI Owner Inside The Shared Shell`
+- [x] `HLG 2. Catalog Has A Lightweight Card-Grid, Imports, And Item-Page Baseline`
+- [x] `HLG 4. Catalog Uses Explicit Item Metadata And Curated Source Truth`
 
-### `Catalog-1 Phase 10`
+### `Catalog-1 / Phase 10`
 
-- [ ] `27. Load Preview Stays Temporary`
-- [ ] `28. Add To Project Stays The Explicit Commit Action`
-- [ ] `29. Multiple Temporary Previews Are Allowed By Contract`
-- [ ] `29A. Card Preview Boxes Stay Empty Until The User Explicitly Loads Preview State`
-- [ ] `29B. One Preview Action Can Load Multiple Selected Card Preview Boxes`
-- [ ] `29C. Catalog Keeps A Preview-Loaded Session List And Restores It When The Surface Reopens During The Running Session`
-- [ ] `29D. Preview-Loaded Items Can Be Unloaded Without Affecting Project Truth`
-- [ ] `30. Reference Loading And HDRI Apply Stay Separate`
+- [x] `27. Load Preview Stays Temporary`
+- [x] `28. Add To Project Stays The Explicit Commit Action`
+- [x] `29. Multiple Temporary Previews Are Allowed By Contract`
+- [x] `29A. Card Preview Boxes Stay Empty Until The User Explicitly Loads Preview State`
+- [x] `29B. One Preview Action Can Load Multiple Selected Card Preview Boxes`
+- [x] `29C. Catalog Keeps A Preview-Loaded Session List And Restores It When The Surface Reopens During The Running Session`
+- [x] `29D. Preview-Loaded Items Can Be Unloaded Without Affecting Project Truth`
+- [x] `30. Reference Loading And HDRI Apply Stay Separate`
+- [x] `HLG 3. Preview Stays Separate From Add To Project`
+- [x] `HLG 5. Catalog Stays Distinct From Browser, Import, And Viewer Ownership`
+- [x] Catalog-Gen1-CLG-3. Keep preview, commit, and apply behavior distinct by asset type.
+
+### `Catalog-1 / Phase 11`
+
+- [x] `31. Catalog Never Becomes The Hidden Runtime Owner After Commit`
+- [x] `32. Browser Or Project Truth Owns Reference Results`
+- [x] `33. Viewer Or Environment State Owns HDRI Results`
+- [x] `34. Imports Reuse Still Stays Separate From The Import Pipeline`
+- [x] `HLG 3. Preview Stays Separate From Add To Project`
+- [x] `HLG 5. Catalog Stays Distinct From Browser, Import, And Viewer Ownership`
+- [x] Catalog-Gen1-CLG-3. Keep preview, commit, and apply behavior distinct by asset type.
+- [~] Catalog-Gen1-CLG-5. Make repo-backed and already-imported user assets visibly distinct in the Catalog surface.
+
+### `Catalog-1.12`
+
+- [ ] `35. Eligible Catalog Cards Can Add Reference Items To Project Directly From The Grid`
+- [ ] `36. Direct Card Add To Project Reuses The Existing Browser-project Commit Handoff`
 - [ ] `HLG 3. Preview Stays Separate From Add To Project`
 - [ ] `HLG 5. Catalog Stays Distinct From Browser, Import, And Viewer Ownership`
+- [ ] Catalog-Gen1-CLG-3. Keep preview, commit, and apply behavior distinct by asset type.
 
-### `Catalog-1 Phase 11`
+### `Catalog-1.13`
 
-- [ ] `31. Catalog Never Becomes The Hidden Runtime Owner After Commit`
-- [ ] `32. Browser Or Project Truth Owns Reference Results`
-- [ ] `33. Viewer Or Environment State Owns HDRI Results`
-- [ ] `34. Imports Reuse Still Stays Separate From The Import Pipeline`
-- [ ] `HLG 3. Preview Stays Separate From Add To Project`
-- [ ] `HLG 5. Catalog Stays Distinct From Browser, Import, And Viewer Ownership`
+- [x] `37. One Batch Action Loads All Currently Displayed Preview-capable Cards`
+- [x] `38. Hidden Filtered-out Cards Are Not Loaded By Displayed-card Batch Preview`
+- [x] `39. Commit-only And Apply-environment Cards Are Not Loaded By Displayed-card Batch Preview`
+- [x] `HLG 3. Preview Stays Separate From Add To Project`
+- [x] `HLG 6. Catalog Can Batch Load Displayed Preview-Capable Cards Without Commit Or Apply Side Effects`
+- [x] Catalog-Gen1-CLG-13. Add a displayed-card batch preview action that only affects visible preview-capable cards.
 
-## [x] `Catalog-1` - `Phase 1 - Surface Kind And Catalog Registration`
+## [x] `Catalog-1 / Phase 1` - `Surface Kind And Catalog Registration`
 
 ### Phase 1 Summary
 #### Purpose
@@ -450,7 +522,7 @@ Minimum verification for this phase should cover:
 - generated slot-instance ids for `catalog` are explicit and deterministic
 - later phases can build slot switching and shell work on top of shared workspace truth instead of local exceptions
 
-## [x] `Catalog-1` - `Phase 2 - Tiled Slot Switching And First CatalogSurface`
+## [x] `Catalog-1 / Phase 2` - `Tiled Slot Switching And First CatalogSurface`
 
 ### Phase 2 Summary
 #### Purpose
@@ -561,7 +633,7 @@ Minimum verification for this phase should cover:
 - the shared workspace split-and-switch path remains intact
 - later shell work can build on a truthful first hosted surface instead of a shell special case
 
-## [x] `Catalog-1` - `Phase 3 - Tiled Behavior Regression Proof`
+## [x] `Catalog-1 / Phase 3` - `Tiled Behavior Regression Proof`
 
 ### Phase 3 Summary
 #### Purpose
@@ -659,7 +731,7 @@ Minimum verification for this phase should cover:
 - the tiled `Catalog` path is proven stable enough to widen into floating behavior next
 - no local `Catalog` exception was needed to keep the tiled workspace honest
 
-## [x] `Catalog-1` - `Phase 4 - Float And Redock Host-Mode Parity`
+## [x] `Catalog-1 / Phase 4` - `Float And Redock Host-Mode Parity`
 
 ### Phase 4 Summary
 #### Purpose
@@ -751,7 +823,7 @@ Minimum verification for this phase should cover:
 - `Catalog` participates in the same float and redock lifecycle as the other optional workspace surfaces
 - no catalog-only floating lifecycle exception or shell wrapper is needed
 
-## [ ] `Catalog-1` - `Phase 4.1 - Slotted Header Drag-Out Floating Handoff Parity`
+## [ ] `Catalog-1 / Phase 4.1` - `Slotted Header Drag-Out Floating Handoff Parity`
 
 ### Phase 4.1 Summary
 #### Purpose
@@ -858,7 +930,7 @@ Minimum verification for this phase should cover:
 - slotted `Catalog` titlebar drag-out enters floating mode through an honest shared handoff
 - the simple optional-surface set no longer relies on default float placement when the user explicitly drags the titlebar out
 
-## [x] `Catalog-1` - `Phase 4.2 - Slotted Titlebar Float Menu Parity`
+## [x] `Catalog-1 / Phase 4.2` - `Slotted Titlebar Float Menu Parity`
 
 ### Phase 4.2 Summary
 #### Purpose
@@ -974,7 +1046,7 @@ Minimum verification for this phase should cover:
 - the slotted `Catalog` titlebar `Float` action produces a real floating window
 - the shared simple optional-surface menu path no longer silently drops the float action
 
-## [x] `Catalog-1` - `Phase 5 - Persistence And Popup Decision`
+## [x] `Catalog-1 / Phase 5` - `Persistence And Popup Decision`
 
 ### Phase 5 Summary
 #### Purpose
@@ -1093,7 +1165,7 @@ Minimum verification for this phase should cover:
 - restore behavior for `catalog` is honest at startup, not only inside serializer tests
 - popup or popout support for `catalog` is either implemented cleanly or explicitly deferred instead of being left vague
 
-## [x] `Catalog-1` - `Phase 6 - Catalog Item Contract`
+## [x] `Catalog-1 / Phase 6` - `Catalog Item Contract`
 
 ### Phase 6 Summary
 #### Purpose
@@ -1209,7 +1281,7 @@ Minimum verification for this phase should cover:
 - the first shared item contract is explicit
 - later phases can target one stable item shape for baseline `Generation 1` shell work
 
-## [x] `Catalog-1` - `Phase 7 - Manifest Source Seam`
+## [x] `Catalog-1 / Phase 7` - `Manifest Source Seam`
 
 ### Phase 7 Summary
 #### Purpose
@@ -1324,7 +1396,7 @@ Minimum verification for this phase should cover:
 - the repo has one honest source seam for catalog items
 - later UI work can consume item data without inventing local parsing rules
 
-## [x] `Catalog-1` - `Phase 8 - First Catalog Shell Regions`
+## [x] `Catalog-1 / Phase 8` - `First Catalog Shell Regions`
 
 ### Phase 8 Summary
 #### Purpose
@@ -1456,7 +1528,7 @@ Minimum verification for this phase should cover:
 - the shell layout is explicit enough for implementation without reopening UI-scope questions
 - the card-grid, item-page, imports, and no-auto-preview baseline is locked
 
-## [x] `Catalog-1` - `Phase 8.1 - Imports As Browse Section`
+## [x] `Catalog-1 / Phase 8.1` - `Imports As Browse Section`
 
 ### Phase 8.1 Summary
 #### Purpose
@@ -1594,7 +1666,7 @@ Minimum verification for this phase should cover:
 - `Imports` behaves as one browse section instead of a peer panel
 - the item page replaces the content area as a real store-style destination instead of competing as a third column
 
-## [x] `Catalog-1` - `Phase 8.2 - Card Density And Overlap Cleanup`
+## [x] `Catalog-1 / Phase 8.2` - `Card Density And Overlap Cleanup`
 
 ### Phase 8.2 Summary
 #### Purpose
@@ -1696,7 +1768,7 @@ Minimum verification for this phase should cover:
 - the Catalog cards no longer overlap
 - the card typography and spacing read calm enough for the current copy load
 
-## [x] `Catalog-1` - `Phase 9 - Shell File Boundaries And Placeholder Wiring`
+## [x] `Catalog-1 / Phase 9` - `Shell File Boundaries And Placeholder Wiring`
 
 ### Phase 9 Summary
 #### Purpose
@@ -1839,7 +1911,7 @@ Minimum verification for this phase should cover:
 - `CatalogSurface` stays thin
 - imports-through-browse has an explicit structural home inside the Catalog UI layer
 
-## [x] `Catalog-1` - `Phase 10 - Preview And Loader Boundary By Asset Type`
+## [x] `Catalog-1 / Phase 10` - `Preview And Loader Boundary By Asset Type`
 
 ### Phase 10 Summary
 #### Purpose
@@ -2075,7 +2147,7 @@ Minimum verification for this phase should cover:
 - the item page no longer owns the action-family split inline
 - later catalog-family widening can build on real load categories instead of reopening this split
 
-## [x] `Catalog-1` - `Phase 10.1 - Preview Session Rail Placement And Weight Reduction`
+## [x] `Catalog-1 / Phase 10.1` - `Preview Session Rail Placement And Weight Reduction`
 
 ### Phase 10.1 Summary
 #### Purpose
@@ -2204,7 +2276,7 @@ Minimum verification for this phase should cover:
 - the content area is back to owning only the main browse surfaces
 - the `Phase 10` preview-session behavior stays intact
 
-## [x] `Catalog-1` - `Phase 10.2 - Card Selection And Open Gesture Cleanup`
+## [x] `Catalog-1 / Phase 10.2` - `Card Selection And Open Gesture Cleanup`
 
 ### Phase 10.2 Summary
 #### Purpose
@@ -2348,7 +2420,7 @@ Minimum verification for this phase should cover:
 - the `Add To Selection` button is retired
 - the Catalog card interaction model reads simpler than the current split-button version
 
-## [x] `Catalog-1` - `Phase 11.1 - Reference Commit Handoff Proof`
+## [x] `Catalog-1 / Phase 11.1` - `Reference Commit Handoff Proof`
 
 ### Phase 11.1 Summary
 #### Purpose
@@ -2443,7 +2515,7 @@ Minimum verification for this phase should cover:
 - the committed reference handoff is explicit and testable
 - later Catalog widening no longer has to guess whether committed reference truth lives in Catalog
 
-## [x] `Catalog-1` - `Phase 11.2 - Preview Session And Imports Boundary Proof`
+## [x] `Catalog-1 / Phase 11.2` - `Preview Session And Imports Boundary Proof`
 
 ### Phase 11.2 Summary
 #### Purpose
@@ -2542,7 +2614,7 @@ Minimum verification for this phase should cover:
 - temporary preview-session ownership is explicit and testable
 - imports reuse stays clearly separate from import-pipeline ownership
 
-## [x] `Catalog-1` - `Phase 11.3 - Environment Apply Ownership Proof`
+## [x] `Catalog-1 / Phase 11.3` - `Environment Apply Ownership Proof`
 
 ### Phase 11.3 Summary
 #### Purpose
@@ -2650,24 +2722,145 @@ Minimum verification for this phase should cover:
 
 ## [ ] `Catalog-1.12` - `Item Card Add To Project Action`
 
-### Purpose
+### Phase 1.12 Summary
+#### Purpose
 
 This follow-up branch exists to add one direct card-level `Add To Project` action after the shipped `Catalog-1 / Phase 11.1` commit-handoff seam proved the item-page path.
 
 The goal is to make the grid more honest for repo-backed reference items that are already clearly committable without forcing the user to enter the item page first.
 
-### Owns
+#### Owns
 
 - one explicit `Add To Project` button on eligible Catalog item cards
 - reuse of the already-shipped `browser-project` action-plan and reference-commit handoff seams
 - focused grid-card proof that direct card commit still becomes downstream Browser/project truth
 
-### Does Not Own
+#### Does Not Own
 
 - item-page action redesign
 - preview-session ownership changes
 - environment-apply or `HDRI` card-action widening
 - multi-select commit batching beyond the one-card button being introduced here
 
-Current source doc:
+### Phase 1.12 Implementation Spec
+#### Current Source Doc
+
 - [Catalog_Phase Catalog-1.12 - Item Card Add To Project Action.md](./Catalog_Phase%20Catalog-1.12%20-%20Item%20Card%20Add%20To%20Project%20Action.md)
+
+#### Readiness Gate
+
+Before implementation, refresh the source doc against the live Catalog grid, action-plan, and reference-commit files.
+
+The worker should not implement `Catalog-1.12` until that source doc names:
+- exact likely files
+- focused tests
+- verification shape
+- done shape
+- changelog and Doc-Log closeout requirements
+
+## [x] `Catalog-1.13` - `Load All Displayed Preview-Capable Cards`
+
+### Phase 1.13 Summary
+#### Purpose
+
+Add one explicit batch preview action that loads temporary previews for every currently displayed preview-capable Catalog card.
+
+This is a Catalog foundation follow-up because it depends on the preview-session contract, visible grid state, filter state, and asset-type action boundaries already established by `Catalog-1`.
+
+#### Owns
+
+- one user-facing `Load All Displayed Previews` style action in the Catalog surface
+- limiting the action to cards currently visible after filters/search are applied
+- limiting the action to preview-capable cards only
+- adding the targeted cards to the temporary Catalog preview-session state
+- proof that hidden filtered-out cards, commit-only cards, and apply-environment entries are not accidentally loaded
+
+#### Does Not Own
+
+- committing reference items to Browser/project content
+- applying HDRI/environment entries to the scene
+- loading hidden filtered-out cards
+- changing search or filter semantics
+- redesigning the preview viewport itself
+- multi-card `Add To Project` batching
+
+#### Current Live Read
+
+The shipped foundation and the new batch-preview control now share the same visible owner split:
+
+- `src/app/catalog/catalogActionPlan.ts`
+  - already distinguishes preview, commit, and environment apply action meanings
+- `src/app/catalog/catalogPreviewSession.ts`
+  - already owns temporary preview-loaded item ids
+  - now also resolves the filtered visible preview targets for the grid batch action
+- `src/app/catalog/ui/CatalogShell.tsx`
+  - resolves the currently displayed preview-capable item ids from the filtered grid list
+  - keeps the batch action on the existing temporary preview-session owner
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+  - owns the visible grid action placement for `Load All Displayed Previews`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+  - proves the user-facing action loads only the correct displayed cards
+
+#### First Pass Decisions
+
+- treat this as batch preview loading, not batch commit
+- calculate the target set from the currently displayed grid/cards after filters and search
+- skip cards whose action meaning is `Add To Project`, `Apply Environment`, or any other non-preview action
+- preserve the existing preview-loaded list and unload controls instead of creating a second batch state owner
+
+### Phase 1.13 Implementation Spec
+
+#### Exact First Code Cut
+
+1. Add a visible Catalog control for loading all currently displayed preview-capable cards.
+2. Resolve the target ids from the filtered/displayed card collection, not from the full catalog source list.
+3. Filter that target set to action kinds that are genuinely preview-loadable.
+4. Add those ids to the existing Catalog preview-session owner.
+5. Prove that hidden cards and non-preview actions are skipped.
+
+#### Likely Files
+
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+- `src/app/catalog/catalogActionPlan.ts`
+- `src/app/catalog/catalogPreviewSession.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+
+#### No-Widening Rule
+
+- do not turn this into project commit batching
+- do not apply HDRI/environment cards from this action
+- do not bypass filters by using the full catalog source list
+- do not create a second preview-session owner
+
+#### Implementation Risks
+
+- loading all catalog items instead of only the displayed filtered set
+- loading cards that are not preview-capable
+- making the action look like it commits project content
+- duplicating preview-session state instead of reusing the existing owner
+
+#### Checklist
+
+- [x] a batch preview action is visible from the Catalog grid surface
+- [x] the action loads every currently displayed preview-capable card
+- [x] hidden filtered-out cards are skipped
+- [x] HDRI apply-only or other non-preview cards are skipped
+- [x] loaded previews appear in the existing preview-session list and can still be unloaded there
+
+#### Verification Shape
+
+Minimum verification for this phase should cover:
+
+- displayed preview-capable cards load into the temporary preview session
+- filtered-out preview-capable cards do not load
+- non-preview cards do not load
+- no project content is committed and no environment state is applied by this action
+
+#### Done Shape
+
+`Catalog-1.13` is done when:
+
+- users have one clear batch action for loading all currently displayed preview-capable cards
+- the action honors filters/search and asset-type action boundaries
+- the result remains temporary Catalog preview-session state only

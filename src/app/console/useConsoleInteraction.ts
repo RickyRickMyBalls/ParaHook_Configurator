@@ -37,7 +37,10 @@ import {
   startSketchPlaneIntent,
   type WorkspaceIntentDeps,
 } from '../store/workspaceIntents'
-import { commitWorkspaceTargetSelection } from '../store/workspaceSelectionCommands'
+import {
+  commitWorkspaceTargetSelection,
+  deleteWorkspaceSelectedEnvironmentLight,
+} from '../store/workspaceSelectionCommands'
 import { getLatestViewerCameraPose, getViewer, restoreViewerCameraPose } from '../viewerBridge'
 import { removeNode as removeNodeCommand } from '../spaghetti/graphCommands'
 import type { EditorViewportWindowMode } from '../spaghetti/schema/spaghettiTypes'
@@ -124,6 +127,7 @@ import {
 import { isEditableTarget, routeKeyboardInput } from '../inputRouting'
 import {
   frameAllCommand,
+  frameEnvironmentLightCommand,
   frameExtentsCommand,
   framePreviousCommand,
   frameReferenceCommand,
@@ -3156,12 +3160,45 @@ export function useConsoleInteraction(
             stagedResult.actionId === 'content.delete'
           ) {
             const appState = useAppStore.getState()
+            const environmentLightId = stagedResult.selections.environmentLightId ?? null
             appendConsoleEntry({
               layer: 'Commands',
               text: formatStagedBreadcrumb(stagedResult.breadcrumb),
               source: 'console',
               severity: 'info',
             })
+            if (environmentLightId !== null) {
+              const lightLabel =
+                useUiPrefsStore
+                  .getState()
+                  .view.lighting.lights.find((light) => light.id === environmentLightId)?.name ??
+                environmentLightId
+              const deletedTarget = deleteWorkspaceSelectedEnvironmentLight(
+                {
+                  setWorkspaceSelectedTarget: appState.setWorkspaceSelectedTarget,
+                  selectLight: useUiPrefsStore.getState().selectLight,
+                  deleteLight: useUiPrefsStore.getState().deleteLight,
+                  requestConsoleContextSync: appState.requestConsoleContextSync,
+                  requestConsoleWorkspaceContextHandoff:
+                    appState.requestConsoleWorkspaceContextHandoff,
+                },
+                {
+                  kind: 'environment-light',
+                  lightId: environmentLightId,
+                },
+              )
+              appendConsoleEntry({
+                layer: 'Browser',
+                text:
+                  deletedTarget === null
+                    ? 'Delete is not available for this environment object'
+                    : `Deleted ${lightLabel}`,
+                source: 'console',
+                severity: deletedTarget === null ? 'warn' : 'info',
+              })
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
             const assemblyId = stagedResult.selections.contentAssemblyId ?? null
             const componentId = stagedResult.selections.contentComponentId ?? null
             const deleteTarget =
@@ -3223,6 +3260,15 @@ export function useConsoleInteraction(
               source: 'console',
               severity: 'info',
             })
+            const environmentLightId = stagedResult.selections.environmentLightId ?? null
+            if (environmentLightId !== null) {
+              useUiPrefsStore.getState().updateLight(environmentLightId, {
+                enabled: stagedResult.actionId === 'content.visibility.show',
+              })
+              useAppStore.getState().requestConsoleContextSync('target-selection')
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
             if (
               setSelectedContentContainerVisibility({
                 assemblyId: stagedResult.selections.contentAssemblyId ?? null,
@@ -3351,6 +3397,11 @@ export function useConsoleInteraction(
             )
             const commandLabel = formatStagedBreadcrumb(stagedResult.breadcrumb)
             const selectedReferenceId = resolveSelectedReferenceIdForZoom()
+            const selectedEnvironmentLightId =
+              typeof stagedResult.selections.environmentLightId === 'string' &&
+              stagedResult.selections.environmentLightId.length > 0
+                ? stagedResult.selections.environmentLightId
+                : null
             const executeModelZoomObject = (): boolean => {
               if (stagedResult.session.scopeId === 'sketchDrawZoomRoot') {
                 return frameSelectedGeometrySketchCommand()
@@ -3384,6 +3435,24 @@ export function useConsoleInteraction(
               if (selectedObjectPartKey !== null) {
                 frameSelectedCommand(selectedObjectPartKey, undefined, zoomAnimationOptions)
                 return true
+              }
+              if (selectedEnvironmentLightId !== null) {
+                if (
+                  frameEnvironmentLightCommand(
+                    selectedEnvironmentLightId,
+                    undefined,
+                    zoomAnimationOptions,
+                  )
+                ) {
+                  return true
+                }
+                appendConsoleEntry({
+                  layer: 'Diagnostics',
+                  text: 'Zoom Object could not find the selected environment light',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                return false
               }
               if (selectedReferenceId !== null) {
                 frameReferenceCommand(selectedReferenceId, undefined, zoomAnimationOptions)
@@ -4793,6 +4862,11 @@ export function useConsoleInteraction(
             }
             const selectedReferenceId = resolveSelectedReferenceIdForZoom()
             const selectedObjectPartKey = resolveSelectedObjectPartKeyForZoom()
+            const workspaceSelectedTarget = useAppStore.getState().workspaceSelection.selectedTarget
+            const selectedEnvironmentLightId =
+              workspaceSelectedTarget?.kind === 'environment-light'
+                ? workspaceSelectedTarget.lightId
+                : null
             if (zoomAction === 'all') {
               frameAllCommand()
             } else if (zoomAction === 'extents') {
@@ -4821,6 +4895,25 @@ export function useConsoleInteraction(
                 animate: true,
                 durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
               })
+            } else if (selectedEnvironmentLightId !== null) {
+              const didFrameEnvironmentLight = frameEnvironmentLightCommand(
+                selectedEnvironmentLightId,
+                undefined,
+                {
+                  animate: true,
+                  durationMs: useUiPrefsStore.getState().cameraShortcutTransitionDurationMs,
+                },
+              )
+              if (!didFrameEnvironmentLight) {
+                appendConsoleEntry({
+                  layer: 'Diagnostics',
+                  text: 'Zoom Object could not find the selected environment light',
+                  source: 'console',
+                  severity: 'warn',
+                })
+                requestRadioBurst(flatCommandIdentity, 'enter')
+                return
+              }
             } else if (selectedReferenceId !== null) {
               frameReferenceCommand(selectedReferenceId, undefined, {
                 animate: true,

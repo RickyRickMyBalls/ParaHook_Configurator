@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import type {
+  EnvPreset,
+  EnvironmentGradeSettings,
+  EnvironmentLookSnapshot,
   LightSpec,
   LightType,
   MaterialPreset,
@@ -8,47 +11,29 @@ import type {
   Vec3,
   ViewSettings,
 } from '../../shared/viewSettingsTypes'
-import { DEFAULT_VIEW_SETTINGS } from '../../shared/viewSettingsTypes'
+import {
+  createEnvironmentLookSnapshot,
+  createHdriEnvironmentSource,
+  createEnvironmentPresetViewPatch,
+  DEFAULT_VIEW_SETTINGS,
+  normalizeViewSettings,
+  normalizeEnvironmentGrade,
+} from '../../shared/viewSettingsTypes'
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value))
-
-const cloneVec3 = (value: Vec3 | undefined): Vec3 | undefined =>
-  value === undefined ? undefined : { ...value }
-
-const cloneLight = (light: LightSpec): LightSpec => ({
-  ...light,
-  position: cloneVec3(light.position),
-  target: cloneVec3(light.target),
-})
-
-const clonePreset = (preset: MaterialPreset): MaterialPreset => ({ ...preset })
 
 const MIN_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 50
 const MAX_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 2000
 const DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS = 320
 
-const cloneView = (view: ViewSettings): ViewSettings => ({
-  ...view,
-  ground: {
-    ...view.ground,
-  },
-  axisOverlayStyle: {
-    ...view.axisOverlayStyle,
-  },
-  lighting: {
-    selectedLightId: view.lighting.selectedLightId,
-    lights: view.lighting.lights.map(cloneLight),
-  },
-  materials: {
-    selectedPresetId: view.materials.selectedPresetId,
-    usePerPart: view.materials.usePerPart,
-    presets: view.materials.presets.map(clonePreset),
-    perPart: { ...view.materials.perPart },
-  },
-})
+const normalizeEnvironmentIntensity = (value: number | undefined, fallback = 1): number =>
+  Number.isFinite(value) ? clamp(value as number, 0, 5) : fallback
 
-const createDefaultView = (): ViewSettings => cloneView(DEFAULT_VIEW_SETTINGS)
+const normalizeEnvironmentRotationDeg = (value: number | undefined): number =>
+  Number.isFinite(value) ? clamp(value as number, 0, 360) : 0
+
+const createDefaultView = (): ViewSettings => normalizeViewSettings(DEFAULT_VIEW_SETTINGS)
 
 const hasApplicablePosition = (type: LightType): boolean =>
   type === 'directional' || type === 'point' || type === 'spot'
@@ -180,6 +165,9 @@ const sanitizePreset = (preset: MaterialPreset): MaterialPreset => ({
 
 type UiPrefsState = {
   view: ViewSettings
+  capturedEnvironmentLook: EnvironmentLookSnapshot | null
+  environmentLookComparisonActive: boolean
+  environmentLookComparisonRestore: EnvironmentLookSnapshot | null
   cameraShortcutTransitionDurationMs: number
   sketchPlaneToolbarGhostPlaneScale: number
   sketchPlaneToolbarGizmoScale: number
@@ -198,6 +186,16 @@ type UiPrefsState = {
   sketchDrawPlinePointSymbolType: 'crosshair' | 'circle'
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
+  setEnvironmentGrade: (patch: Partial<EnvironmentGradeSettings>) => void
+  captureEnvironmentLook: () => void
+  recallEnvironmentLook: () => void
+  toggleEnvironmentLookComparison: () => void
+  applyEnvironmentPreset: (preset: EnvPreset) => void
+  applyHdriEnvironment: (source: { label: string; assetPath: string }) => void
+  setHdriEnvironmentBackgroundVisible: (visible: boolean) => void
+  setHdriEnvironmentIntensity: (intensity: number) => void
+  setHdriEnvironmentBackgroundIntensity: (intensity: number) => void
+  setHdriEnvironmentRotation: (rotationDeg: number) => void
   setCameraShortcutTransitionDurationMs: (value: number) => void
   setSketchPlaneToolbarGhostPlaneScale: (scale: number) => void
   setSketchPlaneToolbarGizmoScale: (scale: number) => void
@@ -230,6 +228,9 @@ type UiPrefsState = {
 
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
+  capturedEnvironmentLook: null,
+  environmentLookComparisonActive: false,
+  environmentLookComparisonRestore: null,
   cameraShortcutTransitionDurationMs: DEFAULT_CAMERA_SHORTCUT_TRANSITION_DURATION_MS,
   sketchPlaneToolbarGhostPlaneScale: 1,
   sketchPlaneToolbarGizmoScale: 1,
@@ -247,10 +248,173 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   sketchDrawPlinePointSymbolSize: 0.05,
   sketchDrawPlinePointSymbolType: 'circle',
   setView: (patch) => {
-    set({ view: { ...get().view, ...patch } })
+    set({ view: normalizeViewSettings({ ...get().view, ...patch }) })
   },
   setViewKey: (key, value) => {
-    set({ view: { ...get().view, [key]: value } })
+    set({ view: normalizeViewSettings({ ...get().view, [key]: value }) })
+  },
+  setEnvironmentGrade: (patch) => {
+    const state = get()
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        environmentGrade: normalizeEnvironmentGrade(
+          {
+            ...state.view.environmentGrade,
+            ...patch,
+          },
+          state.view.environmentGrade,
+        ),
+      }),
+    })
+  },
+  captureEnvironmentLook: () => {
+    const state = get()
+    set({
+      capturedEnvironmentLook: createEnvironmentLookSnapshot(state.view),
+      environmentLookComparisonActive: false,
+      environmentLookComparisonRestore: null,
+    })
+  },
+  recallEnvironmentLook: () => {
+    const state = get()
+    if (state.capturedEnvironmentLook === null) {
+      return
+    }
+
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        ...state.capturedEnvironmentLook,
+      }),
+      environmentLookComparisonActive: false,
+      environmentLookComparisonRestore: null,
+    })
+  },
+  toggleEnvironmentLookComparison: () => {
+    const state = get()
+    if (state.capturedEnvironmentLook === null) {
+      return
+    }
+
+    if (state.environmentLookComparisonActive) {
+      const restoreLook = state.environmentLookComparisonRestore
+      if (restoreLook === null) {
+        return
+      }
+      set({
+        view: normalizeViewSettings({
+          ...state.view,
+          ...restoreLook,
+        }),
+        environmentLookComparisonActive: false,
+        environmentLookComparisonRestore: null,
+      })
+      return
+    }
+
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        ...state.capturedEnvironmentLook,
+      }),
+      environmentLookComparisonActive: true,
+      environmentLookComparisonRestore: createEnvironmentLookSnapshot(state.view),
+    })
+  },
+  applyEnvironmentPreset: (preset) => {
+    const state = get()
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        ...createEnvironmentPresetViewPatch(preset),
+      }),
+    })
+  },
+  applyHdriEnvironment: (source) => {
+    const state = get()
+    const currentSource = state.view.environmentSource
+    const backgroundVisible =
+      currentSource.kind === 'hdri' ? currentSource.backgroundVisible ?? true : true
+    const intensity = currentSource.kind === 'hdri' ? currentSource.intensity ?? 1 : 1
+    const backgroundIntensity =
+      currentSource.kind === 'hdri'
+        ? currentSource.backgroundIntensity ?? currentSource.intensity ?? 1
+        : 1
+    const rotationDeg = currentSource.kind === 'hdri' ? currentSource.rotationDeg ?? 0 : 0
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        environmentSource: createHdriEnvironmentSource({
+          label: source.label,
+          assetPath: source.assetPath,
+          backgroundVisible,
+          intensity: normalizeEnvironmentIntensity(intensity),
+          backgroundIntensity: normalizeEnvironmentIntensity(backgroundIntensity),
+          rotationDeg: normalizeEnvironmentRotationDeg(rotationDeg),
+        }),
+      }),
+    })
+  },
+  setHdriEnvironmentBackgroundVisible: (visible) => {
+    const state = get()
+    if (state.view.environmentSource.kind !== 'hdri') {
+      return
+    }
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        environmentSource: {
+          ...state.view.environmentSource,
+          backgroundVisible: visible,
+        },
+      }),
+    })
+  },
+  setHdriEnvironmentIntensity: (intensity) => {
+    const state = get()
+    if (state.view.environmentSource.kind !== 'hdri') {
+      return
+    }
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        environmentSource: {
+          ...state.view.environmentSource,
+          intensity: normalizeEnvironmentIntensity(intensity),
+        },
+      }),
+    })
+  },
+  setHdriEnvironmentBackgroundIntensity: (intensity) => {
+    const state = get()
+    if (state.view.environmentSource.kind !== 'hdri') {
+      return
+    }
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        environmentSource: {
+          ...state.view.environmentSource,
+          backgroundIntensity: normalizeEnvironmentIntensity(intensity),
+        },
+      }),
+    })
+  },
+  setHdriEnvironmentRotation: (rotationDeg) => {
+    const state = get()
+    if (state.view.environmentSource.kind !== 'hdri') {
+      return
+    }
+    set({
+      view: normalizeViewSettings({
+        ...state.view,
+        environmentSource: {
+          ...state.view.environmentSource,
+          rotationDeg: normalizeEnvironmentRotationDeg(rotationDeg),
+        },
+      }),
+    })
   },
   setCameraShortcutTransitionDurationMs: (value) => {
     set({
@@ -340,13 +504,13 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
     })
 
     set({
-      view: {
+      view: normalizeViewSettings({
         ...state.view,
         lighting: {
           selectedLightId: light.id,
           lights: [...state.view.lighting.lights, light],
         },
-      },
+      }),
     })
   },
   deleteLight: (id) => {
@@ -357,13 +521,13 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
         ? (nextLights[0]?.id ?? null)
         : state.view.lighting.selectedLightId
     set({
-      view: {
+      view: normalizeViewSettings({
         ...state.view,
         lighting: {
           selectedLightId: nextSelected,
           lights: nextLights,
         },
-      },
+      }),
     })
   },
   updateLight: (id, patch) => {
@@ -396,13 +560,13 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
     })
 
     set({
-      view: {
+      view: normalizeViewSettings({
         ...state.view,
         lighting: {
           ...state.view.lighting,
           lights: nextLights,
         },
-      },
+      }),
     })
   },
   selectMaterialPreset: (id) => {

@@ -6,6 +6,24 @@ Numbering rule for major entries:
 - Increment by 1 for every new Codex-added section.
 
 ### Doc History
+25. 2026-04-19 10:32:03: Recorded the `Catalog-7 / Phase 3 - Predictable Filter Semantics` implementation closeout after grouped local taxonomy filters landed with OR inside selected groups, AND across selected groups, separate search narrowing, focused Catalog tests, and `npm run build`
+24. 2026-04-19 10:08:46: Repaired the Catalog-7 Phase 2 closeout for entry 1537 by moving browse sections onto `partGroups` in Part read and `platformCompatibility` in Platform read so the browse rail and visible results are no longer cosmetic, then reran the focused shell and surface tests plus `npm run build`
+23. 2026-04-19 09:48:34: Recorded the `Catalog-7 / Phase 1 - Local Taxonomy Contract And Seed Metadata` implementation closeout after the local taxonomy contract and seed metadata landed for repo-backed part families, focused contract/source tests passed, and `npm run build` passed while later browse, filter, and wheel-fitment phases remained open
+22. 2026-04-19 09:28:30: Recorded the Catalog-2.14 implementation closeout after committed shoe families started routing into the Shoes Browser branch only, later shoes reused the same parent, and user-import flattening stayed on the generic import path
+21. 2026-04-19 09:21:18: Recorded the Catalog-1.13 implementation closeout after adding the grid batch action that loads every currently displayed preview-capable Catalog card into the existing temporary preview session, routing the target set through the filtered visible card list in `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/CatalogShellGridMode.tsx`, and `src/app/catalog/catalogPreviewSession.ts`, and proving that hidden filtered-out cards, commit-only entries, and apply-environment cards stay out of the batch path with focused CatalogShell and preview-session tests plus `npm run build` verification
+20. 2026-04-19 00:14:32: Recorded the `Environment-2 / Phase 4 - Add Recall And Quick A/B Compare Helpers` implementation closeout after remembered-look capture, recall, and compare helpers landed and the Environment-2 family lane closed
+19. 2026-04-19 00:14:32: Recorded the `Environment-2 / Phase 3 - Add Persistence For Environment Look Workflows` implementation closeout after active environment look persistence landed through the existing UI/workspace seam with legacy normalization proof
+18. 2026-04-19 00:14:32: Recorded the `Environment-2 / Phase 2 - Land Photoshop-Like Grade Sliders` implementation closeout after the visible grade slider family landed on the nested environment-grade seam
+17. 2026-04-18 23:48:50: Recorded the `Environment-2 / Phase 1 - Add The Post-Look Grading Seam And Split The Owners` implementation closeout after adding explicit nested post-look grade state downstream from the existing scene and HDRI ownership seams, preserving the locked startup baseline, hiding the full Environment grade slider surface for now, and adding focused proof for default grade state, scene-versus-grade separation, and legacy normalization
+16. 2026-04-18 23:31:45: Recorded the `Environment-1` Phase 11 closeout proof and family completion after adding the final focused toolbar proof test, marking the Environment-1 lane closed without widening into Environment-2 behavior
+15. 2026-04-18 23:28:26: Recorded the `Environment-1` build-gate fixture repair after the full production build exposed two strict test typing gaps in the latest active-environment test fixtures
+14. 2026-04-18 23:24:11: Recorded the `Environment-1 / Phase 10` implementation closeout after active HDRI orientation and Browser source-row background visibility cleanup landed under Environment-owned source state
+13. 2026-04-18 23:14:35: Recorded the `Environment-1 / Phase 9` implementation closeout after active HDRI lighting intensity split from background intensity and visible active-environment tune controls landed in the Environment toolbar
+12. 2026-04-18 23:06:29: Recorded the `Environment-1 / Phase 8` implementation closeout after the active HDRI source became one Environment-owned Browser content row and the viewer gained an explicit environment-light contribution runtime seam separate from background treatment
+11. 2026-04-18 23:00:11: Recorded the `Environment-1 / Phase 7` implementation closeout after selected environment lights became the View toolbar editing source, the toolbar-local light list was retired, and Browser row eye visibility became the light on/off control
+10. 2026-04-18 23:24:00: Recorded the Dispatch-1 agent-rule update that made changelog and doc-log closeout tracking explicit for manager and worker loops
+9. 2026-04-18 23:12:00: Recorded the `Catalog-6` implementation closeout after the Catalog HDRI lane gained repo HDRI/EXR entries, local browse/apply, viewer-owned HDRI runtime state, applied controls, thumbnails, and lightweight environment preview boxes
+8. 2026-04-18 20:00:00: Recorded the `Environment-1 / Phase 6.1` implementation cut after selected environment-light deletes were routed through the shared selection path and selected environment objects started reading in Console with honest breadcrumbs and object-style actions, while leaving the later toolbar-population pass for `Phase 7`
 7. 2026-03-08 10:23: Removed planning-only entries `[132]` through `[139]` from the live changelog after moving that batch tracking back into the active `N_CodexChat.md` planning surface
 6. 2026-03-07 14:41: Updated the forward changelog title-format rule so normalized entries should use the dashed date/time layout with the canonical phase title in one backticked block
 5. 2026-03-07 14:24: Added normalized `HUMAN SUMMARY:` lines across all numbered changelog entries and reconstructed marker blocks using entry-body context so folded scanning is readable throughout the file
@@ -64,6 +82,1053 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 1539 -->
+### [1539] - 2026-04-19 10:32 - `Catalog-7 / Phase 3 - Predictable Filter Semantics`
+
+<!-- ENTRY 1539 -->
+HUMAN SUMMARY: `Catalog` local taxonomy filters now use grouped selection math: multiple values inside one group match as a union, different selected groups intersect, and search text remains a separate narrowing gate after the grouped predicate.
+
+#### Scope / Constraints Honored
+- stayed inside `Catalog-7 / Phase 3`
+- replaced the flat selected-tag filter path with grouped local taxonomy filter state on the existing Catalog shell/helper seam
+- kept Part and Platform browse presentation separate from filter math
+- did not reopen taxonomy fields, wheel fitment, PubParts, compatibility verdicts, builder slots, source intake, or dimensional checks
+- preserved imports and HDRIs as honest special lanes
+
+#### Summary of Implementation
+- added grouped local taxonomy filter options and selected-filter state for platform compatibility, part type, part groups, system, and brand
+- routed visible Catalog results through one shared predicate with OR inside a selected group and AND across selected groups
+- kept search text as a separate narrowing gate after grouped filters
+- kept displayed preview batch targets and result summaries reading from the same visible-item result set
+- added focused proof for single-group OR, multi-group AND, empty and non-empty results, search narrowing, and browse-mode interaction
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-7 - Local Part Taxonomy And Platform Filter Foundation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- selecting `Shoes` and `FootHolds` in the same Part Groups filter returns both matching item families instead of requiring an item to be both
+- combining groups such as Platform Compatibility, Part Type, and Brand returns only items satisfying every selected group
+- search remains a separate text gate that can further narrow already-filtered results
+- Part and Platform browse reads continue to change section presentation without changing grouped filter semantics
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/ui/CatalogShell.test.tsx src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogSource.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1538 -->
+### [1538] - 2026-04-19 10:08 - `Catalog-7 / Phase 2 - Part And Platform Browse Modes Repair`
+
+<!-- ENTRY 1538 -->
+HUMAN SUMMARY: `Catalog` now uses `partGroups` for Part browse sections and `platformCompatibility` for Platform browse sections, so the browse rail and visible results actually change by mode while imports and HDRIs stay on their own honest lanes.
+
+#### Scope / Constraints Honored
+- stayed inside `Catalog-7 / Phase 2`
+- kept one shared Catalog item contract
+- did not add taxonomy widening, source intake, PubParts, compatibility verdicts, filter semantics, or wheel fitment
+- preserved imports and HDRIs as special browse lanes
+
+#### Summary of Implementation
+- routed Part browse sections through structured `partGroups`
+- routed Platform browse sections through structured `platformCompatibility`
+- kept imports and HDRIs as separate special lanes in both browse modes
+- updated the focused shell and surface proofs so Platform mode now changes browse sections and visible cards, not just labels
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-7 - Local Part Taxonomy And Platform Filter Foundation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Part mode now groups visible browse sections by part metadata instead of the old section-key path
+- Platform mode now groups visible browse sections by platform compatibility values such as `ADV`, `XR`, `GT`, `Pint`, and `XR Classic`
+- the same shared Catalog records still power both reads, but the section list and visible cards now shift with the selected browse mode
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1537 -->
+### [1537] - 2026-04-19 10:02 - `Catalog-7 / Phase 2 - Part And Platform Browse Modes`
+
+<!-- ENTRY 1537 -->
+HUMAN SUMMARY: `Catalog` now switches between Part and Platform reads over the same shared item metadata contract, with the browse rail, grid intro, and card metadata all staying on one shell-owned toggle and focused shell/surface tests proving the mode switch without forking source truth.
+
+#### Scope / Constraints Honored
+- stayed inside `Catalog-7 / Phase 2`
+- added browse-mode presentation only
+- did not add taxonomy widening, filter semantics, wheel fitment, or source intake
+- kept one shared Catalog item contract and one shared Catalog shell
+
+#### Summary of Implementation
+- added a Part/Platform browse-mode toggle to the Catalog browse rail
+- routed mode-aware labels, descriptions, intro copy, search copy, and card metadata through shared helpers
+- kept the grid and browse rail reading from the same snapshot and same catalog item contract
+- added focused shell and surface tests that switch the browse mode and assert the shared contract stays intact
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-7 - Local Part Taxonomy And Platform Filter Foundation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- the Catalog shell now exposes Part and Platform browse reads as a presentation toggle
+- the selected browse read changes section descriptions, search copy, results summary, grid intro, and card browse metadata
+- the same repo-backed Catalog items continue to flow through one contract and one source snapshot
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1536 -->
+### [1536] - 2026-04-19 09:45 - `Catalog-7 / Phase 1 - Local Taxonomy Contract And Seed Metadata`
+
+<!-- ENTRY 1536 -->
+HUMAN SUMMARY: `Catalog` now carries a local taxonomy contract and seeded metadata for the repo-backed reference part families, with the source snapshot preserving those fields through imports and focused contract/source tests proving the new shape without opening browse-mode, filter-math, or wheel-fitment work.
+
+#### Scope / Constraints Honored
+- stayed inside `Catalog-7 / Phase 1`
+- added local taxonomy metadata only, without browse-mode UI, filter semantics, compatibility scoring, or wheel-specific fitment logic
+- kept the work focused on the catalog contract, seed items, and source snapshot path
+- left Phase 2 and later Catalog-7 work untouched
+
+#### Summary of Implementation
+- extended the catalog item contract with local taxonomy fields for system, platform compatibility, part type, position, product name, brand, source kind, action, and part groups
+- seeded the repo-backed Catalog reference parts with the new taxonomy values
+- preserved the taxonomy fields through the Catalog source snapshot path and imported repo-item reuse path
+- added focused contract and source tests that prove the new metadata shape
+
+#### Files Changed
+- `src/app/catalog/catalogItemContract.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogItemContract.test.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-7 - Local Part Taxonomy And Platform Filter Foundation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- repo-backed Catalog reference items now expose local taxonomy metadata for system, platform compatibility, part type, position, product name, brand, and part groups
+- source snapshots preserve that metadata for items that originate from curated repo items
+- tests now cover the contract and source shapes for the seeded reference families
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1535 -->
+### [1535] - 2026-04-19 09:28 - `Catalog-2.14 - Clean Reference Browser Collection Creation`
+
+<!-- ENTRY 1535 -->
+HUMAN SUMMARY: `Catalog` now routes committed shoe families into the Shoes Browser branch only, reusing the same parent for later shoes and leaving the generic user-import path untouched.
+
+#### Scope / Constraints Honored
+- stayed inside `Catalog-2.14`
+- did not change browse taxonomy, filters, PubParts, PubWheel, or compatibility checks
+- kept user-imported references on the existing flat import path
+- avoided default collections for uncommitted families
+
+#### Summary of Implementation
+- added a Catalog-family-key to Browser-category-id mapping for committed reference adds
+- rendered only reference categories that actually have shelf items
+- kept user-import flattening separate from Catalog commit hierarchy
+
+#### Files Changed
+- `src/app/store/useAppStore.ts`
+- `src/app/store/useAppStore.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-2 - Reference Asset Families And Explicit Load Into Project Content.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- first shoe commits now materialize the Shoes Browser branch only
+- later shoe commits reuse the same Shoes parent instead of creating sibling empty branches
+- user imports still flatten through the generic import path
+
+#### Verification Steps
+- `cmd /c npm test -- --run src/app/store/useAppStore.test.ts -t "creates only the shoes Browser hierarchy|flattens ungrouped imported references directly under References in browser content rows|builds the static reference workspace tree and toggles category visibility as viewer-only state"`
+- `cmd /c npm test -- --run src/app/store/useAppStore.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogReferenceCommit.test.ts`
+- `npm run build`
+
+<!-- ENTRY 1534 -->
+### [1534] - 2026-04-19 09:21 - `Catalog-1.13 - Load All Displayed Preview-Capable Cards`
+
+<!-- ENTRY 1534 -->
+HUMAN SUMMARY: Added one Catalog grid batch action that loads every currently displayed preview-capable card into the existing temporary preview session while skipping filtered-out cards, commit-only entries, and apply-environment entries.
+
+#### Scope / Constraints Honored
+- kept the work inside `Catalog-1.13`
+- reused the existing Catalog preview-session owner
+- derived the target set from the filtered visible grid items
+- did not add project commit batching or environment apply behavior
+
+#### Summary of Implementation
+- added a displayed-preview target resolver that accepts the current visible Catalog item list and keeps only temporary-preview-capable items
+- added the `Load All Displayed Previews` grid action and wired it into the existing preview-session update path
+- kept the action disabled when no displayed card can load preview
+- moved the new UI proof to a lightweight `CatalogShell` test so the phase no longer depends on the heavier full `CatalogSurface` test file
+
+#### Files Changed
+- `src/app/catalog/catalogPreviewSession.ts`
+- `src/app/catalog/catalogPreviewSession.test.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+- `src/app/catalog/ui/CatalogShell.test.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-1 - Workspace Foundation And Catalog Contract.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Catalog now exposes one explicit grid action for loading all currently displayed preview-capable cards.
+- The action honors active filtering/search and does not load hidden, commit-only, or environment-apply cards.
+- Loaded results remain temporary Catalog preview-session state only.
+
+#### Verification Steps
+- `node_modules\.bin\vitest.cmd run src/app/catalog/catalogPreviewSession.test.ts src/app/catalog/ui/CatalogShell.test.tsx --reporter=default --pool=forks --poolOptions.forks.singleFork=true`
+- `npm.cmd run build`
+
+<!-- ENTRY 1533 -->
+### [1533] - 2026-04-19 00:13 - `Environment-2 - Phase 4 - Add Recall And Quick A/B Compare Helpers`
+
+<!-- ENTRY 1533 -->
+HUMAN SUMMARY: Added the Environment-2 capture, recall, and quick A/B compare helpers on top of the persisted environment look seam, kept the helper state ephemeral so it stays downstream from scene ownership, and closed Environment-2 honestly after the final workflow polish landed.
+
+#### Scope / Constraints Honored
+- kept the work inside `Environment-2 / Phase 4`
+- kept compare behavior downstream from the persisted grade and look seam
+- kept the remembered-look helper state out of the persisted view snapshot
+- did not reopen the locked startup scene or add any new scene owner
+
+#### Summary of Implementation
+- added a remembered environment-look snapshot slot plus capture, recall, and compare-toggle actions in the UI prefs store
+- exposed the remembered-look helpers in the Environment toolbar with capture, recall, and A/B compare buttons plus a status readout
+- added focused store, persistence, and toolbar tests that cover capture/recall/compare behavior, persistence interaction, and scene/HDRI ownership guardrails
+- updated the Environment-2 future doc and Environment index to close the lane honestly
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-2 - Photoshop-Like Grade Controls, Persistence, And Workflow Polish.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- users can now capture the current environment look, recall that remembered look, and toggle a quick A/B compare without creating a second scene owner
+- helper state for the remembered look stays outside the persisted view snapshot
+- the environment workflow now closes honestly at Environment-2 after recall and compare polish
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/components/ViewToolbar.test.tsx` passed
+- `npm.cmd exec tsc -- --noEmit --pretty false` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1532 -->
+### [1532] - 2026-04-19 00:00 - `Environment-2 - Phase 3 - Add Persistence For Environment Look Workflows`
+
+<!-- ENTRY 1532 -->
+HUMAN SUMMARY: Added the environment look persistence bridge so the active view state now saves and restores through the existing UI/workspace seam, older saved views normalize safely, and `Environment-2` can move to Phase 4 without becoming a second scene owner.
+
+#### Scope / Constraints Honored
+- kept the locked startup baseline intact
+- used the existing view/workspace persistence seam instead of adding a new look owner
+- normalized legacy saved views that were missing the nested `environmentGrade` state
+- kept scene/source settings and environment grading together in the saved environment view state
+
+#### Summary of Implementation
+- added a narrow persisted UI-prefs snapshot wrapper for the environment view state
+- added a hydration bridge that reads local storage on mount and writes normalized snapshots back through the current store
+- carried `environmentGrade` plus the existing scene/source settings through the persistence path
+- wired the bridge into `AppShell` so the active environment look persists automatically
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-2 - Photoshop-Like Grade Controls, Persistence, And Workflow Polish.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- active environment look state now persists across reloads through the existing UI/workspace persistence seam
+- older saved environment views without the nested grade shape now load through normalization instead of failing or dropping the grade contract
+- the saved view still stays downstream from scene and HDRI ownership
+
+#### Verification Steps
+- focused persistence-store, toolbar, and viewer tests passed
+- `npm.cmd exec tsc -- --noEmit --pretty false` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1531 -->
+### [1531] - 2026-04-18 23:52 - `Environment-2 - Phase 2 - Land Photoshop-Like Grade Sliders`
+
+<!-- ENTRY 1531 -->
+
+HUMAN SUMMARY: `This lands the visible Environment-2 Photoshop-like grade surface on top of the nested environment-grade seam, keeps the controls downstream from the active scene or HDRI source, and adds focused proof for the toolbar, store, and viewer paths without opening persistence or compare yet.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-2 / Phase 2` and did not implement persistence, recall, or compare helpers.
+- Kept the scene-versus-grade split downstream from the existing scene and HDRI ownership seams.
+- Left `Environment-1`, Catalog, and workspace ownership unchanged.
+
+#### Summary of Implementation
+- Widened the shared `environmentGrade` contract to carry exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, and saturation.
+- Added a store action for patching the nested grade state while preserving the current environment look ownership path.
+- Rendered the visible Photoshop-like Environment grade slider surface in the View toolbar and kept it attached to the active environment look.
+- Taught the viewer to consume the richer grade state by applying the exposure seam and a lightweight canvas filter treatment for the remaining grade controls.
+- Added focused tests for slider rendering, store updates and normalization, HDRI ownership stability, and viewer application behavior.
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/viewer/Viewer.test.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/browserTreeRowPresenter.test.tsx`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-2 - Photoshop-Like Grade Controls, Persistence, And Workflow Polish.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Environment grading now exposes the visible Photoshop-like slider family instead of only the hidden phase-1 seam.
+- Grade edits stay downstream from the active environment look, and HDRI ownership remains HDRI ownership when the grade changes.
+- The viewer now applies the richer grade seam instead of only reading exposure and tone mapping.
+
+#### Verification Steps
+- `npm.cmd exec vitest run src/app/store/uiPrefsStore.test.ts src/app/components/ViewToolbar.test.tsx src/viewer/Viewer.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserTreeRowPresenter.test.tsx src/app/panels/browserTreeSections.test.tsx src/app/panels/selectBrowserTreeRows.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1530 -->
+### [1530] - 2026-04-18 23:48 - `Environment-2 - Phase 1 - Add The Post-Look Grading Seam And Split The Owners`
+
+<!-- ENTRY 1530 -->
+
+HUMAN SUMMARY: `This lands the narrow Environment-2 phase 1 seam by moving post-look grading into its own nested environment-grade state, keeping the startup baseline locked, hiding the full slider surface for now, and proving the default, separation, and normalization paths without reopening Environment-1 scene ownership.`
+
+#### Scope / Constraints Honored
+- Kept the work inside `Environment-2 / Phase 1` and stopped before the Photoshop-like slider surface.
+- Preserved the locked startup baseline and did not change startup scene appearance.
+- Kept scene ownership, HDRI ownership, persistence/recall/compare helpers, and unrelated Catalog/workspace work out of scope.
+
+#### Summary of Implementation
+- Added explicit nested `environmentGrade` state in the shared view settings model so post-look grading now sits downstream from the existing scene and HDRI state.
+- Normalized legacy top-level grade fields into the new nested shape so older stored views can migrate into the new contract without changing the visible baseline.
+- Removed the visible Environment grade slider surface from the toolbar for this phase and replaced it with a small staged-note read so the seam exists without exposing the later controls yet.
+- Updated viewer and Browser source-row contracts to read the new nested grade state.
+- Added focused tests for default grade state, scene-versus-grade separation, Browser row shape, and migration/normalization behavior.
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/browserTreeRowPresenter.test.tsx`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-2 - Photoshop-Like Grade Controls, Persistence, And Workflow Polish.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Environment post-look grading now has its own explicit nested state and ownership boundary downstream from the existing scene and HDRI contract.
+- The visible full slider surface is still hidden for this phase, so the startup look stays unchanged.
+- Legacy grade fields normalize into the new nested shape instead of remaining as direct top-level view state.
+
+#### Verification Steps
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+- `npm.cmd exec vitest run src/app/store/uiPrefsStore.test.ts src/app/components/ViewToolbar.test.tsx src/viewer/Viewer.test.ts src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserInteractions.test.ts src/app/panels/browserTreeRowPresenter.test.tsx src/app/panels/browserTreeSections.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1529 -->
+### [1529] - 2026-04-18 23:31 - `Environment-1 - Phase 11 - Add Focused End-To-End Proof And Family Closeout`
+
+<!-- ENTRY 1529 -->
+
+HUMAN SUMMARY: `This closes the first Environment lane with a final focused proof test that keeps the baseline preset, preset divergence and reapply path, active HDRI tuning, and the existing Browser and viewer proof surfaces aligned without widening into Environment-2.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 11` closeout proof and family completion.
+- Preserved the locked startup baseline and did not widen into grading, persistence, or any `Environment-2` behavior.
+- Kept the closeout honest by recording the final proof instead of reopening earlier environment design work.
+
+#### Summary of Implementation
+- Added one focused toolbar proof test that exercises the baseline preset read, preset divergence and reapply path, and active HDRI tuning controls in the Environment section.
+- Left the existing Browser and viewer proof surfaces intact so the Environment-1 lane still reads honestly across the Browser row contract, selection-driven toolbar editing, and HDRI runtime seams.
+- Marked `Environment-1` as fully closed in the family future doc and umbrella index.
+
+#### Files Changed
+- `src/app/components/ViewToolbar.test.tsx`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- None. This is proof and closeout history only.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx src/app/panels/browserTreeSections.test.tsx src/app/panels/browserTreeRowPresenter.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1528 -->
+### [1528] - 2026-04-18 23:28 - `Environment-1 - Build Gate Fixture Repair`
+
+<!-- ENTRY 1528 -->
+
+HUMAN SUMMARY: `This fixes the two strict TypeScript test-fixture gaps that blocked the full production build after the latest Environment-1 active-environment work, keeping the repair scoped to tests and preserving the shipped runtime behavior.`
+
+#### Scope / Constraints Honored
+- Kept the repair scoped to the full `npm run build` blocker found during Environment-1 manager review.
+- Did not change active environment runtime behavior, startup baseline state, HDRI controls, Browser behavior, grading, persistence, or `Environment-2`.
+- Preserved the already-landed `Environment-1 / Phase 10` implementation shape.
+
+#### Summary of Implementation
+- Updated the active-environment toolbar test helper to use the test-owned container after setup, satisfying strict null checking.
+- Updated the Browser environment-source test fixture to include the required `backgroundVisible` field introduced by the active HDRI source-row visibility contract.
+
+#### Files Changed
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- None. This is a test-fixture build-gate repair only.
+
+#### Verification Steps
+- `npm.cmd run build`
+
+<!-- ENTRY 1527 -->
+### [1527] - 2026-04-18 23:24 - `Environment-1 - Phase 10 - Add Basic Orientation And Final Environment-Object Cleanup`
+
+<!-- ENTRY 1527 -->
+
+HUMAN SUMMARY: `This adds the narrow HDRI orientation control that the live runtime now materially benefits from, and cleans up the active Environment source visibility path so Browser, toolbar, and viewer all route through Environment-owned source state without changing the locked startup baseline.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 10`.
+- Preserved the current startup scene as the locked default baseline.
+- Did not widen into Photoshop-like grading, persistence, compare workflow, Catalog browseable HDRI ownership, `Environment-2`, final family proof, or family closeout.
+- Kept active HDRI/source and light objects under one Environment owner.
+
+#### Summary of Implementation
+- Added HDRI-only `rotationDeg` state to `EnvironmentSourceSettings` with neutral preset and custom defaults.
+- Added store normalization plus a dedicated HDRI orientation mutation, preserving orientation when swapping one active HDRI source for another.
+- Added an HDRI-only `Orientation` control to the View toolbar `Active Environment` surface.
+- Applied active HDRI orientation to viewer `scene.environmentRotation` and `scene.backgroundRotation` so lighting and visible background stay aligned.
+- Added Browser active HDRI source-row visibility routing through the normal row eye to environment-owned background visibility, while light-row visibility continues to use `LightSpec.enabled`.
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeRowPresenter.test.tsx`
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Active HDRI/EXR environments can now be rotated from the Environment toolbar without affecting preset startup behavior.
+- The viewer now applies HDRI orientation to both environment lighting contribution and visible HDRI background treatment.
+- The Browser active HDRI source row now uses its visibility eye to show or hide the HDRI background through the same environment-owned state used by the toolbar.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/components/ViewToolbar.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserTreeRowPresenter.test.tsx src/app/panels/selectBrowserTreeRows.test.ts src/viewer/Viewer.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+<!-- ENTRY 1526 -->
+### [1526] - 2026-04-18 23:14 - `Environment-1 - Phase 9 - Add Environment Intensity And Background-Versus-Lighting Separation`
+
+<!-- ENTRY 1526 -->
+
+HUMAN SUMMARY: `This makes the Phase 8 HDRI runtime practically tunable by splitting active HDRI lighting intensity from background intensity and surfacing those controls in the Environment toolbar without changing the locked startup baseline.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 9`.
+- Preserved the current startup scene as the locked default baseline.
+- Did not widen into Photoshop-like grading sliders, HDRI browsing or Catalog ownership, persistence, compare workflow, orientation cleanup, broad workflow polish, or `Environment-2`.
+- Kept the new tune behavior opt-in through active HDRI environment state.
+
+#### Summary of Implementation
+- Extended active environment source state with a separate `backgroundIntensity` value while keeping preset and custom sources neutral.
+- Added store-owned HDRI background-intensity mutation alongside existing HDRI apply, background-visibility, and lighting-intensity updates.
+- Added HDRI-only `Active Environment` controls in the View toolbar for lighting intensity, background visibility, and background intensity.
+- Routed the viewer background runtime to `scene.backgroundIntensity` independently from `scene.environmentIntensity`.
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Applying an HDRI now keeps lighting intensity and background intensity as separate active environment values.
+- The Environment toolbar now shows active HDRI tune controls when an HDRI/EXR source is applied and leaves preset baseline startup behavior unchanged.
+- The viewer applies separate environment and background intensity values for HDRI runtime treatment.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/store/uiPrefsStore.test.ts src/app/components/ViewToolbar.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+<!-- ENTRY 1525 -->
+### [1525] - 2026-04-18 23:06 - `Environment-1 - Phase 8 - Add Active HDRI Ownership And The First True Environment-Light Runtime`
+
+<!-- ENTRY 1525 -->
+
+HUMAN SUMMARY: `This makes the active HDRI read as one Environment-owned Browser content entry and gives the viewer a true HDRI lighting contribution seam separate from background treatment, while preserving the locked startup baseline and existing direct-light ownership.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 8`.
+- Preserved the current startup scene as the locked default baseline.
+- Did not widen into visible environment intensity controls, background-versus-lighting tune controls, HDRI orientation, grading, persistence, Catalog browseable HDRI ownership, or `Environment-2`.
+- Kept direct lights as direct-light truth; the HDRI runtime adds the first environment-light contribution instead of replacing the key, fill, and rim light model.
+
+#### Summary of Implementation
+- Tightened the Browser `Content > Environment` source child into one active `environment-source` row so HDRI source identity is Environment-owned instead of preset-id-shaped.
+- Split the viewer HDRI apply path into explicit background-treatment and environment-light contribution helpers.
+- Applied loaded HDRI textures to `scene.environment` for model lighting while keeping `scene.background` as its own treatment path.
+- Added focused proof that an active HDRI can affect lighting directly, keep the background hidden when requested, and preserve existing direct lights.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/viewer/Viewer.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Browser now represents the active environment source, including an HDRI, as one Environment-owned content row.
+- Applying an HDRI can contribute model lighting through the viewer environment texture instead of only changing the background.
+- HDRI background display and HDRI lighting contribution now have distinct runtime apply helpers ready for later Phase 9 tuning.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserTreeSections.test.tsx src/viewer/Viewer.test.ts`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+<!-- ENTRY 1524 -->
+### [1524] - 2026-04-18 23:00 - `Environment-1 - Phase 7 - Route Selected Lights Into The Toolbar`
+
+<!-- ENTRY 1524 -->
+
+HUMAN SUMMARY: `This routes environment-light editing through the selected Browser or viewport light, removes the old competing toolbar-local light selector, and makes the Browser row eye the only light on/off control for this phase.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 7`.
+- Preserved the current startup scene as the locked default baseline.
+- Did not widen into true environment-light runtime, HDRI browsing, environment intensity, background-versus-lighting separation, grading, persistence, or `Environment-2`.
+- Kept selected-light movement owned by the already-landed shared View Transform path.
+
+#### Summary of Implementation
+- Retired the View toolbar's older light list, row selector, row delete button, and selected-light enabled selector so the toolbar no longer competes with Browser or viewport selection.
+- Kept one selected-light editor in the Environment toolbar that follows `view.lighting.selectedLightId` and uses existing para-style controls for light settings.
+- Added environment-light Browser row visibility-eye support and routed eye clicks through the Browser interaction seam to update `LightSpec.enabled`.
+- Added focused proof that the toolbar no longer renders the local light list, selected-light settings remain editable, Browser light rows render an eye, and the eye updates light enabled state.
+
+#### Files Changed
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeRowPresenter.test.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Selecting an environment light in Browser or the viewport now drives the Environment toolbar's selected-light editor instead of requiring a toolbar-local light list click.
+- Light visibility is controlled from the Browser eye and updates the same environment-owned light spec used by the viewer.
+- The toolbar remains available for selected-light setting edits, while selected-light movement stays in the shared View Transform toolbar.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx src/app/panels/browserInteractions.test.ts src/app/panels/browserTreeRowPresenter.test.tsx`
+- `npm.cmd exec tsc -- --noEmit --pretty false`
+
+<!-- ENTRY 1523 -->
+### [1523] - 2026-04-18 23:24 - `Dispatch-1 - Changelog And Doc-Log Closeout Gate`
+
+<!-- ENTRY 1523 -->
+
+HUMAN SUMMARY: `This tightens the reusable Dispatch-1 manager/worker loop so shipped implementation and closeout work cannot be called complete unless the relevant changelog and doc-log tracking is handled or explicitly reported as incomplete.`
+
+#### Scope / Constraints Honored
+- Kept the change scoped to the reusable `Dispatch-1` agent docs.
+- Did not change family-specific Catalog or Environment implementation behavior.
+- Preserved the existing planning ladder, one-task worker shape, and manager sequencing ownership.
+
+#### Summary of Implementation
+- Added a shared closeout tracking rule requiring `docs/CHANGELOG.md` for shipped permanent completed-work history and `docs/Doc-Log.md` for changed-file history.
+- Updated the worker guide so implementation and family closeout tasks must check phase docs, owning indexes, changelog, and doc log before reporting completion.
+- Updated the manager guide so review includes changelog/doc-log gates before accepting an implemented or closed-out phase.
+
+#### Files Changed
+- `docs/Agents/Dispatch-1/Dispatch-Shared-Rules.md`
+- `docs/Agents/Dispatch-1/Dispatch-Worker-Agent.md`
+- `docs/Agents/Dispatch-1/Dispatch-Manager-Agent.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Future dispatch loops now treat changelog and doc-log entries as closeout gates for shipped implementation or major completed docs/system lanes.
+
+#### Verification Steps
+- `Select-String -Path docs/Agents/Dispatch-1/*.md -Pattern 'CHANGELOG.md|Doc-Log.md|Closeout Tracking|changelog status|doc-log status'`
+- `git diff --check -- docs/Agents/Dispatch-1/Dispatch-Shared-Rules.md docs/Agents/Dispatch-1/Dispatch-Worker-Agent.md docs/Agents/Dispatch-1/Dispatch-Manager-Agent.md docs/CHANGELOG.md docs/Doc-Log.md`
+
+<!-- ENTRY 1522 -->
+### [1522] - 2026-04-18 23:12 - `Catalog-6 - HDRI Repo Expansion And Cleanup`
+
+<!-- ENTRY 1522 -->
+
+HUMAN SUMMARY: `This closes Catalog-6 by expanding the Catalog HDRI lane from the earlier single baseline into real repo-backed HDRI/EXR entries, local HDRI/EXR browse/apply, viewer-owned environment runtime state, applied controls, thumbnails, and lightweight environment preview boxes.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-6` and its `Catalog-6.1` through `Catalog-6.6` child cuts.
+- Preserved Catalog reference `Add To Project` behavior as Browser/project content ownership.
+- Kept HDRI and EXR apply behavior in viewer/environment ownership instead of creating Browser/project geometry.
+- Did not widen into PubParts intake, Generation 2 external catalog integration, production grading controls, or unrelated Catalog search/identity work.
+
+#### Summary of Implementation
+- Listed the current repo HDRI/EXR files under `public/HDRI` as Catalog environment entries with honest labels, formats, tags, and thumbnail paths.
+- Added real HDRI/EXR environment apply identity so `Apply Environment` carries label, asset path, and file type through the Catalog apply contract.
+- Added local `.hdr` and `.exr` browse/apply from the Catalog environment surface.
+- Added viewer-owned HDRI state for background visibility and intensity, plus runtime loading through Three `RGBELoader` and `EXRLoader`.
+- Added Catalog grid and item-page controls for applied HDRI background visibility and intensity.
+- Added lightweight HDRI thumbnail assets and simple environment preview boxes for HDRI cards and item pages.
+- Closed `Catalog-6` in the standalone future doc and umbrella Catalog index.
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-6 - HDRI Repo Expansion And Cleanup.md`
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogItemContract.ts`
+- `src/app/catalog/catalogItemContract.test.ts`
+- `src/app/catalog/catalogEnvironmentApply.ts`
+- `src/app/catalog/catalogEnvironmentApply.test.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/theme/surfaces/catalog.css`
+- `src/viewer/Viewer.ts`
+- `public/CatalogPreviews/environments/citrus-orchard-road-puresky-2k.svg`
+- `public/CatalogPreviews/environments/docklands-02-2k.svg`
+- `public/CatalogPreviews/environments/rogland-clear-night-2k.svg`
+- `public/CatalogPreviews/environments/studio-small-09-2k.svg`
+
+#### Behavior Changes
+- Catalog now surfaces every current repo HDRI/EXR as a selectable environment item.
+- Users can browse for local `.hdr` or `.exr` files and apply them to the scene from Catalog.
+- Applied HDRI/EXR environments can show or hide their background and tune intensity.
+- HDRI/EXR cards now read visually as environment entries instead of failed geometry preview cards.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/catalog/catalogSource.test.ts src/app/catalog/catalogEnvironmentApply.test.ts src/app/catalog/catalogItemContract.test.ts src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts src/app/store/uiPrefsStore.test.ts`
+- `npm.cmd run build`
+- `git diff --check`
+- `Invoke-WebRequest -Uri 'http://localhost:5173/' -UseBasicParsing -TimeoutSec 10`
+
+<!-- ENTRY 1521 -->
+### [1521] - 2026-04-18 19:10 - `Environment-1 - Phase 5.2 - Browser Environment Row Visual Parity`
+
+HUMAN SUMMARY: `This closes Environment-1 Phase 5.2 by routing Browser Environment rows through the mature content-row chrome used by Assembly and References, removing the bespoke environment state-bar branch, and preserving the Phase 5.1 Browser row contract.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 5.2`.
+- Did not add delete-key behavior, Console breadcrumbs/actions, toolbar population, true HDRI runtime, viewport helper behavior, or startup lighting changes.
+- Preserved the Phase 5.1 Environment row ids, child ordering, and environment-owned selection and row-resolution behavior.
+
+#### Summary of Implementation
+- Routed Environment Browser rows through the mature content-row chrome path.
+- Reused the normal `BrowserContentStateBar--done` treatment instead of the custom `BrowserContentStateBar--environment` branch.
+- Added focused presenter and Browser section tests to pin the visual parity contract.
+
+#### Files Changed
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/theme/surfaces/browser.css`
+- `src/app/panels/browserTreeRowPresenter.test.tsx`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+
+#### Behavior Changes
+- Environment root and child rows now read with the same polished Browser row language as the mature content rows.
+- The Environment rows no longer depend on the bespoke unstyled environment state-bar branch.
+- Phase 5.1 row identity and selection behavior stay intact.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/browserTreeSections.test.tsx src/app/panels/browserTreeRowPresenter.test.tsx`
+- `npx.cmd tsc --noEmit --pretty false`
+
+<!-- ENTRY 1520 -->
+### [1520] - 2026-04-18 18:45 - `Environment-1 - Phase 5.1 - Normalize The Browser Environment Tree Row Hierarchy`
+
+HUMAN SUMMARY: `This closes Environment-1 Phase 5.1 by turning Browser Environment from a boxed subsection into a normal Content tree row, adding current source and active light children from shared environment truth, and mapping environment-light targets back to Browser row ids without claiming true HDRI runtime.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 5.1`.
+- Did not implement `Phase 6.1`, delete-key handling, Console actions, selected-light toolbar population, transform controls, true HDRI runtime, or environment intensity/orientation.
+- Kept Browser rows downstream from shared environment truth instead of adding Browser-local environment state.
+
+#### Summary of Implementation
+- Replaced the boxed Browser `Environment` subsection with a normal `Content > Environment` tree row.
+- Added the current environment source row and active environment light rows as children under that collection row.
+- Resolved shared `environment-light` targets to matching Browser row ids such as `environment-light-row:<lightId>`.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `src/app/panels/browserInteractions.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+
+#### Behavior Changes
+- Browser `Content` now renders `Environment` as a real tree row with derived child rows instead of a custom boxed subsection.
+- Environment source wording stays limited to current source/preset language and does not claim true HDRI lighting contribution.
+- Viewport/shared environment-light selections can highlight the matching Browser row id.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/panels/selectBrowserTreeRows.test.ts src/app/panels/browserTreeSections.test.tsx src/app/panels/browserInteractions.test.ts`
+- `npx.cmd tsc --noEmit --pretty false`
+
+<!-- ENTRY 1519 -->
+### [1519] - 2026-04-18 17:48 - `Environment-1 - Phase 6 - Viewport Light Objects And Shared Selection`
+
+HUMAN SUMMARY: `This closes Environment-1 Phase 6 by rendering environment lights as wireframe viewport objects, giving each light type one honest lightweight shape, and keeping Browser rows plus viewport picks on one shared selected environment-object contract while preserving the startup baseline and leaving toolbar population for the next phase.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 6`.
+- Preserved the shipped startup baseline as the locked default scene.
+- Kept toolbar population from the selected light out of scope.
+- Kept true environment-light runtime out of scope.
+- Kept filled light meshes out of scope; the viewport helpers remain wireframes only.
+
+#### Summary of Implementation
+- Added wireframe viewport helpers for environment lights in `Viewer.ts`.
+- Added one honest object-shape language for point, spot, directional, hemisphere, and ambient-style lights.
+- Added the shared environment-object selection contract so Browser rows and viewport picks resolve to the same selected environment light.
+- Added focused proof in `src/viewer/Viewer.test.ts` and `src/app/panels/browserInteractions.test.ts`.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/viewer/workspaceSelectionWindow.ts`
+- `src/app/store/useAppStore.ts`
+- `src/app/store/workspaceSelectionCommands.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/app/panels/browserInteractions.ts`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/app/panels/BrowserPanel.test.tsx`
+- `src/app/panels/browserInteractions.test.ts`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- Ran focused Vitest coverage for the Browser environment-light selection path.
+- Ran focused Vitest coverage for the viewport environment-light helper and pick path.
+
+<!-- ENTRY 1518 -->
+### [1518] - 2026-04-18 17:34 - `Environment-1 - Phase 5 - Browser Environment Section And Rows`
+
+HUMAN SUMMARY: `This closes Environment-1 Phase 5 by adding one dedicated Browser Environment section with active light and HDRI rows that stay downstream from environment-owned truth, while preserving the startup baseline and leaving viewport light objects for the next phase.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 5`.
+- Preserved the shipped startup baseline as the locked default scene.
+- Kept viewport wireframe light objects and selection-driven toolbar routing out of scope.
+- Kept Browser rows downstream from environment-owned truth instead of inventing Browser-local environment state.
+
+#### Summary of Implementation
+- Added a dedicated Browser `Environment` section in the shared Browser tree rows.
+- Added Browser rows for active environment lights and the chosen HDRI from the shared environment view truth.
+- Kept the Browser row contract honest so preset divergence and selected-light state can still be read without making Browser a second environment owner.
+- Added focused proof in `src/app/panels/selectBrowserTreeRows.test.ts` and `src/app/panels/browserTreeSections.test.tsx`.
+
+#### Files Changed
+- `src/app/panels/selectBrowserTreeRows.ts`
+- `src/app/panels/browserRowFamilies.ts`
+- `src/app/panels/browserTreeRowPresenter.tsx`
+- `src/app/panels/browserTreeSections.tsx`
+- `src/app/panels/BrowserPanel.tsx`
+- `src/app/panels/useBrowserPanelController.ts`
+- `src/app/panels/selectBrowserTreeRows.test.ts`
+- `src/app/panels/browserTreeSections.test.tsx`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The Browser now shows an explicit `Environment` section with active lights and the chosen HDRI as rows.
+- The Browser Environment rows mirror shared environment truth instead of keeping a hidden Browser-local owner.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/panels/selectBrowserTreeRows.test.ts -t "derives browser environment rows from the shared view environment truth"`
+- `npm.cmd test -- --run src/app/panels/browserTreeSections.test.tsx -t "renders the environment subsection above project content rows"`
+- `npm.cmd test -- --run src/app/panels/BrowserPanel.test.tsx -t "keeps imported reference multi-select rows grouped through drag start"`
+
+<!-- ENTRY 1517 -->
+### [1517] - 2026-04-18 17:30 - `Environment-1 - Phase 4 - Visible Environment Tuning Surface`
+
+HUMAN SUMMARY: `This closes Environment-1 Phase 4 by turning the Environment section into a practical visible tuning surface with quick studio controls, a truthful preset-versus-custom read, and a simple reapply path for the selected named preset, while keeping the startup baseline and later HDRI or Browser rows out of scope.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 4`.
+- Preserved the shipped startup baseline as the locked default scene.
+- Kept Browser `Environment` rows, viewport light objects, and true HDRI runtime out of scope.
+- Used the existing para-style control family where it fit naturally.
+
+#### Summary of Implementation
+- Kept the Environment section centered on the active preset surface instead of widening into later-family runtime work.
+- Added quick studio tuning controls for tone mapping and exposure in the Environment section.
+- Made the visible preset-versus-custom read honest with divergence copy and a reapply button for the selected preset.
+- Added focused proof in `src/app/components/ViewToolbar.test.tsx` and `src/viewer/Viewer.test.ts` for the new tuning surface and preserved startup baseline.
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/viewer/Viewer.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The Environment toolbar now shows a visible tune surface for tone mapping and exposure alongside the preset picker.
+- The selected preset is now presented honestly when the live scene diverges, and the user can reapply the selected preset from the same surface.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx -t "renders para-style view controls and keeps non-environment toggles on the shared view seam"`
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx -t "renders para-style core environment controls and keeps preset plus add-light type ownership intact"`
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts -t "applies the retuned default environment baseline through the existing runtime seams"`
+
+<!-- ENTRY 1516 -->
+### [1516] - 2026-04-18 16:49 - `Environment-1 - Phase 3 - Named Preset Honesty Follow-Through`
+
+HUMAN SUMMARY: `This closes the remaining Environment-1 Phase 3 honesty follow-through by surfacing when exposure or lighting edits diverge from the selected named preset, moving preset background behavior into the shared preset-definition seam, and leaving Phase 4 as the next visible tuning cut without widening the family.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Environment-1 / Phase 3`.
+- Preserved the startup baseline as the default named scene choice.
+- Kept Browser-light, HDRI runtime, and grading work out of scope.
+- Used the shared preset truth seam instead of adding a later-family tuning surface.
+
+#### Summary of Implementation
+- Added a shared environment preset read helper in `src/shared/viewSettingsTypes.ts` that compares the active scene against the selected preset definition.
+- Updated `src/app/components/ViewToolbar.tsx` so the visible environment surface now tells the user when the live scene has diverged from the selected preset.
+- Moved preset background ownership in `src/viewer/Viewer.ts` to the shared preset-definition seam instead of a local `envPreset` branch.
+- Added focused proof in `src/app/components/ViewToolbar.test.tsx` and `src/viewer/Viewer.test.ts` for divergence honesty and shared preset background application.
+
+#### Files Changed
+- `src/shared/viewSettingsTypes.ts`
+- `src/app/components/ViewToolbar.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewToolbar.test.tsx`
+- `src/viewer/Viewer.test.ts`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Future/Environment_Phase Environment-1 - Default Lighting, Presets, And HDRI Runtime.md`
+- `docs/Human-Plans/Architecture/View-Toolbar/Environment/Environment-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Selected named presets now show an honest divergence read when manual exposure or lighting edits move the live scene away from the preset definition.
+- Background handling for named presets now comes from the shared preset-definition seam instead of a viewer-local branch by preset id.
+
+#### Verification Steps
+- `npm.cmd test -- --run src/app/components/ViewToolbar.test.tsx -t "renders para-style core environment controls and keeps preset plus add-light type ownership intact"`
+- `npm.cmd test -- --run src/viewer/Viewer.test.ts -t "applies the retuned default environment baseline through the existing runtime seams"`
+
+<!-- ENTRY 1515 -->
+### [1515] - 2026-04-18 14:41 - `Catalog-5 - Project Recall And Catalog Item Identity Follow-Through`
+
+HUMAN SUMMARY: `This closes the final Generation 1 Catalog lane by preserving curated Catalog identity through the repo-backed \`Add To Project\` handoff, carrying that identity onto imported references and exploded children, and rebuilding imports reuse cards from the remembered curated source when possible so Catalog can honestly remember what was chosen without becoming the hidden runtime owner. The same pass also records that \`Catalog-6\` is not needed because the remaining Generation 1 wishlist now fits inside completed \`Catalog-3\`, \`Catalog-4\`, and \`Catalog-5\`.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-5`.
+- Preserved Browser/content ownership after commit instead of turning Catalog into runtime truth.
+- Reused the existing Catalog imports reuse surface instead of inventing a separate memory subsystem.
+- Used one final changelog entry for the completed family phase.
+
+#### Summary of Implementation
+- Widened `CatalogReferenceCommitRequest` and the `CatalogSurface` add-to-project handoff so repo-backed commits carry `catalogItemId` and `catalogFamilyKey`.
+- Widened `ImportedReferenceRecord` plus `addImportedReference(...)` to preserve remembered Catalog identity, and carried that identity through exploded imported-reference children.
+- Widened `catalogSource.ts` so imports reuse cards rebuild from the remembered curated source when the source Catalog item still exists, including remembered metadata, notes, preview media, and project-usage counts.
+- Closed the umbrella `Catalog-Index.md` by marking `Catalog-5` complete and recording that `Catalog-6` is not needed for `Generation 1`.
+
+#### Files Changed
+- `src/app/catalog/catalogReferenceCommit.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/store/useAppStore.ts`
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-5 - Project Recall And Catalog Item Identity Follow-Through.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- Repo-backed `Add To Project` commits now preserve the originating Catalog item id and family key.
+- Imports reuse cards can now remember and rebuild from their original curated Catalog metadata when that source still exists.
+- Repo-backed Catalog cards can now surface how many imported project copies currently trace back to the same curated item.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
+
+<!-- ENTRY 1514 -->
+### [1514] - 2026-04-18 14:41 - `Catalog-4 - Search Tags Metadata And Catalog Scale-Up`
+
+HUMAN SUMMARY: `This widens the early Catalog browse surface with real text search, tag filtering, richer metadata, and better reference notes so the Gen1 Catalog can scale beyond the first few curated items without quietly widening into Generation 2 intake. The same pass also gives later curated-pack or template-like entries one honest place to live in the item contract and item-page surface without inventing fake new runtime actions in this phase.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-4`.
+- Widened the shared Catalog item contract and browse shell without reopening Browser/import ownership.
+- Kept curated-pack and template-like follow-through honest by using metadata and notes instead of inventing unsupported runtime actions.
+- Used one final changelog entry for the completed family phase.
+
+#### Summary of Implementation
+- Widened `CatalogItemRecord` and `CatalogRepoSeedItem` with optional metadata and notes, then populated the current repo-backed seeds with richer searchable catalog detail.
+- Added shared Catalog search plus derived tag-filtering in `CatalogShell.tsx` and `catalogShellShared.ts` so browse results can be filtered by label, description, tags, notes, and metadata.
+- Added item-page metadata rows and reference-note lists, and widened grid meta copy so repo-backed items can surface readiness and scale-up context more honestly.
+- Closed the umbrella `Catalog-Index.md` by marking `Catalog-4` complete and creating its standalone future doc.
+
+#### Files Changed
+- `src/app/catalog/catalogItemContract.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-4 - Search Tags Metadata And Catalog Scale-Up.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- The Catalog shell now supports text search plus tag filtering.
+- Repo-backed Catalog entries now carry richer metadata and notes that are visible on item pages and searchable from the grid surface.
+- The Gen1 Catalog can now scale through stronger browse semantics without widening into Generation 2 intake or organization work.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
+
+<!-- ENTRY 1513 -->
+### [1513] - 2026-04-18 14:41 - `Catalog-3 - HDRI Catalog And Explicit Environment Apply Path`
+
+HUMAN SUMMARY: `This closes the Generation 1 HDRI lane by making Catalog environment cards and item pages show honest static HDRI preview media while preserving the explicit viewer-owned \`Apply Environment\` handoff. HDRIs now read like real environment presets in the Catalog instead of disabled fake reference-preview cards.`
+
+#### Scope / Constraints Honored
+- Kept the work scoped to `Catalog-3`.
+- Preserved the shared viewer-owner apply seam instead of routing HDRIs through Browser project content.
+- Limited the runtime change to preview honesty and direct environment apply actions.
+- Used one final changelog entry for the completed family phase.
+
+#### Summary of Implementation
+- Updated the Catalog grid so HDRI cards can render static preview media even though they do not participate in the temporary reference preview session.
+- Added a direct grid-card `Apply Environment` action for eligible HDRI entries while preserving the existing item-page action.
+- Updated the Catalog item page so HDRIs can show static preview media without pretending they are unloaded reference previews waiting for `Load Preview`.
+- Closed the umbrella `Catalog-Index.md` by marking `Catalog-3` complete and creating its standalone future doc.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-3 - HDRI Catalog And Explicit Environment Apply Path.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- HDRI cards and item pages now show static environment preview media instead of only disabled unloaded-preview copy.
+- The Catalog grid now exposes a direct `Apply Environment` action for HDRI entries while keeping environment state viewer-owned.
+
+#### Verification Steps
+- Not run. This phase was completed without test execution.
 
 <!-- ENTRY 1512 -->
 ### [1512] - 2026-04-18 13:49 - `Catalog-Gen0 - Phase 5.6 - Legacy ReferenceModels Retirement`

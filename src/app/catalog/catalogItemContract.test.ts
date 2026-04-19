@@ -6,6 +6,7 @@ import {
   isCatalogItemImportsEntry,
   isCatalogItemSourceKind,
   resolveCatalogRepoReferencePreviewSource,
+  resolveCatalogRepoEnvironmentSource,
   resolveCatalogPreviewMediaSrc,
   type CatalogItemRecord,
 } from './catalogItemContract'
@@ -18,6 +19,13 @@ describe('catalogItemContract', () => {
       familyKey: 'references',
       sectionKey: 'shoes',
       tags: ['shoe', 'reference'],
+      systemKey: 'Platform',
+      platformCompatibility: ['ADV', 'XR', 'GT', 'Pint', 'XR Classic'],
+      partType: 'Shoe',
+      position: 'Pair',
+      productName: 'Shoe 1',
+      brand: 'ParaHook',
+      partGroups: ['Shoes'],
       description: 'Baseline repo-backed shoe reference for Catalog browse.',
       assetKind: 'reference-asset',
       actionKind: 'add-to-project',
@@ -39,6 +47,13 @@ describe('catalogItemContract', () => {
     expect(isCatalogItemSourceKind(item.source.sourceKind)).toBe(true)
     expect(isCatalogItemImportsEntry(item)).toBe(false)
     expect(getCatalogItemPrimaryPreviewMedia(item)).toEqual(item.previewMedia[0])
+    expect(item.systemKey).toBe('Platform')
+    expect(item.platformCompatibility).toEqual(['ADV', 'XR', 'GT', 'Pint', 'XR Classic'])
+    expect(item.partType).toBe('Shoe')
+    expect(item.position).toBe('Pair')
+    expect(item.productName).toBe('Shoe 1')
+    expect(item.brand).toBe('ParaHook')
+    expect(item.partGroups).toEqual(['Shoes'])
   })
 
   it('keeps imports-area reuse entries explicit without pretending Catalog owns import intake', () => {
@@ -92,7 +107,31 @@ describe('catalogItemContract', () => {
 
     expect(resolveCatalogRepoReferencePreviewSource(item)).toEqual({
       fileType: 'glb',
-      objectUrl: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+      objectUrl: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
+    })
+  })
+
+  it('resolves repo-backed HDRI and EXR items into environment source paths', () => {
+    const item: CatalogItemRecord = {
+      itemId: 'environment:docklands-02-2k-hdr',
+      label: 'Docklands 02 2K',
+      familyKey: 'environments',
+      sectionKey: 'hdris',
+      tags: ['environment', 'hdri', 'hdr'],
+      description: 'Repo-backed HDRI for Catalog browse.',
+      assetKind: 'environment',
+      actionKind: 'apply-environment',
+      source: {
+        sourceKind: 'repo',
+        assetPath: 'HDRI/docklands_02_2k.hdr',
+      },
+      previewMedia: [],
+    }
+
+    expect(resolveCatalogRepoEnvironmentSource(item)).toEqual({
+      fileType: 'hdr',
+      label: 'Docklands 02 2K',
+      objectUrl: expect.stringMatching(/\/HDRI\/docklands_02_2k\.hdr$/),
     })
   })
 })

@@ -272,6 +272,223 @@ const referenceObjectContentRow = (options: {
 })
 
 describe('selectBrowserTreeRows', () => {
+  it('derives a normal Content environment tree from the shared view environment truth', () => {
+    const rows = selectBrowserTreeRows({
+      environmentView: {
+        envPreset: 'studio',
+        environmentSource: {
+          kind: 'custom',
+          label: 'Custom Studio',
+          assetPath: null,
+        },
+        environmentGrade: {
+          toneMapping: 'aces',
+          exposure: 1.28,
+          contrast: 1,
+          highlights: 0,
+          shadows: 0,
+          whites: 0,
+          blacks: 0,
+          temperature: 0,
+          tint: 0,
+          saturation: 1,
+        },
+        lighting: {
+          selectedLightId: 'light-key',
+          lights: [
+            {
+              id: 'light-key',
+              name: 'Key',
+              type: 'directional',
+              enabled: true,
+              color: '#fff2e6',
+              intensity: 1.85,
+              position: { x: 1, y: 2, z: 3 },
+              target: { x: 0, y: 0.5, z: 0 },
+              castShadow: true,
+              shadowBias: -0.0005,
+              shadowMapSize: 1024,
+            },
+            {
+              id: 'light-fill',
+              name: 'Fill',
+              type: 'hemisphere',
+              enabled: false,
+              color: '#eef3ff',
+              intensity: 0.95,
+            },
+          ],
+        },
+      },
+      contentRows: [],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: 'environment-light-row:light-key',
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.environmentRows).toEqual([])
+    expect(rows.contentRows.map((row) => row.rowKind)).toEqual([
+      'environment-root',
+      'environment-source',
+      'environment-light',
+      'environment-light',
+    ])
+    expect(rows.contentRows[0]).toMatchObject({
+      rowId: 'environment-root',
+      rowKind: 'environment-root',
+      label: 'Environment',
+      meta: '3 objects',
+      depth: 0,
+      treeGuides: ['elbow'],
+      isExpandable: true,
+      isExpanded: true,
+      childCount: 3,
+    })
+    expect(rows.contentRows[1]).toMatchObject({
+      rowId: 'environment-source-row:active',
+      rowKind: 'environment-source',
+      label: 'Source: Custom Studio',
+      meta: 'Custom source | Exposure 1.28',
+      depth: 1,
+      treeGuides: ['none', 'tee'],
+      isDiverged: true,
+      sourceKind: 'custom',
+      sourceLabel: 'Custom Studio',
+    })
+    expect(rows.contentRows[2]).toMatchObject({
+      rowId: 'environment-light-row:light-key',
+      rowKind: 'environment-light',
+      label: 'Key',
+      meta: 'Selected | On | directional | 1.85',
+      depth: 1,
+      treeGuides: ['none', 'tee'],
+      isSelected: true,
+      isSelectedLight: true,
+    })
+    expect(rows.contentRows[3]).toMatchObject({
+      rowId: 'environment-light-row:light-fill',
+      rowKind: 'environment-light',
+      label: 'Fill',
+      meta: 'Off | hemisphere | 0.95',
+      depth: 1,
+      treeGuides: ['none', 'elbow'],
+      isSelectedLight: false,
+    })
+  })
+
+  it('collapses the derived environment collection row through the Content row collapse state', () => {
+    const rows = selectBrowserTreeRows({
+      environmentView: {
+        envPreset: 'studio',
+        environmentSource: {
+          kind: 'preset',
+          label: 'Studio',
+          assetPath: null,
+        },
+        environmentGrade: {
+          toneMapping: 'aces',
+          exposure: 1,
+          contrast: 1,
+          highlights: 0,
+          shadows: 0,
+          whites: 0,
+          blacks: 0,
+          temperature: 0,
+          tint: 0,
+          saturation: 1,
+        },
+        lighting: {
+          selectedLightId: null,
+          lights: [
+            {
+              id: 'light-key',
+              name: 'Key',
+              type: 'directional',
+              enabled: true,
+              color: '#ffffff',
+              intensity: 1,
+            },
+          ],
+        },
+      },
+      contentRows: [],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: null,
+      collapsedContentRowIds: ['environment-root'],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows).toEqual([
+      expect.objectContaining({
+        rowId: 'environment-root',
+        rowKind: 'environment-root',
+        isExpandable: true,
+        isExpanded: false,
+        meta: '2 objects',
+      }),
+    ])
+  })
+
+  it('represents an HDRI environment source in the Content environment collection', () => {
+    const rows = selectBrowserTreeRows({
+      environmentView: {
+        envPreset: 'baseline',
+        environmentSource: {
+          kind: 'hdri',
+          label: 'Workshop Loft',
+          assetPath: 'assets/hdri/workshop-loft.hdr',
+        },
+        environmentGrade: {
+          toneMapping: 'aces',
+          exposure: 1.15,
+          contrast: 1,
+          highlights: 0,
+          shadows: 0,
+          whites: 0,
+          blacks: 0,
+          temperature: 0,
+          tint: 0,
+          saturation: 1,
+        },
+        lighting: {
+          selectedLightId: null,
+          lights: [],
+        },
+      },
+      contentRows: [],
+      graphRows: [],
+      editorViewports: [],
+      graphDocumentsById: {},
+      selectedRowId: null,
+      collapsedContentRowIds: [],
+      expandedGraphDocumentIds: [],
+      hasActiveEditorViewport: false,
+      sharedViewerCompositionGraphDocumentIds: [],
+      sharedViewerCompositionActive: false,
+    })
+
+    expect(rows.contentRows[1]).toMatchObject({
+      rowId: 'environment-source-row:active',
+      rowKind: 'environment-source',
+      label: 'HDRI: Workshop Loft',
+      meta: 'HDRI source | Exposure 1.15 | assets/hdri/workshop-loft.hdr',
+      sourceKind: 'hdri',
+      sourceLabel: 'Workshop Loft',
+      sourceAssetPath: 'assets/hdri/workshop-loft.hdr',
+    })
+  })
+
   it('builds graph rows with child sections instead of published-output rows', () => {
     const rows = selectBrowserTreeRows({
       referenceWorkspaceTree: emptyReferenceWorkspaceTree,

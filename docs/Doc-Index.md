@@ -4,6 +4,12 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+264. 2026-04-19 14:20:05: Renamed the active Dispatch 2 review role doc from `Dispatch-2-Reviewer-Agent.md` to `Dispatch-2-Guide-Rail-Agent.md` in the docs map so the Agents subtree reflects the combined phase-prep and coverage-review role.
+263. 2026-04-19 14:03:18: Simplified the `docs/Agents/Dispatch-2/` docs map after removing the active Planning Manager and Verifier roles, keeping the flat dispatcher, worker, explorer, reviewer, shared rules, overview, and Home Page Gen1 pilot docs discoverable.
+262. 2026-04-19 13:55:15: Added the new `docs/Agents/Dispatch-2/` subtree to the docs map, listing the promoted dispatcher, shared rules, planning manager, worker, explorer, reviewer, verifier, overview, and Home Page Gen1 pilot docs so the multi-agent dispatch system is discoverable beside Dispatch-1.
+261. 2026-04-19 13:24:23: Updated the docs map after `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Index.md` was renamed to `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`, keeping the Home Page workspace-family listing pointed at the active Generation 1 index.
+260. 2026-04-19 10:36:04: Added `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Index.md` and `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md` to the architecture docs map, refreshed `docs/Human-Plans/Architecture/Workspace-Modes/Workspace-Modes-Index.md` so the workspace umbrella now points at the new Home Page family index and first future lane, and updated the `Workspace-Modes/Workspaces` subtree listing so the landing-surface family is discoverable beside Catalog and Model Viewport
+259. 2026-04-18 16:11:42: Added the new `docs/Agents/Dispatch-1/` subtree to the docs map, listing `Dispatch-Manager-Agent.md`, `Dispatch-Worker-Agent.md`, and `Dispatch-Shared-Rules.md` under `Agents` so the reusable manager-worker dispatch kit is discoverable beside the existing planning and implementation behavior docs
 258. 2026-04-18 12:24:30: Expanded the new `Human-Docs` listing in the docs map from a root-level pointer into a browsable subtree, adding the first root pages plus the `Concepts` and `Workspaces` sections so the reader-facing doc layer is discoverable through the same foldable outline tree as the rest of the docs system
 257. 2026-04-18 11:13:14: Added the first `docs/Human-Docs/` front door and refreshed the docs map so the new reader-facing explanation layer is now discoverable as its own top-level docs area beside the existing planning and inventory surfaces
 256. 2026-04-18 11:09:14: Refreshed the docs map after `Human-Docs-Dispatch-Plan.md` was relocated into `docs/DispatchPlans/`, replacing the stale `Human-Plans` root entry with the new top-level `DispatchPlans` section so the dispatch note now points at the user-chosen operational-doc home instead of the earlier planning-doc path
@@ -664,8 +670,23 @@ Rule notes:
 - `Vision.md`
 - Agents
 ## -Agents
+    - `Ask-Suggest-Spec-Agent.md`
     - `Implementation-Behavior.md`
     - `Agents-Planning.md`
+    - `Dispatch-1`
+### ----Dispatch-1
+        - `Dispatch-Manager-Agent.md`
+        - `Dispatch-Shared-Rules.md`
+        - `Dispatch-Worker-Agent.md`
+    - `Dispatch-2`
+### ----Dispatch-2
+        - `Dispatch-2-Dispatcher-Agent.md`
+        - `Dispatch-2-Explorer-Agent.md`
+        - `Dispatch-2-Guide-Rail-Agent.md`
+        - `Dispatch-2-Home-Page-Gen1-Pilot.md`
+        - `Dispatch-2-Overview.md`
+        - `Dispatch-2-Shared-Rules.md`
+        - `Dispatch-2-Worker-Agent.md`
 ## -Archive
     - `00_Phase_Log.md`
     - `TaskHistoryCompilation.md`
@@ -768,6 +789,11 @@ Rule notes:
             - `Workspaces/Browser/Browser-Index.md`
 ###### -------------Build-Path
             - `Workspaces/Build-Path/Build-Path-Index.md`
+###### -------------Home-Page
+            - `Workspaces/Home-Page/Home-Page-Vision.md`
+            - `Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+####### --------------Future
+            - `Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
 ###### -------------Catalog
             - `Workspaces/Catalog/Catalog-Vision.md`
             - `Workspaces/Catalog/Catalog-Index.md`

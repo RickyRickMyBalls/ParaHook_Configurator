@@ -8,6 +8,8 @@ import type {
   ReferenceWorkspaceBrowserCategoryVm,
   ReferenceWorkspaceBrowserItemVm,
 } from '../store/useAppStore'
+import type { ViewSettings } from '../../shared/viewSettingsTypes'
+import { resolveEnvironmentPresetRead } from '../../shared/viewSettingsTypes'
 import type { BrowserGraphRowVm } from './selectBrowserGraphRows'
 
 export type BrowserBuildPolicySource = 'self' | 'graph' | 'assembly' | 'component' | 'default'
@@ -27,6 +29,9 @@ export type BrowserTreeRowKind =
   | 'graph-rebuild-object'
   | 'graph-node'
   | 'viewport'
+  | 'environment-root'
+  | 'environment-source'
+  | 'environment-light'
 
 export type BrowserTreeRowActionId =
   | 'open'
@@ -301,6 +306,33 @@ export type BrowserViewportTreeRowVm = BrowserTreeRowBaseVm & {
   graphDocumentId: string
 }
 
+export type BrowserEnvironmentRootTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'environment-root'
+  childCount: number
+}
+
+export type BrowserEnvironmentSourceTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'environment-source'
+  envPreset: ViewSettings['envPreset']
+  sourceKind: ViewSettings['environmentSource']['kind']
+  sourceLabel: string
+  sourceAssetPath: string | null
+  backgroundVisible: boolean
+  environmentGrade: ViewSettings['environmentGrade']
+  background: string
+  isDiverged: boolean
+}
+
+export type BrowserEnvironmentLightTreeRowVm = BrowserTreeRowBaseVm & {
+  rowKind: 'environment-light'
+  lightId: string
+  lightType: ViewSettings['lighting']['lights'][number]['type']
+  enabled: boolean
+  color: string
+  intensity: number
+  isSelectedLight: boolean
+}
+
 export type BrowserRenderableRowVm =
   | BrowserReferencesRootTreeRowVm
   | BrowserReferenceCategoryTreeRowVm
@@ -316,6 +348,9 @@ export type BrowserRenderableRowVm =
   | BrowserGraphRebuildObjectTreeRowVm
   | BrowserGraphNodeTreeRowVm
   | BrowserViewportTreeRowVm
+  | BrowserEnvironmentRootTreeRowVm
+  | BrowserEnvironmentSourceTreeRowVm
+  | BrowserEnvironmentLightTreeRowVm
 
 export type BrowserGraphChildTreeRowVm =
   | BrowserGraphSectionTreeRowVm
@@ -329,7 +364,11 @@ export type BrowserTreeRowsVm = {
     | BrowserReferenceItemTreeRowVm
     | BrowserObjectTreeRowVm
   >
+  environmentRows: []
   contentRows: Array<
+    | BrowserEnvironmentRootTreeRowVm
+    | BrowserEnvironmentSourceTreeRowVm
+    | BrowserEnvironmentLightTreeRowVm
     | BrowserAssemblyTreeRowVm
     | BrowserSketchesRootTreeRowVm
     | BrowserSketchTreeRowVm
@@ -396,6 +435,10 @@ export const selectBrowserTreeRows = (options: {
   referenceWorkspaceTree?: ReferenceWorkspaceBrowserTreeVm | null
   referenceLoadBatch?: ReferenceLoadBatchState | null
   activeTransformReferenceId?: string | null
+  environmentView?: Pick<
+    ViewSettings,
+    'envPreset' | 'environmentSource' | 'environmentGrade' | 'lighting'
+  > | null
   contentRows: ProjectContentBrowserRowVm[]
   partsVisibility?: Record<string, boolean>
   contentOrderByParentKey?: Record<string, string[]>
@@ -417,6 +460,7 @@ export const selectBrowserTreeRows = (options: {
   const {
     referenceLoadBatch = null,
     activeTransformReferenceId = null,
+    environmentView = null,
     browserContentBuildPolicyByRowId = {},
     browserGraphBuildPolicyByGraphDocumentId = {},
     contentRows,
@@ -438,6 +482,8 @@ export const selectBrowserTreeRows = (options: {
   const selectedRowIdSet = new Set(selectedRowIds)
   const buildContentParentOrderKey = (kind: 'assembly' | 'component', id: string): string =>
     `${kind}:${id}`
+  const formatEnvironmentExposureValue = (value: number): string =>
+    Number(value.toFixed(2)).toString()
   const dedupeOrderedRowIds = (orderedRowIds: readonly string[]): string[] => {
     const seen = new Set<string>()
     const deduped: string[] = []
@@ -464,6 +510,79 @@ export const selectBrowserTreeRows = (options: {
       }
     })
     return normalized
+  }
+
+  const environmentChildRows: Array<
+    BrowserEnvironmentSourceTreeRowVm | BrowserEnvironmentLightTreeRowVm
+  > = []
+  if (environmentView !== null) {
+    const environmentRead = resolveEnvironmentPresetRead(environmentView)
+    const environmentSource = environmentView.environmentSource
+    const sourceLabel =
+      environmentSource.kind === 'preset'
+        ? environmentRead.definition.label
+        : environmentSource.label
+    const sourceMetaPrefix =
+      environmentSource.kind === 'hdri'
+        ? 'HDRI source'
+        : environmentSource.kind === 'custom' || environmentRead.isDiverged
+          ? 'Custom source'
+          : 'Current source'
+    const sourceAssetMeta =
+      environmentSource.kind === 'hdri' && environmentSource.assetPath !== null
+        ? ` | ${environmentSource.assetPath}`
+        : ''
+    const sourceRowId = 'environment-source-row:active'
+    const environmentChildCount = 1 + environmentView.lighting.lights.length
+    environmentChildRows.push({
+      rowId: sourceRowId,
+      rowKind: 'environment-source',
+      depth: 1,
+      treeGuides: [environmentChildCount > 1 ? 'tee' : 'elbow'],
+      iconLabel: 'E',
+      label: environmentSource.kind === 'hdri' ? `HDRI: ${sourceLabel}` : `Source: ${sourceLabel}`,
+      meta: `${sourceMetaPrefix} | Exposure ${formatEnvironmentExposureValue(
+        environmentView.environmentGrade.exposure,
+      )}${sourceAssetMeta}`,
+      isSelected: selectedRowIdSet.has(sourceRowId),
+      isExpandable: false,
+      isExpanded: false,
+      actions: [],
+      envPreset: environmentRead.definition.id,
+      sourceKind: environmentSource.kind,
+      sourceLabel,
+      sourceAssetPath: environmentSource.assetPath,
+      backgroundVisible:
+        environmentSource.kind !== 'hdri' || environmentSource.backgroundVisible !== false,
+      environmentGrade: environmentView.environmentGrade,
+      background: environmentRead.definition.background,
+      isDiverged: environmentRead.isDiverged,
+    } satisfies BrowserEnvironmentSourceTreeRowVm)
+
+    environmentView.lighting.lights.forEach((light, index) => {
+      const selectedLight = light.id === environmentView.lighting.selectedLightId
+      environmentChildRows.push({
+        rowId: `environment-light-row:${light.id}`,
+        rowKind: 'environment-light',
+        depth: 1,
+        treeGuides: [index < environmentView.lighting.lights.length - 1 ? 'tee' : 'elbow'],
+        iconLabel: 'L',
+        label: light.name,
+        meta: `${selectedLight ? 'Selected | ' : ''}${light.enabled ? 'On' : 'Off'} | ${
+          light.type
+        } | ${formatEnvironmentExposureValue(light.intensity)}`,
+        isSelected: selectedRowIdSet.has(`environment-light-row:${light.id}`),
+        isExpandable: false,
+        isExpanded: false,
+        actions: [],
+        lightId: light.id,
+        lightType: light.type,
+        enabled: light.enabled,
+        color: light.color,
+        intensity: light.intensity,
+        isSelectedLight: selectedLight,
+      } satisfies BrowserEnvironmentLightTreeRowVm)
+    })
   }
 
   const normalizedContentRows = contentRows
@@ -568,6 +687,9 @@ export const selectBrowserTreeRows = (options: {
     })
 
   const visibleContentRows: Array<
+    | BrowserEnvironmentRootTreeRowVm
+    | BrowserEnvironmentSourceTreeRowVm
+    | BrowserEnvironmentLightTreeRowVm
     | BrowserAssemblyTreeRowVm
     | BrowserSketchesRootTreeRowVm
     | BrowserSketchTreeRowVm
@@ -586,6 +708,28 @@ export const selectBrowserTreeRows = (options: {
       .map((row) => [row.rowId, row] as const),
   )
   const graphLabelByDocumentId = new Map(graphRows.map((row) => [row.graphDocumentId, row.label] as const))
+
+  if (environmentView !== null) {
+    const isEnvironmentExpanded =
+      environmentChildRows.length > 0 && !collapsedContentRowIds.includes('environment-root')
+    visibleContentRows.push({
+      rowId: 'environment-root',
+      rowKind: 'environment-root',
+      depth: 0,
+      treeGuides: [],
+      iconLabel: 'E',
+      label: 'Environment',
+      meta: environmentChildRows.length === 1 ? '1 object' : `${environmentChildRows.length} objects`,
+      isSelected: selectedRowIdSet.has('environment-root'),
+      isExpandable: environmentChildRows.length > 0,
+      isExpanded: isEnvironmentExpanded,
+      actions: [],
+      childCount: environmentChildRows.length,
+    } satisfies BrowserEnvironmentRootTreeRowVm)
+    if (isEnvironmentExpanded) {
+      visibleContentRows.push(...environmentChildRows)
+    }
+  }
 
   const resolveGraphPolicy = (
     graphDocumentId: string,
@@ -1275,6 +1419,7 @@ export const selectBrowserTreeRows = (options: {
 
   return {
     referenceRows: [],
+    environmentRows: [],
     contentRows: transformedContentRows,
     graphRows: graphRows.map((row) => {
       const isInSharedViewerComposition = sharedViewerCompositionGraphDocumentIds.includes(

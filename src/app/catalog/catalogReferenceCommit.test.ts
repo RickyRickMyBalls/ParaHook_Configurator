@@ -10,23 +10,27 @@ describe('catalogReferenceCommit', () => {
     const expectedRequestsByItemId = {
       'reference:shoe-1': {
         downstreamOwner: 'browser-project',
+        catalogItemId: 'reference:shoe-1',
+        catalogFamilyKey: 'shoes',
         fileName: 'Shoe 1',
         fileType: 'glb',
-        objectUrl: expect.stringMatching(/\/ReferenceModels\/shoes\/Shoe_1\.glb$/),
+        objectUrl: expect.stringMatching(/\/Catalog\/shoes\/Shoe_1\.glb$/),
       },
       'reference:hook-large': {
         downstreamOwner: 'browser-project',
+        catalogItemId: 'reference:hook-large',
+        catalogFamilyKey: 'foothooks',
         fileName: 'Large Foothook',
         fileType: 'step',
-        objectUrl: expect.stringMatching(/\/ReferenceModels\/hooks\/large\.step$/),
+        objectUrl: expect.stringMatching(/\/Catalog\/hooks\/large\.step$/),
       },
       'reference:footpad-pubpad-full-assembly': {
         downstreamOwner: 'browser-project',
+        catalogItemId: 'reference:footpad-pubpad-full-assembly',
+        catalogFamilyKey: 'footpads',
         fileName: 'PubPad Full Assembly',
         fileType: 'obj',
-        objectUrl: expect.stringMatching(
-          /\/ReferenceModels\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/,
-        ),
+        objectUrl: expect.stringMatching(/\/Catalog\/footpads\/XR_Footpad_PubPad_Full_Assembly\.obj$/),
       },
     } satisfies Record<string, NonNullable<ReturnType<typeof resolveCatalogReferenceCommitRequest>>>
 
