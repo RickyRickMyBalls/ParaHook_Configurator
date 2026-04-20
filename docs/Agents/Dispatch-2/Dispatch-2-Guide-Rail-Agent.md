@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-19 14:33:40: Made Guide-Rail Codex the canonical CLG creator in prep mode, with rules for deriving Codex-level goals from preserved HLG, tracing every CLG back to HLG, routing CLG into family phases or deferred buckets, and keeping Workers and Explorers out of canonical CLG creation unless explicitly assigned.
+5. 2026-04-19 14:30:18: Added start-command descent responsibility so Guide-Rail prep mode can resolve a broad user command into the active Vision Doc, Generation Index Doc, Family Phase Doc, implementation phase, implementation spec, and Worker handoff.
 4. 2026-04-19 14:20:05: Renamed this role from Reviewer/Coverage Reviewer to Guide-Rail Codex and combined pre-implementation phase prep with post-implementation coverage review so one agent owns the HLG/CLG-to-spec ladder on both sides of Worker implementation.
 3. 2026-04-19 14:08:52: Expanded the Reviewer into the Coverage Reviewer role that owns end-of-phase checklist accounting, HLG/CLG coverage reads, and follow-up phase proposals when implementation does not fully achieve the assigned goals.
 2. 2026-04-19 14:03:18: Reframed the Reviewer as the parallel guide-rail Codex that checks worker output against the Vision HLG, Generation Index CLG, Family Phase Doc, implementation spec, no-widening rule, proof, build, and tracking docs.
@@ -13,6 +15,8 @@
 This file defines the Guide-Rail Codex role.
 
 Use it to answer:
+- how to descend from a user HLG or start command
+- how to create CLG from preserved HLG
 - how to prep an implementation phase from HLG and CLG
 - how to review a worker result
 - how to decide which checklists honestly moved
@@ -62,6 +66,7 @@ The Guide-Rail Codex should not mix these modes unless the dispatcher explicitly
 
 - prep mode:
   - implementation phase readiness
+  - canonical CLG creation from preserved HLG
   - HLG/CLG-to-spec translation
   - phase summary tightening
   - no-widening rule tightening
@@ -87,6 +92,8 @@ The Guide-Rail Codex should not mix these modes unless the dispatcher explicitly
 
 In prep mode, the Guide-Rail Codex turns the next legal planning target into an implementation-ready phase.
 
+Prep mode is also where canonical CLG are created or revised.
+
 Read:
 
 - active Vision Doc HLG
@@ -95,6 +102,31 @@ Read:
 - existing implementation phase section, if one exists
 - Explorer findings, if the dispatcher provides them
 - live code seams when the spec needs repo grounding
+
+If the dispatcher provides only a broad start command, first follow `Dispatch-2-Start-Command-Flow.md` to locate the active Vision Doc, Generation Index Doc, Family Phase Doc, and next implementation phase.
+
+### CLG Creation Rule
+
+The Guide-Rail Codex is the canonical CLG creator.
+
+CLG are Codex-level goals: repo-actionable goals that try to accomplish the preserved HLG without becoming implementation code yet.
+
+When HLG exist but CLG are missing, incomplete, too broad, or no longer aligned with the live repo, Guide-Rail prep mode may create or revise CLG in the active Generation Index Doc.
+
+Every CLG must:
+
+- trace back to one or more HLG
+- describe a repo-actionable goal Codex can plan against
+- stay above implementation details until routed into family phases and implementation specs
+- route into one family phase, one implementation phase, or an explicit deferred bucket
+- preserve the original HLG wording instead of replacing it
+- avoid inventing new product direction that is not present in HLG or approved by the dispatcher
+
+Workers must not create canonical CLG.
+
+Explorers may suggest possible CLG when research reveals a missing technical goal, but they do not write canonical CLG unless the dispatcher explicitly changes their task.
+
+The dispatcher approves CLG changes when they alter product meaning, create a new family phase, or defer an HLG.
 
 Prep output should update or produce:
 

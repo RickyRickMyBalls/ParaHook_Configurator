@@ -2285,6 +2285,602 @@ button.ParaSelectMenuAction:hover {
     rgba(7, 9, 13, 0.74);
 }
 
+.HomePageSurfacePanel {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 1040px);
+  max-height: 100%;
+  min-height: 0;
+  text-align: left;
+}
+
+.HomePageSurfaceControlDeck {
+  display: grid;
+  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid rgba(110, 135, 190, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(18, 24, 34, 0.96) 0%, rgba(8, 11, 17, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 48px rgba(0, 0, 0, 0.26);
+}
+
+.HomePageSurfaceControlRail,
+.HomePageSurfaceMainRegion {
+  min-width: 0;
+  min-height: 0;
+}
+
+.HomePageSurfaceControlRail {
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  gap: 10px;
+  align-content: start;
+}
+
+.HomePageSurfaceMainRegion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.HomePageSurfaceIntro {
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 135, 190, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.HomePageSurfaceIntro,
+.HomePageSurfaceStorageTransparencyHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.HomePageSurfaceIntro p,
+.HomePageSurfaceOrientationHeader p,
+.HomePageSurfaceStorageTransparencyHeader p,
+.HomePageSurfaceStorageTransparencyOrigin,
+.HomePageSurfaceStorageTransparencyNote {
+  margin: 0;
+}
+
+.HomePageSurfaceOrientationCard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(110, 135, 190, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(80, 119, 180, 0.12) 0%, rgba(255, 255, 255, 0.02) 54%),
+    rgba(255, 255, 255, 0.02);
+}
+
+.HomePageSurfaceOrientationHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+
+.HomePageSurfaceOrientationEyebrow,
+.HomePageSurfaceOrientationAffordanceKicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(173, 209, 255, 0.72);
+}
+
+.HomePageSurfaceOrientationHeader p {
+  font-size: 11px;
+  color: rgba(220, 226, 255, 0.62);
+}
+
+.HomePageSurfaceOrientationBody {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.HomePageSurfaceOrientationAffordance {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 168, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(90, 130, 190, 0.12);
+}
+
+.HomePageSurfaceOrientationAffordance strong {
+  color: rgba(241, 244, 255, 0.96);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.HomePageSurfaceOrientationStatus {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.HomePageSurfaceOrientationLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.HomePageSurfaceOrientationLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(241, 244, 255, 0.92);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.HomePageSurfaceOrientationLink:hover,
+.HomePageSurfaceOrientationLink:focus-visible {
+  border-color: rgba(133, 160, 224, 0.28);
+  background: rgba(133, 160, 224, 0.08);
+}
+
+.HomePageSurfaceOrientationReadout {
+  display: grid;
+  gap: 8px;
+}
+
+.HomePageSurfaceOrientationVersion,
+.HomePageSurfaceOrientationWhatIsNew {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11px;
+  color: rgba(220, 226, 255, 0.68);
+}
+
+.HomePageSurfaceOrientationVersion strong,
+.HomePageSurfaceOrientationWhatIsNew strong {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(220, 226, 255, 0.74);
+}
+
+.HomePageSurfaceOrientationVersion span,
+.HomePageSurfaceOrientationWhatIsNew span {
+  min-width: 0;
+}
+
+.HomePageSurfaceStorageTransparency {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid rgba(110, 135, 190, 0.22);
+  border-radius: 8px;
+  background: rgba(10, 13, 19, 0.72);
+}
+
+.HomePageSurfaceStorageTransparencyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  max-height: clamp(190px, 34vh, 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(86, 92, 110, 0.95) rgba(8, 10, 14, 0.92);
+  scrollbar-width: thin;
+}
+
+.HomePageSurfaceStorageTransparencyList::-webkit-scrollbar {
+  width: 12px;
+}
+
+.HomePageSurfaceStorageTransparencyList::-webkit-scrollbar-track {
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.HomePageSurfaceStorageTransparencyList::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(92, 98, 118, 0.98) 0%,
+    rgba(60, 65, 82, 0.98) 100%
+  );
+  border: 2px solid rgba(8, 10, 14, 0.92);
+  border-radius: 999px;
+}
+
+.HomePageSurfaceStorageTransparencyList::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(110, 118, 142, 0.98) 0%,
+    rgba(74, 80, 99, 0.98) 100%
+  );
+}
+
+.HomePageSurfaceStorageTransparencyRow {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(210px, auto)
+    auto
+    auto
+    minmax(86px, auto);
+  gap: 8px 14px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.HomePageSurfaceStorageTransparencyRowLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.HomePageSurfaceStorageTransparencyKey,
+.HomePageSurfaceStorageTransparencySeam {
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(220, 226, 255, 0.64);
+  word-break: break-word;
+}
+
+.HomePageSurfaceStorageTransparencySize {
+  min-width: 86px;
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(241, 244, 255, 0.96);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.HomePageSurfaceStorageDetailAffordance {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid rgba(132, 168, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(132, 168, 255, 0.06);
+  color: rgba(220, 226, 255, 0.74);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.HomePageSurfaceStoragePolicyControls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.HomePageSurfaceStoragePolicyControls > span {
+  min-width: 0;
+}
+
+.HomePageSurfaceStoragePolicyControls
+  > span[data-home-page-storage-policy-bucket-id='ui-prefs'] {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.HomePageSurfaceStoragePolicyControls
+  > span[data-home-page-storage-policy-bucket-id='ui-prefs']
+  .HomePageSurfaceStoragePolicyToggle {
+  width: auto;
+}
+
+.HomePageSurfaceStoragePolicyToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: rgba(241, 244, 255, 0.88);
+}
+
+.HomePageSurfaceStoragePolicyToggle span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.HomePageSurfaceStorageWipeButton {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border: 1px solid rgba(255, 150, 150, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 92, 92, 0.08);
+  color: rgba(255, 226, 226, 0.92);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.HomePageSurfaceStorageWipeButton:hover,
+.HomePageSurfaceStorageWipeButton:focus-visible {
+  border-color: rgba(255, 160, 160, 0.42);
+  background: rgba(255, 92, 92, 0.14);
+}
+
+.HomePageSurfaceStorageTransparencyOrigin,
+.HomePageSurfaceStorageTransparencyNote {
+  font-size: 11px;
+  color: rgba(220, 226, 255, 0.64);
+}
+
+.HomePageSurfaceStartupToggle {
+  min-width: 0;
+  padding: 10px 12px;
+  margin: 0;
+  border: 1px solid rgba(110, 135, 190, 0.22);
+  border-radius: 8px;
+  background: rgba(10, 13, 19, 0.72);
+}
+
+.HomePageSurfaceStartupToggle {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.HomePageSurfaceStartupToggle legend {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(220, 226, 255, 0.7);
+}
+
+.HomePageSurfaceStartupToggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: rgba(241, 244, 255, 0.88);
+}
+
+.HomePageSurfaceStartupSurfaceSwitch {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.HomePageSurfaceStartupSurfaceSwitch span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.HomePageSurfacePersistenceSwitch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 18px;
+  margin: 0;
+  appearance: none;
+  border: 1px solid rgba(110, 135, 190, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.HomePageSurfacePersistenceSwitch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(241, 244, 255, 0.86);
+  transition: transform 140ms ease;
+}
+
+.HomePageSurfacePersistenceSwitch:checked {
+  border-color: rgba(118, 198, 255, 0.56);
+  background: rgba(71, 150, 220, 0.38);
+}
+
+.HomePageSurfacePersistenceSwitch:checked::before {
+  transform: translateX(16px);
+}
+
+.HomePageSurfacePersistenceSwitch:focus-visible {
+  outline: 2px solid rgba(118, 198, 255, 0.62);
+  outline-offset: 2px;
+}
+
+.HomePageSurfaceLaunchActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 135, 190, 0.22);
+  border-radius: 8px;
+  background: rgba(10, 13, 19, 0.72);
+}
+
+.HomePageSurfaceLaunchActions > strong {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(220, 226, 255, 0.7);
+}
+
+.HomePageSurfaceLaunchActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(241, 244, 255, 0.94);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+.HomePageSurfaceLaunchActions button:hover,
+.HomePageSurfaceLaunchActions button:focus-visible {
+  border-color: rgba(133, 160, 224, 0.32);
+  background: rgba(133, 160, 224, 0.1);
+}
+
+.HomePageSurfaceLaunchActions button:focus-visible {
+  outline: 2px solid rgba(118, 198, 255, 0.48);
+  outline-offset: 2px;
+}
+
+.HomePageSurfaceLaunchActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.HomePageSurfaceRailUtilityGroup,
+.HomePageSurfaceRailDebugAffordance {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 135, 190, 0.18);
+  border-radius: 8px;
+  background: rgba(10, 13, 19, 0.58);
+}
+
+.HomePageSurfaceRailUtilityGroup > strong,
+.HomePageSurfaceRailDebugAffordance span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(220, 226, 255, 0.7);
+}
+
+.HomePageSurfaceRailShortcutLinks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.HomePageSurfaceRailShortcutLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(241, 244, 255, 0.92);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.HomePageSurfaceRailShortcutLinks a:hover,
+.HomePageSurfaceRailShortcutLinks a:focus-visible {
+  border-color: rgba(133, 160, 224, 0.32);
+  background: rgba(133, 160, 224, 0.1);
+}
+
+.HomePageSurfaceRailShortcutLinks a:focus-visible {
+  outline: 2px solid rgba(118, 198, 255, 0.48);
+  outline-offset: 2px;
+}
+
+.HomePageSurfaceRailDebugAffordance {
+  gap: 4px;
+  background:
+    linear-gradient(135deg, rgba(132, 168, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 68%),
+    rgba(10, 13, 19, 0.58);
+}
+
+.HomePageSurfaceRailDebugAffordance strong {
+  min-width: 0;
+  color: rgba(241, 244, 255, 0.92);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+@media (max-width: 860px) {
+  .HomePageSurfaceControlDeck {
+    grid-template-columns: 1fr;
+  }
+
+  .HomePageSurfaceControlRail {
+    grid-template-rows: auto;
+  }
+
+  .HomePageSurfaceStorageTransparencyRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .HomePageSurfaceOrientationBody {
+    grid-template-columns: 1fr;
+  }
+
+  .HomePageSurfaceStoragePolicyControls {
+    justify-content: flex-start;
+  }
+
+  .HomePageSurfaceLaunchActions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .DashboardSurface {
   background:
     radial-gradient(circle at top left, rgba(94, 142, 255, 0.18) 0%, rgba(94, 142, 255, 0) 34%),

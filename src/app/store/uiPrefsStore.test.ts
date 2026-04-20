@@ -14,6 +14,26 @@ describe('uiPrefsStore environment source state', () => {
     useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
   })
 
+  it('keeps the persistence policy controls enabled by default and lets the caller flip them', () => {
+    expect(useUiPrefsStore.getState().workspaceRestorePersistence).toBe(true)
+    expect(useUiPrefsStore.getState().viewSettingsPersistence).toBe(true)
+    expect(useUiPrefsStore.getState().environmentPersistence).toBe(true)
+    expect(useUiPrefsStore.getState().dashboardPersistence).toBe(true)
+    expect(useUiPrefsStore.getState().notepadPersistence).toBe(true)
+
+    useUiPrefsStore.getState().setWorkspaceRestorePersistence(false)
+    useUiPrefsStore.getState().setViewSettingsPersistence(false)
+    useUiPrefsStore.getState().setEnvironmentPersistence(false)
+    useUiPrefsStore.getState().setDashboardPersistence(false)
+    useUiPrefsStore.getState().setNotepadPersistence(false)
+
+    expect(useUiPrefsStore.getState().workspaceRestorePersistence).toBe(false)
+    expect(useUiPrefsStore.getState().viewSettingsPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().environmentPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().dashboardPersistence).toBe(false)
+    expect(useUiPrefsStore.getState().notepadPersistence).toBe(false)
+  })
+
   it('keeps the default environment grade nested beside the locked startup scene', () => {
     expect(useUiPrefsStore.getState().view.environmentGrade).toEqual(DEFAULT_ENVIRONMENT_GRADE)
     expect(useUiPrefsStore.getState().view.environmentSource).toMatchObject({

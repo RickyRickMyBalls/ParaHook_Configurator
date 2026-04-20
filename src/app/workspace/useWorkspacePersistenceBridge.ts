@@ -6,10 +6,15 @@ import {
 } from './workspacePersistence'
 import { useWorkspaceLegacyCompatibilityBridge } from './useWorkspaceLegacyCompatibilityBridge'
 import { useWorkspaceStore } from './useWorkspaceStore'
+import { defaultPrimaryViewportSlotId } from './workspaceShellTypes'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 
 export function useWorkspacePersistenceBridge() {
   const hydratePersistedWorkspaceLayout = useWorkspaceStore(
     (state) => state.hydratePersistedWorkspaceLayout,
+  )
+  const workspaceRestorePersistence = useUiPrefsStore(
+    (state) => state.workspaceRestorePersistence,
   )
   const hasHydratedWorkspacePersistenceRef = useRef(false)
   const { replayPersistedEditorSurfacePlacements } = useWorkspaceLegacyCompatibilityBridge()
@@ -20,19 +25,28 @@ export function useWorkspacePersistenceBridge() {
     }
     hasHydratedWorkspacePersistenceRef.current = true
 
-    const persistedLayout = readPersistedWorkspaceLayout()
-    if (persistedLayout !== null) {
-      const shouldRestorePersistedLayout =
-        typeof window.confirm !== 'function' ||
-        window.confirm('Restore your saved workspace layout? Click Cancel to start fresh.')
-      if (shouldRestorePersistedLayout) {
-        hydratePersistedWorkspaceLayout(persistedLayout)
-        replayPersistedEditorSurfacePlacements(persistedLayout.editorSurfacePlacementById)
-      }
+    const applyWorkspaceStartupSurface = () => {
+      const workspaceStartupSurface = useUiPrefsStore.getState().workspaceStartupSurface
+      useWorkspaceStore.getState().setViewportSlotSurfaceKind(
+        defaultPrimaryViewportSlotId,
+        workspaceStartupSurface,
+      )
     }
 
-    writePersistedWorkspaceLayout(serializeWorkspaceLayout(useWorkspaceStore.getState()))
-  }, [hydratePersistedWorkspaceLayout, replayPersistedEditorSurfacePlacements])
+    const persistedLayout = readPersistedWorkspaceLayout()
+    if (persistedLayout !== null && workspaceRestorePersistence) {
+      hydratePersistedWorkspaceLayout(persistedLayout)
+      replayPersistedEditorSurfacePlacements(persistedLayout.editorSurfacePlacementById)
+      applyWorkspaceStartupSurface()
+      writePersistedWorkspaceLayout(serializeWorkspaceLayout(useWorkspaceStore.getState()))
+    } else {
+      applyWorkspaceStartupSurface()
+    }
+  }, [
+    hydratePersistedWorkspaceLayout,
+    replayPersistedEditorSurfacePlacements,
+    workspaceRestorePersistence,
+  ])
 
   useEffect(() => {
     const unsubscribe = useWorkspaceStore.subscribe((state) => {

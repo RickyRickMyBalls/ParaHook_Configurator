@@ -18,15 +18,25 @@ import {
 } from '../store/useAppStore'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from '../workspace/useWorkspaceStore'
-import { floatWorkspaceSurface } from '../workspace/workspaceSurfaceActions'
+import { floatWorkspaceSurface, popoutWorkspaceSurface } from '../workspace/workspaceSurfaceActions'
+import {
+  getWorkspaceSurfaceActionEligibility,
+  type WorkspaceSurfaceActionBlockedReason,
+  type WorkspaceSurfaceActionFamily,
+} from '../workspace/workspaceSurfaceActionEligibility'
+import { parseWorkspaceSurfaceKind } from '../workspace/workspaceSurfaceCatalog'
 import {
   defaultBrowserFloatingPosition,
   defaultBrowserFloatingSize,
   defaultPrimaryViewportSlotId,
+  workspacePrimarySlotSupportsSurfaceKind,
+  type WorkspaceDetachedSlotSurfaceState,
   type WorkspaceSurfaceKind,
+  type WorkspaceViewportSlot,
 } from '../workspace/workspaceShellTypes'
 import {
   buildConsoleWorkspaceViewportOptions,
+  type ConsoleWorkspaceSurfaceTargetOption,
   getWorkspaceViewportDisplayLabel,
   getWorkspaceViewportSurfaceLabel,
 } from '../workspace/workspaceViewportLabels'
@@ -339,6 +349,45 @@ const isSketchDrawLocalStagedScope = (
   session?.scopeId === 'sketchDrawCameraRoot' ||
   session?.scopeId === 'sketchDrawCameraProjectionRoot' ||
   session?.scopeId === 'sketchDrawZoomRoot'
+
+const formatWorkspaceModeEligibilityBlockedDiagnostic = (
+  actionLabel: string,
+  blockedReason: WorkspaceSurfaceActionBlockedReason | null,
+): string => {
+  switch (blockedReason) {
+    case 'primary-slot-protected':
+      return `${actionLabel} is not available for the primary viewport`
+    case 'catalog-host-mode-unsupported':
+    case 'catalog-split-unsupported':
+      return `${actionLabel} is not supported by this workspace surface`
+    case 'surface-not-slotted':
+      return `${actionLabel} is only available for slotted workspace viewports`
+    case null:
+      return `${actionLabel} is not available here`
+  }
+}
+
+const buildConsoleWorkspaceSurfaceTargetOptionFromSlot = (
+  slot: WorkspaceViewportSlot,
+): ConsoleWorkspaceSurfaceTargetOption => ({
+  viewportId: slot.surfaceInstanceId,
+  surfaceInstanceId: slot.surfaceInstanceId,
+  hostMode: 'slotted',
+  slotId: slot.slotId,
+  isPrimary: slot.slotId === defaultPrimaryViewportSlotId,
+  label: getWorkspaceViewportSurfaceLabel(slot.surfaceKind),
+  surfaceKind: slot.surfaceKind,
+})
+
+const buildConsoleWorkspaceSurfaceTargetOptionFromDetachedSurface = (
+  surface: WorkspaceDetachedSlotSurfaceState,
+): ConsoleWorkspaceSurfaceTargetOption => ({
+  viewportId: surface.surfaceInstanceId,
+  surfaceInstanceId: surface.surfaceInstanceId,
+  hostMode: surface.hostMode,
+  label: getWorkspaceViewportSurfaceLabel(surface.surfaceKind),
+  surfaceKind: surface.surfaceKind,
+})
 
 type UseConsoleInteractionResult = {
   enterGuidedRootSession: (options?: { appendPrompt?: boolean }) => void
@@ -863,6 +912,107 @@ export function useConsoleInteraction(
       allowFlatConsoleCapture: true,
     })
   }, [])
+
+  const resolveWorkspaceModeRuntimeGuard = useCallback(
+    (
+      stagedResult: Extract<
+        ReturnType<typeof submitConsoleStagedNavigationToken>,
+        { kind: 'execute' }
+      >,
+      action: WorkspaceSurfaceActionFamily,
+      options: {
+        actionLabel: string
+        missingTargetDiagnostic: string
+      },
+    ) => {
+      const targetViewportId = stagedResult.selections.workspaceViewportId ?? null
+      const workspaceState = useWorkspaceStore.getState()
+      const targetSlot =
+        targetViewportId === null
+          ? null
+          : Object.values(workspaceState.viewportSlotsById).find(
+              (slot) => slot.surfaceInstanceId === targetViewportId,
+            ) ?? null
+      const targetDetachedSurface =
+        targetSlot !== null || targetViewportId === null
+          ? null
+          : workspaceState.detachedSlotSurfaceById[targetViewportId] ?? null
+      const target =
+        targetSlot !== null
+          ? buildConsoleWorkspaceSurfaceTargetOptionFromSlot(targetSlot)
+          : targetDetachedSurface !== null
+            ? buildConsoleWorkspaceSurfaceTargetOptionFromDetachedSurface(targetDetachedSurface)
+            : null
+
+      if (target === null) {
+        setStagedNavigationSession(stagedResult.session)
+        appendConsoleEntry({
+          layer: 'Diagnostics',
+          text: options.missingTargetDiagnostic,
+          source: 'console',
+          severity: 'warn',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+          source: 'console',
+          severity: 'info',
+        })
+        return null
+      }
+
+      const eligibilityEntry = getWorkspaceSurfaceActionEligibility({
+        surfaceKind: target.surfaceKind,
+        hostMode: target.hostMode,
+        isPrimary: target.isPrimary === true,
+      })[action]
+
+      if (!eligibilityEntry.supported) {
+        setStagedNavigationSession(stagedResult.session)
+        appendConsoleEntry({
+          layer: 'Diagnostics',
+          text: formatWorkspaceModeEligibilityBlockedDiagnostic(
+            options.actionLabel,
+            eligibilityEntry.blockedReason,
+          ),
+          source: 'console',
+          severity: 'warn',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+          source: 'console',
+          severity: 'info',
+        })
+        return null
+      }
+
+      if (targetSlot === null) {
+        setStagedNavigationSession(stagedResult.session)
+        appendConsoleEntry({
+          layer: 'Diagnostics',
+          text: options.missingTargetDiagnostic,
+          source: 'console',
+          severity: 'warn',
+        })
+        appendConsoleEntry({
+          layer: 'Commands',
+          text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
+          source: 'console',
+          severity: 'info',
+        })
+        return null
+      }
+
+      return {
+        workspaceState,
+        target,
+        targetSlot,
+        eligibilityEntry,
+      }
+    },
+    [setStagedNavigationSession],
+  )
 
   const deleteSelectedReferenceTargets = useCallback((): boolean => {
     const appState = useAppStore.getState()
@@ -2459,14 +2609,6 @@ export function useConsoleInteraction(
             stagedResult.actionId === 'workspace.viewport.split.bottom' ||
             stagedResult.actionId === 'workspace.viewport.split.left'
           ) {
-            const targetViewportId = stagedResult.selections.workspaceViewportId ?? null
-            const workspaceState = useWorkspaceStore.getState()
-            const targetSlot =
-              targetViewportId === null
-                ? null
-                : Object.values(workspaceState.viewportSlotsById).find(
-                    (slot) => slot.surfaceInstanceId === targetViewportId,
-                  ) ?? null
             const splitDockSide =
               stagedResult.actionId === 'workspace.viewport.split.top'
                 ? 'top'
@@ -2483,42 +2625,15 @@ export function useConsoleInteraction(
               severity: 'info',
             })
 
-            if (targetSlot === null) {
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Workspace split target is no longer available',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
+            const runtimeGuard = resolveWorkspaceModeRuntimeGuard(stagedResult, 'split', {
+              actionLabel: 'Workspace split',
+              missingTargetDiagnostic: 'Workspace split target is no longer available',
+            })
+            if (runtimeGuard === null) {
               requestRadioBurst(commandIdentity, 'enter')
               return
             }
-
-            if (targetSlot.surfaceKind === 'dashboard' || targetSlot.surfaceKind === 'notepad') {
-              appendConsoleEntry({
-                layer: 'App',
-                text:
-                  targetSlot.surfaceKind === 'dashboard'
-                    ? 'Dashboard workspace-mode actions land in a later follow-on phase'
-                    : 'Notepad workspace-mode actions land in a later follow-on phase',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
-              requestRadioBurst(commandIdentity, 'enter')
-              return
-            }
+            const { workspaceState, targetSlot } = runtimeGuard
 
             const sourceViewer =
               targetSlot.surfaceKind === 'modelViewer' ? getViewer(targetSlot.surfaceInstanceId) : null
@@ -2557,6 +2672,7 @@ export function useConsoleInteraction(
                       workspaceViewportOptions: buildConsoleWorkspaceViewportOptions(
                         refreshedWorkspaceState.viewportSlotsById,
                         refreshedWorkspaceState.primaryViewportId,
+                        refreshedWorkspaceState.detachedSlotSurfaceById,
                       ),
                     },
                   )
@@ -2583,28 +2699,11 @@ export function useConsoleInteraction(
             requestRadioBurst(commandIdentity, 'enter')
             return
           }
-          if (
-            stagedResult.actionId === 'workspace.viewport.type.modelViewer' ||
-            stagedResult.actionId === 'workspace.viewport.type.browser' ||
-            stagedResult.actionId === 'workspace.viewport.type.console' ||
-            stagedResult.actionId === 'workspace.viewport.type.spaghettiEditor'
-          ) {
-            const targetViewportId = stagedResult.selections.workspaceViewportId ?? null
-            const workspaceState = useWorkspaceStore.getState()
-            const targetSlot =
-              targetViewportId === null
-                ? null
-                : Object.values(workspaceState.viewportSlotsById).find(
-                    (slot) => slot.surfaceInstanceId === targetViewportId,
-                  ) ?? null
-            const nextSurfaceKind =
-              stagedResult.actionId === 'workspace.viewport.type.modelViewer'
-                ? 'modelViewer'
-                : stagedResult.actionId === 'workspace.viewport.type.browser'
-                  ? 'browser'
-                  : stagedResult.actionId === 'workspace.viewport.type.console'
-                    ? 'console'
-                    : 'spaghettiEditor'
+          const workspaceViewportTypePrefix = 'workspace.viewport.type.'
+          if (stagedResult.actionId.startsWith(workspaceViewportTypePrefix)) {
+            const nextSurfaceKind = parseWorkspaceSurfaceKind(
+              stagedResult.actionId.slice(workspaceViewportTypePrefix.length),
+            )
 
             appendConsoleEntry({
               layer: 'Commands',
@@ -2613,10 +2712,21 @@ export function useConsoleInteraction(
               severity: 'info',
             })
 
-            if (targetSlot === null) {
+            const runtimeGuard = resolveWorkspaceModeRuntimeGuard(stagedResult, 'viewportType', {
+              actionLabel: 'Workspace viewport type',
+              missingTargetDiagnostic: 'Workspace viewport type target is no longer available',
+            })
+            if (runtimeGuard === null) {
+              requestRadioBurst(commandIdentity, 'enter')
+              return
+            }
+            const { workspaceState, targetSlot } = runtimeGuard
+
+            if (nextSurfaceKind === null) {
+              setStagedNavigationSession(stagedResult.session)
               appendConsoleEntry({
                 layer: 'Diagnostics',
-                text: 'Workspace viewport type target is no longer available',
+                text: 'Workspace viewport type is not available here',
                 source: 'console',
                 severity: 'warn',
               })
@@ -2630,11 +2740,14 @@ export function useConsoleInteraction(
               return
             }
 
-            if (targetSlot.slotId === defaultPrimaryViewportSlotId) {
+            if (
+              targetSlot.slotId === defaultPrimaryViewportSlotId &&
+              !workspacePrimarySlotSupportsSurfaceKind(nextSurfaceKind)
+            ) {
               setStagedNavigationSession(stagedResult.session)
               appendConsoleEntry({
                 layer: 'Diagnostics',
-                text: 'Primary viewport type changes are not available here',
+                text: 'Primary viewport type changes are not available for that surface here',
                 source: 'console',
                 severity: 'warn',
               })
@@ -2750,15 +2863,6 @@ export function useConsoleInteraction(
             return
           }
           if (stagedResult.actionId === 'workspace.viewport.openInNewBrowser') {
-            const targetViewportId = stagedResult.selections.workspaceViewportId ?? null
-            const workspaceState = useWorkspaceStore.getState()
-            const targetSlot =
-              targetViewportId === null
-                ? null
-                : Object.values(workspaceState.viewportSlotsById).find(
-                    (slot) => slot.surfaceInstanceId === targetViewportId,
-                  ) ?? null
-
             appendConsoleEntry({
               layer: 'Commands',
               text: formatStagedBreadcrumb(stagedResult.breadcrumb),
@@ -2766,26 +2870,15 @@ export function useConsoleInteraction(
               severity: 'info',
             })
 
-            if (
-              targetSlot === null ||
-              (targetSlot.surfaceKind !== 'modelViewer' && targetSlot.surfaceKind !== 'browser')
-            ) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Open In New Browser is only available for supported model or browser viewports here',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
+            const runtimeGuard = resolveWorkspaceModeRuntimeGuard(stagedResult, 'popout', {
+              actionLabel: 'Open In New Browser',
+              missingTargetDiagnostic: 'Workspace Open In New Browser target is no longer available',
+            })
+            if (runtimeGuard === null) {
               requestRadioBurst(commandIdentity, 'enter')
               return
             }
+            const { workspaceState, targetSlot } = runtimeGuard
 
             if (targetSlot.surfaceKind === 'modelViewer') {
               const detachedSurface = createDetachedViewportSurfaceCopy(
@@ -2804,6 +2897,8 @@ export function useConsoleInteraction(
               }
             } else if (targetSlot.surfaceKind === 'browser') {
               setIsBrowserPoppedOut(true)
+            } else {
+              popoutWorkspaceSurface(targetSlot.surfaceInstanceId)
             }
 
             setStagedNavigationSession(stagedResult.session)
@@ -2829,15 +2924,6 @@ export function useConsoleInteraction(
             return
           }
           if (stagedResult.actionId === 'workspace.viewport.float') {
-            const targetViewportId = stagedResult.selections.workspaceViewportId ?? null
-            const workspaceState = useWorkspaceStore.getState()
-            const targetSlot =
-              targetViewportId === null
-                ? null
-                : Object.values(workspaceState.viewportSlotsById).find(
-                    (slot) => slot.surfaceInstanceId === targetViewportId,
-                  ) ?? null
-
             appendConsoleEntry({
               layer: 'Commands',
               text: formatStagedBreadcrumb(stagedResult.breadcrumb),
@@ -2845,63 +2931,15 @@ export function useConsoleInteraction(
               severity: 'info',
             })
 
-            if (targetSlot === null) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Workspace float target is no longer available',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
+            const runtimeGuard = resolveWorkspaceModeRuntimeGuard(stagedResult, 'float', {
+              actionLabel: 'Workspace float',
+              missingTargetDiagnostic: 'Workspace float target is no longer available',
+            })
+            if (runtimeGuard === null) {
               requestRadioBurst(commandIdentity, 'enter')
               return
             }
-
-            if (targetSlot.slotId === defaultPrimaryViewportSlotId) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Primary viewport float is not available here',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
-              requestRadioBurst(commandIdentity, 'enter')
-              return
-            }
-
-            if (
-              targetSlot.surfaceKind !== 'modelViewer' &&
-              targetSlot.surfaceKind !== 'browser' &&
-              targetSlot.surfaceKind !== 'console'
-            ) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Float is only available for supported model, browser, or console viewports here',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
-              requestRadioBurst(commandIdentity, 'enter')
-              return
-            }
+            const { workspaceState, targetSlot } = runtimeGuard
 
             if (targetSlot.surfaceKind === 'browser') {
               if (
@@ -2944,15 +2982,6 @@ export function useConsoleInteraction(
             return
           }
           if (stagedResult.actionId === 'workspace.viewport.close') {
-            const targetViewportId = stagedResult.selections.workspaceViewportId ?? null
-            const workspaceState = useWorkspaceStore.getState()
-            const targetSlot =
-              targetViewportId === null
-                ? null
-                : Object.values(workspaceState.viewportSlotsById).find(
-                    (slot) => slot.surfaceInstanceId === targetViewportId,
-                  ) ?? null
-
             appendConsoleEntry({
               layer: 'Commands',
               text: formatStagedBreadcrumb(stagedResult.breadcrumb),
@@ -2960,63 +2989,15 @@ export function useConsoleInteraction(
               severity: 'info',
             })
 
-            if (targetSlot === null) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Workspace close target is no longer available',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
+            const runtimeGuard = resolveWorkspaceModeRuntimeGuard(stagedResult, 'close', {
+              actionLabel: 'Workspace close',
+              missingTargetDiagnostic: 'Workspace close target is no longer available',
+            })
+            if (runtimeGuard === null) {
               requestRadioBurst(commandIdentity, 'enter')
               return
             }
-
-            if (targetSlot.slotId === defaultPrimaryViewportSlotId) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Primary viewport close is not available here',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
-              requestRadioBurst(commandIdentity, 'enter')
-              return
-            }
-
-            if (
-              targetSlot.surfaceKind !== 'modelViewer' &&
-              targetSlot.surfaceKind !== 'browser' &&
-              targetSlot.surfaceKind !== 'console'
-            ) {
-              setStagedNavigationSession(stagedResult.session)
-              appendConsoleEntry({
-                layer: 'Diagnostics',
-                text: 'Close is only available for supported model, browser, or console viewports here',
-                source: 'console',
-                severity: 'warn',
-              })
-              appendConsoleEntry({
-                layer: 'Commands',
-                text: buildStagedPromptText(stagedResult.session, stagedResult.session.validChoices),
-                source: 'console',
-                severity: 'info',
-              })
-              requestRadioBurst(commandIdentity, 'enter')
-              return
-            }
+            const { workspaceState, targetSlot } = runtimeGuard
 
             const closedViewportLabel =
               getWorkspaceViewportDisplayLabel(
@@ -5083,6 +5064,7 @@ export function useConsoleInteraction(
       pushCommandHistory,
       requestRadioBurst,
       resolveConsoleActionContext,
+      resolveWorkspaceModeRuntimeGuard,
       resolveSelectedObjectPartKeyForZoom,
       resolveSelectedReferenceIdForZoom,
       resolveSelectionSetForZoom,

@@ -11,6 +11,7 @@ export type WorkspaceSurfaceRenderFamily =
   | 'spaghettiEditor'
   | 'dashboard'
   | 'notepad'
+  | 'homePage'
 
 export type WorkspaceSurfaceScope = 'core' | 'optional'
 export type WorkspaceSurfaceCoordination =
@@ -40,7 +41,7 @@ export type CoreWorkspaceSurfaceKind =
   | 'console'
   | 'spaghettiEditor'
 
-export type OptionalWorkspaceSurfaceKind = 'catalog' | 'dashboard' | 'notepad'
+export type OptionalWorkspaceSurfaceKind = 'catalog' | 'dashboard' | 'notepad' | 'homePage'
 
 const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = [
   {
@@ -141,11 +142,29 @@ const workspaceSurfaceCatalogEntries: readonly WorkspaceSurfaceCatalogEntry[] = 
     participatesInPersistence: true,
     coordination: 'plain',
   },
+  {
+    kind: 'homePage',
+    defaultLabel: 'Home Page',
+    renderFamily: 'homePage',
+    scope: 'optional',
+    supports: {
+      slotted: true,
+      floating: true,
+      popout: true,
+      split: true,
+    },
+    participatesInPersistence: true,
+    coordination: 'plain',
+  },
 ] as const
 
 const workspaceSurfaceCatalogByKind = Object.fromEntries(
   workspaceSurfaceCatalogEntries.map((entry) => [entry.kind, entry]),
 ) as Record<WorkspaceSurfaceKind, WorkspaceSurfaceCatalogEntry>
+
+export function getWorkspaceSurfaceCatalogEntries(): readonly WorkspaceSurfaceCatalogEntry[] {
+  return workspaceSurfaceCatalogEntries
+}
 
 export function getWorkspaceSurfaceCatalogEntry(
   kind: WorkspaceSurfaceKind,

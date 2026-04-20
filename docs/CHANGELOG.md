@@ -6,6 +6,37 @@ Numbering rule for major entries:
 - Increment by 1 for every new Codex-added section.
 
 ### Doc History
+56. 2026-04-20 01:01: Recorded the `Home-Page-6 / Phase 4 - Left Rail Help And Debug Affordance Closeout` implementation closeout after the Home Page left rail gained compact help shortcuts and a non-owning advanced status affordance while preserving startup, catalog launch, orientation, Storage Management, persistence toggles, and wipe behavior.
+55. 2026-04-20 00:53: Recorded the `Home-Page-6 / Phase 3 - Storage Management Rename And Detail Affordance` implementation closeout after the storage area became Storage Management while preserving bucket inventory, owner seams, toggles, selected-key wipe behavior, size readouts, and internal row scrolling.
+54. 2026-04-20 00:45: Recorded the `Home-Page-6 / Phase 2 - Compact Orientation Quick-Start Card` implementation closeout after the orientation area became a compact quick-start/status card with the existing GitHub, Docs, version, and what's-new read preserved.
+53. 2026-04-20 00:36: Recorded the `Home-Page-6 / Phase 1 - Control Deck Shell And Catalog-Grounded Launch Rail` implementation closeout after Home Page gained a left-rail/main-region control deck while preserving startup, catalog launch, storage, and monitor-height behavior.
+52. 2026-04-19 21:09: Recorded the Console Workspace Modes primary-slot execution repair after Home Page startup sessions could switch the primary Home Page viewport to another supported workspace surface through Console.
+51. 2026-04-19 21:01: Recorded the Console Workspace Modes catalog alignment repair after the console stopped filtering Home Page out of the viewport picker and generated viewport-type choices from the canonical workspace surface catalog.
+50. 2026-04-19 20:52:25: Recorded the Home Page catalog-driven viewport launch list after launch buttons started rendering from the canonical workspace surface catalog and routing through one generic surface opener.
+49. 2026-04-19 20:46:30: Recorded the Home Page launch-action copy polish after the startup launch section gained an `Open viewport` title and its buttons dropped repeated `Open` prefixes.
+48. 2026-04-19 20:22:02: Recorded the Home Page startup-surface control polish after the Home Page / Model Viewport radio pair became one persisted left-to-right switch.
+47. 2026-04-19 20:18:05: Recorded the Home Page startup-panel launch action polish after the launch buttons moved into the startup column, gained dark-mode app styling, and the storage row-list scrollbar matched the existing dark scrollbar theme.
+46. 2026-04-19 20:09:04: Recorded the Home Page storage transparency scroll-boundary polish after the scrollbar moved from the full storage panel to the bucket-row list only.
+45. 2026-04-19 20:07:08: Recorded the Home Page UI preferences toggle alignment polish after the stacked View settings and Environment controls were right-aligned within the storage-row toggle column.
+44. 2026-04-19 19:51:19: Recorded the Home Page storage row alignment polish after file-size readouts gained a stable width and the UI preferences row toggles stacked vertically.
+43. 2026-04-19 19:48:11: Recorded the Home Page storage wipe button label polish after the row action changed from visible `Wipe` text to a compact `X` button with an accessible storage-specific label.
+42. 2026-04-19 19:47:01: Recorded the Home Page storage wipe-column implementation after each storage transparency row gained a wipe action that removes the backing localStorage entry and refreshes the displayed size to zero.
+41. 2026-04-19 19:44:24: Recorded the Home Page storage-row column order polish after row toggles moved into the middle column and file-size readouts moved to the far-right column.
+40. 2026-04-19 19:33:49: Recorded the Home Page storage-row persistence control repair after persistence toggles moved into their matching storage transparency rows, with UI preferences carrying both view settings and environment controls.
+39. 2026-04-19 19:15:58: Recorded the Home Page persistence-policy toggle-row polish after each persistence item became one left-label/right-switch row while keeping the existing persistence wiring.
+38. 2026-04-19 19:12:46: Recorded the Home Page top-row layout repair after startup surface, persistence policy, and orientation were moved into one responsive three-column row.
+37. 2026-04-19 19:09:59: Recorded the Home Page storage transparency height repair after the storage inventory gained an internal scrollbar so the Home Page stays usable on shorter monitors.
+36. 2026-04-19 19:03:13: Recorded the Home Page startup-surface restore repair after the workspace restore bridge started applying the startup preference to the primary slot even when a saved layout exists, focused startup proof passed, and the AppShell graph-storage mock drift was repaired.
+35. 2026-04-19 18:48:35: Recorded the `Home-Page-5 / Phase 2 - Home Page Recent-Items Inventory And Toggle Wiring` implementation closeout after Home Page gained recent-items browser-storage visibility, a remember/forget control wired through the recent-items owner seam, focused proof, and a passing `npm run build`.
+34. 2026-04-19 18:34:08: Recorded the `Home-Page-5 / Phase 1 - Create Recent-Items Owner Seam Before Home Page Toggle Wiring` implementation closeout after recent-items gained a dedicated reference-only working-set owner seam, focused owner-seam proof, and a passing `npm run build`.
+33. 2026-04-19 18:21:08: Recorded the `Home-Page-4 / Phase 1 - Introduce Dedicated Graph Browser-Storage Owner Seam And Snapshot` implementation closeout after graph browser-storage gained a dedicated working-set owner module, Home Page remember/forget visibility, focused persistence/Home Page proof, and a passing `npm run build`.
+32. 2026-04-19 16:44:29: Recorded the `Home-Page-3 / Phase 1 - Compact Orientation Strip And Brief What's New` implementation closeout after the compact GitHub/docs/version/what's-new strip landed on Home Page, the orientation block stayed visually lighter than storage, focused Home Page coverage passed, and `npm run build` passed.
+31. 2026-04-19 16:28:32: Recorded the `Home-Page-2 / Phase 3 - Extend Transparency To Remaining Owned Buckets And Deferred Owners` implementation closeout after dashboard and notepad persistence toggles landed through the existing UI prefs and AppShell persistence seams, graph browser-storage and recent-items stayed honestly deferred because no live owner seam exists yet, focused Home Page, UI prefs, and AppShell tests passed, and `npm run build` passed.
+30. 2026-04-19 16:16:54: Recorded the `Home-Page-2 / Phase 2 - Split Visible Persistence Policy For Workspace Restore, View Settings, And Environment` implementation closeout after explicit Home Page policy toggles for workspace restore, view settings, and environment landed through the existing workspace and UI prefs persistence seams, the read-only storage transparency surface stayed intact, focused bridge/store/Home Page tests passed, and `npm run build` passed.
+29. 2026-04-19 16:09:22: Recorded the `Home-Page-2 / Phase 1` storage transparency visual polish after the new read-only storage panel and rows were tightened to the repo's 8px card-radius rule.
+28. 2026-04-19 15:59:14: Recorded the `Home-Page-2 / Phase 1 - Read Existing Persistence Buckets And Show Read-Only Storage Transparency` implementation closeout after the Home Page read-only storage transparency block landed with live persistence bucket rows, origin estimate handling, focused storage tests, and `npm run build`.
+27. 2026-04-19 15:43:11: Recorded the `Home-Page-1 / Phase 4 - First Launch Actions And Closeout` implementation closeout after adding launch actions on `Home Page` for `Model Viewport`, `Browser`, `Catalog`, and `Console`, wiring them through the existing shell owner seams, and passing the focused Home Page/AppShell tests plus `npm run build`.
+26. 2026-04-19 15:26:27: Recorded the Home Page startup-surface closeout after the visible startup toggle shipped, the AppShell startup baseline was repaired, and the earlier Home Page surface, zero-viewer return, and startup preference slices were validated through focused tests and `npm run build`.
 25. 2026-04-19 10:32:03: Recorded the `Catalog-7 / Phase 3 - Predictable Filter Semantics` implementation closeout after grouped local taxonomy filters landed with OR inside selected groups, AND across selected groups, separate search narrowing, focused Catalog tests, and `npm run build`
 24. 2026-04-19 10:08:46: Repaired the Catalog-7 Phase 2 closeout for entry 1537 by moving browse sections onto `partGroups` in Part read and `platformCompatibility` in Platform read so the browse rail and visible results are no longer cosmetic, then reran the focused shell and surface tests plus `npm run build`
 23. 2026-04-19 09:48:34: Recorded the `Catalog-7 / Phase 1 - Local Taxonomy Contract And Seed Metadata` implementation closeout after the local taxonomy contract and seed metadata landed for repo-backed part families, focused contract/source tests passed, and `npm run build` passed while later browse, filter, and wheel-fitment phases remained open
@@ -82,6 +113,1299 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 1577 -->
+### [1577] - 2026-04-20 01:01 - `Home-Page-6 / Phase 4 - Left Rail Help And Debug Affordance Closeout`
+
+<!-- ENTRY 1577 -->
+HUMAN SUMMARY: `Home Page's left rail now includes compact Docs and GitHub help shortcuts plus one non-owning read-only advanced status affordance, while the existing startup toggle, catalog launch rail, orientation card, Storage Management inventory, persistence toggles, and selected-key wipe behavior remain intact.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Home-Page-6 / Phase 4` left-rail help and debug closeout work
+- reused the existing Home Page GitHub and Docs URL exports instead of adding a docs browser, modal, route, release-notes owner, debug console, or new surface kind
+- preserved `workspaceStartupSurface` startup behavior, catalog-grounded Open Viewport buttons, orientation card content, Storage Management rows, persistence toggles, wipe behavior, owner seam text, and storage size readouts
+- did not add Docker, Scratchpad, or Hotspot launch buttons and did not change storage, wipe, persistence, catalog launch, or startup restore semantics
+
+#### Summary of Implementation
+- added compact Docs and GitHub shortcuts to the Home Page control rail using the existing orientation URL constants
+- added one read-only advanced status affordance in the left rail without opening a new owner surface or route
+- styled the new rail utilities as compact controls that fit with the existing dark control-deck shell
+- expanded Home Page coverage to prove the help shortcuts and advanced affordance render while existing startup, launch, orientation, Storage Management, persistence-toggle, and wipe proof remains unchanged
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Home Page left rail now exposes compact external `Docs` and `GitHub` help shortcuts.
+- Home Page left rail now includes a non-owning `Advanced` read-only status affordance.
+- Previously landed startup, catalog launch, orientation, Storage Management, persistence toggle, and selected-key wipe behavior remains unchanged.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx src/app/workspace/homePageStorageTransparency.test.ts src/app/workspace/workspaceSurfaceCatalog.test.ts` passed.
+- `npm.cmd run build` passed.
+
+<!-- ENTRY 1576 -->
+### [1576] - 2026-04-20 00:53 - `Home-Page-6 / Phase 3 - Storage Management Rename And Detail Affordance`
+
+<!-- ENTRY 1576 -->
+HUMAN SUMMARY: `Home Page storage now presents as Storage Management with a read-only per-row Details affordance, while the existing bucket inventory, owner seam text, persistence toggles, selected-key wipe behavior, size readouts, and internal row scrolling remain intact.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Home-Page-6 / Phase 3` storage presentation work
+- preserved `readHomePageStorageBuckets`, storage policy controls, selected-key wipe behavior, origin storage estimate, graph persistence note, and recent-items persistence note
+- kept the existing bucket labels, source keys, owner seam text, persistence toggles, wipe buttons, size readouts, and internal row-scroll structure
+- did not change persistence semantics, storage helper inventory, launch rail labels, catalog sourcing, orientation card behavior, or add Docker, Scratchpad, or Hotspot launch buttons
+
+#### Summary of Implementation
+- renamed the Home Page storage section's visible and accessible presentation from `Storage transparency` to `Storage Management`
+- added one read-only `Details` affordance per storage row using the existing bucket label, storage key, and owner seam fields
+- adjusted the storage row grid so the detail affordance sits between the existing persistence controls and wipe/size columns
+- updated Home Page coverage to prove Storage Management presentation, internal row scrolling structure, details affordances, bucket inventory, policy toggles, and selected-key wipe behavior
+- ran the storage transparency helper tests unchanged to confirm the inventory seam still reports the same live buckets
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Home Page now labels the browser persistence area as `Storage Management`.
+- Each storage row includes a non-owning, read-only Details affordance backed by existing bucket fields.
+- Storage owner seams, persistence toggles, wipe behavior, size readouts, and row scrolling remain behaviorally unchanged.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx src/app/workspace/homePageStorageTransparency.test.ts` passed.
+- `npm.cmd run build` passed.
+
+<!-- ENTRY 1575 -->
+### [1575] - 2026-04-20 00:45 - `Home-Page-6 / Phase 2 - Compact Orientation Quick-Start Card`
+
+<!-- ENTRY 1575 -->
+HUMAN SUMMARY: `Home Page orientation now reads as a compact quick-start/status card with the existing GitHub, Docs, version, and what's-new read preserved, plus one lightweight non-owning Get Started with ParaHook affordance.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Home-Page-6 / Phase 2` orientation presentation work
+- preserved the existing GitHub URL, Docs URL, version label, and what's-new summary exports
+- added one non-owning `Get Started with ParaHook` affordance without adding a docs browser, release-note browser, modal, video player, or route
+- did not change Storage Transparency labels, rows, detail affordances, scrolling, wipe behavior, persistence toggles, catalog launch labels, or launch behavior
+
+#### Summary of Implementation
+- reshaped the Home Page orientation section from the previous strip into a compact quick-start/status card
+- added a small `Get Started with ParaHook` note-style affordance inside the orientation card
+- kept GitHub and Docs anchors wired to `homePageOrientation.ts` URL exports
+- kept the version and what's-new readout in the orientation card
+- updated focused Home Page tests to prove the quick-start affordance and preserved orientation links/readouts
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Home Page orientation now presents as a compact quick-start/status card in the main control-deck region.
+- Existing orientation links and status text remain unchanged in source and behavior.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx` passed.
+- `npm.cmd run build` passed.
+
+<!-- ENTRY 1574 -->
+### [1574] - 2026-04-20 00:36 - `Home-Page-6 / Phase 1 - Control Deck Shell And Catalog-Grounded Launch Rail`
+
+<!-- ENTRY 1574 -->
+HUMAN SUMMARY: `Home Page now reads as a control-deck shell with a left rail for identity, startup surface choice, and catalog-grounded Open Viewport actions, while the main region preserves the existing orientation and storage transparency behavior.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Home-Page-6 / Phase 1` layout shell and launch rail work
+- preserved `workspaceStartupSurface` wiring, storage policy toggles, storage wipe actions, size text, owner seam labels, dark storage-list scrollbars, and internal row scrolling
+- kept Open Viewport buttons generated from the canonical workspace surface catalog and excluded Docker, Scratchpad, and Hotspot
+- did not add new workspace surface kinds, change storage semantics, or implement Phase 2 orientation/media or Phase 3 Storage Management detail behavior
+
+#### Summary of Implementation
+- reshaped `HomePageSurface` into an explicit control deck with a left rail and main content region
+- moved the existing Home Page identity, startup surface switch, and catalog-driven Open Viewport launch group into the left rail
+- kept the existing orientation strip and storage transparency section in the main region with their existing behavior and owner seams
+- updated Home Page styling for the rail/main split, responsive one-column fallback, and monitor-height-friendly storage scrolling
+- added focused Home Page proof for the control-deck shell and verified launch-label exclusion
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Home Page visual grouping now uses a control-deck shell with a left rail and main region.
+- Startup preference, catalog-driven surface launch, persistence toggles, storage wipe, storage size readouts, and owner seam text retain their existing behavior.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx src/app/workspace/workspaceSurfaceCatalog.test.ts` passed.
+- `npm.cmd run build` passed.
+
+<!-- ENTRY 1573 -->
+### [1573] - 2026-04-19 23:05 - `Console-1 / Phase 5 - Surface Catalog Expansion Proof And Generation Closeout`
+
+<!-- ENTRY 1573 -->
+HUMAN SUMMARY: `Console Workspace Modes now has regression proof that catalog-backed optional surfaces and future catalog entries flow through canonical surface catalog support and shared eligibility without Console-local menu or runtime allowlist patches.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Console-1 / Phase 5` catalog expansion proof and regression hardening
+- preserved command grammar, labels, aliases, breadcrumbs, action ids, and owner-backed execution calls
+- did not add production workspace surfaces, redesign Console command routing, or edit planning closeout checklists
+
+#### Summary of Implementation
+- added eligibility coverage that checks every registered workspace surface catalog entry against shared action eligibility support
+- updated Workspace Modes staged-navigation coverage so viewport-type expectations and executable action ids are derived from the canonical surface catalog
+- added Console runtime coverage for the optional Dashboard surface flowing through Workspace Modes menu visibility, shared eligibility, and popout runtime execution without stale Console-only diagnostics
+- audited the Workspace Modes seams and left remaining surface-kind branches only where they are owner execution details, not eligibility or visibility gates
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActionEligibility.test.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- No production runtime behavior was intentionally widened.
+- The regression suite now proves catalog-supported surfaces can receive Workspace Modes menu and runtime eligibility through shared catalog/eligibility seams rather than Console-specific allowlists.
+
+#### Verification Steps
+- `npm.cmd test -- workspaceSurfaceActionEligibility stagedNavigation.workspaceModes ConsoleDock --testNamePattern "mirrors catalog support|advances into the workspace modes|routes optional dashboard"` passed.
+- `npm.cmd test -- workspaceSurfaceCatalog workspaceSurfaceActionEligibility stagedNavigation.workspaceModes ConsoleDock` ran; `workspaceSurfaceCatalog`, `workspaceSurfaceActionEligibility`, `stagedNavigation.workspaceModes`, and the Phase 5 `ConsoleDock` proof passed, while the broad `ConsoleDock` suite still reported the known unrelated reference/graph/sketch/transform failures.
+- `npm.cmd run build` passed with existing Vite externalized `path`/`crypto` and chunk-size warnings.
+
+<!-- ENTRY 1572 -->
+### [1572] - 2026-04-19 22:57 - `Console-1 / Phase 4 - Unified Surface Identity Across Host States`
+
+<!-- ENTRY 1572 -->
+HUMAN SUMMARY: `Console Workspace Modes now uses one workspace surface target read model for slotted, floating, and popout surfaces, carrying real host mode into shared eligibility so detached targets can list with stable host-state labels while slotted-only actions stay hidden or report shared diagnostics.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Console-1 / Phase 4` unified target identity/listing and narrow runtime target resolution
+- preserved existing command vocabulary, aliases, action ids, breadcrumbs, successful action text, and owner-backed execution calls
+- left lifecycle expansion, command registry redesign, detached target discovery beyond existing workspace host state, and `Phase 5` catalog proof/closeout deferred
+
+#### Summary of Implementation
+- added a unified Console workspace surface target option read model with `surfaceInstanceId`, `surfaceKind`, `hostMode`, label, and optional slotted metadata
+- fed slotted and detached/floating/popout workspace surfaces into the Console staged navigation context from the shared target list
+- passed real host mode through Workspace Modes menu eligibility so non-slotted targets hide slotted-only action groups
+- updated Workspace Modes runtime target resolution to resolve the same slotted or detached surface identity before applying the shared eligibility guard
+- added focused Workspace Modes coverage for unified target listing, non-slotted action hiding, shared diagnostics for unsupported submissions, and unchanged slotted behavior
+
+#### Files Changed
+- `src/app/workspace/workspaceViewportLabels.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/ConsoleDock.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Workspace Modes target picking now includes slotted workspace surfaces plus existing detached, floating, and popout workspace surfaces under one selected-surface identity.
+- Floating and popout targets use host-state suffix labels such as `Home Page (Floating)` and receive shared eligibility using their actual host mode.
+- Slotted-only Workspace Modes actions remain available for eligible slotted surfaces and hidden or diagnosable for non-slotted host states.
+
+#### Verification Steps
+- `npm.cmd test -- ConsoleDock --testNamePattern "detached workspace surfaces"` passed.
+- `npm.cmd test -- stagedNavigation.workspaceModes ConsoleDock workspaceSurfaceActionEligibility` ran; `workspaceSurfaceActionEligibility`, `stagedNavigation.workspaceModes`, and the Phase 4 `ConsoleDock` coverage passed, while the broad `ConsoleDock` suite still reported the known unrelated reference/graph/sketch/transform failures.
+- `npm.cmd run build` passed with existing Vite externalized `path`/`crypto` and chunk-size warnings.
+
+<!-- ENTRY 1571 -->
+### [1571] - 2026-04-19 22:46 - `Console-1 / Phase 3 - Owner-Backed Runtime Action Execution And Diagnostics`
+
+<!-- ENTRY 1571 -->
+HUMAN SUMMARY: `Console Workspace Modes runtime actions now pass through the shared workspace action eligibility guard before executing owner-backed split, viewport type, Open In New Browser, float, and close operations, with shared blocked diagnostics replacing stale Console-only allowlists.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Console-1 / Phase 3` runtime execution guards and focused Console coverage
+- preserved shipped labels, canonical tokens, aliases, breadcrumbs, staged-session behavior, action ids, and successful action text
+- left detached, floating, and popout listing plus unified host-state identity work deferred to `Console-1 / Phase 4`
+
+#### Summary of Implementation
+- added a Console runtime guard that resolves the selected slotted viewport, builds a shared workspace action eligibility target, and reports blocked Diagnostics before execution
+- routed split, viewport type, Open In New Browser, float, and close runtime actions through the shared guard before calling existing workspace and shell owners
+- removed stale Console-only runtime allowlist checks for primary close protection, unsupported split, unsupported float, unsupported popout/open, and optional-surface close/float blocks
+- extended ConsoleDock coverage for shared runtime diagnostics and optional/catalog-backed runtime actions that are now eligible through the shared model
+
+#### Files Changed
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/console/ConsoleDock.test.tsx`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Workspace Modes runtime submissions now use the shared workspace surface action eligibility model before owner-backed execution.
+- Optional slotted surfaces that are eligible in the shared model can now execute matching Open In New Browser, float, and close runtime actions without stale Console-only blocks.
+
+#### Verification
+- `npm.cmd test -- ConsoleDock --testNamePattern "shared workspace eligibility diagnostics|optional workspace surfaces open"`
+- `npm.cmd test -- ConsoleDock workspaceSurfaceActionEligibility stagedNavigation.workspaceModes`
+- `npm.cmd run build`
+
+<!-- ENTRY 1570 -->
+### [1570] - 2026-04-19 22:25 - `Console-1 / Phase 2 - Catalog-Driven Workspace Modes Menus`
+
+<!-- ENTRY 1570 -->
+HUMAN SUMMARY: `Console Workspace Modes chosen-viewport menus now read split, viewport type, float, Open In New Browser, and close visibility from the shared workspace action eligibility model instead of Console-local surface allowlists.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Console-1 / Phase 2` menu derivation
+- preserved shipped labels, canonical tokens, aliases, breadcrumbs, and action ids
+- left runtime action execution and diagnostics deferred to `Console-1 / Phase 3`
+
+#### Summary of Implementation
+- imported the shared workspace action eligibility helper into `stagedNavigation.ts`
+- added a small slotted-viewport adapter that turns selected Workspace Modes viewport options into eligibility targets
+- replaced the local float, close, and Open In New Browser menu visibility helpers with shared eligibility reads
+- extended focused staged-navigation coverage for primary, non-primary, core, optional, and unsupported-popout surface menu visibility
+
+#### Files Changed
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Console Workspace Modes chosen-viewport action menus now follow the shared workspace surface action eligibility model for slotted targets.
+
+#### Verification
+- `npm.cmd test -- stagedNavigation.workspaceModes workspaceSurfaceActionEligibility`
+- `npm.cmd run build`
+
+<!-- ENTRY 1569 -->
+### [1569] - 2026-04-19 22:11 - `Console-1 / Phase 1 - Shared Workspace Action Eligibility Read Model`
+
+<!-- ENTRY 1569 -->
+HUMAN SUMMARY: `Workspace mode actions now have a shared catalog-backed eligibility read model for split, viewport type, float, popout, and close, with explicit primary-slot protection and blocked reasons for later Console menu and runtime wiring.`
+
+#### Scope / Constraints Honored
+- kept the implementation to `Console-1 / Phase 1` by adding the shared read model without migrating Console menus or runtime execution
+- placed the helper under workspace ownership instead of Console ownership
+- preserved existing Console Workspace Modes behavior while preparing the Phase 2 and Phase 3 consumer seam
+
+#### Summary of Implementation
+- added a pure workspace surface action eligibility helper that reads canonical surface host-mode and split support
+- represented primary-slot protections and unsupported catalog support as explicit blocked reasons
+- covered core, optional, primary, non-primary, and unsupported cases with focused workspace tests
+
+#### Files Changed
+- `src/app/workspace/workspaceSurfaceActionEligibility.ts`
+- `src/app/workspace/workspaceSurfaceActionEligibility.test.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Shared workspace callers can now answer whether a slotted surface can split, change viewport type, float, pop out, or close without re-creating Console-local allowlists.
+
+#### Verification
+- `npm.cmd test -- workspaceSurfaceCatalog workspaceSurfaceActionEligibility stagedNavigation.workspaceModes`
+- `npm.cmd run build`
+
+<!-- ENTRY 1568 -->
+### [1568] - 2026-04-19 21:09 - `Home-Page-1 / Console Primary Workspace Mode Switch`
+
+<!-- ENTRY 1568 -->
+HUMAN SUMMARY: `Console Workspace Modes can now switch the primary Home Page slot to another supported workspace surface, fixing the loaded-into-Home-Page command path.`
+
+#### Scope / Constraints Honored
+- kept the repair inside Console Workspace Modes execution, focused Console coverage, and required tracking docs
+- preserved the primary-slot support guard by checking the canonical primary-slot support function instead of allowing unsupported surfaces
+- did not change float, close, Open In New Browser, storage transparency, startup preference persistence, or Home Page layout behavior
+
+#### Summary of Implementation
+- replaced the Console handler's blanket primary-slot viewport-type block with the same supported-surface check used by the shared workspace slot menu
+- kept unsupported primary-slot type changes on the existing warning path
+- added focused ConsoleDock proof for loading with Home Page in the primary slot and switching it to Model Viewport through Workspace Modes
+- updated the ConsoleDock viewport-type expectation to include the catalog-generated surface list
+
+#### Files Changed
+- `src/app/console/ConsoleDock.test.tsx`
+- `src/app/console/useConsoleInteraction.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- A user who starts on Home Page can use Console Workspace Modes to select the Home Page viewport and change it to Model Viewport or another supported primary surface.
+
+#### Verification
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx -t "workspace-mode viewport type"`
+- `npm.cmd run test -- src/app/console/ConsoleDock.test.tsx -t "primary Home Page workspace-mode viewport type"`
+- `npm.cmd run test -- src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `npx.cmd tsc --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1567 -->
+### [1567] - 2026-04-19 21:01 - `Home-Page-1 / Console Workspace Modes Catalog Alignment`
+
+<!-- ENTRY 1567 -->
+HUMAN SUMMARY: `Console Workspace Modes now uses the full canonical workspace surface catalog path for Home Page-aware viewport selection and viewport-type choices.`
+
+#### Scope / Constraints Honored
+- kept the repair inside Console Workspace Modes routing, workspace viewport labels, command identity naming, focused staged-navigation coverage, and required tracking docs
+- preserved the existing narrower command handling for float and Open In New Browser
+- did not change Home Page layout, storage transparency, persistence toggles, or startup preference behavior
+
+#### Summary of Implementation
+- stopped filtering Console Workspace Modes viewport options down to core surfaces only
+- generated the Workspace Modes viewport-type submenu from the canonical workspace surface catalog
+- routed viewport-type execution through generic `workspace.viewport.type.<surfaceKind>` action ids
+- parsed those generic action ids back through the catalog before switching a viewport slot surface
+- added focused coverage proving Home Page appears in Workspace Modes and can be selected as a viewport type
+
+#### Files Changed
+- `src/app/console/radioCommandIdentity.ts`
+- `src/app/console/stagedNavigation.ts`
+- `src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `src/app/console/useConsoleInteraction.ts`
+- `src/app/workspace/workspaceViewportLabels.ts`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes
+- Console Workspace Modes can recognize Home Page viewport slots.
+- The viewport-type menu now includes slotted surfaces from the canonical workspace surface catalog, including Catalog, Dashboard, Notepad, and Home Page.
+
+#### Verification
+- `npm.cmd run test -- src/app/console/stagedNavigation.workspaceModes.test.ts`
+- `npx.cmd tsc --noEmit --pretty false`
+- `npm.cmd run build`
+
+<!-- ENTRY 1566 -->
+### [1566] - 2026-04-19 20:52 - `Home-Page-1 / Catalog-Driven Viewport Launch List`
+
+<!-- ENTRY 1566 -->
+HUMAN SUMMARY: `Home Page now builds its Open viewport button list from the canonical workspace surface catalog, so new cataloged workspace surfaces can appear there without hand-editing the Home Page button markup.`
+
+#### Scope / Constraints Honored
+- kept the change inside the workspace surface catalog, Home Page launch rendering, workspace surface handoff props, focused Home Page test, and required tracking docs
+- preserved the Home Page launch-section title and dark button styling
+- excluded `homePage` from its own launch list
+- did not change storage transparency, persistence toggles, startup preference persistence, or storage wipe behavior
+
+#### Summary of Implementation
+- exported a read-only workspace surface catalog entry list from `workspaceSurfaceCatalog.ts`
+- rendered Home Page launch buttons by mapping all catalog entries except `homePage`
+- routed launch clicks through one generic `onOpenSurface(surfaceKind)` callback instead of four hard-coded Home Page callbacks
+- updated AppShell, WorkspaceViewportTree, and ViewportSurfaceRegistry to pass the generic surface opener
+- kept button labels compact by trimming trailing `Viewport` from non-model surface labels
+- extended focused Home Page coverage to prove the generated button list includes Model Viewport, Browser, Catalog, Console, Spaghetti Editor, Dashboard, and Notepad
+
+#### Files Changed
+- `src/app/AppShell.tsx`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Home Page Open viewport section now includes all non-Home-Page workspace surfaces from the canonical catalog.
+- Launch clicks now flow through one generic surface-kind opener.
+- Cataloged future workspace surfaces can be picked up by Home Page launch rendering without adding another hard-coded button.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1565 -->
+### [1565] - 2026-04-19 20:46 - `Home-Page-1 / Launch Action Copy Polish`
+
+<!-- ENTRY 1565 -->
+HUMAN SUMMARY: `Home Page now labels the startup launch-action section as Open viewport and shortens the buttons to Model Viewport, Browser, Catalog, and Console without changing the launch callbacks.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page launch-action copy, presentation CSS, focused Home Page test, and required tracking docs
+- preserved the existing launch callbacks and disabled-state behavior
+- did not change startup preference behavior, storage transparency, persistence toggles, wipe actions, or launch routing owners
+
+#### Summary of Implementation
+- added an `Open viewport` title inside the Home Page launch-action section
+- shortened the four launch button labels by removing repeated `Open` prefixes
+- styled the new section title to match other compact Home Page section labels
+- updated focused Home Page launch-action test expectations for the new title and labels
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Home Page startup launch section now reads as `Open viewport` with concise destination buttons.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1564 -->
+### [1564] - 2026-04-19 20:22 - `Home-Page-1 / Startup Surface Switch Polish`
+
+<!-- ENTRY 1564 -->
+HUMAN SUMMARY: `Home Page now presents the Home Page / Model Viewport startup choice as one left-to-right switch while preserving the same persisted startup-surface setting underneath.`
+
+#### Scope / Constraints Honored
+- kept the change inside the Home Page startup control presentation and focused Home Page test
+- preserved the existing `homePage` and `modelViewer` persisted values
+- did not change workspace restore behavior, launch routing, storage transparency, persistence toggles, or storage wipe behavior
+
+#### Summary of Implementation
+- replaced the two visible startup radio inputs with one checkbox-backed switch
+- mapped switch off to `homePage` and switch on to `modelViewer`
+- added scoped startup-switch layout styling so the two labels frame the switch left-to-right
+- updated the focused Home Page startup preference test to cover both switch directions
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Home Page startup surface choice now appears as a single switch between `Home Page` and `Model Viewport`.
+- Toggling it still writes the same persisted startup preference.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1563 -->
+### [1563] - 2026-04-19 20:18 - `Home-Page-1 / Startup Launch Action Styling`
+
+<!-- ENTRY 1563 -->
+HUMAN SUMMARY: `Home Page now keeps the launch actions inside the startup column, styles those buttons with the app's dark-mode control language, and gives the storage transparency row scrollbar the same dark treatment used elsewhere in the project.`
+
+#### Scope / Constraints Honored
+- kept the change inside the Home Page surface component, Home Page CSS, focused Home Page test, and required tracking docs
+- preserved existing launch callbacks, startup preference behavior, storage rows, persistence toggles, and wipe behavior
+- did not change storage keys, startup persistence semantics, workspace restore logic, or launch routing owners
+
+#### Summary of Implementation
+- moved `HomePageSurfaceLaunchActions` into the top-left startup column under the startup surface radio controls
+- added scoped dark-mode styles for the Home Page launch buttons, including hover, focus, and disabled states
+- matched the storage transparency row-list scrollbar to the existing dark `.PanelStack` scrollbar treatment
+- added focused test coverage that the launch actions render inside the startup column
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Home Page launch buttons now live in the startup area instead of below Storage transparency.
+- The launch buttons now render as dark ParaHook-style controls rather than native browser buttons.
+- The Storage transparency bucket-list scrollbar now visually matches the app's dark scrollbars.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1562 -->
+### [1562] - 2026-04-19 20:09 - `Home-Page-2 / Storage Row List Scroll Boundary`
+
+<!-- ENTRY 1562 -->
+HUMAN SUMMARY: `Home Page storage transparency now keeps its title, description, origin estimate, and notes outside the scrollbar so only the bucket rows scroll.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency CSS
+- preserved all row content, wipe actions, persistence toggles, and storage behavior
+- did not change storage keys, bucket measurement, startup behavior, or launch actions
+
+#### Summary of Implementation
+- removed the max-height and overflow behavior from the outer storage transparency panel
+- moved the row-list height cap and scrollbar onto `HomePageSurfaceStorageTransparencyList`
+- kept scroll containment and stable scrollbar gutter on the row list
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Storage transparency title and helper text no longer scroll with the bucket rows.
+- Only the storage bucket rows use the internal scrollbar.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1561 -->
+### [1561] - 2026-04-19 20:07 - `Home-Page-2 / UI Preferences Toggle Alignment`
+
+<!-- ENTRY 1561 -->
+HUMAN SUMMARY: `Home Page keeps the UI preferences row's View settings and Environment toggles stacked, but now right-aligns each stacked toggle so their switches line up with the other storage rows.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency CSS
+- preserved the stacked UI preferences controls and all existing persistence behavior
+- did not change storage keys, wipe actions, startup behavior, launch actions, or bucket measurement
+
+#### Summary of Implementation
+- changed the UI preferences storage-policy wrapper to right-align each stacked toggle
+- stopped stretching the UI preferences toggle label across the full toggle column
+- kept the two UI preferences controls stacked as separate rows
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The `View settings` and `Environment` switches in the UI preferences row align with the single-switch rows instead of starting too far left.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1560 -->
+### [1560] - 2026-04-19 19:51 - `Home-Page-2 / Storage Row Size And UI Preference Toggle Alignment`
+
+<!-- ENTRY 1560 -->
+HUMAN SUMMARY: `Home Page storage rows now keep the X wipe buttons aligned by reserving more room for file sizes, and the UI preferences row stacks its View settings and Environment toggles vertically.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency layout
+- preserved existing wipe behavior, persistence toggles, storage keys, and bucket measurement
+- did not change startup behavior, launch actions, or persistence semantics
+
+#### Summary of Implementation
+- gave the storage file-size column a stable minimum width and right-aligned text
+- kept the wipe action in its own column so varying size strings no longer shift the X button
+- tagged storage policy controls by bucket id for row-specific layout
+- stacked the two UI preferences toggles vertically while leaving one-toggle rows compact
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Storage row X buttons stay visually aligned as size labels change.
+- The UI preferences row displays `View settings` and `Environment` as separate stacked toggle rows.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1559 -->
+### [1559] - 2026-04-19 19:48 - `Home-Page-2 / Compact Storage Wipe Button Label`
+
+<!-- ENTRY 1559 -->
+HUMAN SUMMARY: `Home Page storage-row wipe actions now render as compact X buttons instead of the visible Wipe string, while keeping row-specific accessible labels.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency button presentation
+- preserved the existing wipe behavior and storage refresh path
+- kept the row-specific accessible label for screen readers
+- did not change persistence toggles, storage keys, startup behavior, or launch actions
+
+#### Summary of Implementation
+- changed each visible storage wipe button label from `Wipe` to `X`
+- added a row-specific `aria-label` such as `Wipe Workspace layout storage`
+- adjusted the wipe button styling to a compact square action
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Storage transparency rows now show a compact `X` action in the wipe column.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1558 -->
+### [1558] - 2026-04-19 19:47 - `Home-Page-2 / Storage Row Wipe Column`
+
+<!-- ENTRY 1558 -->
+HUMAN SUMMARY: `Home Page storage transparency rows now include a Wipe action between the persistence toggles and file-size readout, removing that row's browser-storage entry and immediately refreshing the shown size to zero.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency behavior and layout
+- preserved existing persistence toggles, bucket definitions, storage keys, startup behavior, and launch actions
+- kept wipe scoped to the selected storage bucket row
+- did not add broad reset-all behavior or cross-owner cleanup beyond removing the row's backing localStorage entry
+
+#### Summary of Implementation
+- added a storage refresh counter so Home Page re-reads bucket sizes after a wipe
+- added one Wipe button per storage transparency row
+- routed Wipe through the row's storage key and refreshed the row display after removal
+- inserted the Wipe button column between persistence toggles and file size
+- tightened Home Page tests to prove Wipe removes a stored entry and updates the row to `0 B stored`
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/homePageStorageTransparency.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Each storage transparency row now has a `Wipe` action.
+- Clicking `Wipe` removes the row's backing localStorage value and refreshes the displayed row size to `0 B stored`.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx src/app/workspace/homePageStorageTransparency.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1557 -->
+### [1557] - 2026-04-19 19:44 - `Home-Page-2 / Storage Row Toggle And Size Column Order`
+
+<!-- ENTRY 1557 -->
+HUMAN SUMMARY: `Home Page storage transparency rows now read as bucket identity, persistence toggles, then file size, putting the switch controls in the middle column and the size readout on the far right.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency layout
+- preserved the existing row controls, storage inventory, and persistence behavior
+- did not change storage keys, bucket measurements, startup behavior, or launch actions
+
+#### Summary of Implementation
+- moved each storage row's persistence controls before the size readout in the DOM
+- adjusted the storage row grid so toggles occupy the middle column
+- kept the file-size readout in the third column
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Storage transparency rows now visually order content as label, toggle controls, and size.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1556 -->
+### [1556] - 2026-04-19 19:33 - `Home-Page-2 / Storage Row Persistence Controls`
+
+<!-- ENTRY 1556 -->
+HUMAN SUMMARY: `Home Page persistence toggles now live on the matching storage transparency rows, with UI preferences carrying both View settings and Environment so the inventory and controls line up.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page storage transparency and persistence control presentation
+- preserved existing persistence state wiring and owner seams
+- kept storage inventory rows stable while moving controls into their rows
+- did not change storage keys, persistence semantics, startup behavior, launch actions, or bucket measurement
+
+#### Summary of Implementation
+- moved the workspace restore switch onto the Workspace layout row
+- moved View settings and Environment switches onto the UI preferences row
+- moved Dashboard, Notepad, Graph working set, and Recent items switches onto their matching storage rows
+- removed the separate top-row persistence policy fieldset
+- updated Home Page tests to prove the storage-row switches still update the same persisted policies
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Storage transparency rows now show the persistence controls for the data they describe.
+- The UI preferences row now carries two controls because both View settings and Environment persistence live under UI preference policy ownership.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1555 -->
+### [1555] - 2026-04-19 19:15 - `Home-Page-2 / Persistence Policy Toggle Row Polish`
+
+<!-- ENTRY 1555 -->
+HUMAN SUMMARY: `Home Page persistence policy now reads as one item per row with a left-side label and right-side switch toggle, while keeping the same persisted settings behavior underneath.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page persistence-policy presentation
+- preserved the existing checkbox-backed state wiring and persistence semantics
+- did not change persistence ownership, storage bucket inventory, startup surface behavior, or launch actions
+
+#### Summary of Implementation
+- added switch styling to the persistence policy inputs
+- kept each persistence control as a real checkbox input with `role="switch"`
+- converted the persistence policy fieldset from a dense two-column checkbox cluster to one item per row
+- aligned each label left and its switch control right
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page persistence policy controls now appear as left-to-right toggle rows.
+- Each persistence item occupies its own row for clearer scanning.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1554 -->
+### [1554] - 2026-04-19 19:12 - `Home-Page-1 / Top Row Startup Persistence Orientation Layout`
+
+<!-- ENTRY 1554 -->
+HUMAN SUMMARY: `Home Page now places Startup surface, Persistence policy, and Orientation into the first responsive row, making the landing surface shorter and easier to scan.`
+
+#### Scope / Constraints Honored
+- kept the change inside the Home Page layout surface and shared Home Page CSS
+- preserved the existing startup, persistence, orientation, storage, and launch behavior
+- kept DOM order aligned with the visible first-row order for keyboard navigation
+- did not change persistence ownership, startup semantics, storage inventory, or launch routing
+
+#### Summary of Implementation
+- moved the startup surface fieldset ahead of storage into the first Home Page control row
+- moved the persistence policy fieldset into the same first row as the second column
+- kept the orientation section in the first row as the third column
+- added responsive grid styling so the three-column row stacks cleanly on narrow screens
+- compacted the persistence policy labels into a two-column fieldset inside its top-row column
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page now presents `Startup surface`, `Persistence policy`, and `Orientation` as the first visible row on wider viewports.
+- The first row collapses to a single-column stack on narrower viewports.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1553 -->
+### [1553] - 2026-04-19 19:09 - `Home-Page-2 / Storage Transparency Scroll Containment`
+
+<!-- ENTRY 1553 -->
+HUMAN SUMMARY: `Home Page storage transparency now scrolls inside its own panel, keeping the landing surface shorter and the startup plus persistence controls reachable on smaller monitors.`
+
+#### Scope / Constraints Honored
+- kept the change inside Home Page visual layout styling
+- preserved the existing storage transparency inventory content and row structure
+- did not change persistence semantics, storage ownership, startup behavior, or bucket detection
+
+#### Summary of Implementation
+- added a viewport-aware max height to the Home Page storage transparency panel
+- enabled internal vertical scrolling with contained overscroll behavior
+- reserved scrollbar gutter space so the storage rows do not shift when the scrollbar appears
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Home Page storage transparency panel no longer grows indefinitely with every bucket row and note.
+- On shorter screens, the storage inventory scrolls internally while the rest of the Home Page controls remain easier to reach.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1552 -->
+### [1552] - 2026-04-19 19:03 - `Home-Page-1 / Startup Surface Restore Repair`
+
+<!-- ENTRY 1552 -->
+HUMAN SUMMARY: `Home Page startup surface preference now wins on reload even when workspace restore has a saved layout, so choosing Model Viewport starts the primary slot in Model Viewport after refresh.`
+
+#### Scope / Constraints Honored
+- repaired the existing Home Page startup preference seam without changing the Home Page control contract
+- preserved workspace restore for layout-level state while letting the startup surface own the primary slot on startup
+- kept the change inside the workspace persistence bridge and focused AppShell proof
+- did not widen into Catalog preview persistence, environment state, recent-items semantics, graph working-set policy, or unrelated workspace layout behavior
+
+#### Summary of Implementation
+- updated the workspace persistence bridge to apply the persisted startup surface after hydrating a saved workspace layout
+- kept the same startup-surface application path for fresh starts without a saved layout
+- updated AppShell startup coverage so a restored Home Page primary slot is changed to Model Viewport when the startup preference says Model Viewport
+- repaired the AppShell test mock for the graph browser-storage bridge exports that are now mounted during startup tests
+
+#### Files Changed
+- `src/app/workspace/useWorkspacePersistenceBridge.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Selecting `Model Viewport` as the Home Page startup surface now starts the primary workspace slot in `Model Viewport` after refresh, even when workspace restore is enabled and a previous layout snapshot exists.
+- Workspace restore still restores non-primary startup state such as dock width, left-dock viewport split state, floating browser state, and persisted editor surface placement.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/AppShell.test.tsx -t "startup|startup surface|shared workspace seam"`
+- `npm.cmd run test -- src/app/workspace/useWorkspacePersistenceBridge.test.tsx`
+
+<!-- ENTRY 1551 -->
+### [1551] - 2026-04-19 18:48 - `Home-Page-5 / Phase 2 - Home Page Recent-Items Inventory And Toggle Wiring`
+
+<!-- ENTRY 1551 -->
+HUMAN SUMMARY: `Home Page now shows the recent-items browser-storage bucket and a remember/forget control wired through \`recentItemsPersistence.ts\`, completing recent-items persistence visibility without moving recent-items semantics into Home Page.`
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-5 / Phase 2`
+- surfaced recent-items inventory and policy UI through the existing owner seam
+- kept recent-items semantics in `src/app/recentItems/recentItemsPersistence.ts`
+- did not widen into graph persistence, graph file IO, Browser/project ownership, broader storage cleanup, docs browsing, or release-note ownership
+
+#### Summary of Implementation
+- added recent-items remember/forget policy helpers, storage key, and policy-change event to the recent-items owner seam
+- added the recent-items bucket to Home Page storage transparency
+- wired the Home Page `Remember recent items` checkbox through the recent-items owner seam
+- made forget clear the recent-items working-set snapshot through the owner seam
+- added focused recent-items, storage transparency, and Home Page tests for the new policy and inventory row
+
+#### Files Changed
+- `src/app/recentItems/recentItemsPersistence.ts`
+- `src/app/recentItems/recentItemsPersistence.test.ts`
+- `src/app/workspace/homePageStorageTransparency.ts`
+- `src/app/workspace/homePageStorageTransparency.test.ts`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page-5 - Recent Items Persistence Toggle And Owner Seam.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page now includes the `Recent items` browser-storage bucket in its storage transparency inventory.
+- Home Page now exposes a `Remember recent items` policy control.
+- Turning off recent-items memory clears the recent-items working-set snapshot through `recentItemsPersistence.ts`.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/recentItems/recentItemsPersistence.test.ts src/app/workspace/homePageStorageTransparency.test.ts src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1550 -->
+### [1550] - 2026-04-19 18:34 - `Home-Page-5 / Phase 1 - Create Recent-Items Owner Seam Before Home Page Toggle Wiring`
+
+<!-- ENTRY 1550 -->
+HUMAN SUMMARY: `Recent items now have a dedicated browser-storage owner seam with reference-only resume target semantics, giving Home Page a future handoff point without wiring the Home Page toggle yet.`
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-5 / Phase 1`
+- created the recent-items owner seam before Home Page toggle wiring
+- kept recent/resume state as references to existing workspace, graph, and Browser owners
+- did not widen into graph persistence, graph file IO, Browser/project ownership, Home Page toggle UI, unrelated storage cleanup, docs browsing, or release-note ownership
+
+#### Summary of Implementation
+- added `recentItemsPersistence.ts` as the owner for the recent-items browser-storage bucket
+- defined the recent/resume snapshot shape with `itemsById`, `itemOrder`, and `activeItemId`
+- added bounded newest-first upsert semantics and corrupt-entry normalization
+- added a storage bucket descriptor that later Home Page inventory/toggle work can consume without inventing ownership
+- added focused owner-seam tests for serialization, normalization, read/write/clear, and bounded upsert behavior
+
+#### Files Changed
+- `src/app/recentItems/recentItemsPersistence.ts`
+- `src/app/recentItems/recentItemsPersistence.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page-5 - Recent Items Persistence Toggle And Owner Seam.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- ParaHook now has a dedicated recent-items storage owner and browser-storage bucket key.
+- Recent/resume targets are stored as owner-scoped references instead of becoming project, Browser, graph, or Home Page truth.
+- Home Page can later wire inventory and remember/forget controls through the recent-items seam.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/recentItems/recentItemsPersistence.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1549 -->
+### [1549] - 2026-04-19 18:21 - `Home-Page-4 / Phase 1 - Introduce Dedicated Graph Browser-Storage Owner Seam And Snapshot`
+
+<!-- ENTRY 1549 -->
+HUMAN SUMMARY: `Graph browser-storage now has a dedicated recent working-set owner with Home Page remember/forget control, while graph document file IO remains separate in \`graphDocumentPersistence.ts\`.`
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-4 / Phase 1`
+- kept graph document file import/export semantics separate from browser-storage ownership
+- did not widen into recent-items work, Browser/project ownership, all-time graph archives, unrelated storage cleanup, docs browsing, or release-note ownership
+
+#### Summary of Implementation
+- added `graphBrowserStoragePersistence.ts` as the owner for the graph working-set browser-storage bucket and remember/forget policy
+- added `useGraphBrowserStoragePersistenceBridge.ts` so the graph store hydrates and writes the recent working-set snapshot through the new owner
+- added a narrow graph-store hydration API and working-set selector for `graphDocumentsById`, `graphDocumentOrder`, and `activeGraphDocumentId`
+- surfaced `Graph working set` in Home Page storage transparency and added the `Remember graph working set` persistence control
+- added focused persistence-owner, persistence-bridge, Home Page storage, and Home Page surface tests
+
+#### Files Changed
+- `src/app/spaghetti/store/graphBrowserStoragePersistence.ts`
+- `src/app/spaghetti/store/useGraphBrowserStoragePersistenceBridge.ts`
+- `src/app/spaghetti/store/useSpaghettiStore.ts`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/homePageStorageTransparency.ts`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/spaghetti/store/graphBrowserStoragePersistence.test.ts`
+- `src/app/spaghetti/store/useGraphBrowserStoragePersistenceBridge.test.tsx`
+- `src/app/workspace/homePageStorageTransparency.test.ts`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page-4 - Graph Browser-Storage Save Control And Owner Seam.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Graph workspace state can now be remembered in browser storage as a recent working-set snapshot.
+- Home Page now exposes the graph browser-storage bucket and lets the user turn graph working-set memory on or off.
+- Turning graph working-set memory off clears the graph browser-storage snapshot without affecting graph document file IO.
+
+#### Verification Steps
+- `npm.cmd run test -- src/app/spaghetti/store/graphBrowserStoragePersistence.test.ts src/app/spaghetti/store/useGraphBrowserStoragePersistenceBridge.test.tsx src/app/workspace/homePageStorageTransparency.test.ts src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run test -- src/app/spaghetti/store/useSpaghettiStore.test.ts` failed on pre-existing OutputPreview `publicationMode` expectation drift unrelated to `Home-Page-4 / Phase 1`.
+- `npm.cmd run build`
+
+<!-- ENTRY 1548 -->
+### [1548] - 2026-04-19 16:44 - `Home-Page-3 / Phase 1 - Compact Orientation Strip And Brief What's New`
+
+<!-- ENTRY 1548 -->
+HUMAN SUMMARY: `Home Page` now has a compact orientation strip with GitHub and docs links, the user-facing `ParaHook Generator v20` version read, and a short static what's-new summary without becoming a docs dashboard.
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-3 / Phase 1`
+- kept the orientation read visually lighter than the storage section
+- did not add docs navigation, changelog browsing, release-note ownership, routing changes, storage changes, or startup behavior changes
+
+#### Summary of Implementation
+- added a small Home Page orientation metadata helper for canonical links, version label, and brief what's-new copy
+- rendered the compact orientation strip on `HomePageSurface`
+- added focused Home Page surface coverage for the links, version read, and summary copy
+- updated the Home Page planning docs to close `Home-Page-Gen1-HLG-14` and `Home-Page-Gen1-CLG-13`
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/homePageOrientation.ts`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page-3 - Lightweight Orientation And What Is New.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page now exposes lightweight project orientation directly in the landing surface.
+- The orientation content is static and bounded, leaving long-form docs and changelog ownership outside Home Page.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1547 -->
+### [1547] - 2026-04-19 16:28 - `Home-Page-2 / Phase 3 - Extend Transparency To Remaining Owned Buckets And Deferred Owners`
+
+<!-- ENTRY 1547 -->
+HUMAN SUMMARY: `Home Page` now exposes dashboard and notepad persistence toggles through the existing UI prefs/AppShell policy seam, while graph browser-storage and recent-items remain visibly deferred because no live owner seam exists yet.
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-2 / Phase 3`
+- reused the existing UI prefs policy bucket and AppShell persistence seam
+- kept graph browser-storage and recent-items deferred instead of inventing new owners
+- did not add destructive clear/reset controls
+
+#### Summary of Implementation
+- extended the UI prefs persistence policy with dashboard and notepad remember/forget flags
+- added Home Page controls for dashboard and notepad persistence
+- gated AppShell dashboard and notepad hydrate/write loops on the new flags
+- added honest deferred-owner notes for graph browser-storage and recent-items
+- added focused Home Page, UI prefs, and AppShell tests for the new behavior
+
+#### Files Changed
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/store/uiPrefsStore.test.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/homePageStorageTransparency.ts`
+- `src/app/workspace/homePageStorageTransparency.test.ts`
+- `src/app/AppShell.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page-2 - Storage Transparency And Persistence Toggles.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page can now control dashboard and notepad persistence without taking over their content truth.
+- AppShell stops hydrating and writing dashboard/notepad browser buckets when the new policy is off.
+- Graph browser-storage save behavior and recent-items remain explicitly deferred because no live owner seam exists yet.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/store/uiPrefsStore.test.ts src/app/store/useUiPrefsPersistenceBridge.test.tsx src/app/workspace/homePageStorageTransparency.test.ts src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd exec -- vitest run src/app/AppShell.test.tsx -t "keeps dashboard and notepad persistence read-only when their Home Page toggles are off"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1546 -->
+### [1546] - 2026-04-19 16:09 - `Home-Page-2 / Phase 1 - Storage Transparency Radius Polish`
+
+<!-- ENTRY 1546 -->
+HUMAN SUMMARY: `Home Page` storage transparency styling now follows the repo's tighter card-radius rule by keeping the new panel, rows, and startup-control frame at 8px.
+
+#### Scope / Constraints Honored
+- stayed inside the newly shipped Home Page storage transparency surface
+- changed presentation only
+- did not alter storage inventory behavior, persistence policy, or Home Page launch/startup behavior
+
+#### Summary of Implementation
+- reduced the new storage transparency panel, storage rows, and startup toggle frame radius to 8px
+
+#### Files Changed
+- `src/app/theme/foundation/base.css`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The Home Page storage transparency UI now uses the expected tighter card radius.
+
+#### Verification Steps
+- Not rerun; presentation-only CSS polish covered by the prior focused tests and build in the same phase loop.
+
+<!-- ENTRY 1545 -->
+### [1545] - 2026-04-19 15:59 - `Home-Page-2 / Phase 1 - Read Existing Persistence Buckets And Show Read-Only Storage Transparency`
+
+<!-- ENTRY 1545 -->
+HUMAN SUMMARY: `Home Page` now shows a read-only storage transparency block for the live ParaHook browser persistence buckets, with approximate localStorage sizes, owner seams, an origin-storage estimate read when available, and a truthful graph-persistence note that keeps file IO separate from browser storage.
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-2 / Phase 1`
+- kept the storage surface read-only
+- did not add persistence toggles, clear/reset/delete controls, graph browser-storage save controls, dashboard/notepad mutation, recent-items ownership, or Browser/Catalog/docs widening
+- read storage bucket keys from existing persistence owner modules instead of inventing a second registry
+
+#### Summary of Implementation
+- added a Home Page storage transparency helper that inventories workspace layout, UI prefs, dashboard, and notepad localStorage buckets
+- rendered the storage transparency block on `HomePageSurface` with bucket labels, keys, owner seams, present/missing state, and approximate byte labels
+- added optional browser origin storage estimate handling with unavailable-state copy for unsupported browsers
+- kept graph document persistence labeled as file IO only
+- added focused helper and Home Page surface tests for the bucket inventory and visible storage read
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/homePageStorageTransparency.ts`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/homePageStorageTransparency.test.ts`
+- `src/app/theme/foundation/base.css`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page-2 - Storage Transparency And Persistence Toggles.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page now exposes current ParaHook-owned browser persistence buckets as a read-only storage inventory.
+- Home Page distinguishes ParaHook-owned bucket size rows from broader browser origin storage estimates.
+- Graph document persistence is explicitly presented as file IO rather than an existing browser-storage bucket.
+
+#### Verification Steps
+- `npm.cmd exec -- vitest run src/app/workspace/homePageStorageTransparency.test.ts src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1544 -->
+### [1544] - 2026-04-19 15:43 - `Home-Page-1 / Phase 4 - First Launch Actions And Closeout`
+
+<!-- ENTRY 1544 -->
+HUMAN SUMMARY: `Home Page` now has first launch actions for `Model Viewport`, `Browser`, `Catalog`, and `Console`, each routed through the existing shell owner seams instead of creating a new launch owner.
+
+#### Scope / Constraints Honored
+- stayed inside `Home-Page-1 / Phase 4`
+- reused existing viewer activation, browser activation, catalog slot-switching, and console surface-selection seams
+- did not add storage cards, persistence toggles, release notes, docs browsing, recent-items ownership, graph persistence, or orientation content
+- left graph creation and recent-layout restore deferred until a future owned seam exists
+
+#### Summary of Implementation
+- added Home Page launch controls for Model Viewport, Browser, Catalog, and Console
+- wired AppShell callbacks through existing shell actions and passed narrow callbacks through the workspace tree and surface registry
+- preserved the startup preference and zero-viewer return behavior from earlier Home Page phases
+- added focused Home Page and AppShell wiring proof for the new actions
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/AppShell.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page can hand the user into the first supported workspace surfaces from the landing surface.
+- Launch actions preserve existing ownership instead of duplicating Browser, Catalog, Console, or viewer behavior.
+- `Home-Page-1` is complete after startup, zero-viewer return, startup preference, visible toggle, and launch actions landed.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd test -- src/app/AppShell.test.tsx -t "Home Page"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1543 -->
+### [1543] - 2026-04-19 15:26 - `Home-Page-1 / Phase 3.1 - Visible Startup Toggle And Test Baseline Repair`
+
+<!-- ENTRY 1543 -->
+HUMAN SUMMARY: `Home Page` now exposes the startup preference as a visible user-facing control, and the broad AppShell test helper intentionally chooses whether each test starts on Home Page or Model Viewport.
+
+#### Scope / Constraints Honored
+- stayed inside the visible startup-toggle follow-up
+- reused the existing `workspaceStartupSurface` preference from Phase 3
+- did not add a new settings page or storage/persistence controls
+- kept unrelated AppShell Catalog and Dashboard failures separate from the Home Page startup path
+
+#### Summary of Implementation
+- added the visible startup-surface control to `HomePageSurface`
+- added focused Home Page surface proof that the toggle updates the existing UI prefs store
+- repaired AppShell test setup so legacy viewer-focused tests opt into `modelViewer` while Home Page startup tests opt into `homePage`
+
+#### Files Changed
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- The user can choose whether fresh startup opens Home Page or Model Viewport.
+- The setting uses the existing UI prefs persistence path.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/workspace/HomePageSurface.test.tsx`
+- `npm.cmd test -- src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1542 -->
+### [1542] - 2026-04-19 15:13 - `Home-Page-1 / Phase 3 - Startup Preference`
+
+<!-- ENTRY 1542 -->
+HUMAN SUMMARY: `Home Page` startup behavior now runs through a persisted startup-surface preference, while accepted workspace restore continues to win over fresh-start defaults.
+
+#### Scope / Constraints Honored
+- stayed inside startup preference behavior
+- reused the UI prefs persistence seam
+- preserved accepted saved workspace layout restore precedence
+- did not add the visible toggle until the Phase 3.1 follow-up
+
+#### Summary of Implementation
+- added a persisted `workspaceStartupSurface` UI preference
+- changed fresh startup to initialize the primary workspace slot from the startup preference
+- kept accepted saved layouts ahead of fresh startup branching
+- added focused UI prefs and AppShell startup tests
+
+#### Files Changed
+- `src/app/store/uiPrefsStore.ts`
+- `src/app/store/uiPrefsPersistence.ts`
+- `src/app/store/useUiPrefsPersistenceBridge.ts`
+- `src/app/workspace/useWorkspacePersistenceBridge.ts`
+- `src/app/AppShell.tsx`
+- `src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Fresh startup can default to Home Page or Model Viewport based on a persisted UI preference.
+- Accepted saved workspace restore remains authoritative over fresh startup preferences.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/store/useUiPrefsPersistenceBridge.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1541 -->
+### [1541] - 2026-04-19 15:00 - `Home-Page-1 / Phase 2 - Zero-Viewer Return`
+
+<!-- ENTRY 1541 -->
+HUMAN SUMMARY: `Home Page` now becomes the explicit root-slot return surface when the last primary Model Viewport is closed, allowing a zero-viewer workspace state without treating it as an error.
+
+#### Scope / Constraints Honored
+- stayed inside zero-viewer return behavior
+- kept Home Page as a workspace surface instead of a special route
+- did not add startup preferences, storage controls, orientation content, or launch actions
+
+#### Summary of Implementation
+- changed the protected primary-slot close path so closing the root Model Viewport switches the primary slot to Home Page
+- kept non-viewer primary surfaces protected from generic close behavior
+- added focused store and AppShell proof for the zero-viewer return path
+
+#### Files Changed
+- `src/app/workspace/useWorkspaceStore.ts`
+- `src/app/workspace/workspacePersistence.ts`
+- `src/app/hosts/useAppShellViewportActions.ts`
+- `src/app/workspace/useWorkspaceStore.test.ts`
+- `src/app/AppShell.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Closing the root Model Viewport returns the primary slot to Home Page.
+- The workspace can persist and hydrate a zero-viewer root Home Page state.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/workspace/useWorkspaceStore.test.ts`
+- `npm.cmd test -- src/app/AppShell.test.tsx -t "closes the root model viewport back to Home Page"`
+- `npm.cmd run build`
+
+<!-- ENTRY 1540 -->
+### [1540] - 2026-04-19 14:49 - `Home-Page-1 / Phase 1 - Surface Registry And Minimal Render`
+
+<!-- ENTRY 1540 -->
+HUMAN SUMMARY: `Home Page` became a first-class workspace surface kind with catalog metadata, registry rendering, primary-slot support, and a minimal landing-surface render.
+
+#### Scope / Constraints Honored
+- stayed inside surface registration and minimal render
+- did not add startup preferences, zero-viewer return behavior, storage controls, orientation content, or launch actions
+- kept Home Page inside the shared workspace surface model
+
+#### Summary of Implementation
+- added `homePage` as a workspace surface kind
+- added the Home Page surface catalog entry and render family
+- rendered the minimal Home Page surface through `ViewportSurfaceRegistry`
+- allowed the primary workspace slot to host Home Page
+- added focused catalog, registry, and frame tests
+
+#### Files Changed
+- `src/app/workspace/workspaceShellTypes.ts`
+- `src/app/workspace/workspaceSurfaceCatalog.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.tsx`
+- `src/app/workspace/ViewportFrame.tsx`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/workspaceSurfaceCatalog.test.ts`
+- `src/app/workspace/ViewportSurfaceRegistry.test.tsx`
+- `src/app/workspace/ViewportFrame.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Home-Page-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Home-Page/Future/Home-Page_Phase Home-Page-1 - Workspace Landing Surface And Startup Preference.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- Home Page can occupy the workspace primary slot as a real surface.
+- The registry can render Home Page without treating it as an unknown placeholder.
+
+#### Verification Steps
+- `npm.cmd test -- src/app/workspace/workspaceSurfaceCatalog.test.ts src/app/workspace/ViewportSurfaceRegistry.test.tsx src/app/workspace/ViewportFrame.test.ts`
+- `npm.cmd run build`
 
 <!-- ENTRY 1539 -->
 ### [1539] - 2026-04-19 10:32 - `Catalog-7 / Phase 3 - Predictable Filter Semantics`

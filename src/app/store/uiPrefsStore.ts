@@ -163,8 +163,16 @@ const sanitizePreset = (preset: MaterialPreset): MaterialPreset => ({
   opacity: clamp(preset.opacity, 0, 1),
 })
 
+export type WorkspaceStartupSurface = 'homePage' | 'modelViewer'
+
 type UiPrefsState = {
   view: ViewSettings
+  workspaceStartupSurface: WorkspaceStartupSurface
+  workspaceRestorePersistence: boolean
+  viewSettingsPersistence: boolean
+  environmentPersistence: boolean
+  dashboardPersistence: boolean
+  notepadPersistence: boolean
   capturedEnvironmentLook: EnvironmentLookSnapshot | null
   environmentLookComparisonActive: boolean
   environmentLookComparisonRestore: EnvironmentLookSnapshot | null
@@ -186,6 +194,12 @@ type UiPrefsState = {
   sketchDrawPlinePointSymbolType: 'crosshair' | 'circle'
   setView: (patch: Partial<ViewSettings>) => void
   setViewKey: <K extends keyof ViewSettings>(key: K, value: ViewSettings[K]) => void
+  setWorkspaceStartupSurface: (workspaceStartupSurface: WorkspaceStartupSurface) => void
+  setWorkspaceRestorePersistence: (workspaceRestorePersistence: boolean) => void
+  setViewSettingsPersistence: (viewSettingsPersistence: boolean) => void
+  setEnvironmentPersistence: (environmentPersistence: boolean) => void
+  setDashboardPersistence: (dashboardPersistence: boolean) => void
+  setNotepadPersistence: (notepadPersistence: boolean) => void
   setEnvironmentGrade: (patch: Partial<EnvironmentGradeSettings>) => void
   captureEnvironmentLook: () => void
   recallEnvironmentLook: () => void
@@ -228,6 +242,12 @@ type UiPrefsState = {
 
 export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   view: createDefaultView(),
+  workspaceStartupSurface: 'homePage',
+  workspaceRestorePersistence: true,
+  viewSettingsPersistence: true,
+  environmentPersistence: true,
+  dashboardPersistence: true,
+  notepadPersistence: true,
   capturedEnvironmentLook: null,
   environmentLookComparisonActive: false,
   environmentLookComparisonRestore: null,
@@ -252,6 +272,24 @@ export const useUiPrefsStore = create<UiPrefsState>((set, get) => ({
   },
   setViewKey: (key, value) => {
     set({ view: normalizeViewSettings({ ...get().view, [key]: value }) })
+  },
+  setWorkspaceStartupSurface: (workspaceStartupSurface) => {
+    set({ workspaceStartupSurface })
+  },
+  setWorkspaceRestorePersistence: (workspaceRestorePersistence) => {
+    set({ workspaceRestorePersistence })
+  },
+  setViewSettingsPersistence: (viewSettingsPersistence) => {
+    set({ viewSettingsPersistence })
+  },
+  setEnvironmentPersistence: (environmentPersistence) => {
+    set({ environmentPersistence })
+  },
+  setDashboardPersistence: (dashboardPersistence) => {
+    set({ dashboardPersistence })
+  },
+  setNotepadPersistence: (notepadPersistence) => {
+    set({ notepadPersistence })
   },
   setEnvironmentGrade: (patch) => {
     const state = get()

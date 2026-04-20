@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-19 14:33:40: Added the Dispatch 2 CLG creation rule to the Home Page Gen1 pilot so Guide-Rail prep mode confirms or repairs Gen1 CLG before producing each Worker handoff.
+5. 2026-04-19 14:30:18: Linked the Home Page Gen1 pilot to the Dispatch 2 start-command flow so `start Home Page Gen 1` resolves directly to Guide-Rail prep for `Home-Page-1 / Phase 1 - Surface Registry And Minimal Render` when the current docs remain ready.
 4. 2026-04-19 14:20:05: Updated the Home Page Gen1 pilot for the Guide-Rail Codex model, using prep mode before Worker dispatch and coverage review mode after Worker return while Explorer stays optional for future seam research.
 3. 2026-04-19 14:08:52: Updated the Home Page Gen1 pilot so Coverage Review owns checklist accounting after each Worker phase and can propose dispatcher-approved follow-up phases if HLG/CLG coverage remains incomplete.
 2. 2026-04-19 14:03:18: Simplified the Home Page Gen1 pilot to the flat Dispatch 2 fleet where Workers implement and run focused proof plus `npm run build`, Explorers research later seams, and Reviewers check guide-rail alignment before dispatcher acceptance.
@@ -34,6 +36,10 @@ Do not use it for:
 ### Pilot Goal
 
 Use Home Page Gen 1 to prove that Dispatch 2 can keep the live dispatcher available while Guide-Rail Codex preps phases, Workers implement and verify one phase at a time, Explorers research future seams in parallel, and Guide-Rail Codex checks HLG/CLG checklist coverage before acceptance.
+
+The command `start Home Page Gen 1` should follow `Dispatch-2-Start-Command-Flow.md` and resolve to the first open implementation phase in this pilot.
+
+Before Worker dispatch, Guide-Rail prep mode should confirm that the Home Page Gen1 CLG still trace back to the Vision HLG. If CLG are missing or stale, Guide-Rail repairs the CLG layer before producing the Worker handoff.
 
 ### Phase Queue
 

@@ -712,10 +712,18 @@ const resolveStagedExecuteIdentity = ({
       return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'ModelViewport')
     case 'workspace.viewport.type.browser':
       return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Browser')
+    case 'workspace.viewport.type.catalog':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Catalog')
     case 'workspace.viewport.type.console':
       return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Console')
     case 'workspace.viewport.type.spaghettiEditor':
       return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'SpaghettiEditor')
+    case 'workspace.viewport.type.dashboard':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Dashboard')
+    case 'workspace.viewport.type.notepad':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'Notepad')
+    case 'workspace.viewport.type.homePage':
+      return buildIdentity('Console', 'WorkspaceModes', 'ViewportType', 'HomePage')
     case 'radio.on':
       return buildIdentity('Console', 'Radio', 'On')
     case 'radio.off':

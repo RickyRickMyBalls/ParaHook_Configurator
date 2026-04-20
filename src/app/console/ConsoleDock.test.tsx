@@ -406,8 +406,12 @@ describe('ConsoleDock', () => {
     expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
       'Model Viewport',
       'Browser',
+      'Catalog',
       'Console',
       'Spaghetti Editor',
+      'Dashboard',
+      'Notepad',
+      'Home Page',
       'Back',
     ])
 
@@ -439,6 +443,64 @@ describe('ConsoleDock', () => {
     expect(
       container.querySelector('.ConsoleBarSummary')?.textContent,
     ).toContain('Root > Workspace Modes > Console Viewport 2 > Viewport Type Menu > Choose next')
+  })
+
+  it('changes the primary Home Page workspace-mode viewport type from console', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().setViewportSlotSurfaceKind(defaultPrimaryViewportSlotId, 'homePage')
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Home Page 1')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Viewport Type Menu')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Model Viewport')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const primarySlot = useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]
+    expect(primarySlot?.surfaceKind).toBe('modelViewer')
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModeViewportTypeSelected')
+    expect(useConsoleStore.getState().stagedNavigationSession?.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Model Viewport 1',
+      'Viewport Type Menu',
+    ])
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some(
+          (entry) =>
+            entry.text === 'Root > Workspace Modes > Home Page 1 > Viewport Type Menu > Model Viewport',
+        ),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.includes('Primary viewport type changes are not available')),
+    ).toBe(false)
   })
 
   it('changes the chosen workspace-mode viewport type to spaghetti editor and keeps the viewport-type choices active', async () => {
@@ -702,6 +764,7 @@ describe('ConsoleDock', () => {
       'Split Menu',
       'Viewport Type Menu',
       'Float',
+      'Open In New Browser',
       'Close',
       'Back',
     ])
@@ -804,6 +867,399 @@ describe('ConsoleDock', () => {
     expect(container.querySelector('.ConsoleBarSummary')?.textContent).toContain(
       'Root > Workspace Modes > Choose next',
     )
+  })
+
+  it('uses shared workspace eligibility diagnostics for stale split and primary close runtime actions', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Model Viewport 1')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const selectedSession = useConsoleStore.getState().stagedNavigationSession
+    expect(selectedSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Open In New Browser',
+      'Back',
+    ])
+    if (selectedSession === null) {
+      throw new Error('Expected primary model viewport workspace-mode session')
+    }
+
+    await act(async () => {
+      useConsoleStore.getState().setStagedNavigationSession({
+        scopeId: 'workspaceModeViewportCloseConfirmSelected',
+        breadcrumb: ['Root', 'Workspace Modes', 'Model Viewport 1', 'Close'],
+        selections: selectedSession.selections,
+        validChoices: [
+          {
+            canonicalToken: 'CONFIRMCLOSE',
+            aliases: ['CC'],
+            label: 'Confirm Close',
+            kind: 'action' as const,
+          },
+        ],
+      })
+      useConsoleStore.getState().setInputText('Confirm Close')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Workspace close is not available for the primary viewport'),
+    ).toBe(true)
+    expect(Object.keys(useWorkspaceStore.getState().viewportSlotsById)).toHaveLength(1)
+
+    await act(async () => {
+      useConsoleStore.getState().setStagedNavigationSession(selectedSession)
+      useConsoleStore.getState().setInputText('Split Menu')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'workspaceModeViewportSplitSelected',
+    )
+
+    await act(async () => {
+      useWorkspaceStore.setState((state) => ({
+        viewportSlotsById: Object.fromEntries(
+          Object.entries(state.viewportSlotsById).filter(
+            ([slotId]) => slotId !== defaultPrimaryViewportSlotId,
+          ),
+        ),
+      }))
+      useConsoleStore.getState().setInputText('Split Right')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Workspace split target is no longer available'),
+    ).toBe(true)
+  })
+
+  it('lets optional workspace surfaces open in new browser without stale allowlist diagnostics', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'homePage',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Home Page 2')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Open In New Browser')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      Object.values(useWorkspaceStore.getState().detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'homePage' && surface.hostMode === 'popout',
+      ),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Home Page 2 opened in new browser'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) =>
+          entry.text.includes('Open In New Browser is only available for supported model or browser'),
+        ),
+    ).toBe(false)
+  })
+
+  it('lets optional workspace surfaces execute eligible float actions without stale allowlist diagnostics', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'homePage',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Home Page 2')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Float')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      Object.values(useWorkspaceStore.getState().detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'homePage',
+      ),
+    ).toBe(true)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Home Page 2 floated'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.includes('Float is only available for supported model')),
+    ).toBe(false)
+  })
+
+  it('lets catalog-backed workspace surfaces close without stale allowlist diagnostics', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'catalog',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Catalog Viewport 2')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Close')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe(
+      'workspaceModeViewportCloseConfirmSelected',
+    )
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Confirm Close')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(Object.keys(useWorkspaceStore.getState().viewportSlotsById)).toHaveLength(1)
+    expect(
+      useConsoleStore.getState().entries.some((entry) => entry.text === 'Catalog Viewport 2 closed'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text.includes('Close is only available for supported model')),
+    ).toBe(false)
+  })
+
+  it('routes optional dashboard workspace modes through catalog eligibility and runtime execution', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'dashboard',
+      })
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Dashboard Viewport 2')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Open In New Browser')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      Object.values(useWorkspaceStore.getState().detachedSlotSurfaceById).some(
+        (surface) => surface.surfaceKind === 'dashboard' && surface.hostMode === 'popout',
+      ),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Dashboard Viewport 2 opened in new browser'),
+    ).toBe(true)
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) =>
+          entry.text.includes('Open In New Browser is only available for supported model or browser'),
+        ),
+    ).toBe(false)
+  })
+
+  it('lists detached workspace surfaces as unified workspace-mode targets and hides slotted-only actions', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ConsoleDock />)
+      const floatingSlotId = useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'homePage',
+      })
+      if (floatingSlotId === null) {
+        throw new Error('Expected floating test slot to be created')
+      }
+      useWorkspaceStore.getState().detachViewportSlotSurface(floatingSlotId, 'floating')
+      const popoutSlotId = useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
+        surfaceKind: 'console',
+      })
+      if (popoutSlotId === null) {
+        throw new Error('Expected popout test slot to be created')
+      }
+      useWorkspaceStore.getState().detachViewportSlotSurface(popoutSlotId, 'popout')
+      useConsoleStore.getState().setInputText('wm')
+    })
+
+    await act(async () => {
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(useConsoleStore.getState().stagedNavigationSession?.scopeId).toBe('workspaceModesRoot')
+    expect(useConsoleStore.getState().stagedNavigationSession?.validChoices.map((choice) => choice.label)).toEqual([
+      'Model Viewport 1',
+      'Home Page (Floating)',
+      'Console Viewport (Popout)',
+      'Back',
+    ])
+
+    await act(async () => {
+      useConsoleStore.getState().setInputText('Home Page (Floating)')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    const selectedSession = useConsoleStore.getState().stagedNavigationSession
+    expect(selectedSession?.scopeId).toBe('workspaceModeViewportSelected')
+    expect(selectedSession?.breadcrumb).toEqual(['Root', 'Workspace Modes', 'Home Page (Floating)'])
+    expect(selectedSession?.validChoices.map((choice) => choice.label)).toEqual(['Back'])
+    if (selectedSession === null) {
+      throw new Error('Expected floating workspace-mode target session')
+    }
+
+    await act(async () => {
+      useConsoleStore.getState().setStagedNavigationSession({
+        scopeId: 'workspaceModeViewportSplitSelected',
+        breadcrumb: ['Root', 'Workspace Modes', 'Home Page (Floating)', 'Split Menu'],
+        selections: selectedSession.selections,
+        validChoices: [
+          {
+            canonicalToken: 'SPLITRIGHT',
+            aliases: ['RIGHT', 'SR'],
+            label: 'Split Right',
+            kind: 'action' as const,
+          },
+        ],
+      })
+      useConsoleStore.getState().setInputText('Split Right')
+      const form = container?.querySelector('.ConsoleBar form') as HTMLFormElement | null
+      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+
+    expect(
+      useConsoleStore
+        .getState()
+        .entries.some((entry) => entry.text === 'Workspace split is only available for slotted workspace viewports'),
+    ).toBe(true)
   })
 
   it('keeps multi-word content autofill labels readable instead of collapsing to canonical tokens', async () => {

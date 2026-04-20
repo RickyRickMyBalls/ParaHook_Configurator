@@ -3,6 +3,17 @@
 ## Doc Header
 
 ### Doc History
+23. 2026-04-20 01:03:18: Marked the Home Page Gen 1 left-rail docs/help/debug HLG and Generation 1 complete after `Home-Page-6 / Phase 4` added compact rail Docs/GitHub shortcuts and a non-owning read-only Advanced status affordance while preserving the control-deck behavior.
+22. 2026-04-20 00:55:45: Marked the Home Page Gen 1 polished control-deck, Storage Management, and behavior-preservation HLG complete after `Home-Page-6 / Phase 3` landed storage rename/detail behavior with focused proof, while keeping the left-rail docs/help/debug HLG open for a final narrow follow-up.
+21. 2026-04-20 00:48:29: Marked the Home Page Gen 1 compact orientation quick-start/status HLG complete after `Home-Page-6 / Phase 2` preserved GitHub, Docs, version, and what's-new while adding the non-owning `Get Started with ParaHook` affordance.
+20. 2026-04-20 00:39:58: Marked the Home Page Gen 1 catalog-grounded launch and mockup-label verification HLG complete after `Home-Page-6 / Phase 1` landed the left-rail launch shell using verified catalog labels while excluding Docker, Scratchpad, and Hotspot.
+19. 2026-04-20 00:29:50: Added the Dispatch 3a Intake 3 Home Page mockup redesign HLG as a Generation 1 continuation, routing the polished control-deck, left rail, catalog-grounded launch, compact orientation, Storage Management, behavior-preservation, and label-verification goals toward `Home-Page-6`.
+18. 2026-04-19 18:48:35: Marked the recent-items persistence HLG complete after `Home-Page-5 / Phase 2` surfaced the recent-items browser-storage bucket on Home Page and wired the remember/forget control through `recentItemsPersistence.ts`.
+17. 2026-04-19 18:38:18: Updated the Home Page Generation 1 vision to point the remaining recent-items work at `Home-Page-5 / Phase 2` now that the recent-items owner seam exists and Home Page wiring is the next honest slice.
+16. 2026-04-19 18:21:08: Marked the graph browser-storage save-control HLG complete after `Home-Page-4 / Phase 1` landed the dedicated graph browser-storage owner seam, working-set snapshot, and Home Page remember/forget policy while leaving recent-items open for `Home-Page-5`.
+15. 2026-04-19 18:01:15: Updated the Home Page Generation 1 vision to route the remaining graph browser-storage and recent-items work into explicit follow-on phases instead of leaving them as vague deferrals.
+14. 2026-04-19 16:44:29: Closed the Home Page orientation wishlist after the compact GitHub/docs/version/what's-new strip landed in `Home-Page-3 / Phase 1`, marking `Home-Page-Gen1-HLG-14` complete while keeping the rest of the Generation 1 history intact.
+13. 2026-04-19 16:36:01: Reconciled the Generation 1 HLG checklist after `Home-Page-2` guide-rail acceptance, marking shipped storage transparency and persistence-policy goals complete while leaving graph browser-storage, recent-items, and lightweight orientation open.
 12. 2026-04-19 13:24:23: Updated this vision after `Home-Page-Index.md` was renamed to `Home-Page-Gen1-Index.md`, making the relationship and Generation 1 routing language point at the active Generation Index Doc instead of the older bridge-index migration target.
 11. 2026-04-19 12:47:31: Applied the `Vision Rails` generation-section format to `Generation 1`, replacing the older summary/phase-creation heading stack with `### Generation 1 Summary` and `### Generation 1 Vision Rails` so the Vision Doc now guides `Home-Page-Gen1-Index.md` setup without reading like an implementation spec.
 10. 2026-04-19 12:37:18: Reformatted the Home Page vision against the updated planning guide rails by adding a top-level `## Vision` section, converting the human-level wishlist into generation-scoped HLG identifiers, nesting supporting vision detail under the Vision area, adding a foldable `Generation 1` routing section, and clarifying that `Home-Page-Gen1-Index.md` is the target Generation 1 routing surface while `Home-Page-Index.md` remains the older bridge.
@@ -90,20 +101,27 @@ This doc exists to keep `Home Page` on the narrow honest path between those fail
 
 Keep these as the explicit human-level wishlist items for `Home Page`:
 
-- [ ] `Home-Page-Gen1-HLG-1. Home Page should be the first surface the user loads into.`
-- [ ] `Home-Page-Gen1-HLG-2. There should be a toggle so the user can switch off Home Page first and load directly into Model Viewport.`
-- [ ] `Home-Page-Gen1-HLG-3. Home Page should keep track of browser storage so the user can tell if there is a leak.`
-- [ ] `Home-Page-Gen1-HLG-4. Home Page should help the user understand whether the app is storing data and bloating browser-side storage.`
-- [ ] `Home-Page-Gen1-HLG-5. The user should be able to save what they have in their graphs in browser storage and turn that setting on or off.`
-- [ ] `Home-Page-Gen1-HLG-6. Home Page should show and expose any app-owned data ParaHook stores on the user's computer or in browser storage.`
-- [ ] `Home-Page-Gen1-HLG-7. Home Page should include a Workspace Restore persistence toggle so browser reload can either remember or forget the last saved workspace layout.`
-- [ ] `Home-Page-Gen1-HLG-8. Home Page should include a View Settings persistence toggle so browser reload can either remember or forget view presentation preferences.`
-- [ ] `Home-Page-Gen1-HLG-9. Home Page should include an Environment persistence toggle so browser reload can either remember or forget applied environment state such as a Catalog-loaded HDRI.`
-- [ ] `Home-Page-Gen1-HLG-10. Home Page should include a Dashboard persistence toggle so dashboard lanes and widget placement can either survive reload or start fresh.`
-- [ ] `Home-Page-Gen1-HLG-11. Home Page should include a Notepad persistence toggle so notes can either survive reload or be cleared from browser persistence.`
-- [ ] `Home-Page-Gen1-HLG-12. Home Page should include a Recent Items persistence toggle when a recent-items owner exists, so recent/resume state can be remembered or forgotten intentionally.`
-- [ ] `Home-Page-Gen1-HLG-13. Home Page should expose browser storage and quota usage when the browser provides that estimate.`
-- [ ] `Home-Page-Gen1-HLG-14. Home Page should include a small GitHub link, docs link, and a brief version and what's-new summary.`
+- [x] `Home-Page-Gen1-HLG-1. Home Page should be the first surface the user loads into.`
+- [x] `Home-Page-Gen1-HLG-2. There should be a toggle so the user can switch off Home Page first and load directly into Model Viewport.`
+- [x] `Home-Page-Gen1-HLG-3. Home Page should keep track of browser storage so the user can tell if there is a leak.`
+- [x] `Home-Page-Gen1-HLG-4. Home Page should help the user understand whether the app is storing data and bloating browser-side storage.`
+- [x] `Home-Page-Gen1-HLG-5. The user should be able to save what they have in their graphs in browser storage and turn that setting on or off.`
+- [x] `Home-Page-Gen1-HLG-6. Home Page should show and expose any app-owned data ParaHook stores on the user's computer or in browser storage.`
+- [x] `Home-Page-Gen1-HLG-7. Home Page should include a Workspace Restore persistence toggle so browser reload can either remember or forget the last saved workspace layout.`
+- [x] `Home-Page-Gen1-HLG-8. Home Page should include a View Settings persistence toggle so browser reload can either remember or forget view presentation preferences.`
+- [x] `Home-Page-Gen1-HLG-9. Home Page should include an Environment persistence toggle so browser reload can either remember or forget applied environment state such as a Catalog-loaded HDRI.`
+- [x] `Home-Page-Gen1-HLG-10. Home Page should include a Dashboard persistence toggle so dashboard lanes and widget placement can either survive reload or start fresh.`
+- [x] `Home-Page-Gen1-HLG-11. Home Page should include a Notepad persistence toggle so notes can either survive reload or be cleared from browser persistence.`
+- [x] `Home-Page-Gen1-HLG-12. Home Page should include a Recent Items persistence toggle when a recent-items owner exists, so recent/resume state can be remembered or forgotten intentionally.`
+- [x] `Home-Page-Gen1-HLG-13. Home Page should expose browser storage and quota usage when the browser provides that estimate.`
+- [x] `Home-Page-Gen1-HLG-14. Home Page should include a small GitHub link, docs link, and a brief version and what's-new summary.`
+- [x] `Home-Page-Gen1-HLG-15. Home Page Generation 1 should evolve into a polished workspace landing and control surface rather than remain a plain settings page.`
+- [x] `Home-Page-Gen1-HLG-16. Home Page should use a left rail for startup-surface selection, viewport launching, docs/help shortcuts, and debug controls.`
+- [x] `Home-Page-Gen1-HLG-17. Open Viewport controls should be generated from canonical workspace surface data where possible and stay current as surfaces are added.`
+- [x] `Home-Page-Gen1-HLG-18. Orientation content should become a compact status and quick-start card with docs, GitHub, version, what's-new, and intro/media affordances.`
+- [x] `Home-Page-Gen1-HLG-19. Storage transparency should become Storage Management with aligned toggle, wipe, size, detail, and internally scrollable row behavior.`
+- [x] `Home-Page-Gen1-HLG-20. The redesign must preserve existing functional Home Page Generation 1 behavior, including startup restore, persistence toggles, storage wipe, canonical viewport launch, dark-mode styling, and monitor-height fit.`
+- [x] `Home-Page-Gen1-HLG-21. Spec must verify which mockup labels are current surfaces versus future placeholders before any implementation phase is written.`
 
 ### Home Page Generations
 
@@ -161,6 +179,7 @@ Important rule:
 - start and resume actions such as opening the workspace, creating a new graph, opening a recent direction, or returning to the last saved layout
 - calm explanation of the current app state when there is no active `Model Viewport`
 - explicit launch links into real workspace surfaces such as `Model Viewport`, `Browser`, `Catalog`, and later other supported surfaces
+- a polished control-deck layout that keeps startup, launch, orientation, and storage controls visually coherent without changing their owners
 - one lightweight orientation area with small links such as GitHub and docs plus a brief version and what's-new read
 - user-facing storage transparency for ParaHook-owned browser persistence
 - high-signal health summaries such as:
@@ -317,7 +336,7 @@ It should feel less like:
 - Persistence toggles such as `Workspace Restore`, `View Settings`, `Environment`, `Dashboard`, `Notepad`, and `Recent Items` should control whether a remembered bucket survives reload, while the owning feature still owns the meaning of that state.
 - `Home Page` should reduce confusion and support orientation without reopening hidden singleton assumptions elsewhere in the shell.
 
-## [~] Generation 1 - Workspace Landing Surface And Persistence Transparency
+## [x] Generation 1 - Workspace Landing Surface And Persistence Transparency
 
 ### Generation 1 Summary
 
@@ -333,11 +352,17 @@ On launch, the user can land on `Home Page`, understand where to go next, start 
 
 If the user chooses to skip `Home Page` on startup, the surface still remains part of the workspace model and can still become the honest return target when no `Model Viewport` remains open.
 
+`Generation 1` has landed the startup, zero-viewer, storage transparency, persistence policy, orientation, graph browser-storage, and recent-items slices that this vision routed through the first five Home Page family phases.
+
+Dispatch 3a Intake 3 extended the same generation with `Home-Page-6`, a control-deck redesign continuation that improved the surface's hierarchy and polish while preserving the shipped Gen 1 behavior.
+
+`Generation 1` is complete after `Home-Page-6 / Phase 4` closed the remaining left-rail docs/help/debug coverage.
+
 ### Generation 1 Vision Rails
 
 #### Index Setup Target
 
-Use `Home-Page-Gen1-Index.md` as the active Generation 1 routing surface for current `Home-Page-1`, `Home-Page-2`, and `Home-Page-3` family-phase routing.
+Use `Home-Page-Gen1-Index.md` as the active Generation 1 routing surface for current `Home-Page-1`, `Home-Page-2`, `Home-Page-3`, `Home-Page-4`, `Home-Page-5`, and `Home-Page-6` family-phase routing.
 
 #### HLG To Preserve
 
@@ -355,6 +380,13 @@ Use `Home-Page-Gen1-Index.md` as the active Generation 1 routing surface for cur
 - `Home-Page-Gen1-HLG-12`
 - `Home-Page-Gen1-HLG-13`
 - `Home-Page-Gen1-HLG-14`
+- `Home-Page-Gen1-HLG-15`
+- `Home-Page-Gen1-HLG-16`
+- `Home-Page-Gen1-HLG-17`
+- `Home-Page-Gen1-HLG-18`
+- `Home-Page-Gen1-HLG-19`
+- `Home-Page-Gen1-HLG-20`
+- `Home-Page-Gen1-HLG-21`
 
 #### Family Phase Routing Direction
 
@@ -366,6 +398,10 @@ Create or preserve `Generation 1` family phases when work is about:
 - storage transparency
 - persistence toggles
 - lightweight orientation
+- polished control-deck layout
+- catalog-grounded launch labels
+- compact orientation and Storage Management reshaping
+- label verification before implementation
 
 #### Ownership Boundaries
 
@@ -378,6 +414,9 @@ Create or preserve `Generation 1` family phases when work is about:
 - ParaHook-owned browser persistence visibility
 - user-facing persistence toggles for current or future owned buckets
 - small GitHub, docs, version, and what's-new orientation
+- control-deck visual hierarchy for the existing Home Page controls
+- catalog-grounded launch surface labels
+- clear deferral of mockup-only labels until they map to real catalog entries
 
 #### Do Not Route Here
 

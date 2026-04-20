@@ -1,4 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+import {
+  getWorkspaceSurfaceCatalogEntries,
+  getWorkspaceSurfaceDefaultLabel,
+} from '../workspace/workspaceSurfaceCatalog'
+import type { WorkspaceSurfaceKind } from '../workspace/workspaceShellTypes'
 
 class MockWorker {
   public addEventListener(): void {}
@@ -30,6 +35,8 @@ describe('stagedNavigation workspace modes', () => {
       'GRAPH',
       'CONTENT',
       'REFERENCES',
+      'HIDE',
+      'UNHIDEALL',
       'WORKSPACEMODES',
       'CAMERA',
       'RADIO',
@@ -70,6 +77,48 @@ describe('stagedNavigation workspace modes', () => {
           label: 'Browser Viewport',
           surfaceKind: 'browser',
         },
+        {
+          viewportId: 'home-page-workspace-slot-3',
+          slotId: 'workspace-slot-3',
+          isPrimary: false,
+          label: 'Home Page 3',
+          surfaceKind: 'homePage',
+        },
+        {
+          viewportId: 'model-viewer-workspace-slot-4',
+          slotId: 'workspace-slot-4',
+          isPrimary: false,
+          label: 'Model Viewport 2',
+          surfaceKind: 'modelViewer',
+        },
+        {
+          viewportId: 'console-workspace-slot-5',
+          slotId: 'workspace-slot-5',
+          isPrimary: false,
+          label: 'Console Viewport',
+          surfaceKind: 'console',
+        },
+        {
+          viewportId: 'catalog-workspace-slot-6',
+          slotId: 'workspace-slot-6',
+          isPrimary: false,
+          label: 'Catalog Viewport',
+          surfaceKind: 'catalog',
+        },
+        {
+          viewportId: 'home-page-floating-1',
+          surfaceInstanceId: 'home-page-floating-1',
+          hostMode: 'floating',
+          label: 'Home Page (Floating)',
+          surfaceKind: 'homePage',
+        },
+        {
+          viewportId: 'console-popout-1',
+          surfaceInstanceId: 'console-popout-1',
+          hostMode: 'popout',
+          label: 'Console Viewport (Popout)',
+          surfaceKind: 'console',
+        },
       ],
     )
 
@@ -83,6 +132,12 @@ describe('stagedNavigation workspace modes', () => {
     expect(workspaceModesRoot.validChoices.map((choice) => choice.label)).toEqual([
       'Model Viewport 1',
       'Browser Viewport',
+      'Home Page 3',
+      'Model Viewport 2',
+      'Console Viewport',
+      'Catalog Viewport',
+      'Home Page (Floating)',
+      'Console Viewport (Popout)',
       'Back',
     ])
 
@@ -118,6 +173,27 @@ describe('stagedNavigation workspace modes', () => {
       'Back',
     ])
 
+    const selectedHomePage = submitConsoleStagedNavigationToken(workspaceModesRoot.session, 'h', context)
+    expect(selectedHomePage.kind).toBe('advance')
+    if (selectedHomePage.kind !== 'advance') {
+      throw new Error('Expected home page selection token to advance')
+    }
+    expect(selectedHomePage.session.scopeId).toBe('workspaceModeViewportSelected')
+    expect(selectedHomePage.session.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Home Page 3',
+    ])
+    expect(selectedHomePage.session.selections.workspaceViewportId).toBe('home-page-workspace-slot-3')
+    expect(selectedHomePage.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
     const selectedModelViewport = submitConsoleStagedNavigationToken(workspaceModesRoot.session, 'm', context)
     expect(selectedModelViewport.kind).toBe('advance')
     if (selectedModelViewport.kind !== 'advance') {
@@ -129,6 +205,95 @@ describe('stagedNavigation workspace modes', () => {
       'Open In New Browser',
       'Back',
     ])
+
+    const selectedNonPrimaryModelViewport = submitConsoleStagedNavigationToken(
+      workspaceModesRoot.session,
+      '4',
+      context,
+    )
+    expect(selectedNonPrimaryModelViewport.kind).toBe('advance')
+    if (selectedNonPrimaryModelViewport.kind !== 'advance') {
+      throw new Error('Expected non-primary model viewport selection token to advance')
+    }
+    expect(selectedNonPrimaryModelViewport.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    const selectedConsoleViewport = submitConsoleStagedNavigationToken(
+      workspaceModesRoot.session,
+      '5',
+      context,
+    )
+    expect(selectedConsoleViewport.kind).toBe('advance')
+    if (selectedConsoleViewport.kind !== 'advance') {
+      throw new Error('Expected console viewport selection token to advance')
+    }
+    expect(selectedConsoleViewport.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Open In New Browser',
+      'Close',
+      'Back',
+    ])
+
+    const selectedCatalogViewport = submitConsoleStagedNavigationToken(
+      workspaceModesRoot.session,
+      '6',
+      context,
+    )
+    expect(selectedCatalogViewport.kind).toBe('advance')
+    if (selectedCatalogViewport.kind !== 'advance') {
+      throw new Error('Expected catalog viewport selection token to advance')
+    }
+    expect(selectedCatalogViewport.validChoices.map((choice) => choice.label)).toEqual([
+      'Split Menu',
+      'Viewport Type Menu',
+      'Float',
+      'Close',
+      'Back',
+    ])
+
+    const selectedFloatingHomePage = submitConsoleStagedNavigationToken(
+      workspaceModesRoot.session,
+      '7',
+      context,
+    )
+    expect(selectedFloatingHomePage.kind).toBe('advance')
+    if (selectedFloatingHomePage.kind !== 'advance') {
+      throw new Error('Expected floating home page selection token to advance')
+    }
+    expect(selectedFloatingHomePage.session.scopeId).toBe('workspaceModeViewportSelected')
+    expect(selectedFloatingHomePage.session.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Home Page (Floating)',
+    ])
+    expect(selectedFloatingHomePage.session.selections.workspaceViewportId).toBe('home-page-floating-1')
+    expect(selectedFloatingHomePage.validChoices.map((choice) => choice.label)).toEqual(['Back'])
+
+    const selectedPopoutConsole = submitConsoleStagedNavigationToken(
+      workspaceModesRoot.session,
+      '8',
+      context,
+    )
+    expect(selectedPopoutConsole.kind).toBe('advance')
+    if (selectedPopoutConsole.kind !== 'advance') {
+      throw new Error('Expected popout console selection token to advance')
+    }
+    expect(selectedPopoutConsole.session.scopeId).toBe('workspaceModeViewportSelected')
+    expect(selectedPopoutConsole.session.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Console Viewport (Popout)',
+    ])
+    expect(selectedPopoutConsole.session.selections.workspaceViewportId).toBe('console-popout-1')
+    expect(selectedPopoutConsole.validChoices.map((choice) => choice.label)).toEqual(['Back'])
 
     const floatBrowserViewport = submitConsoleStagedNavigationToken(selectedViewport.session, 'f', context)
     expect(floatBrowserViewport.kind).toBe('execute')
@@ -206,11 +371,15 @@ describe('stagedNavigation workspace modes', () => {
       'Browser Viewport',
       'Viewport Type Menu',
     ])
+    const getExpectedViewportTypeLabel = (surfaceKind: WorkspaceSurfaceKind) =>
+      surfaceKind === 'modelViewer'
+        ? getWorkspaceSurfaceDefaultLabel(surfaceKind)
+        : getWorkspaceSurfaceDefaultLabel(surfaceKind).replace(/ Viewport$/, '')
+    const expectedViewportTypeLabels = getWorkspaceSurfaceCatalogEntries()
+      .filter((entry) => entry.supports.slotted)
+      .map((entry) => getExpectedViewportTypeLabel(entry.kind))
     expect(viewportType.validChoices.map((choice) => choice.label)).toEqual([
-      'Model Viewport',
-      'Browser',
-      'Console',
-      'Spaghetti Editor',
+      ...expectedViewportTypeLabels,
       'Back',
     ])
 
@@ -262,6 +431,33 @@ describe('stagedNavigation workspace modes', () => {
       'Viewport Type Menu',
       'Spaghetti Editor',
     ])
+
+    const chooseHomePage = submitConsoleStagedNavigationToken(viewportType.session, 'hp', context)
+    expect(chooseHomePage.kind).toBe('execute')
+    if (chooseHomePage.kind !== 'execute') {
+      throw new Error('Expected home page viewport type token to execute')
+    }
+    expect(chooseHomePage.actionId).toBe('workspace.viewport.type.homePage')
+    expect(chooseHomePage.breadcrumb).toEqual([
+      'Root',
+      'Workspace Modes',
+      'Browser Viewport',
+      'Viewport Type Menu',
+      'Home Page',
+    ])
+
+    for (const catalogEntry of getWorkspaceSurfaceCatalogEntries().filter((entry) => entry.supports.slotted)) {
+      const chooseCatalogSurface = submitConsoleStagedNavigationToken(
+        viewportType.session,
+        getExpectedViewportTypeLabel(catalogEntry.kind),
+        context,
+      )
+      expect(chooseCatalogSurface.kind).toBe('execute')
+      if (chooseCatalogSurface.kind !== 'execute') {
+        throw new Error(`Expected ${catalogEntry.kind} viewport type token to execute`)
+      }
+      expect(chooseCatalogSurface.actionId).toBe(`workspace.viewport.type.${catalogEntry.kind}`)
+    }
 
     const openInNewBrowser = submitConsoleStagedNavigationToken(
       selectedModelViewport.session,

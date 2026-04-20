@@ -84,10 +84,17 @@ describe('useUiPrefsPersistenceBridge', () => {
       backgroundIntensity: 0.45,
       rotationDeg: 90,
     })
+    expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
 
     const persistedAfterHydration = readPersistedUiPrefs()
     expect(persistedAfterHydration).toEqual({
-      version: 1,
+      version: 2,
+      workspaceStartupSurface: 'homePage',
+      workspaceRestorePersistence: true,
+      viewSettingsPersistence: true,
+      environmentPersistence: true,
+      dashboardPersistence: true,
+      notepadPersistence: true,
       view: expect.objectContaining({
         envPreset: 'studio',
         environmentGrade: {
@@ -136,9 +143,134 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
     expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).toEqual(
       expect.objectContaining({
-        version: 1,
+        version: 2,
+        workspaceStartupSurface: 'homePage',
+        workspaceRestorePersistence: true,
+        viewSettingsPersistence: true,
+        environmentPersistence: true,
+        dashboardPersistence: true,
+        notepadPersistence: true,
       }),
     )
+  })
+
+  it('hydrates workspace settings and environment settings through separate persistence policies', async () => {
+    const persistedView = structuredClone(useUiPrefsStore.getState().view)
+    persistedView.projectionMode = 'orthographic'
+    persistedView.gridVisible = false
+    persistedView.axesVisible = true
+    persistedView.envPreset = 'studio'
+    persistedView.environmentGrade = {
+      ...persistedView.environmentGrade,
+      exposure: 1.48,
+      saturation: 1.12,
+    }
+    persistedView.environmentSource = {
+      kind: 'hdri',
+      label: 'Workshop Loft',
+      assetPath: '/HDRI/workshop_loft.hdr',
+      backgroundVisible: false,
+      intensity: 1.35,
+      backgroundIntensity: 0.5,
+      rotationDeg: 90,
+    }
+    persistedView.lighting = {
+      ...persistedView.lighting,
+      selectedLightId: 'test-light',
+      lights: [
+        {
+          ...persistedView.lighting.lights[0],
+          id: 'test-light',
+          name: 'Test Light',
+          intensity: 3,
+        },
+        ...persistedView.lighting.lights.slice(1),
+      ],
+    }
+
+    window.localStorage.setItem(
+      uiPrefsStorageKey,
+      JSON.stringify({
+        version: 2,
+        view: persistedView,
+        workspaceStartupSurface: 'modelViewer',
+        workspaceRestorePersistence: false,
+        viewSettingsPersistence: true,
+        environmentPersistence: false,
+        dashboardPersistence: true,
+        notepadPersistence: true,
+      }),
+    )
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<UiPrefsPersistenceBridgeHarness />)
+    })
+
+    const state = useUiPrefsStore.getState()
+    expect(state.workspaceStartupSurface).toBe('modelViewer')
+    expect(state.workspaceRestorePersistence).toBe(false)
+    expect(state.viewSettingsPersistence).toBe(true)
+    expect(state.environmentPersistence).toBe(false)
+    expect(state.dashboardPersistence).toBe(true)
+    expect(state.notepadPersistence).toBe(true)
+    expect(state.view.projectionMode).toBe('orthographic')
+    expect(state.view.gridVisible).toBe(false)
+    expect(state.view.axesVisible).toBe(true)
+    expect(state.view.envPreset).toBe(
+      useUiPrefsStore.getInitialState().view.envPreset,
+    )
+    expect(state.view.environmentGrade).toEqual(
+      useUiPrefsStore.getInitialState().view.environmentGrade,
+    )
+    expect(state.view.environmentSource).toEqual(
+      useUiPrefsStore.getInitialState().view.environmentSource,
+    )
+    expect(state.view.lighting).toEqual(useUiPrefsStore.getInitialState().view.lighting)
+  })
+
+  it('normalizes an invalid startup preference back to the default home page and re-persists it', async () => {
+    window.localStorage.setItem(
+      uiPrefsStorageKey,
+      JSON.stringify({
+        version: 1,
+        view: {
+          projectionMode: 'perspective',
+        },
+        workspaceStartupSurface: 'not-a-real-surface',
+      }),
+    )
+    useUiPrefsStore.setState(
+      {
+        workspaceStartupSurface: 'modelViewer',
+      },
+      false,
+    )
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<UiPrefsPersistenceBridgeHarness />)
+    })
+
+    expect(useUiPrefsStore.getState().workspaceStartupSurface).toBe('homePage')
+    expect(readPersistedUiPrefs()).toEqual({
+      version: 2,
+      workspaceStartupSurface: 'homePage',
+      workspaceRestorePersistence: true,
+      viewSettingsPersistence: true,
+      environmentPersistence: true,
+      dashboardPersistence: true,
+      notepadPersistence: true,
+      view: expect.objectContaining({
+        projectionMode: 'perspective',
+      }),
+    })
   })
 
   it('keeps the remembered-look helper state out of the persisted view snapshot', async () => {
@@ -165,7 +297,7 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
 
     expect(readPersistedUiPrefs()).toMatchObject({
-      version: 1,
+      version: 2,
       view: {
         envPreset: 'studio',
         environmentGrade: {
@@ -188,8 +320,13 @@ describe('useUiPrefsPersistenceBridge', () => {
     })
     expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).toEqual(
       expect.objectContaining({
-        version: 1,
+        version: 2,
         view: expect.any(Object),
+        workspaceRestorePersistence: true,
+        viewSettingsPersistence: true,
+        environmentPersistence: true,
+        dashboardPersistence: true,
+        notepadPersistence: true,
       }),
     )
     expect(JSON.parse(window.localStorage.getItem(uiPrefsStorageKey) ?? 'null')).not.toHaveProperty(

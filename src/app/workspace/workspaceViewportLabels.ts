@@ -1,12 +1,15 @@
-import { defaultPrimaryViewportSlotId, type WorkspaceViewportSlot } from './workspaceShellTypes'
+import {
+  defaultPrimaryViewportSlotId,
+  type WorkspaceDetachedSlotSurfaceState,
+  type WorkspaceSurfaceHostMode,
+  type WorkspaceViewportSlot,
+} from './workspaceShellTypes'
 import type { WorkspaceSplitDockSide } from './workspaceSplitTypes'
 import {
   getWorkspaceSurfaceDefaultLabel,
-  isWorkspaceSurfaceCore,
-  type CoreWorkspaceSurfaceKind,
 } from './workspaceSurfaceCatalog'
 
-export type ConsoleWorkspaceSurfaceKind = CoreWorkspaceSurfaceKind
+export type ConsoleWorkspaceSurfaceKind = WorkspaceViewportSlot['surfaceKind']
 
 export type WorkspaceViewportOption = {
   viewportId: string
@@ -16,13 +19,24 @@ export type WorkspaceViewportOption = {
   surfaceKind: WorkspaceViewportSlot['surfaceKind']
 }
 
-export type ConsoleWorkspaceViewportOption = Omit<WorkspaceViewportOption, 'surfaceKind'> & {
+export type ConsoleWorkspaceSurfaceTargetOption = {
+  viewportId: string
+  surfaceInstanceId: string
+  hostMode: WorkspaceSurfaceHostMode
+  label: string
   surfaceKind: ConsoleWorkspaceSurfaceKind
+  slotId?: string
+  isPrimary?: boolean
 }
+
+export type ConsoleWorkspaceViewportOption = ConsoleWorkspaceSurfaceTargetOption
 
 export const getWorkspaceViewportSurfaceLabel = (
   surfaceKind: WorkspaceViewportSlot['surfaceKind'],
 ): string => getWorkspaceSurfaceDefaultLabel(surfaceKind)
+
+const getWorkspaceSurfaceHostModeLabel = (hostMode: Exclude<WorkspaceSurfaceHostMode, 'slotted'>): string =>
+  hostMode === 'floating' ? 'Floating' : 'Popout'
 
 export const getOrderedWorkspaceViewportSlots = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,
@@ -76,11 +90,44 @@ export const buildWorkspaceViewportOptions = (
 export const buildConsoleWorkspaceViewportOptions = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,
   primaryViewportId: string,
-): ConsoleWorkspaceViewportOption[] =>
-  buildWorkspaceViewportOptions(viewportSlotsById, primaryViewportId).filter(
-    (option): option is ConsoleWorkspaceViewportOption =>
-      isWorkspaceSurfaceCore(option.surfaceKind),
+  detachedSlotSurfaceById: Record<string, WorkspaceDetachedSlotSurfaceState> = {},
+): ConsoleWorkspaceViewportOption[] => {
+  const slottedOptions = buildWorkspaceViewportOptions(viewportSlotsById, primaryViewportId).map(
+    (option): ConsoleWorkspaceViewportOption => ({
+      viewportId: option.viewportId,
+      surfaceInstanceId: option.viewportId,
+      slotId: option.slotId,
+      isPrimary: option.isPrimary,
+      label: option.label,
+      surfaceKind: option.surfaceKind,
+      hostMode: 'slotted',
+    }),
   )
+  const detachedSurfaces = Object.values(detachedSlotSurfaceById).sort((left, right) => {
+    const hostModeRank = left.hostMode.localeCompare(right.hostMode)
+    if (hostModeRank !== 0) {
+      return hostModeRank
+    }
+    return left.surfaceInstanceId.localeCompare(right.surfaceInstanceId)
+  })
+  const detachedLabelCounts = new Map<string, number>()
+  const detachedOptions = detachedSurfaces.map((surface): ConsoleWorkspaceViewportOption => {
+    const baseLabel = `${getWorkspaceViewportSurfaceLabel(surface.surfaceKind)} (${getWorkspaceSurfaceHostModeLabel(
+      surface.hostMode,
+    )})`
+    const nextCount = (detachedLabelCounts.get(baseLabel) ?? 0) + 1
+    detachedLabelCounts.set(baseLabel, nextCount)
+    return {
+      viewportId: surface.surfaceInstanceId,
+      surfaceInstanceId: surface.surfaceInstanceId,
+      hostMode: surface.hostMode,
+      label: nextCount === 1 ? baseLabel : `${baseLabel} ${nextCount}`,
+      surfaceKind: surface.surfaceKind,
+    }
+  })
+
+  return [...slottedOptions, ...detachedOptions]
+}
 
 export const getWorkspaceViewportDisplayLabel = (
   viewportSlotsById: Record<string, WorkspaceViewportSlot>,

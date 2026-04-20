@@ -55,6 +55,7 @@ const surfaceKindLabels: Record<WorkspaceSurfaceKind, string> = {
   spaghettiEditor: 'Spaghetti Editor',
   notepad: 'Notepad',
   dashboard: 'Dashboard',
+  homePage: 'Home Page',
 }
 
 const typePickerWidth = 180
@@ -122,6 +123,7 @@ export function ViewportFrame(props: ViewportFrameProps) {
           'spaghettiEditor',
           'notepad',
           'dashboard',
+          'homePage',
         ] as const)
       ).map((kind) => ({
         kind,

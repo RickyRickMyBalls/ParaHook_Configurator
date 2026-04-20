@@ -203,7 +203,7 @@ describe('ViewportFrame', () => {
     expect(container?.textContent).toContain('Dashboard')
   })
 
-  it('enables every Phase 5 primary-slot target in the viewport type submenu except Home Page-owned follow-ons', async () => {
+  it('enables every primary-slot target in the viewport type submenu', async () => {
     await renderFrame({
       isPrimary: true,
       surfaceKind: 'modelViewer',
@@ -238,6 +238,7 @@ describe('ViewportFrame', () => {
     )
     const notepadButton = typeButtons.find((button) => button.textContent?.trim() === 'Notepad')
     const dashboardButton = typeButtons.find((button) => button.textContent?.trim() === 'Dashboard')
+    const homePageButton = typeButtons.find((button) => button.textContent?.trim() === 'Home Page')
 
     expect(modelViewerButton).toBeDefined()
     expect(modelViewerButton?.disabled).toBe(false)
@@ -253,6 +254,8 @@ describe('ViewportFrame', () => {
     expect(notepadButton?.disabled).toBe(false)
     expect(dashboardButton).toBeDefined()
     expect(dashboardButton?.disabled).toBe(false)
+    expect(homePageButton).toBeDefined()
+    expect(homePageButton?.disabled).toBe(false)
   })
 
   it('calls the primary-slot browser type action from the titlebar submenu', async () => {
@@ -340,6 +343,7 @@ describe('ViewportFrame', () => {
     ['Spaghetti Editor', 'spaghettiEditor'],
     ['Notepad', 'notepad'],
     ['Dashboard', 'dashboard'],
+    ['Home Page', 'homePage'],
   ] as const)(
     'calls the primary-slot %s type action from the titlebar submenu',
     async (buttonLabel, expectedSurfaceKind) => {

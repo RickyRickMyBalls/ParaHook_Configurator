@@ -244,7 +244,13 @@ export function useAppShellViewportActions(input: UseAppShellViewportActionsInpu
   const handleCloseViewportSlotFromMenu = useCallback(
     (slotId: string) => {
       const slot = viewportSlotsById[slotId] ?? null
-      if (slot === null || slotId === defaultPrimaryViewportSlotId) {
+      if (slot === null) {
+        return
+      }
+      if (slotId === defaultPrimaryViewportSlotId) {
+        if (slot.surfaceKind === 'modelViewer') {
+          setViewportSlotSurfaceKind(slotId, 'homePage')
+        }
         return
       }
       removeViewportSlot(slotId)

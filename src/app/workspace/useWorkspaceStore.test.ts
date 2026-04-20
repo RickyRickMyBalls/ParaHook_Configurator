@@ -266,6 +266,7 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     ['spaghettiEditor', `spaghetti-${defaultPrimaryViewportSlotId}`],
     ['notepad', `notepad-${defaultPrimaryViewportSlotId}`],
     ['dashboard', `dashboard-${defaultPrimaryViewportSlotId}`],
+    ['homePage', `home-page-${defaultPrimaryViewportSlotId}`],
   ] as const)(
     'can switch the primary slot to %s through the shared slot seam once Phase 5 opens the remaining targets',
     (nextSurfaceKind, expectedSurfaceInstanceId) => {
@@ -281,6 +282,27 @@ describe('useWorkspaceStore viewport slot foundation', () => {
       expect(useWorkspaceStore.getState().activeViewerViewportId).toBe(expectedSurfaceInstanceId)
     },
   )
+
+  it('can transition the last root model viewport to Home Page as a zero-viewer state', () => {
+    useWorkspaceStore
+      .getState()
+      .setViewportSlotSurfaceKind(defaultPrimaryViewportSlotId, 'homePage')
+
+    const state = useWorkspaceStore.getState()
+    const primarySlot = state.viewportSlotsById[defaultPrimaryViewportSlotId] ?? null
+
+    expect(state.viewportSlotRootNodeId).toBe(defaultPrimaryViewportLeafNodeId)
+    expect(primarySlot).toEqual(
+      expect.objectContaining({
+        surfaceKind: 'homePage',
+        surfaceInstanceId: `home-page-${defaultPrimaryViewportSlotId}`,
+      }),
+    )
+    expect(Object.values(state.viewportSlotsById).some((slot) => slot.surfaceKind === 'modelViewer')).toBe(
+      false,
+    )
+    expect(state.activeViewerViewportId).toBe(`home-page-${defaultPrimaryViewportSlotId}`)
+  })
 
   it('reuses the retained catalog surface instance when a non-primary slot switches away and back', () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right', {
@@ -1016,10 +1038,15 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     expect(useWorkspaceStore.getState().detachedSlotSurfaceById['notepad-surface-1']).toBeUndefined()
   })
 
-  it('normalizes and hydrates zero-viewer primary-browser layouts without reviving a hidden model viewer id', () => {
+  it.each([
+    ['browser', `browser-${defaultPrimaryViewportSlotId}`],
+    ['homePage', `home-page-${defaultPrimaryViewportSlotId}`],
+  ] as const)(
+    'normalizes and hydrates zero-viewer primary-%s layouts without reviving a hidden model viewer id',
+    (surfaceKind, expectedSurfaceInstanceId) => {
     useWorkspaceStore
       .getState()
-      .setViewportSlotSurfaceKind(defaultPrimaryViewportSlotId, 'browser')
+      .setViewportSlotSurfaceKind(defaultPrimaryViewportSlotId, surfaceKind)
 
     const serialized = serializeWorkspaceLayout(useWorkspaceStore.getState())
     const normalized = normalizePersistedWorkspaceLayout({
@@ -1029,14 +1056,14 @@ describe('useWorkspaceStore viewport slot foundation', () => {
 
     expect(normalized?.viewportSlotsById[defaultPrimaryViewportSlotId]).toEqual(
       expect.objectContaining({
-        surfaceKind: 'browser',
-        surfaceInstanceId: `browser-${defaultPrimaryViewportSlotId}`,
+        surfaceKind,
+        surfaceInstanceId: expectedSurfaceInstanceId,
       }),
     )
     expect(
       Object.values(normalized?.viewportSlotsById ?? {}).some((slot) => slot.surfaceKind === 'modelViewer'),
     ).toBe(false)
-    expect(normalized?.activeViewerViewportId).toBe(`browser-${defaultPrimaryViewportSlotId}`)
+    expect(normalized?.activeViewerViewportId).toBe(expectedSurfaceInstanceId)
 
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     useWorkspaceStore.getState().hydratePersistedWorkspaceLayout(normalized!)
@@ -1044,15 +1071,16 @@ describe('useWorkspaceStore viewport slot foundation', () => {
     const hydratedState = useWorkspaceStore.getState()
     expect(hydratedState.viewportSlotsById[defaultPrimaryViewportSlotId]).toEqual(
       expect.objectContaining({
-        surfaceKind: 'browser',
-        surfaceInstanceId: `browser-${defaultPrimaryViewportSlotId}`,
+        surfaceKind,
+        surfaceInstanceId: expectedSurfaceInstanceId,
       }),
     )
     expect(
       Object.values(hydratedState.viewportSlotsById).some((slot) => slot.surfaceKind === 'modelViewer'),
     ).toBe(false)
-    expect(hydratedState.activeViewerViewportId).toBe(`browser-${defaultPrimaryViewportSlotId}`)
-  })
+    expect(hydratedState.activeViewerViewportId).toBe(expectedSurfaceInstanceId)
+    },
+  )
 
   it('normalizes stale active viewer ids to the surviving non-primary model viewer during restore', () => {
     useWorkspaceStore.getState().splitViewportSlot(defaultPrimaryViewportSlotId, 'right')

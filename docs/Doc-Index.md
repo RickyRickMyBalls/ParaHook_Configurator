@@ -4,6 +4,8 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+266. 2026-04-19 17:32:30: Added the new `docs/Agents/Dispatch-3a/` subtree to the docs map, listing the persistent-lane Manager, Yap Intake, HLG > Spec, Worker, Explorer, flow, templates, run-state, and intake-log docs so the newer always-on dispatch model is discoverable beside Dispatch-2.
+265. 2026-04-19 14:30:18: Added `docs/Agents/Dispatch-2/Dispatch-2-Start-Command-Flow.md` to the Dispatch 2 docs map so broad commands such as `start Home Page Gen 1` have a discoverable flow from HLG through Guide-Rail descent and Worker handoff.
 264. 2026-04-19 14:20:05: Renamed the active Dispatch 2 review role doc from `Dispatch-2-Reviewer-Agent.md` to `Dispatch-2-Guide-Rail-Agent.md` in the docs map so the Agents subtree reflects the combined phase-prep and coverage-review role.
 263. 2026-04-19 14:03:18: Simplified the `docs/Agents/Dispatch-2/` docs map after removing the active Planning Manager and Verifier roles, keeping the flat dispatcher, worker, explorer, reviewer, shared rules, overview, and Home Page Gen1 pilot docs discoverable.
 262. 2026-04-19 13:55:15: Added the new `docs/Agents/Dispatch-2/` subtree to the docs map, listing the promoted dispatcher, shared rules, planning manager, worker, explorer, reviewer, verifier, overview, and Home Page Gen1 pilot docs so the multi-agent dispatch system is discoverable beside Dispatch-1.
@@ -687,6 +689,19 @@ Rule notes:
         - `Dispatch-2-Overview.md`
         - `Dispatch-2-Shared-Rules.md`
         - `Dispatch-2-Worker-Agent.md`
+    - `Dispatch-3a`
+### ----Dispatch-3a
+        - `Dispatch-3a-Explorer-Agent.md`
+        - `Dispatch-3a-Handoff-Templates.md`
+        - `Dispatch-3a-HLG-To-Spec-Agent.md`
+        - `Dispatch-3a-Manager-Agent.md`
+        - `Dispatch-3a-Overview.md`
+        - `Dispatch-3a-Persistent-Lane-Flow.md`
+        - `Dispatch-3a-Run-State.md`
+        - `Dispatch-3a-Shared-Rules.md`
+        - `Dispatch-3a-Worker-Agent.md`
+        - `Dispatch-3a-Yap-Intake-Agent.md`
+        - `Dispatch-3a-Yap-Intake-Log.md`
 ## -Archive
     - `00_Phase_Log.md`
     - `TaskHistoryCompilation.md`

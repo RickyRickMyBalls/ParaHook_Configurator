@@ -14,6 +14,7 @@ import {
   resetAudioSamplerStore,
   useAudioSamplerStore,
 } from './store/audioSamplerStore'
+import { useUiPrefsStore, type WorkspaceStartupSurface } from './store/uiPrefsStore'
 import { consumeQueuedViewerCameraPose, setViewer } from './viewerBridge'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
 import {
@@ -70,6 +71,7 @@ vi.mock('../runtime/audio/SoundCloudWidgetClient', () => ({
 vi.mock('./spaghetti/store/useSpaghettiStore', () => {
   const store = ((selector: (state: any) => unknown) => selector(currentSpaghettiState)) as any
   store.getState = () => currentSpaghettiState
+  store.subscribe = () => () => undefined
   return {
     defaultViewportPosition: { x: 12, y: 12 },
     defaultViewportSize: { width: 980, height: 760 },
@@ -93,6 +95,12 @@ vi.mock('./spaghetti/store/useSpaghettiStore', () => {
         .filter((document: unknown) => document !== null),
     selectGraphDocumentById: (state: any, graphDocumentId: string) =>
       state.graphDocumentsById[graphDocumentId] ?? null,
+    selectGraphBrowserStorageWorkingSetSnapshot: (state: any) => ({
+      version: 1,
+      graphDocumentsById: state.graphDocumentsById ?? {},
+      graphDocumentOrder: state.graphDocumentOrder ?? [],
+      activeGraphDocumentId: state.activeGraphDocumentId ?? null,
+    }),
   }
 })
 
@@ -441,7 +449,8 @@ const viewport = (windowMode: string) => ({
   zOrder: 5,
 })
 
-const renderAppShell = async () => {
+const renderAppShell = async (workspaceStartupSurface: WorkspaceStartupSurface = 'modelViewer') => {
+  useUiPrefsStore.getState().setWorkspaceStartupSurface(workspaceStartupSurface)
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
@@ -661,6 +670,7 @@ describe('AppShell', () => {
     useConsoleStore.setState(useConsoleStore.getInitialState(), true)
     useDashboardStore.setState(useDashboardStore.getInitialState(), true)
     useNotepadStore.setState(useNotepadStore.getInitialState(), true)
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
     resetAudioSamplerStore()
     window.localStorage.clear()
@@ -905,9 +915,14 @@ describe('AppShell', () => {
         selectedTarget: null,
         activeSurface: null,
       },
+      referenceWorkspace: {
+        importedReferencesById: {},
+        importedReferenceOrder: [],
+      },
       floatingShellActivationRequest: null,
       consoleContextSyncRequest: null,
       consoleWorkspaceContextHandoff: null,
+      addImportedReference: vi.fn(),
       setWorkspaceSelectedTarget: vi.fn((target: unknown) => {
         currentAppState = {
           ...currentAppState,
@@ -7197,7 +7212,7 @@ describe('AppShell', () => {
     expect(useWorkspaceStore.getState().detachedSlotSurfaceById['console-surface-1']).toBeUndefined()
   })
 
-  it('hydrates the shared workspace seam from the persisted last-layout snapshot on startup', async () => {
+  it('hydrates the shared workspace seam while applying the startup surface on startup', async () => {
     const persistedEditorSurface = {
       ...createDefaultEditorWorkspaceSurfaceState('editor-viewport-1'),
       presentationMode: 'tiled' as const,
@@ -7228,18 +7243,39 @@ describe('AppShell', () => {
             surfaceKind: 'modelViewer',
           },
         },
+        viewportSlotRootNodeId: 'workspace-slot-leaf-primary',
+        viewportSlotsById: {
+          'workspace-slot-primary': {
+            slotId: 'workspace-slot-primary',
+            surfaceKind: 'homePage',
+            surfaceInstanceId: 'home-page-workspace-slot-primary',
+            hostMode: 'slotted',
+            hostViewportId: 'model-viewer-primary',
+            leafNodeId: 'workspace-slot-leaf-primary',
+            retainedSurfaceInstanceIdsByKind: {
+              homePage: 'home-page-workspace-slot-primary',
+            },
+          },
+        },
+        viewportLayoutNodesById: {
+          'workspace-slot-leaf-primary': {
+            nodeId: 'workspace-slot-leaf-primary',
+            kind: 'leaf',
+            slotId: 'workspace-slot-primary',
+          },
+        },
         editorSurfacePlacementById: {
           'editor-viewport-1': persistedEditorSurface,
         },
       }),
     )
+    useUiPrefsStore.getState().setWorkspaceStartupSurface('modelViewer')
 
     ;({ container, root } = await renderAppShell())
 
     const workspaceState = useWorkspaceStore.getState()
-    expect(window.confirm).toHaveBeenCalledWith(
-      'Restore your saved workspace layout? Click Cancel to start fresh.',
-    )
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+    expect(window.confirm).not.toHaveBeenCalled()
     expect(workspaceState.leftDockWidth).toBe(404)
     expect(workspaceState.isLeftDockViewportSplit).toBe(true)
     expect(workspaceState.browserShell.isFloating).toBe(true)
@@ -7275,9 +7311,42 @@ describe('AppShell', () => {
       'editor-viewport-1',
       'expanded',
     )
+    expect(
+      workspaceState.viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('modelViewer')
+    expect(primarySlot?.getAttribute('data-workspace-surface-kind')).toBe('modelViewer')
+    expect(primarySlot?.textContent).toContain('Model Viewport')
   })
 
-  it('starts fresh and overwrites the saved layout when startup restore is declined', async () => {
+  it('defaults to Home Page on startup when there is no saved workspace layout', async () => {
+    ;({ container, root } = await renderAppShell('homePage'))
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(primarySlot?.getAttribute('data-workspace-surface-kind')).toBe('homePage')
+    expect(primarySlot?.textContent).toContain('Home Page')
+    expect(
+      useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('homePage')
+  })
+
+  it('can start directly in Model Viewport when the startup preference is turned off', async () => {
+    useUiPrefsStore.getState().setWorkspaceStartupSurface('modelViewer')
+
+    ;({ container, root } = await renderAppShell())
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(primarySlot?.getAttribute('data-workspace-surface-kind')).toBe('modelViewer')
+    expect(primarySlot?.textContent).toContain('Model Viewport')
+    expect(
+      useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('modelViewer')
+  })
+
+  it('starts fresh and leaves the saved layout untouched when workspace restore is turned off', async () => {
     window.localStorage.setItem(
       workspaceLayoutStorageKey,
       JSON.stringify({
@@ -7301,13 +7370,11 @@ describe('AppShell', () => {
       }),
     )
     window.confirm = vi.fn(() => false)
-
-    ;({ container, root } = await renderAppShell())
+    useUiPrefsStore.getState().setWorkspaceRestorePersistence(false)
+    ;({ container, root } = await renderAppShell('homePage'))
 
     const workspaceState = useWorkspaceStore.getState()
-    expect(window.confirm).toHaveBeenCalledWith(
-      'Restore your saved workspace layout? Click Cancel to start fresh.',
-    )
+    expect(window.confirm).not.toHaveBeenCalled()
     expect(workspaceState.leftDockWidth).toBe(useWorkspaceStore.getInitialState().leftDockWidth)
     expect(workspaceState.isLeftDockViewportSplit).toBe(
       useWorkspaceStore.getInitialState().isLeftDockViewportSplit,
@@ -7319,11 +7386,151 @@ describe('AppShell', () => {
       window.localStorage.getItem(workspaceLayoutStorageKey) ?? 'null',
     ) as Record<string, unknown> | null
 
-    expect(persisted?.leftDockWidth).toBe(useWorkspaceStore.getInitialState().leftDockWidth)
-    expect(persisted?.isLeftDockViewportSplit).toBe(false)
+    expect(persisted?.leftDockWidth).toBe(404)
+    expect(persisted?.isLeftDockViewportSplit).toBe(true)
     expect(
       (persisted?.browserShell as { isFloating?: boolean } | undefined)?.isFloating,
-    ).toBe(false)
+    ).toBe(true)
+    expect(persisted?.primaryViewportId).toBe('model-viewer-primary')
+    expect(
+      (persisted?.viewportSlotsById as Record<string, { surfaceKind?: string }> | undefined)?.[
+        defaultPrimaryViewportSlotId
+      ]?.surfaceKind,
+    ).not.toBe('homePage')
+  })
+
+  it('keeps dashboard and notepad persistence read-only when their Home Page toggles are off', async () => {
+    window.localStorage.setItem(
+      dashboardStorageKey,
+      JSON.stringify({
+        version: 4,
+        lanes: [
+          { id: 'todo', title: 'TO DO', order: 0, width: 1 },
+          { id: 'completed', title: 'Completed', order: 1, width: 1 },
+        ],
+        stickyNoteLayoutsByNoteId: {
+          'note-1': { noteId: 'note-1', laneId: 'todo', x: 24, y: 24 },
+        },
+      }),
+    )
+    window.localStorage.setItem(
+      notepadStorageKey,
+      JSON.stringify({
+        version: 1,
+        notesById: {
+          'note-1': {
+            id: 'note-1',
+            title: 'Persisted note',
+            body: 'Kept for later',
+            createdAt: '2026-04-19T00:00:00.000Z',
+            updatedAt: '2026-04-19T00:00:00.000Z',
+            isPinned: true,
+            colorPreset: 'yellow',
+          },
+        },
+        noteOrder: ['note-1'],
+        activeNoteId: 'note-1',
+      }),
+    )
+    useUiPrefsStore.getState().setDashboardPersistence(false)
+    useUiPrefsStore.getState().setNotepadPersistence(false)
+
+    ;({ container, root } = await renderAppShell('homePage'))
+
+    expect(useDashboardStore.getState().lanes.map((lane) => lane.id)).toEqual(['todo', 'completed'])
+    expect(useDashboardStore.getState().stickyNoteLayoutsByNoteId).toEqual({})
+    expect(useNotepadStore.getState().noteOrder).toEqual([])
+    expect(useNotepadStore.getState().notesById).toEqual({})
+    expect(
+      JSON.parse(window.localStorage.getItem(dashboardStorageKey) ?? 'null'),
+    ).toEqual(
+      expect.objectContaining({
+        version: 4,
+        stickyNoteLayoutsByNoteId: {
+          'note-1': { noteId: 'note-1', laneId: 'todo', x: 24, y: 24 },
+        },
+      }),
+    )
+    expect(JSON.parse(window.localStorage.getItem(notepadStorageKey) ?? 'null')).toEqual(
+      expect.objectContaining({
+        version: 1,
+        noteOrder: ['note-1'],
+        activeNoteId: 'note-1',
+      }),
+    )
+
+    await act(async () => {
+      useDashboardStore.getState().createLane('Review')
+      useNotepadStore.getState().createNote({ title: 'Runtime note' })
+    })
+
+    expect(
+      JSON.parse(window.localStorage.getItem(dashboardStorageKey) ?? 'null'),
+    ).toEqual(
+      expect.objectContaining({
+        version: 4,
+        stickyNoteLayoutsByNoteId: {
+          'note-1': { noteId: 'note-1', laneId: 'todo', x: 24, y: 24 },
+        },
+      }),
+    )
+    expect(JSON.parse(window.localStorage.getItem(notepadStorageKey) ?? 'null')).toEqual(
+      expect.objectContaining({
+        version: 1,
+        noteOrder: ['note-1'],
+        activeNoteId: 'note-1',
+      }),
+    )
+  })
+
+  it('wires the Home Page browser launch into the existing shell seam', async () => {
+    ;({ container, root } = await renderAppShell('homePage'))
+
+    const openBrowserButton = Array.from(
+      container?.querySelectorAll('.HomePageSurfaceLaunchActions button') ?? [],
+    ).find((button) => button.textContent === 'Open Browser') as HTMLButtonElement | undefined
+    expect(openBrowserButton).not.toBeUndefined()
+
+    await act(async () => {
+      openBrowserButton?.click()
+    })
+
+    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('browser')
+  })
+
+  it('wires the Home Page console launch into the existing shell seam', async () => {
+    ;({ container, root } = await renderAppShell('homePage'))
+
+    const openConsoleButton = Array.from(
+      container?.querySelectorAll('.HomePageSurfaceLaunchActions button') ?? [],
+    ).find((button) => button.textContent === 'Open Console') as HTMLButtonElement | undefined
+    expect(openConsoleButton).not.toBeUndefined()
+
+    await act(async () => {
+      openConsoleButton?.click()
+    })
+
+    expect(currentAppState.setActiveSurface).toHaveBeenCalledWith('console')
+  })
+
+  it('wires the Home Page model viewport launch into the existing viewer seam', async () => {
+    ;({ container, root } = await renderAppShell('homePage'))
+
+    const openModelViewportButton = Array.from(
+      container?.querySelectorAll('.HomePageSurfaceLaunchActions button') ?? [],
+    ).find(
+      (button) => button.textContent === 'Open Model Viewport',
+    ) as HTMLButtonElement | undefined
+    expect(openModelViewportButton).not.toBeUndefined()
+
+    await act(async () => {
+      openModelViewportButton?.click()
+    })
+
+    expect(currentAppState.workspaceSelection.activeSurface).toBe('viewer')
+    expect(
+      useWorkspaceStore.getState().viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('modelViewer')
   })
 
   it('persists shared workspace layout changes into the last-layout snapshot', async () => {
@@ -8307,6 +8514,44 @@ describe('AppShell', () => {
 
     expect(menuButtons.some((label) => label?.includes('Split'))).toBe(true)
     expect(menuButtons).toContain('Close')
+  })
+
+  it('closes the root model viewport back to Home Page through the shared slot menu', async () => {
+    ;({ container, root } = await renderAppShell())
+
+    const primaryHeader = container?.querySelector(
+      '.ViewportFrame.isPrimarySlot .ViewportFrameHeader',
+    ) as HTMLDivElement | null
+    expect(primaryHeader).not.toBeNull()
+
+    await act(async () => {
+      primaryHeader?.dispatchEvent(
+        new MouseEvent('contextmenu', { bubbles: true, cancelable: true }),
+      )
+    })
+
+    const closeButton = Array.from(
+      container?.querySelectorAll('.ViewportFrameActionMenu button') ?? [],
+    ).find((button) => button.textContent?.trim() === 'Close') as HTMLButtonElement | undefined
+
+    expect(closeButton).not.toBeUndefined()
+    expect(closeButton?.disabled).toBe(false)
+
+    await act(async () => {
+      closeButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+
+    const primarySlot = container?.querySelector('.ViewportFrame.isPrimarySlot') as HTMLElement | null
+    const workspaceState = useWorkspaceStore.getState()
+
+    expect(primarySlot?.getAttribute('data-workspace-surface-kind')).toBe('homePage')
+    expect(primarySlot?.textContent).toContain('Home Page')
+    expect(
+      workspaceState.viewportSlotsById[defaultPrimaryViewportSlotId]?.surfaceKind,
+    ).toBe('homePage')
+    expect(
+      Object.values(workspaceState.viewportSlotsById).some((slot) => slot.surfaceKind === 'modelViewer'),
+    ).toBe(false)
   })
 
   it('locks the floating split submenu open when the split row is clicked', async () => {

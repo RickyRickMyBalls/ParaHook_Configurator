@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+5. 2026-04-19 14:30:18: Added dispatcher responsibility for start-command intake so broad commands like `start Home Page Gen 1` route through `Dispatch-2-Start-Command-Flow.md` before Guide-Rail prep and Worker dispatch.
 4. 2026-04-19 14:20:05: Updated dispatcher rules for the Guide-Rail Codex role, which preps phases before Worker dispatch and performs coverage review after Worker return.
 3. 2026-04-19 14:08:52: Updated dispatcher acceptance rules so Coverage Review owns checklist accounting, HLG/CLG status reads, and follow-up phase proposals while the live dispatcher approves any new phase or final advancement.
 2. 2026-04-19 14:03:18: Simplified dispatcher spawn rules around the flat fleet model by removing Planning Manager and Verifier roles, making Workers own verification/build and Reviewers own guide-rail review.
@@ -52,6 +53,11 @@ The dispatcher should keep the user's live thread responsive, use child agents f
 - burying user interruptions under an ongoing automation loop
 
 ### Spawn Rules
+
+Use `Dispatch-2-Start-Command-Flow.md` when:
+- the user gives an HLG, family intent, or broad start command
+- the dispatcher needs to locate the active Vision Doc, Generation Index Doc, Family Phase Doc, or next implementation phase
+- the next legal task is not yet obvious from the current thread
 
 Spawn or use a Guide-Rail Codex in prep mode when:
 - a phase needs to be made implementation-ready

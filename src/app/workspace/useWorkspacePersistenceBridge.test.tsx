@@ -3,6 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useUiPrefsStore } from '../store/uiPrefsStore'
 import { useWorkspaceStore } from './useWorkspaceStore'
 import {
   serializeWorkspaceLayout,
@@ -57,6 +58,7 @@ describe('useWorkspacePersistenceBridge', () => {
 
   beforeEach(() => {
     useWorkspaceStore.setState(useWorkspaceStore.getInitialState(), true)
+    useUiPrefsStore.setState(useUiPrefsStore.getInitialState(), true)
     window.localStorage.clear()
     window.confirm = vi.fn(() => true)
     mockReplayPersistedEditorSurfacePlacements.mockReset()
@@ -85,9 +87,7 @@ describe('useWorkspacePersistenceBridge', () => {
       root?.render(<WorkspacePersistenceBridgeHarness />)
     })
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      'Restore your saved workspace layout? Click Cancel to start fresh.',
-    )
+    expect(window.confirm).not.toHaveBeenCalled()
     expect(
       Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
         (slot) =>
@@ -133,9 +133,9 @@ describe('useWorkspacePersistenceBridge', () => {
     )
   })
 
-  it('starts fresh and overwrites a saved catalog layout when startup restore is declined', async () => {
+  it('starts fresh and leaves the saved catalog layout untouched when workspace restore is turned off', async () => {
     await seedPersistedCatalogLayout()
-    window.confirm = vi.fn(() => false)
+    useUiPrefsStore.getState().setWorkspaceRestorePersistence(false)
 
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -145,9 +145,7 @@ describe('useWorkspacePersistenceBridge', () => {
       root?.render(<WorkspacePersistenceBridgeHarness />)
     })
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      'Restore your saved workspace layout? Click Cancel to start fresh.',
-    )
+    expect(window.confirm).not.toHaveBeenCalled()
     expect(
       Object.values(useWorkspaceStore.getState().viewportSlotsById).some(
         (slot) => slot.surfaceKind === 'catalog',
@@ -171,11 +169,11 @@ describe('useWorkspacePersistenceBridge', () => {
       Object.values(persisted?.viewportSlotsById ?? {}).some(
         (slot) => slot.surfaceKind === 'catalog',
       ),
-    ).toBe(false)
+    ).toBe(true)
     expect(
       Object.values(persisted?.detachedSlotSurfaceById ?? {}).some(
         (surface) => surface.surfaceKind === 'catalog',
       ),
-    ).toBe(false)
+    ).toBe(true)
   })
 })

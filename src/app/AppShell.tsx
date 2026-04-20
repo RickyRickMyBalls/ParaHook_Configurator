@@ -46,6 +46,7 @@ import {
   useAudioSamplerStore,
 } from './store/audioSamplerStore'
 import { useAppStore } from './store/useAppStore'
+import { useUiPrefsStore } from './store/uiPrefsStore'
 import { CatalogSurface } from './workspace/CatalogSurface'
 import { useWorkspaceChildWindow } from './workspace/useWorkspaceChildWindow'
 import { useWorkspaceStore } from './workspace/useWorkspaceStore'
@@ -60,10 +61,13 @@ import {
   createDefaultModelViewportPopoutState,
   defaultBrowserHostRouteId,
   defaultPrimaryViewportSlotId,
+  defaultPrimaryWorkspaceViewportId,
   type WorkspaceDetachedSlotSurfaceState,
+  type WorkspaceSurfaceKind,
 } from './workspace/workspaceShellTypes'
 import { useWorkspacePersistenceBridge } from './workspace/useWorkspacePersistenceBridge'
 import { useUiPrefsPersistenceBridge } from './store/useUiPrefsPersistenceBridge'
+import { useGraphBrowserStoragePersistenceBridge } from './spaghetti/store/useGraphBrowserStoragePersistenceBridge'
 import { useWorkspaceDetachedRestoreCompatibilityBridge } from './workspace/useWorkspaceDetachedRestoreCompatibilityBridge'
 const floatingDockLockGap = 25
 const modelViewportPopoutBackground = 'rgb(7, 11, 18)'
@@ -77,6 +81,30 @@ type DetachedViewerFloatingRect = {
   width: number
   height: number
 }
+
+const isPristineDashboardState = (state: {
+  lanes: Array<{ id: string; title: string; order: number; width: number }>
+  stickyNoteLayoutsByNoteId: Record<string, unknown>
+}): boolean =>
+  state.stickyNoteLayoutsByNoteId && Object.keys(state.stickyNoteLayoutsByNoteId).length === 0 &&
+  state.lanes.length === 2 &&
+  state.lanes[0]?.id === 'todo' &&
+  state.lanes[0]?.title === 'TO DO' &&
+  state.lanes[0]?.order === 0 &&
+  state.lanes[0]?.width === 1 &&
+  state.lanes[1]?.id === 'completed' &&
+  state.lanes[1]?.title === 'Completed' &&
+  state.lanes[1]?.order === 1 &&
+  state.lanes[1]?.width === 1
+
+const isPristineNotepadState = (state: {
+  notesById: Record<string, unknown>
+  noteOrder: string[]
+  activeNoteId: string | null
+}): boolean =>
+  Object.keys(state.notesById).length === 0 &&
+  state.noteOrder.length === 0 &&
+  state.activeNoteId === null
 
 type DetachedViewerPopoutWindowProps = {
   surface: WorkspaceDetachedSlotSurfaceState
@@ -313,6 +341,8 @@ export function AppShell() {
   const hydratePersistedDashboardState = useDashboardStore(
     (state) => state.hydratePersistedDashboardState,
   )
+  const dashboardPersistence = useUiPrefsStore((state) => state.dashboardPersistence)
+  const notepadPersistence = useUiPrefsStore((state) => state.notepadPersistence)
   const activeEditorSurface = useWorkspaceStore((state) =>
     activeEditorViewportId.length > 0 ? state.editorSurfacePlacementById[activeEditorViewportId] ?? null : null,
   )
@@ -339,6 +369,8 @@ export function AppShell() {
   const [, setActiveFloatingShell] = useState<'spaghetti' | 'browser' | null>(null)
   const hasHydratedNotepadPersistenceRef = useRef(false)
   const hasHydratedDashboardPersistenceRef = useRef(false)
+  const dashboardPersistenceWasEnabledRef = useRef(false)
+  const notepadPersistenceWasEnabledRef = useRef(false)
 
   const {
     resolveLeftDockPreviewPanelId,
@@ -598,52 +630,91 @@ export function AppShell() {
     workspaceActiveSurface,
   })
 
-  useWorkspacePersistenceBridge()
   useUiPrefsPersistenceBridge()
+  useGraphBrowserStoragePersistenceBridge()
+  useWorkspacePersistenceBridge()
 
-  useEffect(() => {
-    if (hasHydratedNotepadPersistenceRef.current) {
+  useLayoutEffect(() => {
+    if (!notepadPersistence) {
+      notepadPersistenceWasEnabledRef.current = false
       return
     }
-    hasHydratedNotepadPersistenceRef.current = true
-    const persistedNotepadState = readPersistedNotepadState()
-    if (persistedNotepadState !== null) {
-      hydratePersistedNotepadState(persistedNotepadState)
+
+    const currentNotepadState = useNotepadStore.getState()
+    if (
+      !hasHydratedNotepadPersistenceRef.current &&
+      isPristineNotepadState(currentNotepadState)
+    ) {
+      const persistedNotepadState = readPersistedNotepadState()
+      if (persistedNotepadState !== null) {
+        hydratePersistedNotepadState(persistedNotepadState)
+      }
+      hasHydratedNotepadPersistenceRef.current = true
+    } else if (
+      !notepadPersistenceWasEnabledRef.current &&
+      isPristineNotepadState(currentNotepadState)
+    ) {
+      const persistedNotepadState = readPersistedNotepadState()
+      if (persistedNotepadState !== null) {
+        hydratePersistedNotepadState(persistedNotepadState)
+      }
     }
+
+    hasHydratedNotepadPersistenceRef.current = true
+    notepadPersistenceWasEnabledRef.current = true
     writePersistedNotepadState(serializeNotepadState(useNotepadStore.getState()))
-  }, [hydratePersistedNotepadState])
+  }, [hydratePersistedNotepadState, notepadPersistence])
 
   useEffect(() => {
     const unsubscribe = useNotepadStore.subscribe((state) => {
-      if (!hasHydratedNotepadPersistenceRef.current) {
+      if (!hasHydratedNotepadPersistenceRef.current || !notepadPersistence) {
         return
       }
       writePersistedNotepadState(serializeNotepadState(state))
     })
     return unsubscribe
-  }, [])
+  }, [notepadPersistence])
 
   useLayoutEffect(() => {
-    if (hasHydratedDashboardPersistenceRef.current) {
+    if (!dashboardPersistence) {
+      dashboardPersistenceWasEnabledRef.current = false
       return
     }
-    hasHydratedDashboardPersistenceRef.current = true
-    const persistedDashboardState = readPersistedDashboardState()
-    if (persistedDashboardState !== null) {
-      hydratePersistedDashboardState(persistedDashboardState)
+
+    const currentDashboardState = useDashboardStore.getState()
+    if (
+      !hasHydratedDashboardPersistenceRef.current &&
+      isPristineDashboardState(currentDashboardState)
+    ) {
+      const persistedDashboardState = readPersistedDashboardState()
+      if (persistedDashboardState !== null) {
+        hydratePersistedDashboardState(persistedDashboardState)
+      }
+      hasHydratedDashboardPersistenceRef.current = true
+    } else if (
+      !dashboardPersistenceWasEnabledRef.current &&
+      isPristineDashboardState(currentDashboardState)
+    ) {
+      const persistedDashboardState = readPersistedDashboardState()
+      if (persistedDashboardState !== null) {
+        hydratePersistedDashboardState(persistedDashboardState)
+      }
     }
+
+    hasHydratedDashboardPersistenceRef.current = true
+    dashboardPersistenceWasEnabledRef.current = true
     writePersistedDashboardState(serializeDashboardState(useDashboardStore.getState()))
-  }, [hydratePersistedDashboardState])
+  }, [dashboardPersistence, hydratePersistedDashboardState])
 
   useEffect(() => {
     const unsubscribe = useDashboardStore.subscribe((state) => {
-      if (!hasHydratedDashboardPersistenceRef.current) {
+      if (!hasHydratedDashboardPersistenceRef.current || !dashboardPersistence) {
         return
       }
       writePersistedDashboardState(serializeDashboardState(state))
     })
     return unsubscribe
-  }, [])
+  }, [dashboardPersistence])
 
   const handleSetEditorViewportWindowSettingsOpen = useCallback(
     (editorViewportId: string, isOpen: boolean) => {
@@ -867,6 +938,21 @@ export function AppShell() {
     [handleViewportSlotSurfaceKindChange, setActiveNoteId, setDetachedSurfaceKind],
   )
 
+  const handleOpenHomePageSurface = useCallback(
+    (surfaceKind: WorkspaceSurfaceKind) => {
+      if (surfaceKind === 'homePage') {
+        return
+      }
+      handleViewportSlotSurfaceKindChange(defaultPrimaryViewportSlotId, surfaceKind)
+      if (surfaceKind === 'modelViewer') {
+        handleActivateViewerSurface(
+          useWorkspaceStore.getState().primaryViewportId ?? defaultPrimaryWorkspaceViewportId,
+        )
+      }
+    },
+    [handleActivateViewerSurface, handleViewportSlotSurfaceKindChange],
+  )
+
   const viewerSurface = (
     <WorkspaceViewportTree
       viewportSlotRootNodeId={viewportSlotRootNodeId}
@@ -883,6 +969,7 @@ export function AppShell() {
       windowSettingsOpenByViewportId={windowSettingsOpenByViewportId}
       dockedBrowserHostRef={dockedBrowserHostRef}
       dockedMeatballHostRef={dockedMeatballHostRef}
+      onOpenHomePageSurface={handleOpenHomePageSurface}
       onActivateSpaghettiSurface={handleActivateSpaghettiSurface}
       onActivateViewerSurface={handleActivateViewerSurface}
       onOpenViewportSpawnMenu={handleOpenViewportSpawnMenu}

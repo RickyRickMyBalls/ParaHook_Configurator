@@ -3,6 +3,8 @@
 ## Doc Header
 
 ### Doc History
+6. 2026-04-19 14:33:40: Added the CLG creation rule naming Guide-Rail Codex as the canonical creator and maintainer of Codex-level goals derived from preserved HLG during prep mode.
+5. 2026-04-19 14:30:18: Added the start-command descent rule so Dispatch 2 can begin from a user HLG or start command, locate or create the required planning layer, and stop at Worker handoff only after the implementation phase is ready.
 4. 2026-04-19 14:20:05: Replaced the separate Coverage Reviewer framing with the Guide-Rail Codex role, which owns both prep mode and coverage review mode while Worker stays focused on implementation plus build.
 3. 2026-04-19 14:08:52: Added Coverage Reviewer responsibilities for checklist accounting, HLG/CLG status reads, and dispatcher-approved follow-up phase proposals when implementation does not fully achieve assigned goals.
 2. 2026-04-19 14:03:18: Removed the Planning Manager and Verifier task roles from the active Dispatch 2 model, making the Worker responsible for focused verification and `npm run build` while the Reviewer checks guide-rail alignment from Vision HLG through implementation spec.
@@ -60,6 +62,26 @@ Every dispatch handoff should name:
 - closeout policy
 
 If a field is unknown, say it is unknown instead of inventing state.
+
+### Start Command Rule
+
+When the user gives only an HLG, family intent, or start command, use `Dispatch-2-Start-Command-Flow.md`.
+
+The dispatcher and Guide-Rail Codex should derive the next legal task from the repo docs instead of asking the user to manually name every file or phase.
+
+The descent order is:
+
+```text
+User HLG or start command
+  -> Vision Doc HLG
+  -> Generation Index CLG
+  -> Family Phase Doc
+  -> Implementation Phase
+  -> Implementation Spec
+  -> Worker Handoff
+```
+
+Ask the user only when the docs are ambiguous, conflicting, or missing a product decision that cannot be safely inferred.
 
 ### Legal Task Types
 
@@ -140,6 +162,7 @@ The Guide-Rail Codex owns two modes.
 
 In `prep mode`, it turns the next legal planning target into an implementation-ready phase by tightening:
 
+- CLG derived from preserved HLG
 - HLG and CLG coverage links
 - phase summary
 - `### Phase N Implementation Spec`
@@ -170,6 +193,30 @@ The Guide-Rail Codex also owns checklist accounting after implementation:
 - wait for dispatcher approval before adding new follow-up phase sections
 
 Workers do not prep their own phase or grade their own HLG/CLG completion. Workers may report completion claims, but the Guide-Rail Codex decides the honest coverage read before dispatcher acceptance.
+
+### CLG Creation Rule
+
+Guide-Rail Codex is the canonical CLG creator in Dispatch 2.
+
+CLG are Codex-level goals that translate HLG into repo-actionable planning goals.
+
+Guide-Rail may create or revise CLG during prep mode when:
+
+- HLG exist in the Vision Doc but no CLG exist for the selected generation
+- CLG are too broad to route into family phases
+- CLG no longer match the live repo seams
+- CLG coverage is missing from the Generation Index or Family Phase Doc
+- a follow-up phase needs a new repo-actionable goal to finish an HLG honestly
+
+Every CLG must:
+
+- link back to one or more HLG
+- route into a family phase, implementation phase, or explicit deferred bucket
+- remain more actionable than HLG but less detailed than implementation specs
+- preserve original HLG instead of replacing it
+- avoid new product direction unless the dispatcher or user approves it
+
+Workers and Explorers do not create canonical CLG unless the dispatcher explicitly assigns that task.
 
 ### Handoff Return
 

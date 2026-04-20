@@ -5,6 +5,7 @@ import { selectEditorViewportById, useSpaghettiStore } from '../spaghetti/store/
 import { NotepadSurface } from '../notepad/NotepadSurface'
 import { CatalogSurface } from './CatalogSurface'
 import { DashboardSurface } from './DashboardSurface'
+import { HomePageSurface } from './HomePageSurface'
 import {
   getWorkspaceSurfaceRenderFamily,
 } from './workspaceSurfaceCatalog'
@@ -16,6 +17,7 @@ type ViewportSurfaceRegistryProps = {
   surfaceKind: WorkspaceSurfaceKind
   surfaceInstanceId: string
   onOpenDashboardNoteInNotepad?: (surfaceInstanceId: string, noteId: string) => void
+  onOpenHomePageSurface?: (surfaceKind: WorkspaceSurfaceKind) => void
   onActivateSpaghettiSurface: (
     editorViewportId?: string,
     target?: {
@@ -33,6 +35,7 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
     surfaceKind,
     surfaceInstanceId,
     onOpenDashboardNoteInNotepad,
+    onOpenHomePageSurface,
     onActivateSpaghettiSurface,
     spaghettiWindowSettingsOpen = false,
   } = props
@@ -116,6 +119,16 @@ export function ViewportSurfaceRegistry(props: ViewportSurfaceRegistryProps) {
 
   if (renderFamily === 'notepad') {
     return <NotepadSurface surfaceInstanceId={surfaceInstanceId} />
+  }
+
+  if (renderFamily === 'homePage') {
+    return (
+      <HomePageSurface
+        slotId={slotId}
+        surfaceInstanceId={surfaceInstanceId}
+        onOpenSurface={onOpenHomePageSurface}
+      />
+    )
   }
 
   return (

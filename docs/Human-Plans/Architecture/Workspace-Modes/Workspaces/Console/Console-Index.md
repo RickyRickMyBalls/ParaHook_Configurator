@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+42. 2026-04-19 21:29:35: Added the newer Console vision/generation planning route, pointing broad Console Workspace Modes surface-parity work at `Console-Vision.md`, `Console-Gen1-Index.md`, and the first `Console-1` catalog-driven workspace action phase instead of treating it as a single direct implementation patch.
 41. 2026-04-03 17:24: Completed `Console 11 / Phase 5.1` by moving the submit coordinator and remaining interaction callback band into `src/app/console/useConsoleInteraction.ts`, rewiring `src/app/console/ConsoleDock.tsx` down to helper seams plus shell composition ownership, and verifying the slice with the targeted console Vitest pass plus a full production build while keeping `Phase 5` open for any final shell-thinning follow-on
 40. 2026-04-03 17:04: Prepared `Console 11 / Phase 5.1` for implementation by tightening the still-open shell-thinning remainder around the live post-first-cut controller seam, locking the next code pass to moving `handleSubmitCommand(...)`, `handleEscCancelCommand(...)`, transform tab-cycle helpers, staged back or cancel helpers, `routeConsoleGlobalKey(...)`, and the rest of the still-inline interaction callback band into `src/app/console/useConsoleInteraction.ts`
 39. 2026-04-03 17:04: Added a new explicit `Console 11 / Phase 5.1` follow-on after the first controller-hook cut, recording that the next shell-thinning slice is now specifically about moving `handleSubmitCommand(...)` and the remaining interaction/controller callback band into `src/app/console/useConsoleInteraction.ts` rather than leaving the rest of `Phase 5` as a vague open remainder
@@ -1179,6 +1180,38 @@ Current recommendation:
 - keep `/` as an optional focus affordance, not a required gateway
 - keep the immediate-key set narrow and explicit
 
+### Current Planning Ladder
+
+The older `Console-Index.md` remains the Console family architecture and phase-history surface.
+
+New broad Console work should now use the newer architecture planning ladder when it needs preserved HLG and generation routing:
+
+- [Console Vision](./Console-Vision.md)
+  - broad Console direction and generation-level HLG
+- [Console Generation 1 Index](./Console-Gen1-Index.md)
+  - `Console Generation 1 - Workspace Control Surface Parity`
+  - CLG and family-phase routing for Console Workspace Modes surface parity
+- [Console-1](./Future/Console-1%20-%20Workspace%20Modes%20Catalog-Driven%20Surface%20Actions.md)
+  - first catalog-driven workspace-mode action family phase
+  - prepares one Worker-ready first implementation slice around shared action eligibility
+
+This newer ladder should be used for broad user intent that would otherwise get flattened into one implementation phase too early.
+
+### Console Generation 1 Routing
+
+`Console Generation 1` currently owns the broad goal that Console Workspace Modes should become a proper control surface for all workspace modes.
+
+Generation 1 preserves these user-level promises:
+- users can control workspace surfaces from Console through the same action model exposed by shared slot UI
+- Console reads canonical workspace surface catalog/support data instead of maintaining action allowlists
+- primary and non-primary rules stay explicit and tested
+- slotted, floating, detached, and popout host states stay one workspace model
+- unsupported actions are hidden by shared eligibility or report clear diagnostics
+
+The first routed family phase is:
+
+- [Console-1 - Workspace Modes Catalog-Driven Surface Actions](./Future/Console-1%20-%20Workspace%20Modes%20Catalog-Driven%20Surface%20Actions.md)
+
 
 ### Phase Docs
 
@@ -1481,3 +1514,31 @@ Status:
 - `useConsoleInteraction.ts` now owns both the first-cut keyboard or sync band and the `Phase 5.1` submit or cancel or tab-cycle controller remainder
 - `ConsoleDock.tsx` is materially thinner and now reads primarily as subscriptions, helper seams, windowing consumption, refs, and JSX composition
 - `Phase 5` remains open only for any final shell-thinning follow-on that still proves worthwhile after the `Phase 5.1` controller move
+
+## [ ] `Console-Gen1 / Console-1` - `Workspace Modes Catalog-Driven Surface Actions`
+
+Summary:
+- starts the newer vision/generation planning lane for making Console Workspace Modes control all workspace modes through canonical workspace surface catalog/support data and shared shell action eligibility
+
+Goals:
+- preserve Console Workspace Modes surface-parity HLG at the generation level before implementation
+- keep Console as an adapter over shared workspace/shell owners
+- replace hard-coded Console action allowlists with shared eligibility and owner-backed diagnostics
+- keep primary/non-primary and slotted/floating/detached/popout behavior consistent with the shared workspace model
+
+Docs:
+- [Console Vision](./Console-Vision.md)
+- [Console Gen1 Index](./Console-Gen1-Index.md)
+- [Console-1](./Future/Console-1%20-%20Workspace%20Modes%20Catalog-Driven%20Surface%20Actions.md)
+
+Checklist:
+- [x] preserve the new Console Workspace Modes HLG in a vision/generation ladder
+- [x] derive CLG and route them into `Console-1`
+- [ ] `Console-1 / Phase 1` shared workspace action eligibility read model
+- [ ] `Console-1 / Phase 2` catalog-driven Workspace Modes menus
+- [ ] `Console-1 / Phase 3` owner-backed runtime action execution and diagnostics
+- [ ] `Console-1 / Phase 4` unified surface identity across host states
+- [ ] `Console-1 / Phase 5` catalog expansion proof and generation closeout
+
+Status:
+- `Console-1 / Phase 1` is the next Worker-ready implementation phase

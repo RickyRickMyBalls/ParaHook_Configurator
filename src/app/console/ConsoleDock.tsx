@@ -722,6 +722,7 @@ const buildStagedNavigationContextFromStoreState = (
   const workspaceViewportOptions = buildConsoleWorkspaceViewportOptions(
     workspaceState.viewportSlotsById,
     workspaceState.primaryViewportId,
+    workspaceState.detachedSlotSurfaceById,
   )
   return createConsoleStagedNavigationContext(
     selectOrderedGraphDocuments(spaghettiState).map((document) => ({

@@ -4,6 +4,7 @@ import {
   loadGraphDocumentFromFile as loadGraphDocumentFromFileCommand,
   saveGraphDocumentToFile as saveGraphDocumentToFileCommand,
 } from '../../io/graphDocumentPersistence'
+import type { GraphBrowserStorageWorkingSetSnapshot } from './graphBrowserStoragePersistence'
 import {
   compileSpaghettiGraph,
   computeFeatureStackIrParts,
@@ -898,6 +899,9 @@ export type SpaghettiStoreState = {
       env?: NonNullable<Parameters<typeof loadGraphDocumentFromFileCommand>[1]>
     },
   ) => Promise<string>
+  hydrateGraphBrowserStorageSnapshot: (
+    snapshot: GraphBrowserStorageWorkingSetSnapshot,
+  ) => boolean
   createGraphNodeInDocumentAndSelect: (
     options: CreateGraphNodeInDocumentOptions,
   ) => CreateGraphNodeInDocumentResult | null
@@ -3287,6 +3291,20 @@ export const selectOrderedGraphDocuments = (
   state.graphDocumentOrder
     .map((graphDocumentId) => state.graphDocumentsById[graphDocumentId] ?? null)
     .filter((document): document is GraphDocument => document !== null)
+
+export const selectGraphBrowserStorageWorkingSetSnapshot = (
+  state: Pick<
+    SpaghettiStoreState,
+    'graphDocumentsById' | 'graphDocumentOrder' | 'activeGraphDocumentId'
+  >,
+): Pick<
+  GraphBrowserStorageWorkingSetSnapshot,
+  'graphDocumentsById' | 'graphDocumentOrder' | 'activeGraphDocumentId'
+> => ({
+  graphDocumentsById: state.graphDocumentsById,
+  graphDocumentOrder: state.graphDocumentOrder,
+  activeGraphDocumentId: state.activeGraphDocumentId,
+})
 
 export const selectCachedGraphEntryById = (
   state: Pick<SpaghettiStoreState, 'cachedGraphEntriesById'>,
@@ -6653,6 +6671,52 @@ export const useSpaghettiStore = create<SpaghettiStoreState>((set, get) => ({
     releaseAuthoritativeHandleIds([previousAuthoritativeHandleId])
 
     return graphDocumentId
+  },
+  hydrateGraphBrowserStorageSnapshot: (snapshot) => {
+    const graphDocumentOrder = snapshot.graphDocumentOrder.filter(
+      (graphDocumentId) => snapshot.graphDocumentsById[graphDocumentId] !== undefined,
+    )
+    if (graphDocumentOrder.length === 0) {
+      return false
+    }
+
+    const graphDocumentsById: Record<string, GraphDocument> = {}
+    const graphRuntimeByDocumentId: Record<string, GraphRuntimeState> = {}
+    const cachedGraphEntriesById: Record<string, CachedGraphEntry> = {}
+    for (const graphDocumentId of graphDocumentOrder) {
+      const document = snapshot.graphDocumentsById[graphDocumentId]
+      const nextGraph = normalizeGraphForStoreCommit(cloneGraph(document.graph))
+      graphDocumentsById[graphDocumentId] = {
+        ...document,
+        graph: nextGraph,
+      }
+      graphRuntimeByDocumentId[graphDocumentId] = createGraphRuntimeState(
+        graphDocumentId,
+        nextGraph,
+      )
+      cachedGraphEntriesById[graphDocumentId] = createCachedGraphEntry(graphDocumentId, {
+        source: 'in-memory',
+        isDirty: false,
+      })
+    }
+
+    const fallbackGraphDocumentId =
+      graphDocumentsById[snapshot.activeGraphDocumentId] !== undefined
+        ? snapshot.activeGraphDocumentId
+        : graphDocumentOrder[0]
+
+    set((current) =>
+      withBrowserViewportState(current, {
+        graphDocumentsById,
+        graphDocumentOrder,
+        graphRuntimeByDocumentId,
+        cachedGraphEntriesById,
+        graphDocumentIdByBuildSeq: {},
+        fallbackGraphDocumentId,
+        viewerTargetGraphDocumentId: fallbackGraphDocumentId,
+      }),
+    )
+    return true
   },
   createGraphNodeInDocumentAndSelect: ({ graphDocumentId, nodeType, labelPrefix }) => {
     const initialState = get()

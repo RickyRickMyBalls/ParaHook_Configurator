@@ -41,6 +41,7 @@ type WorkspaceViewportTreeProps = {
   windowSettingsOpenByViewportId: Record<string, boolean>
   dockedBrowserHostRef: RefObject<HTMLDivElement | null>
   dockedMeatballHostRef: RefObject<HTMLDivElement | null>
+  onOpenHomePageSurface?: (surfaceKind: WorkspaceSurfaceKind) => void
   onActivateSpaghettiSurface: (
     editorViewportId?: string,
     target?: {
@@ -95,6 +96,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
     windowSettingsOpenByViewportId,
     dockedBrowserHostRef,
     dockedMeatballHostRef,
+    onOpenHomePageSurface,
     onActivateSpaghettiSurface,
     onActivateViewerSurface,
     onOpenViewportSpawnMenu,
@@ -207,7 +209,11 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
         popOutButtonTitle={
           isPrimarySlot && slot.surfaceKind === 'modelViewer' ? 'Open in new browser' : undefined
         }
-        onClose={isPrimarySlot ? undefined : () => onCloseViewportSlot(slot.slotId)}
+        onClose={
+          isPrimarySlot && slot.surfaceKind !== 'modelViewer'
+            ? undefined
+            : () => onCloseViewportSlot(slot.slotId)
+        }
         onHeaderDragOut={
           !isPrimarySlot && slot.surfaceKind !== 'modelViewer'
             ? (payload) => onViewportSlotHeaderDragOut(slot.slotId, payload)
@@ -246,6 +252,7 @@ export function WorkspaceViewportTree(props: WorkspaceViewportTreeProps) {
             surfaceKind={slot.surfaceKind}
             surfaceInstanceId={slot.surfaceInstanceId}
             onOpenDashboardNoteInNotepad={onOpenDashboardNoteInNotepad}
+            onOpenHomePageSurface={onOpenHomePageSurface}
             onActivateSpaghettiSurface={onActivateSpaghettiSurface}
             spaghettiWindowSettingsOpen={windowSettingsOpenByViewportId[slot.surfaceInstanceId] ?? false}
           />

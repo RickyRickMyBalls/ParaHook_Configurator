@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import {
+  applyPersistedUiPrefsView,
   readPersistedUiPrefs,
+  mergePersistedUiPrefsView,
   serializePersistedUiPrefs,
   writePersistedUiPrefs,
 } from './uiPrefsPersistence'
@@ -8,6 +10,7 @@ import { useUiPrefsStore } from './uiPrefsStore'
 
 export function useUiPrefsPersistenceBridge() {
   const hasHydratedUiPrefsPersistenceRef = useRef(false)
+  const lastPersistedUiPrefsRef = useRef<ReturnType<typeof readPersistedUiPrefs>>(null)
 
   useLayoutEffect(() => {
     if (hasHydratedUiPrefsPersistenceRef.current) {
@@ -17,12 +20,41 @@ export function useUiPrefsPersistenceBridge() {
 
     const persistedUiPrefs = readPersistedUiPrefs()
     if (persistedUiPrefs !== null) {
+      lastPersistedUiPrefsRef.current = persistedUiPrefs
+      const currentUiPrefs = useUiPrefsStore.getState()
       useUiPrefsStore.setState({
-        view: persistedUiPrefs.view,
+        view: applyPersistedUiPrefsView(currentUiPrefs.view, persistedUiPrefs),
+        workspaceStartupSurface: persistedUiPrefs.workspaceStartupSurface,
+        workspaceRestorePersistence: persistedUiPrefs.workspaceRestorePersistence,
+        viewSettingsPersistence: persistedUiPrefs.viewSettingsPersistence,
+        environmentPersistence: persistedUiPrefs.environmentPersistence,
+        dashboardPersistence: persistedUiPrefs.dashboardPersistence,
+        notepadPersistence: persistedUiPrefs.notepadPersistence,
       })
     }
 
-    writePersistedUiPrefs(serializePersistedUiPrefs(useUiPrefsStore.getState().view))
+    const currentUiPrefs = useUiPrefsStore.getState()
+    const currentPolicy = {
+      workspaceRestorePersistence: currentUiPrefs.workspaceRestorePersistence,
+      viewSettingsPersistence: currentUiPrefs.viewSettingsPersistence,
+      environmentPersistence: currentUiPrefs.environmentPersistence,
+      dashboardPersistence: currentUiPrefs.dashboardPersistence,
+      notepadPersistence: currentUiPrefs.notepadPersistence,
+    }
+    const viewToPersist =
+      persistedUiPrefs === null
+        ? currentUiPrefs.view
+        : mergePersistedUiPrefsView(currentUiPrefs.view, persistedUiPrefs.view, {
+            viewSettingsPersistence: currentUiPrefs.viewSettingsPersistence,
+            environmentPersistence: currentUiPrefs.environmentPersistence,
+          })
+    const nextSnapshot = serializePersistedUiPrefs(
+      viewToPersist,
+      currentUiPrefs.workspaceStartupSurface,
+      currentPolicy,
+    )
+    writePersistedUiPrefs(nextSnapshot)
+    lastPersistedUiPrefsRef.current = nextSnapshot
   }, [])
 
   useEffect(() => {
@@ -30,7 +62,25 @@ export function useUiPrefsPersistenceBridge() {
       if (!hasHydratedUiPrefsPersistenceRef.current) {
         return
       }
-      writePersistedUiPrefs(serializePersistedUiPrefs(state.view))
+      const persistedUiPrefs = lastPersistedUiPrefsRef.current
+      const viewToPersist =
+        persistedUiPrefs === null
+          ? state.view
+          : mergePersistedUiPrefsView(state.view, persistedUiPrefs.view, {
+              viewSettingsPersistence: state.viewSettingsPersistence,
+              environmentPersistence: state.environmentPersistence,
+            })
+      const nextSnapshot = serializePersistedUiPrefs(viewToPersist, state.workspaceStartupSurface, {
+        workspaceRestorePersistence: state.workspaceRestorePersistence,
+        viewSettingsPersistence: state.viewSettingsPersistence,
+        environmentPersistence: state.environmentPersistence,
+        dashboardPersistence: state.dashboardPersistence,
+        notepadPersistence: state.notepadPersistence,
+      })
+      lastPersistedUiPrefsRef.current = nextSnapshot
+      writePersistedUiPrefs(
+        nextSnapshot,
+      )
     })
     return unsubscribe
   }, [])
