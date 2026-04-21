@@ -1350,6 +1350,10 @@ export class Viewer {
     })
   }
 
+  public hasReference(referenceId: string): boolean {
+    return this.referenceObjects.has(referenceId)
+  }
+
   public async ensureReferenceLoaded(reference: ReferenceLoadableItem): Promise<void> {
     this.removedReferenceIds.delete(reference.referenceId)
     if (this.referenceObjects.has(reference.referenceId)) {

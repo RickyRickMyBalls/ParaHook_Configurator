@@ -72,7 +72,10 @@ import {
   type ReferenceTimelineMode,
   type ReferenceTimelineRange,
 } from '../references/referenceTimeline'
-import type { ImportedReferenceFile } from '../references/importReferenceFile'
+import type {
+  ImportedReferenceFile,
+  ImportedReferenceSourceAttribution,
+} from '../references/importReferenceFile'
 import { appendConsoleEntry } from '../console/useConsoleStore'
 import { useUiPrefsStore } from './uiPrefsStore'
 import {
@@ -278,6 +281,7 @@ export type ImportedReferenceRecord = {
   assetPath: string
   catalogItemId?: string | null
   catalogFamilyKey?: string | null
+  sourceAttribution?: ImportedReferenceSourceAttribution | null
   parentAssemblyId: string | null
   parentComponentId: string | null
   directPartSourceKind?: DirectPartBackedReferenceLoadKind | null
@@ -1175,6 +1179,7 @@ export type AppState = {
     fileName: string
     fileType: ReferenceFileType
     objectUrl: string
+    sourceAttribution?: ImportedReferenceSourceAttribution | null
     parentAssemblyId?: string | null
     parentComponentId?: string | null
   }) => string
@@ -7159,6 +7164,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           label: buildImportedLabel(options.label),
           fileType: options.file.fileType,
           assetPath: options.file.objectUrl,
+          sourceAttribution: options.file.sourceAttribution ?? null,
           parentAssemblyId:
             options.parentTarget?.kind === 'assembly'
               ? options.parentTarget.assemblyId
@@ -7574,6 +7580,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     fileName,
     fileType,
     objectUrl,
+    sourceAttribution = null,
     parentAssemblyId = null,
     parentComponentId = null,
   }) => {
@@ -7657,12 +7664,13 @@ export const useAppStore = create<AppState>((set, get) => ({
                 sourceKind: 'imported',
                 categoryId: resolveCatalogReferenceCategoryId(catalogFamilyKey),
                 label,
-                fileType,
-                assetPath: objectUrl,
-                catalogItemId,
-                catalogFamilyKey,
-                parentAssemblyId,
-                parentComponentId,
+          fileType,
+          assetPath: objectUrl,
+          catalogItemId,
+          catalogFamilyKey,
+          sourceAttribution,
+          parentAssemblyId,
+          parentComponentId,
                 directPartSourceKind: null,
                 directPartSourceGroupId: null,
                 explodedFromReferenceId: null,
@@ -7971,6 +7979,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           assetPath: importedReference.assetPath,
           catalogItemId: importedReference.catalogItemId ?? null,
           catalogFamilyKey: importedReference.catalogFamilyKey ?? null,
+          sourceAttribution: importedReference.sourceAttribution ?? null,
           parentAssemblyId: importedReference.parentAssemblyId,
           parentComponentId: importedReference.parentComponentId,
           directPartSourceKind: null,

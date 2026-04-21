@@ -11,8 +11,18 @@ export const CATALOG_ITEM_ACTION_KINDS = [
 ] as const
 export type CatalogItemActionKind = (typeof CATALOG_ITEM_ACTION_KINDS)[number]
 
-export const CATALOG_ITEM_SOURCE_KINDS = ['repo', 'imports'] as const
+export const CATALOG_ITEM_SOURCE_KINDS = ['repo', 'imports', 'external', 'planned'] as const
 export type CatalogItemSourceKind = (typeof CATALOG_ITEM_SOURCE_KINDS)[number]
+
+export const CATALOG_ITEM_ROLES = ['starting-assembly'] as const
+export type CatalogItemRole = (typeof CATALOG_ITEM_ROLES)[number]
+
+export const CATALOG_STARTING_ASSEMBLY_STATUSES = ['planned'] as const
+export type CatalogStartingAssemblyStatus = (typeof CATALOG_STARTING_ASSEMBLY_STATUSES)[number]
+
+export const CATALOG_STARTING_ASSEMBLY_SOURCE_ASSET_PREFERENCES = ['step-or-stp'] as const
+export type CatalogStartingAssemblySourceAssetPreference =
+  (typeof CATALOG_STARTING_ASSEMBLY_SOURCE_ASSET_PREFERENCES)[number]
 
 export const CATALOG_ITEM_SYSTEMS = ['Platform', 'Wheel', 'Hardware'] as const
 export type CatalogItemSystem = (typeof CATALOG_ITEM_SYSTEMS)[number]
@@ -53,6 +63,64 @@ export type CatalogItemMetadataEntry = {
   value: string
 }
 
+export type CatalogItemWheelFitment = {
+  motorVersion?: string
+  hubSizeInches?: string
+  tireSize?: string
+  tireCompound?: string
+}
+
+export type CatalogStartingAssembly = {
+  status: CatalogStartingAssemblyStatus
+  platformFamily?: CatalogItemPlatformFamily
+  sourceAssetPreference?: CatalogStartingAssemblySourceAssetPreference
+}
+
+export const CATALOG_SOURCE_ASSET_VARIANT_ROLES = [
+  'preferred-source',
+  'companion-mesh',
+  'preview-candidate',
+  'fallback',
+] as const
+export type CatalogSourceAssetVariantRole =
+  (typeof CATALOG_SOURCE_ASSET_VARIANT_ROLES)[number]
+
+export const CATALOG_SOURCE_ASSET_VARIANT_FORMATS = [
+  'step',
+  'stp',
+  'glb',
+  'obj',
+  'stl',
+] as const
+export type CatalogSourceAssetVariantFormat =
+  (typeof CATALOG_SOURCE_ASSET_VARIANT_FORMATS)[number]
+
+export type CatalogSourceAssetVariant = {
+  variantId: string
+  role: CatalogSourceAssetVariantRole
+  format: CatalogSourceAssetVariantFormat
+  sourcePath: string
+  fileSizeBytes?: number | null
+  label?: string
+}
+
+export const CATALOG_SOURCE_VERSION_STATUSES = ['current', 'archived'] as const
+export type CatalogSourceVersionStatus = (typeof CATALOG_SOURCE_VERSION_STATUSES)[number]
+
+export type CatalogSourceVersion = {
+  versionId: string
+  versionLabel: string
+  status: CatalogSourceVersionStatus
+  variants: CatalogSourceAssetVariant[]
+  notes?: string[]
+}
+
+export type CatalogSourceAssetSet = {
+  sourceId: string
+  currentVersionId: string
+  versions: CatalogSourceVersion[]
+}
+
 const CATALOG_PREVIEW_MEDIA_BASE_URL = import.meta.env.BASE_URL ?? '/'
 
 export type CatalogRepoItemSource = {
@@ -67,7 +135,41 @@ export type CatalogImportsItemSource = {
   catalogItemId?: string | null
 }
 
-export type CatalogItemSourceRef = CatalogRepoItemSource | CatalogImportsItemSource
+export type CatalogExternalProviderMetadata = {
+  providerId: string
+  providerName: string
+  sourceCollectionKey?: string | null
+  sourceCollectionLabel?: string | null
+}
+
+export type CatalogExternalItemSource = {
+  sourceKind: 'external'
+  provider: CatalogExternalProviderMetadata
+  sourceUrl?: string | null
+  externalItemUrl?: string | null
+  previewImageUrl?: string | null
+  linkedArchiveUrl?: string | null
+  sourceLastUpdated?: string | null
+  archiveLastUpdated?: string | null
+  assetPath?: never
+}
+
+export type CatalogPlannedItemSource = {
+  sourceKind: 'planned'
+  sourceLabel: string
+  sourceAssetPath?: string | null
+  sourceAssetFormat?: CatalogStartingAssemblySourceAssetPreference
+  sourceFileSizeBytes?: number | null
+  sourceStatus: 'known-heavy-source'
+  sourceAssetSet?: CatalogSourceAssetSet
+  assetPath?: never
+}
+
+export type CatalogItemSourceRef =
+  | CatalogRepoItemSource
+  | CatalogImportsItemSource
+  | CatalogExternalItemSource
+  | CatalogPlannedItemSource
 
 export type CatalogItemRecord = {
   itemId: string
@@ -89,6 +191,9 @@ export type CatalogItemRecord = {
   previewMedia: CatalogItemPreviewMedia[]
   notes?: string[]
   metadata?: CatalogItemMetadataEntry[]
+  wheelFitment?: CatalogItemWheelFitment
+  itemRole?: CatalogItemRole
+  startingAssembly?: CatalogStartingAssembly
   projectUsageCount?: number
 }
 
@@ -107,8 +212,16 @@ export function isCatalogItemSourceKind(value: unknown): value is CatalogItemSou
   return typeof value === 'string' && CATALOG_ITEM_SOURCE_KINDS.includes(value as CatalogItemSourceKind)
 }
 
+export function isCatalogItemRole(value: unknown): value is CatalogItemRole {
+  return typeof value === 'string' && CATALOG_ITEM_ROLES.includes(value as CatalogItemRole)
+}
+
 export function isCatalogItemImportsEntry(item: CatalogItemRecord): boolean {
   return item.source.sourceKind === 'imports'
+}
+
+export function isCatalogStartingAssemblyItem(item: CatalogItemRecord): boolean {
+  return item.itemRole === 'starting-assembly'
 }
 
 export function getCatalogItemPrimaryPreviewMedia(

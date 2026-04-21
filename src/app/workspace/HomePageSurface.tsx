@@ -9,6 +9,10 @@ import {
 } from '../recentItems/recentItemsPersistence'
 import { useUiPrefsStore } from '../store/uiPrefsStore'
 import {
+  readPubPartsDownloadsStorage,
+  setPubPartsLocalLibraryEnabled,
+} from '../catalog/pubPartsDownloadsStorage'
+import {
   homePageGraphDocumentPersistenceNote,
   homePageRecentItemsPersistenceNote,
   readHomePageOriginStorageEstimate,
@@ -72,6 +76,10 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
   )
   const [recentItemsRemembered, setRecentItemsRemembered] = useState(
     () => readRecentItemsPolicy().rememberRecentItems,
+  )
+  const [pubPartsLibraryEnabled, setPubPartsLibraryEnabled] = useState(
+    () => readPubPartsDownloadsStorage().library.status !== 'not-configured' &&
+      readPubPartsDownloadsStorage().library.status !== 'disabled',
   )
   const workspaceRestorePersistence = useUiPrefsStore(
     (state) => state.workspaceRestorePersistence,
@@ -188,6 +196,17 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
           const nextRemembered = !recentItemsRemembered
           setRecentItemsRememberEnabled(nextRemembered)
           setRecentItemsRemembered(nextRemembered)
+        }),
+      ],
+    ],
+    [
+      'pubparts-downloads',
+      [
+        renderStoragePolicySwitch('PubParts Library', pubPartsLibraryEnabled, () => {
+          const nextEnabled = !pubPartsLibraryEnabled
+          setPubPartsLocalLibraryEnabled(nextEnabled)
+          setPubPartsLibraryEnabled(nextEnabled)
+          setStorageRefreshIndex((current) => current + 1)
         }),
       ],
     ],
@@ -345,6 +364,16 @@ export function HomePageSurface(props: HomePageSurfaceProps) {
                         <code className="HomePageSurfaceStorageTransparencyKey">
                           {bucket.storageKey}
                         </code>
+                        {bucket.folderPath === undefined ? null : (
+                          <code className="HomePageSurfaceStorageTransparencyFolder">
+                            {bucket.folderPath}
+                          </code>
+                        )}
+                        {bucket.localLibraryFolderPath === undefined ? null : (
+                          <code className="HomePageSurfaceStorageTransparencyFolder">
+                            Local library: {bucket.localLibraryFolderPath}
+                          </code>
+                        )}
                         <span className="HomePageSurfaceStorageTransparencySeam">
                           {bucket.ownerSeam}
                         </span>

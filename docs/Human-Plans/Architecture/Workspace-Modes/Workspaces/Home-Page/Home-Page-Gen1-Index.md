@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+33. 2026-04-20 20:24:16: Reopened Home Page Gen 1 with `Home-Page-7 - PubParts Library Toggle And Storage Visibility` so Catalog Gen2's local PubParts library workflow has a global Home Page enable/configure/status toggle without moving Catalog item truth or Import folder scanning into Home Page.
 32. 2026-04-20 01:03:18: Accepted `Home-Page-6 / Phase 4` as complete after the left rail gained compact Docs/GitHub shortcuts and one non-owning read-only Advanced status affordance while preserving startup, catalog launch, orientation, Storage Management, persistence toggles, and wipe behavior; marked all remaining Home Page Gen 1 mockup redesign HLG/CLG complete and closed `Home-Page-6`.
 31. 2026-04-20 00:55:45: Accepted `Home-Page-6 / Phase 3` as complete for Storage Management and final behavior-preservation coverage, marked storage/control-deck HLG and CLG closed, and kept `Home-Page-6` open for a final narrow `Phase 4 - Left Rail Help And Debug Affordance Closeout` because the live rail still lacks docs/help and debug/advanced affordances.
 30. 2026-04-20 00:48:29: Accepted `Home-Page-6 / Phase 2` as complete for the compact orientation quick-start/status card, marked the orientation HLG/CLG closed, kept storage and final preservation coverage open, and prepared `Home-Page-6 / Phase 3 - Storage Management Rename And Detail Affordance` for Worker Kant.
@@ -64,7 +65,7 @@ Use this folder like this:
 - `Home-Page-Gen1-Index.md`
   - active Generation 1 planning index
   - current HLG, CLG, wishlist organization, and family-phase routing surface
-  - summary and boundary home for `Home-Page-1`, `Home-Page-2`, `Home-Page-3`, `Home-Page-4`, `Home-Page-5`, and `Home-Page-6`
+  - summary and boundary home for `Home-Page-1`, `Home-Page-2`, `Home-Page-3`, `Home-Page-4`, `Home-Page-5`, `Home-Page-6`, and `Home-Page-7`
 - `Future/`
   - standalone implementation-ready `Home Page` Family Phase Docs
 - `Shipped/`
@@ -100,6 +101,7 @@ Current legal family-phase ladder:
 - `Home-Page-4` - graph browser-storage save control and owner seam
 - `Home-Page-5` - recent-items persistence toggle and owner seam
 - `Home-Page-6` - control deck redesign and catalog-grounded launch rail
+- `Home-Page-7` - PubParts library toggle and storage visibility
 
 Important planning rule:
 - use this index to choose and bound the next `Home-Page-N` family phase
@@ -131,6 +133,7 @@ The healthy Generation 1 read is:
 - the control-deck redesign should preserve those landed behaviors while giving Home Page a stronger left-rail/main-card hierarchy
 - Open Viewport labels should remain catalog-grounded; current verified launch labels are `Model Viewport`, `Browser`, `Catalog`, `Console`, `Spaghetti Editor`, `Dashboard`, and `Notepad`
 - mockup labels `Docker`, `Scratchpad`, and `Hotspot` are not current workspace surface catalog entries and must not be handed to Worker as launch buttons in `Home-Page-6 / Phase 1`
+- PubParts local library setup belongs on Home Page as a global enable/configure/status row, while Catalog owns PubParts item/download visibility and Import owns local folder scanning
 
 Important boundary rule:
 - if a question is about the broad `Home Page` purpose, use `Home-Page-Vision.md`
@@ -166,6 +169,7 @@ This index repeats them so current `Generation 1` family-phase routing stays rea
 - [x] `Home-Page-Gen1-HLG-19. Storage transparency should become Storage Management with aligned toggle, wipe, size, detail, and internally scrollable row behavior.`
 - [x] `Home-Page-Gen1-HLG-20. The redesign must preserve existing functional Home Page Generation 1 behavior, including startup restore, persistence toggles, storage wipe, canonical viewport launch, dark-mode styling, and monitor-height fit.`
 - [x] `Home-Page-Gen1-HLG-21. Spec must verify which mockup labels are current surfaces versus future placeholders before any implementation phase is written.`
+- [ ] `Home-Page-Gen1-HLG-22. Home Page should include a PubParts Local Library toggle/status row so the user can enable, disable, configure, and inspect the global local download library without making Home Page own Catalog item truth or Import scanning.`
 
 ### Codex Level Goals
 
@@ -191,6 +195,7 @@ These CLG translate the `Generation 1` HLG into Codex-actionable family-phase ro
 - [x] Home-Page-Gen1-CLG-18. Reframe Storage Transparency as Storage Management with stable row columns for bucket identity, source key, persistence controls, wipe, size, and future details while preserving owner seams.
 - [x] Home-Page-Gen1-CLG-19. Preserve monitor-height fit through internal storage-row scrolling and responsive wrapping without clipping Home Page content.
 - [x] Home-Page-Gen1-CLG-20. Record verified current catalog mappings before Worker implementation and defer Docker, Scratchpad, and Hotspot as unverified placeholders.
+- [ ] Home-Page-Gen1-CLG-21. Add a PubParts Local Library toggle/status row that reports not configured, permission needed, enabled, disabled, unavailable, and scan summary states while routing item-level local downloads to Catalog and folder scanning to Import.
 
 ### `Home-Page-1`
 
@@ -286,6 +291,18 @@ These CLG translate the `Generation 1` HLG into Codex-actionable family-phase ro
 - [x] `Home-Page-Gen1-CLG-18`
 - [x] `Home-Page-Gen1-CLG-19`
 - [x] `Home-Page-Gen1-CLG-20`
+
+### `Home-Page-7`
+
+- [ ] Add a Home Page PubParts Local Library toggle/status row.
+- [ ] Show not configured, permission needed, enabled, disabled, unavailable, and last scan/found summary states.
+- [ ] Let the user configure or clear the library root without deleting downloaded files.
+- [ ] Coordinate with Catalog `Local Downloads` status and Import folder scanning without owning either downstream truth.
+- [ ] `Home-Page-Gen1-HLG-6`
+- [ ] `Home-Page-Gen1-HLG-19`
+- [ ] `Home-Page-Gen1-HLG-22`
+- [ ] `Home-Page-Gen1-CLG-18`
+- [ ] `Home-Page-Gen1-CLG-21`
 
 ## [x] `Home-Page-1` - `Workspace Landing Surface And Startup Preference`
 
@@ -879,3 +896,50 @@ Deferred mockup-only labels:
 - [x] Run focused Home Page tests.
 - [x] `npm run build`
 - [x] Close `Home-Page-Gen1-HLG-16`, `Home-Page-Gen1-CLG-15`, and then `Home-Page-6` if accepted.
+
+## [ ] `Home-Page-7` - `PubParts Library Toggle And Storage Visibility`
+
+### Family Phase Summary
+
+Add the Home Page side of the PubParts local-library workflow introduced by `Catalog-Gen2-9`.
+
+Home Page should expose a global PubParts Local Library toggle/status row because enabling or disabling the library is app-level setup. Catalog should still own item-level local-download visibility, and Import should still own folder permission, scanning, and staged import intake.
+
+### HLG / CLG Coverage
+
+- [ ] `Home-Page-Gen1-HLG-6. Home Page should show and expose any app-owned data ParaHook stores on the user's computer or in browser storage.`
+- [ ] `Home-Page-Gen1-HLG-19. Storage transparency should become Storage Management with aligned toggle, wipe, size, detail, and internally scrollable row behavior.`
+- [ ] `Home-Page-Gen1-HLG-22. Home Page should include a PubParts Local Library toggle/status row so the user can enable, disable, configure, and inspect the global local download library without making Home Page own Catalog item truth or Import scanning.`
+- [ ] Home-Page-Gen1-CLG-18. Reframe Storage Transparency as Storage Management with stable row columns for bucket identity, source key, persistence controls, wipe, size, and future details while preserving owner seams.
+- [ ] Home-Page-Gen1-CLG-21. Add a PubParts Local Library toggle/status row that reports not configured, permission needed, enabled, disabled, unavailable, and scan summary states while routing item-level local downloads to Catalog and folder scanning to Import.
+
+### Owns
+
+- Home Page PubParts Local Library enable/disable/status row
+- setup affordance for choosing or clearing the library root descriptor
+- not configured, permission needed, enabled, disabled, unavailable, and scan summary reads
+- clear boundary copy that turning the toggle off does not delete downloaded files
+- coordination with Catalog `Local Downloads` and Import scan status
+
+### Does Not Own
+
+- Catalog item local-download lists
+- per-item PubParts source manifests
+- local folder scanning or file handles
+- archive extraction
+- imported reference commit behavior
+- deleting downloaded files from disk
+- remote download behavior
+
+### Planning Read
+
+This lane exists because the user wants the PubParts local library to be visible from Home Page as a global setup/storage control, not only hidden inside Catalog item pages.
+
+The first toggle should read as something like `Use PubParts Local Library`. It should not imply that Home Page owns PubParts items or performs scans by itself. It should show whether the library is ready and point the user toward Catalog `Local Downloads` for item-level status.
+
+Dispatch next:
+- `Home-Page-7 / Phase 1 - PubParts Library Toggle Boundary And Status Contract`
+
+### Family Phase Doc
+
+- [x] created [Future/Home-Page-7 - PubParts Library Toggle And Storage Visibility.md](./Future/Home-Page-7%20-%20PubParts%20Library%20Toggle%20And%20Storage%20Visibility.md)

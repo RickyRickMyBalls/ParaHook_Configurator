@@ -524,6 +524,55 @@ describe('useAppStore spaghetti compatibility wrappers', () => {
     expect(rowsAfterCommit.some((row) => row.rowId === 'reference-root')).toBe(false)
   })
 
+  it('preserves external Catalog source attribution through staged import commit', async () => {
+    const { useAppStore } = await import('./useAppStore')
+    const sourceAttribution = {
+      sourceKind: 'external-catalog' as const,
+      providerId: 'pubparts',
+      providerName: 'PubParts',
+      catalogItemId: 'external:pubparts:test-source',
+      catalogItemLabel: 'External Source Test',
+      sourceCandidateUrl: 'https://example.com/source-model.step',
+      linkedArchiveUrl: 'https://example.com/source-model.step',
+      sourcePageUrl: 'https://example.com/source-page',
+    }
+
+    useAppStore.setState(useAppStore.getInitialState(), true)
+    useAppStore.getState().openStagedImportDraft({
+      parentAssemblyId: null,
+      parentComponentId: null,
+    })
+    useAppStore.getState().appendStagedImportDraftFiles([
+      {
+        fileName: 'source-model.step',
+        fileType: 'step',
+        objectUrl: 'blob:source-model-step',
+        sourceAttribution,
+      },
+    ])
+
+    const stagedFile =
+      useAppStore.getState().referenceWorkspace.stagedImportDraft?.stagedFiles[0] ?? null
+    expect(stagedFile?.sourceAttribution).toEqual(sourceAttribution)
+    useAppStore.getState().resolveStagedImportFileStructureInspection(stagedFile!.stagedFileId, {
+      hasMultipleObjects: false,
+      hasHierarchy: false,
+      hasParts: false,
+      labels: [],
+      partRows: [],
+    })
+
+    expect(useAppStore.getState().commitStagedImportDraft()).toMatchObject({
+      status: 'success',
+      committedReferenceCount: 1,
+    })
+    const committedReference = Object.values(
+      useAppStore.getState().referenceWorkspace.importedReferencesById,
+    ).find((reference) => reference.assetPath === 'blob:source-model-step')
+
+    expect(committedReference?.sourceAttribution).toEqual(sourceAttribution)
+  })
+
   it('stores an explicit console workspace handoff with a fresh sequence on repeated publishes', async () => {
     const { useAppStore } = await import('./useAppStore')
 

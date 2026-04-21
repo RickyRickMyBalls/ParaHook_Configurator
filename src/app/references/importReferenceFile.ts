@@ -38,6 +38,25 @@ export type ImportedReferenceFile = {
   fileName: string
   fileType: ReferenceFileType
   objectUrl: string
+  sourceAttribution?: ImportedReferenceSourceAttribution | null
+}
+
+export type ImportedReferenceSourceAttribution = {
+  sourceKind: 'external-catalog'
+  providerId: string
+  providerName: string
+  catalogItemId: string
+  catalogItemLabel: string
+  sourceCollectionKey?: string
+  sourceCollectionLabel?: string
+  sourceCandidateUrl: string
+  linkedArchiveUrl: string
+  sourcePageUrl?: string
+  externalItemUrl?: string
+  sourceUrl?: string
+  previewImageUrl?: string
+  sourceLastUpdated?: string
+  archiveLastUpdated?: string
 }
 
 export const SUPPORTED_REFERENCE_IMPORT_FILE_TYPES = ['step', 'stl', 'obj', 'glb'] as const

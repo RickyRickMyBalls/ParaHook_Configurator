@@ -2,7 +2,13 @@ import type {
   CatalogItemActionKind,
   CatalogItemAssetKind,
   CatalogItemMetadataEntry,
+  CatalogItemPlatformFamily,
   CatalogItemPreviewMedia,
+  CatalogItemWheelFitment,
+  CatalogItemRole,
+  CatalogSourceAssetSet,
+  CatalogStartingAssembly,
+  CatalogStartingAssemblySourceAssetPreference,
 } from './catalogItemContract'
 
 export type CatalogRepoSeedItem = {
@@ -27,7 +33,144 @@ export type CatalogRepoSeedItem = {
   previewMedia: CatalogItemPreviewMedia[]
   notes?: string[]
   metadata?: CatalogItemMetadataEntry[]
+  wheelFitment?: CatalogItemWheelFitment
+  itemRole?: CatalogItemRole
+  startingAssembly?: CatalogStartingAssembly
 }
+
+export type CatalogPlannedStartingAssemblySeedItem = {
+  itemId: string
+  label: string
+  familyKey: string
+  sectionKey: string
+  tags: string[]
+  platformCompatibility?: CatalogItemPlatformFamily[]
+  description: string
+  assetKind: 'reference-asset'
+  actionKind: 'load-preview'
+  sourceLabel: string
+  sourceAssetPath: string
+  sourceAssetFormat: CatalogStartingAssemblySourceAssetPreference
+  sourceFileSizeBytes: number
+  sourceStatus: 'known-heavy-source'
+  sourceAssetSet?: CatalogSourceAssetSet
+  previewMedia: CatalogItemPreviewMedia[]
+  notes?: string[]
+  metadata?: CatalogItemMetadataEntry[]
+  itemRole: 'starting-assembly'
+  startingAssembly: CatalogStartingAssembly
+}
+
+export const CATALOG_PLANNED_STARTING_ASSEMBLY_SEED_ITEMS: CatalogPlannedStartingAssemblySeedItem[] = [
+  {
+    itemId: 'starting-assembly:adv-full-assembly-planned',
+    label: 'ADV Full Assembly',
+    familyKey: 'starting-assemblies',
+    sectionKey: 'starting-assemblies',
+    tags: ['starting-assembly', 'adv', 'pubwheel', 'step', 'planned-source'],
+    platformCompatibility: ['ADV'],
+    description:
+      'Verified ADV full assembly STEP source candidate. Add To Project can place the source as a project reference; preview and starting-configuration load remain planned behind later owners.',
+    assetKind: 'reference-asset',
+    actionKind: 'load-preview',
+    sourceLabel: 'Verified ADV STEP source candidate',
+    sourceAssetPath: 'Catalog/boards/adv/ADV_Full Assembly_parts.step',
+    sourceAssetFormat: 'step-or-stp',
+    sourceFileSizeBytes: 55825705,
+    sourceStatus: 'known-heavy-source',
+    previewMedia: [],
+    notes: [
+      'Verified source candidate exists in public/Catalog and can now be added to project as a normal reference from its source path.',
+      'Heavy preview remains disabled so Catalog does not load the 55.8 MB STEP file through the temporary preview path before Import-5 guardrails.',
+      'Import-5 owns large STEP units, tessellation, heavy-load progress, parse reuse, and loader fidelity.',
+      'Load as starting configuration remains unavailable until a downstream builder owner is wired.',
+    ],
+    metadata: [
+      { label: 'Family', value: 'Starting Assemblies' },
+      { label: 'Platform Family', value: 'ADV' },
+      { label: 'Format', value: 'STEP/STP preferred source asset' },
+      { label: 'Add To Project Mode', value: 'Adds the full assembly source as a project reference' },
+      { label: 'Source Candidate Path', value: 'Catalog/boards/adv/ADV_Full Assembly_parts.step' },
+      { label: 'Source File Size', value: '55.8 MB' },
+      { label: 'Source Asset Preference', value: 'STEP/STP preferred source asset' },
+    ],
+    itemRole: 'starting-assembly',
+    startingAssembly: {
+      status: 'planned',
+      platformFamily: 'ADV',
+      sourceAssetPreference: 'step-or-stp',
+    },
+  },
+  {
+    itemId: 'starting-assembly:xr-pubwheel-1-planned',
+    label: 'XR PubWheel Assembly 1',
+    familyKey: 'starting-assemblies',
+    sectionKey: 'starting-assemblies',
+    tags: ['starting-assembly', 'xr', 'pubwheel', 'step', 'glb', 'planned-source'],
+    platformCompatibility: ['XR'],
+    description:
+      'Verified XR PubWheel full assembly STEP source candidate. Add To Project can place the source as a project reference; preview and starting-configuration load remain planned behind later owners.',
+    assetKind: 'reference-asset',
+    actionKind: 'load-preview',
+    sourceLabel: 'Verified XR STEP source candidate',
+    sourceAssetPath: 'Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step',
+    sourceAssetFormat: 'step-or-stp',
+    sourceFileSizeBytes: 73126597,
+    sourceStatus: 'known-heavy-source',
+    sourceAssetSet: {
+      sourceId: 'pubwheel_1',
+      currentVersionId: 'v1',
+      versions: [
+        {
+          versionId: 'v1',
+          versionLabel: 'Version 1',
+          status: 'current',
+          variants: [
+            {
+              variantId: 'pubwheel_1:v1:step-source',
+              role: 'preferred-source',
+              format: 'step',
+              sourcePath: 'Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step',
+              fileSizeBytes: 73126597,
+            },
+            {
+              variantId: 'pubwheel_1:v1:glb-companion',
+              role: 'companion-mesh',
+              format: 'glb',
+              sourcePath: 'Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.glb',
+              fileSizeBytes: 79230220,
+            },
+          ],
+        },
+      ],
+    },
+    previewMedia: [],
+    notes: [
+      'Verified XR source candidate exists in public/Catalog/assemblies/xr and can now be added to project as a normal reference from its preferred STEP source path.',
+      'Companion GLB exists at Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.glb for later preview or fallback mesh planning.',
+      'Heavy preview remains disabled so Catalog does not load the 73.1 MB STEP file through the temporary preview path before Import-5 guardrails.',
+      'Import-5 owns large STEP units, tessellation, heavy-load progress, parse reuse, and loader fidelity.',
+      'Load as starting configuration remains unavailable until a downstream builder owner is wired.',
+    ],
+    metadata: [
+      { label: 'Family', value: 'Starting Assemblies' },
+      { label: 'Platform Family', value: 'XR' },
+      { label: 'Format', value: 'STEP/STP preferred source asset' },
+      { label: 'Add To Project Mode', value: 'Adds the full assembly source as a project reference' },
+      { label: 'Source Candidate Path', value: 'Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step' },
+      { label: 'Companion Mesh Path', value: 'Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.glb' },
+      { label: 'Source File Size', value: '73.1 MB' },
+      { label: 'Companion Mesh File Size', value: '79.2 MB' },
+      { label: 'Source Asset Preference', value: 'STEP/STP preferred source asset' },
+    ],
+    itemRole: 'starting-assembly',
+    startingAssembly: {
+      status: 'planned',
+      platformFamily: 'XR',
+      sourceAssetPreference: 'step-or-stp',
+    },
+  },
+]
 
 export const CATALOG_REPO_SEED_ITEMS: CatalogRepoSeedItem[] = [
   {

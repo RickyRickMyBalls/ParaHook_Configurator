@@ -17,34 +17,61 @@ export type CatalogActionPlan = {
   allowsTemporaryPreview: boolean
   allowsMultipleTemporaryPreviews: boolean
   previewOwner: 'catalog-session' | null
-  downstreamOwner: 'browser-project' | 'viewer-environment'
+  downstreamOwner: 'browser-project' | 'viewer-environment' | null
 }
 
-function buildCatalogActionSpec(actionKind: CatalogItemActionKind): CatalogActionSpec {
+function buildCatalogActionSpec(
+  actionKind: CatalogItemActionKind,
+  availability: CatalogActionAvailability = 'available',
+): CatalogActionSpec {
   switch (actionKind) {
     case 'add-to-project':
       return {
         actionKind,
         label: 'Add To Project',
-        availability: 'available',
+        availability,
       }
     case 'apply-environment':
       return {
         actionKind,
         label: 'Apply Environment',
-        availability: 'available',
+        availability,
       }
     case 'load-preview':
     default:
       return {
         actionKind: 'load-preview',
-        label: 'Load Preview',
-        availability: 'available',
+        label: availability === 'planned' ? 'Preview Planned' : 'Load Preview',
+        availability,
       }
   }
 }
 
 export function resolveCatalogActionPlan(item: CatalogItemRecord): CatalogActionPlan {
+  if (item.source.sourceKind === 'planned') {
+    if (item.itemRole === 'starting-assembly' && item.source.sourceAssetPath) {
+      return {
+        actionFamily: 'reference',
+        primaryAction: buildCatalogActionSpec('add-to-project'),
+        secondaryAction: buildCatalogActionSpec('load-preview', 'planned'),
+        allowsTemporaryPreview: false,
+        allowsMultipleTemporaryPreviews: false,
+        previewOwner: null,
+        downstreamOwner: 'browser-project',
+      }
+    }
+
+    return {
+      actionFamily: 'reference',
+      primaryAction: buildCatalogActionSpec('load-preview', 'planned'),
+      secondaryAction: null,
+      allowsTemporaryPreview: false,
+      allowsMultipleTemporaryPreviews: false,
+      previewOwner: null,
+      downstreamOwner: null,
+    }
+  }
+
   if (item.assetKind === 'environment') {
     return {
       actionFamily: 'environment',

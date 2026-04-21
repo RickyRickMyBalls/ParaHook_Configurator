@@ -1,10 +1,18 @@
 .AppShellRoot {
-  display: flex;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   height: 100dvh;
   min-height: 100dvh;
   width: 100%;
   position: relative;
   overflow: hidden;
+}
+
+.AppShellConsoleRow {
+  position: relative;
+  z-index: 28;
+  min-width: 0;
+  min-height: 0;
 }
 
 .PrimaryViewportLeftDock {

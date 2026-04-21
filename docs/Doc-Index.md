@@ -4,6 +4,7 @@
 <summary>Doc Header</summary>
 
 ### Doc History
+267. 2026-04-20 12:27:46: Added the new `docs/Agents/Dispatch-4-simple/` subtree to the docs map, listing the simple Manager plus Worker overview, Manager role, Worker role, and run-state docs for the lighter two-step prep-and-implementation flow.
 266. 2026-04-19 17:32:30: Added the new `docs/Agents/Dispatch-3a/` subtree to the docs map, listing the persistent-lane Manager, Yap Intake, HLG > Spec, Worker, Explorer, flow, templates, run-state, and intake-log docs so the newer always-on dispatch model is discoverable beside Dispatch-2.
 265. 2026-04-19 14:30:18: Added `docs/Agents/Dispatch-2/Dispatch-2-Start-Command-Flow.md` to the Dispatch 2 docs map so broad commands such as `start Home Page Gen 1` have a discoverable flow from HLG through Guide-Rail descent and Worker handoff.
 264. 2026-04-19 14:20:05: Renamed the active Dispatch 2 review role doc from `Dispatch-2-Reviewer-Agent.md` to `Dispatch-2-Guide-Rail-Agent.md` in the docs map so the Agents subtree reflects the combined phase-prep and coverage-review role.
@@ -702,6 +703,12 @@ Rule notes:
         - `Dispatch-3a-Worker-Agent.md`
         - `Dispatch-3a-Yap-Intake-Agent.md`
         - `Dispatch-3a-Yap-Intake-Log.md`
+    - `Dispatch-4-simple`
+### ----Dispatch-4-simple
+        - `Dispatch-4-Simple-Manager.md`
+        - `Dispatch-4-Simple-Overview.md`
+        - `Dispatch-4-Simple-Run-State.md`
+        - `Dispatch-4-Simple-Worker.md`
 ## -Archive
     - `00_Phase_Log.md`
     - `TaskHistoryCompilation.md`

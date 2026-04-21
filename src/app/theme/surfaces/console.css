@@ -11,7 +11,19 @@
   backdrop-filter: blur(6px);
 }
 
-.ConsoleDock--docked,
+.ConsoleDock--docked {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  pointer-events: none;
+}
+
 .ConsoleDock--popoutOwner {
   position: absolute;
   left: 0;
@@ -24,7 +36,7 @@
 }
 
 .ConsoleDock--floatingOwner {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
 }
@@ -324,6 +336,13 @@
   max-height: 100vh;
   border-radius: 0;
   overflow: visible;
+}
+
+.AppShellConsoleRow .ConsolePanel--docked {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
 }
 
 .ConsolePanel--floating,

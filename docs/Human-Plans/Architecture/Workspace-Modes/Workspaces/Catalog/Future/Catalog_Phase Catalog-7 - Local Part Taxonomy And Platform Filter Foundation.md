@@ -1,8 +1,10 @@
-# [~] `Catalog-7` - `Local Part Taxonomy And Platform Filter Foundation`
+# [x] `Catalog-7` - `Local Part Taxonomy And Platform Filter Foundation`
 
 ## Doc Header
 
 ### Doc History
+15. 2026-04-20 14:25: Recorded the `Catalog-7 / Phase 4` implementation closeout after the local `CatalogItemWheelFitment` contract, repo/import pass-through readiness, item-page detail helper/rendering path, and focused contract/source/helper tests landed without fabricating live motor or tire Catalog records, reopening filters, mapping PubParts, or adding compatibility/build/dimensional behavior.
+14. 2026-04-20 14:22:25: Prepared `Catalog-7 / Phase 4` for implementation by recording the live Catalog contract, seed, source, shared-helper, item-page, asset, and focused-test seams for narrow wheel-specific motor and tire fitment fields while preserving the no-PubParts/no-external/no-verdict/no-builder/no-dimensional-proof boundary before the `Catalog-Gen2-3` gate.
 13. 2026-04-19 13:08:15: Added the missing top-level `## Vision` section so this active Catalog-7 Family Phase Doc matches the current Architecture Setup guide-rail order before `## Wishlist Organization`, while preserving the shipped Phase 1 through Phase 3 read and leaving Phase 4 as the next open implementation phase.
 12. 2026-04-19 10:32:03: Recorded the Catalog-7 Phase 3 implementation closeout after grouped local taxonomy filters replaced the flat selected-tag gate, preserving OR inside each selected group, AND across selected groups, separate search narrowing, and browse-mode presentation independence with focused source, shell, and surface tests plus `npm run build`.
 11. 2026-04-19 10:17:24: Tightened the Phase 3 prep read so implementation can replace the flat `selectedTags` surface with grouped filter state while keeping ownership in the existing shell/helper seam.
@@ -105,7 +107,7 @@ The first-pass part groups should remain:
 | Phase 1 | `Catalog-Gen1-HLG-11`, `Catalog-Gen1-HLG-12`, `Catalog-Gen1-HLG-15`, `Catalog-Gen1-HLG-16`, `Catalog-Gen1-HLG-21`, `Catalog-Gen1-HLG-22`, `Catalog-Gen1-HLG-23`, `Catalog-Gen1-HLG-25` | `Catalog-Gen1-CLG-6`, `Catalog-Gen1-CLG-15`, `Catalog-Gen1-CLG-16`, `Catalog-Gen1-CLG-17`, `Catalog-Gen1-CLG-19`, `Catalog-Gen1-CLG-22` | `src/app/catalog/catalogItemContract.ts`, `src/app/catalog/catalogSeedItems.ts`, `src/app/catalog/catalogSource.ts`, `src/app/catalog/catalogSource.test.ts` |
 | Phase 2 | `Catalog-Gen1-HLG-13`, `Catalog-Gen1-HLG-14`, `Catalog-Gen1-HLG-24` | `Catalog-Gen1-CLG-7`, `Catalog-Gen1-CLG-18` | `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/CatalogShellGridMode.tsx`, `src/app/catalog/ui/CatalogShellBrowseRail.tsx`, `src/app/catalog/ui/catalogShellShared.ts`, `src/app/catalog/ui/CatalogShell.test.tsx`, `src/app/workspace/CatalogSurface.test.tsx` |
 | Phase 3 | `Catalog-Gen1-HLG-14`, `Catalog-Gen1-HLG-15`, `Catalog-Gen1-HLG-18`, `Catalog-Gen1-HLG-19` | `Catalog-Gen1-CLG-8`, `Catalog-Gen1-CLG-14`, `Catalog-Gen1-CLG-21` | `src/app/catalog/catalogActionPlan.ts`, `src/app/catalog/catalogSource.ts`, `src/app/catalog/ui/CatalogShell.tsx`, `src/app/catalog/ui/catalogShellShared.ts`, `src/app/workspace/CatalogSurface.test.tsx` |
-| Phase 4 | `Catalog-Gen1-HLG-17`, `Catalog-Gen1-HLG-21`, `Catalog-Gen1-HLG-25`, `Catalog-Gen1-HLG-26` | `Catalog-Gen1-CLG-17`, `Catalog-Gen1-CLG-19`, `Catalog-Gen1-CLG-20`, `Catalog-Gen1-CLG-22` | `src/app/catalog/catalogItemContract.ts`, `src/app/catalog/catalogSeedItems.ts`, `src/app/catalog/ui/CatalogShellItemPage.tsx`, `src/app/catalog/ui/CatalogShell.tsx`, `src/app/workspace/CatalogSurface.test.tsx` |
+| Phase 4 | `Catalog-Gen1-HLG-17`, `Catalog-Gen1-HLG-21`, `Catalog-Gen1-HLG-25`, `Catalog-Gen1-HLG-26` | `Catalog-Gen1-CLG-17`, `Catalog-Gen1-CLG-19`, `Catalog-Gen1-CLG-20`, `Catalog-Gen1-CLG-22` | `src/app/catalog/catalogItemContract.ts`, `src/app/catalog/catalogSeedItems.ts`, `src/app/catalog/catalogSource.ts`, `src/app/catalog/ui/catalogShellShared.ts`, `src/app/catalog/ui/CatalogShellItemPage.tsx`, `src/app/catalog/catalogItemContract.test.ts`, `src/app/catalog/catalogSource.test.ts`, `src/app/catalog/ui/catalogShellShared.test.ts`, `src/app/workspace/CatalogSurface.test.tsx` |
 
 ### Acceptance Read
 
@@ -139,15 +141,15 @@ This family phase does not make Catalog the owner of external source intake, com
 - [~] `Catalog-Gen1-HLG-14. let the user filter by part type or by platform compatibility without those two browse modes fighting each other`
 - [~] `Catalog-Gen1-HLG-15. introduce the first practical filter model for repo-backed parts, starting from structured metadata such as system, part type, platform compatibility, product name, and position`
 - [x] `Catalog-Gen1-HLG-16. define the first canonical local Catalog systems, platform families, and part groups before external-source integration begins`
-- [ ] `Catalog-Gen1-HLG-17. normalize repo-backed parts by real fitment truth instead of only by current source folder or filename`
+- [~] `Catalog-Gen1-HLG-17. normalize repo-backed parts by real fitment truth instead of only by current source folder or filename`
 - [x] `Catalog-Gen1-HLG-18. make filter behavior predictable, with OR inside one filter group and AND across different filter groups`
 - [x] `Catalog-Gen1-HLG-19. keep the first filter system practical for Generation 1 while leaving room for PubParts source mapping and later compatibility checks`
 - [x] `Catalog-Gen1-HLG-21. organize local repo-backed parts by system ownership such as Platform, Wheel, and later Hardware before external source intake`
 - [x] `Catalog-Gen1-HLG-22. define canonical local platform families and multi-platform compatibility metadata for ADV, XR, GT, Pint, XR Classic, and Other`
 - [x] `Catalog-Gen1-HLG-23. define first-pass part groups such as Footpads, Bumpers, Rails, Motors, Tires, Boxes, Axle Blocks, FootHolds, Shoes, and Screw & Nuts`
 - [x] `Catalog-Gen1-HLG-24. let Part view and Platform view read from the same structured item metadata instead of becoming separate catalog truths`
-- [~] `Catalog-Gen1-HLG-25. map asset name shapes into explicit metadata fields such as system, platform compatibility, part type, product name, position, motor version, tire size, and compound`
-- [ ] `Catalog-Gen1-HLG-26. support wheel-specific fitment fields for motors and tires without forcing wheel-side parts into platform-only filters`
+- [x] `Catalog-Gen1-HLG-25. map asset name shapes into explicit metadata fields such as system, platform compatibility, part type, product name, position, motor version, tire size, and compound`
+- [x] `Catalog-Gen1-HLG-26. support wheel-specific fitment fields for motors and tires without forcing wheel-side parts into platform-only filters`
 
 ### Codex Level Goals
 
@@ -160,7 +162,7 @@ This family phase does not make Catalog the owner of external source intake, com
 - [x] Catalog-Gen1-CLG-17. Define the first local part groups and route them into systems without flattening motors or tires into platform-only ownership.
 - [x] Catalog-Gen1-CLG-18. Keep `Part` view and `Platform` view as two browse reads over one shared item metadata contract.
 - [x] Catalog-Gen1-CLG-19. Map repo asset name shapes into explicit metadata fields instead of treating display labels or source folders as runtime truth.
-- [ ] Catalog-Gen1-CLG-20. Add type-specific fitment metadata lanes for motors and tires where platform compatibility alone is insufficient.
+- [x] Catalog-Gen1-CLG-20. Add type-specific fitment metadata lanes for motors and tires where platform compatibility alone is insufficient.
 - [x] Catalog-Gen1-CLG-21. Preserve predictable filter semantics: OR inside one selected filter group and AND across different groups.
 - [x] Catalog-Gen1-CLG-22. Make the local Catalog taxonomy vocabulary the target that `Generation 2` external-source mapping must translate into.
 
@@ -212,17 +214,17 @@ This family phase does not make Catalog the owner of external source intake, com
 
 ### `Catalog-7 / Phase 4`
 
-- [ ] Add wheel-specific fitment fields to the item contract and seed data.
-- [ ] Surface those fields in the item page and detail presentation.
-- [ ] Keep tests focused on fitment metadata and presentation.
-- [ ] `Catalog-Gen1-HLG-17`
-- [ ] `Catalog-Gen1-HLG-21`
-- [ ] `Catalog-Gen1-HLG-25`
-- [ ] `Catalog-Gen1-HLG-26`
-- [ ] `Catalog-Gen1-CLG-17`
-- [ ] `Catalog-Gen1-CLG-19`
-- [ ] `Catalog-Gen1-CLG-20`
-- [ ] `Catalog-Gen1-CLG-22`
+- [x] Add wheel-specific fitment fields to the item contract and seed data.
+- [x] Surface those fields in the item page and detail presentation.
+- [x] Keep tests focused on fitment metadata and presentation.
+- [~] `Catalog-Gen1-HLG-17`
+- [x] `Catalog-Gen1-HLG-21`
+- [x] `Catalog-Gen1-HLG-25`
+- [x] `Catalog-Gen1-HLG-26`
+- [x] `Catalog-Gen1-CLG-17`
+- [x] `Catalog-Gen1-CLG-19`
+- [x] `Catalog-Gen1-CLG-20`
+- [x] `Catalog-Gen1-CLG-22`
 
 ## [x] `Catalog-7 / Phase 1` - `Local Taxonomy Contract And Seed Metadata`
 
@@ -501,7 +503,7 @@ Minimum verification for this phase should cover:
 
 `Catalog-7 / Phase 3` is done when local filters behave predictably, the shared helper contract clearly expresses OR-within-group and AND-across-groups semantics, and the shell and surface tests prove the same math across both browse reads.
 
-## [ ] `Catalog-7 / Phase 4` - `Wheel-Specific Motor And Tire Fitment Fields`
+## [x] `Catalog-7 / Phase 4` - `Wheel-Specific Motor And Tire Fitment Fields`
 
 ### Phase 4 Summary
 
@@ -532,36 +534,71 @@ Add the wheel-side fitment fields that motors and tires need so they do not have
 
 The local taxonomy is already strong enough for broad part browsing. Motors and tires still need a narrower fitment lane, and that lane should stay explicit instead of being inferred from platform-only tags.
 
+The current live seams are:
+- `CatalogItemRecord` in `src/app/catalog/catalogItemContract.ts` already carries `systemKey`, `platformCompatibility`, `partType`, `position`, `productName`, `brand`, `partGroups`, `metadata`, source branches, preview media, and action kind, but it has no wheel-specific fitment object.
+- `CatalogItemSystem` already includes `Wheel`, and `CatalogItemPartGroup` already includes `Motors` and `Tires`; Phase 4 should use those existing local taxonomy values instead of inventing new source kinds or platform-mapping lanes.
+- `src/app/catalog/catalogSeedItems.ts` currently duplicates the seed contract shape locally and seeds footpads, shoes, foothooks, an ADV board assembly, and HDRIs; no repo-backed motor or tire assets are currently present under `public/Catalog`, so implementation must not invent fake motor/tire catalog records just to satisfy runtime seed coverage.
+- `src/app/catalog/catalogSource.ts` builds repo-backed `CatalogItemRecord`s from seed records and must pass through any optional wheel-fitment field for real repo-backed motor or tire entries.
+- `src/app/catalog/ui/catalogShellShared.ts` owns shared item/source label and detail helpers; it is the right place for a small pure wheel-fitment detail helper.
+- `src/app/catalog/ui/CatalogShellItemPage.tsx` already renders structured `item.metadata` before notes and source details; Phase 4 should render wheel-fitment rows in that item-detail area instead of hiding them in source details.
+- focused coverage already lives in `catalogItemContract.test.ts`, `catalogSource.test.ts`, `catalogShellShared.test.ts`, and `CatalogSurface.test.tsx`.
+
 #### First Pass Decisions
 
 - keep wheel fitment fields narrow and explicit
 - prefer structured metadata over filename heuristics
-- show fitment details where item pages can explain them clearly
+- add a single optional `wheelFitment` object on `CatalogItemRecord` rather than widening platform compatibility, filters, or source metadata
+- use the smallest structured shape needed for local motor and tire truth:
+  - `motorVersion?: string`
+  - `hubSizeInches?: string`
+  - `tireSize?: string`
+  - `tireCompound?: string`
+- apply `motorVersion` plus optional `hubSizeInches` to motor records and `tireSize`, `tireCompound`, plus optional `hubSizeInches` to tire records
+- let `CatalogRepoSeedItem` carry the same optional `wheelFitment` object so real local/repo-backed motor and tire seeds can pass it through
+- do not add invented runtime seed records when no real repo-backed motor or tire asset exists; use focused test literals for contract/helper proof if implementation cannot add a real local motor or tire seed honestly
+- show fitment details where item pages can explain them clearly, near the existing metadata/detail block and before source details
+- keep filter groups unchanged in Phase 4; wheel fitment is display/contract truth, not new filter semantics in this cut
 - leave compatibility verdicts for later generations
 
 ### Phase 4 Implementation Spec
 
 #### Exact First Code Cut
 
-1. Add wheel-specific fitment fields to the contract and seed data.
-2. Surface those fields on the item page or item-detail presentation.
-3. Keep the data structured so tests can assert against it directly.
-4. Preserve the broader local taxonomy contract and filter semantics from earlier phases.
+1. Add an optional local `wheelFitment` contract to `CatalogItemRecord` with the narrow fields `motorVersion`, `hubSizeInches`, `tireSize`, and `tireCompound`.
+2. Add the same optional `wheelFitment` shape to `CatalogRepoSeedItem` and carry it through `buildCatalogRepoItem` without interpreting it as platform compatibility, part groups, metadata rows, or source truth.
+3. Keep runtime seed additions honest:
+   - if real repo-backed motor or tire assets are present or Manager supplies them, seed those records with `systemKey: 'Wheel'`, `partGroups: ['Motors']` or `['Tires']`, and the matching `wheelFitment` fields
+   - if no real local motor/tire asset is available, do not create fake Catalog records; prove the new contract and helper behavior with focused test literals while leaving seed data ready for real repo-backed entries
+4. Add a small shared helper in `catalogShellShared.ts`, such as `buildCatalogWheelFitmentDetails(item)`, that returns stable label/value rows only for present fields:
+   - `Motor Version`
+   - `Hub Size`
+   - `Tire Size`
+   - `Tire Compound`
+5. Render the wheel-fitment rows in `CatalogShellItemPage.tsx` near the existing item metadata/detail presentation, before notes and source details, with no source-path assumptions.
+6. Preserve the broader local taxonomy contract, browse modes, grouped filters, search behavior, action behavior, and external-source lanes from earlier phases.
 
 #### Likely Files
 
 - `src/app/catalog/catalogItemContract.ts`
 - `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/ui/catalogShellShared.ts`
 - `src/app/catalog/ui/CatalogShellItemPage.tsx`
-- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/catalogItemContract.test.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
 - `src/app/workspace/CatalogSurface.test.tsx`
 
 #### No-Widening Rule
 
 - do not add compatibility verdicts here
 - do not add PubParts mapping here
+- do not add external source intake or map PubParts platform/type strings into this field
 - do not reopen the filter semantics here
 - do not widen into builder or dimensional fit behavior
+- do not add builder slots, Gen3 compatibility verdicts, or `Catalog-Gen2-3` platform mapping here
+- do not create fake repo-backed motor or tire assets or source records
+- do not make wheel-fitment fields drive add-to-project, archive, import, or preview behavior
 
 #### Implementation Risks
 
@@ -569,22 +606,43 @@ The local taxonomy is already strong enough for broad part browsing. Motors and 
 - hiding wheel details behind source filenames instead of metadata
 - letting item-page presentation drift away from the contract
 - leaking external-source assumptions into local taxonomy data
+- introducing fake motor or tire seeds because the current repo asset tree has no motor/tire catalog files
+- making wheel-fitment fields into filter semantics before the Manager assigns a filter-specific phase
 
 #### Checklist
 
-- [ ] wheel-specific fitment fields exist for motors and tires
-- [ ] item-page presentation can show the new fitment fields clearly
-- [ ] tests prove the fitment metadata stays structured
-- [ ] the local taxonomy contract still reads cleanly after the wheel-side widening
+- [x] wheel-specific fitment fields exist for motors and tires
+- [x] item-page presentation can show the new fitment fields clearly
+- [x] tests prove the fitment metadata stays structured
+- [x] the local taxonomy contract still reads cleanly after the wheel-side widening
+- [x] Phase 4 stays sufficient as the Gen1 gate before `Catalog-Gen2-3` without pulling Gen2 platform mapping into this local taxonomy phase
 
 #### Verification Shape
 
 Minimum verification for this phase should cover:
-- motor fitment metadata in the contract and seed data
-- tire fitment metadata in the contract and seed data
-- detail presentation of wheel-side fitment fields
-- no regression to the browse modes or filter semantics
+- `catalogItemContract.test.ts` proves `CatalogItemRecord` accepts structured motor/tire `wheelFitment` fields without changing source kinds or action kinds.
+- `catalogSource.test.ts` proves repo seed pass-through keeps `wheelFitment` structured for real repo-backed entries or, if no real motor/tire seed exists, proves existing repo/import/external source snapshots remain stable while the optional contract stays available.
+- `catalogShellShared.test.ts` proves the wheel-fitment detail helper returns the expected rows for motor and tire test literals, omits missing optional fields, and returns no rows for non-wheel items.
+- `CatalogSurface.test.tsx` proves the item page can display wheel-fitment rows when a local repo-backed wheel item is present, or keeps existing repo/import/external item-page behavior stable if the implementation only adds helper-level proof due to no real motor/tire assets.
+- no regression to `Part`/`Platform` browse modes, grouped filter semantics, source labeling, external linked-source behavior, or `add-to-project` behavior.
+- focused tests first, then `npm.cmd run build` for the implementation pass.
 
 #### Done Shape
 
-`Catalog-7 / Phase 4` is done when motors and tires have explicit wheel-side fitment fields that the rest of Catalog can read without collapsing back into platform-only truth.
+`Catalog-7 / Phase 4` is done when Catalog has a narrow local `wheelFitment` contract and item-page/detail presentation path for motor and tire fields, the source seam can preserve those fields for honest repo-backed wheel records, focused tests prove the structure without fake source data, and the Gen1 local taxonomy gate is ready for later `Catalog-Gen2-3` mapping work to target without importing Gen2 mapping into this phase.
+
+#### Implementation Closeout
+
+Phase 4 is complete as the Gen1 fitment gate before `Catalog-Gen2-3`.
+
+Completed:
+- `CatalogItemWheelFitment` now carries `motorVersion`, `hubSizeInches`, `tireSize`, and `tireCompound` as optional structured local fields.
+- `CatalogItemRecord` and `CatalogRepoSeedItem` now accept optional `wheelFitment`.
+- repo-backed items and remembered imports can preserve `wheelFitment` when a real repo-backed wheel record exists.
+- item-page detail rendering can show wheel fitment rows through the shared helper path.
+- focused contract/source/helper tests prove the shape without adding fake live motor or tire catalog records.
+
+Truthful remaining caveat:
+- no live motor or tire Catalog cards were added because the repo currently has no real motor/tire assets under `public/Catalog`; `Catalog-Gen1-HLG-17` therefore stays partial until real repo-backed wheel records can carry real fitment truth.
+
+This phase did not add PubParts mapping, external source intake, compatibility verdicts, builder slots, dimensional proof, filter rewrites, or `Catalog-Gen2-3` mapping.

@@ -10,10 +10,11 @@ import {
 import { isCatalogActionAvailable, resolveCatalogActionPlan } from '../catalogActionPlan'
 import { CatalogCardPreviewViewport } from './CatalogCardPreviewViewport'
 import {
-  formatCatalogSectionLabel,
   type CatalogBrowseMode,
   resolveCatalogCardBrowseMeta,
   resolveCatalogGridIntroCopy,
+  resolveCatalogItemSectionLabel,
+  shouldRenderCatalogPreviewMediaEagerly,
 } from './catalogShellShared'
 
 type CatalogShellGridModeProps = {
@@ -190,6 +191,7 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
             isCatalogActionAvailable(actionPlan.primaryAction)
           const previewViewportSource = resolveCatalogRepoReferencePreviewSource(item)
           const environmentPreviewSource = resolveCatalogRepoEnvironmentSource(item)
+          const shouldRenderEagerPreviewMedia = shouldRenderCatalogPreviewMediaEagerly(item)
 
           return (
             <article
@@ -230,6 +232,24 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
                     HDRI preview scene
                   </span>
                 </div>
+              ) : shouldRenderEagerPreviewMedia && previewMedia !== null ? (
+                <button
+                  type="button"
+                  className={`CatalogShellPreviewBox CatalogShellPreviewBox--eagerImage ${
+                    isPreviewLoaded ? 'isLoaded' : ''
+                  }`}
+                  data-catalog-preview-box={item.itemId}
+                  disabled={!previewAllowed}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onLoadPreview(item.itemId)
+                  }}
+                >
+                  <img
+                    src={resolveCatalogPreviewMediaSrc(previewMedia.src)}
+                    alt={previewMedia.alt}
+                  />
+                </button>
               ) : isPreviewLoaded && previewViewportSource !== null ? (
                 <div
                   className="CatalogShellPreviewBox CatalogShellPreviewBox--interactive isLoaded"
@@ -285,7 +305,9 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
                   ) : (
                     <span className="CatalogShellPreviewBoxCopy">
                       {!previewAllowed
-                        ? 'Environment apply stays on the shared viewer owner.'
+                        ? item.source.sourceKind === 'planned'
+                          ? 'Preview planned after heavy STEP guardrails.'
+                          : 'Environment apply stays on the shared viewer owner.'
                         : isPreviewLoaded
                         ? 'Preview loaded for this card.'
                         : 'Click to load preview into this card.'}
@@ -294,9 +316,7 @@ export function CatalogShellGridMode(props: CatalogShellGridModeProps) {
                 </button>
               )}
               <span className="CatalogShellCardSection">
-                {item.source.sourceKind === 'imports'
-                  ? 'Imports'
-                  : formatCatalogSectionLabel(item.sectionKey)}
+                {resolveCatalogItemSectionLabel(item)}
               </span>
               <strong className="CatalogShellCardLabel">{item.label}</strong>
               <span className="CatalogShellCardDescription">{item.description}</span>

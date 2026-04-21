@@ -459,8 +459,6 @@ export function AppShell() {
     viewportSlotsById,
     workspaceSplitMenu,
   })
-  const shouldReservePrimaryViewportBottomConsoleBar =
-    consoleWindowMode === 'docked' && !suppressLegacyDockedConsoleSurface
   const browserSlotCountRef = useRef(browserSlotCount)
   const getDefaultDetachedViewerFloatingRect = useCallback(
     (surface: WorkspaceDetachedSlotSurfaceState): DetachedViewerFloatingRect => {
@@ -993,7 +991,7 @@ export function AppShell() {
       onLeftDockResizeStart={handleLeftDockResizeStart}
       onLeftDockResizeContextMenu={handleLeftDockResizeContextMenu}
       resolvePrimaryLeftDockBottomInset={resolvePrimaryLeftDockBottomInset}
-      reservePrimaryViewportBottomConsoleBar={shouldReservePrimaryViewportBottomConsoleBar}
+      reservePrimaryViewportBottomConsoleBar={false}
     />
   )
   const detachedViewerWindows = detachedViewerFloatingSurfaces.map((surface) => {
@@ -1151,12 +1149,6 @@ export function AppShell() {
           onSetWindowSettingsOpen={handleSetEditorViewportWindowSettingsOpen}
           leftDockWidthPreviewHandlerRef={leftDockWidthPreviewHandlerRef}
         />
-        <ConsoleDock
-          listLeftOffset={consoleListLeftOffset}
-          suppressDockedSurface={suppressLegacyDockedConsoleSurface}
-          suppressSlotHeaderDragSeedReplay={isConsoleTransitionDragActive}
-          onOpenFloatingSplitMenu={handleFloatingSplitMenu}
-        />
         {consoleTransitionSplitDockPreview !== null &&
         consoleTransitionSplitDockGhostStyle !== null &&
         viewportRef.current !== null
@@ -1182,6 +1174,14 @@ export function AppShell() {
               viewportRef.current,
             )
           : null}
+      </section>
+      <section className="AppShellConsoleRow" data-app-shell-console-row="true">
+        <ConsoleDock
+          listLeftOffset={consoleListLeftOffset}
+          suppressDockedSurface={suppressLegacyDockedConsoleSurface}
+          suppressSlotHeaderDragSeedReplay={isConsoleTransitionDragActive}
+          onOpenFloatingSplitMenu={handleFloatingSplitMenu}
+        />
       </section>
       <BrowserDockHost
         appShellRef={appShellRef}

@@ -1,6 +1,7 @@
 import { dashboardStorageKey } from '../dashboard/dashboardPersistence'
 import { notepadStorageKey } from '../notepad/notepadPersistence'
 import { recentItemsStorageBucketDescriptor } from '../recentItems/recentItemsPersistence'
+import { pubPartsDownloadsStorageBucketDescriptor } from '../catalog/pubPartsDownloadsStorage'
 import { graphBrowserStorageSnapshotKey } from '../spaghetti/store/graphBrowserStoragePersistence'
 import { uiPrefsStorageKey } from '../store/uiPrefsPersistence'
 import { workspaceLayoutStorageKey } from './workspacePersistence'
@@ -18,6 +19,8 @@ export type HomePageStorageBucketDefinition = {
   label: string
   storageKey: string
   ownerSeam: string
+  folderPath?: string
+  localLibraryFolderPath?: string
 }
 
 export type HomePageStorageBucketSnapshot = HomePageStorageBucketDefinition & {
@@ -75,6 +78,14 @@ export const homePageStorageBucketDefinitions: HomePageStorageBucketDefinition[]
     label: recentItemsStorageBucketDescriptor.label,
     storageKey: recentItemsStorageBucketDescriptor.storageKey,
     ownerSeam: 'recentItemsPersistence.ts',
+  },
+  {
+    id: pubPartsDownloadsStorageBucketDescriptor.id,
+    label: pubPartsDownloadsStorageBucketDescriptor.label,
+    storageKey: pubPartsDownloadsStorageBucketDescriptor.storageKey,
+    ownerSeam: pubPartsDownloadsStorageBucketDescriptor.ownerSeam,
+    folderPath: pubPartsDownloadsStorageBucketDescriptor.folderPath,
+    localLibraryFolderPath: pubPartsDownloadsStorageBucketDescriptor.localLibraryFolderPath,
   },
 ]
 

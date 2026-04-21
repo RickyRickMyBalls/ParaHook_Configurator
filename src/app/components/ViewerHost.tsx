@@ -1689,10 +1689,13 @@ export function ViewerHost(props: ViewerHostProps) {
             continue
           }
         }
-        if (
-          !item.isVisible ||
-          (item.loadState !== 'unloaded' && item.loadState !== 'error')
-        ) {
+        const shouldLoad =
+          item.isVisible &&
+          (item.loadState === 'unloaded' ||
+            item.loadState === 'error' ||
+            (item.loadState === 'loaded' && !viewer.hasReference(item.referenceId)))
+
+        if (!shouldLoad) {
           continue
         }
         setReferenceItemLoadState(item.referenceId, 'loading')

@@ -1,6 +1,9 @@
 # 0 - Bug Report
 
 ## Doc History
+16. 2026-04-21 11:36:42: Updated `Bug 22` from `[planned]` to `[fixed]` after `Catalog-Gen2-14` closed the imported-reference remount ownership gap at the store-to-current-viewer seam with focused ViewerHost proof for PubParts ZIP-attributed and normal `.obj` accepted-reference paths.
+15. 2026-04-21 11:09:56: Updated `Bug 22` from `[investigating]` to `[planned]` after routing the imported-reference viewport-remount disappearance into `Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration`.
+14. 2026-04-21 11:04:22: Added `Bug 22` for imported references disappearing after model viewport remounts caused by closing Catalog or splitting the model viewport, linking the new detailed report under `docs/Bugs/bug/` and recording the strongest current read as a split between canonical `referenceWorkspace` imported-reference truth and per-viewer in-memory `referenceObjects` runtime truth
 13. 2026-04-15 16:05: Added `Bug 20` for the Browser multi-select post-scroll jump/glitch where shift-range selection becomes unreliable after scrolling larger Browser lists, linking the new note into the master bug list with the current strongest read pointing at the Browser FLIP row animation layer
 12. 2026-04-13 20:00:17: Added `Bug 19` for the remaining viewport behavior that may still diverge from the newly explicit `Worker 11` presentation contract, linking the new note into the master bug list as the current investigation surface for symptom-by-symptom checks across `auto / live`, `draft`, `final`, and branch-local visual stability after the recent Worker 10 viewport work
 11. 2026-04-04 21:31: Added `Bug 12` for the still-open post-`Extrude-1A` viewport mismatch where `Geometry/Sketch -> Geometry/Extrude -> OutputPreview` now honors plane placement better but the blue body can still drift from the live sketch coordinates or stay behind while sketch origin/plane draft moves, and linked the new note into the master bug list as the active follow-on to the older extrude preview bug family
@@ -60,6 +63,7 @@ It is mainly:
 - `[open]` bug is still believed to exist
 - `[investigating]` bug is real but the exact cause is still not confirmed
 - `[planned]` bug is accepted and already has a clear future task/phase
+- `[fixed]` bug has a verified fix for the recorded root problem
 - `[resolved?]` bug may already be fixed or partially fixed, but still needs verification
 
 
@@ -99,10 +103,51 @@ Current practical order:
 - `Bug 12` - `[investigating]` - Geometry/Sketch extrude preview can still drift from live sketch coordinates or lag behind sketch origin / plane draft edits
 - `Bug 19` - `[investigating]` - Live viewport behavior may still diverge from the explicit Worker 11 presentation contract across `auto / live`, `draft`, `final`, or branch-local visual stability
 - `Bug 20` - `[investigating]` - Browser multi-select can jump or glitch after scroll and make post-scroll shift-range selection unreliable
+- `Bug 22` - `[fixed]` - Imported references rehydrate after Catalog close/model viewport split remount seams through `ViewerHost` current-runtime possession checks
 
 
 
 ## Current Known Bugs
+
+### Bug 22 - Imported references disappear after model viewport remounts
+
+Status:
+- `[fixed]`
+
+Fixed read:
+- `referenceWorkspace` remains canonical imported-reference truth.
+- `ViewerHost` now asks the current mounted viewer whether it has the runtime object before trusting global loaded state.
+- Focused `ViewerHost` tests cover PubParts ZIP-attributed accepted imports, normal `.obj` imports, and no duplicate load when the current viewer already owns the object.
+- Full UI click-through and direct split/import-explosion possession hardening are optional future QA/hardening surfaces, not part of this closeout.
+
+Problem:
+- imported references can appear correctly, then disappear after workspace layout changes remount the model viewport
+- reported cases:
+  - add a ZIP-backed PubParts item from Catalog in a split layout, then close Catalog
+  - import a normal `.obj` from the simple import option, then split the model viewport
+
+Strongest current likely cause:
+- canonical imported reference truth lives in `referenceWorkspace` in `src/app/store/useAppStore.ts`
+- the actual rendered objects live in the current `Viewer` instance's in-memory `referenceObjects` map
+- when the model viewport remounts, the old `Viewer` is disposed and the in-memory object map is lost
+- `referenceWorkspace.loadStateById` can still say the reference is `loaded`, so `ViewerHost` skips `viewer.ensureReferenceLoaded(item)`
+- the new viewer then receives `setReferenceVisible(referenceId, true)`, but has no object for that id, so nothing renders
+
+Likely ownership:
+- `ReferenceWorkspace`
+- `ViewerHost`
+- `Viewer`
+- workspace split/surface remount behavior
+
+Likely files:
+- `src/app/store/useAppStore.ts`
+- `src/app/components/ViewerHost.tsx`
+- `src/viewer/Viewer.ts`
+- `src/app/workspace/WorkspaceViewportTree.tsx`
+- `src/app/workspace/useWorkspaceStore.ts`
+
+Related docs:
+- `/docs/Bugs/bug/22_2026-04-21_imported-reference-viewport-remount-disappears.md`
 
 ### Bug 19 - Live viewport behavior may still diverge from the explicit Worker 11 presentation contract
 

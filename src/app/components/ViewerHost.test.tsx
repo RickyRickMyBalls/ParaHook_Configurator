@@ -20,6 +20,7 @@ import {
 import type { SpaghettiGraph } from '../spaghetti/schema/spaghettiTypes'
 
 let viewerEnsureReferenceLoaded: ReturnType<typeof vi.fn>
+let viewerHasReference: ReturnType<typeof vi.fn>
 let viewerSetReferenceVisible: ReturnType<typeof vi.fn>
 let viewerRemoveReference: ReturnType<typeof vi.fn>
 let viewerSetReferenceTransformSession: ReturnType<typeof vi.fn>
@@ -146,6 +147,7 @@ vi.mock('../../viewer/Viewer', () => ({
     public getRuntimeStats = (...args: unknown[]) => viewerGetRuntimeStats(...args)
     public setOnRuntimeStatsChange = (...args: unknown[]) => viewerSetOnRuntimeStatsChange(...args)
     public ensureReferenceLoaded = (...args: unknown[]) => viewerEnsureReferenceLoaded(...args)
+    public hasReference = (...args: unknown[]) => viewerHasReference(...args)
     public setReferenceVisible = (...args: unknown[]) => viewerSetReferenceVisible(...args)
     public removeReference = (...args: unknown[]) => viewerRemoveReference(...args)
     public setReferenceTransformSession = (...args: unknown[]) =>
@@ -513,6 +515,7 @@ describe('ViewerHost reference loading', () => {
   beforeEach(async () => {
     vi.resetModules()
     viewerEnsureReferenceLoaded = vi.fn()
+    viewerHasReference = vi.fn(() => false)
     viewerSetReferenceVisible = vi.fn()
     viewerRemoveReference = vi.fn()
     viewerSetReferenceTransformSession = vi.fn()
@@ -644,6 +647,322 @@ describe('ViewerHost reference loading', () => {
     expect(
       useConsoleStore.getState().entries.some((entry) => entry.text === 'Loaded Model: Shoe 1'),
     ).toBe(true)
+  })
+
+  it('rehydrates a visible loaded reference missing from the mounted viewer runtime', async () => {
+    const load = deferred<void>()
+    let viewerOwnsReference = false
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    let referenceId = ''
+    act(() => {
+      referenceId = useAppStore.getState().addImportedReference({
+        fileName: 'rehydrate.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:rehydrate',
+      })
+      useAppStore.getState().setReferenceItemLoadState(referenceId, 'loaded')
+    })
+
+    viewerHasReference.mockImplementation(
+      (candidateReferenceId: string) => candidateReferenceId === referenceId && viewerOwnsReference,
+    )
+    viewerEnsureReferenceLoaded.mockImplementation(async () => {
+      await load.promise
+      viewerOwnsReference = true
+    })
+    viewerGetReferencePartDescriptors.mockReturnValue([
+      {
+        partKey: `reference-part:${referenceId}:0`,
+        label: 'Recovered Mesh',
+        sourceMeshIndex: 0,
+      },
+    ])
+
+    const importedReferenceOrderBefore = [
+      ...useAppStore.getState().referenceWorkspace.importedReferenceOrder,
+    ]
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.loadStateById[referenceId]).toBe('loading')
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({ referenceId })
+
+    await act(async () => {
+      load.resolve()
+      await load.promise
+      await Promise.resolve()
+    })
+
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(useAppStore.getState().referenceWorkspace.loadStateById[referenceId]).toBe('loaded')
+    expect(useAppStore.getState().referenceWorkspace.partRowsByReferenceId[referenceId]).toEqual([
+      {
+        rowId: `reference-part-row:reference-part:${referenceId}:0`,
+        partKey: `reference-part:${referenceId}:0`,
+        label: 'Recovered Mesh',
+        sourceMeshIndex: 0,
+      },
+    ])
+    expect(viewerSetReferenceVisible).toHaveBeenCalledWith(referenceId, true)
+    expect(useAppStore.getState().referenceWorkspace.importedReferenceOrder).toEqual(
+      importedReferenceOrderBefore,
+    )
+  })
+
+  it('rehydrates a PubParts ZIP accepted import after ViewerHost remount with an empty runtime cache', async () => {
+    const load = deferred<void>()
+    const sourceAttribution = {
+      sourceKind: 'external-catalog' as const,
+      providerId: 'pubparts',
+      providerName: 'PubParts',
+      catalogItemId: 'external:pubparts:gripples',
+      catalogItemLabel: '3d Printed Gripples',
+      sourceCandidateUrl:
+        'https://www.dropbox.com/scl/fi/8y9sup2xbsc98hlq8hong/standard-gripples-for-onewheel-model_files.zip?dl=0',
+      linkedArchiveUrl:
+        'https://www.dropbox.com/scl/fi/8y9sup2xbsc98hlq8hong/standard-gripples-for-onewheel-model_files.zip?dl=0',
+      sourcePageUrl: 'https://www.printables.com/model/598759',
+    }
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    let referenceId = ''
+    act(() => {
+      referenceId = useAppStore.getState().addImportedReference({
+        fileName: 'gripple_body.obj',
+        fileType: 'obj',
+        objectUrl: 'blob:pubparts-gripple-body',
+        sourceAttribution,
+      })
+      useAppStore.getState().setReferenceItemLoadState(referenceId, 'loaded')
+      useAppStore.getState().setReferenceItemVisibility(referenceId, true)
+    })
+
+    const importedReferenceOrderBefore = [
+      ...useAppStore.getState().referenceWorkspace.importedReferenceOrder,
+    ]
+
+    let viewerOwnsReference = true
+    viewerHasReference.mockImplementation(
+      (candidateReferenceId: string) => candidateReferenceId === referenceId && viewerOwnsReference,
+    )
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(viewerEnsureReferenceLoaded).not.toHaveBeenCalled()
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container.remove()
+    root = null
+    container = null
+
+    viewerEnsureReferenceLoaded.mockClear()
+    viewerSetReferenceVisible.mockClear()
+    viewerOwnsReference = false
+    viewerEnsureReferenceLoaded.mockImplementation(async () => {
+      await load.promise
+      viewerOwnsReference = true
+    })
+    viewerGetReferencePartDescriptors.mockReturnValue([
+      {
+        partKey: `reference-part:${referenceId}:0`,
+        label: 'Gripple Body',
+        sourceMeshIndex: 0,
+      },
+    ])
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.loadStateById[referenceId]).toBe('loading')
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({ referenceId })
+
+    await act(async () => {
+      load.resolve()
+      await load.promise
+      await Promise.resolve()
+    })
+
+    const referenceWorkspace = useAppStore.getState().referenceWorkspace
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(referenceWorkspace.loadStateById[referenceId]).toBe('loaded')
+    expect(referenceWorkspace.partRowsByReferenceId[referenceId]).toEqual([
+      {
+        rowId: `reference-part-row:reference-part:${referenceId}:0`,
+        partKey: `reference-part:${referenceId}:0`,
+        label: 'Gripple Body',
+        sourceMeshIndex: 0,
+      },
+    ])
+    expect(viewerSetReferenceVisible).toHaveBeenCalledWith(referenceId, true)
+    expect(referenceWorkspace.importedReferenceOrder).toEqual(importedReferenceOrderBefore)
+    expect(referenceWorkspace.importedReferenceOrder.filter((id) => id === referenceId)).toHaveLength(
+      1,
+    )
+    expect(referenceWorkspace.importedReferencesById[referenceId]?.sourceAttribution).toEqual(
+      sourceAttribution,
+    )
+  })
+
+  it('rehydrates a loaded obj import in a newly mounted secondary model viewer', async () => {
+    const load = deferred<void>()
+    let viewerOwnsReference = false
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    let referenceId = ''
+    act(() => {
+      referenceId = useAppStore.getState().addImportedReference({
+        fileName: 'split-rehydrate.obj',
+        fileType: 'obj',
+        objectUrl: 'blob:split-rehydrate-obj',
+      })
+      useAppStore.getState().setReferenceItemLoadState(referenceId, 'loaded')
+      useAppStore.getState().setReferenceItemVisibility(referenceId, true)
+    })
+
+    const importedReferenceOrderBefore = [
+      ...useAppStore.getState().referenceWorkspace.importedReferenceOrder,
+    ]
+
+    viewerHasReference.mockImplementation(
+      (candidateReferenceId: string) => candidateReferenceId === referenceId && viewerOwnsReference,
+    )
+    viewerEnsureReferenceLoaded.mockImplementation(async () => {
+      await load.promise
+      viewerOwnsReference = true
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-secondary" />)
+    })
+
+    expect(useAppStore.getState().referenceWorkspace.loadStateById[referenceId]).toBe('loading')
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({ referenceId })
+
+    await act(async () => {
+      load.resolve()
+      await load.promise
+      await Promise.resolve()
+    })
+
+    const referenceWorkspace = useAppStore.getState().referenceWorkspace
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(referenceWorkspace.loadStateById[referenceId]).toBe('loaded')
+    expect(viewerSetReferenceVisible).toHaveBeenCalledWith(referenceId, true)
+    expect(referenceWorkspace.importedReferenceOrder).toEqual(importedReferenceOrderBefore)
+    expect(referenceWorkspace.importedReferenceOrder.filter((id) => id === referenceId)).toHaveLength(
+      1,
+    )
+  })
+
+  it('does not rehydrate a visible loaded reference already present in the mounted viewer runtime', async () => {
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    let referenceId = ''
+    act(() => {
+      referenceId = useAppStore.getState().addImportedReference({
+        fileName: 'already-owned.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:already-owned',
+      })
+      useAppStore.getState().setReferenceItemLoadState(referenceId, 'loaded')
+    })
+
+    viewerHasReference.mockImplementation(
+      (candidateReferenceId: string) => candidateReferenceId === referenceId,
+    )
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(viewerEnsureReferenceLoaded).not.toHaveBeenCalled()
+    expect(useAppStore.getState().referenceWorkspace.loadStateById[referenceId]).toBe('loaded')
+    expect(viewerSetReferenceVisible).toHaveBeenCalledWith(referenceId, true)
+  })
+
+  it('uses the existing error path when loaded-but-missing rehydration fails', async () => {
+    viewerHasReference.mockReturnValue(false)
+    viewerEnsureReferenceLoaded.mockRejectedValueOnce(new Error('rehydration failed'))
+
+    const { ViewerHost } = await import('./ViewerHost')
+    const { useAppStore } = await import('../store/useAppStore')
+
+    let referenceId = ''
+    act(() => {
+      referenceId = useAppStore.getState().addImportedReference({
+        fileName: 'failed-rehydrate.glb',
+        fileType: 'glb',
+        objectUrl: 'blob:failed-rehydrate',
+      })
+      useAppStore.getState().setReferenceItemLoadState(referenceId, 'loaded')
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<ViewerHost viewportId="model-viewer-primary" />)
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(viewerEnsureReferenceLoaded).toHaveBeenCalledTimes(1)
+    expect(viewerEnsureReferenceLoaded.mock.calls[0]?.[0]).toMatchObject({ referenceId })
+    expect(useAppStore.getState().referenceWorkspace.loadStateById[referenceId]).toBe('error')
+    expect(useAppStore.getState().referenceWorkspace.visibilityById[referenceId]).toBe(false)
+    expect(useAppStore.getState().referenceWorkspace.errorById[referenceId]).toBe(
+      'rehydration failed',
+    )
+    expect(viewerSetReferenceVisible).toHaveBeenCalledWith(referenceId, false)
   })
 
   it('applies a queued camera pose when a viewer viewport mounts', async () => {

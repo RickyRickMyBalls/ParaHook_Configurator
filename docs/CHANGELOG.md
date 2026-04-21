@@ -6,6 +6,59 @@ Numbering rule for major entries:
 - Increment by 1 for every new Codex-added section.
 
 ### Doc History
+109. 2026-04-21 12:59:40: Recorded the Catalog item-page preview width cleanup after item-page preview surfaces stopped using the square aspect-ratio and capped-width layout, now filling the item-page content width while preserving responsive preview height and existing preview/load behavior.
+108. 2026-04-21 12:54:25: Recorded the AppShell console-row layout cleanup after the root shell switched to a main-workspace plus bottom-console-row grid, the docked Console command bar moved into `AppShellConsoleRow`, expanded Console panels continued to overlay upward, the primary-only model viewport bottom reservation was retired from AppShell, focused shell/viewport tests passed, and production build passed.
+107. 2026-04-21 12:12:03: Recorded the `Catalog-Gen2-5 / Phase 3.1 - Verified Full Assembly Add To Project Activation` implementation after the verified ADV and XR full assembly planned source entries gained available source-reference `Add To Project` behavior, planned source commit resolution, seed/UI copy updates, focused Catalog action/source/commit/surface tests passed, and heavy preview, Import-5 STEP fidelity, and builder load-as-starting-configuration runtime stayed deferred.
+106. 2026-04-21 11:36:42: Recorded the `Catalog-Gen2-14 / Phase 4 - Bug 22 Closeout And Gen2 Ownership Audit` closeout after Bug 22 was marked fixed at the store-to-current-viewer remount seam, Catalog Gen2 HLG/CLG tracking was closed, focused ViewerHost remount proofs passed, and build passed while full UI click-through and direct split/exploded hardening remained optional future surfaces.
+105. 2026-04-21 11:31:50: Recorded the `Catalog-Gen2-14 / Phase 3 - Split And Close Regression Coverage` implementation after focused `ViewerHost` seam tests proved PubParts ZIP-attributed accepted imports and normal `.obj` imports rehydrate from canonical loaded state into newly mounted viewer runtimes while preserving imported-reference ids and keeping already-owned runtime references from duplicate-loading.
+104. 2026-04-21 11:26:21: Recorded the `Catalog-Gen2-14 / Phase 2 - ViewerHost Rehydration For Loaded-But-Missing References` implementation after ordinary `ViewerHost` visible-reference sync began rehydrating visible globally loaded references that are missing from the mounted viewer runtime while skipping already-owned runtime references, preserving canonical imported-reference ids, and keeping the existing success/error visibility paths.
+103. 2026-04-21 11:20:02: Recorded the `Catalog-Gen2-14 / Phase 1 - Runtime Ownership Contract And Viewer Possession Query` implementation after the viewer gained a read-only current-runtime reference possession query and the `ViewerHost` test mock gained matching readiness for later loaded-but-missing rehydration coverage.
+102. 2026-04-21 10:44:38: Recorded the `Catalog-Gen2-13 / Phase 4 - Add-To-Project Import Review And Viewport Handoff Audit` implementation after the PubParts ZIP source-options final action and busy/status copy were clarified as staging to Import review while preserving the existing `openStagedImportDraft({})` plus `appendStagedImportDraftFiles(files)` handoff and avoiding direct Catalog project acceptance.
+101. 2026-04-21 10:34:03: Recorded the `Catalog-Gen2-13 / Phase 3 - Preview Affordance For Previewable Supported Files` implementation closeout after staged ZIP entry rows gained an honest preview field for Import-review-after-staging availability on supported current reference types and not-available reads for unsupported/blocked/unselectable rows while preserving the existing staging and Import ownership path.
+100. 2026-04-21 10:25:54: Recorded the `Catalog-Gen2-13 / Phase 2 - ZIP Entry Staged Importer List` implementation closeout after ZIP archive candidates began rendering as staged ZIP entry rows with archive path, file name, type, formatted size, support state, blocked reason, selected state, and stable test selectors while preserving source metadata, selection controls, and existing Import review staging behavior.
+99. 2026-04-21 10:19:01: Recorded the `Catalog-Gen2-13 / Phase 1 - Download And Upload Source Actions` implementation closeout after PubParts ZIP source options began reading as a staged importer shell with PubParts source metadata, browser-honest `Download ZIP` guidance, Dropbox `dl=1` link normalization where available, explicit `Upload ZIP` local file grant wording, focused Catalog surface/shell tests, and `npm.cmd run build` passing while preview, staged-list redesign, native downloads, folder ownership, Import accept changes, and project asset changes stayed deferred.
+98. 2026-04-21 01:19:48: Recorded the `Catalog-Gen2-12 / Phase 5.1 - Local ZIP Fallback For Browser-Blocked PubParts Archives` implementation after PubParts source options gained a `Choose Local ZIP` fallback for browser-blocked Dropbox ZIP fetches, local ZIP blobs list through the existing archive helper, selected supported entries stage into Import review with PubParts attribution, and the focused Catalog surface fallback test passed while eager downloads, native disk writing, remote-byte proxies, persistent ZIP bytes, `.stp` support, STEP fidelity, builder behavior, and compatibility verdicts stayed deferred.
+97. 2026-04-21 00:50:16: Recorded the `Catalog-Gen2-12 / Phase 4 - Archive Manifest Cache` implementation closeout after PubParts ZIP source options gained a metadata-only archive manifest cache, cache hits skip repeat listing fetches, selected extraction still revalidates against real ZIP bytes, focused cache/resolver/surface/ZIP tests passed, and `npm.cmd run build` passed while ZIP byte caching, extracted file caching, local library behavior, native downloads, Import accept/project asset behavior, shared-folder listing, `.stp` support, STEP loader work, builder behavior, and compatibility verdicts stayed deferred.
+96. 2026-04-21 00:38:11: Recorded the `Catalog-Gen2-12 / Phase 3 - Selected ZIP Entry Extraction To Import Review` implementation closeout after selected supported ZIP entries gained guarded extraction, Import review staging with PubParts attribution, focused ZIP/resolver/surface/shell tests passed, and `npm.cmd run build` passed while manifest caching, persistent ZIP byte storage, extract-all behavior, shared-folder listing, `.stp` support, STEP loader work, builder behavior, compatibility verdicts, and pre-Import project asset creation stayed deferred.
+95. 2026-04-21 00:25:32: Recorded the `Catalog-Gen2-12 / Phase 2 - Source Options Real ZIP Listing` implementation closeout after PubParts source options began inspecting one user-triggered Dropbox ZIP through the async shared-link helper, real ZIP metadata replaced the Gripples hard-coded production manifest proof, focused ZIP/resolver/surface/shell tests passed, and `npm.cmd run build` passed while archive extraction, Import draft staging from archive entries, object URLs, manifest caching, eager ZIP fetch, shared-folder listing, `.stp` support, STEP loader work, builder behavior, and compatibility verdicts stayed deferred.
+94. 2026-04-21 00:15:14: Recorded the `Catalog-Gen2-12 / Phase 1 - Browser ZIP Reader And Entry Manifest Contract` implementation closeout after `@zip.js/zip.js` was installed, the pure PubParts ZIP archive helper and fixture tests landed, supported/unsupported/unsafe/directory/blocked entry classification was proven, focused ZIP/resolver tests passed, and `npm.cmd run build` passed while source-options wiring, extraction, Import staging, object URLs, Dropbox fetch, project assets, and manifest caching stayed deferred.
+93. 2026-04-20 23:47:52: Recorded the `Catalog-Gen2-11 / Phase 2 - ZIP And Archive Candidate Inspection` implementation closeout after known manifest-backed PubParts archive URLs began showing deterministic archive-entry candidates in the source-options dialog, with the real `3d Printed Gripples` ZIP seeded as the first metadata-only proof while real ZIP parsing, extraction, Import byte staging, shared-folder listing, `.stp` support, STEP fidelity, builder behavior, and compatibility verdicts stayed deferred.
+92. 2026-04-20 23:35:27: Recorded the `Catalog-Gen2-11 / Phase 1 - Dropbox Shared Direct File Resolver` implementation closeout after PubParts `Add To Project` moved from user-owned Dropbox Chooser setup to a Catalog source-options dialog, direct supported shared links gained resolver/fetch staging into Import review with PubParts attribution, ZIP/archive links stayed inspection-needed and disabled, focused Catalog/source tests passed, and `npm.cmd run build` passed.
+91. 2026-04-20 23:17:05: Recorded the Dropbox Chooser startup diagnostic repair after the Catalog bridge began preloading Chooser when configured, short-circuiting missing app-key clicks with an explicit `Dropbox Setup Needed` status, and adding focused setup/preload tests before rerunning the focused Catalog surface proof.
+90. 2026-04-20 23:01:58: Recorded the `Catalog-Gen2-10 - Dropbox Chooser Add-To-Project Bridge` implementation closeout after external PubParts item pages gained a primary Dropbox Chooser-backed `Add To Project` action, direct-link file fetch into Import-owned staged review, visible bridge statuses, local fallback controls, focused tests, and build verification while keeping shared-link folder inspection, archive extraction, native direct download, `.stp` import support, STEP fidelity, builder behavior, and compatibility verdicts deferred.
+89. 2026-04-20 21:52:10: Recorded the `Catalog-Gen2-9 - Local PubParts Library Folder And Auto-Discovery Handoff` implementation closeout after PubParts local-library metadata, per-item folder/manifest records, Home Page PubParts Library toggle/status, Catalog `Local Downloads`, one advancing item-page local-library action, Import-owned local file picker handoff, focused tests, and build verification landed without silent disk scanning, automatic folder creation, remote byte fetching, archive extraction, native direct download, STEP fidelity, builder behavior, or compatibility verdicts.
+88. 2026-04-20 20:41:48: Recorded the `Catalog-Gen2-5 / Phase 2.3 - Catalog Surface Cleanup And Scroll Containment` implementation closeout after the Catalog surface gained scoped dark scrollbars, contained browse-rail/staged-source overflow, compact typography, safe long-text wrapping, square item-page previews, focused tests, and build verification without changing source contracts or Catalog behavior.
+87. 2026-04-20 20:03:53: Recorded the `Catalog-Gen2-8 / Phase 8 - Remote Source Download And Import Owner Bridge` implementation closeout after external PubParts item pages gained browser source-download/open handoff, `Import Downloaded Files` local staged Import dialog bridging, and PubParts source attribution preservation through staged import files and accepted imported reference records while remote byte fetching, archive extraction, `.stp` support, STEP loader fidelity, builder behavior, compatibility verdicts, and direct Catalog project commits stayed deferred.
+86. 2026-04-20 18:53:03: Recorded the `Catalog-Gen2-8 / Phase 7 - Selected File Import Handoff` scoped implementation after selected supported PubParts direct file candidates gained source-attributed Import-family handoff/status reads while remote URL bytes, project imports, repo-local asset paths, object URLs, action-kind widening, archive extraction, builder behavior, compatibility verdicts, and STEP loader behavior stayed deferred.
+85. 2026-04-20 18:40:07: Recorded the `Catalog-Gen2-8 / Phase 6 - Supported File Classification And Chooser` implementation closeout after staged PubParts source metadata gained supported direct file candidate selection, item-page chooser/no-selectable states, focused tests, and `npm.cmd run build` passed without binary download, archive listing, extraction, selected-file import handoff, project commit, action-kind, builder, compatibility, or STEP loader behavior.
+84. 2026-04-20 18:30:32: Recorded the `Catalog-Gen2-8 / Phase 5 - User-Triggered Source And Archive Inspection` implementation closeout after staged PubParts source metadata records gained user-triggered metadata inspection results, direct supported file URL classification including `.stp`, archive/shared-source needs-inspection states, item-page inspection status, and focused tests plus `npm.cmd run build` passed.
+83. 2026-04-20 18:20:27: Recorded the `Catalog-Gen2-8 / Phase 4 - Staged Downloads List And Clear Controls` implementation closeout after Catalog gained a staged PubParts source metadata list plus per-record and clear-all controls that mutate only the PubParts downloads bucket.
+82. 2026-04-20 18:14:03: Recorded the `Catalog-Gen2-8 / Phase 3 - User-Triggered Source Download Or Staging` implementation closeout after external PubParts item pages gained explicit metadata-only `Stage Source Link` behavior backed by `parahook:catalog:pubparts-downloads`, with staged/not-imported status and no binary download, inspection, chooser, import, or project commit behavior.
+81. 2026-04-20 18:04:30: Recorded the `Catalog-Gen2-8 / Phase 2 - External Source Action Boundary` implementation closeout after external PubParts item pages gained a disabled planned source-action boundary from linked archive metadata while keeping action kinds, preview-only action plans, source-page/linked-archive/eager-image behavior, and no download/staging/import behavior unchanged.
+80. 2026-04-20 17:45:48: Recorded the PubParts downloads storage groundwork after Home Page Storage Management gained a dedicated `Catalog/PubParts/Downloads` local storage bucket row backed by `pubPartsDownloadsStorage.ts`, with focused Home Page tests and `npm.cmd run build` passing.
+79. 2026-04-20 17:18:15: Recorded the `Catalog-Gen2-7 / Phase 3 - Eager PubParts Preview Images` implementation closeout after PubParts preview image URLs gained PubParts-origin normalization and external PubParts image previews began rendering eagerly in grid cards and item pages without archive/model/STEP/add-to-project/builder/compatibility widening.
+78. 2026-04-20 17:11:42: Recorded the `Catalog-Gen2-7 / Phase 2 - All Cached PubParts Parts In Catalog` implementation closeout after live Catalog began composing the full 319-record cached PubParts part set, external items began contributing to section options, and focused PubParts/source/shared/surface tests plus `npm.cmd run build` passed without eager image rendering, archive/import behavior, local asset conversion, or builder/compatibility widening.
+77. 2026-04-20 17:02:49: Recorded the `Catalog-Gen2-7 / Phase 1 - Full PubParts Cache Coverage` implementation closeout after Catalog gained a deterministic PubParts cache refresh script, a full 319-record `parts.json` source-data module, full part dedupe helpers, and image array normalization without live browser fetch, resource mixing, Catalog surface widening, or eager image UI behavior.
+76. 2026-04-20 16:02:39: Recorded the `Catalog-Gen2-4.5 / Phase 2 - XR PubWheel 1 Asset Set Migration` implementation closeout after the live XR planned seed gained a versioned `sourceAssetSet` for `pubwheel_1` / `v1` while preserving bridge fields, one-card identity, disabled planned behavior, and ADV bridge-only source truth.
+75. 2026-04-20 15:55:39: Recorded the `Catalog-Gen2-4.5 / Phase 1 - Versioned Multi-File Asset Set Contract` implementation closeout after Catalog gained planned-source asset-set contract types and metadata-only source-detail rows for versioned multi-file source candidates without migrating live seeds, enabling preview, or changing action behavior.
+74. 2026-04-20 15:40:36: Recorded the `Catalog-Gen2-5 / Phase 2.2 - XR PubWheel Planned Starting Assembly Source` implementation closeout after the supplied XR PubWheel STEP/GLB full-assembly files were copied into `public/Catalog/assemblies/xr/`, Catalog gained a second disabled planned starting assembly card, and focused tests plus build passed without enabling heavy preview, Import-5 loader behavior, or builder load behavior.
+73. 2026-04-20 15:35:34: Recorded the `Catalog-Gen2-5 / Phase 2.1 - Planned Starting Assembly Entry Contract For Heavy STEP Starts` implementation closeout after Catalog gained a planned source kind, plannedItems snapshot lane, one disabled ADV planned starting assembly card, and planned preview action read without exposing the heavy STEP source through repo preview behavior.
+72. 2026-04-20 15:16:50: Recorded the `Catalog-Gen2-5 / Phase 1 - Starting Assembly Contract And Boundary` implementation closeout after Catalog gained the optional `itemRole: 'starting-assembly'` contract/read seam, planned starting-assembly metadata, source pass-through readiness, helper/item-page read copy, focused tests, and no new action kind or live curated assembly entries.
+71. 2026-04-20 14:51:41: Recorded the `Catalog-Gen2-4 / Phase 1 - External Type System Mapping Baseline` implementation closeout after external PubParts `typeOfPart` source labels began mapping into existing ParaHook `systemKey`, `partType`, and safe `partGroups` fields while preserving raw source metadata.
+70. 2026-04-20 14:40:00: Recorded the `Catalog-Gen2-3 / Phase 2 - Sub-Platform Tags And Narrow Fitment Notes` implementation closeout after external PubParts `GT/GT-S`, `GT-S`, and `GTS` source labels began producing a metadata-only source fitment note while broad canonical `GT` compatibility stayed unchanged.
+69. 2026-04-20 14:34:12: Recorded the `Catalog-Gen2-3 / Phase 1 - Canonical External Platform Mapping` implementation closeout after external PubParts platform labels began normalizing into canonical ParaHook `platformCompatibility` values while keeping raw source labels visible and leaving sub-platform, system mapping, archive/import, and compatibility-verdict behavior untouched.
+68. 2026-04-20 14:25: Recorded the `Catalog-7 / Phase 4 - Wheel-Specific Motor And Tire Fitment Fields` implementation closeout after the local wheel-fitment contract, source pass-through readiness, item-page detail helper, focused tests, and `npm.cmd run build` passed without fabricated motor/tire records or Gen2 mapping behavior.
+67. 2026-04-20 14:13:26: Recorded the `Catalog-Gen2-2 / Phase 3 - Supported Versus Unsupported Archive Classification` implementation closeout after linked archive metadata gained staged supported/unsupported/container/unknown classification, focused tests passed, and `npm.cmd run build` passed.
+66. 2026-04-20 14:06: Recorded the `Catalog-Gen2-2 / Phase 2 - Linked Archive Metadata And Handoff States` implementation closeout after external item pages gained inspect-only linked archive source handoff state, focused tests passed, and `npm.cmd run build` passed.
+65. 2026-04-20 13:59:57: Recorded the `Catalog-Gen2-2 / Phase 1 - External Source Page Action Support` implementation closeout after external Catalog item pages gained a source-details source-page link affordance without changing Catalog action kinds or starting archive/import behavior.
+64. 2026-04-20 13:51:16: Recorded the `Catalog-Gen2-1 / Phase 4 - External Attribution And Linked Source Surfacing` implementation closeout after live `CatalogSurface` intentionally composed cached PubParts external items with source-aware labels/details, focused tests passed, and `npm.cmd run build` passed.
+63. 2026-04-20 13:44:35: Recorded the `Catalog-Gen2-1 / Phase 3 - External Items In Catalog Source Snapshot` implementation closeout after the Catalog source snapshot gained an explicit default-empty external lane and optional PubParts source-item mapping without live UI wiring, focused tests passed, and `npm.cmd run build` passed.
+62. 2026-04-20 13:37:13: Recorded the `Catalog-Gen2-1 / Phase 2 - Cached Source Exactness Repair` after the tiny PubParts cached source records and tests were updated to the manager-verified live URL, image, archive, and description values, focused cached-intake tests passed, and `npm.cmd run build` passed.
+61. 2026-04-20 13:34:37: Recorded the `Catalog-Gen2-1 / Phase 2 - Cached Source Truthfulness Repair` after invented cached PubParts source examples were replaced with tiny real sampled records from `parts.json`, `parts/gt.json`, and `resources.json`, focused cached-intake tests passed, and `npm.cmd run build` passed.
+60. 2026-04-20 13:31:46: Recorded the `Catalog-Gen2-1 / Phase 2 - Cached PubParts Source Intake Path` implementation closeout after tiny repo-owned PubParts source slices for all-parts, filtered GT parts, and resources started normalizing through the Phase 1 source helpers without browser fetch, live sync, Catalog item creation, snapshot merging, UI behavior, archive import, or fitment work.
+59. 2026-04-20 13:26:29: Recorded the `Catalog-Gen2-1 / Phase 1 - PubParts Array Metadata Repair` after live PubParts samples showed part and resource category fields can be arrays, the PubParts source helpers preserved scalar strings and string arrays in stable normalized metadata, focused tests passed, and `npm.cmd run build` passed.
+58. 2026-04-20 13:20:09: Recorded the `Catalog-Gen2-1 / Phase 1 - External Source Contract And PubParts Type Groundwork` implementation closeout after Catalog gained the generic external source branch, reusable provider/source metadata, PubParts raw and normalized source item type groundwork, focused contract/helper proof, and a passing `npm.cmd run build`.
+57. 2026-04-20 13:12:44: Recorded the `Catalog-Gen2-0 / Phase 3 - Intake Readiness And Source Handoff Closeout` docs-system closeout after the Gen2 readiness lane documented PubParts endpoint/CORS/source-intake decisions, audited live Catalog seams, created the `Catalog-Gen2-1` external source intake family phase doc, and left runtime implementation for later approved phases.
 56. 2026-04-20 01:01: Recorded the `Home-Page-6 / Phase 4 - Left Rail Help And Debug Affordance Closeout` implementation closeout after the Home Page left rail gained compact help shortcuts and a non-owning advanced status affordance while preserving startup, catalog launch, orientation, Storage Management, persistence toggles, and wipe behavior.
 55. 2026-04-20 00:53: Recorded the `Home-Page-6 / Phase 3 - Storage Management Rename And Detail Affordance` implementation closeout after the storage area became Storage Management while preserving bucket inventory, owner seams, toggles, selected-key wipe behavior, size readouts, and internal row scrolling.
 54. 2026-04-20 00:45: Recorded the `Home-Page-6 / Phase 2 - Compact Orientation Quick-Start Card` implementation closeout after the orientation area became a compact quick-start/status card with the existing GitHub, Docs, version, and what's-new read preserved.
@@ -113,6 +166,1379 @@ Do not use it for:
 
 
 ## Doc Body
+
+<!-- ENTRY 1624 -->
+
+### [1624] - 2026-04-21 11:36 - `Catalog-Gen2-14 / Phase 4 - Bug 22 Closeout And Gen2 Ownership Audit`
+
+<!-- ENTRY 1624 -->
+HUMAN SUMMARY: `Bug 22 is now closed at the store-to-current-viewer remount seam: referenceWorkspace stays canonical imported-reference truth, Viewer runtimes stay disposable, and focused ViewerHost proof plus build verified accepted PubParts ZIP-attributed and normal .obj references rehydrate without duplicate-loading already-owned runtime objects.`
+
+#### Scope / Constraints Honored
+- Changed docs/tracking only in Phase 4.
+- Did not change production behavior, test code, Catalog source-options, Import accept, store schema, ZIP/source resolver behavior, STEP loader behavior, builder behavior, compatibility behavior, direct split behavior, or exploded behavior.
+- Did not claim full UI click-through for Catalog close/model viewport split.
+- Kept direct split/import-explosion runtime-possession hardening as an optional future QA surface rather than a blocker for Bug 22 closeout.
+
+#### Summary of Implementation
+- Marked Bug 22 fixed at the proven store-to-current-viewer remount seam.
+- Marked `Catalog-Gen2-HLG-18`, `Catalog-Gen2-CLG-33`, `Catalog-Gen2-CLG-34`, and `Catalog-Gen2-14` complete.
+- Recorded that Phases 1-3 shipped the ownership contract, current-viewer possession query, ViewerHost loaded-but-missing rehydration, PubParts ZIP-attributed remount proof, normal `.obj` secondary-viewer remount proof, and already-owned no-duplicate proof.
+- Did not add a Phase 3.1 or Phase 4.1 because the accepted repro seams remain covered.
+
+#### Files Changed
+- `docs/Bugs/bug/22_2026-04-21_imported-reference-viewport-remount-disappears.md`
+- `docs/Bugs/0_Bug_Report.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "rehydrates a visible loaded reference missing from the mounted viewer runtime"` passed: 1 passed, 84 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "does not rehydrate a visible loaded reference already present in the mounted viewer runtime"` passed: 1 passed, 84 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "rehydrates a PubParts ZIP accepted import after ViewerHost remount with an empty runtime cache"` passed: 1 passed, 84 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "rehydrates a loaded obj import in a newly mounted secondary model viewer"` passed: 1 passed, 84 skipped.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+- The full `src/app/components/ViewerHost.test.tsx` file was not rerun for Phase 4 because the accepted baseline remains red in 11 existing/broader reference-loading, snap, and reference-selection expectations.
+
+<!-- ENTRY 1623 -->
+
+### [1623] - 2026-04-21 11:31 - `Catalog-Gen2-14 / Phase 3 - Split And Close Regression Coverage`
+
+<!-- ENTRY 1623 -->
+HUMAN SUMMARY: `Focused ViewerHost/store seam tests now prove accepted imported references rehydrate into newly mounted viewer runtimes from canonical loaded state for both PubParts ZIP-attributed imports and normal .obj imports, while already-owned viewer runtimes skip duplicate loads.`
+
+#### Scope / Constraints Honored
+- Added focused `ViewerHost` tests only.
+- Did not change production behavior; Phase 2 already shipped the runtime rehydration condition.
+- Preserved direct split and exploded special paths as follow-up surfaces rather than changing them in Phase 3.
+- Did not add AppShell/workspace split UI harness coverage and did not claim full split/close UI click-through proof.
+- Did not change Catalog source-options, Import accept, store schema, ZIP/source resolver behavior, STEP loader behavior, builder behavior, or compatibility behavior.
+
+#### Summary of Implementation
+- Added a PubParts ZIP-attributed accepted-import remount proof where a `loaded` visible reference rehydrates after `ViewerHost` remount with an empty mock viewer runtime cache.
+- Added a normal `.obj` accepted-import proof where `ViewerHost viewportId="model-viewer-secondary"` rehydrates from canonical loaded store state.
+- Reused the already-owned runtime no-duplicate-load proof.
+
+#### Files Changed
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "rehydrates a PubParts ZIP accepted import after ViewerHost remount with an empty runtime cache"` passed: 1 passed, 84 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "rehydrates a loaded obj import in a newly mounted secondary model viewer"` passed: 1 passed, 84 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "does not rehydrate a visible loaded reference already present in the mounted viewer runtime"` passed: 1 passed, 84 skipped.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+- The full `src/app/components/ViewerHost.test.tsx` file was not rerun for Phase 3 because the accepted baseline remains red in 11 existing/broader reference-loading, snap, and reference-selection expectations.
+
+<!-- ENTRY 1622 -->
+
+### [1622] - 2026-04-21 11:26 - `Catalog-Gen2-14 / Phase 2 - ViewerHost Rehydration For Loaded-But-Missing References`
+
+<!-- ENTRY 1622 -->
+HUMAN SUMMARY: `ViewerHost now rehydrates visible imported references when canonical state says they are loaded but the currently mounted viewer runtime does not have the object. Already-owned runtime references skip reloads, failed rehydration uses the existing error/visibility-false path, and canonical imported-reference ids remain stable.`
+
+#### Scope / Constraints Honored
+- Changed only the ordinary `ViewerHost` visible-reference load sync path.
+- Used `viewer.hasReference(item.referenceId)` as the mounted-viewer runtime possession source.
+- Preserved direct split/exploded special paths, Catalog source-options, Import accept, store schema, ZIP/source resolver behavior, STEP loader behavior, builder behavior, and compatibility behavior.
+- Did not add store-owned runtime-possession mirrors or duplicate imported-reference records.
+
+#### Behavior Changes
+- Visible references still load when `loadState` is `unloaded` or `error`.
+- Visible references now also load when `loadState` is `loaded` but `viewer.hasReference(referenceId)` is false for the mounted viewer.
+- Visible loaded references already present in the mounted viewer runtime do not call `ensureReferenceLoaded` again.
+- Successful loaded-but-missing rehydration briefly sets global load state to `loading`, then returns it to `loaded`, refreshes part rows, and restores viewer visibility if canonical visibility is still true.
+- Failed loaded-but-missing rehydration uses the existing error path: load state `error`, visibility false, and viewer hidden.
+
+#### Files Changed
+- `src/app/components/ViewerHost.tsx`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "rehydrates a visible loaded reference missing from the mounted viewer runtime"` passed: 1 passed, 82 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "does not rehydrate a visible loaded reference already present in the mounted viewer runtime"` passed: 1 passed, 82 skipped.
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx -t "uses the existing error path when loaded-but-missing rehydration fails"` passed: 1 passed, 82 skipped.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+- The full `src/app/components/ViewerHost.test.tsx` file was not rerun for Phase 2 because the accepted baseline remains red in 11 existing/broader reference-loading, snap, and reference-selection expectations.
+
+<!-- ENTRY 1621 -->
+
+### [1621] - 2026-04-21 11:20 - `Catalog-Gen2-14 / Phase 1 - Runtime Ownership Contract And Viewer Possession Query`
+
+<!-- ENTRY 1621 -->
+HUMAN SUMMARY: `The viewer now exposes a read-only current-runtime imported-reference possession query. This keeps \`referenceWorkspace\` as canonical imported-reference truth while giving later ViewerHost rehydration work a safe way to ask whether the mounted viewer actually has the runtime object.`
+
+#### Scope / Constraints Honored
+- Added only the read-only viewer runtime query and matching `ViewerHost` test mock readiness.
+- Preserved the existing `ViewerHost` load/visibility sync behavior; no loaded-but-missing rehydration behavior landed in this phase.
+- Did not change Catalog source-options, Import accept, store schema, ZIP/source resolver behavior, STEP loader behavior, builder behavior, or compatibility behavior.
+
+#### Summary of Implementation
+- Added `Viewer.hasReference(referenceId: string): boolean`, returning `this.referenceObjects.has(referenceId)`.
+- Added `viewerHasReference` to the `ViewerHost.test.tsx` mock harness with a default `false` return so Phase 2 tests can model newly mounted viewers that do not possess a runtime object yet.
+
+#### Files Changed
+- `src/viewer/Viewer.ts`
+- `src/app/components/ViewerHost.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes
+- `Viewer` now has a side-effect-free runtime possession query for imported references.
+- No user-facing behavior changes yet; `ViewerHost` rehydration remains deferred to Phase 2.
+
+#### Verification
+- `npm.cmd test -- src/app/components/ViewerHost.test.tsx` failed: 69 passed, 11 failed. Failures were in existing reference-loading state progression, reference batch loading, reference transform snap expectation, viewport reference selection resolution, and highlighted reference assertions rather than the new Phase 1 `hasReference` method or mock wiring.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1620 -->
+
+### [1620] - 2026-04-21 10:44 - `Catalog-Gen2-13 / Phase 4 - Add-To-Project Import Review And Viewport Handoff Audit`
+
+<!-- ENTRY 1620 -->
+HUMAN SUMMARY: `PubParts ZIP source options now make the final handoff explicit: selected entries are staged to Import review, not accepted directly into project content. The button now reads Stage Selected to Import Review, the busy/status copy names Import review, and the existing Catalog-to-Import draft handoff remains unchanged.`
+
+#### Scope / Constraints Honored
+- Kept the change in the Catalog source-options shell and focused Catalog surface assertions.
+- Preserved the existing `openStagedImportDraft({})` plus `appendStagedImportDraftFiles(files)` handoff.
+- Did not call `commitStagedImportDraft` from Catalog.
+- Did not add native downloads/folders, direct Catalog project acceptance, Import accept rewrites, ZIP extraction rule changes, STEP fidelity work, builder behavior, or compatibility behavior.
+
+#### Behavior Changes
+- The PubParts ZIP source-options primary action now reads `Stage Selected to Import Review`.
+- The staging busy label now reads `Staging to Import Review...`.
+- The staging status now says `Staging selected PubParts source files to Import review...`.
+- Existing post-stage status still confirms that selected files were staged in Import review with PubParts attribution.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-13 - PubParts ZIP Staged Importer And Preview Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx src/app/panels/BrowserPanel.test.tsx src/app/store/useAppStore.test.ts` failed outside the Catalog change: `CatalogSurface.test.tsx` passed 29 tests, `BrowserPanel.test.tsx` had 2 existing staged Import structure/status expectation failures, and `useAppStore.test.ts` had 13 existing graph/project-output expectation failures.
+- `npm.cmd test -- src/app/panels/BrowserPanel.test.tsx` failed with the same 2 staged Import structure/status expectation failures.
+- `npm.cmd test -- src/app/store/useAppStore.test.ts` failed with the same 13 graph/project-output expectation failures, while staged Import source-attribution and commit tests passed.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1619 -->
+
+### [1619] - 2026-04-21 10:34 - `Catalog-Gen2-13 / Phase 3 - Preview Affordance For Previewable Supported Files`
+
+<!-- ENTRY 1619 -->
+HUMAN SUMMARY: `PubParts staged ZIP entry rows now show an honest preview affordance. Supported selectable step, stl, obj, and glb entries say they can be previewed in Import review after staging, while unsupported, blocked, directory, hidden/system, .stp, or otherwise unselectable rows say preview is not available.`
+
+#### Scope / Constraints Honored
+- Kept the change in the Catalog-owned staged ZIP row presentation and focused Catalog surface tests.
+- Used current Import reference type support as the preview-after-staging source of truth.
+- Preserved source metadata, selection controls, selected counts, and existing `Stage Selected` to Import review behavior.
+- Did not add a preview button, extract archive entries early, create object URLs early, preview geometry inside Catalog, alter Import accept/project asset behavior, add native downloads/folders, widen supported file types, change STEP fidelity, change builder behavior, change compatibility verdicts, or change ZIP extraction rules.
+
+#### Behavior Changes
+- Staged ZIP entry rows now include a `Preview` field.
+- Selectable supported `step`, `stl`, `obj`, and `glb` rows display `Preview: In Import review after staging`.
+- Unsupported, blocked, directory, hidden/system, `.stp`, and otherwise unselectable rows display `Preview: Not available`.
+- A stable `data-catalog-pubparts-staged-zip-entry-preview-state` selector covers the preview state.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-13 - PubParts ZIP Staged Importer And Preview Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 29 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1618 -->
+
+### [1618] - 2026-04-21 10:25 - `Catalog-Gen2-13 / Phase 2 - ZIP Entry Staged Importer List`
+
+<!-- ENTRY 1618 -->
+HUMAN SUMMARY: `PubParts ZIP archive candidates now render as staged ZIP entry rows instead of generic resolver candidates. Rows show archive path, file name, type, formatted size, support state, blocked reason when present, and selected state while keeping source metadata, selection controls, and the existing Import review staging path intact.`
+
+#### Scope / Constraints Honored
+- Kept the change in the Catalog-owned source-options dialog presentation and focused Catalog surface tests.
+- Preserved PubParts source metadata/source ZIP context while showing staged archive entries.
+- Preserved per-row checkbox selection, `Select All Supported`, `Clear Selection`, selected count, and existing `Stage Selected` to Import review behavior.
+- Consumed the existing ZIP candidate classification instead of changing ZIP extraction or supported-type rules.
+- Did not add preview, project asset acceptance, native downloads, local folder ownership, automatic source materialization, Import accept changes, model-viewport insertion, STEP fidelity work, builder behavior, or compatibility verdicts.
+
+#### Behavior Changes
+- ZIP archive entries now render with staged-entry selectors and staged-entry field groups.
+- Supported entries display as selectable `Supported` rows with selected state.
+- Unsupported, directory, hidden/system, blocked, unsafe, oversized, unknown-size, malformed, or otherwise unselectable entries stay visible but disabled.
+- Archive row sizes now use formatted byte units.
+- The Catalog surface test now proves staged ZIP row fields, disabled unstageable rows, source context persistence, clear selection, select-all-supported behavior, and unchanged Import review staging.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-13 - PubParts ZIP Staged Importer And Preview Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 29 tests.
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx` passed, 3 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1617 -->
+
+### [1617] - 2026-04-21 10:19 - `Catalog-Gen2-13 / Phase 1 - Download And Upload Source Actions`
+
+<!-- ENTRY 1617 -->
+HUMAN SUMMARY: `PubParts ZIP source options now read as the first step of a staged importer flow. The dialog shows PubParts metadata, offers a browser-honest Download ZIP action that prefers Dropbox dl=1 links when possible, and labels the local file grant as Upload ZIP while preserving the existing ZIP listing/extraction and Import review path.`
+
+#### Scope / Constraints Honored
+- Kept the phase scoped to source-options/staged importer shell wording, source metadata visibility, source action labeling/link target, local ZIP action wording, and fallback guidance.
+- Preserved the existing ZIP listing, selected extraction, and Import review staging behavior.
+- Kept local ZIP bytes as an explicit user-picked file grant.
+- Kept browser constraints visible: ParaHook can open/initiate the source link, but the browser controls where the ZIP is saved.
+- Did not add preview, staged-list redesign, native downloads, folder ownership, accepted project asset changes, Import accept changes, STEP fidelity work, builder behavior, or compatibility verdicts.
+
+#### Behavior Changes
+- Updated the PubParts source-options dialog copy so ZIP-backed Add To Project reads as a staged importer shell.
+- Added a PubParts source metadata block with provider, source page, and source ZIP/source link context.
+- Relabeled ZIP source actions as `Download ZIP`, normalized Dropbox shared ZIP links to `dl=1` when possible, and kept non-ZIP source links as `Open Source`.
+- Relabeled the local ZIP file-picker action as `Upload ZIP`.
+- Updated browser-blocked ZIP inspection fallback copy to route the user through Download ZIP and then Upload ZIP.
+- Extended focused Catalog surface assertions around the staged importer copy, source metadata, direct Dropbox download link, Upload ZIP action, and unchanged local ZIP listing/staging path.
+
+#### Files Changed
+- `src/app/catalog/pubPartsSharedLinkResolver.ts`
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-13 - PubParts ZIP Staged Importer And Preview Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 29 tests.
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx` passed, 3 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1616 -->
+
+### [1616] - 2026-04-21 01:19 - `Catalog-Gen2-12 / Phase 5.1 - Local ZIP Fallback For Browser-Blocked PubParts Archives`
+
+<!-- ENTRY 1616 -->
+HUMAN SUMMARY: `PubParts source options now recover when a live Dropbox ZIP cannot be fetched by the browser. The dialog keeps Open Source available, adds Choose Local ZIP, lists entries from the user-picked local ZIP, and stages selected supported entries into Import review with PubParts attribution.`
+
+#### Scope / Constraints Honored
+- Kept the existing on-demand remote ZIP fetch/listing attempt for browser-readable PubParts ZIP URLs.
+- Added a user-driven local ZIP fallback instead of a remote-byte proxy or native downloader.
+- Stored the selected local ZIP blob only ephemerally in the open source-options dialog state.
+- Preserved selected-entry extraction through the existing ZIP safety guards.
+- Kept eager downloads, native disk writing, persistent ZIP byte storage, local library scans, `.stp` support, STEP fidelity work, builder behavior, and compatibility verdicts deferred.
+
+#### Behavior Changes
+- Added a `Choose Local ZIP` action to the PubParts source-options dialog.
+- Updated browser fetch failure copy to guide the user to open/download the PubParts ZIP, then choose the local ZIP in ParaHook.
+- Added a local `.zip` file picker in `CatalogSurface`.
+- Listed the picked ZIP through `listPubPartsZipArchiveEntries(...)` and mapped entries into the existing source-options candidate shape.
+- Reused the picked ZIP blob for `Stage Selected`, so selected supported entries stage into Import review with PubParts attribution.
+- Extended the Catalog surface fallback test to cover remote ZIP fetch failure, local ZIP selection, entry listing, selected entry staging, and no direct project asset creation.
+
+#### Files Changed
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-12 - Efficient PubParts ZIP Inspection And Selected Extraction.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsArchiveManifestCache.test.ts src/app/catalog/pubPartsZipArchive.test.ts src/app/catalog/pubPartsSharedLinkResolver.test.ts` passed, 3 files / 26 tests.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 29 tests.
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx` passed, 3 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+- `git diff --check` passed with existing LF-to-CRLF warnings across the dirty worktree.
+
+<!-- ENTRY 1615 -->
+
+### [1615] - 2026-04-21 00:50 - `Catalog-Gen2-12 / Phase 4 - Archive Manifest Cache`
+
+<!-- ENTRY 1615 -->
+HUMAN SUMMARY: `PubParts ZIP source options now cache cheap archive entry metadata by PubParts item, Dropbox ZIP URL, and source version. Repeat opens can show cached entries without refetching/listing the ZIP, while Stage Selected still uses real ZIP bytes and reruns extraction guards before Import review.`
+
+#### Scope / Constraints Honored
+- Stored metadata only: sanitized ZIP entry metadata plus provider/item/source URL/source version/schema/inspection fields.
+- Kept ZIP bytes, extracted bytes, `Blob`, `File`, object URLs, candidates, Import draft records, and project asset records out of the cache.
+- Preserved direct shared-file fetch/stage behavior.
+- Kept selected ZIP entry extraction guarded by real archive bytes rather than trusting cached metadata.
+- Kept local library behavior, native downloads, Import accept/project asset behavior, shared-folder listing, `.stp` support, STEP loader work, builder behavior, and compatibility verdicts deferred.
+
+#### Behavior Changes
+- Added `pubPartsArchiveManifestCache` with the `parahook:catalog:pubparts-archive-manifest-cache` localStorage key, schema sanitization, versioned cache keys, and a clear helper for tests/future global resets.
+- Extended shared-link archive inspection to return raw entry metadata and exposed resolver-owned mapping from cached ZIP entries into current staged-source candidates.
+- Updated `CatalogSurface` to check the archive manifest cache after user action and before live ZIP fetch/listing.
+- Wrote cache entries after successful live ZIP listing.
+- Added cache hit, miss, stale-version, no-byte-storage, and staged-source-clear boundary tests.
+
+#### Files Changed
+- `src/app/catalog/pubPartsArchiveManifestCache.ts`
+- `src/app/catalog/pubPartsArchiveManifestCache.test.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-12 - Efficient PubParts ZIP Inspection And Selected Extraction.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsArchiveManifestCache.test.ts src/app/catalog/pubPartsZipArchive.test.ts src/app/catalog/pubPartsSharedLinkResolver.test.ts` passed, 3 files / 26 tests.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 29 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1614 -->
+
+### [1614] - 2026-04-21 00:38 - `Catalog-Gen2-12 / Phase 3 - Selected ZIP Entry Extraction To Import Review`
+
+<!-- ENTRY 1614 -->
+HUMAN SUMMARY: `PubParts ZIP source options can now stage selected supported archive entries into Import review. ParaHook extracts only selected safe ZIP entries, creates object URLs, preserves PubParts attribution, and appends the files through the existing Import review draft instead of creating project assets directly.`
+
+#### Scope / Constraints Honored
+- Extracted only selected supported archive entries from a user-inspected/refetched ZIP Blob.
+- Rebuilt ZIP entry metadata from the actual archive before extraction and reused the existing safety, support, size, directory, hidden/system, and entry-count guards.
+- Preserved direct shared-file fetch/staging behavior.
+- Kept staging all-or-nothing: if any selected direct or archive file fails to materialize, no Import draft files are appended.
+- Kept manifest caching, persistent ZIP byte storage, extract-all behavior, shared-folder listing, `.stp` support, STEP loader work, builder behavior, compatibility verdicts, and pre-Import project asset creation deferred.
+
+#### Behavior Changes
+- Added selected-entry ZIP extraction in `pubPartsZipArchive`, including stable extraction errors and fixture tests for supported, unsupported, unsafe, missing, oversized, over-count, and malformed archive cases.
+- Added PubParts archive candidate materialization helpers in `pubPartsSharedLinkResolver`, including reusable-blob materialization, one-ZIP refetch fallback, File/Blob object URL creation, and stale/unsupported candidate rejection.
+- Updated `CatalogSurface` to keep the inspected ZIP blob ephemerally in the source-options dialog state and reuse it for `Stage Selected` when the staged source/source URL still match.
+- Updated source-options staging so archive-only, direct-only, and mixed direct/archive selections materialize first and append one combined Import draft batch on success.
+- Updated source-options copy so supported archive entries are no longer described as metadata-only now that selected extraction is available.
+
+#### Files Changed
+- `src/app/catalog/pubPartsZipArchive.ts`
+- `src/app/catalog/pubPartsZipArchive.test.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-12 - Efficient PubParts ZIP Inspection And Selected Extraction.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsZipArchive.test.ts src/app/catalog/pubPartsSharedLinkResolver.test.ts` passed, 2 files / 20 tests.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 27 tests.
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx` passed, 3 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1613 -->
+
+### [1613] - 2026-04-21 00:25 - `Catalog-Gen2-12 / Phase 2 - Source Options Real ZIP Listing`
+
+<!-- ENTRY 1613 -->
+HUMAN SUMMARY: `PubParts ZIP source options now inspect a single user-selected Dropbox archive in the browser and show real archive entries instead of the hard-coded Gripples manifest proof. Supported ZIP entries can be selected only as metadata choices for now; actual extraction and Import staging remain later work.`
+
+#### Scope / Constraints Honored
+- Preserved synchronous `resolvePubPartsSharedLinkCandidates` behavior for direct files and immediate ZIP placeholders.
+- Added a separate async ZIP inspection path that fetches exactly one user-triggered archive and reuses the Dropbox `dl=1` direct-download URL conversion.
+- Retired the production hard-coded Gripples manifest and moved Gripples coverage to fixture-backed ZIP tests.
+- Kept archive-entry `Stage Selected` metadata-only, with no selected ZIP entry extraction, Import draft staging from archive entries, object URLs, manifest cache, eager ZIP fetch, shared-folder listing, `.stp` support, STEP loader work, builder behavior, or compatibility verdicts.
+
+#### Behavior Changes
+- Added `inspectPubPartsSharedLinkArchiveCandidates` to fetch one ZIP Blob, list entries through `pubPartsZipArchive`, and map ZIP metadata into `PubPartsSharedLinkCandidate` records.
+- Added archive candidate metadata for normalized archive path, compressed size, directory state, entry classification, and blocked reason.
+- Updated `CatalogSurface` so ZIP source options open immediately with an inspecting status, then replace the placeholder with real ZIP entries when inspection succeeds.
+- Updated source-options busy handling so archive inspection is separate from Import staging and the primary button reads `Inspecting...` while the ZIP is being listed.
+- Added fallback copy for fetch/non-OK/malformed ZIP inspection failures that keeps `Open Source` and manual local import guidance available without inventing archive contents.
+
+#### Files Changed
+- `src/app/catalog/pubPartsSharedLinkResolver.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-12 - Efficient PubParts ZIP Inspection And Selected Extraction.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsZipArchive.test.ts src/app/catalog/pubPartsSharedLinkResolver.test.ts` passed, 2 files / 14 tests.
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx` passed, 26 tests.
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx` passed, 3 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1612 -->
+
+### [1612] - 2026-04-21 00:15 - `Catalog-Gen2-12 / Phase 1 - Browser ZIP Reader And Entry Manifest Contract`
+
+<!-- ENTRY 1612 -->
+HUMAN SUMMARY: `Catalog now has the browser ZIP reader foundation for PubParts archives without changing the user-facing source-options flow yet. A pure helper can list ZIP Blob entries, normalize metadata, classify supported and unsafe entries, and expose stable guard constants for later on-demand ZIP inspection and selected extraction phases.`
+
+#### Scope / Constraints Honored
+- Installed only the approved `@zip.js/zip.js` runtime dependency and kept `package.json` plus `package-lock.json` as the only package metadata updates.
+- Added only the pure Catalog ZIP archive helper and focused fixture tests for this phase.
+- Did not touch Catalog UI, `CatalogSurface`, source-options behavior, Import staging, object URL creation, Dropbox fetch, archive extraction/materialization, project assets, or manifest caching.
+
+#### Behavior Changes
+- Added `listPubPartsZipArchiveEntries(archiveBlob, options?)` to list ZIP entries from a browser `Blob` and close the ZIP reader in `finally`.
+- Added normalized entry metadata for archive path, display name, extension, classification, support state, size fields, last-modified time, directory state, blocked reason, description, and selectability.
+- Classified supported `.step`, `.stl`, `.obj`, and `.glb` entries as selectable metadata when safe and within size guards.
+- Kept `.stp`, `.3mf`, `.pdf`, unknown file types, directories, unsafe paths, hidden/system-looking paths, unknown-size entries, oversized entries, over-count archives, and malformed ZIP failures non-importable in this phase.
+- Exported default guard constants for `100 * 1024 * 1024` byte entries and `2000` entries per archive.
+
+#### Files Changed
+- `package.json`
+- `package-lock.json`
+- `src/app/catalog/pubPartsZipArchive.ts`
+- `src/app/catalog/pubPartsZipArchive.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-12 - Efficient PubParts ZIP Inspection And Selected Extraction.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsZipArchive.test.ts` passed, 5 tests.
+- `npm.cmd test -- src/app/catalog/pubPartsSharedLinkResolver.test.ts` passed, 6 tests.
+- `npm.cmd run build` passed with existing Vite `occt-import-js` `path`/`crypto` externalization warnings and the existing large chunk warning.
+
+<!-- ENTRY 1611 -->
+
+### [1611] - 2026-04-20 23:47 - `Catalog-Gen2-11 / Phase 2 - ZIP And Archive Candidate Inspection`
+
+<!-- ENTRY 1611 -->
+HUMAN SUMMARY: `PubParts source options can now show trusted manifest-backed ZIP contents without pretending the browser has parsed the archive. The real 3d Printed Gripples Dropbox ZIP lists its supported STL and unsupported 3MF/PDF entries with paths and sizes, while archive selections stay metadata-only until a later extraction owner materializes files.`
+
+#### Scope / Constraints Honored
+- Kept this as a deterministic manifest-backed candidate-choice proof, without adding browser ZIP parsing, archive extraction, Dropbox API/helper behavior, native download, `.stp` support, STEP loader work, builder behavior, or compatibility verdicts.
+- Preserved Phase 1 direct shared-file fetch/stage behavior for supported `.step`, `.glb`, `.obj`, and `.stl` shared links.
+- Kept Import review and project asset creation out of archive-entry selections because archive bytes are not materialized in this phase.
+
+#### Behavior Changes
+- Added a manifest-backed archive candidate provider seam for known PubParts archive URLs.
+- Seeded the first manifest from the real `3d Printed Gripples` Dropbox ZIP with `gripple_standard.stl` as the supported metadata candidate and `gripple_standard.3mf` plus the included PDF as unsupported visible entries.
+- Updated the source-options dialog to show archive path, size when known, support state, and source URL context.
+- Changed `Stage Selected` for archive-entry candidates to report that extraction/materialization is still required instead of fetching ZIP bytes or opening Import review.
+- Left plain ZIP/archive URLs without a trusted manifest as `Archive Needs Inspection` with no selectable files.
+
+#### Files Changed
+- `src/app/catalog/pubPartsSharedLinkResolver.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-11 - Dropbox Shared-Link Resolver And Candidate Choice.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1610 -->
+
+### [1610] - 2026-04-20 23:35 - `Catalog-Gen2-11 / Phase 1 - Dropbox Shared Direct File Resolver`
+
+<!-- ENTRY 1610 -->
+HUMAN SUMMARY: `PubParts Add To Project now opens a Catalog-owned source-options window from the item source link, shows what file candidate ParaHook can see, and stages selected supported direct shared files into Import review with PubParts attribution. ZIP/archive links are visible as inspection-needed candidates instead of pretending they are already importable.`
+
+#### Scope / Constraints Honored
+- Kept this as a shared-link resolver and source-options staging phase, without adding Dropbox OAuth, shared-folder listing, ZIP extraction, native filesystem download, STEP loader fidelity, builder runtime, or compatibility verdicts.
+- Preserved Import ownership for staged review, accepted file types, object URLs, and final project assets.
+- Kept ZIP/archive candidates disabled until a later inspection/listing owner can prove supported files inside the archive.
+
+#### Behavior Changes
+- Added a PubParts shared-link resolver that classifies direct supported files, `.stp` Import gaps, ZIP/archive links, unsupported links, and unknown links.
+- Changed PubParts item-page `Add To Project` to stage the source link if needed and open a floating `PubParts Source Options` dialog.
+- Added source-options controls for selected supported candidates: select all supported, clear selection, open source, close, and stage selected.
+- Direct supported `.step`, `.glb`, `.obj`, and `.stl` candidates can be fetched and handed to the existing staged Import review path with PubParts attribution.
+- Updated item-page copy so the local-library/manual file picker remains the fallback when source options cannot resolve the file automatically.
+
+#### Files Changed
+- `src/app/catalog/pubPartsSharedLinkResolver.ts`
+- `src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `src/app/catalog/ui/CatalogShellSourceOptionsDialog.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-11 - Dropbox Shared-Link Resolver And Candidate Choice.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/pubPartsSharedLinkResolver.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1609 -->
+
+### [1609] - 2026-04-20 23:17 - `Catalog-Gen2-10 - Dropbox Chooser Startup Diagnostic Repair`
+
+<!-- ENTRY 1609 -->
+HUMAN SUMMARY: `The PubParts Add To Project bridge now makes the missing Dropbox Chooser setup visible and preloads the Chooser script when the app key is configured, so a click is less likely to appear inert. Focused bridge and Catalog surface tests cover the setup-needed and preload paths.`
+
+#### Scope / Constraints Honored
+- Kept the bridge on Dropbox Chooser, without adding OAuth, shared-link API browsing, folder listing, archive extraction, or native filesystem download behavior.
+- Preserved the existing Import staged-review handoff and PubParts attribution flow.
+- Did not add a real Dropbox app key to the repo; the runtime still requires a local `VITE_DROPBOX_CHOOSER_APP_KEY` value.
+
+#### Behavior Changes
+- Added a Chooser preload helper so Catalog can load Dropbox's script before the user presses `Add To Project` when an app key is configured.
+- Added a missing-key guard that shows `Dropbox Setup Needed` instead of staging source metadata and then failing silently through the async Chooser loader.
+- Added focused tests for no-key diagnostics and preload-ready behavior.
+
+#### Files Changed
+- `src/app/catalog/dropboxChooserBridge.ts`
+- `src/app/catalog/dropboxChooserBridge.test.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/dropboxChooserBridge.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1608 -->
+
+### [1608] - 2026-04-20 23:01 - `Catalog-Gen2-10 - Dropbox Chooser Add-To-Project Bridge`
+
+<!-- ENTRY 1608 -->
+HUMAN SUMMARY: `External PubParts item pages now have a primary Add To Project bridge that opens Dropbox Chooser for supported model files, fetches the selected direct link as a browser file, and hands it to the existing Import staged-review flow with PubParts source attribution preserved. The local-library fallback remains available, and heavier shared-link/archive/native-download behavior stays deferred.`
+
+#### Scope / Constraints Honored
+- Kept this as the first direct Dropbox bridge, using Dropbox Chooser and user-selected files rather than adding Dropbox shared-link API crawling, folder listing, OAuth, archive extraction, or native filesystem download behavior.
+- Preserved Import ownership for file objects, object URLs, staged import review, supported reference import types, and final accepted project references.
+- Kept `.stp` honest as a detected but currently unsupported Import reference type, surfacing an import-gap status instead of pretending it can be imported through the current GLB/OBJ/STL path.
+- Preserved existing PubParts source staging, local-library fallback controls, builder behavior, STEP fidelity, and compatibility verdict boundaries.
+
+#### Behavior Changes
+- Added a typed `dropboxChooserBridge` adapter that loads Dropbox Chooser from the configured app key, filters to `.step`, `.stp`, `.glb`, `.obj`, and `.stl`, normalizes selected file metadata, and fetches selected supported direct links into browser file/object-URL references for Import review.
+- Added a primary `Add To Project` row for external PubParts item pages that opens Dropbox Chooser, ensures the PubParts source is staged, fetches the selected file, opens Import staged review, and appends the file with PubParts source attribution.
+- Added visible Dropbox bridge status reads for unavailable, canceled, unsupported, fetching, ready-for-import-review, failed, and `.stp` unsupported-import-type states.
+- Kept the previous local-library flow available as an explicit fallback for known PubParts item folders.
+
+#### Files Changed
+- `src/app/catalog/dropboxChooserBridge.ts`
+- `src/app/catalog/dropboxChooserBridge.test.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-10 - Dropbox Chooser Add-To-Project Bridge.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/dropboxChooserBridge.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/workspace/HomePageSurface.test.tsx src/app/workspace/homePageStorageTransparency.test.ts`
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1607 -->
+
+### [1607] - 2026-04-20 21:52 - `Catalog-Gen2-9 - Local PubParts Library Folder And Auto-Discovery Handoff`
+
+<!-- ENTRY 1607 -->
+HUMAN SUMMARY: `PubParts downloads now have a browser-honest local-library loop: Home Page can enable the PubParts Library status, Catalog can prepare per-item folder and manifest metadata, Local Downloads shows prepared PubParts items, and item pages advance through one local-library action before handing local files to Import.`
+
+#### Scope / Constraints Honored
+- Kept Catalog from silently reading `Downloads`, creating folders on disk, fetching remote bytes, listing or extracting archives, persisting raw filesystem handles, or claiming downloaded files as project assets.
+- Kept Import as the owner of local file selection, supported-file handling, file objects, staged import review, and later folder scanning/archive extraction.
+- Kept STEP loader fidelity, builder/runtime load behavior, and compatibility verdicts deferred to their owning families.
+- Preserved the existing staged PubParts source-link behavior while making staged-source mutations preserve local-library metadata.
+
+#### Behavior Changes
+- PubParts downloads storage now includes local-library status plus per-item local source records with folder paths, source manifest metadata, source version keys, and prepared/local status reads.
+- Home Page Storage Management now exposes a `PubParts Library` toggle/status control through the PubParts storage owner seam.
+- Catalog browse rail now includes a `Local Downloads` section for PubParts items with local-library metadata.
+- PubParts item pages now expose one local-library primary action that advances from `Prepare PubParts Folder` to `Stage Source Link` to `Import Local Files`.
+- Local Import handoff still uses the existing Import-owned local file picker and staged Import review dialog with PubParts attribution.
+
+#### Files Changed
+- `src/app/catalog/pubPartsDownloadsStorage.ts`
+- `src/app/catalog/pubPartsDownloadsStorage.test.ts`
+- `src/app/catalog/ui/CatalogShell.tsx`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/workspace/HomePageSurface.tsx`
+- `src/app/workspace/HomePageSurface.test.tsx`
+- `src/app/workspace/homePageStorageTransparency.ts`
+- `src/app/workspace/homePageStorageTransparency.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Vision.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-9 - Local PubParts Library Folder And Auto-Discovery Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/workspace/HomePageSurface.test.tsx src/app/workspace/homePageStorageTransparency.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/pubPartsCachedSource.test.ts src/app/catalog/pubPartsSource.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1606 -->
+
+### [1606] - 2026-04-20 20:41 - `Catalog-Gen2-5 / Phase 2.3 - Catalog Surface Cleanup And Scroll Containment`
+
+<!-- ENTRY 1606 -->
+HUMAN SUMMARY: `Catalog's dense Gen2 surface is now more readable: the browse rail and staged PubParts source list contain their own overflow, scrollbars match the dark theme, Catalog text is more compact, and item-page previews are square.`
+
+#### Scope / Constraints Honored
+- Kept the cleanup limited to Catalog layout, styling, and staged-row markup.
+- Kept source contracts, item data, action kinds, preview/import behavior, starting-configuration runtime, STEP loader behavior, and PubParts staging semantics unchanged.
+- Scoped scrollbar styling to Catalog surfaces instead of changing the whole app.
+- Preserved staged PubParts source row data attributes and clear controls while splitting long row text into label, status, inspection, and URL spans.
+
+#### Behavior Changes
+- Catalog scroll containers now use dark-mode scrollbar styling and the left browse rail can scroll vertically when source/status content exceeds available height.
+- Preview-session and PubParts staged-source rail lists are capped and scroll internally.
+- Long source URLs, staged statuses, card metadata, detail rows, source rows, and notices wrap inside their containers instead of visually overlapping.
+- Catalog typography is scaled down for the denser source-heavy UI.
+- Item-page preview surfaces are square, centered, and responsive while preserving existing preview ownership.
+
+#### Files Changed
+- `src/app/theme/surfaces/catalog.css`
+- `src/app/catalog/ui/CatalogShellBrowseRail.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-5 - Pre-Built PubWheel Starting Assemblies.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/ui/CatalogShell.test.tsx src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/catalogActionPlan.test.ts`
+- `npm.cmd run build`
+
+<!-- ENTRY 1603 -->
+
+### [1605] - 2026-04-20 18:53 - `Catalog-Gen2-8 / Phase 7 - Selected File Import Handoff`
+
+<!-- ENTRY 1605 -->
+HUMAN SUMMARY: `External PubParts item pages now show a selected-file Import-family handoff/status read after supported direct file selection, preserving source attribution while keeping remote URLs out of project assets until an Import owner can materialize them truthfully.`
+
+#### Scope / Constraints Honored
+- Kept Phase 7 scoped to selected-file handoff/status, not real remote URL import.
+- Kept selected PubParts files external source metadata, not repo-local `assetPath` or imported project assets.
+- Kept `.step`, `.glb`, `.obj`, and `.stl` as Import-family handoff candidates that remain not downloaded and not imported.
+- Routed selected `.stp` candidates to Import/reference type support instead of pretending current reference import accepts them.
+- Did not add action kinds, `add-to-project`, remote fetch/download, object URLs, imported reference ids, project commits, archive extraction, builder behavior, compatibility verdicts, or STEP loader fidelity.
+
+#### Behavior Changes
+- Added a selected-file handoff resolver in `catalogShellShared.ts` that preserves PubParts provider, source page, linked source candidate, freshness, selected file, and source metadata attribution while returning `canCreateProjectAsset: false`.
+- Rendered the selected-file import handoff/status on external PubParts item pages with stable selectors near the supported-file chooser.
+- Proved external PubParts entries still do not produce repo reference commit requests.
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/catalog/catalogReferenceCommit.test.ts`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-8 - External PubParts Supported-File Import Handoff.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/catalog/catalogReferenceCommit.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+### [1604] - 2026-04-20 18:30 - `Catalog-Gen2-8 / Phase 5 - User-Triggered Source And Archive Inspection`
+
+<!-- ENTRY 1604 -->
+HUMAN SUMMARY: `Catalog staged PubParts source links can now be metadata-inspected by user action, classifying direct supported file URLs while keeping archive contents unknown until later inspection/import phases.`
+
+Catalog now has a user-triggered source inspection step for staged PubParts metadata:
+- added metadata-inspection result types and storage helpers to classify only the staged source candidate URL from `linkedArchiveUrl`.
+- kept `binaryStatus: not-downloaded` and `importStatus: not-imported` unchanged after inspection.
+- classified `.step`, `.stp`, `.glb`, `.obj`, and `.stl` staged URLs as supported direct file candidates from URL metadata only.
+- classified Dropbox/shared-source and `.zip` URLs as archive/source inspection needed, explicitly preserving that contents remain unknown.
+- kept unsupported and unknown direct candidates visible instead of dropping them.
+- added item-page `Inspect Staged Source Metadata` behavior and staged-source status rendering without using source-page, external item, source, or preview image URLs as fallbacks.
+- kept Catalog action kinds, external PubParts action plans, snapshot lanes, source-page links, linked archive metadata/classification, eager images, builder behavior, compatibility behavior, byte download, extraction, chooser behavior, import handoff, project commits, and STEP loader fidelity unchanged.
+
+Verification:
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/workspace/CatalogSurface.test.tsx` passed: 4 files, 54 tests.
+- `npm.cmd run build` passed with the existing Vite/OCCT browser externalization and chunk-size warnings.
+
+<!-- ENTRY 1602 -->
+
+### [1603] - 2026-04-20 18:20 - `Catalog-Gen2-8 / Phase 4 - Staged Downloads List And Clear Controls`
+
+<!-- ENTRY 1603 -->
+HUMAN SUMMARY: `Catalog now shows staged PubParts source-link metadata in the browse rail and lets users clear one or all staged records without touching downloaded bytes, imported assets, preview sessions, action plans, or project history.`
+
+Catalog now exposes staged PubParts source metadata as a visible Catalog workflow list:
+- added per-record and clear-all helpers for the `parahook:catalog:pubparts-downloads` staged metadata state.
+- rendered a `PubParts Source Staging` rail panel with empty, listed, per-record clear, and clear-all states.
+- kept staged rows explicit as metadata only with `Not downloaded`, `Not inspected`, and `Not imported` status copy.
+- made clearing a matching staged record immediately return the open item page from `Source Link Staged` to `Stage Source Link`.
+- kept clear operations scoped to staged PubParts metadata and out of Catalog snapshot lanes, imported references, project assets, attribution history, preview sessions, source links, archive metadata/classification, eager images, action plans, builder behavior, and compatibility behavior.
+- left source/archive inspection, extraction, chooser behavior, selected-file import, project commits, STEP loader fidelity, builder behavior, and compatibility verdicts deferred.
+
+Verification:
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx` passed: 3 files, 44 tests.
+- `npm.cmd run build` passed with the existing Vite/OCCT browser externalization and chunk-size warnings.
+
+<!-- ENTRY 1601 -->
+
+### [1602] - 2026-04-20 18:14 - `Catalog-Gen2-8 / Phase 3 - User-Triggered Source Download Or Staging`
+
+<!-- ENTRY 1602 -->
+HUMAN SUMMARY: `External PubParts item pages can now stage linked source candidates as metadata-only records in the PubParts downloads bucket, making the source-entry to staged-source lifecycle visible without downloading, inspecting, choosing, importing, or committing files.`
+
+Catalog now has the first user-triggered PubParts source staging step:
+- added schema-versioned PubParts downloads storage state, staged source records, sanitization, read/write, lookup, and upsert helpers in `pubPartsDownloadsStorage.ts`.
+- added `Stage Source Link` item-page behavior for external PubParts entries with `linkedArchiveUrl` candidates.
+- added immediate `Source Link Staged` item-page status showing the staged record is metadata only, source bytes are not downloaded, contents are not inspected, and no project asset has been imported.
+- preserved provider/source attribution, candidate URL, source-page/context URLs, preview image URL, freshness fields, and source metadata rows in staged records.
+- kept staging out of Catalog snapshot lanes and kept external PubParts action plans preview-only with no `add-to-project`.
+- left binary download, source/archive inspection, extraction, chooser behavior, selected-file import, project commits, STEP loader fidelity, builder behavior, and compatibility verdicts deferred to later phases.
+
+Verification:
+- `npm.cmd test -- src/app/catalog/pubPartsDownloadsStorage.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/workspace/CatalogSurface.test.tsx` passed: 4 files, 49 tests.
+- `npm.cmd run build` passed with the existing Vite/OCCT browser externalization and chunk-size warnings.
+
+<!-- ENTRY 1600 -->
+
+### [1601] - 2026-04-20 18:04 - `Catalog-Gen2-8 / Phase 2 - External Source Action Boundary`
+
+<!-- ENTRY 1601 -->
+HUMAN SUMMARY: `External PubParts item pages now show a disabled planned source-action boundary for linked source candidates while keeping downloads, staging, inspection, chooser, import, action kinds, and project commits out of Phase 2.`
+
+External PubParts item pages now expose the next source-action boundary without starting any source work:
+- added a pure `resolveCatalogExternalSourceActionBoundary(...)` helper that recognizes PubParts entries with `linkedArchiveUrl` as planned source candidates.
+- rendered a disabled `Inspect Files Planned` item-page affordance with `data-catalog-external-source-action-boundary={item.itemId}`.
+- kept source-page URLs, linked archive metadata/classification, eager preview images, and existing preview action behavior separate.
+- kept `CATALOG_ITEM_ACTION_KINDS` unchanged and external PubParts action plans preview-only with no `add-to-project`.
+- left source download, staging records, archive inspection/extraction, chooser, selected-file import, builder behavior, and compatibility verdicts deferred to later Gen2-8 phases.
+
+Verification:
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/workspace/CatalogSurface.test.tsx` passed: 3 files, 45 tests.
+- `npm.cmd run build` passed with the existing Vite/OCCT browser externalization and chunk-size warnings.
+
+<!-- ENTRY 1599 -->
+
+### [1600] - 2026-04-20 17:45 - `Catalog-Gen2-8 / PubParts Downloads Storage Groundwork`
+
+<!-- ENTRY 1600 -->
+HUMAN SUMMARY: `Home Page Storage Management now shows a dedicated PubParts downloads local storage bucket and user-facing folder path, giving later PubParts source downloads an explicit staging home before archive inspection, chooser, or import behavior ships.`
+
+This storage groundwork adds the first visible PubParts download staging owner:
+
+- added `pubPartsDownloadsStorage.ts` with the `parahook:catalog:pubparts-downloads` localStorage key
+- defined the user-facing storage folder path as `Catalog/PubParts/Downloads`
+- added the PubParts downloads bucket to Home Page Storage Management size/inventory reads
+- rendered the folder path on the Home Page storage row without changing existing persistence toggles
+- kept this as storage visibility only, with no archive download, extraction, supported-file chooser, import, builder, or compatibility behavior
+
+Focused Home Page storage tests and `npm.cmd run build` passed with the existing Vite/OCCT warnings.
+
+### [1599] - 2026-04-20 17:18 - `Catalog-Gen2-7 / Phase 3 - Eager PubParts Preview Images`
+
+<!-- ENTRY 1599 -->
+HUMAN SUMMARY: `External PubParts cards now display their preview images eagerly on initial Catalog load, including PubParts-root-relative image paths normalized to the PubParts origin, without turning archives, models, STEP files, or builder actions into eager loads.`
+
+This phase completes the full PubParts population and eager image follow-up:
+
+- added a PubParts preview image URL normalizer for absolute `http(s)`, protocol-relative, root-relative `/images/...`, and array-shaped `imageSrc` values
+- kept raw cached PubParts source records unchanged while normalizing only the normalized source item preview URL
+- rendered external PubParts image previews eagerly in Catalog grid cards and item pages without requiring initial temporary preview-session membership
+- preserved existing source-page and linked-archive/source-details behavior without using those URLs as image previews
+- kept repo/import model previews, planned heavy STEP entries, archive links, builder load, add-to-project behavior, and compatibility verdicts outside this image display slice
+
+Focused PubParts/source/shared/surface tests and `npm.cmd run build` passed with the existing Vite/OCCT warnings.
+
+<!-- ENTRY 1598 -->
+
+### [1598] - 2026-04-20 17:11 - `Catalog-Gen2-7 / Phase 2 - All Cached PubParts Parts In Catalog`
+
+<!-- ENTRY 1598 -->
+HUMAN SUMMARY: `Catalog now composes the full cached PubParts parts set in the live surface, so all 319 cached part records appear as external-linked entries while resources remain separate and eager image rendering stays deferred.`
+
+This phase wires the accepted full PubParts cache into live Catalog population:
+
+- `CatalogSurface` now reads PubParts part records from `readCachedPubPartsFullPartSourceItems()`
+- the filtered GT proof slice is not appended into live composition, preventing duplicate cards from filtered endpoint overlap
+- the separate cached PubParts resource sample remains a separate external resource record rather than part-count proof
+- `buildCatalogSectionOptions(...)` now counts external items through the same browse-section key resolver used by visible item filtering
+- focused tests prove 319 external PubParts part records, separate resources, duplicate prevention for known overlap, external section/filter/search reads, and source-lane-safe external actions
+
+No eager image rendering, PubParts-root-relative image URL normalization, archive download/import, local asset conversion, add-to-project behavior, heavy STEP preview, builder load, or compatibility verdict shipped in this phase. Phase 3 owns eager PubParts preview image display.
+
+<!-- ENTRY 1597 -->
+
+### [1597] - 2026-04-20 17:02 - `Catalog-Gen2-7 / Phase 1 - Full PubParts Cache Coverage`
+
+<!-- ENTRY 1597 -->
+HUMAN SUMMARY: `Catalog now has a deterministic full PubParts parts cache path, with all 319 current parts preserved as raw source data and dedupe helpers ready for later live Catalog population without appending filtered endpoint duplicates.`
+
+This phase adds the source/cache infrastructure for full PubParts part coverage:
+
+- a deterministic `scripts/catalog/refreshPubPartsCache.mjs` refresh script for `https://pubparts.xyz/parts.json`
+- a generated `src/app/catalog/pubpartsSourceData/fullParts.ts` module with 319 raw part records
+- a full cached parts source set and read helper in `pubPartsCachedSource.ts`
+- dedupe behavior that keeps the authoritative full `parts.json` records while preventing filtered endpoint overlap from creating extra normalized part items
+- source-set attribution preservation for duplicate filtered records
+- image source array normalization so records with array-shaped `imageSrc` still expose a usable `previewImageUrl`
+
+Filtered `parts/gt.json` data remains proof/guardrail data, not part of the default full path. Resources remain separate from parts. No production browser fetch, live sync, eager image UI rendering, archive download/import, local asset conversion, add-to-project behavior, builder behavior, or compatibility verdict shipped. Focused PubParts/cache/source tests and `npm.cmd run build` passed.
+
+<!-- ENTRY 1596 -->
+
+### [1596] - 2026-04-20 16:02 - `Catalog-Gen2-4.5 / Phase 2 - XR PubWheel 1 Asset Set Migration`
+
+<!-- ENTRY 1596 -->
+HUMAN SUMMARY: `The live XR PubWheel planned starting assembly now carries a structured versioned source asset set, keeping the STEP preferred-source and GLB companion-mesh files together under pubwheel_1 / v1 without creating duplicate Catalog cards.`
+
+Catalog now migrates the live `XR PubWheel Assembly 1` planned seed from bridge-only companion metadata into the accepted `sourceAssetSet` shape while preserving the existing planned-source bridge fields for compatibility:
+
+- `sourceAssetPath: 'Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step'`
+- `sourceAssetFormat: 'step-or-stp'`
+- `sourceFileSizeBytes: 73126597`
+- `sourceStatus: 'known-heavy-source'`
+
+The migrated source asset set records:
+
+- `sourceId: 'pubwheel_1'`
+- `currentVersionId: 'v1'`
+- one STEP `preferred-source` variant for `Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step`
+- one GLB `companion-mesh` variant for `Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.glb`
+
+The source snapshot still exposes one XR planned item, not one item per file. Planned entries remain non-previewable and action-planned/disabled, ADV remains bridge-only in this phase, and no heavy STEP preview, GLB runtime, Import-5 loader behavior, builder load, compatibility verdicts, or platform placeholders shipped. Focused Catalog tests and `npm.cmd run build` passed.
+
+<!-- ENTRY 1595 -->
+
+### [1595] - 2026-04-20 15:55 - `Catalog-Gen2-4.5 / Phase 1 - Versioned Multi-File Asset Set Contract`
+
+<!-- ENTRY 1595 -->
+HUMAN SUMMARY: `Catalog planned source records can now describe versioned multi-file asset sets as metadata-only source truth, so a future XR PubWheel migration can keep STEP and GLB variants together under one source version without creating duplicate cards.`
+
+#### Scope / Constraints Honored
+- added reusable source asset-set contract types for planned source records, including source versions and file variants
+- added optional `sourceAssetSet` to `CatalogPlannedItemSource` while preserving `assetPath?: never`
+- added source-detail helper rows for source identity, current version, preferred source variant, and companion mesh variant
+- proved `pubwheel_1` / `v1` with STEP preferred-source and GLB companion-mesh fixture coverage
+- kept live `XR PubWheel Assembly 1` and `ADV Full Assembly` seed data on the existing planned-source bridge until the Phase 2 migration owns live seed conversion
+- did not enable heavy STEP preview, GLB preview/fallback runtime, Import-5 loader fidelity, builder load, compatibility verdicts, or platform placeholders
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1594 -->
+
+### [1594] - 2026-04-20 15:40 - `Catalog-Gen2-5 / Phase 2.2 - XR PubWheel Planned Starting Assembly Source`
+
+<!-- ENTRY 1594 -->
+HUMAN SUMMARY: `Catalog now carries the supplied XR PubWheel full assembly as a disabled planned starting assembly source, with the STEP copied into the repo as source truth and the GLB recorded as a companion mesh path for later preview/import planning.`
+
+#### Scope / Constraints Honored
+- copied `Assembly_XR_Pubwheel_1.step` to `public/Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step`
+- copied `Assembly_XR_Pubwheel_1.glb` to `public/Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.glb`
+- added `XR PubWheel Assembly 1` as a planned starting assembly seed with `sourceKind: 'planned'`, `platformCompatibility: ['XR']`, source path `Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step`, and `73126597` byte size metadata
+- recorded the GLB companion mesh path and `79230220` byte size as metadata only
+- updated planned starting assembly tests so the snapshot now contains ADV and XR planned entries while `GT`, `Pint`, and `XR Classic` placeholders remain absent
+- did not enable repo `assetPath` preview, GLB preview media, heavy STEP load behavior, load-as-starting-configuration runtime, Import-5 loader behavior, compatibility verdicts, or fake assembly geometry
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1593 -->
+
+### [1593] - 2026-04-20 15:35 - `Catalog-Gen2-5 / Phase 2.1 - Planned Starting Assembly Entry Contract For Heavy STEP Starts`
+
+<!-- ENTRY 1593 -->
+HUMAN SUMMARY: `Catalog can now publish the verified ADV full-assembly STEP candidate as a disabled planned starting assembly card without letting the 55.8 MB source flow through repo assetPath preview behavior.`
+
+#### Scope / Constraints Honored
+- added `sourceKind: 'planned'` with `assetPath?: never` and source label/path/format/size/status metadata
+- added a separate planned starting assembly seed list for the verified ADV STEP candidate while keeping repo seeds asset-backed only
+- added `CatalogSourceSnapshot.plannedItems` and kept `repoItems`, `importsItems`, `plannedItems`, and explicit `externalItems` distinct
+- added planned action-plan behavior with disabled `Preview Planned`, no secondary action, no preview owner, and no downstream owner
+- updated shared Catalog copy/source details so planned entries do not read as repo-backed, imports reuse, external PubParts, or environment-only no-preview entries
+- kept `CATALOG_ITEM_ACTION_KINDS` unchanged
+- did not add GT/Pint/XR/XR Classic placeholder assemblies
+- did not enable heavy STEP preview, builder load, project commit, archive import, Import-5 loader behavior, compatibility verdicts, or fake assembly geometry
+
+#### Verification
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogActionPlan.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1592 -->
+### [1592] - 2026-04-20 14:51 - `Catalog-Gen2-4 / Phase 1 - External Type System Mapping Baseline`
+
+<!-- ENTRY 1592 -->
+HUMAN SUMMARY: `External PubParts part-type source labels now classify into existing ParaHook Catalog system/type/group fields only for safe current labels, while raw PubParts Part Type metadata remains visible and searchable.`
+
+#### Scope / Constraints Honored
+- added the exported `buildCatalogExternalTypeClassification(...)` helper in `catalogSource.ts`
+- accepted scalar strings, string arrays, comma-joined metadata strings, `null`, and `undefined`
+- mapped `Footpad Attachment` to platform-owned `Footpad Attachment` with `Footpads`
+- mapped any label set containing `Controller Box` to platform-owned `Controller Box` with `Boxes`
+- mapped `Rim Saver` to wheel-owned `Rim Saver` without forcing a bad `partGroups` value
+- preserved raw PubParts `Part Type` metadata rows exactly and kept platform compatibility separate from system ownership
+- did not add new contract fields, systems, part groups, fake motor/tire records, Power/Fasteners widening, compatibility verdicts, archive/import behavior, starting assemblies, action changes, filter rewrites, or cached source expansion
+
+#### Summary of Implementation
+- applied the classification helper inside external PubParts item creation so explicitly composed cached part records gain normalized fields only when safe
+- kept unknown, blank, resource, and unsupported labels without classification fields
+- extended focused source tests for helper behavior, cached item field assertions, raw metadata preservation, resource safety, and action/source stability
+- extended shared Catalog shell tests to prove existing system, part type, and part group filter paths can read the new external fields without new filter semantics
+
+#### Files Changed
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-4 - System-Level Part Organization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- external PubParts part records with safe current type labels now carry ParaHook-owned `systemKey`, `partType`, and safe `partGroups` values for existing filter/search reads
+- raw PubParts type text remains metadata source truth, and external records still use preview-only actions with no archive/import behavior
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1591 -->
+### [1591] - 2026-04-20 14:40 - `Catalog-Gen2-3 / Phase 2 - Sub-Platform Tags And Narrow Fitment Notes`
+
+<!-- ENTRY 1591 -->
+HUMAN SUMMARY: `External PubParts source labels that mention GT-S now add a metadata-only source fitment note while keeping canonical platform compatibility broad as GT.`
+
+#### Scope / Constraints Honored
+- added the exported `buildCatalogExternalPlatformFitmentMetadataRows(...)` helper in `catalogSource.ts`
+- detected exact source labels `GT/GT-S`, `GT-S`, and `GTS` across scalar strings, string arrays, and comma-joined metadata strings
+- returned one stable `Source Fitment Note` metadata row and de-duped repeated GT-S source labels
+- appended the source fitment note to external PubParts item metadata after existing source metadata rows
+- kept `platformCompatibility` unchanged, so `GT/GT-S` remains broad canonical `GT`
+- did not add tags, notes, new optional item fields, new canonical platform values, filters, browse modes, item-page special rendering, compatibility verdicts, builder slots, dimensional proof, archive/import behavior, fake repo motor/tire records, or `typeOfPart` system mapping
+
+#### Summary of Implementation
+- reused the Phase 1 source-label reading path for narrow fitment source truth
+- added focused source tests for GT-S label detection, de-dupe, non-GT-S fallbacks, cached PubParts metadata rows, and broad platform compatibility preservation
+- extended shared Catalog shell proof so `GT-S` search can find explicitly composed external PubParts records through metadata while platform filtering still uses broad canonical families
+
+#### Files Changed
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-3 - Platform And Fitment Normalization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- external PubParts part records with `GT/GT-S`, `GT-S`, or `GTS` source platform labels now carry a searchable source metadata note preserving the narrower source wording
+- broad canonical platform filtering remains based on `platformCompatibility`, with `GT/GT-S` still mapping to `GT`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1590 -->
+### [1590] - 2026-04-20 14:34 - `Catalog-Gen2-3 / Phase 1 - Canonical External Platform Mapping`
+
+<!-- ENTRY 1590 -->
+HUMAN SUMMARY: `External PubParts platform labels now normalize into ParaHook-owned Catalog platform families for explicitly composed external items, while raw PubParts platform wording remains inspectable source metadata.`
+
+#### Scope / Constraints Honored
+- added the exported `normalizeCatalogExternalPlatformCompatibility(...)` helper in `catalogSource.ts`
+- mapped `Floatwheel` to `ADV`, `GT/GT-S` to `GT`, `Pint/X/S` to `Pint`, `XR Classic` to `XR Classic`, `XR/Funwheel` to `XR`, and `Miscellaneous Items` or unknown nonblank labels to `Other`
+- accepted scalar strings, string arrays, and comma-joined metadata strings while trimming blanks and de-duping canonical families in first-source-label order
+- populated `platformCompatibility` only for external PubParts records with non-empty mapped platform values
+- preserved raw PubParts platform text in existing source metadata rows
+- did not change cached source data, live PubParts fetch behavior, sub-platform notes, `typeOfPart` system mapping, filter semantics, action kinds, archive/import behavior, fake motor/tire records, or compatibility verdicts
+
+#### Summary of Implementation
+- added the canonical external platform mapping helper and wired it into external PubParts item mapping
+- added focused source tests for helper mapping, array/comma input, de-dupe order, blank/null handling, fallback behavior, and cached external item platform compatibility
+- added shared Catalog shell proof that explicitly composed external PubParts items now participate in the existing platform compatibility filter path without a filter rewrite
+
+#### Files Changed
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-3 - Platform And Fitment Normalization.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- external PubParts part records can now carry canonical `platformCompatibility` values when explicitly composed into a Catalog source snapshot
+- the existing Platform Compatibility browse/filter path can read those canonical values without changing repo/import behavior
+- raw PubParts platform labels remain visible as source metadata for source-truth inspection
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1589 -->
+### [1589] - 2026-04-20 14:25 - `Catalog-7 / Phase 4 - Wheel-Specific Motor And Tire Fitment Fields`
+
+<!-- ENTRY 1589 -->
+HUMAN SUMMARY: `Catalog now has a narrow local wheel-fitment contract and item-page detail path for motor and tire metadata, while keeping live Catalog seed data honest because no real repo-backed motor or tire assets exist yet.`
+
+#### Scope / Constraints Honored
+- added `CatalogItemWheelFitment` with optional `motorVersion`, `hubSizeInches`, `tireSize`, and `tireCompound` fields
+- added optional `wheelFitment` support to `CatalogItemRecord` and `CatalogRepoSeedItem`
+- preserved wheel-fitment pass-through for repo-backed records and remembered imports without creating fake live motor or tire Catalog records
+- added a pure shared helper for stable wheel-fitment detail rows and rendered those rows on item pages near existing metadata
+- kept filter groups, search, browse modes, source labels, action kinds, external source intake, PubParts mapping, compatibility verdicts, builder slots, dimensional proof, and `Catalog-Gen2-3` mapping unchanged
+
+#### Summary of Implementation
+- extended the Catalog item contract with a structured wheel-fitment shape
+- carried optional wheel-fitment data through the repo and remembered-import source seams
+- added item-page detail rendering for present motor and tire fitment fields
+- added focused contract/source/helper proof using test literals instead of fabricated live catalog assets
+
+#### Files Changed
+- `src/app/catalog/catalogItemContract.ts`
+- `src/app/catalog/catalogSeedItems.ts`
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/catalog/catalogItemContract.test.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-7 - Local Part Taxonomy And Platform Filter Foundation.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen1-Index.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Behavior Changes (if any)
+- local Catalog records can now carry structured wheel-fitment metadata for motors and tires
+- item pages can display wheel-fitment metadata rows when a local wheel item has those fields
+- no new live motor/tire cards appear because no real repo-backed motor/tire assets were added
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx`
+- `npm.cmd run build`
+
+<!-- ENTRY 1588 -->
+### [1588] - 2026-04-20 14:13 - `Catalog-Gen2-2 / Phase 3 - Supported Versus Unsupported Archive Classification`
+
+<!-- ENTRY 1588 -->
+HUMAN SUMMARY: `External linked archive metadata now receives staged classification from existing URL metadata only, distinguishing supported direct model candidates, archive containers that need inspection, unsupported file candidates, unknown links, and no-linked-archive states without starting download or import behavior.`
+
+#### Scope / Constraints Honored
+- added a pure linked archive classification helper near the Catalog source/detail helpers, not in `CatalogActionPlan`
+- classified `.glb`, `.obj`, `.stl`, and `.step` linked URLs as supported model candidates aligned with current `ReferenceFileType` conventions
+- classified `.zip` and Dropbox/shared archive URLs as archive-container inspect-needed candidates instead of pretending archive contents are known
+- kept unsupported extensions, unknown/no-extension URLs, missing linked archives, repo items, and imports items visible in explicit classification states
+- rendered item-page classification as staged source metadata while keeping Phase 1 source-page links, Phase 2 linked archive inspect links, `CATALOG_ITEM_ACTION_KINDS`, and external preview-only action behavior unchanged
+- did not add archive download, archive extraction, archive import, user chooser behavior, external add-to-project behavior, platform/fitment normalization, `Catalog-7 / Phase 4`, Gen1 fitment fields, or Gen3 compatibility behavior
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-2 - Linked Models And Archive Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogActionPlan.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1587 -->
+### [1587] - 2026-04-20 14:06 - `Catalog-Gen2-2 / Phase 2 - Linked Archive Metadata And Handoff States`
+
+<!-- ENTRY 1587 -->
+HUMAN SUMMARY: `External Catalog item pages now surface linked archive URL metadata as an inspect-only archive source handoff, with explicit copy that ParaHook has not downloaded, extracted, imported, or classified the archive.`
+
+#### Scope / Constraints Honored
+- added a linked archive handoff resolver for external items that returns `linked-archive-available` only when `linkedArchiveUrl` exists and `no-linked-archive` otherwise
+- rendered an inspect-only item-page archive source link with `target="_blank"`, `rel="noreferrer"`, and a stable `data-catalog-linked-archive-link` selector
+- kept linked archive targets separate from source-page URLs, external item URLs, and preview image URLs
+- kept `CATALOG_ITEM_ACTION_KINDS` and `resolveCatalogActionPlan(...)` behavior unchanged, preserving external entries as preview-only
+- did not add archive download, archive extraction, archive import, archive file classification, supported-file chooser behavior, external add-to-project behavior, platform/fitment normalization, `Catalog-7 / Phase 4`, Gen1 fitment fields, or Gen3 compatibility behavior
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-2 - Linked Models And Archive Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogActionPlan.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1586 -->
+### [1586] - 2026-04-20 13:59 - `Catalog-Gen2-2 / Phase 1 - External Source Page Action Support`
+
+<!-- ENTRY 1586 -->
+HUMAN SUMMARY: `External Catalog item pages now expose a normal source-page link from source details, preferring external item URLs before source-set URLs while keeping linked archive URLs as metadata instead of archive/import actions.`
+
+#### Scope / Constraints Honored
+- added a source-page URL resolver for external items that prefers `externalItemUrl`, falls back to `sourceUrl`, and ignores `linkedArchiveUrl`
+- rendered the source-page handoff as a normal item-page link with `target="_blank"`, `rel="noreferrer"`, and a stable `data-catalog-source-page-link` selector
+- kept `CATALOG_ITEM_ACTION_KINDS` unchanged and preserved external entries as preview-only in `resolveCatalogActionPlan(...)`
+- did not add archive download/extraction/import, linked archive handoff states, file classification, platform/fitment normalization, `Catalog-7 / Phase 4`, Gen1 fitment fields, or Gen3 compatibility behavior
+
+#### Files Changed
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/catalog/catalogActionPlan.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-2 - Linked Models And Archive Handoff.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/ui/catalogShellShared.test.ts src/app/workspace/CatalogSurface.test.tsx src/app/catalog/catalogActionPlan.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1585 -->
+### [1585] - 2026-04-20 13:51 - `Catalog-Gen2-1 / Phase 4 - External Attribution And Linked Source Surfacing`
+
+<!-- ENTRY 1585 -->
+HUMAN SUMMARY: `Live Catalog now intentionally surfaces the tiny cached PubParts lane as external-linked source records with PubParts attribution, source-aware card/item-page labels, and URL/detail display that does not depend on local asset paths.`
+
+#### Scope / Constraints Honored
+- wired live `CatalogSurface` to pass cached PubParts normalized source items as explicit external input to `createCatalogSourceSnapshot(...)`
+- added source-aware Catalog UI helpers and item-page source details so external PubParts entries do not read as repo-backed or imports reuse
+- preserved remote preview images through the existing explicit `load-preview` path while keeping external entries off `add-to-project`, archive download/extraction/import, environment apply, platform/fitment normalization, `Catalog-7 / Phase 4`, Gen2-2 linked archive handoff, and Gen3 compatibility behavior
+
+#### Files Changed
+- `src/app/workspace/CatalogSurface.tsx`
+- `src/app/workspace/CatalogSurface.test.tsx`
+- `src/app/catalog/ui/catalogShellShared.ts`
+- `src/app/catalog/ui/catalogShellShared.test.ts`
+- `src/app/catalog/ui/CatalogShellGridMode.tsx`
+- `src/app/catalog/ui/CatalogShellItemPage.tsx`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/workspace/CatalogSurface.test.tsx src/app/catalog/ui/catalogShellShared.test.ts src/app/catalog/catalogSource.test.ts src/app/catalog/pubPartsCachedSource.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1584 -->
+### [1584] - 2026-04-20 13:44 - `Catalog-Gen2-1 / Phase 3 - External Items In Catalog Source Snapshot`
+
+<!-- ENTRY 1584 -->
+HUMAN SUMMARY: `Catalog source snapshots now have an explicit externalItems lane that defaults empty, and cached PubParts source items can be composed into minimal external CatalogItemRecords only when external input is supplied, leaving the live Catalog UI on repo/imports until Phase 4 owns attribution and surfacing.`
+
+#### Scope / Constraints Honored
+- added `externalItems` to `CatalogSourceSnapshot` while keeping default snapshot creation repo + imports with an empty external lane
+- added explicit PubParts source-item mapping into minimal external `CatalogItemRecord`s with `sourceKind: 'external'`, no `assetPath`, source metadata preservation, and `actionKind: 'load-preview'`
+- did not make snapshot creation auto-read cached PubParts records, wire cached external items into `CatalogSurface`, add final UI labels/cards/item pages/filter/search/action changes, add archive behavior, perform platform/fitment normalization, do `Catalog-7 / Phase 4`, or add Gen3 compatibility verdicts
+
+#### Files Changed
+- `src/app/catalog/catalogSource.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/pubPartsCachedSource.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogSource.test.ts src/app/catalog/pubPartsCachedSource.test.ts src/app/catalog/catalogItemContract.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1583 -->
+### [1583] - 2026-04-20 13:37 - `Catalog-Gen2-1 / Phase 2 - Cached Source Exactness Repair`
+
+<!-- ENTRY 1583 -->
+HUMAN SUMMARY: `The tiny PubParts cached source records now match the manager-verified live endpoint values exactly, including Printables URLs, preview images, Dropbox archive links, archive update dates, and the ADV resource description.`
+
+#### Scope / Constraints Honored
+- updated the tiny cached PubParts source records to exact manager-verified live values
+- updated focused cached-intake tests to assert the exact sampled source values
+- kept direct browser fetch, live sync, broad mirroring, live `CatalogItemRecord` creation, `externalItems`, snapshot merging, UI/filter/action behavior, archive import behavior, fitment work, and Phase 3 prep out of scope
+
+#### Files Changed
+- `src/app/catalog/pubPartsCachedSource.test.ts`
+- `src/app/catalog/pubpartsSourceData/parts.ts`
+- `src/app/catalog/pubpartsSourceData/partsGt.ts`
+- `src/app/catalog/pubpartsSourceData/resources.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/pubPartsCachedSource.test.ts src/app/catalog/pubPartsSource.test.ts src/app/catalog/catalogSource.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1582 -->
+### [1582] - 2026-04-20 13:34 - `Catalog-Gen2-1 / Phase 2 - Cached Source Truthfulness Repair`
+
+<!-- ENTRY 1582 -->
+HUMAN SUMMARY: `The tiny repo-owned PubParts cached source slices now use real sampled PubParts records instead of invented item names or fake links, preserving the source-truth boundary while keeping Phase 2 free of live fetch, Catalog item creation, snapshot merging, UI behavior, archive work, and fitment normalization.`
+
+#### Scope / Constraints Honored
+- replaced invented cached PubParts source records with tiny real samples from `parts.json`, `parts/gt.json`, and `resources.json`
+- kept scalar-shape proof in helper tests instead of inventing scalar cached source records
+- preserved the tiny-cache boundary and kept direct browser fetch, live sync, broad mirroring, live `CatalogItemRecord` creation, `externalItems`, snapshot merging, UI/filter/action behavior, archive import behavior, and fitment work out of Phase 2
+
+#### Files Changed
+- `src/app/catalog/pubPartsCachedSource.test.ts`
+- `src/app/catalog/pubpartsSourceData/parts.ts`
+- `src/app/catalog/pubpartsSourceData/partsGt.ts`
+- `src/app/catalog/pubpartsSourceData/resources.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/pubPartsCachedSource.test.ts src/app/catalog/pubPartsSource.test.ts src/app/catalog/catalogSource.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1581 -->
+### [1581] - 2026-04-20 13:31 - `Catalog-Gen2-1 / Phase 2 - Cached PubParts Source Intake Path`
+
+<!-- ENTRY 1581 -->
+HUMAN SUMMARY: `Catalog now has tiny repo-owned PubParts cached source slices for all-parts, filtered GT parts, and resources, with scalar, array-shaped, and missing-optional source records normalized through the Phase 1 PubParts helpers without creating live Catalog items or UI/snapshot behavior.`
+
+#### Scope / Constraints Honored
+- added tiny representative cached source records for `parts.json`, `parts/gt.json`, and `resources.json` under a repo-owned source data path
+- routed cached part and resource records through the Phase 1 PubParts normalization helpers while preserving attribution, source URLs, preview URLs, archive links, freshness fields, and array metadata
+- did not add direct production browser fetch, live sync, a broad PubParts mirror, live `CatalogItemRecord` creation, `CatalogSourceSnapshot` merging, `externalItems`, UI labels/cards/item pages/filters/search/actions, archive download/extraction/import/add-to-project behavior, platform/fitment normalization, or `Catalog-7 / Phase 4` work
+
+#### Files Changed
+- `src/app/catalog/pubPartsCachedSource.ts`
+- `src/app/catalog/pubPartsCachedSource.test.ts`
+- `src/app/catalog/pubpartsSourceData/parts.ts`
+- `src/app/catalog/pubpartsSourceData/partsGt.ts`
+- `src/app/catalog/pubpartsSourceData/resources.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/pubPartsCachedSource.test.ts src/app/catalog/pubPartsSource.test.ts src/app/catalog/catalogSource.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1580 -->
+### [1580] - 2026-04-20 13:26 - `Catalog-Gen2-1 / Phase 1 - PubParts Array Metadata Repair`
+
+<!-- ENTRY 1580 -->
+HUMAN SUMMARY: `PubParts source helper groundwork now preserves live-like array fields for part fabrication methods, part types, platforms, and resource types instead of collapsing them to blank metadata, while Phase 1 still avoids cached data, snapshot merging, UI surfacing, archive behavior, and fitment work.`
+
+#### Scope / Constraints Honored
+- preserved scalar strings and string arrays for PubParts source metadata through the Phase 1 normalized source item helpers
+- kept normalized metadata in the existing stable string shape so later cached intake can consume live-like arrays without widening the source contract
+- did not add cached PubParts records, fixtures, live Catalog item normalization, `externalItems`, UI labels, archive actions, platform/fitment normalization, or Phase 2 prep
+
+#### Files Changed
+- `src/app/catalog/pubPartsSource.ts`
+- `src/app/catalog/pubPartsSource.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/pubPartsSource.test.ts src/app/catalog/catalogSource.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1579 -->
+### [1579] - 2026-04-20 13:20 - `Catalog-Gen2-1 / Phase 1 - External Source Contract And PubParts Type Groundwork`
+
+<!-- ENTRY 1579 -->
+HUMAN SUMMARY: `Catalog now has a generic external source contract branch plus PubParts raw and normalized source item groundwork, while cached data, snapshot merging, UI surfacing, archive behavior, and Gen1 fitment work remain deferred to later approved phases.`
+
+#### Scope / Constraints Honored
+- added `sourceKind: 'external'` as a reusable Catalog source kind without adding a PubParts-specific source kind
+- added external provider/source metadata for source collection labels, source URLs, external item URLs, preview image links, linked archive URLs, and freshness/archive update fields
+- added PubParts raw part/resource type groundwork and normalized source item helpers without adding cached records, fixtures, live Catalog item normalization, `externalItems`, UI labels, archive actions, or platform/fitment normalization
+
+#### Files Changed
+- `src/app/catalog/catalogItemContract.ts`
+- `src/app/catalog/catalogItemContract.test.ts`
+- `src/app/catalog/catalogSource.test.ts`
+- `src/app/catalog/pubPartsSource.ts`
+- `src/app/catalog/pubPartsSource.test.ts`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/CHANGELOG.md`
+- `docs/Doc-Log.md`
+
+#### Verification Steps
+- `npm.cmd test -- src/app/catalog/catalogItemContract.test.ts src/app/catalog/pubPartsSource.test.ts src/app/catalog/catalogSource.test.ts` passed
+- `npm.cmd run build` passed
+
+<!-- ENTRY 1578 -->
+### [1578] - 2026-04-20 13:12 - `Catalog-Gen2-0 / Phase 3 - Intake Readiness And Source Handoff Closeout`
+
+<!-- ENTRY 1578 -->
+HUMAN SUMMARY: `Catalog Gen2 now has a completed readiness lane that records PubParts endpoint/CORS/source-intake decisions, audits the live Catalog seams that external source work must extend, and creates the Catalog-Gen2-1 external source intake family phase doc without shipping runtime behavior.`
+
+#### Scope / Constraints Honored
+- kept the closeout to docs and planning surfaces under `docs/`
+- preserved the distinction between PubParts source truth and ParaHook runtime Catalog truth
+- kept `Catalog-7 / Phase 4` explicit as a gate before `Catalog-Gen2-3`, not before `Catalog-Gen2-1`
+- left Gen2 HLG open while marking the completed `Catalog-Gen2-0` readiness lane and `Catalog-Gen2-CLG-0` complete
+- did not add runtime code, TypeScript source contracts, PubParts cached data, normalizers, UI labels, filters, actions, snapshot behavior, Gen1 fitment fields, or compatibility verdicts
+
+#### Summary of Implementation
+- created `Catalog-Gen2-0 - Generation 2 Intake Readiness And Source Mapping Baseline.md` as the readiness family phase doc
+- recorded PubParts `parts.json`, filtered part JSON pages, and `resources.json` as the known source endpoints, with browser-fetch/CORS constraints and cached normalized source intake as the first implementation route
+- audited the live Catalog source contract, source snapshot, action plan, browse/filter/search seams, item-page source labeling, and `CatalogSurface` snapshot creation
+- created `Catalog-Gen2-1 - External Catalog Source Intake.md` with four implementation phases for source contract/type groundwork, cached PubParts intake, external snapshot merging, and external attribution surfacing
+- updated `Catalog-Gen2-Index.md` so `Catalog-Gen2-0`, `G2-0.1` through `G2-0.7`, and `Catalog-Gen2-CLG-0` are complete while the broader Gen2 HLG remain open
+
+#### Files Changed
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-0 - Generation 2 Intake Readiness And Source Mapping Baseline.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog-Gen2-1 - External Catalog Source Intake.md`
+- `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Catalog-Gen2-Index.md`
+- `docs/Doc-Log.md`
+- `docs/CHANGELOG.md`
+
+#### Behavior Changes (if any)
+- None. This was a docs-system and planning closeout only.
+
+#### Verification Steps
+- `npm.cmd run build` passed before this changelog repair as the accepted `Catalog-Gen2-0 / Phase 3` build gate.
+- No additional runtime verification was run for this changelog-only update.
 
 <!-- ENTRY 1577 -->
 ### [1577] - 2026-04-20 01:01 - `Home-Page-6 / Phase 4 - Left Rail Help And Debug Affordance Closeout`

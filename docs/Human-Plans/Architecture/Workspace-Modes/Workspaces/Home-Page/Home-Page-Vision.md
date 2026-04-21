@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+24. 2026-04-20 20:24:16: Reopened the Home Page storage/setup wishlist with `Home-Page-Gen1-HLG-22` so the PubParts local library can have a global enable/configure/status toggle on Home Page while Catalog owns item-level local-download visibility and Import owns filesystem scanning.
 23. 2026-04-20 01:03:18: Marked the Home Page Gen 1 left-rail docs/help/debug HLG and Generation 1 complete after `Home-Page-6 / Phase 4` added compact rail Docs/GitHub shortcuts and a non-owning read-only Advanced status affordance while preserving the control-deck behavior.
 22. 2026-04-20 00:55:45: Marked the Home Page Gen 1 polished control-deck, Storage Management, and behavior-preservation HLG complete after `Home-Page-6 / Phase 3` landed storage rename/detail behavior with focused proof, while keeping the left-rail docs/help/debug HLG open for a final narrow follow-up.
 21. 2026-04-20 00:48:29: Marked the Home Page Gen 1 compact orientation quick-start/status HLG complete after `Home-Page-6 / Phase 2` preserved GitHub, Docs, version, and what's-new while adding the non-owning `Get Started with ParaHook` affordance.
@@ -122,6 +123,7 @@ Keep these as the explicit human-level wishlist items for `Home Page`:
 - [x] `Home-Page-Gen1-HLG-19. Storage transparency should become Storage Management with aligned toggle, wipe, size, detail, and internally scrollable row behavior.`
 - [x] `Home-Page-Gen1-HLG-20. The redesign must preserve existing functional Home Page Generation 1 behavior, including startup restore, persistence toggles, storage wipe, canonical viewport launch, dark-mode styling, and monitor-height fit.`
 - [x] `Home-Page-Gen1-HLG-21. Spec must verify which mockup labels are current surfaces versus future placeholders before any implementation phase is written.`
+- [ ] `Home-Page-Gen1-HLG-22. Home Page should include a PubParts Local Library toggle/status row so the user can enable, disable, configure, and inspect the global local download library without making Home Page own Catalog item truth or Import scanning.`
 
 ### Home Page Generations
 
@@ -182,11 +184,13 @@ Important rule:
 - a polished control-deck layout that keeps startup, launch, orientation, and storage controls visually coherent without changing their owners
 - one lightweight orientation area with small links such as GitHub and docs plus a brief version and what's-new read
 - user-facing storage transparency for ParaHook-owned browser persistence
+- app-level local source library setup/status for lanes such as the PubParts local library, when another family needs a global enable/configure surface
 - high-signal health summaries such as:
   - current saved workspace-layout presence
   - whether `Notepad` or `Dashboard` persistence currently exists
   - approximate ParaHook-owned persisted byte counts
   - approximate broader browser origin storage usage when the platform exposes it
+  - whether a user-granted local source library such as PubParts is configured, enabled, disabled, permission-needed, unavailable, or recently scanned
 
 The first useful storage read should separate:
 - ParaHook-owned persisted data

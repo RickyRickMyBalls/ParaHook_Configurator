@@ -3,6 +3,35 @@
 ## Doc Header
 
 ### Doc History
+59. 2026-04-21 12:12:03: Added and closed `Catalog-Gen2-HLG-20` for the verified ADV and XR full assembly source entries, recording that `Add To Project` can now add those heavy source files as ordinary project references while preview and load-as-starting-configuration remain planned behind Import-5 and builder/runtime owners.
+58. 2026-04-21 11:55:57: Added the OPFS plus optional Local Library folder direction for the next PubParts source-library lane, making ParaHook's browser-owned Internal Library the default cache/extraction target and the user-selected real folder an optional visible mirror after source bytes are fetchable or user-granted.
+57. 2026-04-21 11:36:42: Marked `Catalog-Gen2-HLG-18` complete after `Catalog-Gen2-14` closed Bug 22 at the store-to-current-viewer remount seam with Viewer runtime possession, ViewerHost rehydration, focused PubParts ZIP-attributed and normal `.obj` accepted-reference remount proof, and build verification while full UI click-through and direct split/exploded hardening remain optional future surfaces.
+56. 2026-04-21 11:09:56: Reopened Generation 2 with `Catalog-Gen2-HLG-18`, routing the Bug 22 imported-reference disappearance ownership gap to `Catalog-Gen2-14 - Imported Reference Ownership And Viewport Rehydration` so accepted PubParts ZIP imports and normal local imports remain visible after Catalog close, model-viewport split, or other viewer remounts by treating `referenceWorkspace` as canonical truth and each `Viewer` instance as disposable runtime cache.
+55. 2026-04-21 10:47:50: Marked `Catalog-Gen2-HLG-17` complete after Manager closed `Catalog-Gen2-13` with scoped proof that PubParts ZIP `Add To Project` now opens a browser-honest staged importer, shows PubParts source metadata, offers `Download ZIP` plus `Upload ZIP`, lists uploaded ZIP entries with support/preview states, stages only selected supported files into Import review with PubParts attribution, and relies on the existing Import/store acceptance path for project/model ownership while broader unrelated BrowserPanel and graph/project-output suite failures remain outside the Catalog ZIP owner.
+54. 2026-04-21 10:10:45: Reopened the Generation 2 PubParts ZIP workflow with `Catalog-Gen2-HLG-17`, routing the fuller staged importer/source-options experience to `Catalog-Gen2-13 - PubParts ZIP Staged Importer And Preview Handoff` so the browser-honest flow explicitly covers download/open-source guidance, user-granted local ZIP upload, ZIP entry staging, preview affordances for previewable supported files, and final Import/project/model-viewport handoff boundaries while keeping local/native helper-owned automatic folder ownership and downloads deferred.
+53. 2026-04-21 01:19:48: Marked `Catalog-Gen2-HLG-16` complete again after `Catalog-Gen2-12 / Phase 5.1` added the browser-honest local `.zip` fallback for PubParts Dropbox archives that cannot be fetched from localhost/ParaHook, letting users open/download the PubParts ZIP, choose the local ZIP in source options, list real entries, select supported entries, and stage them into Import review with PubParts attribution while keeping eager downloads, native disk writing, remote-byte proxy, `.stp` support, STEP fidelity, builder behavior, and compatibility verdicts deferred.
+52. 2026-04-21 01:16:11: Reopened `Catalog-Gen2-HLG-16` after live PubParts Dropbox ZIP fetches proved browser-blocked from localhost/ParaHook despite the readable-blob ZIP lane working, routing the remaining Gen2 ZIP usability gap to `Catalog-Gen2-12 / Phase 5.1 - Local ZIP Fallback For Browser-Blocked PubParts Archives` with a user-picked local `.zip` fallback and no eager downloads, native disk writing, remote-byte proxy, `.stp` support, STEP fidelity, builder behavior, or compatibility verdicts.
+51. 2026-04-21 00:57:42: Marked `Catalog-Gen2-HLG-16` complete after `Catalog-Gen2-12 / Phase 5` audited the efficient PubParts ZIP lane, confirming one user-selected ZIP can be inspected on demand, list supported and unsupported entries, extract only selected supported entries, and stage those files into Import review with PubParts attribution while avoiding eager ZIP downloads, extract-all behavior, persistent ZIP bytes, local library/native downloads, `.stp` support, STEP fidelity, builder behavior, and compatibility verdicts.
+50. 2026-04-21 00:06:31: Reopened the Generation 2 ZIP lane with `Catalog-Gen2-HLG-16` after the current PubParts corpus proved ZIP-first, adding the requirement that `Add To Project` can inspect one selected PubParts ZIP on demand, list supported and unsupported entries, extract only user-selected supported files, and stage those extracted files into Import review with PubParts attribution without eagerly downloading all PubParts archives.
+49. 2026-04-20 23:55:14: Marked `Catalog-Gen2-HLG-15` complete for the current cached PubParts corpus after `Catalog-Gen2-11 / Phase 3` audited 305 Dropbox source URLs, all `.zip`, with zero shared-folder records, aligned the Generation 2 current-corpus completion read, and kept future folder-shaped records routed to a new Dropbox API/helper/native or trusted-manifest follow-up.
+48. 2026-04-20 23:26:39: Added the user-facing chooser-window expectation for the heavier Dropbox shared-link lane: `Add To Project` should open a floating staged-source options window, similar to the Import staged-files window, so users can choose one, some, or all supported files discovered behind a PubParts link before Import review receives them.
+47. 2026-04-20 23:23:02: Reopened the Generation 2 forward wishlist with `Catalog-Gen2-HLG-15`, separating the completed Dropbox Chooser bridge from the heavier PubParts shared-link resolver lane where ParaHook should inspect PubParts-owned Dropbox shared file, ZIP, or folder URLs and offer supported file choices without requiring the user to own the Dropbox files.
+46. 2026-04-20 23:01:58: Closed the reopened Generation 2 Dropbox Chooser follow-up after `Catalog-Gen2-10` shipped a typed Dropbox Chooser bridge, PubParts item-page `Add To Project` route, direct temporary-link fetch into staged Import review, source attribution preservation, visible unavailable/canceled/unsupported/fetch-failed statuses, local fallback controls, focused tests, and build verification while keeping full Dropbox shared-link API inspection, folder listing, archive extraction, native download, STEP fidelity, builder behavior, and compatibility verdicts deferred.
+45. 2026-04-20 22:16:38: Reopened the Generation 2 follow-up wishlist with `Catalog-Gen2-HLG-14`, adding the Dropbox Chooser `Add To Project` bridge as the recommended first Dropbox integration path so users can pick an exact supported Dropbox file and let ParaHook fetch/stage it through Import without taking on the heavier shared-link API, archive listing, folder inspection, or native downloader owner yet.
+44. 2026-04-20 21:52:10: Closed the reopened Generation 2 local-download wishlist after `Catalog-Gen2-9` shipped the browser-honest PubParts local-library metadata loop, Home Page PubParts Library toggle/status row, Catalog `Local Downloads` section, and one-primary-action item-page flow while keeping real folder permission, scanning, archive extraction, native download, STEP fidelity, builder behavior, and compatibility verdicts with their later owners.
+43. 2026-04-20 20:32:22: Simplified the Generation 2 local-download UX direction so PubParts item pages should expose one primary source action that advances the local-library workflow state by state, keeping folder preparation, scan, import, and later preview as internal/status steps instead of separate competing process buttons.
+42. 2026-04-20 20:24:16: Expanded the reopened Generation 2 local-download wishlist so the PubParts local library workflow must include a Home Page toggle/status surface and a Catalog `Local Downloads` section where users can see which PubParts items already have local downloaded or discovered files.
+41. 2026-04-20 20:15:13: Reopened the Generation 2 local-download wishlist with `Catalog-Gen2-HLG-11`, recognizing that the shipped `Open Source Download` browser handoff does not give ParaHook a reliable local file path, and adding the user-granted PubParts library folder direction so downloads can be organized, scanned, and imported from known per-item folders instead of an unknown browser downloads location.
+40. 2026-04-20 17:51:12: Refined the Generation 2 PubParts download/import vision around a three-stage lifecycle from external source entry to staged/downloaded source file to imported project asset, adding visible download staging, downloaded-versus-imported status, staged list/clear controls, and item-page decision-surface guidance without deleting landed Gen2 phase history.
+39. 2026-04-20 17:38:22: Reopened the Generation 2 wishlist with `Catalog-Gen2-HLG-9` so external PubParts entries can gain an honest user-triggered import handoff inside Gen2, routing source/archive inspection, supported-file choice, and selected-file import through explicit Catalog-to-Import ownership instead of treating linked files as already-local assets.
+38. 2026-04-20 16:51:27: Reopened the Generation 2 wishlist with `Catalog-Gen2-HLG-7` and `Catalog-Gen2-HLG-8` so Catalog must populate from all PubParts part records, not only the current proof cache, and must eagerly display cheap PubParts preview images when the user loads Catalog.
+37. 2026-04-20 16:38:24: Closed the Generation 2 HLG checklist after `Catalog-Gen2-6 / Phase 3` final audit passed focused Catalog tests and `npm.cmd run build`, marking HLG 1-4 complete under scoped source/metadata/organization/starting-assembly proof while preserving later-owner deferrals for archive runtime, builder runtime, compatibility verdicts, Import-5 STEP fidelity, source-missing platform starts, future Power/Fasteners growth, and staging-folder extras.
+36. 2026-04-20 16:12:18: Aligned the Generation 2 HLG checklist after the `Catalog-Gen2-4.5` closeout by marking the repo-backed XR/ADV intake-plan and versioned multi-file asset-set goals complete for current supplied files, while leaving the broader external-source and starting-configuration goals open.
+35. 2026-04-20 15:45:58: Added the Generation 2 requirement that one logical Catalog item can own a versioned set of multiple 3D file variants, using the supplied `Assembly_XR_Pubwheel_1.step` and `Assembly_XR_Pubwheel_1.glb` pair as the first `pubwheel_1` source-version example instead of treating each file type as its own catalog item.
+34. 2026-04-20 15:40:36: Recorded the supplied XR PubWheel full-assembly STEP/GLB files as concrete Generation 2 starting-assembly source candidates under `public/Catalog/assemblies/xr/`, with STEP as source truth, GLB as a companion mesh, and runtime preview/load still planned behind Import-5 and builder owners.
+33. 2026-04-20 15:08:55: Clarified that repo-backed XR/ADV catalog assets should prefer `.step` and `.stp` source files before mesh-only formats, while keeping previews and runtime import behavior separate from the source asset convention.
+32. 2026-04-20 15:06:08: Added the Generation 2 repo-backed XR/ADV asset-folder intake direction so loose platform assets and full starting assemblies get routed through an explicit folder convention and future plan doc instead of being dropped into the existing Catalog tree ambiguously.
+31. 2026-04-20 12:22:14: Added the new PubParts `.json` endpoint read to the `Generation 2` vision, recording that page-matched JSON arrays such as `parts.json`, filtered part pages, and `resources.json` can feed a ParaHook source adapter while still normalizing into ParaHook's own Catalog systems, platforms, part groups, and metadata.
 30. 2026-04-19 13:16:04: Converted the generation-local `HLG Covered` blocks into stable `Generation N HLG Checklist` sections with full goal wording and checkbox status so generation headings do not need to change when individual HLG complete.
 29. 2026-04-19 13:08:15: Normalized the Catalog generation sections to the current `Vision Rails` guide-rail language, keeping each generation fold anchored by `### Generation N Summary` and routing generation ownership, boundary, and family-phase setup guidance through `### Generation N Vision Rails` instead of older vision-spec or phase-creation wording.
 28. 2026-04-19 12:31:18: Reformatted the Catalog vision against the updated planning guide rails by nesting supporting vision detail under `## Vision`, clarifying that `Catalog-Gen1-Index.md` is the target Generation 1 routing surface, preserving `Catalog-Index.md` as the older bridge, and naming Generation Index Docs and Family Phase Docs as the downstream planning surfaces.
@@ -200,10 +229,26 @@ The `Catalog` family should achieve these human-level goals:
 
 ### Generation 2 HLG
 
-- [ ] `Catalog-Gen2-HLG-1. keep curated repo assets and later curated external-linked entries distinct even when they appear near each other in the Catalog surface`
-- [ ] `Catalog-Gen2-HLG-2. grow toward structured source metadata and external catalog integration without weakening the Generation 1 ownership split`
-- [ ] `Catalog-Gen2-HLG-3. map PubParts source data into the Generation 1 Catalog systems, platforms, part groups, and metadata instead of letting PubParts define ParaHook runtime truth`
-- [ ] `Catalog-Gen2-HLG-4. let Catalog carry pre-built PubWheel starting assemblies without making them the same thing as individual part listings`
+- [x] `Catalog-Gen2-HLG-1. keep curated repo assets and later curated external-linked entries distinct even when they appear near each other in the Catalog surface`
+- [x] `Catalog-Gen2-HLG-2. grow toward structured source metadata and external catalog integration without weakening the Generation 1 ownership split`
+- [x] `Catalog-Gen2-HLG-3. map PubParts source data into the Generation 1 Catalog systems, platforms, part groups, and metadata instead of letting PubParts define ParaHook runtime truth`
+- [x] `Catalog-Gen2-HLG-4. let Catalog carry pre-built PubWheel starting assemblies without making them the same thing as individual part listings`
+- [x] `Catalog-Gen2-HLG-5. let repo-backed XR and ADV asset batches enter Catalog through a clear folder and metadata intake plan before they are used as loose parts or starting assemblies`
+- [x] `Catalog-Gen2-HLG-6. let one logical Catalog item keep multiple 3D file variants and source versions together so STEP, GLB, preview, and later updated files do not become duplicate items or overwrite history`
+- [x] `Catalog-Gen2-HLG-7. populate Catalog with every available PubParts part record through the cached normalized source lane instead of only showing a small proof sample`
+- [x] `Catalog-Gen2-HLG-8. show PubParts preview images eagerly when the Catalog loads because external preview images are cheap compared with model/archive loading`
+- [x] `Catalog-Gen2-HLG-9. let the user stage or download PubParts source files into a visible PubParts downloads area before treating them as imported project assets`
+- [x] `Catalog-Gen2-HLG-10. let the user inspect staged or downloaded PubParts sources and import only selected supported files into ParaHook with source attribution`
+- [x] `Catalog-Gen2-HLG-11. let PubParts downloads resolve through a user-chosen local PubParts library folder so ParaHook can organize per-item folders, scan known local files, and hand supported files to Import without relying on an unknown browser Downloads location`
+- [x] `Catalog-Gen2-HLG-12. give Catalog a Local Downloads section so the user can see which PubParts parts or items already have local downloaded, extracted, found, unsupported, or import-ready files`
+- [x] `Catalog-Gen2-HLG-13. simplify PubParts item-page download/import/preview workflow into one primary action that advances the next honest step instead of exposing separate process buttons for prepare, scan, import, and preview`
+- [x] `Catalog-Gen2-HLG-14. let Add To Project use Dropbox Chooser as the first direct Dropbox bridge so the user can pick an exact supported source file and ParaHook can fetch/stage it with PubParts attribution without requiring manual Downloads-folder hunting`
+- [x] `Catalog-Gen2-HLG-15. let Add To Project inspect PubParts-owned Dropbox shared links directly, starting with single shared-file resolution and later widening to ZIP/archive and shared-folder candidate choice, so users do not need to own the Dropbox files before ParaHook can stage supported source files` - complete for the current cached PubParts corpus because all 305 Dropbox source URLs are ZIP links and no shared-folder source records exist; future folder-shaped records must reopen a follow-up.
+- [x] `Catalog-Gen2-HLG-16. make PubParts ZIP links usable efficiently by inspecting one user-selected ZIP on demand, listing supported and unsupported entries, extracting only selected supported files, and staging those files into Import review with PubParts attribution instead of eagerly downloading or importing every archive` - complete with the Phase 5.1 browser-honest fallback: readable remote ZIP blobs still inspect directly, and browser-blocked PubParts Dropbox archives can be downloaded/opened by the user, chosen as a local `.zip`, listed, selected, and staged into Import review with PubParts attribution.
+- [x] `Catalog-Gen2-HLG-17. make the PubParts ZIP path feel like a real staged importer flow where Add To Project opens source options, ParaHook uses PubParts source metadata, the user downloads or opens the ZIP through normal browser behavior, explicitly uploads the saved ZIP back into ParaHook, reviews staged ZIP entries with preview affordances where feasible, and sends only selected supported files toward Import/project/model-viewport ownership` - complete for the browser-owned Gen2 flow: Catalog stages selected supported ZIP entries into Import review with PubParts attribution and Import/store ownership remains the project/model acceptance gate.
+- [x] `Catalog-Gen2-HLG-18. keep accepted imported references visible across Catalog close, model-viewport split, and viewer remounts by making the store-owned reference workspace the canonical object truth and rehydrating each disposable viewer runtime from that truth` - complete at the store-to-current-viewer remount seam with focused PubParts ZIP-attributed and normal `.obj` accepted-reference proof; full UI click-through and direct split/exploded hardening remain optional future QA surfaces.
+- [ ] `Catalog-Gen2-HLG-19. make PubParts Add To Project feel like an app-managed parts library by using OPFS as ParaHook's default Internal Library for cached source bytes, extracted files, manifests, and inspection results, with an optional one-time user-selected Local Library folder mirror for visible files`
+- [x] `Catalog-Gen2-HLG-20. let the verified ADV and XR full assembly Catalog entries use Add To Project as a source-reference handoff while heavy preview and load-as-starting-configuration stay planned`
 
 ### Generation 3 HLG
 
@@ -1153,7 +1198,7 @@ Create `Generation 1` family phases when work is about the local Catalog foundat
 
 Do not put PubParts, linked archives, compatibility truth, PubWheel Builder slots, or dimensional checks in `Generation 1` unless the phase is only preparing local metadata that later generations will consume.
 
-## [ ] Generation 2 - External Catalog Integration And Linked 3D Model Entries
+## [x] Generation 2 - External Catalog Integration And Linked 3D Model Entries
 
 ### Generation 2 Summary
 
@@ -1163,10 +1208,24 @@ The first proof target is PubParts, but the generation should define the source-
 
 ### Generation 2 HLG Checklist
 
-- [ ] `Catalog-Gen2-HLG-1. keep curated repo assets and later curated external-linked entries distinct even when they appear near each other in the Catalog surface`
-- [ ] `Catalog-Gen2-HLG-2. grow toward structured source metadata and external catalog integration without weakening the Generation 1 ownership split`
-- [ ] `Catalog-Gen2-HLG-3. map PubParts source data into the Generation 1 Catalog systems, platforms, part groups, and metadata instead of letting PubParts define ParaHook runtime truth`
-- [ ] `Catalog-Gen2-HLG-4. let Catalog carry pre-built PubWheel starting assemblies without making them the same thing as individual part listings`
+- [x] `Catalog-Gen2-HLG-1. keep curated repo assets and later curated external-linked entries distinct even when they appear near each other in the Catalog surface`
+- [x] `Catalog-Gen2-HLG-2. grow toward structured source metadata and external catalog integration without weakening the Generation 1 ownership split`
+- [x] `Catalog-Gen2-HLG-3. map PubParts source data into the Generation 1 Catalog systems, platforms, part groups, and metadata instead of letting PubParts define ParaHook runtime truth`
+- [x] `Catalog-Gen2-HLG-4. let Catalog carry pre-built PubWheel starting assemblies without making them the same thing as individual part listings`
+- [x] `Catalog-Gen2-HLG-5. let repo-backed XR and ADV asset batches enter Catalog through a clear folder and metadata intake plan before they are used as loose parts or starting assemblies`
+- [x] `Catalog-Gen2-HLG-6. let one logical Catalog item keep multiple 3D file variants and source versions together so STEP, GLB, preview, and later updated files do not become duplicate items or overwrite history`
+- [x] `Catalog-Gen2-HLG-7. populate Catalog with every available PubParts part record through the cached normalized source lane instead of only showing a small proof sample`
+- [x] `Catalog-Gen2-HLG-8. show PubParts preview images eagerly when the Catalog loads because external preview images are cheap compared with model/archive loading`
+- [x] `Catalog-Gen2-HLG-9. let the user stage or download PubParts source files into a visible PubParts downloads area before treating them as imported project assets`
+- [x] `Catalog-Gen2-HLG-10. let the user inspect staged or downloaded PubParts sources and import only selected supported files into ParaHook with source attribution`
+- [x] `Catalog-Gen2-HLG-11. let PubParts downloads resolve through a user-chosen local PubParts library folder so ParaHook can organize per-item folders, scan known local files, and hand supported files to Import without relying on an unknown browser Downloads location`
+- [x] `Catalog-Gen2-HLG-12. give Catalog a Local Downloads section so the user can see which PubParts parts or items already have local downloaded, extracted, found, unsupported, or import-ready files`
+- [x] `Catalog-Gen2-HLG-13. simplify PubParts item-page download/import/preview workflow into one primary action that advances the next honest step instead of exposing separate process buttons for prepare, scan, import, and preview`
+- [x] `Catalog-Gen2-HLG-14. let Add To Project use Dropbox Chooser as the first direct Dropbox bridge so the user can pick an exact supported source file and ParaHook can fetch/stage it with PubParts attribution without requiring manual Downloads-folder hunting`
+- [x] `Catalog-Gen2-HLG-15. let Add To Project inspect PubParts-owned Dropbox shared links directly, starting with single shared-file resolution and later widening to ZIP/archive and shared-folder candidate choice, so users do not need to own the Dropbox files before ParaHook can stage supported source files` - complete for the current cached PubParts corpus because all 305 Dropbox source URLs are ZIP links and no shared-folder source records exist; future folder-shaped records must reopen a follow-up.
+- [x] `Catalog-Gen2-HLG-16. make PubParts ZIP links usable efficiently by inspecting one user-selected ZIP on demand, listing supported and unsupported entries, extracting only selected supported files, and staging those files into Import review with PubParts attribution instead of eagerly downloading or importing every archive` - complete with the Phase 5.1 browser-honest fallback: readable remote ZIP blobs still inspect directly, and browser-blocked PubParts Dropbox archives can be downloaded/opened by the user, chosen as a local `.zip`, listed, selected, and staged into Import review with PubParts attribution.
+- [x] `Catalog-Gen2-HLG-17. make the PubParts ZIP path feel like a real staged importer flow where Add To Project opens source options, ParaHook uses PubParts source metadata, the user downloads or opens the ZIP through normal browser behavior, explicitly uploads the saved ZIP back into ParaHook, reviews staged ZIP entries with preview affordances where feasible, and sends only selected supported files toward Import/project/model-viewport ownership` - complete for the browser-owned Gen2 flow: Catalog stages selected supported ZIP entries into Import review with PubParts attribution and Import/store ownership remains the project/model acceptance gate.
+- [ ] `Catalog-Gen2-HLG-19. make PubParts Add To Project feel like an app-managed parts library by using OPFS as ParaHook's default Internal Library for cached source bytes, extracted files, manifests, and inspection results, with an optional one-time user-selected Local Library folder mirror for visible files`
 
 ### Generation 2 Vision Rails
 
@@ -1176,9 +1235,102 @@ The final `Generation 2` vision is that trusted external catalog sources can app
 
 PubParts should map into the `Generation 1` Catalog vocabulary rather than defining ParaHook's runtime truth. External records should be normalized into the same systems, platform families, part groups, and metadata fields where possible, with source metadata preserving where the entry came from and what kind of action it supports.
 
+PubParts now exposes page-matched JSON arrays by appending `.json` to browse pages. The first source-adapter targets should include:
+- `https://pubparts.xyz/parts.json` for the full parts list
+- filtered part pages such as `https://pubparts.xyz/parts/gt.json`
+- `https://pubparts.xyz/resources.json` for resource entries
+
+The proof cache is not enough for the finished external-source experience. Catalog should populate from the full available PubParts parts set once the repo-owned cache refresh path can do that deterministically. The goal is that the user can open Catalog and see every cached PubParts part entry, still labeled as external-linked PubParts source truth rather than local project assets.
+
+PubParts image previews should load eagerly with the Catalog view. These are cheap external images compared with `3D` model files or linked archives, so the Catalog should favor immediate visual browse value for PubParts cards while still avoiding automatic archive downloads, model imports, heavy STEP loads, or builder configuration loads.
+
+Gen2 should also own the first honest user-triggered import affordance for external PubParts entries. The action should read more like `Inspect Files` or `Import From Source` than normal repo-backed `Add To Project`: the user starts it, Catalog inspects the linked source or archive enough to identify supported file candidates, and only selected supported files are handed to the normal import/project path.
+
+The PubParts source lifecycle should stay explicit:
+- `external source entry`
+- `staged/downloaded source`
+- `imported project asset`
+
+Those stages are not interchangeable. A PubParts card is source truth, a PubParts download is staged source truth, and an imported file becomes Import/project truth only after the user chooses a supported file and the normal import path accepts it.
+
+The item page should become the main decision surface for this lifecycle. It should show source provider, source page, linked archive/source, preview image, normalized platform/type metadata, staged/download status, and the user-triggered `Inspect Files` / `Import From Source` flow without collapsing those reads into one universal `Add To Project` button.
+
+Gen2 should also carry a visible PubParts downloads/staging area. That staging area can show which PubParts sources have been downloaded or staged, whether they are inspected, whether supported files were found, and whether selected files have been imported yet. It should support clear controls for one staged download or all PubParts staged downloads, mirroring the older preview-session idea that temporary state must be visible and unloadable.
+
+The shipped browser-source handoff is not the final local-file organization shape. A browser can open PubParts or a Dropbox source page, but it cannot silently know where the user saved the file or scan `Downloads` without an explicit user-granted folder handle. Gen2 should therefore grow a local PubParts library workflow: the user grants a root folder once, ParaHook creates or recognizes predictable per-item folders, records a small source manifest beside the downloaded files, scans those known folders for supported `3D` files, and then hands selected local files to the Import family with PubParts attribution.
+
+The preferred next source-library architecture should use two layers rather than forcing one storage model to do every job.
+
+Default layer: ParaHook should use the browser Origin Private File System / OPFS as an Internal Library for PubParts. This gives the app a private origin-owned cache where it can store fetched source files, downloaded ZIPs, extracted entries, source manifests, and inspection results without asking the user to pick a disk folder for every part. The user should see this through ParaHook as `Internal Library` state such as cached, inspected, supported files found, and ready for Import review; the files do not need to be directly browsable through Windows or macOS file explorer.
+
+Optional layer: ParaHook should also support a user-selected Local Library folder through the File System Access API when the user wants ordinary visible files. After the user grants a real folder once, ParaHook may mirror cached PubParts sources, extracted files, manifests, and importable files into that folder and expose reconnect/permission-needed states when the browser requires verification again. This folder mirror should be an upgrade path for visibility, backup, and future desktop/native sharing, not the required foundation for `Add To Project`.
+
+OPFS and folder permission do not bypass Dropbox/CORS or shared-folder listing limits. They solve the "where can ParaHook store and reuse source bytes after it has them?" problem. Source bytes may still come from a successful browser fetch, a user-selected local ZIP, a later Dropbox/API/helper materializer, or a future native downloader. If a PubParts Dropbox ZIP is browser-blocked, the honest path remains `Open Source` / `Choose Local ZIP` or helper-owned materialization, then cache the granted bytes in the Internal Library once available.
+
+The desired end-user read is: click `Add To Project`, let ParaHook download or accept the source file, save it to the Internal Library, inspect/extract it when possible, show supported and unsupported candidates, let the user pick one/some/all supported files, stage selected files into Import review, and optionally mirror the source/extracted/importable files to a visible Local Library folder when configured.
+
+The first local library convention should stay simple and inspectable:
+
+```text
+<UserSelectedRoot>/PubParts/
+  parts/
+    <catalog-item-slug>/
+      pubparts-source.json
+      source/
+      downloads/
+      extracted/
+      importable/
+      versions/
+        <source-version-key>/
+          manifest.json
+          files/
+```
+
+Catalog should expose this as item identity, source status, local folder readiness, and import handoff state. Import should own the actual folder permission, supported-file scanning, file-object creation, archive extraction if it later ships, and staged import review. A later desktop/native downloader may materialize remote bytes directly into that folder, but the browser version must not promise silent local-drive access.
+
+Home Page should expose the global PubParts local-library control because the library root is app-level storage/setup state, not one item-page detail. The first read should be a toggle or switch row for using the local PubParts library, with clear status for not configured, permission needed, enabled, disabled, unavailable, and scan/found summary. Turning the toggle off should disable automatic known-folder scanning without deleting downloaded files.
+
+Catalog should add a dedicated `Local Downloads` section for PubParts. That section should list PubParts items with local source state: prepared folder, downloaded archive, extracted files, supported files found, unsupported-only, needs extraction, no files found, or already imported. This should be a browse/status surface, not a hidden project owner and not a second Import dialog.
+
+The item-page UX should simplify down to one primary action for the PubParts local-library workflow. Internally the workflow still has states such as configure library, prepare folder, open source/download, scan known folder, import found files, and later load/preview local files. Externally the user should see one obvious button that changes label based on the next honest step, instead of a cluster of process buttons. Possible labels include `Set Up Local Library`, `Open Download Source`, `Scan Local Files`, `Import Found Files`, and later `Preview Local File`, but only one should be primary at a time.
+
+Preview can be planned once the local-file workflow has a known file to preview. The first single-button design should leave room for a later state where a supported local GLB/mesh or importable generated preview can drive a `Preview Local File` action without pretending remote PubParts archives are previewable before download/scan.
+
+The first Dropbox-specific direct-import path should use Dropbox Chooser before the heavier shared-link API. Chooser should be treated as an explicit user selection bridge: `Add To Project` can open the Dropbox picker, the user chooses the exact supported `.step`, `.stp`, `.glb`, `.obj`, or `.stl` file, ParaHook fetches the returned direct temporary link, and Import stages the resulting local `File`/`Blob` with PubParts attribution. This should improve the one-button feel without making Catalog responsible for Dropbox OAuth browsing, shared-link folder listing, ZIP extraction, or native download management.
+
+The next Dropbox-specific PubParts path is different from Chooser: it should start from the PubParts-owned shared `dropboxUrl` or linked archive URL already present on the Catalog item. The first version should handle direct shared-file URLs only: classify the URL, resolve a direct downloadable file when Dropbox/CORS permits it, fetch the bytes into a browser `Blob`/`File`, and stage that file in Import with PubParts attribution. ZIP/archive links should become an inspected-candidate lane where ParaHook lists supported files before extraction/import, and shared-folder links should be treated as a later Dropbox shared-link API or helper-backed lane if browser-only resolution cannot list contents safely.
+
+For the current cached PubParts corpus, the shared-folder sub-lane is complete without a shared-folder implementation: `fullParts.ts` contains 305 Dropbox source URLs, all 305 are ZIP links, and zero folder-shaped Dropbox source records exist. If PubParts later adds folder-shaped source records, Catalog should reopen a follow-up with real source data and route listing/materialization to a Dropbox API/helper/native owner or a trusted manifest instead of scraping Dropbox pages or inventing folder contents.
+
+The ZIP sub-lane is different because most current PubParts sources are ZIP archives. The manifest-backed proof is not enough for real user flow. Gen2 should add efficient on-demand ZIP handling: do not download ZIPs on Catalog load, do not inspect all 305 archives up front, and do not extract every file in an archive by default. When the user clicks the PubParts primary action for one item, ParaHook may fetch that one ZIP, read its entry list in the browser, classify supported entries such as `.step`, `.glb`, `.obj`, and `.stl`, keep unsupported or reference files visible as disabled context, and let the user select one, some, or all supported entries. Only selected supported entries should be materialized as `File`/`Blob` objects and handed to Import review with PubParts attribution.
+
+ZIP handling should cache cheap archive manifests, not bulk archive bytes, wherever browser storage is the only persistence layer. The cache key should include the PubParts item identity, source URL, and `dropboxZipLastUpdated` so source updates invalidate old entry lists. Longer-lived downloaded ZIP bytes, extracted files, and versioned local source folders belong to the local PubParts library / Import follow-up rather than the initial browser-only Catalog action.
+
+The OPFS Internal Library follow-up should intentionally change that persistence read: once a source is explicitly acted on by the user, ParaHook may store longer-lived source bytes and extracted supported candidates in OPFS so repeated `Add To Project` flows are fast and do not require the user to re-upload the same ZIP. This should remain explicit user-triggered caching, not an eager all-PubParts archive downloader.
+
+The fuller staged importer flow should build on the ZIP mechanics without pretending the browser has native download ownership. `Add To Project` should open a Catalog-owned source-options/staged importer window that uses the PubParts item metadata and source link. The download action may open the PubParts source or initiate the browser's normal download behavior, but it cannot force the exact folder where the ZIP lands. The upload or choose-ZIP action is therefore the explicit user grant that lets ParaHook read the saved ZIP. After that grant, Catalog can list supported and unsupported ZIP entries, offer preview affordances for previewable supported files where the current app can do so honestly, and then hand selected supported files to Import review. Import remains the owner of accepted project assets, and the model viewport should only receive project/import-owned assets after the normal handoff rather than treating Catalog ZIP entries as project truth.
+
+This heavier shared-link lane should preserve the same lifecycle boundary as the rest of Gen2: a resolved PubParts shared-link file is staged source truth, not a project asset, until Import review accepts it. It should not require the user to own the Dropbox files or open their personal Dropbox picker; it should operate from the source link attached to the PubParts record and fall back to `Open Source` / local import when the link is an archive, folder, unsupported file, blocked by CORS, or requires owner/API capabilities ParaHook does not yet have.
+
+When `Add To Project` resolves more than one source candidate, Catalog should open a floating staged-source options window rather than immediately importing or guessing. The window should feel like the existing Import staged-files float window: it appears above the Catalog item page, lists the files ParaHook found for this PubParts link, shows supported and unsupported status, includes file names/types/sizes when known, and lets the user choose one file, some files, or all supported files. The primary action from this window should stage only the selected supported files into Import review with PubParts attribution. Unsupported files, readmes, images, slicer files, and unknown entries should remain visible as context but not selected by default.
+
+This import handoff should support direct linked model candidates where the file type is already clear, and staged archive/folder candidates where ParaHook must inspect contents first. Supported file candidates should include formats ParaHook can reasonably route into the import pipeline, such as `.step`, `.stp`, `.glb`, `.obj`, and `.stl`, while unsupported or reference files should remain visible as unsupported/source context instead of disappearing silently.
+
+Those endpoints should be treated as structured source intake, not as ParaHook's own catalog schema. PubParts part records currently provide source-facing fields such as `title`, `fabricationMethod`, `typeOfPart`, `imageSrc`, `platform`, `externalUrl`, `dropboxUrl`, and `dropboxZipLastUpdated`. PubParts resource records currently provide fields such as `title`, `typeOfResource`, source links, app store links, play store links, and `description`.
+
+The first ParaHook adapter should preserve those source fields where useful for attribution, source links, image preview, archive handoff, and freshness notes, then map the records into ParaHook-owned concepts such as `source kind`, `provider`, `source collection`, `system`, `platform compatibility`, `part group`, `part type`, `preview media`, `external item page`, and `linked archive URL`.
+
 Some entries may be linked model records instead of repo-local assets. Catalog should be able to show them, identify the source provider, expose source links, and route any download/import/open action honestly. If a PubParts entry points to a Dropbox folder, ZIP file, or linked model page, the item should say that instead of pretending the asset already exists locally.
 
 Pre-built PubWheel starting assemblies may also become Catalog entries in this generation, but they should read as full-build assemblies or starting configurations, not as the same thing as individual part listings.
+
+Repo-backed XR and ADV asset batches should get their own intake read before they are added to the live Catalog seed list. Loose parts should be routed through a platform-plus-part folder convention such as `public/Catalog/parts/xr/` and `public/Catalog/parts/adv/`, while full assemblies should be routed through `public/Catalog/assemblies/xr/` and `public/Catalog/assemblies/adv/`. The preferred repo-backed source formats for these assets are `.step` and `.stp`; mesh formats can still appear as previews or fallback display/import artifacts, but the intake plan should treat STEP as the best source asset truth when the user can provide it. Preview assets should stay in matching `public/CatalogPreviews/` lanes. The folder structure is a repo organization aid, not runtime truth; Catalog metadata still owns platform compatibility, system, part type, part group, position, source kind, and action behavior.
+
+The supplied XR PubWheel full assembly now has concrete repo-backed source candidates at `public/Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.step` and `public/Catalog/assemblies/xr/Assembly_XR_Pubwheel_1.glb`. Treat the STEP file as the preferred source truth for the XR starting assembly and the GLB as a companion mesh for later preview, fallback display, or import planning. Catalog may show this as a planned starting assembly source, but it must not imply current heavy STEP preview, import fidelity, or load-as-starting-configuration runtime until the Import and builder owners land.
+
+This XR pair is the first concrete example of a versioned multi-file Catalog item. `Assembly_XR_Pubwheel_1.step` and `Assembly_XR_Pubwheel_1.glb` are the same logical item, `pubwheel_1`, and the same starting source version, not two separate Catalog cards. Generation 2 should track the item identity separately from each 3D file variant: STEP can be the preferred CAD/source variant, GLB can be the companion runtime mesh or preview/fallback variant, and future updates should add a new item source version instead of overwriting the older STEP/GLB history silently.
+
+Manager should keep loose XR/ADV parts separate from pre-built PubWheel starting assemblies. If the user supplies loose XR or ADV parts, create a repo-backed asset intake family phase before or beside `Catalog-Gen2-5`. If the user supplies complete XR or ADV assemblies, route them into `Catalog-Gen2-5` as starting assemblies only after the folder convention and metadata expectations are explicit.
 
 #### Owns
 
@@ -1188,22 +1340,61 @@ Pre-built PubWheel starting assemblies may also become Catalog entries in this g
 - explicit source metadata such as source kind, provider, source page URL, linked model URL, linked archive URL, attribution, and source notes
 - externally linked item records whose model data does not yet ship with the repo
 - honest handoff actions for source pages, linked models, and linked archives
+- visible PubParts download/staging ownership for external source files before import
+- downloaded-versus-imported status for PubParts source files
+- staged PubParts downloads list and clear controls
+- user-triggered external import affordances that inspect source/archive contents before offering supported-file choices
+- supported-file chooser and selected-file handoff from external PubParts entries into the existing import/project pipeline
+- user-granted local PubParts library folder visibility and per-item local folder status in the Catalog flow
+- per-item PubParts source manifests and source-version identity at the Catalog metadata level
+- Catalog `Local Downloads` browse/status section for downloaded or discovered PubParts item files
+- one-primary-action item-page UX for the local PubParts workflow, with preview reserved for states that have a known local previewable/importable file
+- Dropbox Chooser as the first direct Dropbox `Add To Project` bridge for user-selected supported files
+- Dropbox shared-link direct-file resolution as the next PubParts-owned source-link lane, with ZIP/archive candidate proof complete for current data and folder listing deferred until real folder-shaped source records exist
+- efficient browser-side PubParts ZIP inspection and selected-entry extraction for one user-chosen archive at a time
+- cheap ZIP manifest caching keyed by PubParts item identity, source URL, and `dropboxZipLastUpdated`
+- Catalog-owned source-options/staged importer UX for PubParts ZIP entries before Import accepts project assets
+- browser-honest download/open-source and explicit upload/choose-ZIP actions for PubParts ZIP sources
+- preview affordances for previewable supported staged entries when the current app can produce a truthful preview without accepting project ownership
+- OPFS-backed ParaHook Internal Library as the default app-managed PubParts cache for source bytes, ZIPs, extracted candidates, source manifests, and inspection results
+- optional user-selected Local Library folder mirror for users who want PubParts source/extracted/importable files visible in the normal filesystem
 - mapping PubParts `Floatwheel`-style source naming into ParaHook platform vocabulary such as `ADV`
+- full cached PubParts part population after the proof cache is widened into complete deterministic source data
+- eager display of PubParts preview images on Catalog load
 - pre-built PubWheel starting-assembly entries as curated full-build assembly/start records
+- repo-backed XR/ADV asset-folder intake planning when the supplied assets are part of the Gen2 platform/assembly expansion
+- versioned multi-file asset-set metadata for supplied repo-backed 3D assets
 
 #### Does Not Own
 
 - redefining the Generation 1 local taxonomy from scratch
 - open-ended internet search
 - arbitrary web browsing inside Catalog
+- Dropbox account-wide OAuth browsing or access to files unrelated to the PubParts source link
+- silently treating Dropbox shared folders or ZIP URLs as importable without a resolver/inspection result and user choice
 - replacing the normal user import path
 - pretending linked files are local files before handoff/import has happened
+- treating a staged/downloaded PubParts source file as a project asset before Import accepts it
+- treating eager image previews as permission to eagerly download linked archives, `3D` models, or STEP sources
+- eagerly downloading, inspecting, or extracting all PubParts ZIP archives on Catalog load
+- silently reading the user's arbitrary local downloads folder without an explicit folder permission or user-picked files
+- owning local filesystem scanning, file handles, archive extraction, or staged file-object creation when those belong to the Import family
+- forcing the browser to save a PubParts ZIP into an exact folder or silently discovering where the browser saved it
+- automatic PubParts folder ownership, native direct downloads, or helper-managed local materialization before a later local/native owner ships that capability
+- treating staged ZIP entries or previewable candidates as accepted project assets before Import accepts them
+- automatic import of every file behind a source/archive link
+- extracting unsupported, hidden, unsafe, oversized, or path-traversal-shaped ZIP entries as project files
+- claiming a Dropbox folder or ZIP URL is an importable model before inspection/classification proves which supported files exist
+- STEP units detection, tessellation quality, heavy STEP progress, parse reuse, or loader fidelity beyond the normal Import-family handoff
+- dumping loose repo-backed XR/ADV assets into starting assembly records without an intake and classification plan
+- creating duplicate Catalog items only because the same item has both STEP and GLB file variants
+- overwriting older repo-backed source versions without a visible version-history record
 - compatibility checking or PubWheel Builder slot validation
 - dimensional proof
 
 #### Phase Creation Read
 
-Create `Generation 2` family phases when work is about external source records, source adapters, PubParts mapping, linked model entries, linked archive handoff, source attribution, or pre-built PubWheel entries.
+Create `Generation 2` family phases when work is about external source records, source adapters, PubParts mapping, full cached PubParts population, eager external preview image display, linked model entries, linked archive handoff, visible PubParts download staging, downloaded-versus-imported status, staged download clear controls, user-triggered external source inspection/import handoff, Dropbox shared-link direct-file resolution, shared ZIP/archive candidate inspection, efficient one-archive-at-a-time ZIP listing and selected extraction, staged importer/source-options UX, browser-honest ZIP download/upload handoff, preview affordances for previewable staged entries, OPFS-backed Internal Library caching, optional Local Library folder mirroring, local PubParts library folder status, per-item local source manifests, source attribution, repo-backed XR/ADV asset-folder intake, versioned multi-file `3D` asset sets, or pre-built PubWheel entries.
 
 If a phase changes the local part/platform taxonomy, it should explain whether it is correcting a `Generation 1` local model or adding source-mapping metadata needed only for external integration.
 

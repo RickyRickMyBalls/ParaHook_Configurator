@@ -32,13 +32,24 @@ function resolveCatalogReferenceFileType(assetPath: string): ReferenceFileType |
   return null
 }
 
+function resolveCatalogReferenceCommitAssetPath(item: CatalogItemRecord): string | null {
+  switch (item.source.sourceKind) {
+    case 'repo':
+      return item.source.assetPath
+    case 'planned':
+      return item.source.sourceAssetPath ?? null
+    case 'external':
+    case 'imports':
+      return null
+  }
+}
+
 export function resolveCatalogReferenceCommitRequest(
   item: CatalogItemRecord,
   actionPlan: CatalogActionPlan,
 ): CatalogReferenceCommitRequest | null {
   if (
     item.assetKind !== 'reference-asset' ||
-    item.source.sourceKind !== 'repo' ||
     actionPlan.actionFamily !== 'reference' ||
     actionPlan.downstreamOwner !== 'browser-project' ||
     actionPlan.primaryAction.actionKind !== 'add-to-project' ||
@@ -47,7 +58,12 @@ export function resolveCatalogReferenceCommitRequest(
     return null
   }
 
-  const fileType = resolveCatalogReferenceFileType(item.source.assetPath)
+  const assetPath = resolveCatalogReferenceCommitAssetPath(item)
+  if (assetPath === null) {
+    return null
+  }
+
+  const fileType = resolveCatalogReferenceFileType(assetPath)
   if (fileType === null) {
     return null
   }
@@ -58,6 +74,6 @@ export function resolveCatalogReferenceCommitRequest(
     catalogFamilyKey: item.familyKey,
     fileName: item.label,
     fileType,
-    objectUrl: resolveReferenceAssetPath(item.source.assetPath),
+    objectUrl: resolveReferenceAssetPath(assetPath),
   }
 }

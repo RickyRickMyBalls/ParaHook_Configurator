@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+7. 2026-04-20 20:15:13: Added the cross-family local source library direction so Import can own user-granted folder permission, known-folder scanning, supported-file discovery, and staged import handoff for PubParts downloads while Catalog owns source identity and per-item local-folder status.
 6. 2026-04-16: Extended the master import vision again so `Generation 1` now leaves room for a later `Import-7` `.stl` mesh-cleanup-and-import-controls lane, clarifying that STL-specific cleanup should widen as its own format-specific follow-on instead of being implied by STEP tessellation language or pushed back into the generic staged foundation
 5. 2026-04-16: Tightened the master import vision by adding a small working-terms glossary, one explicit `Generation 0` exit read, one clearer status note for `Import-2`, and one ownership-boundary section so future import planning can sort generic intake work, downstream ownership, and later retained-geometry work more consistently
 4. 2026-04-16: Extended the master import vision so `Generation 1` now includes both `Import-5` and the new `Import-6` `.glb` enrichment lane, clarifying that the later format-specific fidelity generation should begin with `.step` and then widen into `.glb` instead of reading as a single-format STEP-only band
@@ -138,13 +139,14 @@ That generation now includes:
 - the older direct-row compatibility carry-forward
 - the reviewed staged import baseline
 - the active staged-session hardening and object-review work
+- a cross-family local source library intake lane for known user-granted folders such as PubParts downloads
 
 `Generation 1` is the later format-specific fidelity and heavy-source-truth generation, starting with `.step` through `Import-5`, then widening into `.glb` through `Import-6`, and later leaving room for `.stl` cleanup controls through `Import-7`.
 
 `Generation 2` is the later retained imported-geometry direction, which should widen through the companion `B-rep` vision instead of being smuggled into the earlier import generations.
 
 The current mainline import read is:
-- `Generation 0` is already partly shipped and still active through `Import-4`
+- `Generation 0` is already partly shipped and still active through `Import-4`, with `Import-8` added as a later cross-family local source library intake lane when Catalog needs known-folder PubParts discovery
 - `Generation 1` is queued behind that, with `Import-5` first, `Import-6` following as a later `.glb` enrichment lane, and `Import-7` left later as the `.stl` cleanup-controls lane once the earlier format-specific pattern is clearer
 - `Generation 2` stays later through the companion `B-rep` direction
 
@@ -157,6 +159,7 @@ The current family maps cleanly like this:
   - `Import-2`
   - `Import-3`
   - `Import-4`
+  - `Import-8`
 - `Generation 1`
   - `Import-5`
   - `Import-6`
@@ -186,6 +189,7 @@ Current owned lanes:
 - still-open compatibility follow-on `Import-2`
 - shipped `Import-3`
 - active staged-session follow-on `Import-4`
+- later cross-family local source library follow-on `Import-8`
 
 Status note for `Import-2`:
 - `Import-2` belongs inside `Generation 0` because it is still part of the older direct-row compatibility carry-forward
@@ -197,6 +201,7 @@ What `Generation 0` is trying to achieve:
 - one mainline `Import Files...` path that feels complete enough to trust before format-specific widening begins
 - reviewed intake before commit instead of immediate Browser mutation
 - honest per-file structure read, import settings, organization, acceptance, and recovery behavior
+- honest local source-library intake when another family, such as Catalog, points at user-granted folders of source files
 - enough staged-session clarity that later `.step`-specific fidelity work can widen on top of a stable base instead of compensating for generic import confusion
 
 When `Generation 0` is healthy, the user should be able to say:
@@ -216,6 +221,8 @@ What `Generation 0` does not yet do:
 - give each supported format its own richer fidelity contract
 - distinguish mesh-first staged truth from later retained imported-geometry truth only through format-specific controls
 - solve retained imported geometry or topology-aware interaction
+- silently scan arbitrary folders without user permission
+- extract archives or list remote shared-folder contents unless a later Import phase explicitly opens that lane
 
 `Generation 0` exit read:
 - the mainline `Import Files...` path feels complete enough that supported staged formats can be brought in through one believable reviewed intake flow
@@ -406,6 +413,7 @@ Quick edge-case sorting:
 Use the generations like this:
 
 - if the work improves the older direct rows, batch parity, the reviewed staged baseline, generic staged-session truth, recovery, preview layout, or object review, it belongs in `Generation 0`
+- if the work turns a known user-granted local folder into staged supported-file intake, it belongs in `Generation 0` unless it becomes format-specific fidelity
 - if the work is `.step`-specific, `.glb`-specific, or another format-specific fidelity contract, it belongs in `Generation 1`
 - if the work requires retained imported geometry, topology-aware selection, or authoritative-derived display, it belongs in `Generation 2` and should coordinate with the `B-rep` family
 - if the work is curated asset browsing or imported-item recall after intake, it belongs in `Catalog`, not in `Import`

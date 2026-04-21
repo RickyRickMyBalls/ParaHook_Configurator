@@ -18,6 +18,12 @@ import {
 } from '../recentItems/recentItemsPersistence'
 import { dashboardStorageKey } from '../dashboard/dashboardPersistence'
 import { notepadStorageKey } from '../notepad/notepadPersistence'
+import {
+  pubPartsDownloadsFolderPath,
+  pubPartsDownloadsStorageKey,
+  pubPartsLocalLibraryFolderPath,
+  readPubPartsDownloadsStorage,
+} from '../catalog/pubPartsDownloadsStorage'
 import { HomePageSurface } from './HomePageSurface'
 import { homePageDocsUrl, homePageGithubUrl, homePageWhatIsNewSummary, homePageVersionLabel } from './homePageOrientation'
 import { uiPrefsStorageKey } from '../store/uiPrefsPersistence'
@@ -167,6 +173,7 @@ describe('HomePageSurface', () => {
         'Environment',
         'Graph working set',
         'Recent items',
+        'PubParts Library',
       ]),
     )
 
@@ -175,8 +182,13 @@ describe('HomePageSurface', () => {
         [],
     ) as HTMLInputElement[]
 
-    expect(checkboxes).toHaveLength(7)
-    expect(checkboxes.every((checkbox) => checkbox.checked)).toBe(true)
+    expect(checkboxes).toHaveLength(8)
+    expect(
+      checkboxes
+        .filter((checkbox) => checkbox !== findStoragePolicyToggle(container, 'PubParts Library'))
+        .every((checkbox) => checkbox.checked),
+    ).toBe(true)
+    expect(findStoragePolicyToggle(container, 'PubParts Library')?.checked).toBe(false)
 
     const workspaceRestoreToggle = findStoragePolicyToggle(container, 'Workspace restore')
     const viewSettingsToggle = findStoragePolicyToggle(container, 'View settings')
@@ -228,7 +240,7 @@ describe('HomePageSurface', () => {
       container?.querySelectorAll('.HomePageSurfaceStoragePolicyToggle input[type="checkbox"]') ??
         [],
     ) as HTMLInputElement[]
-    expect(checkboxes).toHaveLength(7)
+    expect(checkboxes).toHaveLength(8)
 
     const dashboardToggle = findStoragePolicyToggle(container, 'Dashboard')
     const notepadToggle = findStoragePolicyToggle(container, 'Notepad')
@@ -441,6 +453,7 @@ describe('HomePageSurface', () => {
     window.localStorage.setItem(dashboardStorageKey, '{"widgets":"gamma"}')
     window.localStorage.setItem(graphBrowserStorageSnapshotKey, '{"graphs":"epsilon"}')
     window.localStorage.setItem(recentItemsStorageSnapshotKey, '{"recent":"zeta"}')
+    window.localStorage.setItem(pubPartsDownloadsStorageKey, '{"downloads":"eta"}')
     Object.defineProperty(navigator, 'storage', {
       configurable: true,
       value: {
@@ -480,6 +493,10 @@ describe('HomePageSurface', () => {
     expect(storageSection?.textContent).toContain(graphBrowserStorageSnapshotKey)
     expect(storageSection?.textContent).toContain('Recent items')
     expect(storageSection?.textContent).toContain(recentItemsStorageSnapshotKey)
+    expect(storageSection?.textContent).toContain('PubParts downloads')
+    expect(storageSection?.textContent).toContain(pubPartsDownloadsStorageKey)
+    expect(storageSection?.textContent).toContain(pubPartsDownloadsFolderPath)
+    expect(storageSection?.textContent).toContain(pubPartsLocalLibraryFolderPath)
     expect(storageSection?.textContent).toContain('Browser origin storage estimate: 2.0 KiB used of 8.0 KiB')
     expect(storageSection?.textContent).toContain('graphBrowserStoragePersistence.ts')
     expect(storageSection?.textContent).toContain(homePageRecentItemsPersistenceNote)
@@ -487,16 +504,16 @@ describe('HomePageSurface', () => {
     const storageRows = Array.from(
       container?.querySelectorAll('[data-home-page-storage-bucket-key]') ?? [],
     ) as HTMLElement[]
-    expect(storageRows).toHaveLength(6)
+    expect(storageRows).toHaveLength(7)
     expect(
       container?.querySelector('.HomePageSurfaceStorageTransparencyList[role="list"]'),
     ).not.toBeNull()
     expect(
       container?.querySelectorAll('.HomePageSurfaceStorageDetailAffordance'),
-    ).toHaveLength(6)
+    ).toHaveLength(7)
     expect(
       container?.querySelectorAll('.HomePageSurfaceStorageWipeButton'),
-    ).toHaveLength(6)
+    ).toHaveLength(7)
     expect(storageRows.map((row) => row.textContent)).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/\bB approx\./),
@@ -517,5 +534,41 @@ describe('HomePageSurface', () => {
 
     expect(window.localStorage.getItem(workspaceLayoutStorageKey)).toBeNull()
     expect(workspaceLayoutRow?.textContent).toContain('0 B stored')
+  })
+
+  it('toggles the PubParts Library status through the PubParts storage owner seam', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(<HomePageSurfaceHarness />)
+    })
+
+    const pubPartsLibraryToggle = findStoragePolicyToggle(container, 'PubParts Library')
+    expect(pubPartsLibraryToggle).not.toBeNull()
+    expect(pubPartsLibraryToggle?.checked).toBe(false)
+    expect(readPubPartsDownloadsStorage(window.localStorage).library.status).toBe(
+      'not-configured',
+    )
+
+    await act(async () => {
+      pubPartsLibraryToggle?.click()
+    })
+
+    expect(pubPartsLibraryToggle?.checked).toBe(true)
+    expect(readPubPartsDownloadsStorage(window.localStorage).library).toEqual(
+      expect.objectContaining({
+        status: 'permission-needed',
+        rootFolderPath: pubPartsLocalLibraryFolderPath,
+      }),
+    )
+
+    await act(async () => {
+      pubPartsLibraryToggle?.click()
+    })
+
+    expect(pubPartsLibraryToggle?.checked).toBe(false)
+    expect(readPubPartsDownloadsStorage(window.localStorage).library.status).toBe('disabled')
   })
 })

@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-04-21 12:54:25: Refreshed this index after the console layout row cleanup, recording that `AppShellRoot` now owns a dedicated bottom `AppShellConsoleRow` for the docked command bar while expanded console panels, floating console, popout console, and split-preview behavior remain overlay/windowing concerns.
 18. 2026-04-03 19:24: Refreshed this index after the shipped `AppShell 4 / Phase 6` workspace-menu extraction, recording that `useAppShellWorkspaceMenus.tsx` now owns the remaining viewport-spawn plus shell-menu cluster and that the `AppShell 4` cleanup ladder is now fully shipped through its final optional menu pass
 17. 2026-04-03 19:13: Refreshed this index after the final `AppShell 4` prep pass, recording that the optional `Phase 6 - Spawn Menu And Minor Shell Menu Coordination Cleanup` is now implementation-ready around the live remaining viewport-spawn, left-dock-resize, floating-split-submenu, and workspace-split-menu band still inline in `AppShell.tsx`
 16. 2026-04-03 19:10: Refreshed this index after the shipped `AppShell 4 / Phase 5` viewport-tree extraction, recording that `WorkspaceViewportTree.tsx` now owns the recursive slot and split-layout composition seam while only the optional `Phase 6 - Spawn Menu And Minor Shell Menu Coordination Cleanup` pass remains open if the later shell read still justifies it
@@ -273,6 +274,7 @@ It should not directly answer:
 - Keep `AppShell` as the composition root, not the god object.
 - Prefer mounted host components or custom hooks for feature runtimes that need app-level mounting.
 - Keep shell-wide workspace state separate from feature-local runtime state.
+- Reserve always-visible command-line chrome through an explicit shell row. Expanded Console panels, floating Console windows, popouts, and split-preview ghosts may overlay the workspace, but the docked command bar should not steal space from individual viewport hosts.
 - Keep editor window-management mechanics grouped behind one dedicated shell subsystem instead of scattering them across the top-level shell body.
 - Keep feature-specific refs, timers, and transport polling out of the main shell body whenever the behavior can live in a mounted host seam.
 

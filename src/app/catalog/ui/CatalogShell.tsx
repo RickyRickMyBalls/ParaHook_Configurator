@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import type { EnvironmentSourceSettings } from '../../../shared/viewSettingsTypes'
 import type { CatalogItemRecord } from '../catalogItemContract'
 import type { CatalogSourceSnapshot } from '../catalogSource'
+import type {
+  PubPartsLocalSourceRecord,
+  PubPartsStagedSourceRecord,
+} from '../pubPartsDownloadsStorage'
 import {
   loadCatalogPreviewItems,
   resolveCatalogDisplayedPreviewLoadTargetItemIds,
@@ -25,6 +29,7 @@ import {
   resolveCatalogResultsSummary,
   resolveCatalogSearchPlaceholder,
   toggleCatalogFilterSelection,
+  type CatalogPubPartsDropboxChooserStatus,
 } from './catalogShellShared'
 
 type CatalogShellProps = {
@@ -36,6 +41,20 @@ type CatalogShellProps = {
       | ((currentState: CatalogPreviewSessionState) => CatalogPreviewSessionState),
   ) => void
   onAddItemToProject: (item: CatalogItemRecord) => void
+  onStageExternalSourceLink: (item: CatalogItemRecord) => void
+  onInspectStagedSource: (stagedSourceId: string) => void
+  onSelectSupportedFileCandidate: (stagedSourceId: string) => void
+  onPreparePubPartsLocalSource?: (item: CatalogItemRecord) => void
+  onAddPubPartsDropboxFileToProject?: (item: CatalogItemRecord) => void
+  onImportDownloadedPubPartsFiles: (
+    item: CatalogItemRecord,
+    stagedRecord: PubPartsStagedSourceRecord,
+  ) => void
+  pubPartsStagedSourceRecords: PubPartsStagedSourceRecord[]
+  pubPartsStagedSourcesByCatalogItemId: Map<string, PubPartsStagedSourceRecord>
+  pubPartsLocalSourceRecords?: PubPartsLocalSourceRecord[]
+  pubPartsLocalSourcesByCatalogItemId?: Map<string, PubPartsLocalSourceRecord>
+  pubPartsDropboxChooserStatusByCatalogItemId?: Map<string, CatalogPubPartsDropboxChooserStatus>
   onApplyEnvironment: (item: CatalogItemRecord) => void
   onBrowseLocalEnvironment: (file: File) => void
   appliedEnvironmentSource: EnvironmentSourceSettings
@@ -43,6 +62,8 @@ type CatalogShellProps = {
   onSetHdriIntensity: (intensity: number) => void
   onUnloadAllPreviewItems: () => void
   onUnloadPreviewItem: (itemId: string) => void
+  onClearPubPartsStagedSource: (stagedSourceId: string) => void
+  onClearAllPubPartsStagedSources: () => void
 }
 
 export function CatalogShell(props: CatalogShellProps) {
@@ -51,6 +72,17 @@ export function CatalogShell(props: CatalogShellProps) {
     previewLoadedItemIds,
     onPreviewSessionChange,
     onAddItemToProject,
+    onStageExternalSourceLink,
+    onInspectStagedSource,
+    onSelectSupportedFileCandidate,
+    onPreparePubPartsLocalSource = () => {},
+    onAddPubPartsDropboxFileToProject = () => {},
+    onImportDownloadedPubPartsFiles,
+    pubPartsStagedSourceRecords,
+    pubPartsStagedSourcesByCatalogItemId,
+    pubPartsLocalSourceRecords = [],
+    pubPartsLocalSourcesByCatalogItemId = new Map<string, PubPartsLocalSourceRecord>(),
+    pubPartsDropboxChooserStatusByCatalogItemId = new Map<string, CatalogPubPartsDropboxChooserStatus>(),
     onApplyEnvironment,
     onBrowseLocalEnvironment,
     appliedEnvironmentSource,
@@ -58,6 +90,8 @@ export function CatalogShell(props: CatalogShellProps) {
     onSetHdriIntensity,
     onUnloadAllPreviewItems,
     onUnloadPreviewItem,
+    onClearPubPartsStagedSource,
+    onClearAllPubPartsStagedSources,
   } = props
   const [browseMode, setBrowseMode] = useState<CatalogBrowseMode>('part')
   const sectionOptions = buildCatalogSectionOptions(snapshot, browseMode)
@@ -109,6 +143,18 @@ export function CatalogShell(props: CatalogShellProps) {
     browseMode,
   )
   const selectedItem = snapshot.allItems.find((item) => item.itemId === selectedItemId) ?? null
+  const selectedItemStagedSourceRecord =
+    selectedItem === null
+      ? null
+      : pubPartsStagedSourcesByCatalogItemId.get(selectedItem.itemId) ?? null
+  const selectedItemLocalSourceRecord =
+    selectedItem === null
+      ? null
+      : pubPartsLocalSourcesByCatalogItemId.get(selectedItem.itemId) ?? null
+  const selectedItemDropboxChooserStatus =
+    selectedItem === null
+      ? null
+      : pubPartsDropboxChooserStatusByCatalogItemId.get(selectedItem.itemId) ?? null
   const isItemPageVisible = contentMode === 'item-page' && selectedItem !== null
   const displayedPreviewLoadableItemIds = resolveCatalogDisplayedPreviewLoadTargetItemIds(
     visibleItems,
@@ -190,12 +236,16 @@ export function CatalogShell(props: CatalogShellProps) {
         browseMode={browseMode}
         activeSection={activeSection}
         previewLoadedItems={previewLoadedItems}
+        pubPartsStagedSourceRecords={pubPartsStagedSourceRecords}
+        pubPartsLocalSourceRecords={pubPartsLocalSourceRecords}
         totalItemCount={snapshot.allItems.length}
         sectionOptions={sectionOptions}
         onBrowseModeChange={setBrowseMode}
         onSectionChange={handleSectionChange}
         onUnloadAllPreviewItems={onUnloadAllPreviewItems}
         onUnloadPreviewItem={onUnloadPreviewItem}
+        onClearPubPartsStagedSource={onClearPubPartsStagedSource}
+        onClearAllPubPartsStagedSources={onClearAllPubPartsStagedSources}
       />
 
       <section className="CatalogShellRegion CatalogShellContent" data-catalog-region="content">
@@ -275,6 +325,9 @@ export function CatalogShell(props: CatalogShellProps) {
           {isItemPageVisible ? (
             <CatalogShellItemPage
               item={selectedItem}
+              pubPartsStagedSourceRecord={selectedItemStagedSourceRecord}
+              pubPartsLocalSourceRecord={selectedItemLocalSourceRecord}
+              pubPartsDropboxChooserStatus={selectedItemDropboxChooserStatus}
               isPreviewLoaded={previewLoadedItemIds.includes(selectedItem.itemId)}
               previewTargetCount={resolveCatalogPreviewTargetItemIds(
                 selectedItem.itemId,
@@ -282,6 +335,22 @@ export function CatalogShell(props: CatalogShellProps) {
               ).length}
               onLoadPreview={() => handleLoadPreviewForItem(selectedItem.itemId)}
               onAddToProject={() => onAddItemToProject(selectedItem)}
+              onStageExternalSourceLink={() => onStageExternalSourceLink(selectedItem)}
+              onInspectStagedSource={() =>
+                onInspectStagedSource(`pubparts:${selectedItem.itemId}`)
+              }
+              onSelectSupportedFileCandidate={() =>
+                onSelectSupportedFileCandidate(`pubparts:${selectedItem.itemId}`)
+              }
+              onPreparePubPartsLocalSource={() => onPreparePubPartsLocalSource(selectedItem)}
+              onAddPubPartsDropboxFileToProject={() =>
+                onAddPubPartsDropboxFileToProject(selectedItem)
+              }
+              onImportDownloadedPubPartsFiles={() => {
+                if (selectedItemStagedSourceRecord !== null) {
+                  onImportDownloadedPubPartsFiles(selectedItem, selectedItemStagedSourceRecord)
+                }
+              }}
               onApplyEnvironment={() => onApplyEnvironment(selectedItem)}
               onBrowseLocalEnvironment={onBrowseLocalEnvironment}
               appliedEnvironmentSource={appliedEnvironmentSource}

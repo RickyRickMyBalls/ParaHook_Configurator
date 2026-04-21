@@ -42,6 +42,12 @@ function renderCatalogShell(surfaceId: string) {
           )
         }}
         onAddItemToProject={vi.fn()}
+        onStageExternalSourceLink={vi.fn()}
+        onInspectStagedSource={vi.fn()}
+        onSelectSupportedFileCandidate={vi.fn()}
+        onImportDownloadedPubPartsFiles={vi.fn()}
+        pubPartsStagedSourceRecords={[]}
+        pubPartsStagedSourcesByCatalogItemId={new Map()}
         onApplyEnvironment={vi.fn()}
         onBrowseLocalEnvironment={vi.fn()}
         appliedEnvironmentSource={DEFAULT_VIEW_SETTINGS.environmentSource}
@@ -55,6 +61,8 @@ function renderCatalogShell(surfaceId: string) {
             ),
           }))
         }
+        onClearPubPartsStagedSource={vi.fn()}
+        onClearAllPubPartsStagedSources={vi.fn()}
       />
     )
   }

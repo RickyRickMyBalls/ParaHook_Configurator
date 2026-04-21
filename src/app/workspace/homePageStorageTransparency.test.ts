@@ -8,6 +8,11 @@ import {
 } from './homePageStorageTransparency'
 import { dashboardStorageKey } from '../dashboard/dashboardPersistence'
 import { notepadStorageKey } from '../notepad/notepadPersistence'
+import {
+  pubPartsDownloadsFolderPath,
+  pubPartsLocalLibraryFolderPath,
+  pubPartsDownloadsStorageKey,
+} from '../catalog/pubPartsDownloadsStorage'
 import { recentItemsStorageSnapshotKey } from '../recentItems/recentItemsPersistence'
 import { graphBrowserStorageSnapshotKey } from '../spaghetti/store/graphBrowserStoragePersistence'
 import { uiPrefsStorageKey } from '../store/uiPrefsPersistence'
@@ -24,6 +29,7 @@ describe('homePageStorageTransparency', () => {
       [notepadStorageKey]: '{"notes":"delta"}',
       [graphBrowserStorageSnapshotKey]: '{"graphs":"epsilon"}',
       [recentItemsStorageSnapshotKey]: '{"recent":"zeta"}',
+      [pubPartsDownloadsStorageKey]: '{"downloads":"eta"}',
     }
     const storage = {
       getItem: (key: string) => storageValues[key] ?? null,
@@ -82,6 +88,17 @@ describe('homePageStorageTransparency', () => {
           approximateBytes:
             utf8Bytes(recentItemsStorageSnapshotKey) +
             utf8Bytes(storageValues[recentItemsStorageSnapshotKey]),
+        }),
+        expect.objectContaining({
+          label: 'PubParts downloads',
+          storageKey: pubPartsDownloadsStorageKey,
+          ownerSeam: 'pubPartsDownloadsStorage.ts',
+          folderPath: pubPartsDownloadsFolderPath,
+          localLibraryFolderPath: pubPartsLocalLibraryFolderPath,
+          present: true,
+          approximateBytes:
+            utf8Bytes(pubPartsDownloadsStorageKey) +
+            utf8Bytes(storageValues[pubPartsDownloadsStorageKey]),
         }),
       ]),
     )

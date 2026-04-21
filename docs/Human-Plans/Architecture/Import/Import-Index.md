@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+19. 2026-04-20 20:15:13: Added `Import-8 - Local Source Library And PubParts Folder Intake` as the Import-family owner for user-granted folder permission, PubParts library scanning, supported-file discovery, and staged Import handoff after Catalog Gen2 identified that browser source downloads need a known local folder rather than an unknown downloads location.
 18. 2026-04-16: Added the standalone future execution doc `Import_Phase Import-4 Phase 7.7 - Part List And Scale Enrichment.md`, updated the family structure pointer list, and extended the `Import-4` family read so the next later staged import polish pair now has one explicit planning home for `Part list enrichment` and `Scale enrichment` without widening that new lane beyond those two wishlist items
 17. 2026-04-16: Added the standalone future execution doc `Import_Phase Import-4 Phase 7.6 - Preview Browser Enrichment.md`, updated the family structure pointer list, and extended the `Import-4` family read so later staged preview Browser follow-up now has one explicit planning home for row-level preview-target truth, preview-browser-to-object-preview affordances, active loaded-row clarity, and later row-identity polish
 16. 2026-04-16: Extended the family index and master vision so `Generation 1` now also leaves room for a later `Import-7` `.stl` mesh-cleanup-and-import-controls lane, keeping STL-specific cleanup inside the format-specific generation without pretending it should reuse STEP tessellation language or reopen the generic staged import foundation
@@ -67,6 +68,7 @@ Use this folder like this:
   - `Import 5 - Phases.md`
   - `Import_Phase Import-5 - STEP Import Metadata, Units, And Loader Fidelity.md`
   - `Import_Phase Import-6 - GLB Scene Metadata, Materials, And Content Fidelity.md`
+  - `Import_Phase Import-8 - Local Source Library And PubParts Folder Intake.md`
 - `Shipped/`
   - shipped records for completed import-family cuts
   - `Import_Phase Import-1 - Multi-OBJ Batch Import.md`
@@ -94,6 +96,7 @@ The family now reads most cleanly like this:
   - `Import-2`
   - `Import-3`
   - `Import-4`
+  - `Import-8`
 - `Generation 1`
   - format-specific fidelity and heavy-source truth
   - `Import-5`
@@ -112,6 +115,7 @@ The current import-family read is:
   - `Import-2` remains open as compatibility parity if the older direct `.step`, `.stl`, and `.glb` rows are still worth carrying forward
   - shipped `Import-3` established `Import Files...` as the reviewed staged baseline
   - `Import-4` is the active next mainline lane because the staged dialog still needs stronger generic session truth around layout, per-file feedback, partial results, recovery, object review, and later cleanup polish
+  - `Import-8` is a later cross-family local source library lane for user-granted PubParts folder scanning and staged Import handoff; it is not a replacement for `Import-4` session hardening
 - `Generation 1`
   - `Import-5` stays queued behind that as the first later `.step`-specific fidelity lane
   - `Import-6` now gives the same generation one later `.glb` enrichment lane for scene, material, and richer content honesty after the STEP-first proving ground
@@ -262,6 +266,17 @@ Shipped record:
 Execution doc:
 - `Future/Import_Phase Import-4 - Staged Import Session Feedback And Partial-Failure Reporting.md`
 
+### [ ] Import-8 - Local Source Library And PubParts Folder Intake
+
+- own user-granted folder permission and local source-library scanning for known folders such as a PubParts library root
+- detect supported local files in per-item source folders without silently reading arbitrary downloads locations
+- preserve source attribution supplied by Catalog manifests when staging files into the reviewed Import dialog
+- expose not-granted, no-files-found, unsupported, needs-extraction, and ready-to-import states back to the Catalog workflow
+- keep remote byte downloading, Dropbox shared-folder listing, archive extraction, and format-specific STEP/GLB/STL fidelity behind narrower later owners unless this lane explicitly opens them
+
+Execution doc:
+- `Future/Import_Phase Import-8 - Local Source Library And PubParts Folder Intake.md`
+
 ## Generation 1 - Format-Specific Fidelity And Heavy-Source Truth
 
 ### [ ] Import-5 - STEP Import Metadata, Units, And Loader Fidelity
@@ -311,10 +326,13 @@ Possible later import-family follow-ons:
 - `.obj` sidecar material and texture handling
 - drag-and-drop reference import
 - import cleanup, naming, and grouping policies for larger batches
+- desktop/native direct downloader support for writing remote PubParts bytes into a user-granted local library folder
 
 ### Current Recommendation
 
 The next honest import work should be `Import-4` inside `Generation 0`.
+
+`Import-8` is now the cross-family follow-on for the Catalog Gen2 local PubParts library problem, and it can be pulled forward when the manager loop starts `Catalog-Gen2-9`.
 
 `Import-5` should stay queued behind that as the first `Generation 1` `.step`-specific fidelity lane.
 

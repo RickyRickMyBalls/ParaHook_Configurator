@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveCatalogActionPlan } from './catalogActionPlan'
 import type { CatalogItemRecord } from './catalogItemContract'
 import { resolveCatalogReferenceCommitRequest } from './catalogReferenceCommit'
-import { getCatalogRepoItems } from './catalogSource'
+import { getCatalogPlannedStartingAssemblyItems, getCatalogRepoItems } from './catalogSource'
 
 describe('catalogReferenceCommit', () => {
   it('resolves the first curated reference families into explicit browser-project handoff contracts', () => {
@@ -66,6 +66,68 @@ describe('catalogReferenceCommit', () => {
     }
 
     expect(resolveCatalogReferenceCommitRequest(item, resolveCatalogActionPlan(item))).toBeNull()
+  })
+
+  it('does not invent a repo commit handoff for external PubParts source entries', () => {
+    const item: CatalogItemRecord = {
+      itemId: 'external:pubparts:selected-source',
+      label: 'Selected PubParts Source',
+      familyKey: 'external-pubparts',
+      sectionKey: 'external-pubparts-parts',
+      tags: ['external', 'pubparts'],
+      description: 'External PubParts source entry with a selected staged source candidate.',
+      assetKind: 'reference-asset',
+      actionKind: 'load-preview',
+      source: {
+        sourceKind: 'external',
+        provider: {
+          providerId: 'pubparts',
+          providerName: 'PubParts',
+        },
+        externalItemUrl: 'https://www.printables.com/model/598759',
+        sourceUrl: 'https://pubparts.xyz/parts.json',
+        linkedArchiveUrl: 'https://example.com/models/source-model.step',
+      },
+      previewMedia: [],
+    }
+
+    expect(resolveCatalogReferenceCommitRequest(item, resolveCatalogActionPlan(item))).toBeNull()
+  })
+
+  it('resolves planned full assemblies into explicit browser-project handoff contracts', () => {
+    const plannedItems = getCatalogPlannedStartingAssemblyItems()
+    const expectedRequestsByItemId = {
+      'starting-assembly:adv-full-assembly-planned': {
+        downstreamOwner: 'browser-project',
+        catalogItemId: 'starting-assembly:adv-full-assembly-planned',
+        catalogFamilyKey: 'starting-assemblies',
+        fileName: 'ADV Full Assembly',
+        fileType: 'step',
+        objectUrl: expect.stringMatching(/\/Catalog\/boards\/adv\/ADV_Full Assembly_parts\.step$/),
+      },
+      'starting-assembly:xr-pubwheel-1-planned': {
+        downstreamOwner: 'browser-project',
+        catalogItemId: 'starting-assembly:xr-pubwheel-1-planned',
+        catalogFamilyKey: 'starting-assemblies',
+        fileName: 'XR PubWheel Assembly 1',
+        fileType: 'step',
+        objectUrl: expect.stringMatching(
+          /\/Catalog\/assemblies\/xr\/Assembly_XR_Pubwheel_1\.step$/,
+        ),
+      },
+    } satisfies Record<string, NonNullable<ReturnType<typeof resolveCatalogReferenceCommitRequest>>>
+
+    for (const [itemId, expectedCommitRequest] of Object.entries(expectedRequestsByItemId)) {
+      const item = plannedItems.find((candidate) => candidate.itemId === itemId)
+      expect(item).toBeDefined()
+
+      const commitRequest = resolveCatalogReferenceCommitRequest(
+        item as CatalogItemRecord,
+        resolveCatalogActionPlan(item as CatalogItemRecord),
+      )
+
+      expect(commitRequest).toEqual(expectedCommitRequest)
+    }
   })
 
   it('does not route environment actions through the browser-project reference handoff', () => {

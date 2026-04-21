@@ -3,6 +3,7 @@
 ## Doc Header
 
 ### Doc History
+39. 2026-04-20 14:25: Recorded `Catalog-7 / Phase 4` and the Catalog-7 Gen1 fitment gate as complete after the local wheel-fitment contract and item-page display seam shipped without fabricated motor/tire records, while keeping `Catalog-Gen1-HLG-17` partial until real repo-backed motor or tire assets exist to carry real fitment truth.
 38. 2026-04-19 13:34:08: Downgraded family phase status markers from `[x]` to `[~]` where the local `### HLG / CLG Coverage` checklist still has open items, keeping shipped runtime history visible while making incomplete Gen1 goal coverage honest.
 37. 2026-04-19 13:29:55: Corrected the `Catalog-1` through `Catalog-7` family phase sections to match the Home Page Generation Index format, preserving separate `### HLG / CLG Coverage`, `### Owns`, `### Does Not Own`, `### Planning Read`, and `### Family Phase Doc` sections under each family phase instead of folding those details into a rails block.
 36. 2026-04-19 13:24:58: Updated the top-level `Catalog-1` through `Catalog-7` family phase sections to the two-section Generation Index Doc pattern, using `### Family Phase Summary` for intent and `### Family Phase Rails` for owns, does-not-own, source-doc, and next-task routing.
@@ -102,7 +103,9 @@ ParaHook should gain one real `Catalog` workspace where the user can browse reus
 
 The `Generation 0` cleanup band is now complete and remains documented in `Catalog-Gen0-Index.md`.
 
-The shipped `Generation 1` baseline is complete through `Catalog-6`, the corrective `Catalog-1.13` and `Catalog-2.14` follow-ups are now closed, `Catalog-7 / Phase 3` has shipped predictable grouped filter semantics, and the remaining local repo-backed part taxonomy work now routes through `Catalog-7 / Phase 4` for wheel-specific motor and tire fitment fields.
+The shipped `Generation 1` baseline is complete through `Catalog-7` as the local taxonomy and fitment gate for `Catalog-Gen2-3`.
+
+The corrective `Catalog-1.13` and `Catalog-2.14` follow-ups are closed, `Catalog-7 / Phase 3` shipped predictable grouped filter semantics, and `Catalog-7 / Phase 4` shipped the local wheel-fitment contract and item-page display seam without fabricating live motor or tire records.
 
 The completed `Generation 0` cleanup read is:
 - the old Browser-owned reference baseline has been retired
@@ -1094,13 +1097,13 @@ The family phase stays marked `[~]` in this Generation Index Doc because `Catalo
 
 - `docs/Human-Plans/Architecture/Workspace-Modes/Workspaces/Catalog/Future/Catalog_Phase Catalog-6 - HDRI Repo Expansion And Cleanup.md`
 
-## [~] Catalog-7 - Local Part Taxonomy And Platform Filter Foundation
+## [x] Catalog-7 - Local Part Taxonomy And Platform Filter Foundation
 
 ### Family Phase Summary
 
 Create the `Generation 1` local taxonomy and filter foundation that Catalog can use for repo-backed parts now and that later external-source mapping can target without replacing ParaHook's own catalog truth.
 
-This active family phase advances the remaining Gen1 local part taxonomy work. Phase 1 through Phase 3 are implemented and verified; Phase 4 remains open for wheel-specific motor and tire fitment fields.
+This completed family phase advances the remaining Gen1 local part taxonomy work. Phase 1 through Phase 4 are implemented and verified, with the final Phase 4 cut adding the local wheel-fitment contract and item-page display seam without fabricating live motor or tire records.
 
 ### HLG / CLG Coverage
 
@@ -1110,15 +1113,15 @@ This active family phase advances the remaining Gen1 local part taxonomy work. P
 - [x] `Catalog-Gen1-HLG-14. let the user filter by part type or by platform compatibility without those two browse modes fighting each other`
 - [x] `Catalog-Gen1-HLG-15. introduce the first practical filter model for repo-backed parts, starting from structured metadata such as system, part type, platform compatibility, product name, and position`
 - [x] `Catalog-Gen1-HLG-16. define the first canonical local Catalog systems, platform families, and part groups before external-source integration begins`
-- [ ] `Catalog-Gen1-HLG-17. normalize repo-backed parts by real fitment truth instead of only by current source folder or filename`
+- [~] `Catalog-Gen1-HLG-17. normalize repo-backed parts by real fitment truth instead of only by current source folder or filename`
 - [x] `Catalog-Gen1-HLG-18. make filter behavior predictable, with OR inside one filter group and AND across different filter groups`
 - [x] `Catalog-Gen1-HLG-19. keep the first filter system practical for Generation 1 while leaving room for PubParts source mapping and later compatibility checks`
 - [x] `Catalog-Gen1-HLG-21. organize local repo-backed parts by system ownership such as Platform, Wheel, and later Hardware before external source intake`
 - [x] `Catalog-Gen1-HLG-22. define canonical local platform families and multi-platform compatibility metadata for ADV, XR, GT, Pint, XR Classic, and Other`
 - [x] `Catalog-Gen1-HLG-23. define first-pass part groups such as Footpads, Bumpers, Rails, Motors, Tires, Boxes, Axle Blocks, FootHolds, Shoes, and Screw & Nuts`
 - [x] `Catalog-Gen1-HLG-24. let Part view and Platform view read from the same structured item metadata instead of becoming separate catalog truths`
-- [~] `Catalog-Gen1-HLG-25. map asset name shapes into explicit metadata fields such as system, platform compatibility, part type, product name, position, motor version, tire size, and compound`
-- [ ] `Catalog-Gen1-HLG-26. support wheel-specific fitment fields for motors and tires without forcing wheel-side parts into platform-only filters`
+- [x] `Catalog-Gen1-HLG-25. map asset name shapes into explicit metadata fields such as system, platform compatibility, part type, product name, position, motor version, tire size, and compound`
+- [x] `Catalog-Gen1-HLG-26. support wheel-specific fitment fields for motors and tires without forcing wheel-side parts into platform-only filters`
 - [x] Catalog-Gen1-CLG-6. Define the local repo-backed part taxonomy and filter metadata before PubParts integration.
 - [x] Catalog-Gen1-CLG-7. Support Part and Platform browse modes from the same item metadata.
 - [x] Catalog-Gen1-CLG-8. Make filter behavior predictable with OR inside a filter group and AND across groups.
@@ -1128,7 +1131,7 @@ This active family phase advances the remaining Gen1 local part taxonomy work. P
 - [x] Catalog-Gen1-CLG-17. Define the first local part groups and route them into systems without flattening motors or tires into platform-only ownership.
 - [x] Catalog-Gen1-CLG-18. Keep `Part` view and `Platform` view as two browse reads over one shared item metadata contract.
 - [x] Catalog-Gen1-CLG-19. Map repo asset name shapes into explicit metadata fields instead of treating display labels or source folders as runtime truth.
-- [ ] Catalog-Gen1-CLG-20. Add type-specific fitment metadata lanes for motors and tires where platform compatibility alone is insufficient.
+- [x] Catalog-Gen1-CLG-20. Add type-specific fitment metadata lanes for motors and tires where platform compatibility alone is insufficient.
 - [x] Catalog-Gen1-CLG-21. Preserve predictable filter semantics: OR inside one selected filter group and AND across different groups.
 - [x] Catalog-Gen1-CLG-22. Make the local Catalog taxonomy vocabulary the target that `Generation 2` external-source mapping must translate into.
 
@@ -1153,7 +1156,12 @@ This active family phase advances the remaining Gen1 local part taxonomy work. P
 
 ### Planning Read
 
-`Catalog-7` is active. Phase 1 through Phase 3 are implemented and verified. The next legal task is to prep `Catalog-7 / Phase 4 - Wheel-Specific Motor And Tire Fitment Fields`.
+`Catalog-7` is complete as the Gen1 local taxonomy and fitment gate before `Catalog-Gen2-3`.
+
+Truthful caveat: `Catalog-Gen1-HLG-17` remains partial because the repo currently has no real motor or tire assets under `public/Catalog`, so Phase 4 could only add the structured wheel-fitment contract, pass-through seam, and item-page display path without creating live motor/tire catalog records.
+
+Dispatch next in the Catalog Gen2 loop:
+- `Catalog-Gen2-3 / Phase 1` prep
 
 ### Family Phase Doc
 

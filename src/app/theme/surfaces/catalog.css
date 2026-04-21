@@ -1,4 +1,5 @@
 .CatalogSurface {
+  position: relative;
   height: 100%;
   min-height: 100%;
   min-width: 0;
@@ -19,6 +20,32 @@
   padding: 16px;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+.CatalogSurface * {
+  scrollbar-color: rgba(126, 145, 172, 0.72) rgba(6, 10, 16, 0.78);
+  scrollbar-width: thin;
+}
+
+.CatalogSurface *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.CatalogSurface *::-webkit-scrollbar-track {
+  background: rgba(6, 10, 16, 0.78);
+  border-radius: 999px;
+}
+
+.CatalogSurface *::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  border: 2px solid rgba(6, 10, 16, 0.78);
+  border-radius: 999px;
+  background: rgba(126, 145, 172, 0.72);
+}
+
+.CatalogSurface *::-webkit-scrollbar-thumb:hover {
+  background: rgba(157, 178, 210, 0.86);
 }
 
 .CatalogSurface[data-workspace-host-mode='slotted'] .CatalogShell {
@@ -45,7 +72,9 @@
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .CatalogShellContent {
@@ -59,7 +88,9 @@
 .CatalogShellContentBody {
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
+  padding-right: 8px;
 }
 
 .CatalogShellRegionHeader {
@@ -71,7 +102,7 @@
 .CatalogShellRegionHeader h2,
 .CatalogShellRegionHeader h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
@@ -79,7 +110,7 @@
 .CatalogShellRegionEyebrow {
   margin: 0;
   color: #87b9ff;
-  font-size: 0.72rem;
+  font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -96,11 +127,18 @@
   display: grid;
   gap: 14px;
   min-height: 0;
+  flex: 0 0 auto;
 }
 
 .CatalogShellPreviewSessionList {
   display: grid;
   gap: 8px;
+  min-height: 0;
+  max-height: min(34vh, 260px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .CatalogShellFilterButton,
@@ -130,6 +168,15 @@
   cursor: pointer;
 }
 
+.CatalogShellFilterButton span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.CatalogShellFilterButton strong {
+  flex: 0 0 auto;
+}
+
 .CatalogShellFilterButton.isActive,
 .CatalogShellCard.isSelected {
   border-color: rgba(135, 185, 255, 0.48);
@@ -149,7 +196,25 @@
 .CatalogShellSourcePath {
   margin: 0;
   color: rgba(222, 233, 255, 0.82);
+  font-size: 0.68rem;
   line-height: 1.45;
+}
+
+.CatalogShellRule,
+.CatalogShellCardDescription,
+.CatalogShellCardMeta,
+.CatalogShellDetailDescription,
+.CatalogShellPreviewNotice,
+.CatalogShellSourcePath {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.CatalogShellTagFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 
 .CatalogShellCardGrid {
@@ -193,6 +258,14 @@
     box-shadow 120ms ease;
 }
 
+.CatalogShellCardLabel,
+.CatalogShellCardDescription,
+.CatalogShellCardMeta,
+.CatalogShellCardSection {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .CatalogShellCard:hover {
   border-color: rgba(135, 185, 255, 0.22);
 }
@@ -216,7 +289,7 @@
   min-height: 34px;
   padding: 0 12px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.68rem;
 }
 
 .CatalogShellCardActionButton,
@@ -322,7 +395,7 @@
 .CatalogShellItemPreviewSurfaceCopy {
   padding: 12px;
   color: rgba(222, 233, 255, 0.82);
-  font-size: 0.82rem;
+  font-size: 0.62rem;
   line-height: 1.4;
   text-align: center;
 }
@@ -339,7 +412,9 @@
 }
 
 .CatalogCardPreviewViewport--item-page {
-  min-height: 220px;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
 }
 
 .CatalogCardPreviewViewportCanvas,
@@ -379,7 +454,7 @@
   border-radius: 999px;
   background: rgba(6, 10, 16, 0.78);
   color: rgba(232, 241, 255, 0.92);
-  font-size: 0.7rem;
+  font-size: 0.56rem;
   line-height: 1.2;
 }
 
@@ -393,6 +468,7 @@
 .CatalogShellItemPage {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .CatalogShellItemPageIntro {
@@ -402,7 +478,7 @@
 
 .CatalogShellItemPageIntro h3 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 0.78rem;
   font-weight: 700;
 }
 
@@ -417,7 +493,7 @@
 
 .CatalogShellItemPageMode {
   color: #87b9ff;
-  font-size: 0.78rem;
+  font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -425,25 +501,25 @@
 
 .CatalogShellCardSection {
   color: #87b9ff;
-  font-size: 0.68rem;
+  font-size: 0.54rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .CatalogShellCardLabel {
-  font-size: 0.92rem;
+  font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .CatalogShellCardDescription {
-  font-size: 0.8rem;
+  font-size: 0.62rem;
   line-height: 1.38;
 }
 
 .CatalogShellCardMeta {
-  font-size: 0.76rem;
+  font-size: 0.58rem;
   line-height: 1.35;
 }
 
@@ -463,7 +539,41 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: #dce8ff;
-  font-size: 0.82rem;
+  font-size: 0.62rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.CatalogShellDetailMetadata,
+.CatalogShellSourcePath {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.CatalogShellDetailMetadataRow {
+  display: grid;
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+  gap: 8px 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.CatalogShellDetailMetadataRow dt,
+.CatalogShellDetailMetadataRow dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+
+.CatalogShellDetailMetadataRow dt {
+  color: rgba(232, 241, 255, 0.9);
+  font-weight: 700;
+}
+
+.CatalogShellDetailMetadataRow dd {
+  color: rgba(222, 233, 255, 0.86);
 }
 
 .CatalogShellPreviewNotice {
@@ -476,7 +586,12 @@
 }
 
 .CatalogShellItemPreviewSurface {
-  min-height: 220px;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: clamp(360px, 58vh, 560px);
+  min-height: 0;
+  justify-self: stretch;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -488,12 +603,12 @@
 .CatalogEnvironmentItemPreview {
   display: grid;
   place-items: center;
-  min-height: 220px;
+  min-height: 0;
+  width: 100%;
   height: 100%;
 }
 
 .CatalogShellItemPreviewSurfaceButton {
-  width: 100%;
   padding: 0;
   font: inherit;
   color: inherit;
@@ -503,6 +618,211 @@
 
 .CatalogShellItemPreviewSurfaceButton:hover {
   border-color: rgba(135, 185, 255, 0.22);
+}
+
+.CatalogSourceOptionsBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(3, 6, 10, 0.68);
+  backdrop-filter: blur(10px);
+}
+
+.CatalogSourceOptionsDialog {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+  width: min(720px, 100%);
+  max-height: min(78vh, 680px);
+  min-width: 0;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgba(135, 185, 255, 0.28);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(91, 163, 255, 0.16), transparent 32%),
+    rgba(10, 15, 23, 0.98);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.CatalogSourceOptionsHeader,
+.CatalogSourceOptionsActions,
+.CatalogSourceOptionsMeta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.CatalogSourceOptionsHeader {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.CatalogSourceOptionsHeader h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.CatalogSourceOptionsClose,
+.CatalogSourceOptionsAction,
+.CatalogSourceOptionsLink {
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ebf2ff;
+  font: inherit;
+  font-size: 0.64rem;
+}
+
+.CatalogSourceOptionsClose {
+  flex: 0 0 auto;
+  width: 32px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.CatalogSourceOptionsCopy,
+.CatalogSourceOptionsSourceDetails,
+.CatalogSourceOptionsStatus,
+.CatalogSourceOptionsRowDescription,
+.CatalogSourceOptionsRowUrl {
+  min-width: 0;
+  margin: 0;
+  color: rgba(222, 233, 255, 0.8);
+  font-size: 0.64rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.CatalogSourceOptionsSourceDetails {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid rgba(135, 185, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(135, 185, 255, 0.06);
+}
+
+.CatalogSourceOptionsMeta {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.CatalogSourceOptionsMeta span {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(135, 185, 255, 0.1);
+  color: rgba(232, 241, 255, 0.86);
+  font-size: 0.58rem;
+}
+
+.CatalogSourceOptionsList {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.CatalogSourceOptionsRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.CatalogSourceOptionsRow.isDisabled {
+  opacity: 0.68;
+}
+
+.CatalogSourceOptionsRow input {
+  margin: 2px 0 0;
+}
+
+.CatalogSourceOptionsRowMain {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.CatalogSourceOptionsStagedEntryFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  min-width: 0;
+  color: rgba(222, 233, 255, 0.84);
+  font-size: 0.6rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.CatalogSourceOptionsRowTitle {
+  min-width: 0;
+  color: #f4f8ff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.CatalogSourceOptionsRowType {
+  max-width: 140px;
+  color: #87b9ff;
+  font-size: 0.56rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: right;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.CatalogSourceOptionsActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.CatalogSourceOptionsAction,
+.CatalogSourceOptionsLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 12px;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.CatalogSourceOptionsAction--primary {
+  border-color: rgba(135, 185, 255, 0.34);
+  background: rgba(135, 185, 255, 0.16);
+}
+
+.CatalogSourceOptionsAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .CatalogShellItemPreviewSurfaceButton:focus-visible {
@@ -519,8 +839,8 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   font-family: 'Cascadia Code', 'Consolas', monospace;
-  font-size: 0.8rem;
-  word-break: break-all;
+  font-size: 0.6rem;
+  overflow-wrap: anywhere;
 }
 
 .CatalogShellActionArea {
@@ -558,7 +878,7 @@
   align-items: center;
   gap: 8px;
   color: rgba(222, 233, 255, 0.86);
-  font-size: 0.82rem;
+  font-size: 0.62rem;
 }
 
 .CatalogEnvironmentRange input {
@@ -568,6 +888,7 @@
 .CatalogShellActionButtons button {
   min-height: 40px;
   padding: 0 14px;
+  font-size: 0.68rem;
 }
 
 .CatalogShellActionButtons button:disabled,
@@ -580,6 +901,7 @@
 .CatalogShellPreviewSession {
   display: grid;
   gap: 12px;
+  min-width: 0;
   padding: 14px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -588,7 +910,7 @@
 
 .CatalogShellPreviewSession--rail {
   gap: 10px;
-  margin-top: auto;
+  margin-top: 0;
   padding: 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.035);
@@ -600,19 +922,27 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+}
+
+.CatalogShellPreviewSessionHeader > div,
+.CatalogShellPreviewSessionRow > span,
+.CatalogShellPreviewSessionRowBody {
+  min-width: 0;
 }
 
 .CatalogShellPreviewSessionHeader h3 {
   margin: 0;
-  font-size: 0.96rem;
+  font-size: 0.74rem;
 }
 
 .CatalogShellPreviewSession--rail .CatalogShellPreviewSessionHeader h3 {
-  font-size: 0.88rem;
+  font-size: 0.68rem;
 }
 
 .CatalogShellPreviewSessionClearButton,
 .CatalogShellPreviewSessionUnloadButton {
+  flex: 0 0 auto;
   min-height: 34px;
   padding: 0 12px;
   cursor: pointer;
@@ -622,7 +952,7 @@
 .CatalogShellPreviewSession--rail .CatalogShellPreviewSessionUnloadButton {
   min-height: 30px;
   padding: 0 10px;
-  font-size: 0.8rem;
+  font-size: 0.62rem;
 }
 
 .CatalogShellPreviewSessionClearButton {
@@ -635,11 +965,29 @@
 
 .CatalogShellPreviewSessionRow span {
   color: #dce8ff;
-  font-size: 0.86rem;
+  font-size: 0.66rem;
+  overflow-wrap: anywhere;
 }
 
 .CatalogShellPreviewSession--rail .CatalogShellPreviewSessionRow span {
-  font-size: 0.8rem;
+  font-size: 0.62rem;
+}
+
+.CatalogShellPreviewSessionRowBody {
+  display: block;
+  flex: 1 1 auto;
+  line-height: 1.35;
+}
+
+.CatalogShellPreviewSessionRowLabel,
+.CatalogShellPreviewSessionRowStatus,
+.CatalogShellPreviewSessionRowInspection,
+.CatalogShellPreviewSessionRowUrl {
+  overflow-wrap: anywhere;
+}
+
+.CatalogShellPreviewSessionRowUrl {
+  color: rgba(185, 203, 232, 0.88);
 }
 
 @media (max-width: 1180px) {
@@ -657,6 +1005,7 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
     height: auto;
+    overflow-y: auto;
   }
 
   .CatalogShellFilters,
@@ -666,6 +1015,7 @@
 
   .CatalogShellFilters {
     grid-row: 1;
+    max-height: 44vh;
   }
 
   .CatalogShellContent {
@@ -674,5 +1024,13 @@
 
   .CatalogShellCardGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .CatalogShellDetailMetadataRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .CatalogShellItemPreviewSurface {
+    height: clamp(280px, 52vh, 440px);
   }
 }

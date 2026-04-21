@@ -1,7 +1,12 @@
 import type { EnvironmentSourceSettings } from '../../../shared/viewSettingsTypes'
 import type { CatalogItemRecord } from '../catalogItemContract'
+import type {
+  PubPartsLocalSourceRecord,
+  PubPartsStagedSourceRecord,
+} from '../pubPartsDownloadsStorage'
 import {
   getCatalogItemPrimaryPreviewMedia,
+  isCatalogStartingAssemblyItem,
   resolveCatalogRepoEnvironmentSource,
   resolveCatalogRepoReferencePreviewSource,
   resolveCatalogPreviewMediaSrc,
@@ -12,17 +17,42 @@ import {
 } from '../catalogActionPlan'
 import { CatalogCardPreviewViewport } from './CatalogCardPreviewViewport'
 import {
-  formatCatalogSectionLabel,
+  buildCatalogItemSourceDetails,
+  buildCatalogStartingAssemblyDetails,
+  buildCatalogWheelFitmentDetails,
+  resolveCatalogExternalSourceActionBoundary,
+  resolveCatalogExternalSourcePageUrl,
+  resolveCatalogItemModeLabel,
   resolveCatalogItemPageFamilyLabel,
   resolveCatalogItemPageFamilySummary,
+  resolveCatalogItemSectionLabel,
+  resolveCatalogItemSourceLabel,
+  resolveCatalogLinkedArchiveClassification,
+  resolveCatalogLinkedArchiveHandoff,
+  resolveCatalogPubPartsDropboxChooserStatusRead,
+  resolveCatalogPubPartsSourceDownloadHandoff,
+  resolveCatalogPubPartsStagedSourceInspectionRead,
+  resolveCatalogPubPartsSupportedFileChooserRead,
+  resolveCatalogSelectedPubPartsImportHandoff,
+  shouldRenderCatalogPreviewMediaEagerly,
+  type CatalogPubPartsDropboxChooserStatus,
 } from './catalogShellShared'
 
 type CatalogShellItemPageProps = {
   item: CatalogItemRecord
+  pubPartsStagedSourceRecord: PubPartsStagedSourceRecord | null
+  pubPartsLocalSourceRecord: PubPartsLocalSourceRecord | null
+  pubPartsDropboxChooserStatus: CatalogPubPartsDropboxChooserStatus | null
   isPreviewLoaded: boolean
   previewTargetCount: number
   onLoadPreview: () => void
   onAddToProject: () => void
+  onStageExternalSourceLink: () => void
+  onInspectStagedSource: () => void
+  onSelectSupportedFileCandidate: () => void
+  onPreparePubPartsLocalSource: () => void
+  onAddPubPartsDropboxFileToProject: () => void
+  onImportDownloadedPubPartsFiles: () => void
   onApplyEnvironment: () => void
   onBrowseLocalEnvironment: (file: File) => void
   appliedEnvironmentSource: EnvironmentSourceSettings
@@ -38,6 +68,12 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
     previewTargetCount,
     onLoadPreview,
     onAddToProject,
+    onStageExternalSourceLink,
+    onInspectStagedSource,
+    onSelectSupportedFileCandidate,
+    onPreparePubPartsLocalSource,
+    onAddPubPartsDropboxFileToProject,
+    onImportDownloadedPubPartsFiles,
     onApplyEnvironment,
     onBrowseLocalEnvironment,
     appliedEnvironmentSource,
@@ -51,10 +87,57 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
   const familySummary = resolveCatalogItemPageFamilySummary(item)
   const previewViewportSource = resolveCatalogRepoReferencePreviewSource(item)
   const environmentPreviewSource = resolveCatalogRepoEnvironmentSource(item)
-  const canClickPreviewSurfaceToLoad = !isPreviewLoaded && actionPlan.allowsTemporaryPreview
+  const shouldRenderEagerPreviewMedia = shouldRenderCatalogPreviewMediaEagerly(item)
+  const canClickPreviewSurfaceToLoad =
+    !shouldRenderEagerPreviewMedia && !isPreviewLoaded && actionPlan.allowsTemporaryPreview
   const itemPageActions = [actionPlan.primaryAction, actionPlan.secondaryAction].filter(
     (action): action is NonNullable<typeof action> => action !== null,
   )
+  const sourceDetails = buildCatalogItemSourceDetails(item)
+  const startingAssemblyDetails = buildCatalogStartingAssemblyDetails(item)
+  const wheelFitmentDetails = buildCatalogWheelFitmentDetails(item)
+  const externalSourceActionBoundary = resolveCatalogExternalSourceActionBoundary(
+    item,
+    props.pubPartsStagedSourceRecord,
+  )
+  const externalSourcePageUrl = resolveCatalogExternalSourcePageUrl(item)
+  const linkedArchiveHandoff = resolveCatalogLinkedArchiveHandoff(item)
+  const linkedArchiveClassification = resolveCatalogLinkedArchiveClassification(item)
+  const stagedSourceInspectionRead =
+    props.pubPartsStagedSourceRecord !== null
+      ? resolveCatalogPubPartsStagedSourceInspectionRead(props.pubPartsStagedSourceRecord)
+      : null
+  const supportedFileChooserRead =
+    props.pubPartsStagedSourceRecord !== null
+      ? resolveCatalogPubPartsSupportedFileChooserRead(props.pubPartsStagedSourceRecord)
+      : null
+  const selectedFileImportHandoff = resolveCatalogSelectedPubPartsImportHandoff(
+    item,
+    props.pubPartsStagedSourceRecord,
+  )
+  const sourceDownloadHandoff = resolveCatalogPubPartsSourceDownloadHandoff(
+    item,
+    props.pubPartsStagedSourceRecord,
+  )
+  const dropboxChooserStatusRead = resolveCatalogPubPartsDropboxChooserStatusRead(
+    props.pubPartsDropboxChooserStatus,
+  )
+  const localLibraryAction =
+    item.source.sourceKind === 'external' && item.source.provider.providerId === 'pubparts'
+      ? {
+          label: 'Add To Project',
+          description: `${dropboxChooserStatusRead.description} The local-library/manual file picker fallback remains available below.`,
+          onClick: onAddPubPartsDropboxFileToProject,
+        }
+      : null
+  const actionAreaCopy =
+    item.source.sourceKind === 'planned'
+      ? 'This page is the main decision surface once the user leaves the catalog grid. Planned source entries can add their verified source file as project reference content while keeping heavy preview and load-as-starting-configuration unavailable.'
+      : isCatalogStartingAssemblyItem(item)
+      ? 'This page is the main decision surface once the user leaves the catalog grid. Starting assemblies keep preview separate from the planned load-as-starting-configuration handoff; no downstream builder load owner is wired yet.'
+      : item.source.sourceKind === 'external'
+      ? 'This page is the main decision surface once the user leaves the catalog grid. External-linked source records keep preview and source inspection separate from archive download, extraction, import, or project commit behavior.'
+      : `This page is the main decision surface once the user leaves the catalog grid. ${familyLabel} keeps preview and commit meaning explicit.`
 
   return (
     <div className="CatalogShellItemPage" data-catalog-region="item-page">
@@ -67,17 +150,13 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           Back To Catalog
         </button>
         <span className="CatalogShellItemPageMode">
-          {item.source.sourceKind === 'repo' ? 'Catalog Item' : 'Imports Reuse'}
+          {resolveCatalogItemModeLabel(item)}
         </span>
       </div>
       <div className="CatalogShellDetailMeta">
         <span>{familyLabel}</span>
-        <span>
-          {item.source.sourceKind === 'imports'
-            ? 'Imports'
-            : formatCatalogSectionLabel(item.sectionKey)}
-        </span>
-        <span>{item.source.sourceKind === 'repo' ? 'Repo-backed' : 'Imports reuse'}</span>
+        <span>{resolveCatalogItemSectionLabel(item)}</span>
+        <span>{resolveCatalogItemSourceLabel(item)}</span>
       </div>
       <div className="CatalogShellItemPageIntro">
         <h3>{familyLabel}</h3>
@@ -101,6 +180,35 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           ))}
         </dl>
       ) : null}
+      {startingAssemblyDetails.length > 0 ? (
+        <dl
+          className="CatalogShellDetailMetadata"
+          data-catalog-region="starting-assembly-details"
+        >
+          {startingAssemblyDetails.map((entry) => (
+            <div
+              key={`${item.itemId}:starting-assembly:${entry.label}`}
+              className="CatalogShellDetailMetadataRow"
+            >
+              <dt>{entry.label}</dt>
+              <dd>{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {wheelFitmentDetails.length > 0 ? (
+        <dl className="CatalogShellDetailMetadata" data-catalog-region="wheel-fitment-details">
+          {wheelFitmentDetails.map((entry) => (
+            <div
+              key={`${item.itemId}:wheel-fitment:${entry.label}`}
+              className="CatalogShellDetailMetadataRow"
+            >
+              <dt>{entry.label}</dt>
+              <dd>{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       {(item.notes?.length ?? 0) > 0 ? (
         <ul className="CatalogShellDetailNotes">
           {(item.notes ?? []).map((note) => (
@@ -112,6 +220,7 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
         <button
           type="button"
           className="CatalogShellItemPreviewSurface CatalogShellItemPreviewSurfaceButton"
+          data-catalog-item-preview-surface={item.itemId}
           data-catalog-item-preview-trigger={item.itemId}
           onClick={onLoadPreview}
         >
@@ -120,7 +229,10 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           </div>
         </button>
       ) : (
-        <div className={`CatalogShellItemPreviewSurface ${isPreviewLoaded ? 'isLoaded' : ''}`}>
+        <div
+          className={`CatalogShellItemPreviewSurface ${isPreviewLoaded ? 'isLoaded' : ''}`}
+          data-catalog-item-preview-surface={item.itemId}
+        >
           {environmentPreviewSource !== null ? (
             <div
               className="CatalogEnvironmentItemPreview"
@@ -137,6 +249,11 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
                 Simple applied-environment preview for {item.label}.
               </span>
             </div>
+          ) : shouldRenderEagerPreviewMedia && selectedItemPreviewMedia !== null ? (
+            <img
+              src={resolveCatalogPreviewMediaSrc(selectedItemPreviewMedia.src)}
+              alt={selectedItemPreviewMedia.alt}
+            />
           ) : isPreviewLoaded && previewViewportSource !== null ? (
             <CatalogCardPreviewViewport
               itemId={item.itemId}
@@ -182,10 +299,14 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           {actionPlan.allowsTemporaryPreview
             ? selectedItemPreviewMedia === null
               ? `${familyLabel} has no preview media loaded by default.`
+              : shouldRenderEagerPreviewMedia
+                ? `${selectedItemPreviewMedia.alt} is displayed eagerly as external image browse context; model, archive, STEP, and builder loads remain user-driven or unavailable.`
               : isPreviewLoaded
                 ? `${selectedItemPreviewMedia.alt} is currently loaded through the temporary Catalog preview session for this ${familyLabel.toLowerCase()}.`
                 : `${selectedItemPreviewMedia.alt} is available on demand through the temporary Catalog preview session for this ${familyLabel.toLowerCase()}.`
-            : 'This entry applies through the shared viewer environment owner instead of the temporary Catalog preview session.'}
+            : item.source.sourceKind === 'planned'
+              ? 'This planned source entry is visible for source inspection only; heavy preview and starting-configuration load are unavailable.'
+              : 'This entry applies through the shared viewer environment owner instead of the temporary Catalog preview session.'}
         </span>
       </div>
       {(item.projectUsageCount ?? 0) > 0 ? (
@@ -196,14 +317,333 @@ export function CatalogShellItemPage(props: CatalogShellItemPageProps) {
           </span>
         </div>
       ) : null}
-      <div className="CatalogShellSourcePath">{item.source.assetPath}</div>
+      {sourceDetails.length > 0 ? (
+        <dl className="CatalogShellSourcePath" data-catalog-region="source-details">
+          {externalSourcePageUrl !== null ? (
+            <div className="CatalogShellDetailMetadataRow">
+              <dt>Source Page</dt>
+              <dd>
+                <a
+                  href={externalSourcePageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-catalog-source-page-link={item.itemId}
+                >
+                  Open Source Page
+                </a>
+              </dd>
+            </div>
+          ) : null}
+          {linkedArchiveHandoff.state !== 'no-linked-archive' ? (
+            <div className="CatalogShellDetailMetadataRow">
+              <dt>Archive Handoff</dt>
+              <dd>
+                {linkedArchiveHandoff.isUserInspectable && linkedArchiveHandoff.url !== null ? (
+                  <a
+                    href={linkedArchiveHandoff.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-catalog-linked-archive-link={item.itemId}
+                  >
+                    Inspect Linked Archive Source
+                  </a>
+                ) : (
+                  linkedArchiveHandoff.label
+                )}
+                {' '}
+                <span className="CatalogShellSourceHandoffState">
+                  {linkedArchiveHandoff.label} - {linkedArchiveHandoff.description}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {linkedArchiveClassification.kind !== 'no-linked-archive' ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-linked-archive-classification={item.itemId}
+            >
+              <dt>Archive Classification</dt>
+              <dd>
+                {linkedArchiveClassification.label}
+                <span className="CatalogShellSourceHandoffState">
+                  {' '}
+                  {linkedArchiveClassification.description}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {sourceDownloadHandoff.state === 'source-download-ready' &&
+          sourceDownloadHandoff.downloadUrl !== null ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-source-download-handoff={item.itemId}
+            >
+              <dt>Source Download</dt>
+              <dd>
+                <a
+                  href={sourceDownloadHandoff.downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-catalog-source-download-link={item.itemId}
+                >
+                  {sourceDownloadHandoff.label}
+                </a>
+                {' '}
+                <span className="CatalogShellSourceHandoffState">
+                  {sourceDownloadHandoff.description}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {externalSourceActionBoundary.state !== 'not-external-pubparts' ? (
+            <div className="CatalogShellDetailMetadataRow">
+              <dt>Source Action</dt>
+              <dd>
+                <button
+                  type="button"
+                  disabled={externalSourceActionBoundary.state !== 'source-link-stage-ready'}
+                  data-catalog-external-source-action-boundary={item.itemId}
+                  data-catalog-stage-source-link={
+                    externalSourceActionBoundary.state === 'source-link-stage-ready'
+                      ? item.itemId
+                      : undefined
+                  }
+                  onClick={
+                    externalSourceActionBoundary.state === 'source-link-stage-ready'
+                      ? onStageExternalSourceLink
+                      : undefined
+                  }
+                >
+                  {externalSourceActionBoundary.label}
+                </button>
+                {' '}
+                <span
+                  className="CatalogShellSourceHandoffState"
+                  data-catalog-pubparts-source-stage-status={
+                    externalSourceActionBoundary.state === 'source-link-staged'
+                      ? item.itemId
+                      : undefined
+                  }
+                >
+                  {externalSourceActionBoundary.description}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {props.pubPartsStagedSourceRecord !== null ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-import-downloaded-pubparts-files={item.itemId}
+            >
+              <dt>Import Downloaded Files</dt>
+              <dd>
+                <button
+                  type="button"
+                  data-catalog-import-downloaded-pubparts-files-action={item.itemId}
+                  onClick={onImportDownloadedPubPartsFiles}
+                >
+                  Import Downloaded Files
+                </button>
+                {' '}
+                <span className="CatalogShellSourceHandoffState">
+                  Choose local files you downloaded or extracted from the PubParts source. ParaHook will stage them in the normal Import review dialog with PubParts attribution.
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {localLibraryAction !== null ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-pubparts-local-library-action={item.itemId}
+              data-catalog-pubparts-add-to-project-bridge={item.itemId}
+            >
+              <dt>Add To Project</dt>
+              <dd>
+                <button
+                  type="button"
+                  data-catalog-pubparts-local-library-primary-action={item.itemId}
+                  data-catalog-pubparts-add-to-project-action={item.itemId}
+                  onClick={localLibraryAction.onClick}
+                >
+                  {localLibraryAction.label}
+                </button>
+                {' '}
+                <span
+                  className="CatalogShellSourceHandoffState"
+                  data-catalog-pubparts-local-library-status={item.itemId}
+                  data-catalog-pubparts-dropbox-chooser-status={item.itemId}
+                >
+                  {dropboxChooserStatusRead.label}
+                  {' - '}
+                  {localLibraryAction.description}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {item.source.sourceKind === 'external' && item.source.provider.providerId === 'pubparts' ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-pubparts-local-fallback={item.itemId}
+            >
+              <dt>Local Fallback</dt>
+              <dd>
+                <button
+                  type="button"
+                  data-catalog-pubparts-prepare-local-fallback={item.itemId}
+                  onClick={onPreparePubPartsLocalSource}
+                >
+                  Prepare PubParts Folder
+                </button>
+                {props.pubPartsStagedSourceRecord === null ? (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      data-catalog-pubparts-stage-local-fallback={item.itemId}
+                      onClick={onStageExternalSourceLink}
+                    >
+                      Stage Source Link
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      data-catalog-pubparts-import-local-fallback={item.itemId}
+                      onClick={onImportDownloadedPubPartsFiles}
+                    >
+                      Import Local Files
+                    </button>
+                  </>
+                )}
+                {' '}
+                <span className="CatalogShellSourceHandoffState">
+                  {props.pubPartsLocalSourceRecord === null
+                    ? 'Not Prepared'
+                    : props.pubPartsLocalSourceRecord.localStatusLabel}
+                  {' - '}
+                  Use this known PubParts item folder fallback when source options cannot resolve the file automatically or the file must be downloaded manually.
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {props.pubPartsLocalSourceRecord !== null ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-pubparts-local-folder={item.itemId}
+            >
+              <dt>Local Folder</dt>
+              <dd>
+                <span className="CatalogShellSourceHandoffState">
+                  {props.pubPartsLocalSourceRecord.itemFolderPath}
+                  {' - Manifest: '}
+                  {props.pubPartsLocalSourceRecord.manifestPath}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {props.pubPartsStagedSourceRecord !== null ? (
+            <div className="CatalogShellDetailMetadataRow">
+              <dt>Source Inspection</dt>
+              <dd>
+                {props.pubPartsStagedSourceRecord.inspectionStatus === 'not-inspected' ? (
+                  <button
+                    type="button"
+                    data-catalog-inspect-staged-source={item.itemId}
+                    onClick={onInspectStagedSource}
+                  >
+                    Inspect Staged Source Metadata
+                  </button>
+                ) : null}
+                {props.pubPartsStagedSourceRecord.inspectionStatus === 'not-inspected'
+                  ? ' '
+                  : null}
+                <span
+                  className="CatalogShellSourceHandoffState"
+                  data-catalog-pubparts-source-inspection-status={item.itemId}
+                >
+                  {props.pubPartsStagedSourceRecord.inspectionStatus === 'metadata-inspected'
+                    ? 'Metadata Inspection Complete - '
+                    : ''}
+                  {stagedSourceInspectionRead?.label ?? 'Not inspected'} -{' '}
+                  {stagedSourceInspectionRead?.description ??
+                    'This PubParts source link has not been inspected.'}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {supportedFileChooserRead !== null ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-supported-file-chooser={
+                supportedFileChooserRead.state === 'supported-file-choice-ready' ||
+                supportedFileChooserRead.state === 'supported-file-selected'
+                  ? item.itemId
+                  : undefined
+              }
+              data-catalog-supported-file-chooser-empty={
+                supportedFileChooserRead.state !== 'supported-file-choice-ready' &&
+                supportedFileChooserRead.state !== 'supported-file-selected'
+                  ? item.itemId
+                  : undefined
+              }
+            >
+              <dt>Supported File Chooser</dt>
+              <dd>
+                {supportedFileChooserRead.isSelectable ? (
+                  <button
+                    type="button"
+                    data-catalog-supported-file-choice={item.itemId}
+                    onClick={onSelectSupportedFileCandidate}
+                  >
+                    {supportedFileChooserRead.label}
+                  </button>
+                ) : null}
+                {supportedFileChooserRead.isSelectable ? ' ' : null}
+                <span
+                  className="CatalogShellSourceHandoffState"
+                  data-catalog-supported-file-selection-status={item.itemId}
+                >
+                  {supportedFileChooserRead.selectedSupportedFile !== null
+                    ? `${supportedFileChooserRead.description} ${supportedFileChooserRead.selectedSupportedFile.label}.`
+                    : `${supportedFileChooserRead.label} - ${supportedFileChooserRead.description}`}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {selectedFileImportHandoff.state !== 'not-external-pubparts' &&
+          selectedFileImportHandoff.state !== 'no-staged-source' ? (
+            <div
+              className="CatalogShellDetailMetadataRow"
+              data-catalog-selected-file-import-handoff={item.itemId}
+            >
+              <dt>Selected File Import</dt>
+              <dd>
+                <span
+                  className="CatalogShellSourceHandoffState"
+                  data-catalog-selected-file-import-handoff-status={item.itemId}
+                >
+                  {selectedFileImportHandoff.selectedFile !== null
+                    ? `${selectedFileImportHandoff.label} - ${selectedFileImportHandoff.description} ${selectedFileImportHandoff.selectedFile.label}.`
+                    : `${selectedFileImportHandoff.label} - ${selectedFileImportHandoff.description}`}
+                </span>
+              </dd>
+            </div>
+          ) : null}
+          {sourceDetails.map((entry) => (
+            <div key={`${item.itemId}:source:${entry.label}`} className="CatalogShellDetailMetadataRow">
+              <dt>{entry.label}</dt>
+              <dd>{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       <div className="CatalogShellActionArea" data-catalog-region="actions">
         <div className="CatalogShellActionCopy">
           <p className="CatalogShellRegionEyebrow">Action Area</p>
           <h3>Next Step</h3>
-          <p>
-            This page is the main decision surface once the user leaves the catalog grid. {familyLabel} keeps preview and commit meaning explicit.
-          </p>
+          <p>{actionAreaCopy}</p>
           {previewTargetCount > 1 ? (
             <p>
               Loading preview here will target {previewTargetCount} currently selected cards in this

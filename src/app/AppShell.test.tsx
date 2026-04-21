@@ -1028,15 +1028,20 @@ describe('AppShell', () => {
     ).not.toBeNull()
   })
 
-  it('reserves the bottom console bar only for the primary docked model viewport host', async () => {
+  it('mounts the docked console in the app-shell console row without viewport-local bottom reservation', async () => {
     ;({ container, root } = await renderAppShell())
 
     const getPrimaryHost = () =>
       container?.querySelector(
         '.ViewportWorkspaceHost[data-workspace-viewport-id="model-viewer-primary"]',
       ) as HTMLDivElement | null
+    const consoleRow = container?.querySelector(
+      '.AppShellConsoleRow[data-app-shell-console-row="true"]',
+    ) as HTMLElement | null
 
-    expect(getPrimaryHost()?.dataset.bottomConsoleBarReserved).toBe('true')
+    expect(consoleRow).not.toBeNull()
+    expect(consoleRow?.querySelector('.ConsoleDockMock')).not.toBeNull()
+    expect(getPrimaryHost()?.dataset.bottomConsoleBarReserved).toBe('false')
 
     await act(async () => {
       useWorkspaceStore.getState().splitViewportSlot('workspace-slot-primary', 'right', {
